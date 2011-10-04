@@ -95,7 +95,7 @@
 			<artifactId>accumulo-start</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>cloudtrace</groupId>
+			<groupId>org.apache.accumulo</groupId>
 			<artifactId>cloudtrace</artifactId>
 		</dependency>
 		<dependency>

@@ -53,6 +53,10 @@
 			<artifactId>accumulo-start</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.apache.accumulo</groupId>
+			<artifactId>cloudtrace</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
 		</dependency>
@@ -87,10 +91,6 @@
 		<dependency>
 			<groupId>jfree</groupId>
 			<artifactId>jcommon</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>cloudtrace</groupId>
-			<artifactId>cloudtrace</artifactId>
 		</dependency>
 	</dependencies>
 

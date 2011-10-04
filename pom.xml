@@ -10,6 +10,7 @@
 	<name>accumulo</name>
 
 	<modules>
+		<module>src/trace</module>
 		<module>src/core</module>
 		<module>src/server</module>
 		<module>src/start</module>
@@ -80,7 +81,7 @@
 						<configuration>
 							<outputDirectory>../../lib</outputDirectory>
 							<!-- just grab the non-provided runtime dependencies -->
-							<includeArtifactIds>commons-collections,commons-configuration,commons-io,commons-lang,jline,log4j,libthrift,jfreechart,jcommon,commons-jci-core,commons-jci-fam,commons-logging,commons-logging-api,cloudtrace</includeArtifactIds>
+							<includeArtifactIds>commons-collections,commons-configuration,commons-io,commons-lang,jline,log4j,libthrift,jfreechart,jcommon,commons-jci-core,commons-jci-fam,commons-logging,commons-logging-api</includeArtifactIds>
 							<excludeGroupIds>org.apache.accumulo</excludeGroupIds>
 							<excludeTransitive>true</excludeTransitive>
 						</configuration>
@@ -101,6 +102,7 @@
 						</manifestEntries>
 					</archive>
 					<includes>
+						<include>cloudtrace/**</include>
 						<include>org/apache/accumulo**/**</include>
 						<include>web/**</include>
 						<include>randomwalk/**</include>
@@ -477,6 +479,11 @@
 			</dependency>
 
 			<!-- accumulo dependency jars that we will provide -->
+		  	<dependency>
+		  	   <groupId>org.apache.accumulo</groupId>
+		  	   <artifactId>cloudtrace</artifactId>
+		  	   <version>1.4.0-incubating-SNAPSHOT</version>
+		  	</dependency>
 			<dependency>
 				<groupId>org.apache.accumulo</groupId>
 				<artifactId>accumulo-start</artifactId>
@@ -578,11 +585,6 @@
 		  		<groupId>org.apache.commons</groupId>
 		  		<artifactId>commons-jci-fam</artifactId>
 				<version>1.0</version>
-		  	</dependency>
-		  	<dependency>
-		  	   <groupId>cloudtrace</groupId>
-		  	   <artifactId>cloudtrace</artifactId>
-		  	   <version>0.2.0</version>
 		  	</dependency>
 		</dependencies>
 	</dependencyManagement>
