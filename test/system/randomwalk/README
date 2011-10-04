@@ -1,0 +1,47 @@
+
+The randomwalk framework needs to be configured for your Accumulo instance by
+doing the following steps:
+
+1.  Make sure you have both ACCUMULO_HOME and HADOOP_HOME set in your 
+    environment.
+
+2.  Create 'randomwalk.conf' file in the conf directory containing settings
+    needed by walkers to connect to Accumulo.
+
+3.  Create a 'walkers' file in the conf directory containing the hostnames of
+    the machines where you want random walkers to run.
+
+The command below starts random walkers on all machines listed in 'walkers'.
+The argument Image.xml indicates the module to use (which is located at 
+conf/modules/Image.xml):
+
+./bin/start-all.sh Image.xml
+
+All modules must be in conf/modules and can be referenced without this prefix.  
+For example, a module located at conf/modules/foo/bar.xml is started as
+the following:
+
+./bin/start-all.sh foo/bar.xml
+
+This command will load all configuration in the conf directory to HDFS and
+start identical random walkers on each node.  These random walkers will
+download the current configuration from HDFS and place them in the tmp/
+directory.
+
+Random walkers will drop their logs in the logs/ directory.
+
+You can kill all walkers on the machines listed in the 'walkers' file using
+the following command:
+
+./bin/kill-all.sh
+
+-----------------------------------------------------------------------------
+
+Other useful commands:
+
+copy-config.sh		    Copies configuration in conf/ to HDFS
+
+start-local.sh All.xml	    Copies configuration from HDFS into tmp/ and
+			    and starts only one local random walker.
+ 
+pkill -f randomwalk.Framework	Stops all local random walkers

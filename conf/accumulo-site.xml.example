@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+<configuration>
+	<!--
+  Put your site-specific accumulo configurations here.
+
+  The available configuration values along with their defaults
+  are documented in docs/config.html
+
+  Unless you are simply testing at your workstation, you will most 
+  definitely need to change the two entries below.
+	-->
+
+    <property>
+      <name>instance.zookeeper.host</name>
+      <value>localhost:2181</value>
+      <description>comma separated list of zookeeper servers</description>
+    </property>
+
+    <property>
+      <name>logger.dir.walog</name>
+      <value>walogs</value>
+      <description>A local file system to store recovery logs</description>
+    </property>
+
+    <property>
+      <name>instance.secret</name>
+      <value></value>
+      <description>A secret unique to a given instance that all servers must know in order to communicate with one another.
+      </description>
+    </property>
+
+
+</configuration>

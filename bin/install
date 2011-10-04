@@ -1,0 +1,347 @@
+#! /usr/bin/env python
+
+import os
+import time
+import sys
+import logging
+import subprocess
+from optparse import OptionParser
+
+log = logging.getLogger('installer')
+
+ACCUMULO_HOME= os.path.realpath(__file__).rsplit(os.path.sep, 2)[0]
+
+class BadConfiguration(Exception):
+    pass
+
+class Config:
+    # Change the elements below for an automatic install process
+    def __init__(self, args):
+        self.memory = dict(gc='1g', master='500m', tserver='1g', logger='500m', monitor='245m', other='256m')
+        
+        self.parser = parser = OptionParser()
+        parser.add_option('-v', '--verbose', dest='verbose',
+                          help='Set the verbose level: 10=debug, 20=info, etc',
+                          default=30, type='int')
+        parser.add_option('-l', '--localhost', dest='localhost',
+                          help='Install accumulo on the local machine only',
+                          default=False, action='store_true')
+        parser.add_option('-i', '--instance', dest='instance',
+                          help='The name of the accumulo instance',
+                          default='accumulo', type='string')
+        parser.add_option('--hadoop', 
+                          help='The location of the hadoop installation',
+                          default='/opt/hadoop', type='string')
+        parser.add_option('--zookeepers', 
+                          help='The hosts that are running zookeeper.',
+                          default=[], action='append')
+        parser.add_option('--zookeeper', 
+                          help='The location of the zookeeper installation.',
+                          default='/opt/zookeeper', type='string')
+        parser.add_option('--java', 
+                          help='The location of JAVA_HOME',
+                          default=os.environ.get('JAVA_HOME', '/usr'), type='string')
+        parser.add_option('--slaves', 
+                          help='A file containing the list of tablet server slave hosts',
+                          default=None, type='string')
+        parser.add_option('--master', dest='masters',
+                          help='The name of a host to use as a master (can be specified multiple times).',
+                          default=[], action='append')
+        parser.add_option('--log', dest='log',
+                          help='The location for regular and debug server log files.',
+                          default=ACCUMULO_HOME + "/logs", type='string')
+        parser.add_option('--walog', dest='walog',
+                          help='The location for write-ahead logs.',
+                          default='/var/tmp/' + os.getenv('USER') + '/walog', type='string')
+        parser.add_option('--password', dest='password',
+                          help='The the password for "root".',
+                          default='secret', type='string')
+        parser.add_option('--noprompt', dest='prompt', default=True, action='store_false',
+                          help='Do not prompt the user verification before continuing.')
+        parser.add_option('--location', dest='location', type='string', default='/accumulo',
+                          help='Location to store accumulo in hdfs.')
+        self.options, self.args = parser.parse_args()
+        logging.basicConfig(level=self.options.verbose)
+
+    def configure(self):
+        self.findHadoop()
+        self.findZookeeper()
+        self.findJava()
+        self.findSlaves()
+        self.findMasters()
+        self.printConfig()
+        self.checkSSH()
+        self.checkTime()
+        self.createConfig()
+        self.updateBashrc()
+        self.synchConfiguration()
+        self.init()
+        self.startAll()
+        self.testShell()
+        self.testMonitor()
+
+    def createConfig(self):
+        fp = open('conf/slaves', 'wb')
+        for slave in self.options.slaves:
+            fp.write('%s\n' % slave)
+        fp.close()
+        fp = open('conf/masters', 'wb')
+        for master in self.options.masters:
+            fp.write('%s\n' % master)
+        fp.close()
+        fp = open('conf/accumulo-env.sh', 'wb')
+        vars = self.options.__dict__.copy()
+        vars.update(self.memory)
+        vars['master1'] = self.options.masters[0]
+        fp.write(
+'''            
+export JAVA_HOME="%(java)s"
+export HADOOP_HOME="%(hadoop)s"
+export ACCUMULO_LOG_DIR="%(log)s"
+export ZOOKEEPER_HOME="%(zookeeper)s"
+export ACCUMULO_TSERVER_OPTS="-Xmx%(tserver)s -Xms%(tserver)s "
+export ACCUMULO_MASTER_OPTS="-Xmx%(master)s -Xms%(master)s "
+export ACCUMULO_GC_OPTS="-Xmx%(gc)s -Xms%(gc)s "
+export ACCUMULO_MONITOR_OPTS="-Xmx%(monitor)s -Xms%(monitor)s "
+export ACCUMULO_LOGGER_OPTS="-Xmx%(logger)s -Xms%(logger)s "
+export ACCUMULO_GENERAL_OPTS="$ACCUMULO_GENERAL_OPTS -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=75 "
+export ACCUMULO_OTHER_OPTS="$ACCUMULO_OTHER_OPTS -Xmx%(other)s -Xms%(other)s"
+export ACCUMULO_LOG_HOST="%(master1)s"
+''' % vars)
+        fp.close()
+        fp = open('conf/accumulo-site.xml', 'wb')
+        fp.write('''<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+
+''')
+
+        fp.write('<configuration>\n')
+        config = {'instance.zookeeper.host':",".join(self.options.zookeepers),
+                  'instance.dfs.dir':self.options.location,
+                  'logger.dir.walog':self.options.walog}
+        for k, v in config.items():
+            fp.write('  <property>\n')
+            fp.write('     <name>%s</name>\n' % k)
+            fp.write('     <value>%s</value>\n' % v)
+            fp.write('  </property>\n')
+        fp.write('</configuration>')
+        fp.close()
+
+    def printConfig(self):
+        for option in self.parser.option_list:
+            if option.dest and option.dest != 'verbose':
+                print '%10s' % option.dest, repr(getattr(self.options, option.dest))
+        if self.options.prompt:
+            sys.stdout.write("Do you wish to use this configuration? ")
+            line = sys.stdin.readline()
+            if line.strip().lower() not in ['y', 'yes', 'true', '1']:
+                sys.exit(1)
+            sys.stdout.write('You can use the --noprompt option to avoid this question in future installations\n')
+            sys.stdout.flush()
+
+    def run(self, cmd, stdin=''):
+        log.debug('about to run command: %s' % cmd)
+        handle = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = handle.communicate(stdin)
+        return stdout, stderr, handle.returncode
+
+    def askUser(self, option):
+        option = self.parser.get_option(option)
+        sys.stdout.write('%s [%s]: ' % (option.help, getattr(self.options, option.dest)))
+        sys.stdout.flush()
+        input = sys.stdin.readline()
+        setattr(self.options, option.dest, input.strip())
+
+    def findInstallByExecutable(self, option, name):
+        log.info('Looking for ' + name)
+        prog = os.path.join(getattr(self.options, option.dest), 'bin', name)
+        if not os.path.exists(prog):
+            log.debug('  can we run the command line program?')
+            prog, err, code = self.run('which ' + name)
+            if code == 0:
+                prog = prog.strip()
+                if os.path.exists(prog):
+                    setattr(self.options, option.dest, prog.rsplit('/', 2)[0])
+        prog = os.path.join(getattr(self.options, option.dest), 'bin', name)
+        if not os.path.exists(prog):
+            log.debug('  no program in our path... lets see if the operating system knows where it is')
+            out, err, code = self.run('locate /bin/' + name)
+            line = ''
+            if code == 0:
+                for line in out.split('\n'):
+                    if line.endswith('/bin/' + name):
+                        break
+                else:
+                    line = ''
+            if line:
+                if os.path.exists(line):
+                    setattr(self.options, option.dest, line.rsplit('/', 2)[0])
+        prog = os.path.join(getattr(self.options, option.dest), 'bin', name)
+        if not os.path.exists(prog):
+            log.debug('  not found... ask the user')
+            self.askUser(option)
+        prog = os.path.join(getattr(self.options, option.dest), 'bin', name)
+        if not os.path.exists(prog):
+            raise BadConfiguration('Unable to locate the hadoop program')
+
+    def findHadoop(self):
+        log.info('Looking for hadoop')
+        self.findInstallByExecutable(self.parser.get_option('--hadoop'), 'hadoop')
+        slaves = os.path.join(self.options.hadoop, 'conf', 'slaves')
+        if not os.path.exists(slaves) and not self.localhost:
+            raise BadConfiguration('Unable to find the hadoop slaves file')
+        hadoop = os.path.join(self.options.hadoop, 'bin', 'hadoop')
+        out, err, code = self.run('%s fs -ls /' % hadoop)
+        if code != 0:
+            raise BadConfiguration('Unable to list HDFS')
+        out, err, code = self.run('%s job -list' % hadoop)
+        if code != 0:
+            raise BadConfiguration('Unable to list hadoop jobs')
+
+    def findSlaves(self):
+        file = self.options.slaves
+        if not file or not os.path.exists(file):
+            file = os.path.join(self.options.hadoop, 'conf', 'slaves')
+        slaves = []
+        for slave in open(file):
+            slave = slave.strip()
+            if slave and slave.find('#') < 0:
+                slaves.append(slave)
+        if not slaves:
+            if self.options.localhost:
+                slaves = ['localhost']
+            else:
+                raise BadConfiguration('No slaves configured')
+        self.options.slaves = slaves
+
+    def findMasters(self):
+        if not self.options.masters:
+            if self.options.localhost:
+                self.options.masters = ['localhost']
+            else:
+                self.options.masters, self.options.slaves = self.options.slaves[:1], self.options.slaves[1:]
+        for m in self.options.masters:
+            try:
+                if not self.options.localhost:
+                    self.options.slaves.remove(m)
+            except ValueError:
+                pass
+            
+    def findZookeeper(self):
+        log.info('Looking for zookeeper')
+        self.findInstallByExecutable(self.parser.get_option('--zookeeper'), 'zkCli.sh')
+        conf = os.path.join(self.options.zookeeper, 'conf', 'zoo.cfg')
+        if not os.path.exists(conf):
+            raise BadConfiguration('Cannot find zookeeper config at ' + conf)
+        config = open(conf).read()
+        port = '2181'
+        servers = [line for line in config.split('\n') if line.startswith('server.')]
+        for line in config.split('\n'):
+            if line.startswith('clientPort'):
+                port = (line.split('=')[1]).strip()
+        if not self.options.zookeepers:
+            if not servers:
+                if self.options.localhost:
+                    self.options.zookeepers = ['localhost:' + port]
+                else:
+                    raise BadConfiguration('No servers found in ' + conf +
+                                           '. You may want to try the '
+                                           '--localhost option for a '
+                                           'stand-alone accumulo instance')
+            for server in servers:
+                server = server.split('=')[1]
+                server = server.split(':')[0]
+                self.options.zookeepers.append(server + ":" + port)
+        log.debug('Checking that we can talk to zookeeper')
+        zk = os.path.join(self.options.zookeeper, 'bin', 'zkCli.sh')
+        out, err, code = self.run('%s help' % zk)
+        if out.find('-server ') > 0:
+            out, err, code = self.run('%s -server %s ls /' % (zk, self.options.zookeeper[0]))
+        else:
+            out, err, code = self.run('%s %s ls /' % (zk, self.options.zookeepers[0]))
+        if code != 0:
+            raise BadConfiguration('Unable to talk to zookeeper on ' + self.options.zookeeper[0])
+
+    def findJava(self):
+        self.findInstallByExecutable(self.parser.get_option('--java'), 'java')
+
+    def testShell(self):
+        for i in range(2):
+            out, err, code = self.run('bin/accumulo shell -u root -p "%s"' % self.options.password, 'tables\n')
+            if code == 0:
+                break
+            time.sleep(2)
+        else:
+            raise BadConfiguration("Unable to talk to accumulo")
+        
+    def checkSSH(self):
+        log.info('testing ssh to all machines')
+        for host in self.options.masters + self.options.slaves:
+            out, err, code = self.run('ssh -q %s /bin/true < /dev/null' % host)
+            if code != 0:
+                log.warn("Unable to ssh to %s" % host)
+
+
+    def checkTime(self):
+        log.info('testing ssh to all machines')
+        for host in self.options.masters + self.options.slaves:
+            now = time.time()
+            out, err, code = self.run('ssh -q %s date +%%s < /dev/null' % host)
+            if code == 0 and abs(now - int(out.strip())) > 5:
+                log.warn("Date on %s is more than 5 seconds off from this host" % host)
+
+    def testMonitor(self):
+        import urllib2
+        url = 'http://%s:50095' % self.options.masters[0]
+        handle = urllib2.urlopen(url)
+        if len(handle.read()) < 100:
+            raise BadConfiguration("Unable to talk to the monitor web page at %s" % url)
+        sys.stdout.write("Monitor accumulo at %s\n" % url)
+
+    def startAll(self):
+        out, err, code = self.run('bin/start-all.sh')
+        if code != 0:
+            raise BadConfiguration('An error occured when starting accumulo')
+
+    def init(self):
+        out, err, code = self.run('bin/accumulo init --clear-instance-name',
+                                  '%s\n%s\n%s\n' % (self.options.instance,
+                                                    self.options.password,
+                                                    self.options.password))
+        if code != 0:
+            raise BadConfiguration("Unable to initialize the accumulo instance\n" + out)
+
+    def synchConfiguration(self):
+        self.createWalogs()
+        self.pushCodeAndConfig()
+
+    def pushCodeAndConfig(self):
+        for host in self.options.masters + self.options.slaves:
+            if host == 'localhost': continue
+            out, err, code = self.run('rsync -r %s %s:%s' % (ACCUMULO_HOME, host, os.path.dirname(ACCUMULO_HOME)))
+
+    def createWalogs(self):
+        for host in self.options.masters + self.options.slaves:
+            out, err, code = self.run('ssh -q %s mkdir -p "%s"' % (host, self.options.walog))
+            if code != 0:
+                log.warn("Unable to create %s on %s" % (self.options.walog, host))
+            out, err, code = self.run('ssh -q %s df -k "%s" | tail -1 ' % (host, self.options.walog))
+            if code != 0:
+                log.warn("Unable to check disk space in %s on %s" % (self.options.walog, host))
+            else:
+                blocks, used, available, percent, mount = out.split(None, 4)
+                if available < 1024 * 1024 * 10:
+                   log.warn("Write-ahead log directory %s on %s is less than 10G" % (self.options.walog, host))
+ 
+
+    def updateBashrc(self):
+        pass
+
+
+if __name__ == '__main__':
+    config = Config(sys.argv)
+    try:
+        config.configure()
+    except BadConfiguration, err:
+        log.error(err)
+        sys.exit(1)

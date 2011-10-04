@@ -1,0 +1,46 @@
+
+This tutorial uses the following Java classes, which can be found in src/examples/src/main/java/accumulo/examples/helloworld: 
+
+InsertWithBatchWriter.java - Inserts 10K rows (50K entries) into accumulo as each row has 5 entries
+InsertWithOutputFormat.java - Example of inserting data in MapReduce
+ReadData.java - Reads all data between two rows
+
+NOTE: Feel free to use your own username, password, instance name, and table name.  
+The ones used below are just examples.
+
+Initialize accumulo, create an instance called 'testInstance' and set the root password to 'pass':
+
+	bin/accumulo init
+	
+Start accumulo:
+
+	bin/start-all.sh
+
+Log into the accumulo shell:
+
+	bin/accumulo shell -u root -p pass
+
+Create a table called 'hellotable':
+
+	root@testInstance> createtable hellotable	
+
+Launch a Java program that inserts data with a BatchWriter:
+
+	bin/accumulo org.apache.accumulo.examples.helloworld.InsertWithBatchWriter testInstance localhost hellotable root pass
+	
+Alternatively, the same data can be inserted using MapReduce writers:
+
+	bin/accumulo org.apache.accumulo.examples.helloworld.InsertWithOutputFormat testInstance localhost hellotable root pass
+	
+On accumulo status page at the URL below, you should see 50K entries
+	
+	http://localhost:50095/
+	
+To view the entries, use the shell to scan the table:
+
+	root@testInstance> table hellotable
+	root@testInstance hellotable> scan
+
+You can also use a Java class to scan the table:
+
+	bin/accumulo org.apache.accumulo.examples.helloworld.ReadData testInstance localhost hellotable root pass row_0 row_1001	

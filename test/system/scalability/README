@@ -1,0 +1,23 @@
+1. To run scalability tests, set up the site configuration (used by all tests)
+
+    cp conf/site.conf.example conf/site.conf
+
+2. Modify site.conf to the correct configuration parameters for your Accumulo instance
+
+3. Set up the configuration file for the test you want to run
+
+    cp conf/Ingest.conf.example conf/Ingest.conf
+
+4. Each test has a unique ID which correlates with its test code in:
+
+    org.apache.accumulo.server.test.scalability.tests.<ID>
+
+    This ID correlates with a the following config file:
+
+    ./conf/<ID>.conf
+
+5. To run the test, just specifying its ID to the run.py script
+
+    export ACCUMULO_HOME=/opt/accumulo; nohup ./run.py Ingest > test1.log 2>&1 &
+
+5. A directory will be create where logs and results are placed

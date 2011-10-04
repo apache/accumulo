@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+
+<init id="dummy.ToAll"/>
+
+<node id="Image.xml" maxSec="3600" teardown="false">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="dummy.ToAll">
+  <edge id="Image.xml" weight="1"/>
+  <edge id="Sequential.xml" weight="1"/>
+  <edge id="MultiTable.xml" weight="1"/>
+  <edge id="Shard.xml" weight="1"/>
+</node>
+
+<node id="Sequential.xml" maxSec="3600" teardown="false">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="MultiTable.xml" maxSec="3600" teardown="false"> 
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="Shard.xml" maxSec="3600" teardown="false">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+</module>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+
+<package prefix="image" value="org.apache.accumulo.server.test.randomwalk.image"/>
+
+<fixture id="image.ImageFixture"/>
+
+<init id="BigWrite"/>
+
+<node id="BigWrite" src="image.Write">
+  <property key="minSize" value="400000"/>
+  <property key="maxSize" value="1000000"/>
+  <edge id="BigWrite" weight="5000"/>
+  <edge id="SmallWrite" weight="25000"/>
+  <edge id="image.Commit" weight="1"/>
+</node>
+
+<node id="SmallWrite" src="image.Write">
+  <property key="minSize" value="4000"/>
+  <property key="maxSize" value="10000"/>
+  <edge id="BigWrite" weight="5000"/>
+  <edge id="SmallWrite" weight="25000"/>
+  <edge id="image.Commit" weight="1"/>
+</node>
+
+<node id="image.Commit">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="dummy.ToAll">
+  <edge id="SmallWrite" weight="10"/>
+  <edge id="BigWrite" weight="10"/>
+  <edge id="image.Verify" weight="10"/>
+  <edge id="image.TableOp" weight="3"/>
+  <edge id="END" weight="1"/>
+</node>
+
+<node id="image.Verify">
+  <property key="maxVerify" value="50"/>
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="image.TableOp">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+</module>

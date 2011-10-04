@@ -1,0 +1,65 @@
+package org.apache.accumulo.core.security;
+
+import java.util.Collection;
+
+import org.apache.accumulo.core.security.ColumnVisibility.Node;
+
+
+public class VisibilityEvaluator
+{
+    private final ByteArrayTrie trie;
+    
+    VisibilityEvaluator(Collection<byte []> authorizations)
+    {
+        trie = new ByteArrayTrie(authorizations);
+    }
+
+    /**
+     * The VisibilityEvaluator computes a trie from the given
+     * Authorizations, that ColumnVisibility expressions
+     * can be evaluated against.
+     */
+    public VisibilityEvaluator(Authorizations authorizations)
+    {
+		this(authorizations.getAuthorizations());
+	}
+
+    public boolean evaluate(ColumnVisibility visibility)
+    throws VisibilityParseException
+    {
+    	return evaluate(visibility.getExpression(), visibility.getParseTree());
+    }
+
+	private final boolean evaluate(final byte[] expression, final Node root)
+	throws VisibilityParseException
+	{
+		switch (root.type)
+		{
+		case TERM:
+			trie.clearState();
+			for (int i=root.start; i<root.end; ++i)
+				trie.transition(expression[i]);
+			return trie.check();
+		case AND:
+			if (root.children == null || root.children.length < 2)
+				throw new VisibilityParseException("AND has less than 2 children", expression, root.start);
+			for (Node child : root.children)
+			{
+				if (!evaluate(expression, child))
+					return false;
+			}
+			return true;
+		case OR:
+			if (root.children == null || root.children.length < 2)
+				throw new VisibilityParseException("OR has less than 2 children", expression, root.start);
+			for (Node child : root.children)
+			{
+				if (evaluate(expression, child))
+					return true;
+			}
+			return false;
+		default:
+			throw new VisibilityParseException("No such node type", expression, root.start);
+		}
+	}
+}

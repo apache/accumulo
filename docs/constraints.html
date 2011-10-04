@@ -1,0 +1,33 @@
+<html>
+<head>
+<title>Accumulo Documentation : Constraints</title>
+<link rel='stylesheet' type='text/css' href='documentation.css' media='screen'/>
+</head>
+<body>
+
+<h1>Constraints</h1>
+
+Accumulo supports constraints.  Constraints are applied to mutations at ingest time.  
+
+<p>Implementing a new constraint is a snap.  Simply write some Java code that implements <a href='apidocs/accumulo/core/constraints/Constraint.html'>org.apache.accumulo.core.constraints.Constraint</a>.     
+
+<p>To deploy a new constraint, jar it up and put the jar in accumulo/lib.
+
+<p>After creating a constraint, set a table specific property to use it.  The following example adds two constraints to table foo. In the example com.test.ExampleConstraint and com.test.AnotherConstraint are class names.
+
+<p><pre>
+user@instance:9999 perDayCounts&gt; createtable foo
+user@instance:9999 foo&gt; config -t foo -s table.constraint.1=com.test.ExampleConstraint
+user@instance:9999 foo&gt; config -t foo -s table.constraint.2=com.test.AnotherConstraint
+user@instance:9999 foo&gt; config -t foo -f constraint
+---------+------------------------------------------+-----------------------------------------
+SCOPE    | NAME                                     | VALUE
+---------+------------------------------------------+-----------------------------------------
+table    | table.constraint.1...................... | com.test.ExampleConstraint
+table    | table.constraint.2...................... | com.test.AnotherConstraint
+---------+------------------------------------------+-----------------------------------------
+user@instance:9999 foo&gt; 
+</pre>
+
+</body>
+</html>

@@ -1,0 +1,4 @@
+ * create a continuous ingest table with 16k tablets
+ * start continuous ingest
+ * restart accumulo, but leave the ingesters running
+ * after accumulo is up, ingest should quickly resume to pre-restart rates

@@ -1,0 +1,12 @@
+* run continuous ingest, continuous walkers, and agitator for 24 hours
+* stop continuous ingest, walkers, and agitator
+* run verification map reduce job
+
+This test should be run with the following configurations of the agitator.
+* agitator does not kill master and only kills one tablet server at a time
+* agitator does not kill master and only kills multiple tablet server at a time 
+* agitator kills master and only kills multiple tablet server at a time
+* agitator kills master and does not kill tablet servers
+
+The agitator can also be run during verification.  Another test is to lower
+a tables split threshold during verification.

@@ -1,0 +1,36 @@
+\documentclass[11pt]{report}
+\title{Accumulo User Manual\\
+Version 1.3}
+\usepackage{alltt}
+\usepackage{multirow}
+\usepackage{graphicx}
+\renewcommand{\ttdefault}{txtt}
+%\def\verbatim{%
+%	\def\verbatim@font{\small\ttfamily}%
+%	\verbatim}
+
+\setlength{\textwidth}{6.25in}
+\evensidemargin=0in
+\oddsidemargin=0in
+
+\usepackage{parskip}
+\newenvironment{shellcommands}[0]
+{\ttfamily \begin{flushleft} \setlength{\parindent}{0cm} \setlength{\parskip}{12mm} \hangindent=1cm}
+{\end{flushleft} \setlength{\parindent}{7mm} \hangindent=0cm \normalfont}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\include{chapters/introduction}
+\include{chapters/design}
+\include{chapters/shell}
+\include{chapters/clients}
+\include{chapters/table_configuration}
+\include{chapters/table_design}
+\include{chapters/high_speed_ingest}
+\include{chapters/analytics}
+\include{chapters/security}
+\include{chapters/administration}
+\appendix
+\include{appendices/shell_commands}
+\end{document}

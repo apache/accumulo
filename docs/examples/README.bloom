@@ -1,0 +1,114 @@
+This example shows how to create a table with bloom filters enabled.  It also
+shows how bloom filters increase query performance when looking for values that
+do not exist in a table.
+
+Below table named bloom_test is created and bloom filters are enabled.
+
+    [user@localhost bin]$ ./accumulo shell -u root -p secret
+    Shell - Accumulo Interactive Shell
+    - version: 1.2-SNAPSHOT
+    - instance id: c4b72d26-16b3-408d-bf3e-c15a1fb51ba0
+    - 
+    - type 'help' for a list of available commands
+    - 
+    root@localhost> setauths -u root -s CV1
+    root@localhost> createtable bloom_test
+    root@localhost bloom_test> config -t bloom_test -s table.bloom.enabled=true          
+
+Below 1 million random values are inserted into accumulo.  The randomly
+generated rows range between 0 and 1 billion.  The random number generator is
+initialized with the seed 7.
+
+    [user@localhost bin]$ ../bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 7 testInstance localhost root secret bloom_test 1000000 0 1000000000 50 2000000 60000 3 CV1
+
+Below the table is flushed, look at the monitor page and wait for the flush to
+complete.
+
+   [user@localhost bin]$ ./accumulo shell -u root -p secret
+    Shell - Accumulo Interactive Shell
+    - version: 1.2-SNAPSHOT
+    - instance id: c4b72d26-16b3-408d-bf3e-c15a1fb51ba0
+    - 
+    - type 'help' for a list of available commands
+    - 
+    root@localhost> flush -t bloom_test
+    Flush of table bloom_test initiated...
+    root@localhost> quit
+
+After the flush completes, 500 random queries are done against the table.  The
+same seed is used to generate the queries, therefore everything is found in the
+table.
+
+    [user@localhost bin]$ ../bin/accumulo org.apache.accumulo.examples.client.RandomBatchScanner -s 7 testInstance localhost root secret bloom_test 500 0 1000000000 50 20 CV1
+    Generating 500 random queries...finished
+     96.19 lookups/sec   5.20 secs
+    num results : 500
+    Generating 500 random queries...finished
+    102.35 lookups/sec   4.89 secs
+    num results : 500
+
+Below another 500 queries are performed, using a different seed which results
+in nothing being found.  In this case the lookups are much faster because of
+the bloom filters.
+
+    [user@localhost bin]$ ../bin/accumulo org.apache.accumulo.examples.client.RandomBatchScanner -s 8 testInstance localhost root secret bloom_test 500 0 1000000000 50 20 CV1
+    Generating 500 random queries...finished
+    2212.39 lookups/sec   0.23 secs
+    num results : 0
+    Did not find 500 rows
+    Generating 500 random queries...finished
+    4464.29 lookups/sec   0.11 secs
+    num results : 0
+    Did not find 500 rows
+
+********************************************************************************
+
+Bloom filters can also speed up lookups for entires that exist.  In accumulo
+data is divided into tablets and each tablet has multiple map files. Every
+lookup in accumulo goes to a specific tablet where a lookup is done on each
+map file in the tablet.  So if a tablet has three map files, lookup performance
+can be three times slower than a tablet with one map file.  However if the map
+files contain unique sets of data, then bloom filters can help eliminate map
+files that do not contain the row being looked up.  To illustrate this two
+identical tables were created using the following process.  One table had bloom
+filters, the other did not.  Also the major compaction ratio was increased to
+prevent the files from being compacted into one file.
+
+    * Insert 1 million entires using  RandomBatchWriter with a seed of 7
+    * Flush the table using the shell
+    * Insert 1 million entires using  RandomBatchWriter with a seed of 8
+    * Flush the table using the shell
+    * Insert 1 million entires using  RandomBatchWriter with a seed of 9
+    * Flush the table using the shell
+
+After following the above steps, each table will have a tablet with three map
+files.  Each map file will contain 1 million entries generated with a different
+seed. 
+
+Below 500 lookups are done against the table without bloom filters using random
+NG seed 7.  Even though only one map file will likely contain entries for this
+seed, all map files will be interrogated.
+
+    [user@localhost examples]$ ../bin/accumulo org.apache.accumulo.examples.client.RandomBatchScanner -s 7 testInstance localhost root secret test 500 0 1000000000 50 20 CV1
+    05 07:52:36,789 [conf.AccumuloConfiguration] WARN : accumulo-site.xml not found on classpath
+    Generating 500 random queries...finished
+     35.09 lookups/sec  14.25 secs
+    num results : 500
+    Generating 500 random queries...finished
+     35.33 lookups/sec  14.15 secs
+    num results : 500
+
+Below the same lookups are done against the table with bloom filters.  The
+lookups were 2.86 times faster because only one map file was used, even though three
+map files existed.
+
+    [user@localhost examples]$ ../bin/accumulo org.apache.accumulo.examples.client.RandomBatchScanner -s 7 testInstance localhost root secret bloom_test2 500 0 1000000000 50 20 CV1
+    05 07:53:15,650 [conf.AccumuloConfiguration] WARN : accumulo-site.xml not found on classpath
+    Generating 500 random queries...finished
+     99.03 lookups/sec   5.05 secs
+    num results : 500
+    Generating 500 random queries...finished
+    101.15 lookups/sec   4.94 secs
+    num results : 500
+
+

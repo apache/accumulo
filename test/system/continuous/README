@@ -1,0 +1,69 @@
+This directory contains a suite of scripts for placing continuous query and
+ingest load on accumulo.  The purpose of these script is two fold. First,
+place continuous load on accumulo to see if breaks.  Second, collect
+statistics in order to understand how accumulo behaves .  To run these script
+copy all of the .example files and modify them.  These scripts rely on pssh.
+Before running any script you may need to use pssh to create the log directory on
+each machine if you want it local.  Also, create the table "ci" before running.
+
+The following ingest scripts inserts data into accumulo that will form a random
+graph.
+
+  start-ingest.sh
+  stop-ingest.sh
+
+
+The following query scripts randomly walk the graph created by the ingesters.
+Each walker produce detailed statistics on query/scan times.
+
+  start-walkers.sh
+  stop-walker.sh
+
+The following scripts start and stop batch walkers.
+
+  start-batchwalkers.sh  
+  stop-batchwalkers.sh
+
+In addition to placing continuous load, the following scripts start and stop a
+service that continually collect statistics about accumulo and HDFS. 
+
+ start-stats.sh
+ stop-stats.sh 
+
+Optionally, start the agitator to periodically kill random servers.  
+
+ start-agitator.sh
+ stop-agitator.sh
+
+Start all three of these services and let them run for a few hours. Then run
+report.pl to generate an simple html report containing plots and histograms
+showing what has transpired. 
+
+A map reduce job to verify all data created by continuous ingest can be run
+with the following command.  Before running the command modify the VERIFY_*
+variables in continuous-env.sh if needed.  Do not run ingest while running this
+command, this will cause erroneous reporting of UNDEFINED nodes. The map reduce
+job will scan a reference after it has scanned the definition.
+
+ run-verify.sh
+
+Each entry, except for the first batch of entries, inserted by continuous
+ingest references a previously flushed entry.  Since we are referencing flushed
+entries, they should always exist.  The map reduce job checks that all
+referenced entries exist.  If it finds any that do not exist it will increment
+the UNDEFINED counter and emit the referenced but undefined node.  The map
+reduce job produces two other counts : REFERENCED and UNREFERENCED.  It is
+expected that these two counts are non zero.  REFERENCED counts nodes that are
+defined and referenced.  UNREFERENCED counts nodes that defined and
+unreferenced, these are the latest nodes inserted.
+
+To stress accumulo, run the following script which starts a map reduce job
+that reads and writes to your continuous ingest table.  This map reduce job
+will write out an entry for every entry in the table (except for ones created
+by the map reduce job itself). Stop ingest before running this map reduce job.
+Do not run more than one instance of this map reduce job concurrently against a
+table.
+
+ run-moru.sh
+
+

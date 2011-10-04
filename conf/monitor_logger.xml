@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+
+  <!-- Write out everything at the DEBUG level to the debug log -->
+  <appender name="A2" class="org.apache.log4j.RollingFileAppender">
+     <param name="File"           value="${org.apache.accumulo.core.dir.log}/${org.apache.accumulo.core.application}_${org.apache.accumulo.core.ip.localhost.hostname}.debug.log"/>
+     <param name="MaxFileSize"    value="100MB"/>
+     <param name="MaxBackupIndex" value="10"/>
+     <param name="Threshold"      value="DEBUG"/>
+     <layout class="org.apache.log4j.PatternLayout">
+       <param name="ConversionPattern" value="%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %X{application} %m%n"/>
+     </layout>	    
+  </appender>
+
+  <!--  Write out INFO and higher to the regular log -->
+  <appender name="A3" class="org.apache.log4j.RollingFileAppender">
+     <param name="File"           value="${org.apache.accumulo.core.dir.log}/${org.apache.accumulo.core.application}_${org.apache.accumulo.core.ip.localhost.hostname}.log"/>
+     <param name="MaxFileSize"    value="100MB"/>
+     <param name="MaxBackupIndex" value="10"/>
+     <param name="Threshold"      value="INFO"/>
+     <layout class="org.apache.log4j.PatternLayout">
+       <param name="ConversionPattern" value="%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %X{application} %m%n"/>
+     </layout>	    
+  </appender>
+
+  <!-- Keep the last few log messages for display to the user -->
+  <appender name="GUI" class="org.apache.accumulo.server.monitor.LogService">
+     <param name="keep"           value="40"/>
+     <param name="Threshold"      value="WARN"/>
+  </appender>
+
+  <!-- Log accumulo messages to debug, normal and GUI -->
+  <logger name="org.apache.accumulo" additivity="false">
+     <level value="DEBUG"/>
+     <appender-ref ref="A2" />
+     <appender-ref ref="A3" />
+     <appender-ref ref="GUI" />
+  </logger>
+
+  <!-- Log non-accumulo messages to debug, noraml logs. -->
+  <root>
+     <level value="DEBUG"/>
+     <appender-ref ref="A2" />
+     <appender-ref ref="A3" />
+  </root>
+
+</log4j:configuration>

@@ -1,0 +1,2 @@
+change maven plugin version to 1.2 from 1.2.0.1
+commons-jci org.apache.commons

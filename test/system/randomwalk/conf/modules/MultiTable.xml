@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+
+<package prefix="mt" value="org.apache.accumulo.server.test.randomwalk.multitable"/>
+
+<fixture id="mt.MultiTableFixture"/>
+
+<init id="mt.CreateTable"/>
+
+<node id="mt.CreateTable">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="dummy.ToAll">
+  <edge id="mt.CreateTable" weight="20"/>
+  <edge id="mt.Write" weight="100"/>
+  <edge id="mt.CopyTable" weight="5"/>
+  <edge id="mt.DropTable" weight="1"/>
+  <edge id="END" weight="1"/>
+</node>
+
+<node id="mt.Write">
+  <edge id="mt.Write" weight="5000"/>
+  <edge id="mt.Commit" weight="1"/>
+</node>
+
+<node id="mt.Commit">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="mt.CopyTable">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+ 
+<node id="mt.DropTable">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+</module>

@@ -1,0 +1,208 @@
+package org.apache.accumulo.core.client;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.impl.ConnectorImpl;
+import org.apache.accumulo.core.client.impl.HdfsZooInstance;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.zookeeper.ZooCache;
+import org.apache.accumulo.core.zookeeper.ZooLock;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+
+
+/**
+ * <p>An implementation of instance that looks
+ * in zookeeper to find information needed to
+ * connect to an instance of accumulo.
+ * 
+ * <p>The advantage of using zookeeper to obtain
+ * information about accumulo is that zookeeper 
+ * is highly available, very responsive, and supports
+ * caching.  
+ *
+ * <p>Because it is possible for multiple instances
+ * of accumulo to share a single set of zookeeper
+ * servers, all constructors require a accumulo 
+ * instance name.
+ *
+ * If you do not know the instance names then
+ * run accumulo accumulo.server.util.ListInstances 
+ * on a accumulo server.
+ *
+ */
+
+public class ZooKeeperInstance implements Instance {
+
+	private static final Logger log = Logger.getLogger(ZooKeeperInstance.class);
+	
+	private String instanceId = null;
+	private String instanceName = null;
+	
+	private ZooCache zooCache;
+
+	private String zooKeepers;
+
+	private int zooKeepersSessionTimeOut;
+	
+	/**
+	 * 
+	 * @param instanceName The name of specific accumulo instance.  This is set at initialization time.
+	 * @param zooKeepers A comma separated list of zoo keeper server locations.  Each location can contain an optional port, 
+     * of the format host:port.
+	 */
+	
+	public ZooKeeperInstance(String instanceName, String zooKeepers){
+		this(instanceName, zooKeepers, (int)AccumuloConfiguration.getDefaultConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
+	}
+	
+	/**
+	 * 
+	 * @param instanceName The name of specific accumulo instance.  This is set at initialization time.
+	 * @param zooKeepers A comma separated list of zoo keeper server locations.  Each location can contain an optional port, 
+     * of the format host:port.
+	 * @param sessionTimeout zoo keeper session time out in milliseconds.
+	 */
+	
+	private ZooKeeperInstance(String instanceName, String zooKeepers, int sessionTimeout){
+		ArgumentChecker.notNull(instanceName, zooKeepers);
+		this.instanceName = instanceName;
+		this.zooKeepers = zooKeepers;
+		this.zooKeepersSessionTimeOut = sessionTimeout;
+		zooCache = ZooCache.getInstance(zooKeepers, sessionTimeout);
+		getInstanceID();
+	}
+	
+	/**
+	 * 
+	 * @param instanceId The UUID that identifies the accumulo instance you want to connect to.
+	 * @param zooKeepers A comma separated list of zoo keeper server locations.  Each location can contain an optional port, 
+     * of the format host:port.
+	 */
+	
+	public ZooKeeperInstance(UUID instanceId, String zooKeepers) {
+		this(instanceId, zooKeepers, (int)AccumuloConfiguration.getDefaultConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
+	}
+	
+	/**
+	 * 
+	 * @param instanceId The UUID that identifies the accumulo instance you want to connect to.
+	 * @param zooKeepers A comma separated list of zoo keeper server locations.  Each location can contain an optional port, 
+     * of the format host:port.
+	 * @param sessionTimeout zoo keeper session time out in milliseconds.
+	 */
+	
+	private ZooKeeperInstance(UUID instanceId, String zooKeepers, int sessionTimeout) {
+		ArgumentChecker.notNull(instanceId, zooKeepers);
+		this.instanceId = instanceId.toString();
+		this.zooKeepers = zooKeepers;
+		this.zooKeepersSessionTimeOut = sessionTimeout;
+		zooCache = ZooCache.getInstance(zooKeepers, sessionTimeout);
+	}
+
+	@Override
+	public String getInstanceID() {
+		if(instanceId == null){
+			//want the instance id to be stable for the life of this instance object,
+			//so only get it once
+			String instanceNamePath = Constants.ZROOT+Constants.ZINSTANCES+"/"+instanceName;
+			byte[] iidb = zooCache.get(instanceNamePath);
+			if(iidb == null){
+				throw new RuntimeException("Instance name "+instanceName+" does not exist in zookeeper.  Run \"accumulo accumulo.server.util.ListInstances\" to see a list.");
+			}
+			instanceId = new String(iidb);
+		}
+		
+		if (zooCache.get(Constants.ZROOT+"/"+instanceId) == null)
+		{
+			if (instanceName == null)
+				throw new RuntimeException("Instance id "+instanceId+" does not exist in zookeeper");
+			throw new RuntimeException("Instance id "+instanceId+" pointed to by the name "+instanceName+" does not exist in zookeeper");
+		}
+		
+		return instanceId;
+	}
+	
+	@Override
+	public List<String> getMasterLocations() {
+		String masterLocPath = ZooUtil.getRoot(this)+Constants.ZMASTER_LOCK;
+
+		OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up master location in zoocache.");
+		byte[] loc = ZooLock.getLockData(zooCache, masterLocPath);
+		opTimer.stop("Found master at "+(loc == null ? null : new String(loc))+" in %DURATION%");
+
+		if(loc == null){
+			return Collections.emptyList();
+		}
+
+		return Collections.singletonList(new String(loc));
+	}
+
+	@Override
+	public String getRootTabletLocation() {
+		String zRootLocPath = ZooUtil.getRoot(this)+Constants.ZROOT_TABLET_LOCATION;
+        
+        OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Looking up root tablet location in zookeeper.");
+        byte[] loc = zooCache.get(zRootLocPath);
+        opTimer.stop("Found root tablet at "+(loc == null ? null : new String(loc))+" in %DURATION%");
+        
+        if(loc == null){
+            return null;
+        }
+        
+        return new String(loc).split("\\|")[0]; 
+	}
+
+	@Override
+	public String getInstanceName() {
+		if(instanceName == null)
+			instanceName = HdfsZooInstance.lookupInstanceName(zooCache, UUID.fromString(getInstanceID()));
+		
+		return instanceName;
+	}
+
+	@Override
+	public String getZooKeepers() {
+		return zooKeepers;
+	}
+
+	@Override
+	public int getZooKeepersSessionTimeOut() {
+		return zooKeepersSessionTimeOut;
+	}
+
+	@Override
+	public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
+		return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
+	}
+	
+	@Override
+    public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
+        return new ConnectorImpl(this, user, pass);
+    }
+
+	private AccumuloConfiguration conf = null;
+	
+	@Override
+	public AccumuloConfiguration getConfiguration() {
+		if(conf == null)
+			conf = AccumuloConfiguration.getDefaultConfiguration();
+		return conf;
+	}
+
+	@Override
+	public void setConfiguration(AccumuloConfiguration conf) {
+		this.conf = conf;
+	}
+
+	
+}
