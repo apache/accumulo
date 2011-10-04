@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+
+<package prefix="bulk" value="org.apache.accumulo.server.test.randomwalk.bulk"/>
+
+<init id="bulk.Setup"/>
+
+<node id="bulk.Setup">
+  <edge id="bulk.BulkPlusOne" weight="1"/>
+</node>
+
+<node id="bulk.BulkPlusOne">
+  <edge id="bulk.Merge" weight="10"/>
+  <edge id="bulk.Split" weight="10"/>
+  <edge id="bulk.Compact" weight="10"/>
+  <edge id="bulk.ConsistencyCheck" weight="25"/>
+  <edge id="bulk.BulkMinusOne" weight="10"/>
+</node>
+
+<node id="bulk.BulkMinusOne">
+  <edge id="bulk.BulkPlusOne" weight="200"/>
+  <edge id="bulk.Verify" weight="1"/>
+</node>
+
+<node id="bulk.Merge">
+  <edge id="bulk.BulkMinusOne" weight="1"/>
+</node>
+
+<node id="bulk.Split">
+  <edge id="bulk.BulkMinusOne" weight="1"/>
+</node>
+
+<node id="bulk.Compact">
+  <edge id="bulk.BulkMinusOne" weight="1"/>
+</node>
+
+<node id="bulk.ConsistencyCheck">
+  <edge id="bulk.BulkMinusOne" weight="1"/>
+</node>
+
+<node id="bulk.Verify">
+  <edge id="END" weight="1"/>
+</node>
+
+</module>

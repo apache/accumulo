@@ -1,0 +1,23 @@
+#! /usr/bin/env bash
+
+#When accumulo is stuck, it is often caused by a problem on one
+#server.  This script helps you find an offending tablet server
+#or datanode.  If you suspect it is a accumulo problem, run this
+#script against all of the machines ingesting data into accumulo.
+#The script will attempt to find many ingesting machines that have
+#blocked outgoing data for a common tablet servers.  If you 
+#suspect there is a hadoop problem, run this script for all of the
+#tablet servers and see if there is a problematic data node.
+#
+
+
+if [ ! -f "$1" ]
+then
+   echo "Usage: $0 slaves"
+   exit 1
+fi
+echo "   Conn-Port Total"
+pssh -p 100 -i -h $1 netstat -nape </dev/null 2>/dev/null | grep '^tcp[ \t].*ESTABLISHED' | \
+awk '{ if ($2 > 0) print "in ", $2, $5 ; if ($3 > 0) print "out", $3, $5 }' | \
+awk '{ sum[$1 " " $3] += $2 } END { for (host in sum) print host, sum[host]}' | \
+sort -k3 -nr

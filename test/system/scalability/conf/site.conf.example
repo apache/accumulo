@@ -1,0 +1,13 @@
+
+# accumulo instance
+INSTANCE_NAME=a12
+# zookeepers
+ZOOKEEPERS=localhost
+# username
+USER=root
+# password
+PASSWORD=secret
+# used to determine which nodes to run tests on
+SLAVES=/accumulo/conf/slaves
+# sets the number of nodes for each test case
+TEST_CASES=1,2,4,8,16

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+
+<package prefix="test" value="org.apache.accumulo.server.test.randomwalk.unit"/>
+
+<init id="dummy.all"/>
+
+<node id="dummy.all">
+  <edge id="test.Ingest" weight="1"/>
+  <edge id="test.Verify" weight="1"/>
+  <edge id="test.Scan" weight="1"/>
+  <edge id="END" weight="1"/>
+</node>
+
+<node id="test.Ingest">
+  <edge id="dummy.all" weight="1"/>
+</node>
+
+<node id="test.Verify">
+  <edge id="dummy.all" weight="1"/>
+</node>
+
+<node id="test.Scan">
+  <edge id="dummy.all" weight="1"/>
+</node>
+
+</module>

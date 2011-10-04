@@ -1,0 +1,55 @@
+<h2>Mock Accumulo</h2>
+
+<p>Normally, accumulo consists of lots of moving parts.  Even a stand-alone version of accumulo requires hadoop, 
+zookeeper, the accumulo master, a tablet server, etc. If you want to write a unit test that uses accumulo, you need a lot of 
+infrastructure in place before your test can run.  To help developers with their tests, we have created a fake version of 
+Accumulo called MockAccumulo.  The normal interaction with the client API looks something like this:
+</p>
+
+<pre>
+   Instance instance = new ZooKeeperInstance(...);
+   Connector conn = instance.getConnector(user, passwd);
+   BatchScanner scanner = conn.createBatchScaner(...);
+   // configure scanner
+   // ...
+   for (Entry<Key, Value> entry : scanner) {
+       // process entry
+   }
+</pre>
+
+<p>MockAccumulo supports the same client API.  Just replace the ZooKeeperInstance with MockInstance:</p>
+
+<pre>
+   Instance instance = new MockInstance();
+   // as above
+</pre>
+
+<p>In fact, you can use the <tt>--fake</tt> option to the accumulo shell and interact with MockAccumulo:</p>
+
+<pre>
+$ ./bin/accumulo shell --fake -u root -p nonsense
+
+Shell - Accumulo Interactive Shell
+- 
+- version: 1.3.2-SNAPSHOT
+- instance name: mock-instance
+- instance id: mock-instance-id
+- 
+- type 'help' for a list of available commands
+- 
+root@mock-instance&gt; createtable test
+root@mock-instance test&gt; insert row1 cf cq value
+root@mock-instance test&gt; insert row2 cf cq value2
+root@mock-instance test&gt; insert row3 cf cq value3
+root@mock-instance test&gt; scan
+row1 cf:cq []    value
+row2 cf:cq []    value2
+row3 cf:cq []    value3
+root@mock-instance test&gt; scan -b row2 -e row2
+row2 cf:cq []    value2
+root@mock-instance test&gt; 
+</pre>
+
+<p>MockAccumulo presently does not enforce users, logins, permissions, etc.  It <b>does</b> support Iterators and Aggregators.  
+Note that MockAccumulo holds all data in memory, and will not retain any data or settings between runs.</p>
+ 

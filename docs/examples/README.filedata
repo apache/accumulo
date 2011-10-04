@@ -1,0 +1,13 @@
+This example archives file data into a Accumulo table.  Files with duplicate data are only stored once.
+The example has the following classes:
+
+ * ChunkCombiner - An Iterator that dedupes file data and sets their visibilities to a combined visibility based on current references to the file data.
+ * ChunkInputFormat - An Accumulo InputFormat that provides keys containing file info (List<Entry<Key,Value>>) and values with an InputStream over the file (ChunkInputStream).
+ * ChunkInputStream - An input stream over file data stored in Accumulo.
+ * FileDataIngest - Takes a list of files and archives them into Accumulo keyed on the SHA1 hashes of the files.
+ * FileDataQuery - Retrieves file data based on the SHA1 hash of the file.
+ * KeyUtil - A utility for creating and parsing null-byte separated strings into/from Text objects.
+ * PeekingIterator - A Java Iterator with a peek method.
+ * VisibilityCombiner - A utility for merging visibilities into the form (VIS1)|(VIS2)|...
+
+This example is coupled with the dirlist example.  See README.dirlist for instructions.

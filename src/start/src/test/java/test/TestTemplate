@@ -1,0 +1,18 @@
+package test;
+
+public class TestObject implements Test {
+    
+    int i = 0;
+
+    @Override
+    public String hello() {
+        return "Hello from testX";
+    }
+
+    @Override
+    public int add() {
+        i += 1;
+        return i;
+    }
+
+}

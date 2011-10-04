@@ -1,0 +1,73 @@
+<html>
+<head>
+<title>Accumulo Documentation : Bulk Ingest</title>
+<link rel='stylesheet' type='text/css' href='documentation.css' media='screen'/>
+</head>
+<body>
+
+<h1>Accumulo Documentation</h1>
+
+<h2>Bulk Ingest</h2>
+
+<p>Accumulo supports the ability to import map files produced by an
+external process into an online table.  Often, it is much faster to churn
+through large amounts of data using map/reduce to produce the map files. 
+The new map files can be incorporated into Accumulo using bulk ingest.
+
+<P>An important caveat is that the map/reduce job must
+use a range partitioner instead of the default hash partitioner.
+The range partitioner uses the current split points of the
+Accumulo table you want to ingest data into.  To bulk insert data 
+using map/reduce, the following high level steps should be taken.  
+
+<ul>
+<li>Construct a <code>org.apache.accumulo.core.client.Connector</core> instance</li>
+<li>Call <code>connector.tableOperations().getSplits()</core></li>
+<li>Run a map/reduce job using <a href='apidocs/Accumulo/core/client/mapreduce/lib/partition/RangePartitioner.html'>RangePartitioner</a> with splits from the previous step</li>
+<li>Call <code>connector.tableOperations().importDirectory()</code> passing the output directory of the MapReduce job</li>
+</ul> 
+
+<p>A complete example is available in <a href='examples/README.bulkIngest'>README.bulkIngest</a>
+
+<p>The reason hash partition is not recommended is that it could
+potentially place a lot of load on the system.  Accumulo will look at
+each map file and determine the tablets to which it should be
+assigned.  When hash partitioning, every map file could get assigned
+to every tablet.  If a tablet has too many map files it will not allow
+them to be opened for a query (opening too many map files can kill a
+Hadoop Data Node).  So queries would be disabled until major
+compactions reduced the number of map files on the tablet.  However,
+when range partitioning using a tables splits each tablet should only
+get one map file.
+
+<P>Any set of cut points for range partitioning can be used in a map
+reduce job, but using Accumulos current splits is probably the most
+optimal thing to do.  However in some case there may be too many
+splits.  For example if there are 2000 splits, you would need to run
+2001 reducers.  To overcome this problem use the
+<code>connector.tableOperations.getSplits(&lt;table name&gt;,&lt;max
+splits&gt;)</code> method.  This method will not return more than
+<code> &lt;max splits&gt; </code> splits, but the splits it returns
+will optimally partition the data for Accumulo.
+  
+<p>Remember that Accumulo never splits rows across tablets.
+Therefore the range partitioner only considers rows when partitioning.
+
+<p>An alternative to bulk ingest is to have a map/reduce job use
+<code>AccumuloOutputFormat</code>, which can support billions of inserts per
+hour, depending on the size of your cluster. This is sufficient for
+most users, but bulk ingest remains the fastest way to incorporate
+data into Accumulo.  In addition, bulk ingest has one advantage over
+AccumuloOutputFormat: there is no duplicate data insertion.  When one uses
+map/reduce to output data to accumulo, restarted jobs may re-enter
+data from previous failed attempts. Generally, this only matters when
+there are aggregators. With bulk ingest, reducers are writing to new
+map files, so it does not matter. If a reduce fails, you create a new
+map file.  When all reducers finish, you bulk ingest the map files
+into Accumulo.  The disadvantage to bulk ingest over
+<code>AccumuloOutputFormat</code>, is that it is tightly coupled to the
+Accumulo internals. Therefore a bulk ingest user may need to make
+more changes to their code to switch to a new Accumulo version.
+
+</body>
+</html>

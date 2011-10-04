@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<assembly>
+  <id>dist</id>
+  <formats>
+    <format>tar.gz</format>
+  </formats>
+  <baseDirectory>accumulo-${project.version}</baseDirectory>
+  <fileSets>
+    <fileSet>
+      <directory>bin</directory>
+      <fileMode>0755</fileMode>
+    </fileSet>
+    <fileSet>
+      <includes>
+        <include>**/*.py</include>
+        <include>**/*.pl</include>
+        <include>**/*.sh</include>
+      </includes>
+      <excludes>
+        <exclude>**/target*/**</exclude>
+        <exclude>**/accumulo-env.sh</exclude>
+        <exclude>**/continuous-env.sh</exclude>
+      </excludes>
+      <fileMode>0755</fileMode>
+    </fileSet>
+    <fileSet>
+      <useDefaultExcludes>true</useDefaultExcludes>
+      <excludes>
+        <!-- the following ignored because they were included above -->
+        <exclude>**/bin/**</exclude>
+        <exclude>**/*.sh</exclude>
+        <exclude>**/*.py</exclude>
+        <exclude>**/*.pl</exclude>
+
+        <!-- the following directories ignored because they should not be in the tarball -->
+        <exclude>**/.*/**</exclude>
+        <exclude>**/logs/**</exclude>
+        <exclude>**/walogs/**</exclude>
+        <exclude>**/target*/**</exclude>
+
+        <!-- the following files ignored because they should not be in the tarball -->
+        <exclude>**/.*</exclude>
+        <exclude>**/accumulo-site.xml</exclude>
+        <exclude>**/accumulo-env.sh</exclude>
+        <exclude>**/accumulo-metrics.xml</exclude>
+        <exclude>**/test-*</exclude>
+        <exclude>**/slaves</exclude>
+        <exclude>**/masters</exclude>
+        <exclude>**/tracers</exclude>
+        <exclude>**/monitor</exclude>
+        <exclude>**/gc</exclude>
+        <exclude>**/walkers.txt</exclude>
+        <exclude>**/ingesters.txt</exclude>
+        <exclude>**/continuous-env.sh</exclude>
+        <exclude>**/*.pyc</exclude>
+        <exclude>**/randomwalk/conf/logger.xml</exclude>
+        <exclude>**/randomwalk/conf/randomwalk.conf</exclude>
+        <exclude>**/randomwalk/conf/walkers</exclude>
+      </excludes>
+    </fileSet>
+  </fileSets>
+</assembly>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+
+<package prefix="seq" value="org.apache.accumulo.server.test.randomwalk.sequential"/>
+
+<fixture id="seq.SequentialFixture"/>
+
+<init id="seq.Write"/>
+
+<node id="seq.Write">
+  <edge id="seq.Write" weight="10000"/>
+  <edge id="seq.Commit" weight="1"/>
+</node>
+
+<node id="seq.Commit">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="dummy.ToAll">
+  <edge id="seq.Write" weight="50"/>
+  <edge id="seq.BatchVerify" weight="10"/>
+  <edge id="seq.MapRedVerify" weight="5"/>
+  <edge id="END" weight="1"/>
+</node>
+
+<node id="seq.BatchVerify">
+  <property key="maxVerify" value="10000"/>
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="seq.MapRedVerify">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+</module>

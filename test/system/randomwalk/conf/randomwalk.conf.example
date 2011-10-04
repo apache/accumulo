@@ -1,0 +1,11 @@
+# Basic
+INSTANCE=instance
+ZOOKEEPERS=localhost
+USERNAME=root
+PASSWORD=secret
+NFS_LOGPATH=/home/user/rwlogs
+
+# Batch Writer
+MAX_MEM=100000000
+MAX_LATENCY=600000
+NUM_THREADS=4

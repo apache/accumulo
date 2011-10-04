@@ -1,0 +1,65 @@
+
+ This project contains a sample application for ingesting and querying wikipedia data.
+ 
+  
+ Ingest
+ ------
+ 
+ 	Prerequisites
+ 	-------------
+ 	1. ACCUMULO, Hadoop, and ZooKeeper must be installed and running
+ 	2. ACCUMULO_HOME and ZOOKEEPER_HOME are defined in the environment
+ 	3. One or more wikipedia dump files (http://dumps.wikimedia.org/backup-index.html) placed in an HDFS directory.
+	   You will want to grab the files with the link name of pages-articles.xml.bz2
+ 
+ 
+ 	INSTRUCTIONS
+ 	------------
+   1. Build the ingest assembly by running 'mvn assembly:assembly' in the ingest directory. 
+   2. Untar the distribution in some directory. 
+   3. Modify the conf/wikipedia.xml file to specify ACCUMULO information. 
+   4. Copy the lib/accumulo-sample*.jar and lib/protobuf*.jar to $ACCUMULO_HOME/lib/ext
+   5. Then run bin/ingest.sh with one argument (the name of the directory in HDFS where the wikipedia XML files reside) 
+   	  and this will kick off a MapReduce job to ingest the data into ACCUMULO.
+   
+ Query
+ -----
+ 
+ 	Prerequisites
+ 	-------------
+ 	1. The query software was tested using JBoss AS 6. Install this unless you feel like messing with the installation.
+ 	
+	NOTE: Ran into a bug (https://issues.jboss.org/browse/RESTEASY-531) that did not allow an EJB3.1 war file. I was able
+	to workaround this by separating the RESTEasy servlet from the EJBs by creating an EJB jar and a WAR file.
+	
+	INSTRUCTIONS
+	-------------
+	1. Modify the query/src/main/resources/META-INF/ejb-jar.xml file with the same information that you put into the wikipedia.xml
+	   file from the Ingest step above. 
+	2. Build the query distribution by running 'mvn assembly:assembly' in the query directory. 
+	3. Untar the resulting file from the $JBOSS_HOME/server/default directory. This will place the dependent jars in the lib 
+	directory and the EJB jar into the deploy directory. 
+	4. Next, run 'mvn clean package' in the query-war directory and copy the war to $JBOSS_HOME/server/default/deploy. 
+	5. Start JBoss ($JBOSS_HOME/bin/run.sh)
+	6. Login to Accumulo and give the user permissions for the wikis that you loaded, for example: 
+			setauths -u <user> -s all,enwiki,eswiki,frwiki,fawiki
+	7. Copy the following jars to the $ACCUMULO_HOME/lib/ext directory from the $JBOSS_HOME/server/default/lib directory:
+	
+		commons-lang*.jar
+		kryo*.jar
+		minlog*.jar
+		reflectasm*.jar
+		asm*.jar
+		commons-jexl*.jar
+		google-collections*.jar
+		
+	8. Copy the $JBOSS_HOME/server/default/deploy/accumulo-sample-query*.jar to $ACCUMULO_HOME/lib/ext.
+		
+	
+	9. At this point you should be able to open a browser and view the page: http://localhost:8080/accumulo-sample/ui/ui.jsp.
+	You can issue the queries using this user interface or via the following REST urls: <host>/accumulo-sample/rest/Query/xml,
+	<host>/accumulo-sample/rest/Query/html, <host>/accumulo-sample/rest/Query/yaml, or <host>/accumulo-sample/rest/Query/json.
+	There are two parameters to the REST service, query and auths. The query parameter is the same string that you would type
+	into the search box at ui.jsp, and the auths parameter is a comma-separated list of wikis that you want to search (i.e.
+	enwiki,frwiki,dewiki, etc. Or you can use all) 
+ 

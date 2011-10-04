@@ -1,0 +1,153 @@
+<mediawiki xmlns="http://www.mediawiki.org/xml/export-0.5/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mediawiki.org/xml/export-0.5/ http://www.mediawiki.org/xml/export-0.5.xsd" version="0.5" xml:lang="en">
+  <siteinfo>
+    <sitename>Wikipedia</sitename>
+    <base>http://en.wikipedia.org/wiki/Main_Page</base>
+    <generator>MediaWiki 1.17wmf1</generator>
+    <case>first-letter</case>
+    <namespaces>
+      <namespace key="-2" case="first-letter">Media</namespace>
+      <namespace key="-1" case="first-letter">Special</namespace>
+      <namespace key="0" case="first-letter" />
+      <namespace key="1" case="first-letter">Talk</namespace>
+      <namespace key="2" case="first-letter">User</namespace>
+      <namespace key="3" case="first-letter">User talk</namespace>
+      <namespace key="4" case="first-letter">Wikipedia</namespace>
+      <namespace key="5" case="first-letter">Wikipedia talk</namespace>
+      <namespace key="6" case="first-letter">File</namespace>
+      <namespace key="7" case="first-letter">File talk</namespace>
+      <namespace key="8" case="first-letter">MediaWiki</namespace>
+      <namespace key="9" case="first-letter">MediaWiki talk</namespace>
+      <namespace key="10" case="first-letter">Template</namespace>
+      <namespace key="11" case="first-letter">Template talk</namespace>
+      <namespace key="12" case="first-letter">Help</namespace>
+      <namespace key="13" case="first-letter">Help talk</namespace>
+      <namespace key="14" case="first-letter">Category</namespace>
+      <namespace key="15" case="first-letter">Category talk</namespace>
+      <namespace key="100" case="first-letter">Portal</namespace>
+      <namespace key="101" case="first-letter">Portal talk</namespace>
+      <namespace key="108" case="first-letter">Book</namespace>
+      <namespace key="109" case="first-letter">Book talk</namespace>
+    </namespaces>
+  </siteinfo>
+  <page>
+    <title>Abacus</title>
+    <id>655</id>
+    <revision>
+      <id>34350</id>
+      <timestamp>2002-02-25T15:43:11Z</timestamp>
+      <contributor>
+        <ip>Conversion script</ip>
+      </contributor>
+      <minor />
+      <comment>Automated conversion</comment>
+      <text xml:space="preserve">1. An '''abacus''' is a counting frame, typically wooden with balls sliding on wires.  It was first used before the adoption of the ten-digit [[Arabic numerals | Arabic numeral]] system and is still widely used by small merchants in [[China]].  The Roman abacus contains seven long and seven shorter rods or bars, the former having four perforated beads running on them and the latter one.  The bar marked 1 indicates units, X tens, and so on up to millions.  The beads on the shorter bars denote fives,--five units, five tens, etc.  The rod O and corresponding short rod are for marking ounces; and the short quarter rods for fractions of an ounce. Computations are made with it by means of balls of bone or ivory running on slender bamboo rods, similar to the simpler board, fitted up with beads strung on wires, which has been employed in teaching the rudiments of arithmetic in English schools.
+
+The '''Suan'''4-'''Pan'''2 (&amp;#31639;&amp;#30436;) of the Chinese closely resembles the Roman abacus in its construction and use.  The Chinese abacus is usally around eight inches tall and it comes in various width depending on application, it usually has more than seven rods.  There are two beads on each rod in the upper deck and five beads each in the bottom.  The beads are usually round and made of hard wood.  The abacus can be reset to the starting position instantly by a quick jerk along the horizontal axis to spin all the beads away from the horizontal beam at the center.  The beads are counted by moving them up or down towards the beam. Chinese abacus does more than just counting.  Unlike the simple counting board used in elimentary schools, very efficient Suan4-Pan2 techniques were developed to do multiplication, division, addition, substraction, square root and cubic root at high speed.  The beads and rods were often lubricated to ensure speed. When all five beads in the lower deck are moved up, they are reset to the original position, and one bead in the top deck is moved down as a carry.  When both beads in the upper deck are moved down, they are reset and a bead on the adjacent rod on the left is moved up as a carry.  The result of the computation is read off from the beads clustered near the separator beam between the upper and lower deck.  In a sense, the abacus works as a 5-2-5-2-5-2... based number system in which carries and shiftings are similiar to the decimal number system.  Since each rod represents a digit in a decimal number, the computation capacity of the abacus is only limited by the number of rods on the abacus.  When a mathematician runs out of rods, he simply adds another abacus to the left of the row.  In theory, the abacus can be expanded infinitely.
+
+As recently as the late 1960s, abacus arithmetics were still being taught in school (e.g. in Hong Kong).  When hand held calculators became popular, nobody wanted to learn how to operate an abacus any more. In the early days of handheld calculators, news about abacus operators beating electronic calculator in arithmetics competitions in both speed and accuracy often appeared in the media.  The main reason being that early calculators were often plagued by rounding and overflow errors.  (Most handheld calculators can only handle 8 to 10 significant digits, the abacus is virtually limitless in precision.) Inexperienced operators might contribute to the loss too.  But when calculators' functionality improved, everyone knew that the abacus could never compute complex functions (e.g. trignometry) faster than a calculator.  The older generation (those who were born before the early 1950s) still used it for a while, but electronic calculators gradually displaced abacus in Hong Kong over the past four decades.  Abacus is hardly seen in Hong Kong nowadays.  However, abacuses are still being used in China and Japan.  The [[slide rule]]s also suffered a similar demise.
+
+The Suan4-Pan2 is closely tied to the [[[Chinese numerals|Chinese &quot;Hua1 Ma3&quot; numbering system]]].
+
+The Japanese eliminated one bead each from the upper and lower deck in each column of the Chinese abacus, because these beads are redundent.  That makes the Japanese '''soroban''' (&amp;#21313;&amp;#38706;&amp;#30436;) more like the Roman abacus.  The soroban is about 3 inches tall.  The beans on a soroban are usually double cone shape.
+
+Many sources also mentioned use of abacus in ancient Mayan culture.  
+The Mesoamerican abacus is closely tied to the base-20 [[Mayan numerals]] system.
+
+External Ref: 
+[[http://www.ee.ryerson.ca/~elf/abacus/ Abacus]], 
+[[http://www.soroban.com/ Soroban]], 
+[[http://www.sungwh.freeserve.co.uk/sapienti/abacus01.htm Suan Pan]], 
+[[http://hawk.hama-med.ac.jp/dbk/abacus.html Mesoamerican abacus]],
+[[http://www.dotpoint.com/xnumber/pic_roman_abacus.htm Roman abacus]]
+
+----
+
+2. (From the Greek ''abax'', a slab; or French ''abaque'', tailloir), in architecture, the upper member of the capital of a column.  Its chief function is to provide a larger supporting surface for the architrave or arch it has to carry.  In the Greek [[Doric]] order the abacus is a plain square slab.  In the Roman and Renaissance Doric orders it is crowned by a moulding.  In the Archaic-Greek [[Ionic]] order, owing to the greater width of the capital, the abacus is rectangular in plan, and consists of a carved [[ovolo]] moulding.  In later examples the abacus is square, except where there are angle [[volute]]s, when it is slightly curved over the same.  In the Roman and Renaissance Ionic capital, the abacus is square with a fillet On the top of an ogee moulding, but curved over angle volutes.  In the Greek [[Corinthian]] order the abacus is moulded, its sides are concave and its angles canted (except in one or two exceptional Greek capitals, where it is brought to a sharp angle); and the same shape is adopted in the Roman and Renaissance Corinthian and Composite capitals, in some cases with the ovolo moulding carved.  In Romanesque architecture the abacus is square with the lower edge splayed off and moulded or carved, and the same was retained in France during the medieval period; but in England, in Early English work, a circular deeply moulded abacus was introduced, which in the 14th and 15th centuries was transformed into an octagonal one.  The diminutive of abacus, [[abaciscus]], is applied in architecture to the chequers or squares of a tessellated pavement.
+
+----
+
+3. (possibly defunct) The name of abacus is also given, in [[logic]], to an instrument, often called the &quot;logical machine&quot;, analogous to the mathematical abacus.  It is constructed to show all the possible combinations of a set of logical terms with their negatives, and, further, the way in which these combinations are affected by the addition of attributes or other limiting words, i.e., to simplify mechanically the solution of logical problems.  These instruments are all more or less elaborate developments of the &quot;logical slate&quot;, on which were written in vertical columns all the combinations of symbols or letters which could be made logically out of a definite number of terms.  These were compared with any given premises, and those which were incompatible were crossed off.  In the abacus the combinations are inscribed each on a single slip of wood or similar substance, which is moved by a key; incompatible combinations can thus be mechanically removed at will, in accordance with any given series of premises.
+
+----
+
+see also:
+* [[slide rule]]
+
+[[talk:Abacus|Talk]]
+</text>
+    </revision>
+  </page>
+  <page>
+    <title>Acid</title>
+    <id>656</id>
+    <revision>
+      <id>46344</id>
+      <timestamp>2002-02-25T15:43:11Z</timestamp>
+      <contributor>
+        <ip>Conversion script</ip>
+      </contributor>
+      <minor />
+      <comment>Automated conversion</comment>
+      <text xml:space="preserve">An '''acid''' is a chemical generally defined by its reactions with complementary chemicals, designated [[base]]s. See [[Acid-base reaction theories]].
+
+Some of the stronger acids include the hydrohalic acids - HCl, HBr, and HI - and the oxyacids, which tend to contain central atoms in high oxidation states surrounded by oxygen - including HNO&lt;sub&gt;3&lt;/sub&gt; and H&lt;sub&gt;2&lt;/sub&gt;SO&lt;sub&gt;4&lt;/sub&gt;.
+
+
+Acidity is typically measured using the [[pH]] scale.
+
+----
+See also:
+
+&quot;Acid&quot; is also a slang word referring to [[LSD]].
+
+'''ACID''' is an acronym that expands to four essential properties of a [[database management system]].
+See [[ACID properties]].
+</text>
+    </revision>
+  </page>
+  <page>
+    <title>Asphalt</title>
+    <id>657</id>
+    <revision>
+      <id>29335</id>
+      <timestamp>2002-02-25T15:43:11Z</timestamp>
+      <contributor>
+        <ip>Conversion script</ip>
+      </contributor>
+      <minor />
+      <comment>Automated conversion</comment>
+      <text xml:space="preserve">'''Asphalt''' (also called [[bitumen]]) is a material that occurs naturally in most crude [[petroleum]]s. It is commonly used to build the surface of roads.
+</text>
+    </revision>
+  </page>
+  <page>
+    <title>Acronym</title>
+    <id>658</id>
+    <redirect />
+    <revision>
+      <id>60824</id>
+      <timestamp>2002-02-25T15:43:11Z</timestamp>
+      <contributor>
+        <ip>Conversion script</ip>
+      </contributor>
+      <minor />
+      <comment>Automated conversion</comment>
+      <text xml:space="preserve">An '''acronym''' is an [[abbreviation]], often composed of the initial letters of the words in a short phrase, that is treated as word (often, a piece of jargon or the proper name of an organization).  For example, SAM for [[''s''urface-to-''a''ir ''m''issile]] and [[NATO]] for the [[North Atlantic Treaty Organization]].  In its original meaning, acronyms were restricted to ''pronouncible'' abbreviations (what might be called ''true'' acronyms), though common usage permits calling unpronouncable abbreviations acronyms as well. Sometimes conjuntions and prepositions (such as and or to) contribute letters to make the acronym pronouncible, in contradiction to the normal [[English language|English]] rule for abbreviations.
+
+Often, an acronym will come into such wide use that people think of it as a word in itself, forget that it started out as an acronym, and write in in small letters. Examples include [[quasar]] (''q''uasi-''s''tellar ''r''adio ''s''ource), [[laser]] (''l''ight ''a''mplification by ''s''timulated ''e''mission of ''r''adiation) and radar (''r''adio ''d''etection ''a''nd ''r''anging).
+
+Non-pronouncible abbreviations formed from initials (such as IBM for International Business Machines) are sometimes called '''[[initialism]]s'''.
+
+Some lists of acronyms in use:
+
+*[[Internet slang|acronyms used on the Internet]]
+*[[Acronym/List|list of acronyms]]
+*[[Acronym/Medical List|list of medical acronyms]]
+
+A large list of acronyms may be found at http://www.acronymfinder.com/
+
+[[talk:Acronym|/Talk]]
+</text>
+    </revision>
+  </page>
+</mediawiki>

@@ -1,0 +1,9 @@
+* run continuous ingest and continuous walkers for 24 hours
+* stop continuous ingest and walkers
+* disable idle compactions
+* run verification map reduce job
+* ensure there are entries in memory and then kill -9 all tablet servers and master
+* restart accumulo
+* allow log recoveries to run
+* run verification map reduce job
+* compare counts from two verification runs

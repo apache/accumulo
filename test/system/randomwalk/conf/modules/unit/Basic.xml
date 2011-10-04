@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+
+<package prefix="test" value="org.apache.accumulo.server.test.randomwalk.unit"/>
+
+<init id="test.CreateTable"/>
+
+<node id="test.CreateTable">
+  <edge id="unit/Simple.xml" weight="1"/>
+</node>
+
+<node id="unit/Simple.xml">
+  <edge id="unit/Simple.xml" weight="3"/>
+  <edge id="test.DeleteTable" weight="1"/>
+</node>
+
+<node id="test.DeleteTable">
+  <edge id="END" weight="1"/>
+</node>
+
+</module>

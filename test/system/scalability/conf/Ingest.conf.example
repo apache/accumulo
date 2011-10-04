@@ -1,0 +1,13 @@
+
+# Table to ingest into
+TABLE=ingest
+# Number of entries to ingest
+NUM_ENTRIES=3000000
+
+# Batch writer configuration
+# Max memory (in bytes) that each ingester will use to buffer writes
+MAX_MEMORY=100000000
+# Max time (in millis) that each ingester will buffer data
+MAX_LATENCY=600000
+# Number of threads each ingester will use to write data
+NUM_THREADS=4
