@@ -7,7 +7,7 @@ if [ "$VERSION" -ne 1 ] ; then
    echo "thrift is not available"
    exit 0
 fi
-CLOUDTRACE=../../../cloudtrace
+CLOUDTRACE=../trace
 THRIFT_ARGS="-I $CLOUDTRACE/src/main/thrift -o target "
 
 mkdir -p target
