@@ -12,7 +12,7 @@ if [ "$VERSION" -ne 1 ] ; then
    echo "thrift is not available"
    exit 0
 fi
-CLOUDTRACE=../../contrib/cloudtrace-0.2.0/
+CLOUDTRACE=../trace
 test -d ${CLOUDTRACE} || ( echo 'need to configure cloudtrace' ; exit 0 )
 
 THRIFT_ARGS="-I $CLOUDTRACE/src/main/thrift -o target "
