@@ -24,6 +24,10 @@
       <artifactId>zookeeper</artifactId>
     </dependency>
     <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>cloudtrace</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
     </dependency>
@@ -66,10 +70,6 @@
     <dependency>
         <groupId>jfree</groupId>
         <artifactId>jcommon</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>cloudtrace</groupId>
-        <artifactId>cloudtrace</artifactId>
     </dependency>
   </dependencies>
 
