@@ -6,7 +6,6 @@
     <version>1.4.0-incubating-SNAPSHOT</version>
   </parent>
 
-  <groupId>accumulo-sample</groupId>
   <artifactId>accumulo-sample-ingest</artifactId>
   <name>accumulo-sample-ingest</name>
   

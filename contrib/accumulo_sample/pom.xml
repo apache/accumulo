@@ -140,7 +140,6 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <version.commons-lang>2.4</version.commons-lang>
     <version.accumulo>${project.version}</version.accumulo>
-    <version.cloudtrace>0.2.0</version.cloudtrace>
    	<version.commons-jexl>2.0.1</version.commons-jexl>
    	<version.commons-codec>1.5</version.commons-codec>
    	<version.ejb-spec-api>1.0.1.Final</version.ejb-spec-api>
@@ -187,9 +186,9 @@
 			<version>${version.libthrift}</version>
 		</dependency>
 		<dependency>
-		  	<groupId>cloudtrace</groupId>
+		  	<groupId>org.apache.accumulo</groupId>
 		  	<artifactId>cloudtrace</artifactId>
-		  	<version>${version.cloudtrace}</version>
+		  	<version>${version.accumulo}</version>
 		</dependency>
 	    <dependency>
 	      <groupId>com.google.collections</groupId>

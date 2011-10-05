@@ -8,7 +8,6 @@
     <relativePath>../</relativePath>
   </parent>
 
-  <groupId>accumulo-sample</groupId>
   <artifactId>accumulo-sample-query</artifactId>
   <packaging>ejb</packaging>
   <name>accumulo-sample-query</name>
@@ -33,7 +32,7 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
-      <groupId>cloudtrace</groupId>
+      <groupId>org.apache.accumulo</groupId>
       <artifactId>cloudtrace</artifactId>
       <scope>runtime</scope>
     </dependency>
@@ -89,7 +88,7 @@
       <artifactId>kryo</artifactId>
     </dependency>
     <dependency>
-      <groupId>accumulo-sample</groupId>
+      <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-sample-ingest</artifactId>
       <version>${project.version}</version>
     </dependency>

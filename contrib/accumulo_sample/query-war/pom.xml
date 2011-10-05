@@ -7,7 +7,6 @@
      <version>1.4.0-incubating-SNAPSHOT</version>
   </parent>
 
-  <groupId>accumulo-sample</groupId>
   <artifactId>accumulo-sample-query-war</artifactId>
   <packaging>war</packaging>
   <name>accumulo-sample-query-war</name>
