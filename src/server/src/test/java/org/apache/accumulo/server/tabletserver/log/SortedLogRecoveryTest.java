@@ -9,9 +9,11 @@ import static org.apache.accumulo.server.logger.LogEvents.OPEN;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.Map.Entry;
 
@@ -88,8 +90,12 @@ public class SortedLogRecoveryTest {
             result.add(m);
         }
     }
-
+    
     private static List<Mutation> recover(Map<String, KeyValue[]> logs, KeyExtent extent) throws IOException {
+    	return recover(logs, new HashSet<String>(), extent);
+    }
+
+    private static List<Mutation> recover(Map<String, KeyValue[]> logs, Set<String> files, KeyExtent extent) throws IOException {
         final String workdir = "workdir";
         Configuration conf = CachedConfiguration.getInstance();
         FileSystem local = FileSystem.getLocal(conf).getRaw();
@@ -113,7 +119,7 @@ public class SortedLogRecoveryTest {
             // Recover
             SortedLogRecovery recovery = new SortedLogRecovery();
             CaptureMutations capture = new CaptureMutations();
-            recovery.recover(extent, dirs, new HashSet<String>(), capture);
+            recovery.recover(extent, dirs, files, capture);
             return capture.result;
         } finally {
             local.delete(new Path(workdir), true);
@@ -687,5 +693,55 @@ public class SortedLogRecoveryTest {
         
         Assert.assertEquals(1, mutations.size());
         Assert.assertEquals(m,mutations.get(0));
+    }
+    
+    @Test
+    public void testNoFinish0() throws Exception {
+    	//its possible that a minor compaction finishes successfully, but the process dies before writing the compaction event
+    	
+    	Mutation ignored = new Mutation("row1");
+    	ignored.put("foo", "bar", "v1");
+    	
+    	KeyValue entries[] = new KeyValue[]{
+    		createKeyValue(OPEN, 0, -1, "1"),
+    		createKeyValue(DEFINE_TABLET, 1, 2, extent),
+    		createKeyValue(MUTATION, 2, 2, ignored),
+    		createKeyValue(COMPACTION_START, 3, 2, "/t/f1")
+    	};
+    	
+    	Arrays.sort(entries);
+    	Map<String, KeyValue[]> logs = new TreeMap<String, KeyValue[]>();
+    	logs.put("entries", entries);
+    	
+    	List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent);
+    	
+    	Assert.assertEquals(0, mutations.size());
+    }
+    
+    @Test
+    public void testNoFinish1() throws Exception {
+    	//its possible that a minor compaction finishes successfully, but the process dies before writing the compaction event
+    	
+    	Mutation ignored = new Mutation("row1");
+    	ignored.put("foo", "bar", "v1");
+    	Mutation m = new Mutation("row1");
+    	m.put("foo", "bar", "v2");
+    	
+    	KeyValue entries[] = new KeyValue[]{
+    		createKeyValue(OPEN, 0, -1, "1"),
+    		createKeyValue(DEFINE_TABLET, 1, 2, extent),
+    		createKeyValue(MUTATION, 2, 2, ignored),
+    		createKeyValue(COMPACTION_START, 3, 2, "/t/f1"),
+    		createKeyValue(MUTATION, 4, 2, m),
+    	};
+    	
+    	Arrays.sort(entries);
+    	Map<String, KeyValue[]> logs = new TreeMap<String, KeyValue[]>();
+    	logs.put("entries", entries);
+    	
+    	List<Mutation> mutations = recover(logs, Collections.singleton("/t/f1"), extent);
+    	
+    	Assert.assertEquals(1, mutations.size());
+    	Assert.assertEquals(m, mutations.get(0));
     }
 }
