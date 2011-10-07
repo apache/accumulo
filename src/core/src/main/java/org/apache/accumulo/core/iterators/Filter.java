@@ -30,14 +30,9 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
 
 	public Filter() {}
 
-	/*
-	 * Note that subclasses should call findTop() in their constructors after
-	 * calling super(iterator) and initializing their own parameters
-	 */
 	public Filter(SortedKeyValueIterator<Key, Value> iterator) {
 		setSource(iterator);
 		negate = false;
-//		findTop();
 	}
 
 	@Override
@@ -48,7 +43,7 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
 
 	@Override
 	public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-		getSource().seek(range, columnFamilies, inclusive);
+		super.seek(range, columnFamilies, inclusive);
 		findTop();
 	}
 

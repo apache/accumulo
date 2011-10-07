@@ -23,7 +23,6 @@ public class ColumnAgeOffFilter extends Filter implements OptionDescriber {
 		super(iterator);
 		this.ttls = ttls;
 		this.currentTime = currentTime;
-		findTop();
 	}
 
 	public static class TTLSet extends ColumnToClassMapping<Long> {

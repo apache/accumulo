@@ -19,7 +19,7 @@ public abstract class SkippingIterator extends WrappingIterator {
 
 	@Override
 	public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-		getSource().seek(range, columnFamilies, inclusive);
+		super.seek(range, columnFamilies, inclusive);
 		consume();
 	}
 

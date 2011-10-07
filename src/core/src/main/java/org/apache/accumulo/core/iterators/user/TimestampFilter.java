@@ -32,7 +32,6 @@ public class TimestampFilter extends Filter implements OptionDescriber {
 		this.startInclusive = startInclusive;
 		this.end = end;
 		this.endInclusive = endInclusive;
-		findTop();
 	}
 
 	@Override

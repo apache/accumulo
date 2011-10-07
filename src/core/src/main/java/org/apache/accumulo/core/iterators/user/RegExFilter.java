@@ -32,7 +32,6 @@ public class RegExFilter extends Filter implements OptionDescriber {
 
 	public RegExFilter(SortedKeyValueIterator<Key, Value> iterator) {
 		super(iterator);
-		findTop();
 	}
 
 	public static final String ROW_REGEX = "rowRegex";

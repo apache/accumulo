@@ -22,7 +22,6 @@ public class AgeOffFilter extends Filter implements OptionDescriber {
 		super(iterator);
 		this.threshold = threshold;
 		this.currentTime = currentTime;
-		findTop();
 	}
 
 	@Override

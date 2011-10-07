@@ -56,7 +56,7 @@ public class FilteringIterator extends WrappingIterator implements OptionDescrib
 
 	@Override
 	public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-		getSource().seek(range, columnFamilies, inclusive);
+		super.seek(range, columnFamilies, inclusive);
 		findTop();
 	}
 	

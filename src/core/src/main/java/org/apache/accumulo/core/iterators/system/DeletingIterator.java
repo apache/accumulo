@@ -54,7 +54,7 @@ public class DeletingIterator extends WrappingIterator {
 		// do not want to seek to the middle of a row
 		Range seekRange = IteratorUtil.maximizeStartKeyTimeStamp(range);
 		
-		getSource().seek(seekRange, columnFamilies, inclusive);
+		super.seek(seekRange, columnFamilies, inclusive);
 		findTop();
 		
 		if(range.getStartKey() != null){

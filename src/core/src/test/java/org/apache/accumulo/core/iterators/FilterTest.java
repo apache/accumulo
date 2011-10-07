@@ -37,7 +37,6 @@ public class FilterTest extends TestCase {
 	public class SimpleFilter extends Filter {
 		public SimpleFilter(SortedKeyValueIterator<Key, Value> iterator) {
 			super(iterator);
-			findTop();
 		}
 
 		public boolean accept(Key k, Value v) {
@@ -51,7 +50,6 @@ public class FilterTest extends TestCase {
 	public class SimpleFilter2 extends Filter {
 		public SimpleFilter2(SortedKeyValueIterator<Key, Value> iterator) {
 			super(iterator);
-			findTop();
 		}
 
 		public boolean accept(Key k, Value v) {

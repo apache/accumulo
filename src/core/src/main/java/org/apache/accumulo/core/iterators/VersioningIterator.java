@@ -70,7 +70,7 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
 		// do not want to seek to the middle of a row
 		Range seekRange = IteratorUtil.maximizeStartKeyTimeStamp(range);
 		
-		getSource().seek(seekRange, columnFamilies, inclusive);
+		super.seek(seekRange, columnFamilies, inclusive);
 		resetVersionCount();
 		
 		if(range.getStartKey() != null){

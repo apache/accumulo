@@ -12,7 +12,8 @@ import org.apache.accumulo.core.data.Value;
 
 public abstract class WrappingIterator implements SortedKeyValueIterator<Key, Value> {
 
-	private SortedKeyValueIterator<Key, Value> source;
+	private SortedKeyValueIterator<Key, Value> source = null;
+	boolean seenSeek = false;
 	
 	protected void setSource(SortedKeyValueIterator<Key, Value> source) {
 		this.source = source;
@@ -29,16 +30,22 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key, Va
 
 	@Override
 	public Key getTopKey() {
+		if (source==null) throw new RuntimeException("no source set");
+		if (seenSeek==false) throw new RuntimeException("never been seeked");
 		return getSource().getTopKey();
 	}
 
 	@Override
 	public Value getTopValue() {
+		if (source==null) throw new RuntimeException("no source set");
+		if (seenSeek==false) throw new RuntimeException("never been seeked");
 		return getSource().getTopValue();
 	}
 
 	@Override
 	public boolean hasTop() {
+		if (source==null) throw new RuntimeException("no source set");
+		if (seenSeek==false) throw new RuntimeException("never been seeked");
 		return getSource().hasTop();
 	}
 
@@ -50,12 +57,15 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key, Va
 
 	@Override
 	public void next() throws IOException {
+		if (source==null) throw new RuntimeException("no source set");
+		if (seenSeek==false) throw new RuntimeException("never been seeked");
 		getSource().next();
 	}
 	
 	@Override
 	public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
 		getSource().seek(range, columnFamilies, inclusive);
+		seenSeek = true;
 	}
 
 	

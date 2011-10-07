@@ -13,7 +13,6 @@ public class NoVisFilter extends Filter implements OptionDescriber {
 
 	public NoVisFilter(SortedKeyValueIterator<Key, Value> iterator) {
 		super(iterator);
-		findTop();
 	}
 
 	@Override
