@@ -801,9 +801,18 @@ public class Tablet {
 			
 			long t1, t2;
 
+			//the code below always assumes merged files are in use by scans... this must be done
+			//because the in memory list of files is not updated until after the metadata table
+			//therefore the file is available to scans until memory is updated, but want to ensure
+			//the file is not available for garbage collection...  if memory were updated 
+			//before this point (like major compactions do), then the following code could wait
+			//for scans to finish like major compactions do....  used to wait for scans to finish
+			//here, but that was incorrect because a scan could start after waiting but before
+			//memory was updated...  assuming the file is always in use by scans leads to
+			//one uneeded metadata update when it was not actually in use
 			Set<Path> filesInUseByScans = Collections.emptySet();
 			if(absMergeFile != null)
-				filesInUseByScans = waitForScansToFinish(Collections.singleton(absMergeFile), false, 1000);
+				filesInUseByScans = Collections.singleton(absMergeFile);  
 			
 			//very important to write delete entries outside of log lock, because
 			//this !METADATA write does not go up... it goes sideways or to itself
@@ -830,7 +839,7 @@ public class Tablet {
 				finishClearingUnusedLogs();
 			}
 			
-			removeFilesAfterScan(filesInUseByScans);
+			
 			
 			do {
 				try {
@@ -873,6 +882,9 @@ public class Tablet {
 				t2 = System.currentTimeMillis();
 			}
 			
+			//must do this after list of files in memory is updated above
+			removeFilesAfterScan(filesInUseByScans);
+			
 			if(absMergeFile != null)
 				log.log(TLevel.TABLET_HIST, extent+" MinC ["+abs2rel(absMergeFile)+",memory] -> "+abs2rel(newDatafile));
 			else
@@ -886,6 +898,7 @@ public class Tablet {
 
 		}
 
+		
 		private Map<String, DataFileValue> abs2rel(Map<Path, DataFileValue> paths) {
 			TreeMap<String, DataFileValue> relMap = new TreeMap<String, MetadataTable.DataFileValue>();
 			
