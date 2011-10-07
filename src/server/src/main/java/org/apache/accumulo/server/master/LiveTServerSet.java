@@ -282,7 +282,7 @@ public class LiveTServerSet implements Watcher {
             }
         }
         log.info("Removing zookeeper lock for " + server);
-        String zpath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + server;
+        String zpath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + server.hostPort();
         try {
             ZooReaderWriter.getInstance().recursiveDelete(zpath, SKIP);
         } catch (Exception e) {
