@@ -261,7 +261,7 @@ public class LiveTServerSet implements Watcher {
         if (remove != null) {
             try {
                 remove.cleanup();
-                ZooUtil.recursiveDelete(ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + server, SKIP);
+                ZooUtil.recursiveDelete(ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + server.hostPort(), SKIP);
             } catch (Exception e) {
                 log.error("error removing tablet server lock", e);
             }
