@@ -470,17 +470,20 @@ public class Tablet {
 		return extent.getTableId().toString().equals(Constants.METADATA_TABLE_ID);
 	}
 
+	private static String rel2abs(String relPath, KeyExtent extent){
+		if(relPath.startsWith("../"))
+			return ServerConstants.getTablesDir() + relPath.substring(2);
+		else
+			return ServerConstants.getTablesDir() + "/" + extent.getTableId() + relPath;
+	}
+	
 	class DatafileManager {
 		private TreeMap<Path, DataFileValue> datafileSizes;
 		DatafileManager(SortedMap<String, DataFileValue> datafileSizes){
 			this.datafileSizes = new TreeMap<Path, DataFileValue>();
 			
-			for(Entry<String, DataFileValue> datafiles : datafileSizes.entrySet()) {
-				if(datafiles.getKey().startsWith("../"))
-					this.datafileSizes.put(new Path(ServerConstants.getTablesDir() + datafiles.getKey().substring(2)),datafiles.getValue());
-				else
-					this.datafileSizes.put(new Path(ServerConstants.getTablesDir() + "/" + extent.getTableId() + datafiles.getKey()),datafiles.getValue());
-			}
+			for(Entry<String, DataFileValue> datafiles : datafileSizes.entrySet()) 
+				this.datafileSizes.put(new Path(rel2abs(datafiles.getKey(), extent)), datafiles.getValue());
 		}
 
 		Path mergingMinorCompactionFile = null;
@@ -1434,7 +1437,11 @@ public class Tablet {
 		    final CommitSession commitSession = tabletMemory.getCommitSession();
 		    count[1] = Long.MIN_VALUE;
 		    try {
-		        tabletServer.recover(this, logEntries, datafiles.keySet(), new MutationReceiver() {
+		    	Set<String> absPaths = new HashSet<String>();
+		    	for(String relPath : datafiles.keySet())
+		    		absPaths.add(rel2abs(relPath, extent));
+		    	
+		        tabletServer.recover(this, logEntries, absPaths, new MutationReceiver() {
 		        	public void receive(Mutation m) {
 		        		//LogReader.printMutation(m);
 		        		Collection<ColumnUpdate> muts = m.getUpdates();
