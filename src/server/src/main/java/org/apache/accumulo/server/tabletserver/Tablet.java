@@ -516,6 +516,10 @@ public class Tablet {
 		return extent.getTableId().toString().equals(Constants.METADATA_TABLE_ID);
 	}
 
+	private static String rel2abs(String relPath, KeyExtent extent){
+		return Constants.getTablesDir() + "/" + extent.getTableId() + relPath;
+	}
+	
 	class DatafileManager {
 		private TreeMap<String, DataFileValue> datafileSizes;
 		private SortedMap<String, DataFileValue> unModMap;
@@ -525,7 +529,7 @@ public class Tablet {
 
 			for(Entry<String, DataFileValue> datafiles : datafileSizes.entrySet()) {
 				try {
-					tabletResources.addMapFile(Constants.getTablesDir() + "/" + extent.getTableId() + datafiles.getKey(),datafiles.getValue().getSize());
+					tabletResources.addMapFile(rel2abs(datafiles.getKey(), extent), datafiles.getValue().getSize());
 				}
 				catch (IOException e) {
 					log.error("ioexception trying to open " + datafiles);
@@ -1311,7 +1315,11 @@ public class Tablet {
 		    final CommitSession commitSession = tabletMemory.getCommitSession();
 		    count[1] = Long.MIN_VALUE;
 		    try {
-		        tabletServer.recover(this, logEntries, datafiles.keySet(), new MutationReceiver() {
+		    	Set<String> absPaths = new HashSet<String>();
+		    	for(String relPath : datafiles.keySet())
+		    		absPaths.add(rel2abs(relPath, extent));
+		    	
+		        tabletServer.recover(this, logEntries, absPaths, new MutationReceiver() {
 		        	public void receive(Mutation m) {
 		        		//LogReader.printMutation(m);
 		        		Collection<ColumnUpdate> muts = m.getUpdates();
