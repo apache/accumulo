@@ -53,9 +53,9 @@ public class MockBatchScanner extends MockScannerBase implements BatchScanner {
     public Iterator<Entry<Key, Value>> iterator() {
         SortedKeyValueIterator<Key, Value> i = new SortedMapIterator(table.table);
         try {
-            i = createFilter(i);
+            i = new RangesFilter(createFilter(i), ranges);
             i.seek(new Range(), createColumnBSS(fetchedColumns), !fetchedColumns.isEmpty());
-            return new IteratorAdapter(new RangesFilter(i, ranges)); 
+            return new IteratorAdapter(i); 
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
