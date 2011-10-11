@@ -36,8 +36,6 @@ public class DeletingIterator extends WrappingIterator {
 			boolean propogateDeletes) throws IOException{
 		this.setSource(iterator);
 		this.propogateDeletes = propogateDeletes;
-		
-		findTop();
 	}
 
 	@Override
