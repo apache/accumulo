@@ -257,14 +257,18 @@ public class LiveTServerSet implements Watcher {
     }
 
     public synchronized void remove(TServerInstance server) {
-        TServerInfo remove = current.remove(server);
+        TServerInfo remove = current.remove(server.hostPort());
         if (remove != null) {
             try {
                 remove.cleanup();
-                ZooUtil.recursiveDelete(ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + server.hostPort(), SKIP);
             } catch (Exception e) {
-                log.error("error removing tablet server lock", e);
+                log.info("error removing tablet server lock", e);
             }
+        }
+        try {
+        	ZooUtil.recursiveDelete(ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + server.hostPort(), SKIP);
+        } catch (Exception e) {
+        	log.error("error removing tablet server lock", e);
         }
     }
 }
