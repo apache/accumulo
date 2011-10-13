@@ -1388,10 +1388,6 @@ public class Tablet {
 		tabletTime = TabletTime.getInstance(time);
 		persistedTime = tabletTime.getTime();
 		
-		constraintChecker.set(ConstraintLoader.load(extent.getTableId().toString()));
-
-		
-
 		acuTableConf.addObserver(configObserver = new ConfigurationObserver(){
 
 			private void reloadConstraints(){
@@ -3049,6 +3045,9 @@ public class Tablet {
 		Map<String, Long> filesToCompact;
 		
 		int maxFilesToCompact = acuTableConf.getCount(Property.TSERV_MAJC_THREAD_MAXOPEN);
+		
+		CompactionStats majCStats = new CompactionStats();
+
 		synchronized(this) {
 			//plan all that work that needs to be done in the sync block... then do the actual work
 			//outside the sync block
@@ -3078,7 +3077,7 @@ public class Tablet {
 			CompactionTuple ret = getFilesToCompact(reason, falks);
 			if(ret == null){
 				//nothing to compact
-				return null;
+        return majCStats;
 			}
 			filesToCompact = ret.getFilesToCompact();
 
@@ -3105,8 +3104,6 @@ public class Tablet {
 				//compacting everything, so update the compaction id in !METADATA
 				compactionId = getCompactionID();
 			}
-			
-			CompactionStats majCStats = new CompactionStats();
 
 			//need to handle case where only one file is being major compacted
 			while(filesToCompact.size() > 0) {
@@ -3252,7 +3249,7 @@ public class Tablet {
 				majorCompactionInProgress = false;
 				this.notifyAll();
 			}
-			//TODO majCStats could be null
+
 			Span curr = Trace.currentTrace();
 			curr.data("extent",  ""+getExtent());
 			curr.data("read",    ""+majCStats.getEntriesRead());
