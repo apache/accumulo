@@ -250,7 +250,7 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
                 zset(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
                 zset(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
                 for (String id : Tables.getIdToNameMap(instance).keySet())
-                    ZooUtil.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLE_CONF + "/" + id + "/state", "ONLINE".getBytes(), NodeExistsPolicy.OVERWRITE);
+                    ZooUtil.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + "/state", "ONLINE".getBytes(), NodeExistsPolicy.OVERWRITE);
             } catch (Exception ex) {
                 log.fatal("Error performing upgrade", ex);
                 System.exit(1);
