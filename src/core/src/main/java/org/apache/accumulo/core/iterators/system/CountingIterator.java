@@ -37,7 +37,7 @@ public class CountingIterator extends WrappingIterator {
 
 	@Override
 	public void next() throws IOException {
-		getSource().next();
+		super.next();
 		count++;
 	}
 

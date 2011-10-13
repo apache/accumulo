@@ -37,21 +37,21 @@ public class DebugIterator extends WrappingIterator {
 	
 	@Override
 	public Key getTopKey() {
-		Key wc = getSource().getTopKey();
+		Key wc = super.getTopKey();
 		log.debug(prefix+" getTopKey() --> "+wc);
 		return wc;
 	}
 
 	@Override
 	public Value getTopValue() {
-		Value w = getSource().getTopValue();
+		Value w = super.getTopValue();
 		log.debug(prefix+" getTopValue() --> "+w);
 		return w;
 	}
 
 	@Override
 	public boolean hasTop() {
-		boolean b = getSource().hasTop();
+		boolean b = super.hasTop();
 		log.debug(prefix+" hasTop() --> "+b);
 		return b;
 	}
@@ -59,7 +59,7 @@ public class DebugIterator extends WrappingIterator {
 	@Override
 	public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
 		log.debug(prefix+" seek("+range+", "+columnFamilies+", "+inclusive+")");
-		getSource().seek(range, columnFamilies, inclusive);
+		super.seek(range, columnFamilies, inclusive);
 	}
 
 	@Override

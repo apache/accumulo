@@ -280,10 +280,6 @@ public abstract class AbstractEvaluatingIterator implements SortedKeyValueIterat
             throw new IOException("Failed to parse query", e);
         }
         EventFields.initializeKryo(kryo);
-
-        //Not sure we want to call findTop() here. In testing with the mock accumulo stack find top was getting called
-        //twice before the scanner was finished initialization
-        //findTop();
     }
 
     public IteratorOptions describeOptions() {

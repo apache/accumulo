@@ -48,7 +48,7 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
 			return;
 		}
 		
-		getSource().next();
+		super.next();
 		if (getSource().hasTop()) {
 			if (getSource().getTopKey().equals(currentKey, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
 				numVersions++;
@@ -89,14 +89,14 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
 	}
 
 	private void resetVersionCount() {
-		if (getSource().hasTop())
+		if (super.hasTop())
 			currentKey.set(getSource().getTopKey());
 		numVersions = 1;
 	}
 	
 	private void skipRowColumn() throws IOException {
 		Key keyToSkip = currentKey;
-		getSource().next();
+		super.next();
 		
 		while(getSource().hasTop() && getSource().getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)){
 			getSource().next();

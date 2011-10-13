@@ -11,7 +11,7 @@ public abstract class SkippingIterator extends WrappingIterator {
 
 	@Override
 	public void next() throws IOException {
-		getSource().next();
+		super.next();
 		consume();
 	}
 

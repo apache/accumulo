@@ -37,7 +37,7 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
 
 	@Override
 	public void next() throws IOException {
-		getSource().next();
+		super.next();
 		findTop();
 	}
 

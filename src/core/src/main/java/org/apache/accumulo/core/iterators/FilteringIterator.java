@@ -44,13 +44,11 @@ public class FilteringIterator extends WrappingIterator implements OptionDescrib
 			List<? extends Filter> filters) throws IOException{
 		this.setSource(iterator);
 		this.filters = filters;
-		
-		findTop();
 	}
 
 	@Override
 	public void next() throws IOException {
-		getSource().next();
+		super.next();
 		findTop();
 	}
 

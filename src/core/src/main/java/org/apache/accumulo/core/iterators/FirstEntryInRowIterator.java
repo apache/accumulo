@@ -99,7 +99,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
 		latestInclusive = inclusive;
 
 		// seek to first possible pattern in range
-		getSource().seek(range, columnFamilies, inclusive);
+		super.seek(range, columnFamilies, inclusive);
 		lastRowFound = getSource().hasTop() ? getSource().getTopKey().getRow() : null;
 	}
 

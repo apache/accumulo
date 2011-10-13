@@ -78,8 +78,6 @@ public class TotalAggregatingIterator implements SortedKeyValueIterator<Key, Val
 	
 	public TotalAggregatingIterator(SortedKeyValueIterator<Key, Value> iterator, ColumnToClassMapping<Aggregator> aggregators) throws IOException{
 		this.iterator = iterator;
-		
-		findTop();
 	}
 	
 	@Override
@@ -147,7 +145,6 @@ public class TotalAggregatingIterator implements SortedKeyValueIterator<Key, Val
 	public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
 		agg = createAggregator(options);
 		this.iterator = source;		
-		findTop();
 	}
 
 	@Override

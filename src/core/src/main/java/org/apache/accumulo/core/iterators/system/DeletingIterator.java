@@ -40,7 +40,7 @@ public class DeletingIterator extends WrappingIterator {
 
 	@Override
 	public void next() throws IOException {
-		if (getSource().getTopKey().isDeleted())
+		if (super.getTopKey().isDeleted())
 			skipRowColumn();
 		else
 			getSource().next();

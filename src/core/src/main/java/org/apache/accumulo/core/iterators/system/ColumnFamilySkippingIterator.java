@@ -77,10 +77,10 @@ public class ColumnFamilySkippingIterator extends SkippingIterator implements In
 	private void reseek(Key key) throws IOException {
 		if(range.afterEndKey(key)){
 			range = new Range(range.getEndKey(), true, range.getEndKey(), range.isEndKeyInclusive());
-			getSource().seek(range, EMPTY_SET, false);
+			super.seek(range, EMPTY_SET, false);
 		}else{
 			range = new Range(key, true, range.getEndKey(), range.isEndKeyInclusive());
-			getSource().seek(range, EMPTY_SET, false);
+			super.seek(range, EMPTY_SET, false);
 		}
 	}
 

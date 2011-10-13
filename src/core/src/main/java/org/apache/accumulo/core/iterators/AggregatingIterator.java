@@ -87,8 +87,6 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key, Value>, 
 	public AggregatingIterator(SortedKeyValueIterator<Key, Value> iterator, ColumnToClassMapping<Aggregator> aggregators) throws IOException{
 		this.iterator = iterator;
 		this.aggregators = aggregators;
-		
-		findTop();
 	}
 	
 	@Override
