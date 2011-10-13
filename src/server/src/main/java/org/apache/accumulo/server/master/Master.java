@@ -1461,13 +1461,14 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
                 result.put(server, status);
             } catch (Exception ex) {
                 log.error("unable to get tablet server status " + server);
-                if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT)
+                if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
                     try {
                         tserverSet.getConnection(server).halt(masterLock);
                     } catch (Exception e) {
                         log.info("error talking to troublesome tablet server ", e);
                     }
-                tserverSet.remove(server);
+                    tserverSet.remove(server);
+                }
             }
         }
         log.debug(String.format("Finished gathering information from %d servers in %.2f seconds", result.size(),
