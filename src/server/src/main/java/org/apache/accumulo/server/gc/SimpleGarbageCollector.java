@@ -380,18 +380,30 @@ public class SimpleGarbageCollector implements Iface
         // skip candidates that are in a bulk processing folder
         if (checkForBulkProcessingFiles) {
             log.debug("Checking for bulk processing files");
+            HashSet<String> bulks = new HashSet<String>();
+            for (String candidate : candidates) {
+            	if (candidate.contains("/bulk_"))
+            		bulks.add(candidate.substring(0, candidate.lastIndexOf('/')));
+            }
+            log.debug("... looking at " + bulks.size() + " bulk directories");
             TreeSet<String> processing = new TreeSet<String>();
             try {
-                for (FileStatus stat : fs.globStatus(new Path(Constants.getTablesDir() + "/*/bulk_*/processing_proc_*"))) {
-                    String folder = stat.getPath().getParent().toUri().getPath();
-                    processing.add(folder);
-                    log.debug("Folder contains bulk processing file: " + folder);
-                }
+            	for (String bulk : bulks) {
+            		Path glob = new Path(Constants.getTablesDir() + bulk + "/processing_proc_*");
+            		log.debug("Looking for processing flags in " + glob);
+            		FileStatus[] flags = fs.globStatus(glob);
+            		if (flags != null && flags.length > 0) {
+            			String parent = flags[0].getPath().getParent().toUri().getPath();
+            			processing.add(parent);
+            			log.debug("Folder contains bulk processing file: " + parent);
+            		}
+            	}
             } catch (IOException e) {
                 log.error("Unable to check the filesystem for bulk processing files. Removing all candidates for deletion to be safe.", e);
                 candidates.clear();
                 return;
             }
+            log.debug("Found " + processing.size() + " processing files");
 
             // WARNING: This block is IMPORTANT
             // You MUST REMOVE candidates that are in the same folder as a bulk
