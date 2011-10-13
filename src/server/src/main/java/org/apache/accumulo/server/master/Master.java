@@ -1112,6 +1112,12 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
                     for (TServerInstance entry : tserverSet.getCurrentServers()) {
                         currentTServers.put(entry, tserverStatus.get(entry));
                     }
+
+                    if (currentTServers.size() == 0) {
+                    	nextEvent.waitForSomethingInterestingToHappen(TIME_TO_WAIT_BETWEEN_SCANS);
+                    	continue;
+                    }
+                    
                     // Don't move tablets to servers that are shutting down
                     SortedMap<TServerInstance, TabletServerStatus> destinations = new TreeMap<TServerInstance, TabletServerStatus>(currentTServers);
                     destinations.keySet().removeAll(serversToShutdown);
@@ -1198,13 +1204,13 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
                     for (TabletState state : TabletState.values()) {
                         int i = state.ordinal();
                         if (counts[i] > 0 && counts[i] != oldCounts[i]) {
-                            log.info(String.format("[%s]: %d tablets are %s", store.name(), counts[i], state.name()));
+                            nextEvent.somethingInterestingHappened("[%s]: %d tablets are %s", store.name(), counts[i], state.name());
                         }
                     }
                     log.debug(String.format("[%s]: scan time %.2f seconds", store.name(), stats.getScanTime() / 1000.));
                     oldCounts = counts;
                     if (totalUnloaded > 0) {
-                        log.info(String.format("[%s]: %d tablets unloaded", store.name(), totalUnloaded));
+                        nextEvent.somethingInterestingHappened("[%s]: %d tablets unloaded", store.name(), totalUnloaded);
                     }
 
                     flushChanges(destinations, assignments, assigned, assignedToDeadServers, unassigned);
