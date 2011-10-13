@@ -72,7 +72,7 @@ public class TableLoadBalancer extends TabletBalancer {
                 log.warn("Failed to load table balancer class ", e);
             }
 
-            if (balancer == null || !balancer.getClass().equals(DefaultLoadBalancer.class)) {
+            if (balancer == null) {
                 log.info("Using balancer " + DefaultLoadBalancer.class.getName() + " for table "+table);
                 balancer = new DefaultLoadBalancer(table);
             }
