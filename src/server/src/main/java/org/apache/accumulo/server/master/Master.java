@@ -1361,7 +1361,7 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
                                 setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                             break;
                         case UNLOAD_ROOT_TABLET:
-                            count = nonMetaDataTabletsAssignedOrHosted();
+                            count = assignedOrHosted(METADATA_TABLE_ID);
                             if (count > 0)
                                 log.debug(String.format("The root tablet is still assigned or hosted"));
                             Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
@@ -1396,9 +1396,9 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
 
             if (badServers.size() > 0) {
                 log.debug("not balancing because the balance information is out-of-date");
-            } if (notHosted() > 0) {
+            } else if (notHosted() > 0) {
                 log.debug("not balancing because there are unhosted tablets");
-            } if (getMasterGoalState() == MasterGoalState.CLEAN_STOP) {
+            } else if (getMasterGoalState() == MasterGoalState.CLEAN_STOP) {
                 log.debug("not balancing because the master is attempting to stop cleanly");
             } else {
             	balanceLoggers();
