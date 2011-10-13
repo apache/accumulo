@@ -1701,6 +1701,11 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
                 }
                 log.debug("Moved " + fileCount + " files to " + stop);
                 
+                if (firstPrevRowValue == null) {
+                	log.debug("tablet already merged");
+                	return;
+                }
+                
                 stop.setPrevEndRow(KeyExtent.decodePrevEndRow(firstPrevRowValue));
                 Mutation updatePrevRow = stop.getPrevRowUpdateMutation();
                 log.debug("Setting the prevRow for last tablet: " + stop);
@@ -2021,8 +2026,6 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         long start = System.currentTimeMillis();
         SortedMap<TServerInstance, TabletServerStatus> result = new TreeMap<TServerInstance, TabletServerStatus>();
         for (TServerInstance server : tserverSet.getCurrentServers()) {
-            if (serversToShutdown.contains(server))
-                continue;
             try {
                 TabletServerStatus status = tserverSet.getConnection(server).getTableMap();
                 result.put(server, status);

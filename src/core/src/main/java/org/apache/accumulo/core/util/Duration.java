@@ -7,10 +7,14 @@ public class Duration {
 	}
 	
 	public static String format(long time, String space) {
+		return format(time, space, "&emdash;");
+	}
+
+	public static String format(long time, String space, String zero) {
 		long ms, sec, min, hr, day, yr;
 		ms = sec = min = hr = day = yr = -1;
 		if (time == 0)
-			return "&mdash;";
+			return zero;
 		ms = time % 1000;
 		time /= 1000;
 		if (time == 0)
@@ -33,6 +37,7 @@ public class Duration {
 			return String.format("%dd"+space+"%dh", day, hr);
 		yr = time;
 		return String.format("%dy"+space+"%dd", yr, day);
+
 	}
 
 }

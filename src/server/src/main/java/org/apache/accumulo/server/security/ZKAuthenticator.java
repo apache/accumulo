@@ -374,9 +374,10 @@ public final class ZKAuthenticator implements Authenticator
 		if (user.equals(getRootUsername()) || user.equals(SecurityConstants.SYSTEM_USERNAME))
 			return true;
 
-		if (userExists(user))
+		byte[] perms = zooCache.get(ZKUserPath+"/"+user+ZKUserSysPerms);
+		if (perms != null)
 		{
-			if (Tool.convertSystemPermissions(zooCache.get(ZKUserPath+"/"+user+ZKUserSysPerms)).contains(permission))
+			if (Tool.convertSystemPermissions(perms).contains(permission))
 				return true;
 			zooCache.clear(ZKUserPath+"/"+user+ZKUserSysPerms);
 			return Tool.convertSystemPermissions(zooCache.get(ZKUserPath+"/"+user+ZKUserSysPerms)).contains(permission);

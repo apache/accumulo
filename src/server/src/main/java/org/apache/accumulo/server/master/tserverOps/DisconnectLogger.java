@@ -48,15 +48,15 @@ public class DisconnectLogger extends MasterRepo {
                     MutationLogger.Iface client = ThriftUtil.getClient(new MutationLogger.Client.Factory(), addr, ServerConfiguration.getSystemConfiguration());
                     try {
                         client.beginShutdown(null, SecurityConstants.getSystemCredentials());
-                        String zpath = ZooUtil.getRoot(m.getInstance()) + Constants.ZLOGGERS + "/" + entry.getKey();
-                        ZooReaderWriter.getInstance().recursiveDelete(zpath, NodeMissingPolicy.SKIP);
-                        log.info("logger asked to halt " + location);
-                        return new FlushTablets(entry.getValue());
                     } catch (Exception ex) {
                         log.error("Unable to talk to logger at " + addr);
                     } finally {
                         ThriftUtil.returnClient(client);
                     }
+                    String zpath = ZooUtil.getRoot(m.getInstance()) + Constants.ZLOGGERS + "/" + entry.getKey();
+                    ZooReaderWriter.getInstance().recursiveDelete(zpath, NodeMissingPolicy.SKIP);
+                    log.info("logger asked to halt " + location);
+                    return new FlushTablets(entry.getValue());
                 }
             }
         } while (m.stillMaster() && foundMatch);

@@ -115,7 +115,8 @@ public class TableRangeOp extends MasterRepo {
 	    // Not sure this is a good thing to do.  The Master state engine should be the one to remove it.
         Text tableIdText = new Text(tableId);
 	    MergeInfo mergeInfo = env.getMergeInfo(tableIdText);
-	    log.warn("removing merge information " + mergeInfo);
+	    if (mergeInfo.getState() != MergeState.NONE)
+	    	log.warn("removing merge information " + mergeInfo);
 		env.clearMergeState(tableIdText);
 		Utils.unreserveTable(tableId, tid, true);
 	}
