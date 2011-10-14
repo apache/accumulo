@@ -7,7 +7,7 @@ public class Duration {
 	}
 	
 	public static String format(long time, String space) {
-		return format(time, space, "&emdash;");
+		return format(time, space, "&mdash;");
 	}
 
 	public static String format(long time, String space, String zero) {
