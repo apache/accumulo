@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ThriftTableOperationException extends Exception implements org.apache.thrift.TBase<ThriftTableOperationException, ThriftTableOperationException._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class ThriftTableOperationException extends Exception implements org.apache.thrift.TBase<ThriftTableOperationException, ThriftTableOperationException._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ThriftTableOperationException");
 
   private static final org.apache.thrift.protocol.TField TABLE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("tableId", org.apache.thrift.protocol.TType.STRING, (short)1);

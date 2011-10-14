@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveScan._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class ActiveScan implements org.apache.thrift.TBase<ActiveScan, ActiveScan._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ActiveScan");
 
   private static final org.apache.thrift.protocol.TField CLIENT_FIELD_DESC = new org.apache.thrift.protocol.TField("client", org.apache.thrift.protocol.TType.STRING, (short)2);

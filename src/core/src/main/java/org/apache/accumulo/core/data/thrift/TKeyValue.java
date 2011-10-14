@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TKeyValue implements org.apache.thrift.TBase<TKeyValue, TKeyValue._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class TKeyValue implements org.apache.thrift.TBase<TKeyValue, TKeyValue._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TKeyValue");
 
   private static final org.apache.thrift.protocol.TField KEY_FIELD_DESC = new org.apache.thrift.protocol.TField("key", org.apache.thrift.protocol.TType.STRUCT, (short)1);

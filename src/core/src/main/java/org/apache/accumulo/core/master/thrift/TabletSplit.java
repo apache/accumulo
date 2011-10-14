@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletSplit._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class TabletSplit implements org.apache.thrift.TBase<TabletSplit, TabletSplit._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TabletSplit");
 
   private static final org.apache.thrift.protocol.TField OLD_TABLET_FIELD_DESC = new org.apache.thrift.protocol.TField("oldTablet", org.apache.thrift.protocol.TType.STRUCT, (short)1);

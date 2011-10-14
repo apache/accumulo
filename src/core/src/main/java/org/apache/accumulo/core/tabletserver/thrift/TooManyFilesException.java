@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TooManyFilesException extends Exception implements org.apache.thrift.TBase<TooManyFilesException, TooManyFilesException._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class TooManyFilesException extends Exception implements org.apache.thrift.TBase<TooManyFilesException, TooManyFilesException._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TooManyFilesException");
 
   private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)1);

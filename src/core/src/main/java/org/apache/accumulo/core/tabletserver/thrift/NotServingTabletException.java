@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NotServingTabletException extends Exception implements org.apache.thrift.TBase<NotServingTabletException, NotServingTabletException._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class NotServingTabletException extends Exception implements org.apache.thrift.TBase<NotServingTabletException, NotServingTabletException._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("NotServingTabletException");
 
   private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)1);

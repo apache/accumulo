@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ScanResult implements org.apache.thrift.TBase<ScanResult, ScanResult._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class ScanResult implements org.apache.thrift.TBase<ScanResult, ScanResult._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("ScanResult");
 
   private static final org.apache.thrift.protocol.TField RESULTS_FIELD_DESC = new org.apache.thrift.protocol.TField("results", org.apache.thrift.protocol.TType.LIST, (short)1);

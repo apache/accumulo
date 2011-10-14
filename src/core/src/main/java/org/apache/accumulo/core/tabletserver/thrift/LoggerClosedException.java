@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LoggerClosedException extends Exception implements org.apache.thrift.TBase<LoggerClosedException, LoggerClosedException._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class LoggerClosedException extends Exception implements org.apache.thrift.TBase<LoggerClosedException, LoggerClosedException._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("LoggerClosedException");
 
 

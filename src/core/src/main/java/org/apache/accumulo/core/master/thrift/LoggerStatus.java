@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LoggerStatus implements org.apache.thrift.TBase<LoggerStatus, LoggerStatus._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class LoggerStatus implements org.apache.thrift.TBase<LoggerStatus, LoggerStatus._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("LoggerStatus");
 
   private static final org.apache.thrift.protocol.TField LOGGER_FIELD_DESC = new org.apache.thrift.protocol.TField("logger", org.apache.thrift.protocol.TType.STRING, (short)1);

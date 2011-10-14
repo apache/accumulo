@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AuthInfo implements org.apache.thrift.TBase<AuthInfo, AuthInfo._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class AuthInfo implements org.apache.thrift.TBase<AuthInfo, AuthInfo._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("AuthInfo");
 
   private static final org.apache.thrift.protocol.TField USER_FIELD_DESC = new org.apache.thrift.protocol.TField("user", org.apache.thrift.protocol.TType.STRING, (short)1);

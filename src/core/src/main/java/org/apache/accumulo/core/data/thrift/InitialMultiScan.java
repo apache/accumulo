@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class InitialMultiScan implements org.apache.thrift.TBase<InitialMultiScan, InitialMultiScan._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class InitialMultiScan implements org.apache.thrift.TBase<InitialMultiScan, InitialMultiScan._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("InitialMultiScan");
 
   private static final org.apache.thrift.protocol.TField SCAN_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("scanID", org.apache.thrift.protocol.TType.I64, (short)1);

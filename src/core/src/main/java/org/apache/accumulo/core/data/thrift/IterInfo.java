@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IterInfo implements org.apache.thrift.TBase<IterInfo, IterInfo._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class IterInfo implements org.apache.thrift.TBase<IterInfo, IterInfo._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("IterInfo");
 
   private static final org.apache.thrift.protocol.TField PRIORITY_FIELD_DESC = new org.apache.thrift.protocol.TField("priority", org.apache.thrift.protocol.TType.I32, (short)1);

@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GCMonitorService {
+@SuppressWarnings("all") public class GCMonitorService {
 
   public interface Iface {
 

@@ -18,12 +18,15 @@ test -d ${CLOUDTRACE} || ( echo 'need to configure cloudtrace' ; exit 0 )
 THRIFT_ARGS="-I $CLOUDTRACE/src/main/thrift -o target "
 
 mkdir -p target
+rm -rf target/gen-java
 for f in src/main/thrift/*.thrift 
 do
 	thrift ${THRIFT_ARGS} --gen java $f || fail unable to generate java thrift classes
 	thrift ${THRIFT_ARGS} --gen py $f || fail unable to generate python thrift classes
 	thrift ${THRIFT_ARGS} --gen rb $f || fail unable to generate ruby thrift classes
 done
+find target/gen-java -name '*.java' -print | xargs sed -i.orig -e 's/public class /@SuppressWarnings("all") public class /'
+find target/gen-java -name '*.orig' -print | xargs rm -f
 # copy only files that have changed
 for d in gc master tabletserver security client/impl data
 do

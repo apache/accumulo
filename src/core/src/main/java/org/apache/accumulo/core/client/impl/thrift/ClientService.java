@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ClientService {
+@SuppressWarnings("all") public class ClientService {
 
   public interface Iface {
 

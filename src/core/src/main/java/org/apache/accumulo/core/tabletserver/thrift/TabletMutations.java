@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TabletMutations implements org.apache.thrift.TBase<TabletMutations, TabletMutations._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class TabletMutations implements org.apache.thrift.TBase<TabletMutations, TabletMutations._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TabletMutations");
 
   private static final org.apache.thrift.protocol.TField TABLET_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("tabletID", org.apache.thrift.protocol.TType.I32, (short)1);

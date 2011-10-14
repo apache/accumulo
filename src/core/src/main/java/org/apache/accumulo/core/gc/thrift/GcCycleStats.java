@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCycleStats._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class GcCycleStats implements org.apache.thrift.TBase<GcCycleStats, GcCycleStats._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("GcCycleStats");
 
   private static final org.apache.thrift.protocol.TField STARTED_FIELD_DESC = new org.apache.thrift.protocol.TField("started", org.apache.thrift.protocol.TType.I64, (short)1);

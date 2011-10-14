@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MutationLogger {
+@SuppressWarnings("all") public class MutationLogger {
 
   public interface Iface {
 

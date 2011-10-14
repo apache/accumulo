@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TRange implements org.apache.thrift.TBase<TRange, TRange._Fields>, java.io.Serializable, Cloneable {
+@SuppressWarnings("all") public class TRange implements org.apache.thrift.TBase<TRange, TRange._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TRange");
 
   private static final org.apache.thrift.protocol.TField START_FIELD_DESC = new org.apache.thrift.protocol.TField("start", org.apache.thrift.protocol.TType.STRUCT, (short)1);
