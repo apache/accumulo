@@ -198,6 +198,8 @@ public class TabletServer extends AbstractMetricsImpl implements
     private static AtomicLong                            scanCount               = new AtomicLong();
     private static final Class<? extends LoggerStrategy> DEFAULT_LOGGER_STRATEGY = RoundRobinLoggerStrategy.class;
 
+    private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
+    
     private TabletServerLogger                           logger;
     private LoggerStrategy                               loggerStrategy;
 
@@ -1131,8 +1133,6 @@ public class TabletServer extends AbstractMetricsImpl implements
                 throws NoSuchScanIDException, NotServingTabletException,
                 org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
         	
-        	long timeout = acuConf.getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
-
             if (scanSession.nextBatchTask == null) {
                 scanSession.nextBatchTask = new NextBatchTask(scanID, scanSession.interruptFlag);
                 resourceManager.executeReadAhead(scanSession.extent, scanSession.nextBatchTask);
@@ -1140,7 +1140,7 @@ public class TabletServer extends AbstractMetricsImpl implements
 
             ScanBatch bresult;
             try {
-                bresult = scanSession.nextBatchTask.get(timeout, TimeUnit.MILLISECONDS);
+                bresult = scanSession.nextBatchTask.get(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
                 scanSession.nextBatchTask = null;
             } catch (ExecutionException e) {
                 sessionManager.removeSession(scanID);
@@ -1159,6 +1159,7 @@ public class TabletServer extends AbstractMetricsImpl implements
                     throw new NoSuchScanIDException();
             } catch (TimeoutException e) {
                 List<TKeyValue> param = Collections.emptyList();
+                long timeout = acuConf.getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
                 sessionManager.removeIfNotAccessed(scanID, timeout);
                 return new ScanResult(param, true);
             } catch (Throwable t) {
@@ -1306,11 +1307,12 @@ public class TabletServer extends AbstractMetricsImpl implements
             }
 
             try {
-                MultiScanResult scanResult = session.lookupTask.get(3, TimeUnit.SECONDS);
+                MultiScanResult scanResult = session.lookupTask.get(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
                 session.lookupTask = null;
                 return scanResult;
             } catch (TimeoutException e1) {
-                sessionManager.removeIfNotAccessed(scanID, 3000);
+            	long timeout = acuConf.getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
+                sessionManager.removeIfNotAccessed(scanID, timeout);
                 List<TKeyValue> results = Collections.emptyList();
                 Map<TKeyExtent, List<TRange>> failures = Collections.emptyMap();
                 List<TKeyExtent> fullScans = Collections.emptyList();
