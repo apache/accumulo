@@ -78,6 +78,8 @@ public enum Property
 	TSERV_PREFIX("tserver.",null,
 			PropertyType.PREFIX,
 			"Properties in this category affect the behavior of the tablet servers"),
+	TSERV_CLIENT_TIMEOUT("tserver.client.timeout", "3s", PropertyType.TIMEDURATION, 
+			"Time to wait for clients to continue scans before closing a session."),
 	TSERV_DEFAULT_BLOCKSIZE("tserver.default.blocksize", "1M",
 						PropertyType.MEMORY,
 						"Specifies a default blocksize for the tserver caches"),
