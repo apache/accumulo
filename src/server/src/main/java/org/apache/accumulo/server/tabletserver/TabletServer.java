@@ -1130,6 +1130,8 @@ public class TabletServer extends AbstractMetricsImpl implements
         private ScanResult continueScan(TInfo tinfo, long scanID, ScanSession scanSession)
                 throws NoSuchScanIDException, NotServingTabletException,
                 org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException {
+        	
+        	long timeout = acuConf.getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
 
             if (scanSession.nextBatchTask == null) {
                 scanSession.nextBatchTask = new NextBatchTask(scanID, scanSession.interruptFlag);
@@ -1138,7 +1140,7 @@ public class TabletServer extends AbstractMetricsImpl implements
 
             ScanBatch bresult;
             try {
-                bresult = scanSession.nextBatchTask.get(3, TimeUnit.SECONDS);
+                bresult = scanSession.nextBatchTask.get(timeout, TimeUnit.MILLISECONDS);
                 scanSession.nextBatchTask = null;
             } catch (ExecutionException e) {
                 sessionManager.removeSession(scanID);
@@ -1157,7 +1159,7 @@ public class TabletServer extends AbstractMetricsImpl implements
                     throw new NoSuchScanIDException();
             } catch (TimeoutException e) {
                 List<TKeyValue> param = Collections.emptyList();
-                sessionManager.removeIfNotAccessed(scanID, 3000);
+                sessionManager.removeIfNotAccessed(scanID, timeout);
                 return new ScanResult(param, true);
             } catch (Throwable t) {
                 sessionManager.removeSession(scanID);
