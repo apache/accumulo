@@ -58,7 +58,6 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.jfree.util.Log;
 
 import cloudtrace.instrument.thrift.TraceWrap;
 import cloudtrace.thrift.TInfo;
@@ -380,7 +379,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
             Halt.halt(0, new Runnable() {
                 @Override
                 public void run() {
-                    Log.info("Halting by request");
+                    LOG.info("Halting by request");
                 } 
             });
         } catch (ThriftSecurityException ex) {

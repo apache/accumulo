@@ -132,6 +132,9 @@ public class DefaultServlet extends BasicServlet {
 		else
 			super.doGet(req, resp);
 	}
+	
+	public static final int GRAPH_WIDTH = 450;
+	public static final int GRAPH_HEIGHT = 150;
 
 	@SuppressWarnings("unchecked")
 	private static void plotData(StringBuilder sb, String title, @SuppressWarnings("rawtypes") List data, boolean points){
@@ -140,7 +143,7 @@ public class DefaultServlet extends BasicServlet {
 		sb.append("</center>");
 		sb.append("</br>");
 		String id = "c"+title.hashCode();
-		sb.append("<div id=\""+id+"\" style=\"width:" + GraphServlet.GRAPH_WIDTH + "px;height:" + GraphServlet.GRAPH_HEIGHT + "px;\"></div>\n");
+		sb.append("<div id=\""+id+"\" style=\"width:" + GRAPH_WIDTH + "px;height:" + GRAPH_HEIGHT + "px;\"></div>\n");
 
 		sb.append("<script type=\"text/javascript\">\n");
 		sb.append("$(function () {\n");

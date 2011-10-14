@@ -84,14 +84,6 @@
 			<groupId>commons-lang</groupId>
 			<artifactId>commons-lang</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>jfree</groupId>
-			<artifactId>jfreechart</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>jfree</groupId>
-			<artifactId>jcommon</artifactId>
-		</dependency>
 	</dependencies>
 
 </project>
