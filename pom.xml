@@ -164,9 +164,10 @@
 					<projversion>${project.version}</projversion>
 					<summary>Accumulo BigTable clone</summary>
 					<description>
-						Accumulo is a large distributed structured store based on Google's
+						Accumulo is a large distributed structured store based
+						on Google's
 						BigTable design.
-          </description>
+					</description>
 					<copyright>FIXME</copyright>
 					<url>http://incubator.apache.org/accumulo</url>
 					<group>Utilities</group>
@@ -265,7 +266,7 @@
 				<configuration>
 					<executable>/bin/bash</executable>
 					<arguments>
-	   			      <argument>docs/src/user_manual/build.sh</argument>
+						<argument>docs/src/user_manual/build.sh</argument>
 					</arguments>
 				</configuration>
 				<executions>
@@ -280,46 +281,46 @@
 			</plugin>
 		</plugins>
 		<pluginManagement>
-                <plugins>
-                        <plugin>
-                                <groupId>org.eclipse.m2e</groupId>
-                                <artifactId>lifecycle-mapping</artifactId>
-                                <version>1.0.0</version>
-                                <configuration>
-                                        <lifecycleMappingMetadata>
-                                        <pluginExecutions>
-                                                <pluginExecution>
-                                                        <pluginExecutionFilter>
-                                                                <groupId>org.apache.maven.plugins</groupId>
-                                                                <artifactId>maven-dependency-plugin</artifactId>
-                                                                <versionRange>[2.0,)</versionRange>
-                                                                <goals>
-                                                                        <goal>copy-dependencies</goal>
-                                                                </goals>
-                                                        </pluginExecutionFilter>
-                                                        <action>
-                                                                <ignore></ignore>
-                                                        </action>
-                                                </pluginExecution>
-                                                <pluginExecution>
-                                                        <pluginExecutionFilter>
-                                                                <groupId>org.codehaus.mojo</groupId>
-                                                                <artifactId>exec-maven-plugin</artifactId>
-                                                                <versionRange>[1.1.1,)</versionRange>
-                                                                <goals>
-                                                                        <goal>exec</goal>
-                                                                </goals>
-                                                        </pluginExecutionFilter>
-                                                        <action>
-                                                                <ignore></ignore>
-                                                        </action>
-                                                </pluginExecution>
-                                        </pluginExecutions>
-                                        </lifecycleMappingMetadata>
-                                </configuration>
-                        </plugin>
-                </plugins>
-        </pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.apache.maven.plugins</groupId>
+										<artifactId>maven-dependency-plugin</artifactId>
+										<versionRange>[2.0,)</versionRange>
+										<goals>
+											<goal>copy-dependencies</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore></ignore>
+									</action>
+								</pluginExecution>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.codehaus.mojo</groupId>
+										<artifactId>exec-maven-plugin</artifactId>
+										<versionRange>[1.1.1,)</versionRange>
+										<goals>
+											<goal>exec</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore></ignore>
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 	</build>
 
 	<reporting>
@@ -463,11 +464,11 @@
 			</dependency>
 
 			<!-- accumulo dependency jars that we will provide -->
-		  	<dependency>
-		  	   <groupId>org.apache.accumulo</groupId>
-		  	   <artifactId>cloudtrace</artifactId>
-		  	   <version>1.3.5-incubating-SNAPSHOT</version>
-		  	</dependency>
+			<dependency>
+				<groupId>org.apache.accumulo</groupId>
+				<artifactId>cloudtrace</artifactId>
+				<version>1.3.5-incubating-SNAPSHOT</version>
+			</dependency>
 			<dependency>
 				<groupId>org.apache.accumulo</groupId>
 				<artifactId>accumulo-start</artifactId>
@@ -514,6 +515,8 @@
 				<groupId>org.apache.thrift</groupId>
 				<artifactId>libthrift</artifactId>
 				<version>0.3</version>
+				<scope>system</scope>
+				<systemPath>${basedir}/${project.parent.relativePath}/contrib/libthrift-0.3.jar</systemPath>
 			</dependency>
 			<dependency>
 				<groupId>jline</groupId>
@@ -560,16 +563,16 @@
 				<artifactId>slf4j-log4j12</artifactId>
 				<version>1.4.3</version>
 			</dependency>
-		  	<dependency>
-		  		<groupId>org.apache.commons</groupId>
-		  		<artifactId>commons-jci-core</artifactId>
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-jci-core</artifactId>
 				<version>1.0</version>
-		  	</dependency>
-		  	<dependency>
-		  		<groupId>org.apache.commons</groupId>
-		  		<artifactId>commons-jci-fam</artifactId>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-jci-fam</artifactId>
 				<version>1.0</version>
-		  	</dependency>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
@@ -581,20 +584,20 @@
 		</dependency>
 	</dependencies>
 
-  <distributionManagement>
-    <repository>
-      <id>accumulo-releases-repo</id>
-      <url>http://incubator.apache.org/accumulo</url>
-    </repository>
-    <snapshotRepository>
-      <id>accumulo-snapshots-repo</id>
-      <url>http://incubator.apache.org/accumulo</url>
-    </snapshotRepository>
-  </distributionManagement>
+	<distributionManagement>
+		<repository>
+			<id>accumulo-releases-repo</id>
+			<url>http://incubator.apache.org/accumulo</url>
+		</repository>
+		<snapshotRepository>
+			<id>accumulo-snapshots-repo</id>
+			<url>http://incubator.apache.org/accumulo</url>
+		</snapshotRepository>
+	</distributionManagement>
 
-  <scm>
-    <connection>http://incubator.apache.org/accumulo</connection>
-    <developerConnection>http://incubator.apache.org/accumulo</developerConnection>
-  </scm>
+	<scm>
+		<connection>http://incubator.apache.org/accumulo</connection>
+		<developerConnection>http://incubator.apache.org/accumulo</developerConnection>
+	</scm>
 
 </project>
