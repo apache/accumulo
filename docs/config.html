@@ -233,174 +233,181 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td>Specifies the size of the cache for file indices.</td>
    </tr>
    <tr >
+    <td>tserver.client.timeout</td>
+    <td><b><a href='#TIMEDURATION'>duration</a></b></td>
+    <td>yes</td>
+    <td><pre>3s</pre></td>
+    <td>Time to wait for clients to continue scans before closing a session.</td>
+   </tr>
+   <tr class='highlight'>
     <td>tserver.compaction.major.concurrent.max</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes but requires restart</td>
     <td><pre>3</pre></td>
     <td>The maximum number of concurrent major compactions for a tablet server</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>tserver.compaction.major.delay</td>
     <td><b><a href='#TIMEDURATION'>duration</a></b></td>
     <td>yes</td>
     <td><pre>30s</pre></td>
     <td>Time a tablet server will sleep between checking which tablets need compaction.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>tserver.compaction.major.files.open.max</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes but requires restart</td>
     <td><pre>90</pre></td>
     <td>Max number of files a major compaction can open at once. At runtime this number is divided by the concurrent number of compactors.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>tserver.compaction.minor.concurrent.max</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>4</pre></td>
     <td>The maximum number of concurrent minor compactions for a tablet server</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>tserver.default.blocksize</td>
     <td><b><a href='#MEMORY'>memory</a></b></td>
     <td>yes</td>
     <td><pre>1M</pre></td>
     <td>Specifies a default blocksize for the tserver caches</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>tserver.dir.memdump</td>
     <td><b><a href='#PATH'>path</a></b></td>
     <td>yes</td>
     <td><pre>/tmp</pre></td>
     <td>A long running scan could possibly hold memory that has been minor compacted.  To prevent this, the in memory map is dumped to a local file and the scan is switched to that local file.  We can not switch to the minor compacted file because it may have been modified by iterators.  The file dumped to the local dir is an exact copy of what was in memory.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>tserver.files.open.idle</td>
     <td><b><a href='#TIMEDURATION'>duration</a></b></td>
     <td>yes</td>
     <td><pre>1m</pre></td>
     <td>Tablet servers leave previously used map files open for future queries. This setting determines how much time an unused map file should be kept open until it is closed.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>tserver.files.open.max</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes but requires restart</td>
     <td><pre>150</pre></td>
     <td>Maximum total map files that all tablets in a tablet server can open. This includes major compactions. So the number of map files that can be opened for searches is: <code>tserver.files.open.max - tserver.compaction.major.files.open.max</code></td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>tserver.logger.count</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes but requires restart</td>
     <td><pre>2</pre></td>
     <td>The number of loggers that each tablet server should use.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>tserver.logger.strategy</td>
     <td><b><a href='#STRING'>string</a></b></td>
     <td>yes</td>
     <td><pre>org.apache.accumulo.server.tabletserver.log.RoundRobinLoggerStrategy</pre></td>
     <td>The classname used to decide which loggers to use.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>tserver.logger.timeout</td>
     <td><b><a href='#TIMEDURATION'>duration</a></b></td>
     <td>yes</td>
     <td><pre>30s</pre></td>
     <td>The time to wait for a logger to respond to a write-ahead request</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>tserver.memory.lock</td>
     <td><b><a href='#BOOLEAN'>boolean</a></b></td>
     <td>yes</td>
     <td><pre>false</pre></td>
     <td>The tablet server must communicate with zookeeper frequently to maintain its locks.  If the tablet server's memory is swapped out the java garbage collector can stop all processing for long periods.  Change this property to true and the tablet server will  attempt to lock all of its memory to RAM, which may reduce delays during java garbage collection.  You will have to modify the  system limit for "max locked memory". This feature is only available when running on Linux.  Alternatively you may also  want to set /proc/sys/vm/swappiness to zero (again, this is Linux-specific).</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>tserver.memory.manager</td>
     <td><b><a href='#CLASSNAME'>java&nbsp;class</a></b></td>
     <td>yes</td>
     <td><pre>org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager</pre></td>
     <td>An implementation of MemoryManger that accumulo will use.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>tserver.memory.maps.max</td>
     <td><b><a href='#MEMORY'>memory</a></b></td>
     <td>yes</td>
     <td><pre>1G</pre></td>
     <td>Maximum amount of memory all tablets in memory maps can use.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>tserver.memory.maps.native.enabled</td>
     <td><b><a href='#BOOLEAN'>boolean</a></b></td>
     <td>yes but requires restart</td>
     <td><pre>true</pre></td>
     <td>An in-memory data store for accumulo implemented in c++ that increases the amount of data accumulo can hold in memory and avoids Java GC pauses.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>tserver.metadata.readahead.concurrent.max</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>8</pre></td>
     <td>The maximum number of concurrent metadata read ahead that will execute.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>tserver.migrations.concurrent.max</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>1</pre></td>
     <td>The maximum number of concurrent tablet migrations for a tablet server</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>tserver.monitor.fs</td>
     <td><b><a href='#BOOLEAN'>boolean</a></b></td>
     <td>yes</td>
     <td><pre>true</pre></td>
     <td>When enabled the tserver will monitor file systems and kill itself when one switches from rw to ro.  This is usually and indication that Linux has detected a bad disk.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>tserver.mutation.queue.max</td>
     <td><b><a href='#MEMORY'>memory</a></b></td>
     <td>yes</td>
     <td><pre>256K</pre></td>
     <td>The amount of memory to use to store write-ahead-log mutations-per-session before flushing them.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>tserver.port.client</td>
     <td><b><a href='#PORT'>port</a></b></td>
     <td>yes but requires restart</td>
     <td><pre>9997</pre></td>
     <td>The port used for handling client connections on the tablet servers</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>tserver.port.search</td>
     <td><b><a href='#BOOLEAN'>boolean</a></b></td>
     <td>yes</td>
     <td><pre>false</pre></td>
     <td>if the ports above are in use, search higher ports until one is available</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>tserver.readahead.concurrent.max</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>16</pre></td>
     <td>The maximum number of concurrent read ahead that will execute.  This effectivelylimits the number of long running scans that can run concurrently per tserver.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>tserver.session.idle.max</td>
     <td><b><a href='#TIMEDURATION'>duration</a></b></td>
     <td>yes</td>
     <td><pre>1m</pre></td>
     <td>maximum idle time for a session</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>tserver.tablet.split.midpoint.files.max</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>30</pre></td>
     <td>To find a tablets split points, all index files are opened. This setting determines how many index files can be opened at once. When there are more index files than this setting multiple passes must be made, which is slower. However opening too many files at once can cause problems.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>tserver.walog.max.size</td>
     <td><b><a href='#MEMORY'>memory</a></b></td>
     <td>yes</td>
