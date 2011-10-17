@@ -69,20 +69,21 @@ public class ChunkCombiner implements SortedKeyValueIterator<Key, Value> {
 	}
 
 	private void findTop() throws IOException {
-		topKey = null;
-		topValue = null;
-				
+	    do {
+	        topKey = null;
+	        topValue = null;
+	    } while (source.hasTop() && _findTop()==null);
+	}
+
+	private byte[] _findTop() throws IOException {
 		long maxTS;
-		
-		if(!source.hasTop())
-			return;
 		
 		topKey = new Key(source.getTopKey());
 		topValue = new Value(source.getTopValue());
 		source.next();
 		
 		if(!topKey.getColumnFamilyData().equals(FileDataIngest.CHUNK_CF_BS))
-			return;
+			return topKey.getColumnVisibility().getBytes();
 		
 		maxTS = topKey.getTimestamp();
 		
@@ -102,9 +103,8 @@ public class ChunkCombiner implements SortedKeyValueIterator<Key, Value> {
 					topKey.getColumnFamilyData().toArray(),
 					topKey.getColumnQualifierData().toArray(), 
 					vis,  maxTS);
-		} else {
-			findTop();
 		}
+		return vis;
 	}
 	
 	private byte[] getVisFromRefs() throws IOException {
