@@ -12,6 +12,7 @@ import java.security.PermissionCollection;
 import java.security.Permissions;
 import java.security.PrivilegedAction;
 import java.security.ProtectionDomain;
+import java.util.List;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
@@ -23,6 +24,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Duration;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.monitor.ZooKeeperStatus;
 import org.apache.accumulo.server.monitor.ZooKeeperStatus.ZooKeeperState;
@@ -122,6 +124,48 @@ public class DefaultServlet extends BasicServlet {
 			super.doGet(req, resp);
 	}
 
+	public static final int GRAPH_WIDTH = 450;
+	public static final int GRAPH_HEIGHT = 150;
+	
+	@SuppressWarnings("unchecked")
+	private static void plotData(StringBuilder sb, String title, @SuppressWarnings("rawtypes") List data, boolean points){
+		sb.append("<div class=\"plotHeading\">");
+		sb.append(title);
+		sb.append("</div>");
+		sb.append("</br>");
+		String id = "c"+title.hashCode();
+		sb.append("<div id=\""+id+"\" style=\"width:" + GRAPH_WIDTH + "px;height:" + GRAPH_HEIGHT + "px;\"></div>\n");
+
+		sb.append("<script type=\"text/javascript\">\n");
+		sb.append("$(function () {\n");
+		sb.append("    var d1 = [");
+		
+		String sep = "";
+		for(Pair<Long, ? extends Number> point : (List<Pair<Long, ? extends Number>>)data){
+			if(point.getSecond() == null)
+				continue;
+			
+			String y;
+			if(point.getSecond() instanceof Double)
+				y = String.format("%1.2f", point.getSecond());
+			else
+				y = point.getSecond().toString();
+			
+			sb.append(sep);
+			sep = ",";
+			sb.append("["+point.getFirst()+","+y+"]");
+		}
+		
+		String opts = "lines: { show: true }";
+		if(points)
+			opts = "points: { show: true, radius: 1 }";
+		
+		sb.append("    ];\n");
+		sb.append("    $.plot($(\"#"+id+"\"), [{ data: d1, "+opts+", color:\"red\" }], {yaxis:{}, xaxis:{mode:\"time\",minTickSize: [1, \"minute\"],timeformat: \"%H:%M\", ticks:3}});");
+		sb.append("   });\n");
+		sb.append("</script>\n");
+	}
+	
 	@Override
 	protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws IOException {
 		if (req.getRequestURI().equals("/docs") || req.getRequestURI().equals("/docs/apidocs")) {
@@ -151,13 +195,33 @@ public class DefaultServlet extends BasicServlet {
 		sb.append("</tr></table>\n");
 		sb.append("<br/>\n");
 
-		String[] graphs = new String[] { "ingest_entries", "scan_entries", "ingest_bytes", "scan_bytes", "load", "lookups", "minc", "majc"};
+		sb.append("<p/><table class=\"noborder\">\n");
 		
-		for (int i = 0; i < graphs.length; i++) {
-			sb.append("<img class='noborder' width='" + GraphServlet.GRAPH_WIDTH + "' height='" + GraphServlet.GRAPH_HEIGHT + "' src='/graph?name=" + graphs[i] + "' />\n");
-			if (((i+1) % 2) == 0)
-				sb.append("<p/>\n");
-		}
+		sb.append("<tr><td>\n");
+		plotData(sb, "Ingest (Entries/s)", Monitor.getIngestRateOverTime(), false);
+		sb.append("</td><td>\n");
+		plotData(sb, "Scan (Entries/s)", Monitor.getQueryRateOverTime(), false);
+		sb.append("</td></tr>\n");
+		
+		sb.append("<tr><td>\n");
+		plotData(sb, "Ingest (MB/s)", Monitor.getIngestByteRateOverTime(), false);
+		sb.append("</td><td>\n");
+		plotData(sb, "Scan (MB/s)", Monitor.getQueryByteRateOverTime(), false);
+		sb.append("</td></tr>\n");
+		
+		sb.append("<tr><td>\n");
+		plotData(sb, "Load Average", Monitor.getLoadOverTime(), false);
+		sb.append("</td><td>\n");
+		plotData(sb, "Scan Sessions", Monitor.getLookupsOverTime(), false);
+		sb.append("</td></tr>\n");
+		
+		sb.append("<tr><td>\n");
+		plotData(sb, "Minor Compactions", Monitor.getMinorCompactionsOverTime(), false);
+		sb.append("</td><td>\n");
+		plotData(sb, "Major Compactions", Monitor.getMajorCompactionsOverTime(), false);
+		sb.append("</td></tr>\n");
+		
+		sb.append("</table>\n");
 	}
 
 	private void doAccumuloTable(StringBuilder sb) throws IOException {
