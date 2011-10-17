@@ -138,9 +138,9 @@ public class DefaultServlet extends BasicServlet {
 
 	@SuppressWarnings("unchecked")
 	private static void plotData(StringBuilder sb, String title, @SuppressWarnings("rawtypes") List data, boolean points){
-		sb.append("<center>");
+		sb.append("<div class=\"plotHeading\">");
 		sb.append(title);
-		sb.append("</center>");
+		sb.append("</div>");
 		sb.append("</br>");
 		String id = "c"+title.hashCode();
 		sb.append("<div id=\""+id+"\" style=\"width:" + GRAPH_WIDTH + "px;height:" + GRAPH_HEIGHT + "px;\"></div>\n");
@@ -153,17 +153,24 @@ public class DefaultServlet extends BasicServlet {
 		for(Pair<Long, ? extends Number> point : (List<Pair<Long, ? extends Number>>)data){
 			if(point.getSecond() == null)
 				continue;
+			
+			String y;
+			if(point.getSecond() instanceof Double)
+				y = String.format("%1.2f", point.getSecond());
+			else
+				y = point.getSecond().toString();
+			
 			sb.append(sep);
 			sep = ",";
-			sb.append("["+point.getFirst()+","+point.getSecond()+"]");
+			sb.append("["+point.getFirst()+","+y+"]");
 		}
 		
 		String opts = "lines: { show: true }";
 		if(points)
-			opts = "points: { show: true }";
+			opts = "points: { show: true, radius: 1 }";
 		
 		sb.append("    ];\n");
-		sb.append("    $.plot($(\"#"+id+"\"), [{ data: d1, "+opts+" }], {yaxis:{}, xaxis:{mode:\"time\",minTickSize: [1, \"minute\"],timeformat: \"%H:%M\", ticks:3}});");
+		sb.append("    $.plot($(\"#"+id+"\"), [{ data: d1, "+opts+", color:\"red\" }], {yaxis:{}, xaxis:{mode:\"time\",minTickSize: [1, \"minute\"],timeformat: \"%H:%M\", ticks:3}});");
 		sb.append("   });\n");
 		sb.append("</script>\n");
 	}
@@ -197,7 +204,7 @@ public class DefaultServlet extends BasicServlet {
 		sb.append("</tr></table>\n");
 		sb.append("<br/>\n");
 
-		sb.append("<p/><table>\n");
+		sb.append("<p/><table class=\"noborder\">\n");
 		
 		sb.append("<tr><td>\n");
 		plotData(sb, "Ingest (Entries/s)", Monitor.getIngestRateOverTime(), false);
