@@ -89,9 +89,9 @@ abstract public class BasicServlet extends HttpServlet {
 		sb.append("<link rel='stylesheet' type='text/css' href='/web/screen.css' media='screen' />\n");
 		sb.append("<script src='/web/functions.js' type='text/javascript'></script>\n");
 		
-		//TODO add support for IE, need to load additional javascript lib for flot to work on IE
-		sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/jquery.js\"></script>");
-		sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/jquery.flot.js\"></script>");
+		sb.append("<!--[if lte IE 8]><script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/excanvas.min.js\"></script><![endif]-->\n");
+		sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/jquery.js\"></script>\n");
+		sb.append("<script language=\"javascript\" type=\"text/javascript\" src=\"/web/flot/jquery.flot.js\"></script>\n");
 
 		sb.append("</head>\n");
 
