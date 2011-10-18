@@ -1,7 +1,7 @@
 package org.apache.accumulo.server.master.tableOps;
 
 import java.util.Collections;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
@@ -22,8 +22,8 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fate.Repo;
-import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
+import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.MapCounter;
@@ -78,12 +78,14 @@ class CompactionDriver extends MasterRepo {
 		int tabletCount = 0;
 
 		while(ri.hasNext()){
-			List<Entry<Key,Value>> row = ri.next();
+			Iterator<Entry<Key,Value>> row = ri.next();
 			long tabletCompactID = -1;
 			
 			TServerInstance server = null;
 
-			for (Entry<Key, Value> entry : row) {
+			Entry<Key, Value> entry = null;
+			while (row.hasNext()) {
+				entry = row.next();
 				Key key = entry.getKey();
 
 				if(Constants.METADATA_COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
@@ -101,7 +103,7 @@ class CompactionDriver extends MasterRepo {
 
 			tabletCount++;
 			
-			Text tabletEndRow = new KeyExtent(row.get(0).getKey().getRow(), (Text)null).getEndRow();
+			Text tabletEndRow = new KeyExtent(entry.getKey().getRow(), (Text)null).getEndRow();
 			if(tabletEndRow == null || (endRow != null && tabletEndRow.compareTo(new Text(endRow)) >=0))
 				break;
 		}

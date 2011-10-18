@@ -571,7 +571,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
 	
 	
 	protected abstract static class RecordReaderBase<K,V> extends RecordReader<K,V> {
-		protected int numKeysRead;
+		protected long numKeysRead;
 		protected Iterator<Entry<Key, Value>> scannerIterator;
 		private boolean scannerRegexEnabled = false;
 		protected RangeInputSplit split;

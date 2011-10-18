@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -19,6 +20,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -53,6 +55,16 @@ public class AccumuloRowInputFormatTest {
 		}
 	}
 	
+	public static void checkLists(List<Entry<Key,Value>> a, Iterator<Entry<Key,Value>> b) {
+		int i = 0;
+		while (b.hasNext()) {
+			Entry<Key,Value> e = b.next();
+			assertEquals(a.get(i).getKey(),e.getKey());
+			assertEquals(a.get(i).getValue(),e.getValue());
+			i++;
+		}
+	}
+	
 	public static void insertList(BatchWriter bw, List<Entry<Key,Value>> list) throws Exception {
 		for (Entry<Key,Value> e : list) {
 			Key k = e.getKey();
@@ -80,7 +92,7 @@ public class AccumuloRowInputFormatTest {
 		AccumuloRowInputFormat crif = new AccumuloRowInputFormat();
 		RangeInputSplit ris = new RangeInputSplit();
 		TaskAttemptContext tac = new TaskAttemptContext(job.getConfiguration(),new TaskAttemptID());
-		RecordReader<Text, List<Entry<Key, Value>>> rr = crif.createRecordReader(ris, tac);
+		RecordReader<Text, PeekingIterator<Entry<Key, Value>>> rr = crif.createRecordReader(ris, tac);
 		rr.initialize(ris, tac);
 		
 		assertTrue(rr.nextKeyValue());

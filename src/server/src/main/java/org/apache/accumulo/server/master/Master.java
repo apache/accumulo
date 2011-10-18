@@ -626,14 +626,16 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
 					Text ert = ByteBufferUtil.toText(endRow);
 					
 					while(ri.hasNext()){
-						List<Entry<Key, Value>> row = ri.next();
+						Iterator<Entry<Key, Value>> row = ri.next();
 						long tabletFlushID = -1;
 						int logs = 0;
 						boolean online = false;
 						
 						TServerInstance server = null;
 						
-						for (Entry<Key, Value> entry : row) {
+						Entry<Key, Value> entry = null;
+						while (row.hasNext()) {
+							entry = row.next();
 							Key key = entry.getKey();
 
 							if(Constants.METADATA_FLUSH_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier())){
@@ -659,7 +661,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
 						
 						tabletCount++;
 						
-						Text tabletEndRow = new KeyExtent(row.get(0).getKey().getRow(), (Text)null).getEndRow();
+						Text tabletEndRow = new KeyExtent(entry.getKey().getRow(), (Text)null).getEndRow();
 						if(tabletEndRow == null || (ert != null && tabletEndRow.compareTo(ert) >=0))
 							break;
 					}

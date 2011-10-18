@@ -14,6 +14,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 
@@ -36,10 +37,14 @@ public class IsolatedScan extends Test {
 			RowIterator iter = new RowIterator(new IsolatedScanner(conn.createScanner(tableName, Constants.NO_AUTHS)));
 			
 			while(iter.hasNext()){
-				List<Entry<Key, Value>> row = iter.next();
-				for(int i=1; i < row.size(); i++)
-					if(!row.get(0).getValue().equals(row.get(i).getValue()))
-						throw new Exception("values not equal "+row.get(0)+" "+row.get(i));
+				PeekingIterator<Entry<Key, Value>> row = new PeekingIterator<Entry<Key,Value>>(iter.next());
+				Entry<Key,Value> kv = null;
+				if (row.hasNext()) kv = row.peek();
+				while (row.hasNext()) {
+					Entry<Key, Value> currentKV = row.next();
+					if (!kv.getValue().equals(currentKV.getValue()))
+						throw new Exception("values not equal "+kv+" "+currentKV);
+				}
 			}
 			log.debug("Isolated scan "+tableName);
 		} catch (TableDeletedException e){

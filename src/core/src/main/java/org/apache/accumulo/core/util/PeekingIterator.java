@@ -1,4 +1,4 @@
-package org.apache.accumulo.examples.filedata;
+package org.apache.accumulo.core.util;
 
 import java.util.Iterator;
 
