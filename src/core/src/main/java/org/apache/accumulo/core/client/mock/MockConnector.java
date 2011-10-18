@@ -53,7 +53,7 @@ public class MockConnector extends Connector {
     @Override
     public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency, int maxWriteThreads)
             throws TableNotFoundException {
-        return null;
+    return new MockBatchDeleter(acu, tableName, authorizations);
     }
 
     @Override

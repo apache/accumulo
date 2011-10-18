@@ -26,13 +26,12 @@ import java.util.Map.Entry;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mock.MockConnector;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -153,6 +152,72 @@ public class MockConnectorTest  {
         }
     }
     
+    @Test
+    public void testDeletewithBatchDeleter() throws Exception {
+        Connector c = new MockConnector("root");
+
+        // make sure we are using a clean table
+        if (c.tableOperations().exists("test"))
+            c.tableOperations().delete("test");
+        c.tableOperations().create("test");
+
+        BatchDeleter deleter = c.createBatchDeleter("test", Constants.NO_AUTHS,
+                2, 10000L, 1000L, 4);
+        // first make sure it deletes fine when its empty
+        deleter.setRanges(Collections.singletonList(new Range(("r1"))));
+        deleter.delete();
+        this.checkRemaining(c, "test", 0);
+
+        // test deleting just one row
+        BatchWriter writer = c.createBatchWriter("test", 10, 10, 1);
+        Mutation m = new Mutation("r1");
+        m.put("fam", "qual", "value");
+        writer.addMutation(m);
+
+        // make sure the write goes through
+        writer.flush();
+        writer.close();
+
+        deleter.setRanges(Collections.singletonList(new Range(("r1"))));
+        deleter.delete();
+        this.checkRemaining(c, "test", 0);
+
+        // test multi row deletes
+        writer = c.createBatchWriter("test", 10, 10, 1);
+        m = new Mutation("r1");
+        m.put("fam", "qual", "value");
+        writer.addMutation(m);
+        Mutation m2 = new Mutation("r2");
+        m2.put("fam", "qual", "value");
+        writer.addMutation(m2);
+
+        // make sure the write goes through
+        writer.flush();
+        writer.close();
+
+        deleter.setRanges(Collections.singletonList(new Range(("r1"))));
+        deleter.delete();
+        checkRemaining(c, "test", 1);
+    }
+
+    /**
+     * Test to make sure that a certain number of rows remain
+     * @param c connector to the {@link MockInstance}
+     * @param tableName TODO
+     * @param count number of entries to expect in the table
+     * @param count TODO
+     */
+    private void checkRemaining(Connector c, String tableName, int count) throws Exception {
+        Scanner scanner = c.createScanner(tableName, Constants.NO_AUTHS);
+
+        int total = 0;
+        for (@SuppressWarnings("unused")
+        Entry<Key, Value> entry : scanner) {
+            total++;
+        }
+        assertEquals(count, total);
+    }
+
     @Test
     public void testCMod() throws Exception {
     	//test writing to a table that the is being scanned
