@@ -6,6 +6,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
@@ -26,7 +27,7 @@ public class IteratorAdapter implements Iterator<Entry<Key, Value>> {
     @Override
     public Entry<Key, Value> next() {
         try {
-            Entry<Key, Value> result = new MockEntry(new Key(inner.getTopKey()), new Value(inner.getTopValue()));
+            Entry<Key, Value> result = new KeyValue(new Key(inner.getTopKey()), new Value(inner.getTopValue()).get());
             inner.next();
             return result;
         } catch (IOException ex) {
