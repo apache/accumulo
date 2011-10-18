@@ -5,6 +5,11 @@ you must have hadoop and zookeeper installed and running.  You will need a funct
 a shared library needed for one of the tests.  The test suite is known to run on Linux RedHat Enterprise 
 version 5, and Mac OS X 10.5.
 
+The tests are shown as being run from the ACCUMULO_HOME directory, but they should run from any directory.
+Make sure to create "logs" and "walogs" directories in ACCUMULO_HOME.  Also, ensure that accumulo-env.sh
+specifies its ACCUMULO_LOG_DIR in the following way:
+test -z "$ACCUMULO_LOG_DIR"      && export ACCUMULO_LOG_DIR=$ACCUMULO_HOME/logs
+
  $ ./test/system/auto/run.py -l
  
 Will list all the test names.  You can run the suite like this:

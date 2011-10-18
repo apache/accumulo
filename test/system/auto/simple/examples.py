@@ -83,11 +83,10 @@ class Examples(TestUtilsMixin, unittest.TestCase):
     
         self.comment("Testing ageoff filtering")
         out = self.ashell("createtable filtertest\n"
-                     "setiter -t filtertest -scan -p 10 -n myfilter -filter\n"
-                     "0 ageoff\n"
-                     "\n"
+                     "setiter -t filtertest -scan -p 10 -n myfilter -ageoff\n"
                      "\n"
                      "5000\n"
+                     "\n"
                      "insert foo a b c\n"
                      "scan\n"
                      "sleep 5\n"
@@ -134,9 +133,9 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.mapreduce.bulk.GenerateTestData', 0, 1000000, '/tmp/input/data')
         self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.mapreduce.bulk.SetupTable',
                  INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD, 'bulkTable')
-        self.execute('bin/tool.sh', examplesJar, 'org.apache.accumulo.examples.mapreduce.bulk.BulkIngestExample',
+        self.execute(ACCUMULO_HOME+'/bin/tool.sh', examplesJar, 'org.apache.accumulo.examples.mapreduce.bulk.BulkIngestExample',
                  INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD, 'bulkTable', '/tmp/input', '/tmp')
-        self.execute('bin/tool.sh', examplesJar, 'org.apache.accumulo.examples.mapreduce.bulk.VerifyIngest',
+        self.execute(ACCUMULO_HOME+'/bin/tool.sh', examplesJar, 'org.apache.accumulo.examples.mapreduce.bulk.VerifyIngest',
                  INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD, 'bulkTable', 0, 1000000)
         self.wait(self.runOn(self.masterHost(), [
             'hadoop', 'fs', '-rmr', "/tmp/tableFile", "/tmp/nines"
@@ -145,7 +144,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         # 10,000 times smaller than the real terasort
         ROWS = 1000*1000
         self.wait(self.runOn(self.masterHost(), [
-            'bin/tool.sh',
+            ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
             'org.apache.accumulo.examples.mapreduce.TeraSortIngest',
             ROWS,  
@@ -159,7 +158,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             4]))
         self.comment("Looking for '999' in all rows")
         self.wait(self.runOn(self.masterHost(), [
-            'bin/tool.sh',
+            ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
             'org.apache.accumulo.examples.mapreduce.RegexExample',
             INSTANCE_NAME,
@@ -174,7 +173,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             '/tmp/nines']))
         self.comment("Generating hashes of each row into a new table")
         self.wait(self.runOn(self.masterHost(), [
-            'bin/tool.sh',
+            ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
             'org.apache.accumulo.examples.mapreduce.RowHash',
             INSTANCE_NAME,
@@ -187,7 +186,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             ]))
         self.comment("Exporting the table to HDFS")
         self.wait(self.runOn(self.masterHost(), [
-            'bin/tool.sh',
+            ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
             'org.apache.accumulo.examples.mapreduce.TableToFile',
             INSTANCE_NAME,
@@ -210,7 +209,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             ]))
         self.ashell('createtable wordCount -a count=org.apache.accumulo.core.iterators.aggregation.StringSummation\nquit\n')
         self.wait(self.runOn(self.masterHost(), [
-            'bin/tool.sh',
+            ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
             'org.apache.accumulo.examples.mapreduce.WordCount',
             INSTANCE_NAME,
