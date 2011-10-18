@@ -586,8 +586,15 @@
 	</distributionManagement>
 
 	<scm>
-		<connection>http://incubator.apache.org/accumulo</connection>
-		<developerConnection>http://incubator.apache.org/accumulo</developerConnection>
+		<connection>https://svn.apache.org/repos/asf/incubator/accumulo/branches/1.3</connection>
+		<developerConnection>https://svn.apache.org/repos/asf/incubator/accumulo/branches/1.3</developerConnection>
+		<url>https://svn.apache.org/repos/asf/incubator/accumulo/</url>
 	</scm>
 
+	<url>http://incubator.apache.org/accumulo/</url>
+	<description>Accumulo is a sorted, distributed key/value store based on Google's BigTable design. It is built on top of Apache Hadoop, Zookeeper, and Thrift. It features a few novel improvements on the BigTable design in the form of cell-level access labels and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</description>
+	<issueManagement>
+		<url>https://issues.apache.org/jira/browse/ACCUMULO</url>
+		<system>Apache's JIRA issue tracker</system>
+	</issueManagement>
 </project>
