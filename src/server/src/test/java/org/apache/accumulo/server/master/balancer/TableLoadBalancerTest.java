@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.master.balancer;
 
 import java.util.ArrayList;
@@ -42,24 +42,22 @@ import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.junit.Test;
 
-
-
 public class TableLoadBalancerTest {
     
     static private TServerInstance mkts(String address, String session) throws Exception {
         return new TServerInstance(AddressUtil.parseAddress(address, 1234), session);
     }
     
-    static private TabletServerStatus status(Object ... config) {
+    static private TabletServerStatus status(Object... config) {
         TabletServerStatus result = new TabletServerStatus();
-        result.tableMap = new HashMap<String, TableInfo>();
+        result.tableMap = new HashMap<String,TableInfo>();
         String tablename = null;
         for (Object c : config) {
             if (c instanceof String) {
-                tablename = (String)c;
+                tablename = (String) c;
             } else {
                 TableInfo info = new TableInfo();
-                int count = (Integer)c;
+                int count = (Integer) c;
                 info.onlineTablets = count;
                 info.tablets = count;
                 result.tableMap.put(tablename, info);
@@ -67,10 +65,10 @@ public class TableLoadBalancerTest {
         }
         return result;
     }
-
+    
     static MockInstance instance = new MockInstance("mockamatic");
     
-    static SortedMap<TServerInstance, TabletServerStatus> state;
+    static SortedMap<TServerInstance,TabletServerStatus> state;
     
     static List<TabletStats> generateFakeTablets(TServerInstance tserver, String tableId) {
         List<TabletStats> result = new ArrayList<TabletStats>();
@@ -78,19 +76,16 @@ public class TableLoadBalancerTest {
         // generate some fake tablets
         for (int i = 0; i < tableInfo.tableMap.get(tableId).onlineTablets; i++) {
             TabletStats stats = new TabletStats();
-            stats.extent = new KeyExtent(new Text(tableId), 
-                                         new Text(tserver.host() + String.format("%03d", i + 1)), 
-                                         new Text(tserver.host() + String.format("%03d", i)
-                                                 )).toThrift();
+            stats.extent = new KeyExtent(new Text(tableId), new Text(tserver.host() + String.format("%03d", i + 1)), new Text(tserver.host()
+                    + String.format("%03d", i))).toThrift();
             result.add(stats);
         }
         return result;
     }
-
+    
     static class DefaultLoadBalancer extends org.apache.accumulo.server.master.balancer.DefaultLoadBalancer {
         
-        public DefaultLoadBalancer(String table)
-        {
+        public DefaultLoadBalancer(String table) {
             super(table);
         }
         
@@ -109,15 +104,14 @@ public class TableLoadBalancerTest {
         
         // need to use our mock instance
         @Override
-        protected TableOperations getTableOperations()
-        {
+        protected TableOperations getTableOperations() {
             try {
                 return instance.getConnector("user", "pass").tableOperations();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
-            
+        
         // use our new classname to test class loading
         @Override
         protected String getLoadBalancerClassNameForTable(String table) {
@@ -137,7 +131,7 @@ public class TableLoadBalancerTest {
         c.tableOperations().create("t1");
         c.tableOperations().create("t2");
         c.tableOperations().create("t3");
-        state = new TreeMap<TServerInstance, TabletServerStatus>();
+        state = new TreeMap<TServerInstance,TabletServerStatus>();
         TServerInstance svr = mkts("10.0.0.1:1234", "0x01020304");
         state.put(svr, status("t1", 10, "t2", 10, "t3", 10));
         
@@ -151,13 +145,12 @@ public class TableLoadBalancerTest {
         tls = new TableLoadBalancer();
         tls.balance(state, migrations, migrationsOut);
         int count = 0;
-        Map<String, Integer> movedByTable = new HashMap<String, Integer>();
+        Map<String,Integer> movedByTable = new HashMap<String,Integer>();
         movedByTable.put("t1", new Integer(0));
         movedByTable.put("t2", new Integer(0));
         movedByTable.put("t3", new Integer(0));
         for (TabletMigration migration : migrationsOut) {
-            if (migration.oldServer.equals(svr))
-                count++;
+            if (migration.oldServer.equals(svr)) count++;
             String key = migration.tablet.getTableId().toString();
             movedByTable.put(key, movedByTable.get(key) + 1);
         }
@@ -166,5 +159,5 @@ public class TableLoadBalancerTest {
             Assert.assertEquals(5, moved.intValue());
         }
     }
-
+    
 }

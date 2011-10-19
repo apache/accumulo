@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.zookeeper;
 
 import java.util.ArrayList;
@@ -27,18 +27,15 @@ import junit.framework.Assert;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.junit.Test;
 
-
 public class TransactionWatcherTest {
     
     static class SimpleArbitrator implements TransactionWatcher.Arbitrator {
-        Map<String, List<Long>> map = new HashMap<String, List<Long>>();
+        Map<String,List<Long>> map = new HashMap<String,List<Long>>();
         
         public synchronized void start(String txType, Long txid) throws Exception {
             List<Long> txids = map.get(txType);
-            if (txids == null)
-                txids = new ArrayList<Long>();
-            if (txids.contains(txid))
-                throw new Exception("transaction already started");
+            if (txids == null) txids = new ArrayList<Long>();
+            if (txids.contains(txid)) throw new Exception("transaction already started");
             txids.add(txid);
             map.put(txType, txids);
         }
@@ -49,18 +46,15 @@ public class TransactionWatcherTest {
                 txids.remove(txids.indexOf(txid));
                 return;
             }
-            throw new Exception("transaction does not exist"); 
+            throw new Exception("transaction does not exist");
         }
-
+        
         @Override
         synchronized public boolean transactionAlive(String txType, long tid) throws Exception {
             List<Long> txids = map.get(txType);
-            if (txids == null)
-                return false;
+            if (txids == null) return false;
             return txids.contains(tid);
         }
-        
-
         
     }
     
@@ -126,5 +120,5 @@ public class TransactionWatcherTest {
         });
         
     }
-
+    
 }

@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.util;
 
 import java.io.PrintStream;
@@ -26,7 +26,6 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 
-
 public class DumpZookeeper {
     
     static ZooReaderWriter zk = null;
@@ -36,7 +35,11 @@ public class DumpZookeeper {
     private static class Encoded {
         public String encoding;
         public String value;
-        Encoded(String e, String v) { encoding = e; value = v; }
+        
+        Encoded(String e, String v) {
+            encoding = e;
+            value = v;
+        }
     }
     
     /**
@@ -45,18 +48,16 @@ public class DumpZookeeper {
     public static void main(String[] args) {
         Logger.getRootLogger().setLevel(Level.WARN);
         PrintStream out = System.out;
-        //int timeout = 30 * 1000;
-        //String server = args[0];
+        // int timeout = 30 * 1000;
+        // String server = args[0];
         String root = "/";
-        if (args.length > 0)
-            root = args[0];
+        if (args.length > 0) root = args[0];
         try {
-        	zk = ZooReaderWriter.getInstance();
-           
+            zk = ZooReaderWriter.getInstance();
+            
             write(out, 0, "<dump root='%s'>", root);
             for (String child : zk.getChildren(root, null))
-                if (!child.equals("zookeeper"))
-                    dump(out, root, child, 1);
+                if (!child.equals("zookeeper")) dump(out, root, child, 1);
             write(out, 0, "</dump>");
         } catch (Exception ex) {
             log.error(ex, ex);
@@ -65,11 +66,9 @@ public class DumpZookeeper {
     
     private static void dump(PrintStream out, String root, String child, int indent) throws KeeperException, InterruptedException, UnsupportedEncodingException {
         String path = root + "/" + child;
-        if (root.endsWith("/"))
-            path = root + child;
+        if (root.endsWith("/")) path = root + child;
         Stat stat = zk.getStatus(path);
-        if (stat == null)
-            return;
+        if (stat == null) return;
         String type = "node";
         if (stat.getEphemeralOwner() != 0) {
             type = "ephemeral";
@@ -94,20 +93,18 @@ public class DumpZookeeper {
             write(out, indent, "</node>");
         }
     }
-
+    
     private static Encoded value(String path) throws KeeperException, InterruptedException, UnsupportedEncodingException {
         byte[] data = zk.getData(path, null);
         for (int i = 0; i < data.length; i++) {
             // does this look like simple ascii?
-            if (data[i] < ' ' || data[i] > '~')
-                return new Encoded("base64", new String(Base64.encodeBase64(data), "utf8"));
+            if (data[i] < ' ' || data[i] > '~') return new Encoded("base64", new String(Base64.encodeBase64(data), "utf8"));
         }
         return new Encoded("utf8", new String(data, "utf8"));
     }
-
-    private static void write(PrintStream out, int indent, String fmt,
-                              Object... args) {
-        for (int i = 0; i < indent; i++) 
+    
+    private static void write(PrintStream out, int indent, String fmt, Object... args) {
+        for (int i = 0; i < indent; i++)
             out.print(" ");
         out.println(String.format(fmt, args));
     }

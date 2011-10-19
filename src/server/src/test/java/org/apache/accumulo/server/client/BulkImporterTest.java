@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.client;
 
 import java.util.Collection;
@@ -46,14 +46,13 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-
 public class BulkImporterTest {
     
     static final SortedSet<KeyExtent> fakeMetaData = new TreeSet<KeyExtent>();
     static final Text tableId = new Text("1");
     static {
         fakeMetaData.add(new KeyExtent(tableId, new Text("a"), null));
-        for (String part : new String[]{"b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"} ) {
+        for (String part : new String[] {"b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"}) {
             fakeMetaData.add(new KeyExtent(tableId, new Text(part), fakeMetaData.last().getEndRow()));
         }
         fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().getEndRow()));
@@ -61,43 +60,43 @@ public class BulkImporterTest {
     
     class MockTabletLocator extends TabletLocator {
         int invalidated = 0;
-
+        
         @Override
-        public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry)
-                throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+        public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
+                TableNotFoundException {
             return new TabletLocation(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(), "localhost");
         }
-
+        
         @Override
-        public void binMutations(List<Mutation> mutations, Map<String, TabletServerMutations> binnedMutations, List<Mutation> failures)
-                throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-           throw new NotImplementedException(); 
-        }
-
-        @Override
-        public List<Range> binRanges(List<Range> ranges, Map<String, Map<KeyExtent, List<Range>>> binnedRanges)
+        public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures)
                 throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
             throw new NotImplementedException();
         }
-
+        
+        @Override
+        public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+                AccumuloSecurityException, TableNotFoundException {
+            throw new NotImplementedException();
+        }
+        
         @Override
         public void invalidateCache(KeyExtent failedExtent) {
             invalidated++;
         }
-
+        
         @Override
         public void invalidateCache(Collection<KeyExtent> keySet) {
-            throw new NotImplementedException();            
+            throw new NotImplementedException();
         }
-
+        
         @Override
         public void invalidateCache() {
             throw new NotImplementedException();
         }
-
+        
         @Override
         public void invalidateCache(String server) {
-            throw new NotImplementedException();    
+            throw new NotImplementedException();
         }
     }
     
@@ -110,7 +109,7 @@ public class BulkImporterTest {
         fs.delete(new Path(file), true);
         FileSKVWriter writer = FileOperations.getInstance().openWriter(file, fs, fs.getConf(), acuConf);
         writer.startDefaultLocalityGroup();
-        Value empty = new Value(new byte[]{});
+        Value empty = new Value(new byte[] {});
         writer.append(new Key("a", "cf", "cq"), empty);
         writer.append(new Key("a", "cf", "cq1"), empty);
         writer.append(new Key("a", "cf", "cq2"), empty);
@@ -139,13 +138,12 @@ public class BulkImporterTest {
         Assert.assertEquals(overlaps.get(2).tablet_extent, new KeyExtent(tableId, new Text("j"), new Text("i")));
         Assert.assertEquals(overlaps.get(3).tablet_extent, new KeyExtent(tableId, null, new Text("l")));
         
-        List<TabletLocation> overlaps2 = 
-            BulkImporter.findOverlappingTablets(acuConf, fs, locator, new Path(file), new KeyExtent(tableId, new Text("h"), new Text("b")));
+        List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(acuConf, fs, locator, new Path(file), new KeyExtent(tableId, new Text("h"),
+                new Text("b")));
         Assert.assertEquals(2, overlaps2.size());
         Assert.assertEquals(overlaps2.get(0).tablet_extent, new KeyExtent(tableId, new Text("d"), new Text("c")));
         Assert.assertEquals(overlaps2.get(1).tablet_extent, new KeyExtent(tableId, new Text("j"), new Text("i")));
         Assert.assertEquals(locator.invalidated, 1);
     }
     
-
 }

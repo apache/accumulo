@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.logger;
 
 import static org.apache.accumulo.server.logger.LogEvents.COMPACTION_FINISH;
@@ -41,24 +41,16 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-
 public class LogFileTest {
     
-    static private void readWrite(LogEvents event,
-                                  long seq,
-                                  int tid,  
-                                  String filename,
-                                  KeyExtent tablet,
-                                  Mutation[] mutations, 
-                                  LogFileKey keyResult,
-                                  LogFileValue valueResult) throws IOException
-    {
+    static private void readWrite(LogEvents event, long seq, int tid, String filename, KeyExtent tablet, Mutation[] mutations, LogFileKey keyResult,
+            LogFileValue valueResult) throws IOException {
         LogFileKey key = new LogFileKey();
         key.event = event;
         key.seq = seq;
         key.tid = tid;
         key.filename = filename;
-        key.tablet = tablet;       
+        key.tablet = tablet;
         key.tserverSession = keyResult.tserverSession;
         LogFileValue value = new LogFileValue();
         value.mutations = mutations != null ? mutations : new Mutation[0];
@@ -76,15 +68,14 @@ public class LogFileTest {
     }
     
     static void assertEqualsMutations(Mutation[] a, Mutation[] b) {
-        if (a.length == b.length)
-            for (int i = 0; i < a.length; i++) {
-                assertEquals(a[i],b[i]);
-                Collection<ColumnUpdate> au = a[i].getUpdates();
-                Collection<ColumnUpdate> bu = a[i].getUpdates();
-                assertEquals(au, bu);
-            }
+        if (a.length == b.length) for (int i = 0; i < a.length; i++) {
+            assertEquals(a[i], b[i]);
+            Collection<ColumnUpdate> au = a[i].getUpdates();
+            Collection<ColumnUpdate> bu = a[i].getUpdates();
+            assertEquals(au, bu);
+        }
     }
-
+    
     @Test
     public void testReadFields() throws IOException {
         LogFileKey key = new LogFileKey();
@@ -109,30 +100,25 @@ public class LogFileTest {
         assertEquals(key.tablet, tablet);
         Mutation m = new Mutation(new Text("row"));
         m.put(new Text("cf"), new Text("cq"), new Value("value".getBytes()));
-        readWrite(MUTATION, 7, 8, null, null, new Mutation[]{m}, key, value);
+        readWrite(MUTATION, 7, 8, null, null, new Mutation[] {m}, key, value);
         assertEquals(key.event, MUTATION);
         assertEquals(key.seq, 7);
         assertEquals(key.tid, 8);
         assertEqualsMutations(value.mutations, new Mutation[] {m});
-        readWrite(MANY_MUTATIONS, 9, 10, null, null, new Mutation[]{m, m}, key, value);
+        readWrite(MANY_MUTATIONS, 9, 10, null, null, new Mutation[] {m, m}, key, value);
         assertEquals(key.event, MANY_MUTATIONS);
         assertEquals(key.seq, 9);
         assertEquals(key.tid, 10);
-        assertEqualsMutations(value.mutations, new Mutation[] {m,m});
+        assertEqualsMutations(value.mutations, new Mutation[] {m, m});
     }
-
-
+    
     @Test
     public void testEventType() {
-        assertEquals(LogFileKey.eventType(MUTATION), 
-                     LogFileKey.eventType(MANY_MUTATIONS));
-        assertEquals(LogFileKey.eventType(COMPACTION_START), 
-                     LogFileKey.eventType(COMPACTION_FINISH));
-        assertTrue(LogFileKey.eventType(DEFINE_TABLET) <
-                   LogFileKey.eventType(COMPACTION_FINISH));
-        assertTrue(LogFileKey.eventType(COMPACTION_FINISH) <
-                   LogFileKey.eventType(MUTATION));
+        assertEquals(LogFileKey.eventType(MUTATION), LogFileKey.eventType(MANY_MUTATIONS));
+        assertEquals(LogFileKey.eventType(COMPACTION_START), LogFileKey.eventType(COMPACTION_FINISH));
+        assertTrue(LogFileKey.eventType(DEFINE_TABLET) < LogFileKey.eventType(COMPACTION_FINISH));
+        assertTrue(LogFileKey.eventType(COMPACTION_FINISH) < LogFileKey.eventType(MUTATION));
         
     }
- 
+    
 }

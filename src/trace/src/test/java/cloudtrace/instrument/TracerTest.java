@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package cloudtrace.instrument;
 
 import static org.junit.Assert.assertEquals;
@@ -44,8 +44,7 @@ import cloudtrace.thrift.TestService;
 
 public class TracerTest {
     static class SpanStruct {
-        public SpanStruct(long traceId, long spanId, long parentId, long start, long stop, String description,
-                Map<String, String> data) {
+        public SpanStruct(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
             super();
             this.traceId = traceId;
             this.spanId = spanId;
@@ -55,31 +54,32 @@ public class TracerTest {
             this.description = description;
             this.data = data;
         }
+        
         public long traceId;
         public long spanId;
         public long parentId;
         public long start;
         public long stop;
         public String description;
-        public Map<String, String> data;
-        public long millis() { return stop - start; }
+        public Map<String,String> data;
+        
+        public long millis() {
+            return stop - start;
+        }
     }
     
     static class TestReceiver implements SpanReceiver {
-        public Map<Long, List<SpanStruct>> traces = new HashMap<Long, List<SpanStruct>>();
+        public Map<Long,List<SpanStruct>> traces = new HashMap<Long,List<SpanStruct>>();
         
         @Override
-        public void span(long traceId, long spanId, long parentId, long start, long stop, String description,
-                         Map<String, String> data) {
+        public void span(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
             SpanStruct span = new SpanStruct(traceId, spanId, parentId, start, stop, description, data);
-            if (!traces.containsKey(traceId))
-                traces.put(traceId, new ArrayList<SpanStruct>());
+            if (!traces.containsKey(traceId)) traces.put(traceId, new ArrayList<SpanStruct>());
             traces.get(traceId).add(span);
         }
-
+        
         @Override
-        public void flush() {
-        }
+        public void flush() {}
     }
     
     @Test
@@ -106,13 +106,12 @@ public class TracerTest {
         assertNotNull(tracer.traces.get(traceId));
         assertTrue(tracer.traces.get(traceId).size() == 1);
         assertEquals("shortest trace ever", tracer.traces.get(traceId).get(0).description);
-
+        
         Span pause = Trace.start("pause");
         Thread.sleep(100);
         pause.stop();
         assertTrue(tracer.traces.get(traceId).size() == 2);
         assertTrue(tracer.traces.get(traceId).get(1).millis() >= 100);
-        
         
         Thread t = new Thread(Trace.wrap(new Runnable() {
             @Override
@@ -141,7 +140,6 @@ public class TracerTest {
         }
     }
     
-    
     @Test
     public void testThrift() throws Exception {
         TestReceiver tracer = new TestReceiver();
@@ -160,8 +158,7 @@ public class TracerTest {
         };
         t.start();
         TTransport clientTransport = new TSocket(new Socket("localhost", socket.getLocalPort()));
-        TestService.Iface client = new TestService.Client(new TBinaryProtocol(clientTransport),
-                                                          new TBinaryProtocol(clientTransport));
+        TestService.Iface client = new TestService.Client(new TBinaryProtocol(clientTransport), new TBinaryProtocol(clientTransport));
         client = TraceWrap.client(client);
         assertFalse(client.checkTrace(null, "test"));
         
@@ -170,7 +167,7 @@ public class TracerTest {
         start.stop();
         
         assertNotNull(tracer.traces.get(start.traceId()));
-        String traces[] = { "my test", "checkTrace", "client:checkTrace", "start" };
+        String traces[] = {"my test", "checkTrace", "client:checkTrace", "start"};
         assertTrue(tracer.traces.get(start.traceId()).size() == traces.length);
         for (int i = 0; i < traces.length; i++)
             assertEquals(traces[i], tracer.traces.get(start.traceId()).get(i).description);

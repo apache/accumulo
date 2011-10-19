@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.core.util;
 
 import java.util.ArrayList;
@@ -40,18 +40,19 @@ import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
-
 public class Merge {
     
     public static class MergeException extends Exception {
         private static final long serialVersionUID = 1L;
-
-        MergeException(Exception ex) { super(ex); }
+        
+        MergeException(Exception ex) {
+            super(ex);
+        }
     };
-
+    
     private static final Logger log = Logger.getLogger(Merge.class);
     
-    protected void message(String format, Object ... args) {
+    protected void message(String format, Object... args) {
         log.info(String.format(format, args));
     }
     
@@ -66,7 +67,7 @@ public class Merge {
         Text begin = null;
         Text end = null;
         
-        Options options = new Options(); 
+        Options options = new Options();
         options.addOption("k", "keepers", true, "ZooKeeper list");
         options.addOption("i", "instance", true, "instance name");
         options.addOption("t", "table", true, "table to merge");
@@ -105,7 +106,7 @@ public class Merge {
         Instance zki = new ZooKeeperInstance(instance, keepers);
         try {
             Connector conn = zki.getConnector(user, password);
-
+            
             if (!conn.tableOperations().exists(table)) {
                 System.err.println("table " + table + " does not exist");
                 return;
@@ -114,7 +115,7 @@ public class Merge {
                 AccumuloConfiguration tableConfig = new ConfigurationCopy(conn.tableOperations().getProperties(table));
                 goalSize = tableConfig.getMemoryInBytes(Property.TABLE_SPLIT_THRESHOLD);
             }
-
+            
             message("Merging tablets in table %s to %d bytes", table, goalSize);
             mergomatic(conn, table, begin, end, goalSize, force);
         } catch (Exception ex) {
@@ -132,14 +133,12 @@ public class Merge {
             this.extent = extent;
             this.size = size;
         }
+        
         KeyExtent extent;
         long size;
     }
     
-
-    public void mergomatic(Connector conn, String table, Text start, Text end, long goalSize, boolean force) 
-    throws MergeException 
-    {
+    public void mergomatic(Connector conn, String table, Text start, Text end, long goalSize, boolean force) throws MergeException {
         try {
             if (table.equals(Constants.METADATA_TABLE_NAME)) {
                 throw new IllegalArgumentException("cannot merge tablets on the metadata table");
@@ -156,18 +155,16 @@ public class Merge {
                     totalSize = mergeMany(conn, table, sizes, goalSize, force, false);
                 }
             }
-            if (sizes.size() > 1) 
-                mergeMany(conn, table, sizes, goalSize, force, true);
+            if (sizes.size() > 1) mergeMany(conn, table, sizes, goalSize, force, true);
         } catch (Exception ex) {
             throw new MergeException(ex);
         }
     }
-
+    
     protected long mergeMany(Connector conn, String table, List<Size> sizes, long goalSize, boolean force, boolean last) throws MergeException {
         // skip the big tablets, which will be the typical case
         while (!sizes.isEmpty()) {
-            if (sizes.get(0).size < goalSize)
-                break;
+            if (sizes.get(0).size < goalSize) break;
             sizes.remove(0);
         }
         if (sizes.isEmpty()) {
@@ -201,15 +198,14 @@ public class Merge {
             // That's the last tablet, and we have a bunch to merge
             mergeSome(conn, table, sizes, sizes.size());
         }
-        long result = 0; 
+        long result = 0;
         for (Size s : sizes) {
             result += s.size;
         }
         return result;
     }
-
-    protected void mergeSome(Connector conn, String table, List<Size> sizes, int numToMerge)
-            throws MergeException {
+    
+    protected void mergeSome(Connector conn, String table, List<Size> sizes, int numToMerge) throws MergeException {
         merge(conn, table, sizes, numToMerge);
         for (int i = 0; i < numToMerge; i++) {
             sizes.remove(0);
@@ -226,10 +222,9 @@ public class Merge {
             throw new MergeException(ex);
         }
     }
-
-    protected Iterator<Size> getSizeIterator(Connector conn, String tablename, Text start, Text end)
-            throws MergeException {
-        // open up the !METADATA table, walk through the tablets.  
+    
+    protected Iterator<Size> getSizeIterator(Connector conn, String tablename, Text start, Text end) throws MergeException {
+        // open up the !METADATA table, walk through the tablets.
         String tableId;
         Scanner scanner;
         try {
@@ -241,7 +236,7 @@ public class Merge {
         scanner.setRange(new KeyExtent(new Text(tableId), end, start).toMetadataRange());
         scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
         ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
-        final Iterator<Entry<Key, Value>> iterator = scanner.iterator();
+        final Iterator<Entry<Key,Value>> iterator = scanner.iterator();
         
         Iterator<Size> result = new Iterator<Size>() {
             Size next = fetch();
@@ -250,14 +245,14 @@ public class Merge {
             public boolean hasNext() {
                 return next != null;
             }
-
+            
             private Size fetch() {
                 long tabletSize = 0;
                 while (iterator.hasNext()) {
-                    Entry<Key, Value> entry = iterator.next();
+                    Entry<Key,Value> entry = iterator.next();
                     Key key = entry.getKey();
                     if (key.getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
-                        String[] sizeEntries  = new String(entry.getValue().get()).split(",");
+                        String[] sizeEntries = new String(entry.getValue().get()).split(",");
                         if (sizeEntries.length == 2) {
                             tabletSize += Long.parseLong(sizeEntries[0]);
                         }
@@ -268,14 +263,14 @@ public class Merge {
                 }
                 return null;
             }
-
+            
             @Override
             public Size next() {
                 Size result = next;
                 next = fetch();
                 return result;
             }
-
+            
             @Override
             public void remove() {
                 throw new UnsupportedOperationException();

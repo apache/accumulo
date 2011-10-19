@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.core.util.shell.commands;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -25,64 +25,58 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
-
 public class CompactCommand extends TableOperation {
-	private Option  optStartRow, optEndRow, noFlushOption, waitOpt;
-	private boolean flush;
-	private Text startRow;
-	private Text endRow;
-	
-	boolean override = false;
-	private boolean wait;
-	      
-	@Override
-	public String description() {
-	    return "sets all tablets for a table to major compact as soon as possible (based on current time)";
-	}
-
-	protected void doTableOp(Shell shellState, String tableName) throws AccumuloException, AccumuloSecurityException {
-		//compact the tables
-	    try {
-	        if(wait)
-	        	Shell.log.info("Compacting table ...");
-	        
-	        shellState.getConnector().tableOperations().compact(shellState.getTableName(), startRow, endRow, flush, wait);
-	        
-	        Shell.log.info("Compaction of table " + shellState.getTableName() + " "+(wait ? "completed" : "started")+" for given range");
-	    } catch (Exception ex) {
-	        throw new AccumuloException(ex);
-	    }
-	}
-
-	@Override
-	public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-		flush = !cl.hasOption(noFlushOption.getOpt());
-		startRow = null;
-		if (cl.hasOption(optStartRow.getOpt()))
-			startRow = new Text(cl.getOptionValue(optStartRow.getOpt()));
-		endRow = null;
-		if (cl.hasOption(optEndRow.getOpt()))
-			endRow = new Text(cl.getOptionValue(optEndRow.getOpt()));
-		wait = cl.hasOption(waitOpt.getOpt());
-		
-		
-		return super.execute(fullCommand, cl, shellState);
-	}
-
-	@Override
-	public Options getOptions() {
-		Options opts = super.getOptions();
-	
-		optStartRow = new Option("b", "begin-row", true, "begin row");
-		opts.addOption(optStartRow);
+    private Option optStartRow, optEndRow, noFlushOption, waitOpt;
+    private boolean flush;
+    private Text startRow;
+    private Text endRow;
+    
+    boolean override = false;
+    private boolean wait;
+    
+    @Override
+    public String description() {
+        return "sets all tablets for a table to major compact as soon as possible (based on current time)";
+    }
+    
+    protected void doTableOp(Shell shellState, String tableName) throws AccumuloException, AccumuloSecurityException {
+        // compact the tables
+        try {
+            if (wait) Shell.log.info("Compacting table ...");
+            
+            shellState.getConnector().tableOperations().compact(shellState.getTableName(), startRow, endRow, flush, wait);
+            
+            Shell.log.info("Compaction of table " + shellState.getTableName() + " " + (wait ? "completed" : "started") + " for given range");
+        } catch (Exception ex) {
+            throw new AccumuloException(ex);
+        }
+    }
+    
+    @Override
+    public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+        flush = !cl.hasOption(noFlushOption.getOpt());
+        startRow = null;
+        if (cl.hasOption(optStartRow.getOpt())) startRow = new Text(cl.getOptionValue(optStartRow.getOpt()));
+        endRow = null;
+        if (cl.hasOption(optEndRow.getOpt())) endRow = new Text(cl.getOptionValue(optEndRow.getOpt()));
+        wait = cl.hasOption(waitOpt.getOpt());
+        
+        return super.execute(fullCommand, cl, shellState);
+    }
+    
+    @Override
+    public Options getOptions() {
+        Options opts = super.getOptions();
+        
+        optStartRow = new Option("b", "begin-row", true, "begin row");
+        opts.addOption(optStartRow);
         optEndRow = new Option("e", "end-row", true, "end row");
         opts.addOption(optEndRow);
-		noFlushOption = new Option("nf", "noFlush", false, "do not flush table data in memory before compacting.");
-		opts.addOption(noFlushOption);
-		waitOpt = new Option("w", "wait", false, "wait for compact to finish");
-		opts.addOption(waitOpt);
-		
-		
-		return opts;
-	}
+        noFlushOption = new Option("nf", "noFlush", false, "do not flush table data in memory before compacting.");
+        opts.addOption(noFlushOption);
+        waitOpt = new Option("w", "wait", false, "wait for compact to finish");
+        opts.addOption(waitOpt);
+        
+        return opts;
+    }
 }

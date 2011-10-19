@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.gc;
 
 import java.io.IOException;
@@ -63,16 +63,14 @@ public class GarbageCollectWriteAheadLogs {
         try {
             status.currentLog.started = System.currentTimeMillis();
             
-            Map<String, String> fileToServerMap = new HashMap<String, String>();
+            Map<String,String> fileToServerMap = new HashMap<String,String>();
             int count = scanServers(fileToServerMap);
             long fileScanStop = System.currentTimeMillis();
-            log.info(String.format("Fetched %d files from %d servers in %.2f seconds",
-                                   fileToServerMap.size(),
-                                   count,
-                                   (fileScanStop - status.currentLog.started) / 1000.));
+            log.info(String.format("Fetched %d files from %d servers in %.2f seconds", fileToServerMap.size(), count,
+                    (fileScanStop - status.currentLog.started) / 1000.));
             status.currentLog.candidates = fileToServerMap.size();
             span.stop();
-
+            
             span = Trace.start("removeMetadataEntries");
             try {
                 count = removeMetadataEntries(fileToServerMap, status);
@@ -84,19 +82,16 @@ public class GarbageCollectWriteAheadLogs {
             }
             
             long logEntryScanStop = System.currentTimeMillis();
-            log.info(String.format("%d log entries scanned in %.2f seconds",
-                                   count,
-                                   (logEntryScanStop - fileScanStop) / 1000.));
-                        
+            log.info(String.format("%d log entries scanned in %.2f seconds", count, (logEntryScanStop - fileScanStop) / 1000.));
+            
             span = Trace.start("removeFiles");
-            Map<String, ArrayList<String>> serverToFileMap = mapServersToFiles(fileToServerMap);
+            Map<String,ArrayList<String>> serverToFileMap = mapServersToFiles(fileToServerMap);
             
             count = removeFiles(fs, serverToFileMap, status);
             
             long removeStop = System.currentTimeMillis();
-            log.info(String.format("%d total logs removed from %d servers in %.2f seconds",
-                                   count, serverToFileMap.size(), 
-                                   (removeStop - logEntryScanStop) / 1000.));
+            log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count, serverToFileMap.size(),
+                    (removeStop - logEntryScanStop) / 1000.));
             status.currentLog.finished = removeStop;
             status.lastLog = status.currentLog;
             status.currentLog = new GcCycleStats();
@@ -108,67 +103,65 @@ public class GarbageCollectWriteAheadLogs {
         }
     }
     
-    private static int removeFiles(final FileSystem fs, Map<String, ArrayList<String>> serverToFileMap, final GCStatus status) {
+    private static int removeFiles(final FileSystem fs, Map<String,ArrayList<String>> serverToFileMap, final GCStatus status) {
         final AtomicInteger count = new AtomicInteger();
         ExecutorService threadPool = java.util.concurrent.Executors.newCachedThreadPool();
         
-        for (final Entry<String, ArrayList<String>> serverFiles : serverToFileMap.entrySet()) {
+        for (final Entry<String,ArrayList<String>> serverFiles : serverToFileMap.entrySet()) {
             final String server = serverFiles.getKey();
             final List<String> files = serverFiles.getValue();
-                threadPool.submit(new Runnable() {
-                    @Override
-                    public void run() {
+            threadPool.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Iface logger = ThriftUtil.getClient(new MutationLogger.Client.Factory(), server, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT,
+                                ServerConfiguration.getSystemConfiguration());
                         try {
-                            Iface logger = ThriftUtil.getClient(new MutationLogger.Client.Factory(), server, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT, ServerConfiguration.getSystemConfiguration());
-                            try {
-                                count.addAndGet(files.size());
-                                log.debug(String.format("removing %d files from %s", 
-                                                        files.size(), 
-                                                        server));
-                                if (files.size() > 0) {
-                                    log.debug("deleting files on logger " + server);
-                                    for (String file : files) {
-                                        log.debug("Deleting " + file);
-                                    }
-                                    logger.remove(null, SecurityConstants.getSystemCredentials(), files);
-                                    synchronized (status.currentLog) {
-                                        status.currentLog.deleted += files.size();
-                                    }
+                            count.addAndGet(files.size());
+                            log.debug(String.format("removing %d files from %s", files.size(), server));
+                            if (files.size() > 0) {
+                                log.debug("deleting files on logger " + server);
+                                for (String file : files) {
+                                    log.debug("Deleting " + file);
                                 }
-                            } finally {
-                                ThriftUtil.returnClient(logger);
-                            }
-                            log.info(String.format("Removed %d files from %s", files.size(), server));
-                            for (String file : files) {
-                                try {
-                                    for (FileStatus match : fs.globStatus(new Path(ServerConstants.getRecoveryDir(), file + "*"))) {
-                                        fs.delete(match.getPath(), true);
-                                    }
-                                } catch (IOException ex) {
-                                    log.warn("Error deleting recovery data: ", ex);
+                                logger.remove(null, SecurityConstants.getSystemCredentials(), files);
+                                synchronized (status.currentLog) {
+                                    status.currentLog.deleted += files.size();
                                 }
                             }
-                        } catch (TTransportException err) {
-                            log.info("Ignoring communication error talking to logger " + serverFiles.getKey() + " (probably a timeout)");
-                        } catch (TException err) {
-                            log.info("Ignoring exception talking to logger " + serverFiles.getKey() + "(" + err + ")");
+                        } finally {
+                            ThriftUtil.returnClient(logger);
                         }
+                        log.info(String.format("Removed %d files from %s", files.size(), server));
+                        for (String file : files) {
+                            try {
+                                for (FileStatus match : fs.globStatus(new Path(ServerConstants.getRecoveryDir(), file + "*"))) {
+                                    fs.delete(match.getPath(), true);
+                                }
+                            } catch (IOException ex) {
+                                log.warn("Error deleting recovery data: ", ex);
+                            }
+                        }
+                    } catch (TTransportException err) {
+                        log.info("Ignoring communication error talking to logger " + serverFiles.getKey() + " (probably a timeout)");
+                    } catch (TException err) {
+                        log.info("Ignoring exception talking to logger " + serverFiles.getKey() + "(" + err + ")");
                     }
-                });
-                
+                }
+            });
+            
         }
         threadPool.shutdown();
         while (!threadPool.isShutdown())
             try {
                 threadPool.awaitTermination(1, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-            }
+            } catch (InterruptedException e) {}
         return count.get();
     }
-
-    private static Map<String, ArrayList<String>> mapServersToFiles(Map<String, String> fileToServerMap) {
-        Map<String, ArrayList<String>> serverToFileMap = new HashMap<String, ArrayList<String>>();
-        for (Entry<String, String> fileServer : fileToServerMap.entrySet()) {
+    
+    private static Map<String,ArrayList<String>> mapServersToFiles(Map<String,String> fileToServerMap) {
+        Map<String,ArrayList<String>> serverToFileMap = new HashMap<String,ArrayList<String>>();
+        for (Entry<String,String> fileServer : fileToServerMap.entrySet()) {
             ArrayList<String> files = serverToFileMap.get(fileServer.getValue());
             if (files == null) {
                 files = new ArrayList<String>();
@@ -178,22 +171,21 @@ public class GarbageCollectWriteAheadLogs {
         }
         return serverToFileMap;
     }
-
-    private static int removeMetadataEntries(Map<String, String> fileToServerMap, GCStatus status) throws IOException, KeeperException, InterruptedException {
+    
+    private static int removeMetadataEntries(Map<String,String> fileToServerMap, GCStatus status) throws IOException, KeeperException, InterruptedException {
         int count = 0;
         Iterator<LogEntry> iterator = MetadataTable.getLogEntries(SecurityConstants.getSystemCredentials());
-        while (iterator.hasNext() ) {
+        while (iterator.hasNext()) {
             for (String filename : iterator.next().logSet) {
                 filename = filename.split("/", 2)[1];
-                if (fileToServerMap.remove(filename) != null)
-                    status.currentLog.inUse++;
+                if (fileToServerMap.remove(filename) != null) status.currentLog.inUse++;
                 count++;
             }
         }
         return count;
     }
-
-    private static int scanServers(Map<String, String> fileToServerMap) throws Exception {
+    
+    private static int scanServers(Map<String,String> fileToServerMap) throws Exception {
         int count = 0;
         ZooReaderWriter zk = ZooReaderWriter.getInstance();
         String loggersDir = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZLOGGERS;
@@ -205,7 +197,8 @@ public class GarbageCollectWriteAheadLogs {
             try {
                 byte[] data = zk.getData(loggersDir + "/" + server, null);
                 address = new String(data);
-                Iface logger = ThriftUtil.getClient(new MutationLogger.Client.Factory(), address, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT, ServerConfiguration.getSystemConfiguration());
+                Iface logger = ThriftUtil.getClient(new MutationLogger.Client.Factory(), address, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT,
+                        ServerConfiguration.getSystemConfiguration());
                 for (String log : logger.getClosedLogs(null, SecurityConstants.getSystemCredentials())) {
                     fileToServerMap.put(log, address);
                 }
@@ -220,5 +213,5 @@ public class GarbageCollectWriteAheadLogs {
         }
         return count;
     }
-
+    
 }

@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.core.client.impl;
 
 import java.util.ArrayList;
@@ -39,14 +39,11 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
-
-public class ServerClient
-{
+public class ServerClient {
     private static final Logger log = Logger.getLogger(ServerClient.class);
-    private static final Map<String, ZooCache> zooCaches = new HashMap<String, ZooCache>();
-
-    private synchronized static ZooCache getZooCache(Instance instance)
-    {
+    private static final Map<String,ZooCache> zooCaches = new HashMap<String,ZooCache>();
+    
+    private synchronized static ZooCache getZooCache(Instance instance) {
         ZooCache result = zooCaches.get(instance.getZooKeepers());
         if (result == null) {
             result = new ZooCache(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut(), null);
@@ -55,43 +52,41 @@ public class ServerClient
         return result;
     }
     
-    
-    public static <T> T execute(Instance instance, ClientExecReturn<T, ClientService.Iface> exec) throws AccumuloException, AccumuloSecurityException {
-    	try{	
-    		return executeRaw(instance, exec);
-    	} catch (ThriftSecurityException e) {
-    		throw new AccumuloSecurityException(e.user, e.code, e);
-    	}catch(AccumuloException e){
-    		throw e;
-    	}catch(Exception e){
-    		throw new AccumuloException(e);
-    	}
+    public static <T> T execute(Instance instance, ClientExecReturn<T,ClientService.Iface> exec) throws AccumuloException, AccumuloSecurityException {
+        try {
+            return executeRaw(instance, exec);
+        } catch (ThriftSecurityException e) {
+            throw new AccumuloSecurityException(e.user, e.code, e);
+        } catch (AccumuloException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AccumuloException(e);
+        }
     }
     
     public static void execute(Instance instance, ClientExec<ClientService.Iface> exec) throws AccumuloException, AccumuloSecurityException {
-    	try{
-    		executeRaw(instance, exec);
-    	} catch (ThriftSecurityException e) {
-    		throw new AccumuloSecurityException(e.user, e.code, e);
-    	}catch(AccumuloException e){
-    		throw e;
-    	}catch(Exception e){
-    		throw new AccumuloException(e);
-    	}
+        try {
+            executeRaw(instance, exec);
+        } catch (ThriftSecurityException e) {
+            throw new AccumuloSecurityException(e.user, e.code, e);
+        } catch (AccumuloException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AccumuloException(e);
+        }
     }
     
-    public static <T> T executeRaw(Instance instance, ClientExecReturn<T, ClientService.Iface> exec) throws Exception {
+    public static <T> T executeRaw(Instance instance, ClientExecReturn<T,ClientService.Iface> exec) throws Exception {
         while (true) {
             ClientService.Iface client = null;
             try {
                 client = ServerClient.getConnection(instance);
                 return exec.execute(client);
-            } catch(TTransportException tte){
+            } catch (TTransportException tte) {
                 log.debug("ClientService request failed, retrying ... ", tte);
                 UtilWaitThread.sleep(100);
             } finally {
-                if (client != null) 
-                    ServerClient.close(client);
+                if (client != null) ServerClient.close(client);
             }
         }
     }
@@ -103,34 +98,32 @@ public class ServerClient
                 client = ServerClient.getConnection(instance);
                 exec.execute(client);
                 break;
-            } catch(TTransportException tte){
+            } catch (TTransportException tte) {
                 log.debug("ClientService request failed, retrying ... ", tte);
                 UtilWaitThread.sleep(100);
             } finally {
-                if (client != null) 
-                    ServerClient.close(client);
+                if (client != null) ServerClient.close(client);
             }
         }
     }
-
-    public static ClientService.Iface getConnection(Instance instance) throws TTransportException
-    {
+    
+    public static ClientService.Iface getConnection(Instance instance) throws TTransportException {
         ArgumentChecker.notNull(instance);
         // create list of servers
         ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
-
+        
         // add tservers
         
         ZooCache zc = getZooCache(instance);
         
-        for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS))
-        {
+        for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
             String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
             byte[] data = ZooUtil.getLockData(zc, path);
-            if (data != null && !new String(data).equals("master"))
-                servers.add(new ThriftTransportKey(new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT), instance.getConfiguration().getPort(Property.TSERV_CLIENTPORT), instance.getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)));
+            if (data != null && !new String(data).equals("master")) servers.add(new ThriftTransportKey(new ServerServices(new String(data))
+                    .getAddressString(Service.TSERV_CLIENT), instance.getConfiguration().getPort(Property.TSERV_CLIENTPORT), instance.getConfiguration()
+                    .getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)));
         }
-
+        
         boolean opened = false;
         try {
             TTransport socket = ThriftTransportPool.getInstance().getAnyTransport(servers);
@@ -138,18 +131,15 @@ public class ServerClient
             opened = true;
             return client;
         } finally {
-            if (!opened)
-                log.warn("Failed to find an available server in the list of servers: " + servers);
+            if (!opened) log.warn("Failed to find an available server in the list of servers: " + servers);
         }
     }
-
-    public static void close(ClientService.Iface iface)
-    {
-        TServiceClient client = (TServiceClient)iface;
+    
+    public static void close(ClientService.Iface iface) {
+        TServiceClient client = (TServiceClient) iface;
         if (client != null && client.getInputProtocol() != null && client.getInputProtocol().getTransport() != null) {
             ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());
-        }
-        else {
+        } else {
             log.debug("Attempt to close null connection to a server", new Exception());
         }
     }

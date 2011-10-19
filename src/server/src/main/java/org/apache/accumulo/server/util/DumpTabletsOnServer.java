@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.util;
 
 import java.text.DateFormat;
@@ -30,16 +30,15 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.thrift.TException;
 
-
 public class DumpTabletsOnServer {
     
-    private static void print(String fmt, Object ...args) {
+    private static void print(String fmt, Object... args) {
         System.out.println(String.format(fmt, args));
     }
     
     /**
      * @param args
-     * @throws TException 
+     * @throws TException
      */
     public static void main(String[] args) throws Exception {
         if (args.length != 2) {
@@ -52,7 +51,8 @@ public class DumpTabletsOnServer {
             System.err.println("Cannot find table " + args[1] + " in zookeeper");
             System.exit(-1);
         }
-        List<TabletStats> onlineTabletsForTable = ThriftUtil.getTServerClient(args[0],ServerConfiguration.getSystemConfiguration()).getTabletStats(null, SecurityConstants.getSystemCredentials(), tableId);
+        List<TabletStats> onlineTabletsForTable = ThriftUtil.getTServerClient(args[0], ServerConfiguration.getSystemConfiguration()).getTabletStats(null,
+                SecurityConstants.getSystemCredentials(), tableId);
         for (TabletStats stats : onlineTabletsForTable) {
             print("%s", stats.extent);
             print("  ingest %.2f", stats.ingestRate);
@@ -64,8 +64,7 @@ public class DumpTabletsOnServer {
             printStats("minor", stats.minor);
         }
     }
-
-
+    
     private static void printStats(String which, ActionStats stats) {
         print("  %s count %d", which, stats.count);
         print("  %s elapsed %.2f", which, stats.elapsed);

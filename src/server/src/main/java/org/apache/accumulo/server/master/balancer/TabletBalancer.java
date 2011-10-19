@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.master.balancer;
 
 import java.util.ArrayList;
@@ -37,46 +37,55 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 
-
 public abstract class TabletBalancer {
     
     private static final Logger log = Logger.getLogger(TabletBalancer.class);
     
     /**
      * Assign tablets to tablet servers
-     * @param current The current table-summary state of all the online tablet servers. Read-only. 
-     * The TabletServerStatus for each server may be null if the tablet server has not yet responded to a recent request for status.
-     * @param unassigned A map from unassigned tablet to the last known tablet server. Read-only.
-     * @param assignements A map from tablet to assigned server. Write-only.
+     * 
+     * @param current
+     *            The current table-summary state of all the online tablet servers. Read-only. The TabletServerStatus for each server may be null if the tablet
+     *            server has not yet responded to a recent request for status.
+     * @param unassigned
+     *            A map from unassigned tablet to the last known tablet server. Read-only.
+     * @param assignements
+     *            A map from tablet to assigned server. Write-only.
      * @return
      * 
-     * This method is called whenever the master finds tablets that are unassigned.
+     *         This method is called whenever the master finds tablets that are unassigned.
      */
-    abstract public void getAssignments(SortedMap<TServerInstance, TabletServerStatus> current, 
-                                        Map<KeyExtent, TServerInstance> unassigned, 
-                                        Map<KeyExtent, TServerInstance> assignments);
-
+    abstract public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
+            Map<KeyExtent,TServerInstance> assignments);
+    
     /**
      * Ask the balancer if any migrations are necessary.
-     * @param current The current table-summary state of all the online tablet servers.  Read-only.
-     * @param migrations the current set of migrations.  Read-only.
-     * @param migrationsOut new migrations to perform; should not contain tablets in the current set of migrations. Write-only.
+     * 
+     * @param current
+     *            The current table-summary state of all the online tablet servers. Read-only.
+     * @param migrations
+     *            the current set of migrations. Read-only.
+     * @param migrationsOut
+     *            new migrations to perform; should not contain tablets in the current set of migrations. Write-only.
      * @return the time, in milliseconds, to wait before re-balancing.
      * 
-     * This method will not be called when there are unassigned tablets.
+     *         This method will not be called when there are unassigned tablets.
      */
-    public abstract long balance(SortedMap<TServerInstance, TabletServerStatus> current,
-                                 Set<KeyExtent> migrations,
-                                 List<TabletMigration> migrationsOut);
-
+    public abstract long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut);
+    
     /**
-     * Fetch the tablets for the given table by asking the tablet server. Useful if your balance strategy needs
-     * details at the tablet level to decide what tablets to move.
-     * @param tserver The tablet server to ask.
-     * @param table The table id
+     * Fetch the tablets for the given table by asking the tablet server. Useful if your balance strategy needs details at the tablet level to decide what
+     * tablets to move.
+     * 
+     * @param tserver
+     *            The tablet server to ask.
+     * @param table
+     *            The table id
      * @return a list of tablet statistics
-     * @throws ThriftSecurityException tablet server disapproves of your internal System password.
-     * @throws TException any other problem
+     * @throws ThriftSecurityException
+     *             tablet server disapproves of your internal System password.
+     * @throws TException
+     *             any other problem
      */
     public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
         log.debug("Scanning tablet server " + tserver + " for table " + tableId);
@@ -95,15 +104,15 @@ public abstract class TabletBalancer {
     /**
      * Utility to ensure that the migrations from balance() are consistent:
      * <ul>
-     *   <li>Tablet objects are not null
-     *   <li>Source and destination tablet servers are not null and current
+     * <li>Tablet objects are not null
+     * <li>Source and destination tablet servers are not null and current
      * </ul>
+     * 
      * @param current
      * @param migrations
      * @return
      */
-    public static List<TabletMigration> checkMigrationSanity(Set<TServerInstance> current,
-                                                              List<TabletMigration> migrations) {
+    public static List<TabletMigration> checkMigrationSanity(Set<TServerInstance> current, List<TabletMigration> migrations) {
         List<TabletMigration> result = new ArrayList<TabletMigration>(migrations.size());
         for (TabletMigration m : migrations) {
             if (m.tablet == null) {
@@ -130,5 +139,5 @@ public abstract class TabletBalancer {
         }
         return result;
     }
-  
+    
 }

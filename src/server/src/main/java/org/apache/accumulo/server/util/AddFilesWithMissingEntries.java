@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.util;
 
 import java.util.Arrays;
@@ -42,13 +42,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
-
 public class AddFilesWithMissingEntries {
     
     static final Logger log = Logger.getLogger(AddFilesWithMissingEntries.class);
     static boolean update = false;
     
-
     /**
      * @param args
      */
@@ -61,8 +59,7 @@ public class AddFilesWithMissingEntries {
         final AuthInfo creds = SecurityConstants.getSystemCredentials();
         final Connector connector = HdfsZooInstance.getInstance().getConnector(creds.getUser(), creds.getPassword());
         final Key rootTableEnd = new Key(Constants.ROOT_TABLET_EXTENT.getEndRow());
-        final Range range = new Range(rootTableEnd.followingKey(PartialKey.ROW), true,
-                                      Constants.METADATA_RESERVED_KEYSPACE_START_KEY, false);
+        final Range range = new Range(rootTableEnd.followingKey(PartialKey.ROW), true, Constants.METADATA_RESERVED_KEYSPACE_START_KEY, false);
         final Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
         scanner.setRange(range);
         final Configuration conf = new Configuration();
@@ -76,9 +73,9 @@ public class AddFilesWithMissingEntries {
         final MultiTableBatchWriter writer = connector.createMultiTableBatchWriter(100000, 1000, 4);
         
         // collect the list of known files and the directory for each extent
-        for (Entry<Key, Value> entry : scanner) {
+        for (Entry<Key,Value> entry : scanner) {
             Key key = entry.getKey();
-            KeyExtent ke = new KeyExtent(key.getRow(), (Text)null);
+            KeyExtent ke = new KeyExtent(key.getRow(), (Text) null);
             // when the key extent changes
             if (!ke.equals(last)) {
                 if (directory != null) {
@@ -105,13 +102,8 @@ public class AddFilesWithMissingEntries {
         log.info("There were " + count + " files that are unknown to the metadata table");
         writer.close();
     }
-
-    private static int addUnknownFiles(FileSystem fs,
-                                       String directory,
-                                       Set<String> knownFiles, 
-                                       KeyExtent ke,
-                                       MultiTableBatchWriter writer)
-            throws Exception {
+    
+    private static int addUnknownFiles(FileSystem fs, String directory, Set<String> knownFiles, KeyExtent ke, MultiTableBatchWriter writer) throws Exception {
         int count = 0;
         final String tableId = ke.getTableId().toString();
         final Text row = ke.getMetadataEntry();
@@ -133,5 +125,5 @@ public class AddFilesWithMissingEntries {
         }
         return count;
     }
-
+    
 }

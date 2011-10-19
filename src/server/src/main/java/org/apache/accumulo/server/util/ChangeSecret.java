@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.util;
 
 import java.io.IOException;
@@ -36,9 +36,8 @@ import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
-
 public class ChangeSecret {
-
+    
     public static void main(String[] args) throws Exception {
         String oldPass = null;
         String newPass = null;
@@ -48,11 +47,10 @@ public class ChangeSecret {
         }
         oldPass = args[0];
         newPass = args[1];
-
+        
         FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
         Instance inst = HdfsZooInstance.getInstance();
-        if (!verifyAccumuloIsDown(inst, oldPass))
-            System.exit(-1);
+        if (!verifyAccumuloIsDown(inst, oldPass)) System.exit(-1);
         String instanceId = rewriteZooKeeperInstance(inst, oldPass, newPass);
         updateHdfs(fs, inst, instanceId);
         if (oldPass != null) {
@@ -66,7 +64,7 @@ public class ChangeSecret {
         void visit(ZooReader zoo, String path) throws Exception;
     }
     
-    private static void recurse(ZooReader zoo, String root, Visitor v)  {
+    private static void recurse(ZooReader zoo, String root, Visitor v) {
         try {
             v.visit(zoo, root);
             for (String child : zoo.getChildren(root)) {
@@ -84,8 +82,7 @@ public class ChangeSecret {
         recurse(zooReader, root, new Visitor() {
             public void visit(ZooReader zoo, String path) throws Exception {
                 Stat stat = zoo.getStatus(path);
-                if (stat.getEphemeralOwner() != 0)
-                    ephemerals.add(path);
+                if (stat.getEphemeralOwner() != 0) ephemerals.add(path);
             }
         });
         if (ephemerals.size() == 0) {

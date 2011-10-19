@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.master.state;
 
 import org.junit.Assert;
@@ -39,19 +39,20 @@ import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-
 public class RootTabletStateStoreTest {
-
+    
     static class Node {
-        Node(String name) { this.name = name; }
+        Node(String name) {
+            this.name = name;
+        }
+        
         List<Node> children = new ArrayList<Node>();
         String name;
-        byte[] value = new byte[]{};
+        byte[] value = new byte[] {};
         
         Node find(String name) {
             for (Node node : children)
-                if (node.name.equals(name))
-                    return node;
+                if (node.name.equals(name)) return node;
             return null;
         }
     };
@@ -61,11 +62,9 @@ public class RootTabletStateStoreTest {
         Node root = new Node("/");
         
         private Node recurse(Node root, String[] path, int depth) {
-            if (depth == path.length)
-                return root;
+            if (depth == path.length) return root;
             Node child = root.find(path[depth]);
-            if (child == null)
-                return null;
+            if (child == null) return null;
             return recurse(child, path, depth + 1);
         }
         
@@ -73,22 +72,19 @@ public class RootTabletStateStoreTest {
             path = path.replaceAll("/$", "");
             return recurse(root, path.split("/"), 1);
         }
-
+        
         @Override
-        public List<String> getChildren(String path)
-                throws DistributedStoreException {
+        public List<String> getChildren(String path) throws DistributedStoreException {
             Node node = navigate(path);
-            if (node == null)
-                return Collections.emptyList();
+            if (node == null) return Collections.emptyList();
             List<String> children = new ArrayList<String>(node.children.size());
             for (Node child : node.children)
                 children.add(child.name);
             return children;
         }
-
+        
         @Override
-        public void put(String path, byte[] bs)
-                throws DistributedStoreException {
+        public void put(String path, byte[] bs) throws DistributedStoreException {
             create(path).value = bs;
         }
         
@@ -96,18 +92,17 @@ public class RootTabletStateStoreTest {
             String[] parts = path.split("/");
             return recurseCreate(root, parts, 1);
         }
-
+        
         private Node recurseCreate(Node root, String[] path, int index) {
-            if (path.length == index)
-                return root;
+            if (path.length == index) return root;
             Node node = root.find(path[index]);
             if (node == null) {
                 node = new Node(path[index]);
                 root.children.add(node);
             }
-            return recurseCreate(node, path, index+1);
+            return recurseCreate(node, path, index + 1);
         }
-
+        
         @Override
         public void remove(String path) throws DistributedStoreException {
             String[] parts = path.split("/");
@@ -115,15 +110,13 @@ public class RootTabletStateStoreTest {
             Node parent = recurse(root, parentPath, 1);
             if (parent == null) return;
             Node child = parent.find(parts[parts.length - 1]);
-            if (child != null)
-                parent.children.remove(child);
+            if (child != null) parent.children.remove(child);
         }
-
+        
         @Override
         public byte[] get(String path) throws DistributedStoreException {
-            Node node = navigate(path);  
-            if (node != null)
-                return node.value;
+            Node node = navigate(path);
+            if (node != null) return node.value;
             return null;
         }
     }
@@ -186,23 +179,20 @@ public class RootTabletStateStoreTest {
         try {
             tstore.setLocations(Collections.singletonList(new Assignment(notRoot, server)));
             Assert.fail("should not get here");
-        } catch (IllegalArgumentException ex) {
-        }
+        } catch (IllegalArgumentException ex) {}
         
         try {
             tstore.setFutureLocations(Collections.singletonList(new Assignment(notRoot, server)));
             Assert.fail("should not get here");
-        } catch (IllegalArgumentException ex) {
-        }
+        } catch (IllegalArgumentException ex) {}
         
         TabletLocationState broken = new TabletLocationState(notRoot, server, null, null, null, false);
         try {
             tstore.unassign(Collections.singletonList(broken));
             Assert.fail("should not get here");
-        } catch (IllegalArgumentException ex) {
-        }
+        } catch (IllegalArgumentException ex) {}
     }
-
-    //@Test
-    // public void testMetaDataStore() { } // see functional test 
+    
+    // @Test
+    // public void testMetaDataStore() { } // see functional test
 }

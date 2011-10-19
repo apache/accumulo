@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.master.tableOps;
 
 import java.io.FileNotFoundException;
@@ -90,16 +90,16 @@ import cloudtrace.instrument.TraceExecutorService;
  */
 
 public class BulkImport extends MasterRepo {
-
-    private static final long   serialVersionUID = 1L;
-
-    private static final Logger log              = Logger.getLogger(BulkImport.class);
-
-    private String              tableId;
-    private String              sourceDir;
-    private String              errorDir;
-    private boolean             setTime;
-
+    
+    private static final long serialVersionUID = 1L;
+    
+    private static final Logger log = Logger.getLogger(BulkImport.class);
+    
+    private String tableId;
+    private String sourceDir;
+    private String errorDir;
+    private boolean setTime;
+    
     public BulkImport(String tableId, String sourceDir, String errorDir, boolean setTime) {
         this.tableId = tableId;
         this.sourceDir = sourceDir;
@@ -107,44 +107,44 @@ public class BulkImport extends MasterRepo {
         this.setTime = setTime;
         log.debug(this.getDescription());
     }
-
+    
     @Override
     public long isReady(long tid, Master master) throws Exception {
-        if (!Utils.getReadLock(tableId, tid).tryLock())
-            return 100;
+        if (!Utils.getReadLock(tableId, tid).tryLock()) return 100;
         
         Instance instance = HdfsZooInstance.getInstance();
         Tables.clearCache(instance);
         if (Tables.getTableState(instance, tableId) == TableState.ONLINE) {
             long reserve1, reserve2;
             reserve1 = reserve2 = Utils.reserveHdfsDirectory(sourceDir, tid);
-            if (reserve1 == 0)
-                reserve2 = Utils.reserveHdfsDirectory(errorDir, tid);
+            if (reserve1 == 0) reserve2 = Utils.reserveHdfsDirectory(errorDir, tid);
             return reserve2;
-        }else{
-        	throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.OFFLINE, null);
+        } else {
+            throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.OFFLINE, null);
         }
     }
-
+    
     @Override
     public Repo<Master> call(long tid, Master master) throws Exception {
         log.debug(" tid " + tid + " sourceDir " + sourceDir);
-
+        
         Utils.getReadLock(tableId, tid).lock();
-
+        
         // check that the error directory exists and is empty
-        FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));;
+        FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.FileUtil.getFileSystem(CachedConfiguration.getInstance(),
+                ServerConfiguration.getSiteConfiguration()));
+        ;
         Path errorPath = new Path(errorDir);
         FileStatus errorStatus = fs.getFileStatus(errorPath);
-        if (errorStatus == null)
-            throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir + " does not exist");
-        if (!errorStatus.isDir())
-            throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir + " is not a directory");
-        if (fs.listStatus(errorPath).length != 0)
-            throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir + " is not empty");
-
+        if (errorStatus == null) throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+                TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir + " does not exist");
+        if (!errorStatus.isDir()) throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+                TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir + " is not a directory");
+        if (fs.listStatus(errorPath).length != 0) throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+                TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir + " is not empty");
+        
         ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
-
+        
         // move the files into the directory
         try {
             String bulkDir = prepareBulkImport(fs, sourceDir, tableId);
@@ -152,16 +152,15 @@ public class BulkImport extends MasterRepo {
             return new LoadFiles(tableId, sourceDir, bulkDir, errorDir, setTime);
         } catch (IOException ex) {
             log.error("error preparing the bulk import directory", ex);
-            throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_INPUT_DIRECTORY, sourceDir + ": " + ex);
+            throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_INPUT_DIRECTORY, sourceDir
+                    + ": " + ex);
         }
     }
-
-    private Path createNewBulkDir(FileSystem fs, String tableId)
-            throws IOException {
-        Path directory = new Path(ServerConstants.getTablesDir() + "/"
-                + tableId);
+    
+    private Path createNewBulkDir(FileSystem fs, String tableId) throws IOException {
+        Path directory = new Path(ServerConstants.getTablesDir() + "/" + tableId);
         fs.mkdirs(directory);
-
+        
         // only one should be able to create the lock file
         // the purpose of the lock file is to avoid a race
         // condition between the call to fs.exists() and
@@ -171,26 +170,24 @@ public class BulkImport extends MasterRepo {
         UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
         
         while (true) {
-        	Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
-        	if (fs.exists(newBulkDir)) //sanity check
-        		throw new IllegalStateException("Dir exist when it should not "+newBulkDir);
-        	if (fs.mkdirs(newBulkDir))
-        		return newBulkDir;
-        	log.warn("Failed to create " + newBulkDir + " for unknown reason");
+            Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
+            if (fs.exists(newBulkDir)) // sanity check
+            throw new IllegalStateException("Dir exist when it should not " + newBulkDir);
+            if (fs.mkdirs(newBulkDir)) return newBulkDir;
+            log.warn("Failed to create " + newBulkDir + " for unknown reason");
             
             UtilWaitThread.sleep(3000);
         }
     }
-
-    private String prepareBulkImport(FileSystem fs, String dir, String tableId)
-            throws IOException {
+    
+    private String prepareBulkImport(FileSystem fs, String dir, String tableId) throws IOException {
         Path bulkDir = createNewBulkDir(fs, tableId);
         
-        MetadataTable.addBulkLoadInProgressFlag("/"+bulkDir.getParent().getName()+"/"+bulkDir.getName());
+        MetadataTable.addBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
         
         Path dirPath = new Path(dir);
         FileStatus[] mapFiles = fs.listStatus(dirPath);
-
+        
         UniqueNameAllocator namer = UniqueNameAllocator.getInstance();
         
         for (FileStatus fileStatus : mapFiles) {
@@ -198,56 +195,50 @@ public class BulkImport extends MasterRepo {
             String extension = "";
             if (sa.length > 1) {
                 extension = sa[sa.length - 1];
-
+                
                 if (!FileOperations.getValidExtensions().contains(extension)) {
-                    log.warn(fileStatus.getPath()
-                            + " does not have a valid extension, ignoring");
+                    log.warn(fileStatus.getPath() + " does not have a valid extension, ignoring");
                     continue;
                 }
             } else {
                 // assume it is a map file
                 extension = MyMapFile.EXTENSION;
             }
-
+            
             if (extension.equals(MyMapFile.EXTENSION)) {
                 if (!fileStatus.isDir()) {
-                    log.warn(fileStatus.getPath()
-                            + " is not a map file, ignoring");
+                    log.warn(fileStatus.getPath() + " is not a map file, ignoring");
                     continue;
                 }
-
+                
                 if (fileStatus.getPath().getName().equals("_logs")) {
-                    log.info(fileStatus.getPath()
-                            + " is probably a log directory from a map/reduce task, skipping");
+                    log.info(fileStatus.getPath() + " is probably a log directory from a map/reduce task, skipping");
                     continue;
                 }
                 try {
                     FileStatus dataStatus = fs.getFileStatus(new Path(fileStatus.getPath(), MyMapFile.DATA_FILE_NAME));
                     if (dataStatus.isDir()) {
-                        log.warn(fileStatus.getPath()
-                                + " is not a map file, ignoring");
+                        log.warn(fileStatus.getPath() + " is not a map file, ignoring");
                         continue;
                     }
                 } catch (FileNotFoundException fnfe) {
-                    log.warn(fileStatus.getPath()
-                            + " is not a map file, ignoring");
+                    log.warn(fileStatus.getPath() + " is not a map file, ignoring");
                     continue;
                 }
             }
-
-            String newName = "I"+namer.getNextName() + "." + extension;
+            
+            String newName = "I" + namer.getNextName() + "." + extension;
             Path newPath = new Path(bulkDir, newName);
             try {
                 fs.rename(fileStatus.getPath(), newPath);
                 log.debug("Moved " + fileStatus.getPath() + " to " + newPath);
             } catch (IOException E1) {
-                log.error("Could not move: " + fileStatus.getPath().toString()
-                        + " " + E1.getMessage());
+                log.error("Could not move: " + fileStatus.getPath().toString() + " " + E1.getMessage());
             }
         }
         return bulkDir.toString();
     }
-
+    
     @Override
     public void undo(long tid, Master environment) throws Exception {
         // unreserve source/error directories
@@ -258,47 +249,44 @@ public class BulkImport extends MasterRepo {
 }
 
 class CleanUpBulkImport extends MasterRepo {
-
-    private static final long   serialVersionUID = 1L;
-
-    private static final Logger log              = Logger.getLogger(CleanUpBulkImport.class);
-
-    private String              tableId;
-    private String              source;
-    private String              bulk;
-    private String              error;
-
+    
+    private static final long serialVersionUID = 1L;
+    
+    private static final Logger log = Logger.getLogger(CleanUpBulkImport.class);
+    
+    private String tableId;
+    private String source;
+    private String bulk;
+    private String error;
+    
     public CleanUpBulkImport(String tableId, String source, String bulk, String error) {
         this.tableId = tableId;
         this.source = source;
         this.bulk = bulk;
         this.error = error;
     }
-
+    
     @Override
     public long isReady(long tid, Master master) throws Exception {
         Set<TServerInstance> finished = new HashSet<TServerInstance>();
         Set<TServerInstance> running = master.onlineTabletServers();
         for (TServerInstance server : running) {
             try {
-                if (!master.getConnection(server).isActive(tid))
-                    finished.add(server);
+                if (!master.getConnection(server).isActive(tid)) finished.add(server);
             } catch (TException ex) {
-                log.info("Ignoring error trying to check on tid " + tid
-                        + " from server " + server + ": " + ex);
+                log.info("Ignoring error trying to check on tid " + tid + " from server " + server + ": " + ex);
             }
         }
-        if (finished.containsAll(running))
-            return 0;
+        if (finished.containsAll(running)) return 0;
         return 1000;
     }
-
+    
     @Override
     public Repo<Master> call(long tid, Master master) throws Exception {
         log.debug("removing the bulk processing flag file in " + bulk);
         Path bulkDir = new Path(bulk);
-        MetadataTable.removeBulkLoadInProgressFlag("/"+bulkDir.getParent().getName()+"/"+bulkDir.getName());
-        MetadataTable.addDeleteEntry(tableId, "/"+bulkDir.getName());
+        MetadataTable.removeBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
+        MetadataTable.addDeleteEntry(tableId, "/" + bulkDir.getName());
         log.debug("removing the metadata table markers for loaded files");
         AuthInfo creds = SecurityConstants.getSystemCredentials();
         Connector conn = HdfsZooInstance.getInstance().getConnector(creds.user, creds.password);
@@ -312,21 +300,21 @@ class CleanUpBulkImport extends MasterRepo {
 }
 
 class CompleteBulkImport extends MasterRepo {
-
-    private static final long   serialVersionUID = 1L;
-
-    private String              tableId;
-    private String              source;
-    private String              bulk;
-    private String              error;
-
+    
+    private static final long serialVersionUID = 1L;
+    
+    private String tableId;
+    private String source;
+    private String bulk;
+    private String error;
+    
     public CompleteBulkImport(String tableId, String source, String bulk, String error) {
         this.tableId = tableId;
         this.source = source;
         this.bulk = bulk;
         this.error = error;
     }
-
+    
     @Override
     public Repo<Master> call(long tid, Master master) throws Exception {
         ZooArbitrator.stop(Constants.BULK_ARBITRATOR_TYPE, tid);
@@ -335,34 +323,35 @@ class CompleteBulkImport extends MasterRepo {
 }
 
 class LoadFiles extends MasterRepo {
-
-    private static final long      serialVersionUID = 1L;
-    final static int               THREAD_POOL_SIZE = ServerConfiguration.getSystemConfiguration().getCount(Property.MASTER_BULK_THREADPOOL_SIZE);
-
-    private static ExecutorService threadPool       = null;
+    
+    private static final long serialVersionUID = 1L;
+    final static int THREAD_POOL_SIZE = ServerConfiguration.getSystemConfiguration().getCount(Property.MASTER_BULK_THREADPOOL_SIZE);
+    
+    private static ExecutorService threadPool = null;
     static {
         if (threadPool == null) {
             ThreadFactory threadFactory = new ThreadFactory() {
                 int count = 0;
-
+                
                 @Override
                 public Thread newThread(Runnable r) {
                     return new Daemon(r, "bulk loader " + count++);
                 }
             };
-            ThreadPoolExecutor pool = new ThreadPoolExecutor(THREAD_POOL_SIZE, THREAD_POOL_SIZE, 1l, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), threadFactory);
+            ThreadPoolExecutor pool = new ThreadPoolExecutor(THREAD_POOL_SIZE, THREAD_POOL_SIZE, 1l, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),
+                    threadFactory);
             pool.allowCoreThreadTimeOut(true);
             threadPool = new TraceExecutorService(pool);
         }
     }
-    private static final Logger    log              = Logger.getLogger(BulkImport.class);
-
-    private String                 tableId;
-    private String                 source;
-    private String                 bulk;
-    private String                 errorDir;
-    private boolean                setTime;
-
+    private static final Logger log = Logger.getLogger(BulkImport.class);
+    
+    private String tableId;
+    private String source;
+    private String bulk;
+    private String errorDir;
+    private boolean setTime;
+    
     public LoadFiles(String tableId, String source, String bulk, String errorDir, boolean setTime) {
         this.tableId = tableId;
         this.source = source;
@@ -370,10 +359,10 @@ class LoadFiles extends MasterRepo {
         this.errorDir = errorDir;
         this.setTime = setTime;
     }
-
+    
     @Override
     public Repo<Master> call(final long tid, Master master) throws Exception {
-
+        
         FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
         List<FileStatus> files = new ArrayList<FileStatus>();
         for (FileStatus entry : fs.listStatus(new Path(bulk))) {
@@ -382,24 +371,24 @@ class LoadFiles extends MasterRepo {
         log.debug("tid " + tid + " importing " + files.size() + " files");
         
         Path writable = new Path(this.errorDir, ".iswritable");
-        if (!fs.createNewFile(writable))
-        {
+        if (!fs.createNewFile(writable)) {
             // Maybe this is a re-try... clear the flag and try again
             fs.delete(writable, false);
-            if (!fs.createNewFile(writable))
-                throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, "Unable to write to " + this.errorDir);
+            if (!fs.createNewFile(writable)) throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+                    TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, "Unable to write to " + this.errorDir);
         }
         fs.delete(writable, false);
         
         // group files into N-sized chunks, send the chunks to random servers
-        final int SERVERS_TO_USE = Math.min(ServerConfiguration.getSystemConfiguration().getCount(Property.MASTER_BULK_SERVERS), master.onlineTabletServers().size());
-
+        final int SERVERS_TO_USE = Math.min(ServerConfiguration.getSystemConfiguration().getCount(Property.MASTER_BULK_SERVERS), master.onlineTabletServers()
+                .size());
+        
         log.debug("tid " + tid + " using " + SERVERS_TO_USE + " servers");
         // wait for success, repeat failures R times
         final List<String> filesToLoad = Collections.synchronizedList(new ArrayList<String>());
         for (FileStatus f : files)
             filesToLoad.add(f.getPath().toString());
-
+        
         final int RETRIES = Math.max(1, ServerConfiguration.getSystemConfiguration().getCount(Property.MASTER_BULK_RETRIES));
         for (int i = 0; i < RETRIES && filesToLoad.size() > 0; i++) {
             List<Future<?>> results = new ArrayList<Future<?>>();
@@ -425,8 +414,7 @@ class LoadFiles extends MasterRepo {
             for (Future<?> f : results)
                 f.get();
             if (filesToLoad.size() > 0) {
-                log.debug("tid " + tid + " attempt " + (i + 1) + " "
-                        + filesToLoad + " failed");
+                log.debug("tid " + tid + " attempt " + (i + 1) + " " + filesToLoad + " failed");
             }
         }
         // Copy/Create failed file markers
@@ -435,8 +423,7 @@ class LoadFiles extends MasterRepo {
             Path dest = new Path(errorDir, orig.getName());
             try {
                 FileUtil.copy(fs, orig, fs, dest, false, true, CachedConfiguration.getInstance());
-                log.debug("tid " + tid + " copied " + orig + " to " + dest
-                        + ": failed");
+                log.debug("tid " + tid + " copied " + orig + " to " + dest + ": failed");
             } catch (IOException ex) {
                 try {
                     fs.create(dest).close();
@@ -446,18 +433,17 @@ class LoadFiles extends MasterRepo {
                 }
             }
         }
-
+        
         // return the next step, which will perform cleanup
         return new CompleteBulkImport(tableId, source, bulk, errorDir);
     }
-
+    
     private List<List<String>> groupFiles(List<String> files, int groups) {
         List<List<String>> result = new ArrayList<List<String>>();
         Iterator<String> iter = files.iterator();
         for (int i = 0; i < groups && iter.hasNext(); i++) {
             List<String> group = new ArrayList<String>();
-            for (int j = 0; j < Math.ceil(files.size() / (double) groups)
-                    && iter.hasNext(); j++) {
+            for (int j = 0; j < Math.ceil(files.size() / (double) groups) && iter.hasNext(); j++) {
                 group.add(iter.next());
             }
             result.add(group);

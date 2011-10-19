@@ -46,12 +46,9 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-
 /**
- * Generate the *almost* official terasort input data set. (See below)
- * The user specifies the number of rows and the output directory and this
- * class runs a map/reduce program to generate the data.
- * The format of the data is:
+ * Generate the *almost* official terasort input data set. (See below) The user specifies the number of rows and the output directory and this class runs a
+ * map/reduce program to generate the data. The format of the data is:
  * <ul>
  * <li>(10 bytes key) (10 bytes rowid) (78 bytes filler) \r \n
  * <li>The keys are random characters from the set ' ' .. '~'.
@@ -59,113 +56,90 @@ import org.apache.hadoop.util.ToolRunner;
  * <li>The filler consists of 7 runs of 10 characters from 'A' to 'Z'.
  * </ul>
  * 
- * This TeraSort is slightly modified to allow for variable length
- * key sizes and value sizes. The row length isn't variable. To generate a
- * terabyte of data in the same way TeraSort does use 10000000000 rows and
- * 10/10 byte key length and 78/78 byte value length. Along with the 10 byte row
- * id and \r\n
- * this gives you 100 byte row * 10000000000 rows = 1tb. Min/Max ranges for key
- * and value parameters are inclusive/inclusive respectively.
+ * This TeraSort is slightly modified to allow for variable length key sizes and value sizes. The row length isn't variable. To generate a terabyte of data in
+ * the same way TeraSort does use 10000000000 rows and 10/10 byte key length and 78/78 byte value length. Along with the 10 byte row id and \r\n this gives you
+ * 100 byte row * 10000000000 rows = 1tb. Min/Max ranges for key and value parameters are inclusive/inclusive respectively.
  * 
- * Params <numrows> <minkeylength> <maxkeylength> <minvaluelength>
- * <maxvaluelength> <tablename> <instance> <zoohosts> <username> <password>
- * [numsplits]
+ * Params <numrows> <minkeylength> <maxkeylength> <minvaluelength> <maxvaluelength> <tablename> <instance> <zoohosts> <username> <password> [numsplits]
  * numsplits allows you specify how many splits, and therefore mappers, to use
  * 
  * 
  */
-public class TeraSortIngest extends Configured implements Tool
-{
+public class TeraSortIngest extends Configured implements Tool {
     /**
      * An input format that assigns ranges of longs to each mapper.
      */
-    static class RangeInputFormat extends InputFormat<LongWritable, NullWritable>
-    {
+    static class RangeInputFormat extends InputFormat<LongWritable,NullWritable> {
         /**
          * An input split consisting of a range on numbers.
          */
-        static class RangeInputSplit extends InputSplit implements Writable
-        {
+        static class RangeInputSplit extends InputSplit implements Writable {
             long firstRow;
             long rowCount;
-
-            public RangeInputSplit()
-            {}
-
-            public RangeInputSplit(long offset, long length)
-            {
+            
+            public RangeInputSplit() {}
+            
+            public RangeInputSplit(long offset, long length) {
                 firstRow = offset;
                 rowCount = length;
             }
-
-            public long getLength() throws IOException
-            {
+            
+            public long getLength() throws IOException {
                 return 0;
             }
-
-            public String[] getLocations() throws IOException
-            {
+            
+            public String[] getLocations() throws IOException {
                 return new String[] {};
             }
-
-            public void readFields(DataInput in) throws IOException
-            {
+            
+            public void readFields(DataInput in) throws IOException {
                 firstRow = WritableUtils.readVLong(in);
                 rowCount = WritableUtils.readVLong(in);
             }
-
-            public void write(DataOutput out) throws IOException
-            {
+            
+            public void write(DataOutput out) throws IOException {
                 WritableUtils.writeVLong(out, firstRow);
                 WritableUtils.writeVLong(out, rowCount);
             }
         }
-
+        
         /**
          * A record reader that will generate a range of numbers.
          */
-        static class RangeRecordReader extends RecordReader<LongWritable, NullWritable>
-        {
+        static class RangeRecordReader extends RecordReader<LongWritable,NullWritable> {
             long startRow;
             long finishedRows;
             long totalRows;
-
+            
             LongWritable currentKey;
-
-            public RangeRecordReader(RangeInputSplit split)
-            {
+            
+            public RangeRecordReader(RangeInputSplit split) {
                 startRow = split.firstRow;
                 finishedRows = 0;
                 totalRows = split.rowCount;
             }
-
-            public void close() throws IOException
-            {}
-
-            public float getProgress() throws IOException
-            {
+            
+            public void close() throws IOException {}
+            
+            public float getProgress() throws IOException {
                 return finishedRows / (float) totalRows;
             }
-
+            
             @Override
-            public LongWritable getCurrentKey() throws IOException, InterruptedException
-            {
+            public LongWritable getCurrentKey() throws IOException, InterruptedException {
                 return new LongWritable(startRow + finishedRows);
             }
-
+            
             @Override
-            public NullWritable getCurrentValue() throws IOException, InterruptedException
-            {
+            public NullWritable getCurrentValue() throws IOException, InterruptedException {
                 return NullWritable.get();
             }
-
+            
             @Override
-            public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException
-            {}
-
+            public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {}
+            
             @Override
-            public boolean nextKeyValue() throws IOException, InterruptedException
-            {
+            public boolean nextKeyValue() throws IOException, InterruptedException {
                 if (finishedRows < totalRows) {
                     ++finishedRows;
                     return true;
@@ -173,19 +147,16 @@ public class TeraSortIngest extends Configured implements Tool
                 return false;
             }
         }
-
-        public RecordReader<LongWritable, NullWritable> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException
-        {
+        
+        public RecordReader<LongWritable,NullWritable> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException {
             // reporter.setStatus("Creating record reader");
             return new RangeRecordReader((RangeInputSplit) split);
         }
-
+        
         /**
-         * Create the desired number of splits, dividing the number of rows
-         * between the mappers.
+         * Create the desired number of splits, dividing the number of rows between the mappers.
          */
-        public List<InputSplit> getSplits(JobContext job)
-        {
+        public List<InputSplit> getSplits(JobContext job) {
             long totalRows = job.getConfiguration().getLong(NUMROWS, 0);
             int numSplits = job.getConfiguration().getInt(NUMSPLITS, 1);
             long rowsPerSplit = totalRows / numSplits;
@@ -200,14 +171,13 @@ public class TeraSortIngest extends Configured implements Tool
             System.out.println("Done Generating.");
             return splits;
         }
-
+        
     }
-
+    
     private static String NUMSPLITS = "terasort.overridesplits";
     private static String NUMROWS = "terasort.numrows";
-
-    static class RandomGenerator
-    {
+    
+    static class RandomGenerator {
         private long seed = 0;
         private static final long mask32 = (1l << 32) - 1;
         /**
@@ -215,50 +185,47 @@ public class TeraSortIngest extends Configured implements Tool
          */
         private static final int seedSkip = 128 * 1024 * 1024;
         /**
-         * The precomputed seed values after every seedSkip iterations.
-         * There should be enough values so that a 2**32 iterations are
-         * covered.
+         * The precomputed seed values after every seedSkip iterations. There should be enough values so that a 2**32 iterations are covered.
          */
-        private static final long[] seeds = new long[] { 0L, 4160749568L, 4026531840L, 3892314112L, 3758096384L, 3623878656L, 3489660928L, 3355443200L, 3221225472L, 3087007744L, 2952790016L, 2818572288L, 2684354560L, 2550136832L, 2415919104L, 2281701376L, 2147483648L, 2013265920L, 1879048192L, 1744830464L, 1610612736L, 1476395008L, 1342177280L, 1207959552L, 1073741824L, 939524096L, 805306368L, 671088640L, 536870912L, 402653184L, 268435456L, 134217728L, };
-
+        private static final long[] seeds = new long[] {0L, 4160749568L, 4026531840L, 3892314112L, 3758096384L, 3623878656L, 3489660928L, 3355443200L,
+                3221225472L, 3087007744L, 2952790016L, 2818572288L, 2684354560L, 2550136832L, 2415919104L, 2281701376L, 2147483648L, 2013265920L, 1879048192L,
+                1744830464L, 1610612736L, 1476395008L, 1342177280L, 1207959552L, 1073741824L, 939524096L, 805306368L, 671088640L, 536870912L, 402653184L,
+                268435456L, 134217728L,};
+        
         /**
          * Start the random number generator on the given iteration.
          * 
-         * @param initalIteration the iteration number to start on
+         * @param initalIteration
+         *            the iteration number to start on
          */
-        RandomGenerator(long initalIteration)
-        {
+        RandomGenerator(long initalIteration) {
             int baseIndex = (int) ((initalIteration & mask32) / seedSkip);
             seed = seeds[baseIndex];
             for (int i = 0; i < initalIteration % seedSkip; ++i) {
                 next();
             }
         }
-
-        RandomGenerator()
-        {
+        
+        RandomGenerator() {
             this(0);
         }
-
-        long next()
-        {
+        
+        long next() {
             seed = (seed * 3141592621l + 663896637) & mask32;
             return seed;
         }
     }
-
+    
     /**
-     * The Mapper class that given a row number, will generate the appropriate
-     * output line.
+     * The Mapper class that given a row number, will generate the appropriate output line.
      */
-    public static class SortGenMapper extends Mapper<LongWritable, NullWritable, Text, Mutation>
-    {
+    public static class SortGenMapper extends Mapper<LongWritable,NullWritable,Text,Mutation> {
         private Text table = null;
         private int minkeylength = 0;
         private int maxkeylength = 0;
         private int minvaluelength = 0;
         private int maxvaluelength = 0;
-
+        
         private Text key = new Text();
         private Text value = new Text();
         private RandomGenerator rand;
@@ -273,19 +240,18 @@ public class TeraSortIngest extends Configured implements Tool
                 }
             }
         }
-
+        
         /**
          * Add a random key to the text
          */
         private Random random = new Random();
-
-        private void addKey()
-        {
+        
+        private void addKey() {
             int range = random.nextInt(maxkeylength - minkeylength + 1);
             int keylen = range + minkeylength;
             int keyceil = keylen + (4 - (keylen % 4));
             keyBytes = new byte[keyceil];
-
+            
             long temp = 0;
             for (int i = 0; i < keyceil / 4; i++) {
                 temp = rand.next() / 52;
@@ -299,14 +265,13 @@ public class TeraSortIngest extends Configured implements Tool
             }
             key.set(keyBytes, 0, keylen);
         }
-
+        
         /**
          * Add the rowid to the row.
          * 
          * @param rowId
          */
-        private Text getRowIdString(long rowId)
-        {
+        private Text getRowIdString(long rowId) {
             Text paddedRowIdString = new Text();
             byte[] rowid = Integer.toString((int) rowId).getBytes();
             int padSpace = 10 - rowid.length;
@@ -316,34 +281,31 @@ public class TeraSortIngest extends Configured implements Tool
             paddedRowIdString.append(rowid, 0, Math.min(rowid.length, 10));
             return paddedRowIdString;
         }
-
+        
         /**
-         * Add the required filler bytes. Each row consists of 7 blocks of
-         * 10 characters and 1 block of 8 characters.
+         * Add the required filler bytes. Each row consists of 7 blocks of 10 characters and 1 block of 8 characters.
          * 
-         * @param rowId the current row number
+         * @param rowId
+         *            the current row number
          */
-        private void addFiller(long rowId)
-        {
+        private void addFiller(long rowId) {
             int base = (int) ((rowId * 8) % 26);
-
+            
             // Get Random var
             Random random = new Random(rand.seed);
-
+            
             int range = random.nextInt(maxvaluelength - minvaluelength + 1);
             int valuelen = range + minvaluelength;
-
+            
             while (valuelen > 10) {
                 value.append(filler[(base + valuelen) % 26], 0, 10);
                 valuelen -= 10;
             }
-
-            if (valuelen > 0)
-                value.append(filler[(base + valuelen) % 26], 0, valuelen);
+            
+            if (valuelen > 0) value.append(filler[(base + valuelen) % 26], 0, valuelen);
         }
-
-        public void map(LongWritable row, NullWritable ignored, Context context) throws IOException, InterruptedException
-        {
+        
+        public void map(LongWritable row, NullWritable ignored, Context context) throws IOException, InterruptedException {
             context.setStatus("Entering");
             long rowId = row.get();
             if (rand == null) {
@@ -354,21 +316,20 @@ public class TeraSortIngest extends Configured implements Tool
             value.clear();
             // addRowId(rowId);
             addFiller(rowId);
-
+            
             // New
             Mutation m = new Mutation(key);
             m.put(new Text("c"), // column family
-            getRowIdString(rowId), // column qual
-            new Value(value.toString().getBytes())); // data
-
+                    getRowIdString(rowId), // column qual
+                    new Value(value.toString().getBytes())); // data
+            
             context.setStatus("About to add to accumulo");
             context.write(table, m);
             context.setStatus("Added to accumulo " + key.toString());
         }
-
+        
         @Override
-        public void setup(Context job)
-        {
+        public void setup(Context job) {
             minkeylength = job.getConfiguration().getInt("cloudgen.minkeylength", 0);
             maxkeylength = job.getConfiguration().getInt("cloudgen.maxkeylength", 0);
             minvaluelength = job.getConfiguration().getInt("cloudgen.minvaluelength", 0);
@@ -376,31 +337,29 @@ public class TeraSortIngest extends Configured implements Tool
             table = new Text(job.getConfiguration().get("cloudgen.tablename"));
         }
     }
-
-    public static void main(String[] args) throws Exception
-    {
+    
+    public static void main(String[] args) throws Exception {
         int res = ToolRunner.run(CachedConfiguration.getInstance(), new TeraSortIngest(), args);
         System.exit(res);
     }
-
+    
     @Override
-    public int run(String[] args) throws Exception
-    {
+    public int run(String[] args) throws Exception {
         Job job = new Job(getConf(), "TeraSortCloud");
         job.setJarByClass(this.getClass());
-
+        
         job.setInputFormatClass(RangeInputFormat.class);
         job.setMapperClass(SortGenMapper.class);
         job.setMapOutputKeyClass(Text.class);
         job.setMapOutputValueClass(Mutation.class);
-
+        
         job.setNumReduceTasks(0);
-
+        
         job.setOutputFormatClass(AccumuloOutputFormat.class);
         AccumuloOutputFormat.setZooKeeperInstance(job, args[6], args[7]);
         AccumuloOutputFormat.setOutputInfo(job, args[8], args[9].getBytes(), true, null);
         AccumuloOutputFormat.setMaxMutationBufferSize(job, 10L * 1000 * 1000);
-
+        
         Configuration conf = job.getConfiguration();
         conf.setLong(NUMROWS, Long.parseLong(args[0]));
         conf.setInt("cloudgen.minkeylength", Integer.parseInt(args[1]));
@@ -408,10 +367,9 @@ public class TeraSortIngest extends Configured implements Tool
         conf.setInt("cloudgen.minvaluelength", Integer.parseInt(args[3]));
         conf.setInt("cloudgen.maxvaluelength", Integer.parseInt(args[4]));
         conf.set("cloudgen.tablename", args[5]);
-
-        if (args.length > 10)
-            conf.setInt(NUMSPLITS, Integer.parseInt(args[10]));
-
+        
+        if (args.length > 10) conf.setInt(NUMSPLITS, Integer.parseInt(args[10]));
+        
         job.waitForCompletion(true);
         return job.isSuccessful() ? 0 : 1;
     }

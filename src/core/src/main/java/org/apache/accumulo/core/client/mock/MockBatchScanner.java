@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.core.client.mock;
 
 import java.io.IOException;
@@ -32,15 +32,14 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.security.Authorizations;
 
-
 public class MockBatchScanner extends MockScannerBase implements BatchScanner {
     
     final List<Range> ranges = new ArrayList<Range>();
-
+    
     public MockBatchScanner(MockTable mockTable, Authorizations authorizations) {
         super(mockTable, authorizations);
     }
-
+    
     @Override
     public void setRanges(Collection<Range> ranges) {
         this.ranges.clear();
@@ -51,34 +50,32 @@ public class MockBatchScanner extends MockScannerBase implements BatchScanner {
         List<Range> ranges;
         
         public RangesFilter(SortedKeyValueIterator<Key,Value> iterator, List<Range> ranges) {
-        	super(iterator);
+            super(iterator);
             this.ranges = ranges;
         }
-
+        
         @Override
         public boolean accept(Key k, Value v) {
             for (Range r : ranges) {
-                if (r.contains(k))
-                    return true;
+                if (r.contains(k)) return true;
             }
             return false;
         }
     }
     
     @Override
-    public Iterator<Entry<Key, Value>> iterator() {
-        SortedKeyValueIterator<Key, Value> i = new SortedMapIterator(table.table);
+    public Iterator<Entry<Key,Value>> iterator() {
+        SortedKeyValueIterator<Key,Value> i = new SortedMapIterator(table.table);
         try {
             i = new RangesFilter(createFilter(i), ranges);
             i.seek(new Range(), createColumnBSS(fetchedColumns), !fetchedColumns.isEmpty());
-            return new IteratorAdapter(i); 
+            return new IteratorAdapter(i);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-
+    
     @Override
-    public void close() {
-    }
-
+    public void close() {}
+    
 }

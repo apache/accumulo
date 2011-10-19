@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.zookeeper;
 
 import java.util.SortedMap;
@@ -27,31 +27,29 @@ import org.apache.accumulo.server.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.server.zookeeper.DistributedReadWriteLock.QueueLock;
 import org.junit.Test;
 
-
-
 public class DistributedReadWriteLockTest {
     
     // Non-zookeeper version of QueueLock
-    public static class MockQueueLock implements QueueLock { 
-    
+    public static class MockQueueLock implements QueueLock {
+        
         long next = 0L;
-        SortedMap<Long, byte[]> locks = new TreeMap<Long, byte[]>();
-
+        SortedMap<Long,byte[]> locks = new TreeMap<Long,byte[]>();
+        
         @Override
-        synchronized public SortedMap<Long, byte[]> getEarlierEntries(long entry) {
-            SortedMap<Long, byte[]> result = new TreeMap<Long, byte[]>();
+        synchronized public SortedMap<Long,byte[]> getEarlierEntries(long entry) {
+            SortedMap<Long,byte[]> result = new TreeMap<Long,byte[]>();
             result.putAll(locks.headMap(entry + 1));
             return result;
         }
-
+        
         @Override
         synchronized public void removeEntry(long entry) {
-            synchronized (locks) { 
+            synchronized (locks) {
                 locks.remove(entry);
                 locks.notifyAll();
             }
         }
-
+        
         @Override
         synchronized public long addEntry(byte[] data) {
             long result;
@@ -62,22 +60,23 @@ public class DistributedReadWriteLockTest {
             return result;
         }
     }
-
+    
     // some data that is probably not going to update atomically
     static class SomeData {
         volatile int[] data = new int[100];
         volatile int counter;
+        
         void read() {
             for (int i = 0; i < data.length; i++)
                 Assert.assertEquals(counter, data[i]);
         }
+        
         void write() {
             ++counter;
             for (int i = data.length - 1; i >= 0; i--)
                 data[i] = counter;
         }
     }
-    
     
     @Test
     public void testLock() throws Exception {
@@ -130,5 +129,5 @@ public class DistributedReadWriteLockTest {
             t.join();
         }
     }
-
+    
 }

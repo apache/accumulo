@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.util;
 
 import java.util.Map.Entry;
@@ -35,70 +35,69 @@ import org.apache.accumulo.server.util.TabletIterator;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.hadoop.io.Text;
 
-
-public class TabletIteratorTest extends TestCase{
-	
-	class TestTabletIterator extends TabletIterator {
-
-		private Connector conn;
-
-		public TestTabletIterator(Connector conn) throws Exception {
-			super(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS), Constants.METADATA_KEYSPACE, true, true);
-			this.conn = conn;
-		}
-		
-		protected void resetScanner() {
-			try {
-				Scanner ds = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-				Text tablet = new KeyExtent(new Text("0"), new Text("m"), null).getMetadataEntry();
-				ds.setRange(new Range(tablet, true, tablet, true));
-				
-				Mutation m = new Mutation(tablet);
-				
-				BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
-				for (Entry<Key, Value> entry : ds) {	
-					Key k = entry.getKey();
-					m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), k.getTimestamp());
-				}
-				
-				bw.addMutation(m);
-				
-				bw.close();
-				
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-			
-			super.resetScanner();
-		}
-		
-	}
-	
-	//simulate a merge happening while iterating over tablets
-	public void testMerge() throws Exception {
-		MockInstance mi = new MockInstance();
-		Connector conn = mi.getConnector("", "");
-		
-		KeyExtent ke1 = new KeyExtent(new Text("0"), new Text("m"), null);
-		Mutation mut1 = ke1.getPrevRowUpdateMutation();
-		ColumnFQ.put(mut1, Constants.METADATA_DIRECTORY_COLUMN, new Value("/d1".getBytes()));
-		
-		KeyExtent ke2 = new KeyExtent(new Text("0"), null, null);
-		Mutation mut2 = ke2.getPrevRowUpdateMutation();
-		ColumnFQ.put(mut2, Constants.METADATA_DIRECTORY_COLUMN, new Value("/d2".getBytes()));
-		
-		BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
-		bw1.addMutation(mut1);
-		bw1.addMutation(mut2);
-		bw1.close();
-		
-		TestTabletIterator tabIter = new TestTabletIterator(conn);
-		
-		try{
-			while(tabIter.hasNext()){
-				tabIter.next();
-			}
-			assertTrue(false);
-		}catch(TabletDeletedException tde){}
-	}
+public class TabletIteratorTest extends TestCase {
+    
+    class TestTabletIterator extends TabletIterator {
+        
+        private Connector conn;
+        
+        public TestTabletIterator(Connector conn) throws Exception {
+            super(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS), Constants.METADATA_KEYSPACE, true, true);
+            this.conn = conn;
+        }
+        
+        protected void resetScanner() {
+            try {
+                Scanner ds = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+                Text tablet = new KeyExtent(new Text("0"), new Text("m"), null).getMetadataEntry();
+                ds.setRange(new Range(tablet, true, tablet, true));
+                
+                Mutation m = new Mutation(tablet);
+                
+                BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+                for (Entry<Key,Value> entry : ds) {
+                    Key k = entry.getKey();
+                    m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), k.getTimestamp());
+                }
+                
+                bw.addMutation(m);
+                
+                bw.close();
+                
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            
+            super.resetScanner();
+        }
+        
+    }
+    
+    // simulate a merge happening while iterating over tablets
+    public void testMerge() throws Exception {
+        MockInstance mi = new MockInstance();
+        Connector conn = mi.getConnector("", "");
+        
+        KeyExtent ke1 = new KeyExtent(new Text("0"), new Text("m"), null);
+        Mutation mut1 = ke1.getPrevRowUpdateMutation();
+        ColumnFQ.put(mut1, Constants.METADATA_DIRECTORY_COLUMN, new Value("/d1".getBytes()));
+        
+        KeyExtent ke2 = new KeyExtent(new Text("0"), null, null);
+        Mutation mut2 = ke2.getPrevRowUpdateMutation();
+        ColumnFQ.put(mut2, Constants.METADATA_DIRECTORY_COLUMN, new Value("/d2".getBytes()));
+        
+        BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+        bw1.addMutation(mut1);
+        bw1.addMutation(mut2);
+        bw1.close();
+        
+        TestTabletIterator tabIter = new TestTabletIterator(conn);
+        
+        try {
+            while (tabIter.hasNext()) {
+                tabIter.next();
+            }
+            assertTrue(false);
+        } catch (TabletDeletedException tde) {}
+    }
 }

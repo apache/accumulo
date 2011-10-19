@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.core.client.mock;
 
 import static junit.framework.Assert.assertEquals;
@@ -42,8 +42,7 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
-
-public class MockConnectorTest  {
+public class MockConnectorTest {
     Random random = new Random();
     
     static Text asText(int i) {
@@ -66,9 +65,8 @@ public class MockConnectorTest  {
         s.setRanges(Collections.singletonList(new Range()));
         Key key = null;
         int count = 0;
-        for (Entry<Key, Value> entry : s) {
-            if (key != null)
-                assertTrue(key.compareTo(entry.getKey()) < 0);
+        for (Entry<Key,Value> entry : s) {
+            if (key != null) assertTrue(key.compareTo(entry.getKey()) < 0);
             assertEquals(entry.getKey().getRow(), new Text(entry.getValue().get()));
             key = entry.getKey();
             count++;
@@ -79,21 +77,16 @@ public class MockConnectorTest  {
     @Test
     public void testAggregation() throws Exception {
         MockInstance mockInstance = new MockInstance();
-        Connector c = mockInstance.getConnector("root", new byte[]{});
+        Connector c = mockInstance.getConnector("root", new byte[] {});
         String table = "perDayCounts";
         c.tableOperations().create(table);
-        Class<? extends SortedKeyValueIterator<Key, Value>> clazz = SummingCombiner.class;
+        Class<? extends SortedKeyValueIterator<Key,Value>> clazz = SummingCombiner.class;
         IteratorSetting is = new IteratorSetting(10, "String Summation", clazz);
         Combiner.addColumn(new Text("day"), null, is);
         is.addOption(SummingCombiner.TYPE, SummingCombiner.Type.STRING.name());
         c.tableOperations().attachIterator(table, is);
-        String keys[][] = {
-                { "foo", "day", "20080101" },
-                { "foo", "day", "20080101" },
-                { "foo", "day", "20080103" },
-                { "bar", "day", "20080101" },
-                { "bar", "day", "20080101" },
-        };
+        String keys[][] = { {"foo", "day", "20080101"}, {"foo", "day", "20080101"}, {"foo", "day", "20080103"}, {"bar", "day", "20080101"},
+                {"bar", "day", "20080101"},};
         BatchWriter bw = c.createBatchWriter("perDayCounts", 1000L, 1000L, 1);
         for (String elt[] : keys) {
             Mutation m = new Mutation(new Text(elt[0]));
@@ -103,8 +96,8 @@ public class MockConnectorTest  {
         bw.close();
         
         Scanner s = c.createScanner("perDayCounts", Constants.NO_AUTHS);
-        Iterator<Entry<Key, Value>> iterator = s.iterator();
-        assertTrue(iterator.hasNext()); 
+        Iterator<Entry<Key,Value>> iterator = s.iterator();
+        assertTrue(iterator.hasNext());
         checkEntry(iterator.next(), "bar", "day", "20080101", "2");
         assertTrue(iterator.hasNext());
         checkEntry(iterator.next(), "foo", "day", "20080101", "2");
@@ -112,10 +105,10 @@ public class MockConnectorTest  {
         checkEntry(iterator.next(), "foo", "day", "20080103", "1");
         assertFalse(iterator.hasNext());
     }
-
+    
     @Test
     public void testDelete() throws Exception {
-    	Connector c = new MockConnector("root");
+        Connector c = new MockConnector("root");
         c.tableOperations().create("test");
         BatchWriter bw = c.createBatchWriter("test", 10000L, 1000L, 4);
         
@@ -136,52 +129,50 @@ public class MockConnectorTest  {
         Scanner scanner = c.createScanner("test", Constants.NO_AUTHS);
         
         int count = 0;
-        for (@SuppressWarnings("unused") Entry<Key, Value> entry : scanner) {
-			count++;
-		}
+        for (@SuppressWarnings("unused")
+        Entry<Key,Value> entry : scanner) {
+            count++;
+        }
         
         assertEquals(0, count);
         
-        try{
-        	c.tableOperations().create("test_this_$tableName");
-        	assertTrue(false);
-        
-        }
-        catch(IllegalArgumentException iae){
-        	
+        try {
+            c.tableOperations().create("test_this_$tableName");
+            assertTrue(false);
+            
+        } catch (IllegalArgumentException iae) {
+            
         }
     }
     
     @Test
     public void testDeletewithBatchDeleter() throws Exception {
         Connector c = new MockConnector("root");
-
+        
         // make sure we are using a clean table
-        if (c.tableOperations().exists("test"))
-            c.tableOperations().delete("test");
+        if (c.tableOperations().exists("test")) c.tableOperations().delete("test");
         c.tableOperations().create("test");
-
-        BatchDeleter deleter = c.createBatchDeleter("test", Constants.NO_AUTHS,
-                2, 10000L, 1000L, 4);
+        
+        BatchDeleter deleter = c.createBatchDeleter("test", Constants.NO_AUTHS, 2, 10000L, 1000L, 4);
         // first make sure it deletes fine when its empty
         deleter.setRanges(Collections.singletonList(new Range(("r1"))));
         deleter.delete();
         this.checkRemaining(c, "test", 0);
-
+        
         // test deleting just one row
         BatchWriter writer = c.createBatchWriter("test", 10, 10, 1);
         Mutation m = new Mutation("r1");
         m.put("fam", "qual", "value");
         writer.addMutation(m);
-
+        
         // make sure the write goes through
         writer.flush();
         writer.close();
-
+        
         deleter.setRanges(Collections.singletonList(new Range(("r1"))));
         deleter.delete();
         this.checkRemaining(c, "test", 0);
-
+        
         // test multi row deletes
         writer = c.createBatchWriter("test", 10, 10, 1);
         m = new Mutation("r1");
@@ -190,45 +181,50 @@ public class MockConnectorTest  {
         Mutation m2 = new Mutation("r2");
         m2.put("fam", "qual", "value");
         writer.addMutation(m2);
-
+        
         // make sure the write goes through
         writer.flush();
         writer.close();
-
+        
         deleter.setRanges(Collections.singletonList(new Range(("r1"))));
         deleter.delete();
         checkRemaining(c, "test", 1);
     }
-
+    
     /**
      * Test to make sure that a certain number of rows remain
-     * @param c connector to the {@link MockInstance}
-     * @param tableName TODO
-     * @param count number of entries to expect in the table
-     * @param count TODO
+     * 
+     * @param c
+     *            connector to the {@link MockInstance}
+     * @param tableName
+     *            TODO
+     * @param count
+     *            number of entries to expect in the table
+     * @param count
+     *            TODO
      */
     private void checkRemaining(Connector c, String tableName, int count) throws Exception {
         Scanner scanner = c.createScanner(tableName, Constants.NO_AUTHS);
-
+        
         int total = 0;
         for (@SuppressWarnings("unused")
-        Entry<Key, Value> entry : scanner) {
+        Entry<Key,Value> entry : scanner) {
             total++;
         }
         assertEquals(count, total);
     }
-
+    
     @Test
     public void testCMod() throws Exception {
-    	//test writing to a table that the is being scanned
-    	Connector c = new MockConnector("root");
+        // test writing to a table that the is being scanned
+        Connector c = new MockConnector("root");
         c.tableOperations().create("test");
         BatchWriter bw = c.createBatchWriter("test", 10000L, 1000L, 4);
-       
-        for(int i = 0; i < 10; i++){
-        	Mutation m1 = new Mutation("r"+i);
-        	m1.put("cf1", "cq1", 1, "v"+i);
-        	bw.addMutation(m1);
+        
+        for (int i = 0; i < 10; i++) {
+            Mutation m1 = new Mutation("r" + i);
+            m1.put("cf1", "cq1", 1, "v" + i);
+            bw.addMutation(m1);
         }
         
         bw.flush();
@@ -236,40 +232,38 @@ public class MockConnectorTest  {
         int count = 10;
         
         Scanner scanner = c.createScanner("test", Constants.NO_AUTHS);
-        for (Entry<Key, Value> entry : scanner) {
-        	Key key = entry.getKey();
-			Mutation m = new Mutation(key.getRow());
-			m.put(key.getColumnFamily().toString(), key.getColumnQualifier().toString(), key.getTimestamp()+1, "v"+(count));
-			count++;
-			bw.addMutation(m);
-		}
+        for (Entry<Key,Value> entry : scanner) {
+            Key key = entry.getKey();
+            Mutation m = new Mutation(key.getRow());
+            m.put(key.getColumnFamily().toString(), key.getColumnQualifier().toString(), key.getTimestamp() + 1, "v" + (count));
+            count++;
+            bw.addMutation(m);
+        }
         
         bw.flush();
         
         count = 10;
         
-        for (Entry<Key, Value> entry : scanner) {
-        	assertEquals(entry.getValue().toString(), "v"+(count++));
+        for (Entry<Key,Value> entry : scanner) {
+            assertEquals(entry.getValue().toString(), "v" + (count++));
         }
         
         assertEquals(count, 20);
-
-        try{
-        	c.tableOperations().create("test_this_$tableName");
-        	assertTrue(false);
         
-        }
-        catch(IllegalArgumentException iae){
-        	
+        try {
+            c.tableOperations().create("test_this_$tableName");
+            assertTrue(false);
+            
+        } catch (IllegalArgumentException iae) {
+            
         }
     }
     
-    private void checkEntry(Entry<Key, Value> next, String row, String cf, String cq, String value) {
+    private void checkEntry(Entry<Key,Value> next, String row, String cf, String cq, String value) {
         assertEquals(row, next.getKey().getRow().toString());
         assertEquals(cf, next.getKey().getColumnFamily().toString());
         assertEquals(cq, next.getKey().getColumnQualifier().toString());
         assertEquals(value, next.getValue().toString());
     }
     
-
 }

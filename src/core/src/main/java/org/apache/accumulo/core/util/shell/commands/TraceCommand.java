@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
@@ -34,7 +34,7 @@ import org.apache.hadoop.io.Text;
 import cloudtrace.instrument.Trace;
 
 public class TraceCommand extends DebugCommand {
-
+    
     public int execute(String fullCommand, CommandLine cl, final Shell shellState) throws IOException {
         if (cl.getArgs().length == 1) {
             if (cl.getArgs()[0].equalsIgnoreCase("on")) {
@@ -45,7 +45,7 @@ public class TraceCommand extends DebugCommand {
                     Trace.off();
                     for (int i = 0; i < 10; i++) {
                         try {
-                            Map<String, String> properties = shellState.getConnector().instanceOperations().getSystemConfiguration();
+                            Map<String,String> properties = shellState.getConnector().instanceOperations().getSystemConfiguration();
                             String table = properties.get(Property.TRACE_TABLE.getKey());
                             String user = shellState.getConnector().whoami();
                             Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
@@ -60,7 +60,8 @@ public class TraceCommand extends DebugCommand {
                                     } catch (Exception ex) {
                                         throw new RuntimeException(ex);
                                     }
-                                } }) > 0) {
+                                }
+                            }) > 0) {
                                 shellState.getReader().printString(sb.toString());
                                 break;
                             }
@@ -74,9 +75,7 @@ public class TraceCommand extends DebugCommand {
                 } else {
                     shellState.getReader().printString("Not tracing\n");
                 }
-            }
-            else
-                throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+            } else throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
         } else if (cl.getArgs().length == 0) {
             shellState.getReader().printString(Trace.isTracing() ? "on\n" : "off\n");
         } else {
@@ -86,7 +85,7 @@ public class TraceCommand extends DebugCommand {
         }
         return 0;
     }
-
+    
     @Override
     public String description() {
         return "turns trace logging on or off";

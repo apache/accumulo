@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  * 
  */
@@ -44,19 +44,16 @@ import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
-
 public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     private static final Logger log = Logger.getLogger(MetaDataTableScanner.class);
     
-	BatchScanner mdScanner;
-    Iterator<Entry<Key, Value>> iter;
+    BatchScanner mdScanner;
+    Iterator<Entry<Key,Value>> iter;
     
-    public MetaDataTableScanner(Range range, CurrentState state)  {
+    public MetaDataTableScanner(Range range, CurrentState state) {
         // scan over metadata table, looking for tablets in the wrong state based on the live servers and online tables
         try {
-            Connector connector = HdfsZooInstance.getInstance().getConnector(
-                    SecurityConstants.getSystemCredentials()
-            );
+            Connector connector = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemCredentials());
             mdScanner = connector.createBatchScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS, 8);
             ColumnFQ.fetch(mdScanner, Constants.METADATA_PREV_ROW_COLUMN);
             mdScanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
@@ -94,17 +91,16 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     @Override
     public boolean hasNext() {
         boolean result = iter.hasNext();
-        if (!result)
-            mdScanner.close();
+        if (!result) mdScanner.close();
         return result;
     }
-
+    
     @Override
     public TabletLocationState next() {
         return fetch();
     }
     
-    public static TabletLocationState createTabletLocationState(SortedMap<Key, Value> decodedRow) {
+    public static TabletLocationState createTabletLocationState(SortedMap<Key,Value> decodedRow) {
         KeyExtent extent = null;
         TServerInstance future = null;
         TServerInstance current = null;
@@ -112,7 +108,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
         List<Collection<String>> walogs = new ArrayList<Collection<String>>();
         boolean chopped = false;
         
-        for (Entry<Key, Value> entry : decodedRow.entrySet()) {
+        for (Entry<Key,Value> entry : decodedRow.entrySet()) {
             Key key = entry.getKey();
             Text row = key.getRow();
             Text cf = key.getColumnFamily();
@@ -139,17 +135,17 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
         }
         return new TabletLocationState(extent, future, current, last, walogs, chopped);
     }
-
+    
     private TabletLocationState fetch() {
-        Entry<Key, Value> entry = iter.next();
+        Entry<Key,Value> entry = iter.next();
         try {
-            final SortedMap<Key, Value> decodedRow = WholeRowIterator.decodeRow(entry.getKey(), entry.getValue());
+            final SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(entry.getKey(), entry.getValue());
             return createTabletLocationState(decodedRow);
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
     }
-
+    
     @Override
     public void remove() {
         throw new RuntimeException("Unimplemented");

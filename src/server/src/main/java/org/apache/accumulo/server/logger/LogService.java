@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.logger;
 
 import java.io.File;
@@ -81,22 +81,22 @@ import cloudtrace.thrift.TInfo;
 /**
  * A Mutation logging service.
  * 
- * This class will register the logging service in ZooKeeper, log updates from
- * tservers, and provided logs to HDFS for recovery. Wraps the LogWriter, but
- * provides configuration, authentication and ZooKeeper registration. This makes
- * the LogWriter easier to test. The service will stop if it loses its ephemeral
+ * This class will register the logging service in ZooKeeper, log updates from tservers, and provided logs to HDFS for recovery. Wraps the LogWriter, but
+ * provides configuration, authentication and ZooKeeper registration. This makes the LogWriter easier to test. The service will stop if it loses its ephemeral
  * registration in ZooKeeper.
  */
 public class LogService implements MutationLogger.Iface, Watcher {
     static final org.apache.log4j.Logger LOG = org.apache.log4j.Logger.getLogger(LogService.class);
-
+    
     private Configuration conf;
     private Authenticator authenticator;
     private TServer service;
     private LogWriter writer_;
     private MutationLogger.Iface writer;
     
-    enum ShutdownState { STARTED, REGISTERED, WAITING_FOR_HALT, HALT };
+    enum ShutdownState {
+        STARTED, REGISTERED, WAITING_FOR_HALT, HALT
+    };
     
     private ShutdownState shutdownState = ShutdownState.STARTED;
     
@@ -106,26 +106,25 @@ public class LogService implements MutationLogger.Iface, Watcher {
     }
     
     synchronized private void closedCheck() throws LoggerClosedException {
-        if (!shutdownState.equals(ShutdownState.REGISTERED))
-            throw new LoggerClosedException();
+        if (!shutdownState.equals(ShutdownState.REGISTERED)) throw new LoggerClosedException();
     }
     
     private List<FileLock> fileLocks = new ArrayList<FileLock>();
-
+    
     private final String addressString;
     
     public static void main(String[] args) throws Exception {
-    	LogService logService;
-    	
-    	try{
-    		logService = new LogService(args);
-    	}catch(Exception e){
-    		LOG.fatal("Failed to initialize log service args="+Arrays.asList(args), e);
-    		throw e;
-    	}
-    	
-    	logService.run();
-     }
+        LogService logService;
+        
+        try {
+            logService = new LogService(args);
+        } catch (Exception e) {
+            LOG.fatal("Failed to initialize log service args=" + Arrays.asList(args), e);
+            throw e;
+        }
+        
+        logService.run();
+    }
     
     public LogService(String[] args) throws UnknownHostException, KeeperException, InterruptedException, IOException {
         try {
@@ -147,12 +146,10 @@ public class LogService implements MutationLogger.Iface, Watcher {
         }
         final Set<String> rootDirs = new HashSet<String>();
         for (String root : ServerConfiguration.getSystemConfiguration().get(Property.LOGGER_DIR).split(",")) {
-            if(!root.startsWith("/"))
-                root = System.getenv("ACCUMULO_HOME")+"/" + root;
-            else if (root.equals(""))
-                root = System.getProperty("org.apache.accumulo.core.dir.log");
+            if (!root.startsWith("/")) root = System.getenv("ACCUMULO_HOME") + "/" + root;
+            else if (root.equals("")) root = System.getProperty("org.apache.accumulo.core.dir.log");
             else if (root == null || root.isEmpty()) {
-                String msg = "Write-ahead log directory not set!"; 
+                String msg = "Write-ahead log directory not set!";
                 LOG.fatal(msg);
                 throw new RuntimeException(msg);
             }
@@ -162,16 +159,14 @@ public class LogService implements MutationLogger.Iface, Watcher {
         for (String root : rootDirs) {
             File rootFile = new File(root);
             rootFile.mkdirs();
-            FileOutputStream lockOutputStream = new FileOutputStream(root+"/.lock");
+            FileOutputStream lockOutputStream = new FileOutputStream(root + "/.lock");
             FileLock fileLock = lockOutputStream.getChannel().tryLock();
-            if(fileLock == null)
-                throw new IOException("Failed to acquire lock file");
+            if (fileLock == null) throw new IOException("Failed to acquire lock file");
             fileLocks.add(fileLock);
-
+            
             try {
                 File test = new File(root, "test_writable");
-                if (!test.mkdir())
-                    throw new RuntimeException("Unable to write to write-ahead log directory " + root);
+                if (!test.mkdir()) throw new RuntimeException("Unable to write to write-ahead log directory " + root);
                 test.delete();
             } catch (Throwable t) {
                 LOG.fatal("Unable to write to write-ahead log directory", t);
@@ -187,10 +182,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
         writer_ = new LogWriter(acuConf, fs, rootDirs, HdfsZooInstance.getInstance().getInstanceID(), poolSize, archive);
         InvocationHandler h = new InvocationHandler() {
             @Override
-            public Object invoke(Object proxy,
-                                 Method method,
-                                 Object[] args)
-                    throws Throwable {
+            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
                 Throwable error;
                 try {
                     return method.invoke(writer_, args);
@@ -204,41 +196,33 @@ public class LogService implements MutationLogger.Iface, Watcher {
                     if (ex.getCause() instanceof LogWriteException) {
                         for (String root : rootDirs) {
                             final File rootFile = new File(root);
-                            if ((rootFile.getUsableSpace() / (float)rootFile.getTotalSpace()) < 0.95) {
+                            if ((rootFile.getUsableSpace() / (float) rootFile.getTotalSpace()) < 0.95) {
                                 LOG.fatal("Logger appears to be running out of space, quitting.");
                                 service.stop();
                             }
                         }
                     }
                     error = ex;
-                 } catch (Throwable t) {
+                } catch (Throwable t) {
                     error = t;
                 }
                 LOG.error("Error invoking log writer: ", error);
                 throw error;
             }
         };
-        writer = (MutationLogger.Iface)
-        Proxy.newProxyInstance(MutationLogger.Iface.class.getClassLoader(),
-                               new Class[] {MutationLogger.Iface.class},
-                               h);
+        writer = (MutationLogger.Iface) Proxy.newProxyInstance(MutationLogger.Iface.class.getClassLoader(), new Class[] {MutationLogger.Iface.class}, h);
         // Create the thrift-based logging service
         MutationLogger.Processor processor = new MutationLogger.Processor(TraceWrap.service(this));
-        ServerPort sp = TServerUtils.startServer(Property.LOGGER_PORT, 
-                                                 processor, 
-                                                 this.getClass().getSimpleName(), 
-                                                 "Logger Client Service Handler", 
-                                                 Property.LOGGER_PORTSEARCH,
-                                                 Property.LOGGER_MINTHREADS,
-                                                 Property.LOGGER_THREADCHECK);
+        ServerPort sp = TServerUtils.startServer(Property.LOGGER_PORT, processor, this.getClass().getSimpleName(), "Logger Client Service Handler",
+                Property.LOGGER_PORTSEARCH, Property.LOGGER_MINTHREADS, Property.LOGGER_THREADCHECK);
         service = sp.server;
         InetSocketAddress address = new InetSocketAddress(Accumulo.getLocalAddress(args), sp.port);
-        addressString = AddressUtil.toString(address); 
+        addressString = AddressUtil.toString(address);
         registerInZooKeeper(Constants.ZLOGGERS);
         this.switchState(ShutdownState.REGISTERED);
         Accumulo.enableTracing(address.getHostName(), "logger");
     }
-
+    
     public void run() {
         try {
             while (!service.isServing()) {
@@ -259,7 +243,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
     void registerInZooKeeper(String zooDir) {
         try {
             ZooReaderWriter zoo = ZooReaderWriter.getInstance();
-            String path = ZooUtil.getRoot(HdfsZooInstance.getInstance())+zooDir;
+            String path = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + zooDir;
             path += "/logger-";
             path = zoo.putEphemeralSequential(path, addressString.getBytes());
             zoo.exists(path, this);
@@ -270,13 +254,12 @@ public class LogService implements MutationLogger.Iface, Watcher {
     
     private void checkForSystemPrivs(String request, AuthInfo credentials) throws ThriftSecurityException {
         try {
-            if(!authenticator.hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM))
-            {
-                LOG.warn("Got " + request + " from user: "+credentials.user);
+            if (!authenticator.hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM)) {
+                LOG.warn("Got " + request + " from user: " + credentials.user);
                 throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
             }
         } catch (AccumuloSecurityException e) {
-            LOG.warn("Got " + request + " from unauthenticatable user: "+e.getUser());
+            LOG.warn("Got " + request + " from unauthenticatable user: " + e.getUser());
             throw e.asThriftException();
         }
     }
@@ -286,88 +269,76 @@ public class LogService implements MutationLogger.Iface, Watcher {
         closedCheck();
         writer.close(info, id);
     }
-
+    
     @Override
-    public long startCopy(TInfo info, 
-                          AuthInfo credentials, String localLog,
-                          String fullyQualifiedFileName,
-                          boolean sort)
-    throws ThriftSecurityException, TException {
+    public long startCopy(TInfo info, AuthInfo credentials, String localLog, String fullyQualifiedFileName, boolean sort) throws ThriftSecurityException,
+            TException {
         checkForSystemPrivs("copy", credentials);
         return writer.startCopy(null, credentials, localLog, fullyQualifiedFileName, sort);
     }
-
+    
     @Override
-    public LogFile create(TInfo info, AuthInfo credentials, String tserverSession) throws ThriftSecurityException, LoggerClosedException,
-            TException {
+    public LogFile create(TInfo info, AuthInfo credentials, String tserverSession) throws ThriftSecurityException, LoggerClosedException, TException {
         checkForSystemPrivs("create", credentials);
         closedCheck();
         return writer.create(info, credentials, tserverSession);
     }
-
+    
     @Override
-    public void log(TInfo info, long id, long seq, int tid, TMutation mutation) throws NoSuchLogIDException, LoggerClosedException,
-            TException {
+    public void log(TInfo info, long id, long seq, int tid, TMutation mutation) throws NoSuchLogIDException, LoggerClosedException, TException {
         closedCheck();
         writer.log(info, id, seq, tid, mutation);
     }
-
+    
     @Override
-    public void logManyTablets(TInfo info, long id, List<TabletMutations> mutations)
-            throws NoSuchLogIDException, LoggerClosedException, TException {
+    public void logManyTablets(TInfo info, long id, List<TabletMutations> mutations) throws NoSuchLogIDException, LoggerClosedException, TException {
         closedCheck();
         writer.logManyTablets(info, id, mutations);
     }
-
+    
     @Override
-    public void minorCompactionFinished(TInfo info, long id, long seq, int tid, String fqfn)
-            throws NoSuchLogIDException, LoggerClosedException, TException {
+    public void minorCompactionFinished(TInfo info, long id, long seq, int tid, String fqfn) throws NoSuchLogIDException, LoggerClosedException, TException {
         closedCheck();
         writer.minorCompactionFinished(info, id, seq, tid, fqfn);
     }
-
+    
     @Override
-    public void minorCompactionStarted(TInfo info, long id, long seq, int tid, String fqfn)
-            throws NoSuchLogIDException, LoggerClosedException, TException {
+    public void minorCompactionStarted(TInfo info, long id, long seq, int tid, String fqfn) throws NoSuchLogIDException, LoggerClosedException, TException {
         closedCheck();
-        writer.minorCompactionStarted(info, id,seq, tid, fqfn);
+        writer.minorCompactionStarted(info, id, seq, tid, fqfn);
     }
-
+    
     @Override
-    public void defineTablet(TInfo info, long id, long seq, int tid, TKeyExtent tablet)
-            throws NoSuchLogIDException, LoggerClosedException, TException {
+    public void defineTablet(TInfo info, long id, long seq, int tid, TKeyExtent tablet) throws NoSuchLogIDException, LoggerClosedException, TException {
         closedCheck();
         writer.defineTablet(info, id, seq, tid, tablet);
     }
-
+    
     @Override
     public void process(WatchedEvent event) {
-        LOG.debug("event "+event.getPath()+" "+event.getType()+" "+event.getState());
+        LOG.debug("event " + event.getPath() + " " + event.getType() + " " + event.getState());
         
-        if(event.getState() == KeeperState.Expired){
+        if (event.getState() == KeeperState.Expired) {
             LOG.warn("Logger lost zookeeper registration at " + event.getPath());
             service.stop();
-        }
-        else if(event.getType() == EventType.NodeDeleted){
+        } else if (event.getType() == EventType.NodeDeleted) {
             LOG.info("Logger zookeeper entry lost " + event.getPath());
             String[] path = event.getPath().split("/");
-            if (path[path.length -1].equals(Constants.ZLOGGERS) && this.shutdownState == ShutdownState.REGISTERED) {
+            if (path[path.length - 1].equals(Constants.ZLOGGERS) && this.shutdownState == ShutdownState.REGISTERED) {
                 LOG.fatal("Stopping server, zookeeper entry lost " + event.getPath());
                 service.stop();
             }
         }
     }
-
+    
     @Override
-    public List<String> getClosedLogs(TInfo info, AuthInfo credentials)
-            throws ThriftSecurityException, TException {
+    public List<String> getClosedLogs(TInfo info, AuthInfo credentials) throws ThriftSecurityException, TException {
         checkForSystemPrivs("getClosedLogs", credentials);
         return writer.getClosedLogs(info, credentials);
     }
-
+    
     @Override
-    public void remove(TInfo info, AuthInfo credentials, List<String> files)
-            throws TException {
+    public void remove(TInfo info, AuthInfo credentials, List<String> files) throws TException {
         try {
             checkForSystemPrivs("remove", credentials);
             writer.remove(info, credentials, files);
@@ -375,10 +346,9 @@ public class LogService implements MutationLogger.Iface, Watcher {
             LOG.error(ex, ex);
         }
     }
-
+    
     @Override
-    public void beginShutdown(TInfo tinfo, AuthInfo credentials)
-            throws TException {
+    public void beginShutdown(TInfo tinfo, AuthInfo credentials) throws TException {
         try {
             checkForSystemPrivs("beginShutdown", credentials);
             writer.beginShutdown(tinfo, credentials);
@@ -387,7 +357,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
             LOG.error(ex, ex);
         }
     }
-
+    
     @Override
     public void halt(TInfo tinfo, AuthInfo credentials) throws TException {
         try {
@@ -396,7 +366,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
                 @Override
                 public void run() {
                     LOG.info("Halting by request");
-                } 
+                }
             });
         } catch (ThriftSecurityException ex) {
             LOG.error(ex, ex);

@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.test.functional;
 
 import java.util.ArrayList;
@@ -35,12 +35,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
-
 public class DeleteRowsTest extends FunctionalTest {
     private static final Logger log = Logger.getLogger(DeleteRowsTest.class);
-
+    
     private static final int ROWS_PER_TABLET = 10;
-    private static final String[] LETTERS = new String[]{"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"};
+    private static final String[] LETTERS = new String[] {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t",
+            "u", "v", "w", "x", "y", "z"};
     static final SortedSet<Text> SPLITS = new TreeSet<Text>();
     static {
         for (String alpha : LETTERS) {
@@ -53,22 +53,20 @@ public class DeleteRowsTest extends FunctionalTest {
         ROWS.add("A");
         ROWS.add("{");
     }
-
-
+    
     @Override
-    public void cleanup() throws Exception {
-    }
-
+    public void cleanup() throws Exception {}
+    
     @Override
-    public Map<String, String> getInitialConfig() {
+    public Map<String,String> getInitialConfig() {
         return Collections.emptyMap();
     }
-
+    
     @Override
     public List<TableSetup> getTablesToCreate() {
         return Collections.emptyList();
     }
-
+    
     @Override
     public void run() throws Exception {
         // Delete ranges of rows, and verify the tablets are removed.
@@ -107,7 +105,7 @@ public class DeleteRowsTest extends FunctionalTest {
         BatchWriter bw = this.getConnector().createBatchWriter(table, 100000l, 1000l, 2);
         for (String row : ROWS) {
             for (int j = 0; j < ROWS_PER_TABLET; j++) {
-                Mutation m  = new Mutation(row + j);
+                Mutation m = new Mutation(row + j);
                 m.put("cf", "cq", "value");
                 bw.addMutation(m);
             }
@@ -116,7 +114,7 @@ public class DeleteRowsTest extends FunctionalTest {
         bw.close();
         // Split the table
         this.getConnector().tableOperations().addSplits(table, SPLITS);
-
+        
         Text startText = start == null ? null : new Text(start);
         Text endText = end == null ? null : new Text(end);
         this.getConnector().tableOperations().deleteRows(table, startText, endText);
@@ -129,30 +127,27 @@ public class DeleteRowsTest extends FunctionalTest {
         // See that the rows are really deleted
         Scanner scanner = this.getConnector().createScanner(table, Constants.NO_AUTHS);
         int count = 0;
-        for (Entry<Key, Value> entry : scanner) {
+        for (Entry<Key,Value> entry : scanner) {
             Text row = entry.getKey().getRow();
-            assertTrue( (startText == null || row.compareTo(startText) <= 0) || (endText == null || row.compareTo(endText) > 0));
+            assertTrue((startText == null || row.compareTo(startText) <= 0) || (endText == null || row.compareTo(endText) > 0));
             assertTrue(startText != null || endText != null);
             count++;
         }
         log.info("Finished table " + table);
         assertEquals(entries, count);
     }
-
+    
     private void assertEquals(int expected, int value) {
-        if (expected != value)
-            throw new RuntimeException("Test failed, expected " + expected + " != " + value);
+        if (expected != value) throw new RuntimeException("Test failed, expected " + expected + " != " + value);
         
     }
-
+    
     private void assertTrue(boolean b) {
-        if (!b)
-            throw new RuntimeException("test failed, false value");
+        if (!b) throw new RuntimeException("test failed, false value");
     }
-
+    
     private void assertEquals(String expected, String value) {
-        if (!expected.equals(value))
-            throw new RuntimeException("expected " + expected + " != " + value);
+        if (!expected.equals(value)) throw new RuntimeException("expected " + expected + " != " + value);
     }
-
+    
 }

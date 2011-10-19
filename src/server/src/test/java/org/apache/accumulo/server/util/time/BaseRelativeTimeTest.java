@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.util.time;
 
 import static org.junit.Assert.*;
@@ -22,12 +22,14 @@ import org.apache.accumulo.server.util.time.BaseRelativeTime;
 import org.apache.accumulo.server.util.time.ProvidesTime;
 import org.junit.Test;
 
-
 public class BaseRelativeTimeTest {
     
     static class BogusTime implements ProvidesTime {
         public long value = 0;
-        public long currentTime() { return value; }
+        
+        public long currentTime() {
+            return value;
+        }
     }
     
     @Test
@@ -48,8 +50,7 @@ public class BaseRelativeTimeTest {
         BogusTime local = new BogusTime();
         local.value = advice.value = System.currentTimeMillis();
         // Ten seconds into the future
-        advice.value += 10000; 
-        
+        advice.value += 10000;
         
         BaseRelativeTime brt = new BaseRelativeTime(local);
         assertEquals(brt.currentTime(), local.value);
@@ -63,8 +64,7 @@ public class BaseRelativeTimeTest {
         }
         long many = brt.currentTime();
         assertTrue(many > once);
-        assertTrue("after much advice, relative time is still closer to local time", 
-                   (advice.value - many) < (once - local.value) );
+        assertTrue("after much advice, relative time is still closer to local time", (advice.value - many) < (once - local.value));
     }
     
     @Test
@@ -85,5 +85,5 @@ public class BaseRelativeTimeTest {
         brt.updateTime(advice.value - 10000);
         assertTrue("Time cannot go backwards", once <= twice);
     }
-
+    
 }

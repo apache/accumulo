@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.master.state;
 
 import org.apache.accumulo.core.data.KeyExtent;
@@ -24,7 +24,6 @@ import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
-
 
 public class MergeInfoTest {
     
@@ -40,12 +39,11 @@ public class MergeInfoTest {
         Assert.assertEquals(info.operation, info2.operation);
         return info2;
     }
+    
     KeyExtent ke(String tableId, String endRow, String prevEndRow) {
-        return new KeyExtent(new Text(tableId), 
-                endRow == null ? null : new Text(endRow),
-                prevEndRow == null ? null : new Text(prevEndRow));
+        return new KeyExtent(new Text(tableId), endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
     }
-
+    
     @Test
     public void testWritable() throws Exception {
         MergeInfo info;
@@ -74,5 +72,5 @@ public class MergeInfoTest {
         Assert.assertFalse(info.needsToBeChopped(ke("x", "c", "bb")));
         Assert.assertTrue(info.needsToBeChopped(ke("x", "b", "a")));
     }
-
+    
 }
