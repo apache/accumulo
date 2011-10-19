@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.logger;
 
 import static org.apache.accumulo.server.logger.LogEvents.COMPACTION_FINISH;
@@ -56,10 +56,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-
 public class TestLogWriter {
     private static final AuthInfo CREDENTIALS = new AuthInfo();
-
+    
     static final String INSTANCE_ID = "SomeInstance123";
     static FileSystem fs = null;
     static Configuration conf = null;
@@ -68,9 +67,9 @@ public class TestLogWriter {
     
     @Before
     public void setUp() throws Exception {
-		// supress log messages having to do with not having an instance
-		Logger.getLogger(ZooConfiguration.class).setLevel(Level.OFF);
-		Logger.getLogger(HdfsZooInstance.class).setLevel(Level.OFF);
+        // supress log messages having to do with not having an instance
+        Logger.getLogger(ZooConfiguration.class).setLevel(Level.OFF);
+        Logger.getLogger(HdfsZooInstance.class).setLevel(Level.OFF);
         conf = CachedConfiguration.getInstance();
         if (fs == null) {
             fs = FileSystem.getLocal(conf);
@@ -78,7 +77,7 @@ public class TestLogWriter {
         writer = new LogWriter(conf, fs, "target", INSTANCE_ID);
         Logger.getLogger(LogWriter.class).setLevel(Level.FATAL);
     }
-
+    
     @After
     public void tearDown() throws Exception {
         writer.shutdown();
@@ -101,7 +100,7 @@ public class TestLogWriter {
     private void cleanup(LogFile logFile) throws Exception {
         new File("./" + logFile.name).delete();
     }
-
+    
     @Test
     public void testCopy() throws Exception {
         LogFile logFile = writer.create(null, CREDENTIALS, "");
@@ -134,7 +133,7 @@ public class TestLogWriter {
         assertTrue(key.tid == LogFileKey.VERSION);
         return result;
     }
-
+    
     @Test
     public void testCreate() throws Exception {
         LogFile logFile = writer.create(null, CREDENTIALS, "");
@@ -142,7 +141,7 @@ public class TestLogWriter {
         readOpen(logFile);
         cleanup(logFile);
     }
-
+    
     @Test
     public void testLog() throws Exception {
         LogFile logFile = writer.create(null, CREDENTIALS, "");
@@ -161,7 +160,7 @@ public class TestLogWriter {
         assertTrue(m.equals(value.mutations[0]));
         cleanup(logFile);
     }
-
+    
     @Test
     public void testLogManyTablets() throws Exception {
         LogFile logFile = writer.create(null, CREDENTIALS, "");
@@ -188,7 +187,7 @@ public class TestLogWriter {
         }
         cleanup(logFile);
     }
-
+    
     @Test
     public void testMinorCompactionFinished() throws Exception {
         LogFile logFile = writer.create(null, CREDENTIALS, "");
@@ -204,7 +203,7 @@ public class TestLogWriter {
         assertEquals(key.tid, 17);
         cleanup(logFile);
     }
-
+    
     @Test
     public void testMinorCompactionStarted() throws Exception {
         LogFile logFile = writer.create(null, CREDENTIALS, "");
@@ -237,8 +236,7 @@ public class TestLogWriter {
         assertEquals(key.tid, 31);
         assertEquals(ke, key.tablet);
     }
-
+    
     @Test
-    public void testNothing() {
-    }
- }
+    public void testNothing() {}
+}

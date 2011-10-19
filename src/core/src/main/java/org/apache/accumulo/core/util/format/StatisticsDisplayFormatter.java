@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.core.util.format;
 
 import java.util.HashMap;
@@ -24,52 +24,45 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
-
 /**
- * Does not show contents from scan, only displays statistics.
- * Beware that this work is being done client side and this was developed
- * as a utility for debugging. If used on large result sets it will likely
- * fail.
+ * Does not show contents from scan, only displays statistics. Beware that this work is being done client side and this was developed as a utility for
+ * debugging. If used on large result sets it will likely fail.
  */
-public class StatisticsDisplayFormatter extends DefaultFormatter
-{
-    private Map<String, Long> classifications = new HashMap<String, Long>();
-    private Map<String, Long> columnFamilies = new HashMap<String, Long>();
-    private Map<String, Long> columnQualifiers = new HashMap<String, Long>();
+public class StatisticsDisplayFormatter extends DefaultFormatter {
+    private Map<String,Long> classifications = new HashMap<String,Long>();
+    private Map<String,Long> columnFamilies = new HashMap<String,Long>();
+    private Map<String,Long> columnQualifiers = new HashMap<String,Long>();
     private long total = 0;
-
+    
     @Override
-    public String next()
-    {
-        Iterator<Entry<Key, Value>> si = super.getScannerIterator();
+    public String next() {
+        Iterator<Entry<Key,Value>> si = super.getScannerIterator();
         checkState(si, true);
         while (si.hasNext())
             aggregateStats(si.next());
         return getStats();
     }
-
-    private void aggregateStats(Entry<Key, Value> entry)
-    {
+    
+    private void aggregateStats(Entry<Key,Value> entry) {
         String key;
         Long count;
-
+        
         key = entry.getKey().getColumnVisibility().toString();
         count = classifications.get(key);
         classifications.put(key, count != null ? count + 1 : 0L);
-
+        
         key = entry.getKey().getColumnFamily().toString();
         count = columnFamilies.get(key);
         columnFamilies.put(key, count != null ? count + 1 : 0L);
-
+        
         key = entry.getKey().getColumnQualifier().toString();
         count = columnQualifiers.get(key);
         columnQualifiers.put(key, count != null ? count + 1 : 0L);
-
+        
         ++total;
     }
-
-    private String getStats()
-    {
+    
+    private String getStats() {
         StringBuilder buf = new StringBuilder();
         buf.append("CLASSIFICATIONS:\n");
         buf.append("----------------\n");
@@ -83,13 +76,13 @@ public class StatisticsDisplayFormatter extends DefaultFormatter
         buf.append("------------------\n");
         for (String key : columnQualifiers.keySet())
             buf.append("\t").append(key).append(": ").append(columnQualifiers.get(key)).append("\n");
-
+        
         buf.append(total).append(" entries matched.");
         total = 0;
-        classifications = new HashMap<String, Long>();
-        columnFamilies = new HashMap<String, Long>();
-        columnQualifiers = new HashMap<String, Long>();
-
+        classifications = new HashMap<String,Long>();
+        columnFamilies = new HashMap<String,Long>();
+        columnQualifiers = new HashMap<String,Long>();
+        
         return buf.toString();
     }
 }

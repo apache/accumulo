@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.test.functional;
 
 import java.io.File;
@@ -32,133 +32,128 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 
-
 public class CacheTestWriter {
-	
-	static final int NUM_DATA = 3;
-	
-	public static void main(String[] args) throws Exception {
-		ZooKeeper zk = ZooSession.getSession();
-		
-		String rootDir = args[0];
-		File reportDir = new File(args[1]);
-		int numReaders = Integer.parseInt(args[2]);
-		int numVerifications = Integer.parseInt(args[3]);
-		int numData = NUM_DATA;
-		
-		boolean dataSExists = false;
-		int count = 0;
-		
-		
-		
-		zk.create(rootDir, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-		for(int i = 0; i < numData; i++){
-			zk.create(rootDir+"/data"+i, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-		}
-		
-		zk.create(rootDir+"/dir", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-		
-		ArrayList<String> children = new ArrayList<String>();
-		
-		Random r = new Random();
-		
-		while(count++ < numVerifications){
-			
-			Map<String, String> expectedData = null;
-			//change children in dir
-			
-			for(int u = 0; u < r.nextInt(4)+1; u++){
-				expectedData = new TreeMap<String, String>();
-				
-				if(r.nextFloat() < .5){
-					String child = UUID.randomUUID().toString();
-					zk.create(rootDir+"/dir/"+child, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-					children.add(child);
-				}else if(children.size() > 0){
-					int index = r.nextInt(children.size());
-					String child = children.remove(index);
-					zk.delete(rootDir+"/dir/"+child, -1);
-				}
-				
-				for (String child : children) {
-					expectedData.put(rootDir+"/dir/"+child, "");
-				}
-				
-				//change values
-				for(int i = 0; i < numData; i++){
-					byte data[] = Long.toString(r.nextLong(), 16).getBytes();
-					zk.setData(rootDir+"/data"+i, data, -1);
-					expectedData.put(rootDir+"/data"+i, new String(data));
-				}
-				
-				//test a data node that does not always exists...
-				if(r.nextFloat() < .5){
-					
-					byte data[] = Long.toString(r.nextLong(), 16).getBytes();
-					
-					if(!dataSExists){
-						zk.create(rootDir+"/dataS", data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-						dataSExists = true;
-					}else{
-						zk.setData(rootDir+"/dataS", data, -1);
-					}
-					
-					expectedData.put(rootDir+"/dataS", new String(data));
-					
-				}else{
-					if(dataSExists){
-						zk.delete(rootDir+"/dataS", -1);
-						dataSExists = false;
-					}
-				}
-			}
-			
-			//change children in dir and change values
-			
-			System.out.println("expectedData "+expectedData);
-			
-			//wait for all readers to see changes
-			while(true){
-				
-				File[] files = reportDir.listFiles();
-				
-				System.out.println("files.length "+files.length);
-				
-				if(files.length == numReaders){
-					boolean ok = true;
-					
-					for(int i = 0; i < files.length; i++){
-						try{
-							FileInputStream fis = new FileInputStream(files[i]);
-							ObjectInputStream ois = new ObjectInputStream(fis);
-							
-							@SuppressWarnings("unchecked")
-                            Map<String, String> readerMap = (Map<String, String>) ois.readObject();
-							
-							ois.close();
-							
-							System.out.println("read "+readerMap);
-							
-							if(!readerMap.equals(expectedData)){
-								System.out.println("maps not equals");
-								ok = false;
-							}
-						}catch(IOException ioe){
-							//log.warn("Failed to read "+files[i], ioe);
-							ok = false;
-						}
-					}
-					
-					if(ok)
-						break;
-				}
-				
-				UtilWaitThread.sleep(5);
-			}
-		}
-		
-		zk.create(rootDir+"/die", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-	}
-	
-	
+    
+    static final int NUM_DATA = 3;
+    
+    public static void main(String[] args) throws Exception {
+        ZooKeeper zk = ZooSession.getSession();
+        
+        String rootDir = args[0];
+        File reportDir = new File(args[1]);
+        int numReaders = Integer.parseInt(args[2]);
+        int numVerifications = Integer.parseInt(args[3]);
+        int numData = NUM_DATA;
+        
+        boolean dataSExists = false;
+        int count = 0;
+        
+        zk.create(rootDir, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+        for (int i = 0; i < numData; i++) {
+            zk.create(rootDir + "/data" + i, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+        }
+        
+        zk.create(rootDir + "/dir", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+        
+        ArrayList<String> children = new ArrayList<String>();
+        
+        Random r = new Random();
+        
+        while (count++ < numVerifications) {
+            
+            Map<String,String> expectedData = null;
+            // change children in dir
+            
+            for (int u = 0; u < r.nextInt(4) + 1; u++) {
+                expectedData = new TreeMap<String,String>();
+                
+                if (r.nextFloat() < .5) {
+                    String child = UUID.randomUUID().toString();
+                    zk.create(rootDir + "/dir/" + child, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                    children.add(child);
+                } else if (children.size() > 0) {
+                    int index = r.nextInt(children.size());
+                    String child = children.remove(index);
+                    zk.delete(rootDir + "/dir/" + child, -1);
+                }
+                
+                for (String child : children) {
+                    expectedData.put(rootDir + "/dir/" + child, "");
+                }
+                
+                // change values
+                for (int i = 0; i < numData; i++) {
+                    byte data[] = Long.toString(r.nextLong(), 16).getBytes();
+                    zk.setData(rootDir + "/data" + i, data, -1);
+                    expectedData.put(rootDir + "/data" + i, new String(data));
+                }
+                
+                // test a data node that does not always exists...
+                if (r.nextFloat() < .5) {
+                    
+                    byte data[] = Long.toString(r.nextLong(), 16).getBytes();
+                    
+                    if (!dataSExists) {
+                        zk.create(rootDir + "/dataS", data, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                        dataSExists = true;
+                    } else {
+                        zk.setData(rootDir + "/dataS", data, -1);
+                    }
+                    
+                    expectedData.put(rootDir + "/dataS", new String(data));
+                    
+                } else {
+                    if (dataSExists) {
+                        zk.delete(rootDir + "/dataS", -1);
+                        dataSExists = false;
+                    }
+                }
+            }
+            
+            // change children in dir and change values
+            
+            System.out.println("expectedData " + expectedData);
+            
+            // wait for all readers to see changes
+            while (true) {
+                
+                File[] files = reportDir.listFiles();
+                
+                System.out.println("files.length " + files.length);
+                
+                if (files.length == numReaders) {
+                    boolean ok = true;
+                    
+                    for (int i = 0; i < files.length; i++) {
+                        try {
+                            FileInputStream fis = new FileInputStream(files[i]);
+                            ObjectInputStream ois = new ObjectInputStream(fis);
+                            
+                            @SuppressWarnings("unchecked")
+                            Map<String,String> readerMap = (Map<String,String>) ois.readObject();
+                            
+                            ois.close();
+                            
+                            System.out.println("read " + readerMap);
+                            
+                            if (!readerMap.equals(expectedData)) {
+                                System.out.println("maps not equals");
+                                ok = false;
+                            }
+                        } catch (IOException ioe) {
+                            // log.warn("Failed to read "+files[i], ioe);
+                            ok = false;
+                        }
+                    }
+                    
+                    if (ok) break;
+                }
+                
+                UtilWaitThread.sleep(5);
+            }
+        }
+        
+        zk.create(rootDir + "/die", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    }
+    
 }

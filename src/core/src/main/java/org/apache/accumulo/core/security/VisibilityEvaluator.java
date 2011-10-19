@@ -1,81 +1,65 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.core.security;
 
 import java.util.Collection;
 
 import org.apache.accumulo.core.security.ColumnVisibility.Node;
 
-
-public class VisibilityEvaluator
-{
+public class VisibilityEvaluator {
     private final ByteArrayTrie trie;
     
-    VisibilityEvaluator(Collection<byte []> authorizations)
-    {
+    VisibilityEvaluator(Collection<byte[]> authorizations) {
         trie = new ByteArrayTrie(authorizations);
     }
-
+    
     /**
-     * The VisibilityEvaluator computes a trie from the given
-     * Authorizations, that ColumnVisibility expressions
-     * can be evaluated against.
+     * The VisibilityEvaluator computes a trie from the given Authorizations, that ColumnVisibility expressions can be evaluated against.
      */
-    public VisibilityEvaluator(Authorizations authorizations)
-    {
-		this(authorizations.getAuthorizations());
-	}
-
-    public boolean evaluate(ColumnVisibility visibility)
-    throws VisibilityParseException
-    {
-    	return evaluate(visibility.getExpression(), visibility.getParseTree());
+    public VisibilityEvaluator(Authorizations authorizations) {
+        this(authorizations.getAuthorizations());
     }
-
-	private final boolean evaluate(final byte[] expression, final Node root)
-	throws VisibilityParseException
-	{
-		switch (root.type)
-		{
-		case TERM:
-			trie.clearState();
-			for (int i=root.start; i<root.end; ++i)
-				trie.transition(expression[i]);
-			return trie.check();
-		case AND:
-			if (root.children == null || root.children.length < 2)
-				throw new VisibilityParseException("AND has less than 2 children", expression, root.start);
-			for (Node child : root.children)
-			{
-				if (!evaluate(expression, child))
-					return false;
-			}
-			return true;
-		case OR:
-			if (root.children == null || root.children.length < 2)
-				throw new VisibilityParseException("OR has less than 2 children", expression, root.start);
-			for (Node child : root.children)
-			{
-				if (evaluate(expression, child))
-					return true;
-			}
-			return false;
-		default:
-			throw new VisibilityParseException("No such node type", expression, root.start);
-		}
-	}
+    
+    public boolean evaluate(ColumnVisibility visibility) throws VisibilityParseException {
+        return evaluate(visibility.getExpression(), visibility.getParseTree());
+    }
+    
+    private final boolean evaluate(final byte[] expression, final Node root) throws VisibilityParseException {
+        switch (root.type) {
+            case TERM:
+                trie.clearState();
+                for (int i = root.start; i < root.end; ++i)
+                    trie.transition(expression[i]);
+                return trie.check();
+            case AND:
+                if (root.children == null || root.children.length < 2) throw new VisibilityParseException("AND has less than 2 children", expression,
+                        root.start);
+                for (Node child : root.children) {
+                    if (!evaluate(expression, child)) return false;
+                }
+                return true;
+            case OR:
+                if (root.children == null || root.children.length < 2) throw new VisibilityParseException("OR has less than 2 children", expression, root.start);
+                for (Node child : root.children) {
+                    if (evaluate(expression, child)) return true;
+                }
+                return false;
+            default:
+                throw new VisibilityParseException("No such node type", expression, root.start);
+        }
+    }
 }

@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.monitor;
 
 import java.io.IOException;
@@ -31,10 +31,9 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.net.SocketNode;
 import org.apache.log4j.spi.LoggingEvent;
 
-
 /**
- * Hijack log4j and capture log events for display. 
- *
+ * Hijack log4j and capture log events for display.
+ * 
  */
 public class LogService extends org.apache.log4j.AppenderSkeleton {
     
@@ -42,10 +41,11 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
     
     /**
      * Read logging events forward to us over the net.
-     *
+     * 
      */
     static class SocketServer implements Runnable {
         private ServerSocket server = null;
+        
         public SocketServer(int port) {
             try {
                 server = new ServerSocket(port);
@@ -53,6 +53,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
                 throw new RuntimeException(io);
             }
         }
+        
         public void run() {
             try {
                 while (true) {
@@ -77,18 +78,17 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
     }
     
     static private LogService instance = null;
-
+    
     synchronized public static LogService getInstance() {
-        if (instance == null)
-            return new LogService();
+        if (instance == null) return new LogService();
         return instance;
     }
     
     private LinkedList<LoggingEvent> events = new LinkedList<LoggingEvent>();
     private int keep = 50;
     
-    public LogService() { 
-        synchronized(LogService.class) {
+    public LogService() {
+        synchronized (LogService.class) {
             instance = this;
         }
     }
@@ -96,11 +96,9 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
     @Override
     synchronized protected void append(LoggingEvent ev) {
         Object application = ev.getMDC("application");
-        if (application == null || application.toString().isEmpty())
-            return;
+        if (application == null || application.toString().isEmpty()) return;
         events.add(ev);
-        if (events.size() > keep)
-            events.removeFirst();
+        if (events.size() > keep) events.removeFirst();
     }
     
     @Override
@@ -117,7 +115,7 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
     public boolean requiresLayout() {
         return false;
     }
-
+    
     /** Allow the user to specify the maximum number of log events to keep/display using log4j */
     public int getKeep() {
         return keep;
@@ -127,12 +125,13 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
     public void setKeep(int count) {
         this.keep = count;
     }
-
-    synchronized public List<LoggingEvent> getEvents() { return new ArrayList<LoggingEvent>(events); }
+    
+    synchronized public List<LoggingEvent> getEvents() {
+        return new ArrayList<LoggingEvent>(events);
+    }
     
     synchronized public void clear() {
         events.clear();
     }
-  
-
- }
+    
+}

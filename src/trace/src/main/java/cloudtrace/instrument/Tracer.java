@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package cloudtrace.instrument;
 
 import java.security.SecureRandom;
@@ -32,13 +32,13 @@ import cloudtrace.thrift.TInfo;
 public class Tracer {
     private final static Random random = new SecureRandom();
     private final List<SpanReceiver> receivers = new ArrayList<SpanReceiver>();
-
+    
     private static final ThreadLocal<Span> currentTrace = new ThreadLocal<Span>();
     public static final NullSpan NULL_SPAN = new NullSpan();
     private static final TInfo dontTrace = new TInfo(0, 0);
     
     private static Tracer instance = null;
-
+    
     synchronized public static void setInstance(Tracer tracer) {
         instance = tracer;
     }
@@ -60,11 +60,10 @@ public class Tracer {
     
     public Span start(String description) {
         Span parent = currentTrace.get();
-        if (parent == null)
-            return NULL_SPAN;
+        if (parent == null) return NULL_SPAN;
         return push(parent.child(description));
     }
-
+    
     public Span on(String description) {
         Span parent = currentTrace.get();
         Span root;
@@ -86,30 +85,24 @@ public class Tracer {
             currentTrace.set(null);
         }
     }
-
+    
     public boolean isTracing() {
         return currentTrace.get() != null;
     }
-
+    
     public Span currentTrace() {
         return currentTrace.get();
     }
     
-    
     public void stopTracing() {
         endThread(currentTrace());
     }
-
+    
     protected void deliver(Span span) {
         for (SpanReceiver receiver : receivers) {
-            receiver.span(span.traceId(), 
-                          span.spanId(), 
-                          span.parentId(), 
-                          span.getStartTimeMillis(), 
-                          span.getStopTimeMillis(), 
-                          span.description(), 
-                          span.getData());
-
+            receiver.span(span.traceId(), span.spanId(), span.parentId(), span.getStartTimeMillis(), span.getStopTimeMillis(), span.description(),
+                    span.getData());
+            
         }
     }
     
@@ -120,7 +113,7 @@ public class Tracer {
     public synchronized void removeReceiver(SpanReceiver receiver) {
         receivers.remove(receiver);
     }
-
+    
     public Span push(Span span) {
         if (span != null) {
             currentTrace.set(span);
@@ -128,23 +121,22 @@ public class Tracer {
         }
         return span;
     }
-
+    
     public void pop(Span span) {
         if (span != null) {
             deliver(span);
             currentTrace.set(span.parent());
-        } else
-            currentTrace.set(null);
+        } else currentTrace.set(null);
     }
-
+    
     public Span continueTrace(String description, long traceId, long parentId) {
         return push(new RootMilliSpan(description, traceId, random.nextLong(), parentId));
     }
-
+    
     public void flush() {
         for (SpanReceiver receiver : receivers) {
             receiver.flush();
         }
     }
-
+    
 }

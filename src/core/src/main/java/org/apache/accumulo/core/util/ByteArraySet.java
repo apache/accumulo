@@ -7,13 +7,13 @@ import java.util.Collection;
 import java.util.List;
 import java.util.TreeSet;
 
-
-
 public class ByteArraySet extends TreeSet<byte[]> implements Serializable {
     
-	private static final long serialVersionUID = 1L;
-
-	public ByteArraySet() { super(new ByteArrayComparator()); }
+    private static final long serialVersionUID = 1L;
+    
+    public ByteArraySet() {
+        super(new ByteArrayComparator());
+    }
     
     public ByteArraySet(Collection<? extends byte[]> c) {
         this();
@@ -27,7 +27,7 @@ public class ByteArraySet extends TreeSet<byte[]> implements Serializable {
         return new ByteArraySet(lst);
     }
     
-    public static ByteArraySet fromStrings(String ...c) {
+    public static ByteArraySet fromStrings(String... c) {
         return ByteArraySet.fromStrings(Arrays.asList(c));
     }
     

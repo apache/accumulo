@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 /**
  * 
  */
@@ -26,7 +26,6 @@ import java.io.IOException;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.io.Writable;
-
 
 public class LogFileValue implements Writable {
     
@@ -46,10 +45,10 @@ public class LogFileValue implements Writable {
     
     @Override
     public void write(DataOutput out) throws IOException {
-            out.writeInt(mutations.length);
-            for (int i = 0; i < mutations.length; i++) {
-                mutations[i].write(out);
-            }
+        out.writeInt(mutations.length);
+        for (int i = 0; i < mutations.length; i++) {
+            mutations[i].write(out);
+        }
     }
     
     public static void print(LogFileValue value) {
@@ -64,8 +63,7 @@ public class LogFileValue implements Writable {
     }
     
     public static String format(LogFileValue lfv, int maxMutations) {
-        if (lfv.mutations.length == 0)
-            return "";
+        if (lfv.mutations.length == 0) return "";
         StringBuilder builder = new StringBuilder();
         builder.append(lfv.mutations.length + " mutations:\n");
         for (int i = 0; i < lfv.mutations.length; i++) {
@@ -77,16 +75,13 @@ public class LogFileValue implements Writable {
             builder.append("  " + new String(m.getRow()) + "\n");
             for (ColumnUpdate update : m.getUpdates()) {
                 String value = new String(update.getValue());
-                builder.append("      " + new String(update.getColumnFamily()) + 
-                               ":" + new String(update.getColumnQualifier()) +
-                               " " + (update.hasTimestamp() ? "[user]:" : "[system]:") + update.getTimestamp() +
-                               " [" + displayLabels(update.getColumnVisibility()) +
-                               "] " + (update.isDeleted() ? "<deleted>" : value) + "\n");
+                builder.append("      " + new String(update.getColumnFamily()) + ":" + new String(update.getColumnQualifier()) + " "
+                        + (update.hasTimestamp() ? "[user]:" : "[system]:") + update.getTimestamp() + " [" + displayLabels(update.getColumnVisibility()) + "] "
+                        + (update.isDeleted() ? "<deleted>" : value) + "\n");
             }
         }
         return builder.toString();
     }
-    
     
     @Override
     public String toString() {

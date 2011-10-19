@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.core.file.rfile;
 
 import java.io.DataInputStream;
@@ -33,64 +33,63 @@ import org.apache.accumulo.core.iterators.HeapIterator;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-
 class MultiIndexIterator extends HeapIterator implements FileSKVIterator {
-
-	private RFile.Reader source;
-
-	MultiIndexIterator(RFile.Reader source, List<List<IndexEntry>> indexes){
-		super(indexes.size());
-		
-		this.source = source;
-		
-		for (List<IndexEntry> index : indexes) {
-			addSource(new IndexIterator(index.iterator()));
-		}
-	}
-	
-	@Override
-	public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment env) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void close() throws IOException {
-		source.close();
-	}
-
-	@Override
-	public void closeDeepCopies() throws IOException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public Key getFirstKey() throws IOException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public Key getLastKey() throws IOException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public DataInputStream getMetaStore(String name) throws IOException {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void setInterruptFlag(AtomicBoolean flag) {
-		throw new UnsupportedOperationException();
-	}
-
+    
+    private RFile.Reader source;
+    
+    MultiIndexIterator(RFile.Reader source, List<List<IndexEntry>> indexes) {
+        super(indexes.size());
+        
+        this.source = source;
+        
+        for (List<IndexEntry> index : indexes) {
+            addSource(new IndexIterator(index.iterator()));
+        }
+    }
+    
+    @Override
+    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void close() throws IOException {
+        source.close();
+    }
+    
+    @Override
+    public void closeDeepCopies() throws IOException {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public Key getFirstKey() throws IOException {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public Key getLastKey() throws IOException {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public DataInputStream getMetaStore(String name) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public void setInterruptFlag(AtomicBoolean flag) {
+        throw new UnsupportedOperationException();
+    }
+    
 }

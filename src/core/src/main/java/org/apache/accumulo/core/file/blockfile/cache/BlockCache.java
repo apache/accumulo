@@ -19,36 +19,43 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
-
 /**
- * Block cache interface.
- * TODO: Add filename or hash of filename to block cache key.
+ * Block cache interface. TODO: Add filename or hash of filename to block cache key.
  */
 public interface BlockCache {
-  /**
-   * Add block to cache.
-   * @param blockName Zero-based file block number.
-   * @param buf The block contents wrapped in a ByteBuffer.
-   * @param inMemory Whether block should be treated as in-memory
-   */
-  public void cacheBlock(String blockName, byte buf[], boolean inMemory);
-  
-  /**
-   * Add block to cache (defaults to not in-memory).
-   * @param blockName Zero-based file block number.
-   * @param buf The block contents wrapped in a ByteBuffer.
-   */
-  public void cacheBlock(String blockName, byte buf[]);
-  
-  /**
-   * Fetch block from cache.
-   * @param blockName Block number to fetch.
-   * @return Block or null if block is not in the cache.
-   */
-  public byte[] getBlock(String blockName);
-
-  /**
-   * Shutdown the cache.
-   */
-  public void shutdown();
+    /**
+     * Add block to cache.
+     * 
+     * @param blockName
+     *            Zero-based file block number.
+     * @param buf
+     *            The block contents wrapped in a ByteBuffer.
+     * @param inMemory
+     *            Whether block should be treated as in-memory
+     */
+    public void cacheBlock(String blockName, byte buf[], boolean inMemory);
+    
+    /**
+     * Add block to cache (defaults to not in-memory).
+     * 
+     * @param blockName
+     *            Zero-based file block number.
+     * @param buf
+     *            The block contents wrapped in a ByteBuffer.
+     */
+    public void cacheBlock(String blockName, byte buf[]);
+    
+    /**
+     * Fetch block from cache.
+     * 
+     * @param blockName
+     *            Block number to fetch.
+     * @return Block or null if block is not in the cache.
+     */
+    public byte[] getBlock(String blockName);
+    
+    /**
+     * Shutdown the cache.
+     */
+    public void shutdown();
 }

@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.util;
 
 import java.util.Iterator;
@@ -35,221 +35,204 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
-
 /**
- * This class iterates over the metadata  table
- * returning all key values for a tablet in one
- * chunk.  As it scans the metadata table it checks 
- * the correctness of the metadata table, and rescans 
- * if needed.  So the tablet key/values returned
- * by this iterator should satisfy the sorted linked
- * list property of the metadata table.
+ * This class iterates over the metadata table returning all key values for a tablet in one chunk. As it scans the metadata table it checks the correctness of
+ * the metadata table, and rescans if needed. So the tablet key/values returned by this iterator should satisfy the sorted linked list property of the metadata
+ * table.
  * 
- * The purpose of this is to hide inconsistencies caused
- * by splits and detect anomalies in the metadata table.
- *
+ * The purpose of this is to hide inconsistencies caused by splits and detect anomalies in the metadata table.
  * 
  * 
- *
+ * 
+ * 
  */
-public class TabletIterator implements Iterator<Map<Key, Value>>{
-
-	private static final Logger log = Logger.getLogger(TabletIterator.class);
-	
-	private SortedMap<Key, Value> currentTabletKeys;
-	
-	private Text lastTablet;
-	
-	private Scanner scanner;
-	private Iterator<Entry<Key, Value>> iter;
-
-	private boolean returnPrevEndRow;
-
-	private boolean returnDir;
-	
-	
-	/*
-	public TabletIterator(String table, boolean returnPrevEndRow){
-		
-	}
-	*/
-	
-	/**
-	 * 
-	 * @param s A scanner over the entire metadata table configure to fetch needed columns.
-	 */
-	
-	public TabletIterator(Scanner s, boolean returnPrevEndRow, boolean returnDir){
-		this.scanner = s;
-		ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
-		ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
-		this.iter = s.iterator();
-		this.returnPrevEndRow = returnPrevEndRow;
-		this.returnDir = returnDir;
-	}
-	
-	@Override
-	public boolean hasNext() {
-		while(currentTabletKeys == null){
-
-			currentTabletKeys = scanToPrevEndRow();
-			if(currentTabletKeys.size() == 0){
-				break;
-			}
-
-			Key prevEndRowKey = currentTabletKeys.lastKey();
-			Value prevEndRowValue = currentTabletKeys.get(prevEndRowKey);
-
-			if(!Constants.METADATA_PREV_ROW_COLUMN.hasColumns(prevEndRowKey))
-			{
-				log.debug(currentTabletKeys);
-				throw new RuntimeException("Unexpected key "+prevEndRowKey);
-			}
-
-			Text per = KeyExtent.decodePrevEndRow(prevEndRowValue);
-			Text lastEndRow;
-			
-			if(lastTablet == null){
-				lastEndRow = null;
-			}else{
-				lastEndRow = new KeyExtent(lastTablet, (Text)null).getEndRow();
-				
-				//do table transition sanity check
-				String lastTable = new KeyExtent(lastTablet, (Text)null).getTableId().toString();
-				String currentTable = new KeyExtent(prevEndRowKey.getRow(), (Text)null).getTableId().toString();
-				
-				if(!lastTable.equals(currentTable) && (per != null || lastEndRow != null)){
-					log.info("Metadata inconsistency on table transition : "+lastTable+" "+currentTable+" "+per+" "+lastEndRow);
-					
-					currentTabletKeys = null;
-					resetScanner();
-
-					UtilWaitThread.sleep(250);
-
-					continue;
-				}
-			}
-			
-			boolean perEqual = (per == null && lastEndRow == null) || (per != null && lastEndRow != null && per.equals(lastEndRow)); 
-
-			if(!perEqual){
-
-				log.info("Metadata inconsistency : "+per+" != "+lastEndRow+" metadataKey = "+prevEndRowKey);
-
-				currentTabletKeys = null;
-				resetScanner();
-
-				UtilWaitThread.sleep(250);
-
-				continue;
-
-			}
-			//this tablet is good, so set it as the last tablet
-			lastTablet = prevEndRowKey.getRow();
-		}
-		
-		return currentTabletKeys.size() > 0;
-	}
-
-	
-
-	@Override
-	public Map<Key, Value> next() {
-		
-		if(currentTabletKeys == null || currentTabletKeys.size() == 0)
-			throw new NoSuchElementException();
-		
-		Map<Key, Value> tmp = currentTabletKeys;
-		currentTabletKeys = null;
-		
-		
-		Set<Entry<Key, Value>> es = tmp.entrySet();
-		Iterator<Entry<Key, Value>> esIter = es.iterator();
-
-		while (esIter.hasNext()) {
-			Map.Entry<Key, Value> entry = esIter.next();
-			if(!returnPrevEndRow && Constants.METADATA_PREV_ROW_COLUMN.hasColumns(entry.getKey()))
-			{
-				esIter.remove();
-			}
-			
-			if(!returnDir && Constants.METADATA_DIRECTORY_COLUMN.hasColumns(entry.getKey()))
-			{
-				esIter.remove();
-			}
-		}
-			
-		
-		
-		return tmp;
-	}
-
-	@Override
-	public void remove() {
-		throw new UnsupportedOperationException();
-	}
-
-	private SortedMap<Key, Value> scanToPrevEndRow() {
-		
-		Text curMetaDataRow = null;
-		
-		TreeMap<Key, Value> tm = new TreeMap<Key, Value>();
-		
-		boolean sawPrevEndRow = false;
-		
-		while(true){
-			while(iter.hasNext()){
-				Entry<Key, Value> entry = iter.next();
-
-				if(curMetaDataRow == null){
-					curMetaDataRow = entry.getKey().getRow();
-				}
-
-				if(!curMetaDataRow.equals(entry.getKey().getRow())){
-					//tablet must not have a prev end row, try scanning again
-					break;
-				}
-				
-				tm.put(entry.getKey(), entry.getValue());
-
-				if(Constants.METADATA_PREV_ROW_COLUMN.hasColumns(entry.getKey()))
-				{	
-					sawPrevEndRow = true;
-					break;
-				}
-			}
-			
-			if(!sawPrevEndRow && tm.size() > 0){
-				log.warn("Metadata problem : tablet "+curMetaDataRow+" has no prev end row");
-				resetScanner();
-				curMetaDataRow = null;
-				tm.clear();
-				UtilWaitThread.sleep(250);
-			}else{
-				break;
-			}
-		}
-		
-		return tm;
-	}
-	
-	private void resetScanner() {
-		
-		Range range;
-		
-		if(lastTablet == null){
-			range = Constants.METADATA_KEYSPACE;
-		}else{
-			//start right after the last good tablet
-			range = new Range(lastTablet, false, Constants.METADATA_RESERVED_KEYSPACE_START_KEY.getRow(), false); 
-		}
-		
-		
-		log.info("Resetting "+Constants.METADATA_TABLE_NAME+" scanner to "+range);
-		
-		scanner.setRange(range);
-		iter = scanner.iterator();
-		
-	}
-	
+public class TabletIterator implements Iterator<Map<Key,Value>> {
+    
+    private static final Logger log = Logger.getLogger(TabletIterator.class);
+    
+    private SortedMap<Key,Value> currentTabletKeys;
+    
+    private Text lastTablet;
+    
+    private Scanner scanner;
+    private Iterator<Entry<Key,Value>> iter;
+    
+    private boolean returnPrevEndRow;
+    
+    private boolean returnDir;
+    
+    /*
+     * public TabletIterator(String table, boolean returnPrevEndRow){
+     * 
+     * }
+     */
+    
+    /**
+     * 
+     * @param s
+     *            A scanner over the entire metadata table configure to fetch needed columns.
+     */
+    
+    public TabletIterator(Scanner s, boolean returnPrevEndRow, boolean returnDir) {
+        this.scanner = s;
+        ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+        ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
+        this.iter = s.iterator();
+        this.returnPrevEndRow = returnPrevEndRow;
+        this.returnDir = returnDir;
+    }
+    
+    @Override
+    public boolean hasNext() {
+        while (currentTabletKeys == null) {
+            
+            currentTabletKeys = scanToPrevEndRow();
+            if (currentTabletKeys.size() == 0) {
+                break;
+            }
+            
+            Key prevEndRowKey = currentTabletKeys.lastKey();
+            Value prevEndRowValue = currentTabletKeys.get(prevEndRowKey);
+            
+            if (!Constants.METADATA_PREV_ROW_COLUMN.hasColumns(prevEndRowKey)) {
+                log.debug(currentTabletKeys);
+                throw new RuntimeException("Unexpected key " + prevEndRowKey);
+            }
+            
+            Text per = KeyExtent.decodePrevEndRow(prevEndRowValue);
+            Text lastEndRow;
+            
+            if (lastTablet == null) {
+                lastEndRow = null;
+            } else {
+                lastEndRow = new KeyExtent(lastTablet, (Text) null).getEndRow();
+                
+                // do table transition sanity check
+                String lastTable = new KeyExtent(lastTablet, (Text) null).getTableId().toString();
+                String currentTable = new KeyExtent(prevEndRowKey.getRow(), (Text) null).getTableId().toString();
+                
+                if (!lastTable.equals(currentTable) && (per != null || lastEndRow != null)) {
+                    log.info("Metadata inconsistency on table transition : " + lastTable + " " + currentTable + " " + per + " " + lastEndRow);
+                    
+                    currentTabletKeys = null;
+                    resetScanner();
+                    
+                    UtilWaitThread.sleep(250);
+                    
+                    continue;
+                }
+            }
+            
+            boolean perEqual = (per == null && lastEndRow == null) || (per != null && lastEndRow != null && per.equals(lastEndRow));
+            
+            if (!perEqual) {
+                
+                log.info("Metadata inconsistency : " + per + " != " + lastEndRow + " metadataKey = " + prevEndRowKey);
+                
+                currentTabletKeys = null;
+                resetScanner();
+                
+                UtilWaitThread.sleep(250);
+                
+                continue;
+                
+            }
+            // this tablet is good, so set it as the last tablet
+            lastTablet = prevEndRowKey.getRow();
+        }
+        
+        return currentTabletKeys.size() > 0;
+    }
+    
+    @Override
+    public Map<Key,Value> next() {
+        
+        if (currentTabletKeys == null || currentTabletKeys.size() == 0) throw new NoSuchElementException();
+        
+        Map<Key,Value> tmp = currentTabletKeys;
+        currentTabletKeys = null;
+        
+        Set<Entry<Key,Value>> es = tmp.entrySet();
+        Iterator<Entry<Key,Value>> esIter = es.iterator();
+        
+        while (esIter.hasNext()) {
+            Map.Entry<Key,Value> entry = esIter.next();
+            if (!returnPrevEndRow && Constants.METADATA_PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+                esIter.remove();
+            }
+            
+            if (!returnDir && Constants.METADATA_DIRECTORY_COLUMN.hasColumns(entry.getKey())) {
+                esIter.remove();
+            }
+        }
+        
+        return tmp;
+    }
+    
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException();
+    }
+    
+    private SortedMap<Key,Value> scanToPrevEndRow() {
+        
+        Text curMetaDataRow = null;
+        
+        TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+        
+        boolean sawPrevEndRow = false;
+        
+        while (true) {
+            while (iter.hasNext()) {
+                Entry<Key,Value> entry = iter.next();
+                
+                if (curMetaDataRow == null) {
+                    curMetaDataRow = entry.getKey().getRow();
+                }
+                
+                if (!curMetaDataRow.equals(entry.getKey().getRow())) {
+                    // tablet must not have a prev end row, try scanning again
+                    break;
+                }
+                
+                tm.put(entry.getKey(), entry.getValue());
+                
+                if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(entry.getKey())) {
+                    sawPrevEndRow = true;
+                    break;
+                }
+            }
+            
+            if (!sawPrevEndRow && tm.size() > 0) {
+                log.warn("Metadata problem : tablet " + curMetaDataRow + " has no prev end row");
+                resetScanner();
+                curMetaDataRow = null;
+                tm.clear();
+                UtilWaitThread.sleep(250);
+            } else {
+                break;
+            }
+        }
+        
+        return tm;
+    }
+    
+    private void resetScanner() {
+        
+        Range range;
+        
+        if (lastTablet == null) {
+            range = Constants.METADATA_KEYSPACE;
+        } else {
+            // start right after the last good tablet
+            range = new Range(lastTablet, false, Constants.METADATA_RESERVED_KEYSPACE_START_KEY.getRow(), false);
+        }
+        
+        log.info("Resetting " + Constants.METADATA_TABLE_NAME + " scanner to " + range);
+        
+        scanner.setRange(range);
+        iter = scanner.iterator();
+        
+    }
+    
 }

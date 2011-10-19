@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.core.client.mock;
 
 import java.io.IOException;
@@ -32,7 +32,6 @@ import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.filter.Filter;
 import org.apache.accumulo.core.security.Authorizations;
 
-
 public class MockScanner extends MockScannerBase implements Scanner {
     
     int timeOut = 0;
@@ -42,54 +41,53 @@ public class MockScanner extends MockScannerBase implements Scanner {
     MockScanner(MockTable table, Authorizations auths) {
         super(table, auths);
     }
-
+    
     @Override
     public void setTimeOut(int timeOut) {
         this.timeOut = timeOut;
     }
-
+    
     @Override
     public int getTimeOut() {
         return timeOut;
     }
-
+    
     @Override
     public void setRange(Range range) {
         this.range = range;
     }
-
+    
     @Override
     public Range getRange() {
         return this.range;
     }
-
+    
     @Override
     public void setBatchSize(int size) {
         this.batchSize = size;
     }
-
+    
     @Override
     public int getBatchSize() {
         return this.batchSize;
     }
-
+    
     @Override
-    public void enableIsolation() {
-    }
-
+    public void enableIsolation() {}
+    
     @Override
-    public void disableIsolation() {
-    }
+    public void disableIsolation() {}
     
     static class RangeFilter implements Filter {
         Range range;
+        
         public RangeFilter(Range range) {
             this.range = range;
         }
+        
         @Override
-        public void init(Map<String, String> options) {
-        }
-
+        public void init(Map<String,String> options) {}
+        
         @Override
         public boolean accept(Key k, Value v) {
             return range.contains(k);
@@ -97,8 +95,8 @@ public class MockScanner extends MockScannerBase implements Scanner {
     }
     
     @Override
-    public Iterator<Entry<Key, Value>> iterator() {
-        SortedKeyValueIterator<Key, Value> i = new SortedMapIterator(table.table);
+    public Iterator<Entry<Key,Value>> iterator() {
+        SortedKeyValueIterator<Key,Value> i = new SortedMapIterator(table.table);
         try {
             i = createFilter(i);
             i.seek(range, createColumnBSS(columns), !columns.isEmpty());
@@ -108,5 +106,5 @@ public class MockScanner extends MockScannerBase implements Scanner {
         }
         
     }
-
+    
 }

@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.core.trace;
 
 import java.text.SimpleDateFormat;
@@ -33,17 +33,17 @@ import org.apache.thrift.transport.TMemoryInputTransport;
 import cloudtrace.thrift.RemoteSpan;
 
 /**
- * A formatter than can be used in the shell to display trace information. 
- *
+ * A formatter than can be used in the shell to display trace information.
+ * 
  */
 public class TraceFormatter implements Formatter {
     public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
     private final static Text SPAN_CF = new Text("span");
-
-    private Iterator<Entry<Key, Value>> scanner;
-    private boolean                     printTimeStamps;
-
-    public static RemoteSpan getRemoteSpan(Entry<Key, Value> entry) {
+    
+    private Iterator<Entry<Key,Value>> scanner;
+    private boolean printTimeStamps;
+    
+    public static RemoteSpan getRemoteSpan(Entry<Key,Value> entry) {
         TMemoryInputTransport transport = new TMemoryInputTransport(entry.getValue().get());
         TCompactProtocol protocol = new TCompactProtocol(transport);
         RemoteSpan span = new RemoteSpan();
@@ -54,15 +54,15 @@ public class TraceFormatter implements Formatter {
         }
         return span;
     }
-
+    
     @Override
     public boolean hasNext() {
         return scanner.hasNext();
     }
-
+    
     @Override
     public String next() {
-        Entry<Key, Value> next = scanner.next();
+        Entry<Key,Value> next = scanner.next();
         if (next.getKey().getColumnFamily().equals(SPAN_CF)) {
             StringBuilder result = new StringBuilder();
             RemoteSpan span = getRemoteSpan(next);
@@ -74,10 +74,10 @@ public class TraceFormatter implements Formatter {
             result.append(String.format(" %12s:%s\n", "parent", Long.toHexString(span.parentId)));
             result.append(String.format(" %12s:%s\n", "start", DATE_FORMAT.format(span.start)));
             result.append(String.format(" %12s:%s\n", "ms", span.stop - span.start));
-            for (Entry<String, String> entry : span.data.entrySet()) {
+            for (Entry<String,String> entry : span.data.entrySet()) {
                 result.append(String.format(" %12s:%s\n", entry.getKey(), entry.getValue()));
             }
-
+            
             if (printTimeStamps) {
                 result.append(String.format(" %-12:%d\n", "timestamp", next.getKey().getTimestamp()));
             }
@@ -85,14 +85,14 @@ public class TraceFormatter implements Formatter {
         }
         return DefaultFormatter.formatEntry(next, printTimeStamps);
     }
-
+    
     @Override
     public void remove() {
         throw new NotImplementedException();
     }
-
+    
     @Override
-    public void initialize(Iterable<Entry<Key, Value>> scanner, boolean printTimestamps) {
+    public void initialize(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
         this.scanner = scanner.iterator();
         this.printTimeStamps = printTimestamps;
     }

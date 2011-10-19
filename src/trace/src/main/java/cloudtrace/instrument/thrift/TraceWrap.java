@@ -11,11 +11,11 @@ import cloudtrace.instrument.Tracer;
 import cloudtrace.thrift.TInfo;
 
 /**
- * To move trace data from client to server, the RPC call must be annotated to take a TInfo object as its first argument.
- * The user can simply pass null, so long as they wrap their Client and Service objects with these functions.
+ * To move trace data from client to server, the RPC call must be annotated to take a TInfo object as its first argument. The user can simply pass null, so long
+ * as they wrap their Client and Service objects with these functions.
  * 
  * <pre>
- * Trace.on("remoteMethod");
+ * Trace.on(&quot;remoteMethod&quot;);
  * Iface c = new Client();
  * c = TraceWrap.client(c);
  * c.remoteMethod(null, arg2, arg3);
@@ -33,12 +33,11 @@ public class TraceWrap {
     public static <T> T service(final T instance) {
         InvocationHandler handler = new InvocationHandler() {
             @Override
-            public Object invoke(Object obj, Method method, Object[] args)
-                    throws Throwable {
+            public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
                 if (args == null || args.length < 1 || args[0] == null || !(args[0] instanceof TInfo)) {
                     return method.invoke(instance, args);
                 }
-                Span span = Trace.trace((TInfo)args[0], method.getName());
+                Span span = Trace.trace((TInfo) args[0], method.getName());
                 try {
                     return method.invoke(instance, args);
                 } catch (InvocationTargetException ex) {
@@ -48,18 +47,14 @@ public class TraceWrap {
                 }
             }
         };
-        return (T) Proxy.newProxyInstance(
-                instance.getClass().getClassLoader(),
-                instance.getClass().getInterfaces(), 
-                handler);
+        return (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(), instance.getClass().getInterfaces(), handler);
     }
     
     @SuppressWarnings("unchecked")
     public static <T> T client(final T instance) {
         InvocationHandler handler = new InvocationHandler() {
             @Override
-            public Object invoke(Object obj, Method method, Object[] args)
-                    throws Throwable {
+            public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
                 if (args == null || args.length < 1 || args[0] != null) {
                     return method.invoke(instance, args);
                 }
@@ -77,10 +72,7 @@ public class TraceWrap {
                 }
             }
         };
-        return (T) Proxy.newProxyInstance(
-                instance.getClass().getClassLoader(),
-                instance.getClass().getInterfaces(), 
-                handler);
+        return (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(), instance.getClass().getInterfaces(), handler);
     }
-
+    
 }

@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.monitor.servlets.trace;
 
 import static java.lang.Math.min;
@@ -39,24 +39,22 @@ import org.apache.hadoop.io.Text;
 import cloudtrace.thrift.RemoteSpan;
 
 public class ShowTrace extends Basic {
-
+    
     private static final long serialVersionUID = 1L;
     
     String getTraceId(HttpServletRequest req) {
         return getStringParameter(req, "id", null);
     }
-
+    
     @Override
     public String getTitle(HttpServletRequest req) {
         String id = getTraceId(req);
-        if (id == null)
-            return "No trace id specified";
+        if (id == null) return "No trace id specified";
         return "Trace ID " + id;
     }
-
+    
     @Override
-    public void pageBody(HttpServletRequest req, HttpServletResponse resp, final StringBuilder sb)
-            throws Exception {
+    public void pageBody(HttpServletRequest req, HttpServletResponse resp, final StringBuilder sb) throws Exception {
         String id = getTraceId(req);
         if (id == null) {
             return;
@@ -69,7 +67,7 @@ public class ShowTrace extends Basic {
         scanner.setRange(range);
         SpanTree tree = new SpanTree();
         long start = Long.MAX_VALUE;
-        for (Entry<Key, Value> entry : scanner) {
+        for (Entry<Key,Value> entry : scanner) {
             RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
             tree.addNode(span);
             start = min(start, span.start);
@@ -93,25 +91,23 @@ public class ShowTrace extends Basic {
         sb.append("<table><caption>");
         sb.append(String.format("<span class='table-caption'>Trace started at<br>%s</span></caption>", id, dateString(start)));
         sb.append("<tr><th>Time</th><th>Start</th><th>Service@Location</th><th>Name</th><th>Addl Data</th></tr>");
-
+        
         final long finalStart = start;
         Set<Long> visited = tree.visit(new SpanTreeVisitor() {
             @Override
             public void visit(int level, RemoteSpan parent, RemoteSpan node, Collection<RemoteSpan> children) {
                 sb.append("<tr>\n");
                 sb.append(String.format("<td class='right'>%d+</td><td class='left'>%d</td>\n", node.stop - node.start, node.start - finalStart));
-                sb.append(String.format("<td style='text-indent: %dpx'>%s@%s</td>\n", level*5, node.svc, node.sender));
+                sb.append(String.format("<td style='text-indent: %dpx'>%s@%s</td>\n", level * 5, node.svc, node.sender));
                 sb.append("<td>" + node.description + "</td>");
                 boolean hasData = node.data != null && !node.data.isEmpty();
-                if (hasData)
-                    sb.append("<td><input type='checkbox' onclick='toggle(\"" + Long.toHexString(node.spanId) + "\")'></td>\n");
-                else
-                    sb.append("<td></td>\n");
+                if (hasData) sb.append("<td><input type='checkbox' onclick='toggle(\"" + Long.toHexString(node.spanId) + "\")'></td>\n");
+                else sb.append("<td></td>\n");
                 sb.append("</tr>\n");
                 sb.append("<tr id='" + Long.toHexString(node.spanId) + "' style='display:none'>");
                 sb.append("<td colspan='5'>\n");
                 sb.append("  <table class='indent,noborder'>\n");
-                for (Entry<String, String> entry : node.data.entrySet()) {
+                for (Entry<String,String> entry : node.data.entrySet()) {
                     sb.append("  <tr><td>" + BasicServlet.sanitize(entry.getKey()) + "</td>");
                     sb.append("<td>" + BasicServlet.sanitize(entry.getValue()) + "</td></tr>\n");
                 }

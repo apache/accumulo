@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.server.master.state;
 
 import java.util.Collection;
@@ -31,9 +31,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.hadoop.io.Text;
 
-
 public class MetaDataStateStore extends TabletStateStore {
-    //private static final Logger log = Logger.getLogger(MetaDataStateStore.class);
+    // private static final Logger log = Logger.getLogger(MetaDataStateStore.class);
     
     private static final int THREADS = 4;
     private static final int LATENCY = 1000;
@@ -45,21 +44,16 @@ public class MetaDataStateStore extends TabletStateStore {
         this.state = state;
     }
     
-    
     @Override
     public Iterator<TabletLocationState> iterator() {
         Key rootTableEnd = new Key(Constants.ROOT_TABLET_EXTENT.getEndRow());
         rootTableEnd = rootTableEnd.followingKey(PartialKey.ROW);
-        Range range = new Range(rootTableEnd, true, 
-                                Constants.METADATA_RESERVED_KEYSPACE_START_KEY, false);
-        return new MetaDataTableScanner(range,
-                                        state == null ? null : state.onlineTabletServers(), 
-                                        state == null ? null : state.onlineTables());
+        Range range = new Range(rootTableEnd, true, Constants.METADATA_RESERVED_KEYSPACE_START_KEY, false);
+        return new MetaDataTableScanner(range, state == null ? null : state.onlineTabletServers(), state == null ? null : state.onlineTables());
     }
-
+    
     @Override
-    public void setLocations(Collection<Assignment> assignments)
-    throws DistributedStoreException {
+    public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
         BatchWriter writer = createBatchWriter();
         try {
             for (Assignment assignment : assignments) {
@@ -79,27 +73,20 @@ public class MetaDataStateStore extends TabletStateStore {
             }
         }
     }
-
+    
     BatchWriter createBatchWriter() {
-        BatchWriter writer = new BatchWriterImpl(HdfsZooInstance.getInstance(), 
-                                                 SecurityConstants.systemCredentials, 
-                                                 Constants.METADATA_TABLE_ID,
-                                                 MAX_MEMORY, 
-                                                 LATENCY, 
-                                                 THREADS);
+        BatchWriter writer = new BatchWriterImpl(HdfsZooInstance.getInstance(), SecurityConstants.systemCredentials, Constants.METADATA_TABLE_ID, MAX_MEMORY,
+                LATENCY, THREADS);
         return writer;
     }
-
+    
     @Override
-    public void setFutureLocations(Collection<Assignment> assignments)
-    throws DistributedStoreException {
+    public void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException {
         BatchWriter writer = createBatchWriter();
         try {
             for (Assignment assignment : assignments) {
                 Mutation m = new Mutation(assignment.tablet.getMetadataEntry());
-                m.put(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY, 
-                      assignment.server.asColumnQualifier(), 
-                      assignment.server.asMutationValue());
+                m.put(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY, assignment.server.asColumnQualifier(), assignment.server.asMutationValue());
                 writer.addMutation(m);
             }
         } catch (Exception ex) {
@@ -112,10 +99,10 @@ public class MetaDataStateStore extends TabletStateStore {
             }
         }
     }
-
+    
     @Override
     public void unassign(Collection<TabletLocationState> tablets) throws DistributedStoreException {
-    
+        
         BatchWriter writer = createBatchWriter();
         try {
             for (TabletLocationState tls : tablets) {
@@ -138,7 +125,7 @@ public class MetaDataStateStore extends TabletStateStore {
             }
         }
     }
-
+    
     @Override
     public String name() {
         return "Normal Tablets";
