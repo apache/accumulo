@@ -70,7 +70,7 @@ class MapReduceTest(TestUtilsMixin,unittest.TestCase):
         core = globa(os.path.join('lib','accumulo-core*[!javadoc|sources].jar'))
         start = globa(os.path.join('lib','accumulo-start*[!javadoc|sources].jar'))
         trace = globa(os.path.join('lib','cloudtrace*[!javadoc|sources].jar'))
-        zkjar = globbase(os.getenv("ZOOKEEPER_HOME"),"zookeeper*.jar")
+        zkjar = globbase(os.getenv("ZOOKEEPER_HOME"),"zookeeper*[!javadoc|src|bin].jar")
         self.createInputTableInAccumulo();
         #Arguments for the Example Class
         arg_list = [TestUtils.INSTANCE_NAME,

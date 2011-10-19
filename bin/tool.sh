@@ -31,7 +31,7 @@ fi
 
 LIB=$ACCUMULO_HOME/lib
 
-ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/*.jar'
+ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/*.jar | grep -v -e ".*javadoc.jar$" | grep -v -e ".*src.jar$" | grep -v -e ".*bin.jar$"'
 CORE_CMD='ls -1 $LIB/accumulo-core-*.jar | grep -v -e ".*javadoc.jar$" | grep -v -e ".*sources.jar$"'
 THRIFT_CMD='ls -1 $LIB/libthrift-*.jar | grep -v -e ".*javadoc.jar$" | grep -v -e ".*sources.jar$"'
 CLOUDTRACE_CMD='ls -1 $LIB/cloudtrace-*.jar | grep -v -e ".*javadoc.jar$" | grep -v -e ".*sources.jar$"'
