@@ -150,7 +150,7 @@ public class CoordinateRecoveryTask implements Runnable {
             List<String> jars = new ArrayList<String>();
             jars.addAll(jarsLike("accumulo-core"));
             jars.addAll(jarsLike("zookeeper"));
-            jars.addAll(jarsLike("thrift"));
+            jars.addAll(jarsLike("libthrift"));
             sortJob = LogSort.startSort(true, new String[] { "-libjars", StringUtil.join(jars, ","), "-r",
                     reducers.toString(), "-q", queue, "-p", pool, logFile.unsortedFileName(), result });
         }
