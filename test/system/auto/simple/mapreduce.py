@@ -65,7 +65,7 @@ class MapReduceTest(TestUtilsMixin,unittest.TestCase):
     
     def runTest(self):
         #These Environment variables are need to run this test it will fail if they are not in the environment
-        thriftjar = globac(os.path.join('lib','thrift*.jar'))
+        thriftjar = globac(os.path.join('lib','libthrift*.jar'))
         acexamples = globac(os.path.join('lib','accumulo-examples*[!javadoc].jar'))
         accore = globac(os.path.join('lib','accumulo-core*[!javadoc].jar'))
         acstart = globac(os.path.join('lib','accumulo-start*[!javadoc].jar'))

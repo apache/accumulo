@@ -141,7 +141,7 @@ public class State {
 		for (int i=0; i < files.length; i++) {
 			String f = files[i];
 			if (f.matches("^accumulo-core-.+jar$") || f.matches("^accumulo-server-.+jar$") || 
-					f.matches("^cloudtrace-.+jar$") || f.matches("^thrift-.+jar$")) {
+					f.matches("^cloudtrace-.+jar$") || f.matches("^libthrift-.+jar$")) {
 				if (retval == null) {
 					retval = String.format("%s/%s", libdir.getAbsolutePath(), f);
 				} else {
