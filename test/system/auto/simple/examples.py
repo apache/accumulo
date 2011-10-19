@@ -59,7 +59,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
 
     def runTest(self):
         self.ashell('createtable %s\nsetauths -u %s -s A,B\nquit\n' %(table, ROOT))
-        examplesJar = glob.glob('lib/accumulo-examples-*.jar')[0]
+        examplesJar = glob.glob(ACCUMULO_HOME+'/lib/accumulo-examples-*.jar')[0]
 
         self.comment("Testing dirlist example (a little)")
         self.comment("  ingesting accumulo source")

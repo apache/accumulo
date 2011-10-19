@@ -149,7 +149,7 @@ class TestUtilsMixin:
 
 
     def pkill(self, host, pattern, signal=signal.SIGKILL):
-        cmd = [os.path.join(ACCUMULO_HOME, 'bin', 'pkill.sh'), str(signal), str(os.getuid()), ID + '.*' + pattern]
+        cmd = [os.path.join(ACCUMULO_HOME, 'test', 'system', 'auto', 'pkill.sh'), str(signal), str(os.getuid()), ID + '.*' + pattern]
         handle = self.runOn(host, cmd)
         handle.communicate()
 
