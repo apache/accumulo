@@ -270,7 +270,7 @@ public class ClientServiceHandler implements ClientService.Iface
             throws ThriftSecurityException, ThriftTableOperationException,
             TException {
         try {
-            if (!authenticator.hasTablePermission(credentials, credentials.getUser(), tableId, TablePermission.BULK_IMPORT))
+        	if(!authenticator.hasSystemPermission(credentials, credentials.getUser(), SystemPermission.SYSTEM))
                 throw new AccumuloSecurityException(credentials.getUser(), SecurityErrorCode.PERMISSION_DENIED);
             return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
                 public List<String> call() throws Exception { 

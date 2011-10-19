@@ -844,17 +844,16 @@ public class TabletServer extends AbstractMetricsImpl implements
         @Override
         public List<TKeyExtent> bulkImport(TInfo tinfo, AuthInfo credentials, long tid, Map<TKeyExtent, Map<String, MapFileInfo>> files, boolean setTime)
                 throws ThriftSecurityException {
-            ArrayList<TKeyExtent> failures = new ArrayList<TKeyExtent>();
 
-            for (Entry<TKeyExtent, Map<String, MapFileInfo>> entry : files.entrySet()) {
-                try {
-                    if (!authenticator.hasTablePermission(credentials, credentials.user, new String(entry.getKey().getTable()), TablePermission.BULK_IMPORT))
-                        throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
-                } catch (AccumuloSecurityException e) {
-                    throw e.asThriftException();
-                }
+            try {
+            	if (!authenticator.hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM))
+            		throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+            } catch (AccumuloSecurityException e) {
+            	throw e.asThriftException();
             }
 
+            ArrayList<TKeyExtent> failures = new ArrayList<TKeyExtent>();
+            
             for (Entry<TKeyExtent, Map<String, MapFileInfo>> entry : files.entrySet()) {
                 TKeyExtent tke = entry.getKey();
                 Map<String, MapFileInfo> fileMap = entry.getValue();
