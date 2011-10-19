@@ -211,6 +211,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableName;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
@@ -2913,6 +2914,7 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
 	}
 
 	public static void main(String[] args) throws IOException {
+
 	    conf = CachedConfiguration.getInstance();
         fs = FileSystem.get(conf);
         

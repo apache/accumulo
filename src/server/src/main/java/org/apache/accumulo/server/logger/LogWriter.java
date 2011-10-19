@@ -38,6 +38,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -63,6 +64,7 @@ import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.hadoop.io.SequenceFile.Metadata;
 import org.apache.hadoop.io.SequenceFile.Reader;
 import org.apache.hadoop.io.SequenceFile.Writer;
+import org.apache.hadoop.io.WritableName;
 import org.apache.hadoop.io.compress.DefaultCodec;
 
 import cloudtrace.instrument.Span;
@@ -74,6 +76,11 @@ import cloudtrace.thrift.TInfo;
  */
 class LogWriter implements MutationLogger.Iface {
     static final org.apache.log4j.Logger log = org.apache.log4j.Logger.getLogger(LogWriter.class);
+    
+    static {
+    	WritableName.setName(LogFileKey.class, Constants.OLD_PACKAGE_NAME + ".server.logger.LogFileKey");
+    	WritableName.setName(LogFileValue.class, Constants.OLD_PACKAGE_NAME + ".server.logger.LogFileValue");
+    }
     
     static class LogWriteException extends RuntimeException {
         /**

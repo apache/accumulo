@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -50,6 +51,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
+import org.apache.hadoop.io.WritableName;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.util.Progressable;
@@ -81,12 +83,12 @@ import org.apache.log4j.Logger;
  */
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class MyMapFile {
-    
+	
     public static final String EXTENSION = "map";
     
 	private static final Logger log = Logger.getLogger(MyMapFile.class);
-
-
+	
+	
 	/** The name of the index file. */
 	public static final String INDEX_FILE_NAME = "index";
 
@@ -295,6 +297,11 @@ public class MyMapFile {
 
 	/** Provide access to an existing map. */
 	public static class Reader implements FileSKVIterator {
+		
+		static {
+			WritableName.setName(Key.class, Constants.OLD_PACKAGE_NAME + ".core.data.Key");
+			WritableName.setName(Value.class, Constants.OLD_PACKAGE_NAME + ".core.data.Value");
+		}
 
 		/**
 		 * Number of index entries to skip between each entry. Zero by default.

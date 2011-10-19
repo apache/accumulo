@@ -67,7 +67,18 @@ public class RestoreZookeeper {
             else if ("dump".equals(name)) {
                 String root = attributes.getValue("root");
                 cwd.push(root);
-                create(root, "", "utf-8");
+                String path = "";
+                try {
+                	for (String part : root.split("/")) {
+                		if (!part.isEmpty()) {
+                			path += "/" + part;
+                			if (!ZooUtil.exists(path))
+                				create(path, "", "utf-8");
+                		}
+                	}
+                } catch (Exception ex) {
+                	throw new RuntimeException(ex);
+                }
             }
         }
         
