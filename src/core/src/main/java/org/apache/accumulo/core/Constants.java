@@ -151,7 +151,8 @@ public class Constants {
   public static final int CLIENT_RETRIES = 5;
   public static final int TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER = 2;
   public static final String CORE_PACKAGE_NAME = "accumulo.core";
-  final public static String VALID_TABLE_NAME_REGEX = "^\\w+$";
+  public static final String OLD_PACKAGE_NAME = "cloudbase";
+  public static final String VALID_TABLE_NAME_REGEX = "^\\w+$";
   
   public static String getBaseDir(AccumuloConfiguration conf) {
     return conf.get(Property.INSTANCE_DFS_DIR);
