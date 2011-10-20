@@ -22,7 +22,7 @@ package cloudtrace.instrument;
  * @see Trace.wrapAll
  */
 public interface Sampler {
-    
-    boolean next();
-    
+  
+  boolean next();
+  
 }

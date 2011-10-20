@@ -36,92 +36,92 @@ import cloudtrace.thrift.RemoteSpan;
  * </ul>
  */
 public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanReceiver {
-    
-    private static final Logger log = Logger.getLogger(AsyncSpanReceiver.class);
-    
-    private final Map<SpanKey,Destination> clients = new HashMap<SpanKey,Destination>();
-    
-    protected final String host;
-    protected final String service;
-    
-    protected abstract Destination createDestination(SpanKey key) throws Exception;
-    
-    protected abstract void send(Destination resource, RemoteSpan span) throws Exception;
-    
-    protected abstract SpanKey getSpanKey(Map<String,String> data);
-    
-    Timer timer = new Timer("SpanSender", true);
-    AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
-    
-    public AsyncSpanReceiver(String host, String service, long millis) {
-        this.host = host;
-        this.service = service;
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                sendSpans();
-            }
-            
-        }, 0, millis);
-    }
-    
-    void sendSpans() {
-        while (!sendQueue.isEmpty()) {
-            boolean sent = false;
-            RemoteSpan s = sendQueue.peek();
-            if (s.stop - s.start < 1) {
-                synchronized (sendQueue) {
-                    sendQueue.remove();
-                    sendQueue.notifyAll();
-                }
-                continue;
-            }
-            SpanKey dest = getSpanKey(s.data);
-            Destination client = clients.get(dest);
-            if (client == null) {
-                try {
-                    clients.put(dest, createDestination(dest));
-                } catch (Exception ex) {
-                    log.warn("Exception creating connection to span receiver", ex);
-                }
-            }
-            if (client != null) {
-                try {
-                    send(client, s);
-                    synchronized (sendQueue) {
-                        sendQueue.remove();
-                        sendQueue.notifyAll();
-                    }
-                    sent = true;
-                } catch (Exception ex) {
-                    log.error(ex, ex);
-                }
-            }
-            if (!sent) break;
-        }
-    }
-    
-    @Override
-    public void span(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
-        
-        SpanKey dest = getSpanKey(data);
-        if (dest != null) {
-            sendQueue.add(new RemoteSpan(host, service, traceId, spanId, parentId, start, stop, description, data));
-        }
-    }
-    
-    @Override
-    public void flush() {
+  
+  private static final Logger log = Logger.getLogger(AsyncSpanReceiver.class);
+  
+  private final Map<SpanKey,Destination> clients = new HashMap<SpanKey,Destination>();
+  
+  protected final String host;
+  protected final String service;
+  
+  protected abstract Destination createDestination(SpanKey key) throws Exception;
+  
+  protected abstract void send(Destination resource, RemoteSpan span) throws Exception;
+  
+  protected abstract SpanKey getSpanKey(Map<String,String> data);
+  
+  Timer timer = new Timer("SpanSender", true);
+  AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
+  
+  public AsyncSpanReceiver(String host, String service, long millis) {
+    this.host = host;
+    this.service = service;
+    timer.schedule(new TimerTask() {
+      @Override
+      public void run() {
+        sendSpans();
+      }
+      
+    }, 0, millis);
+  }
+  
+  void sendSpans() {
+    while (!sendQueue.isEmpty()) {
+      boolean sent = false;
+      RemoteSpan s = sendQueue.peek();
+      if (s.stop - s.start < 1) {
         synchronized (sendQueue) {
-            while (!sendQueue.isEmpty()) {
-                try {
-                    sendQueue.wait();
-                } catch (InterruptedException e) {
-                    log.warn("flush interrupted");
-                    break;
-                }
-            }
+          sendQueue.remove();
+          sendQueue.notifyAll();
         }
+        continue;
+      }
+      SpanKey dest = getSpanKey(s.data);
+      Destination client = clients.get(dest);
+      if (client == null) {
+        try {
+          clients.put(dest, createDestination(dest));
+        } catch (Exception ex) {
+          log.warn("Exception creating connection to span receiver", ex);
+        }
+      }
+      if (client != null) {
+        try {
+          send(client, s);
+          synchronized (sendQueue) {
+            sendQueue.remove();
+            sendQueue.notifyAll();
+          }
+          sent = true;
+        } catch (Exception ex) {
+          log.error(ex, ex);
+        }
+      }
+      if (!sent) break;
     }
+  }
+  
+  @Override
+  public void span(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
     
+    SpanKey dest = getSpanKey(data);
+    if (dest != null) {
+      sendQueue.add(new RemoteSpan(host, service, traceId, spanId, parentId, start, stop, description, data));
+    }
+  }
+  
+  @Override
+  public void flush() {
+    synchronized (sendQueue) {
+      while (!sendQueue.isEmpty()) {
+        try {
+          sendQueue.wait();
+        } catch (InterruptedException e) {
+          log.warn("flush interrupted");
+          break;
+        }
+      }
+    }
+  }
+  
 }

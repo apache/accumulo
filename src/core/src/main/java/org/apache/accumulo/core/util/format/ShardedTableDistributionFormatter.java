@@ -37,42 +37,42 @@ import org.apache.accumulo.core.data.Value;
  * scan -b tableId -c ~tab:loc
  */
 public class ShardedTableDistributionFormatter extends DefaultFormatter {
-    
-    private Map<String,HashSet<String>> countsByDay = new HashMap<String,HashSet<String>>();
-    
-    @Override
-    public String next() {
-        Iterator<Entry<Key,Value>> si = super.getScannerIterator();
-        checkState(si, true);
-        while (si.hasNext())
-            aggregateStats(si.next());
-        return getStats();
+  
+  private Map<String,HashSet<String>> countsByDay = new HashMap<String,HashSet<String>>();
+  
+  @Override
+  public String next() {
+    Iterator<Entry<Key,Value>> si = super.getScannerIterator();
+    checkState(si, true);
+    while (si.hasNext())
+      aggregateStats(si.next());
+    return getStats();
+  }
+  
+  private void aggregateStats(Entry<Key,Value> entry) {
+    if (entry.getKey().getColumnFamily().toString().equals("~tab") && entry.getKey().getColumnQualifier().toString().equals("loc")) {
+      // The row for the sharded table should look like: <tableId>;yyyyMMhh_N
+      String row = entry.getKey().getRow().toString();
+      // Parse the day out of the row
+      int semicolon = row.indexOf(";");
+      String day = null;
+      if (semicolon != -1) {
+        semicolon++;
+        day = row.substring(semicolon, semicolon + 8);
+      } else day = "NULL    ";
+      String server = entry.getValue().toString();
+      if (countsByDay.get(day) == null) countsByDay.put(day, new HashSet<String>());
+      countsByDay.get(day).add(server);
     }
-    
-    private void aggregateStats(Entry<Key,Value> entry) {
-        if (entry.getKey().getColumnFamily().toString().equals("~tab") && entry.getKey().getColumnQualifier().toString().equals("loc")) {
-            // The row for the sharded table should look like: <tableId>;yyyyMMhh_N
-            String row = entry.getKey().getRow().toString();
-            // Parse the day out of the row
-            int semicolon = row.indexOf(";");
-            String day = null;
-            if (semicolon != -1) {
-                semicolon++;
-                day = row.substring(semicolon, semicolon + 8);
-            } else day = "NULL    ";
-            String server = entry.getValue().toString();
-            if (countsByDay.get(day) == null) countsByDay.put(day, new HashSet<String>());
-            countsByDay.get(day).add(server);
-        }
-    }
-    
-    private String getStats() {
-        StringBuilder buf = new StringBuilder();
-        buf.append("DAY   \t\tSERVERS\n");
-        buf.append("------\t\t-------\n");
-        for (String day : countsByDay.keySet())
-            buf.append(day + "\t\t" + countsByDay.get(day).size() + "\n");
-        return buf.toString();
-    }
-    
+  }
+  
+  private String getStats() {
+    StringBuilder buf = new StringBuilder();
+    buf.append("DAY   \t\tSERVERS\n");
+    buf.append("------\t\t-------\n");
+    for (String day : countsByDay.keySet())
+      buf.append(day + "\t\t" + countsByDay.get(day).size() + "\n");
+    return buf.toString();
+  }
+  
 }

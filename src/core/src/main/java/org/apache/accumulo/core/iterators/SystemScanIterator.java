@@ -28,9 +28,9 @@ import org.apache.accumulo.core.iterators.filter.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 
 public class SystemScanIterator extends FilteringIterator {
-    public SystemScanIterator(SortedKeyValueIterator<Key,Value> iterator, Authorizations authorizations, byte[] defaultLabels, HashSet<Column> hsc)
-            throws IOException {
-        super(iterator, Arrays.asList(new ColumnQualifierFilter(hsc), new VisibilityFilter(authorizations, defaultLabels)));
-    }
-    
+  public SystemScanIterator(SortedKeyValueIterator<Key,Value> iterator, Authorizations authorizations, byte[] defaultLabels, HashSet<Column> hsc)
+      throws IOException {
+    super(iterator, Arrays.asList(new ColumnQualifierFilter(hsc), new VisibilityFilter(authorizations, defaultLabels)));
+  }
+  
 }

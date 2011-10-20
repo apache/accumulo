@@ -25,15 +25,15 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
 public interface FileSKVWriter {
-    boolean supportsLocalityGroups();
-    
-    void startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies) throws IOException;
-    
-    void startDefaultLocalityGroup() throws IOException;
-    
-    void append(Key key, Value value) throws IOException;
-    
-    DataOutputStream createMetaStore(String name) throws IOException;
-    
-    void close() throws IOException;
+  boolean supportsLocalityGroups();
+  
+  void startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies) throws IOException;
+  
+  void startDefaultLocalityGroup() throws IOException;
+  
+  void append(Key key, Value value) throws IOException;
+  
+  DataOutputStream createMetaStore(String name) throws IOException;
+  
+  void close() throws IOException;
 }

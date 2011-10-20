@@ -37,97 +37,97 @@ import org.apache.commons.logging.LogFactory;
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 public final class AccumuloFilesystemAlterationMonitor implements Runnable {
+  
+  private final Log log = LogFactory.getLog(AccumuloFilesystemAlterationMonitor.class);
+  
+  private final Object observersLock = new Object();
+  private Map observers = Collections.unmodifiableMap(new HashMap());
+  private long delay = 3000;
+  private Thread thread;
+  
+  private volatile boolean running = true;
+  
+  public AccumuloFilesystemAlterationMonitor() {}
+  
+  public void start() {
+    thread = new Thread(this, this.getClass().getName());
+    thread.setDaemon(true);
+    thread.start();
+  }
+  
+  public void stop() {
+    running = false;
     
-    private final Log log = LogFactory.getLog(AccumuloFilesystemAlterationMonitor.class);
+    try {
+      thread.interrupt();
+      thread.join(10);
+    } catch (InterruptedException e) {}
+  }
+  
+  public void setInterval(final long pDelay) {
+    delay = pDelay;
+  }
+  
+  public void addListener(final File pRoot, final FilesystemAlterationListener pListener) {
     
-    private final Object observersLock = new Object();
-    private Map observers = Collections.unmodifiableMap(new HashMap());
-    private long delay = 3000;
-    private Thread thread;
+    FilesystemAlterationObserver observer;
     
-    private volatile boolean running = true;
-    
-    public AccumuloFilesystemAlterationMonitor() {}
-    
-    public void start() {
-        thread = new Thread(this, this.getClass().getName());
-        thread.setDaemon(true);
-        thread.start();
+    synchronized (observersLock) {
+      observer = (FilesystemAlterationObserver) observers.get(pRoot);
+      
+      if (observer == null) {
+        final Map newObservers = new HashMap(observers);
+        observer = new FilesystemAlterationObserverImpl(pRoot);
+        newObservers.put(pRoot, observer);
+        observers = Collections.unmodifiableMap(newObservers);
+      }
     }
     
-    public void stop() {
-        running = false;
-        
-        try {
-            thread.interrupt();
-            thread.join(10);
-        } catch (InterruptedException e) {}
+    observer.addListener(pListener);
+  }
+  
+  public void removeListener(final FilesystemAlterationListener pListener) {
+    synchronized (observersLock) {
+      for (Iterator it = observers.values().iterator(); it.hasNext();) {
+        final FilesystemAlterationObserver observer = (FilesystemAlterationObserver) it.next();
+        observer.removeListener(pListener);
+        // FIXME: remove observer if there are no listeners?
+      }
+    }
+  }
+  
+  public FilesystemAlterationListener[] getListenersFor(final File pRoot) {
+    final FilesystemAlterationObserver observer = (FilesystemAlterationObserver) observers.get(pRoot);
+    
+    if (observer == null) {
+      return new FilesystemAlterationListener[0];
     }
     
-    public void setInterval(final long pDelay) {
-        delay = pDelay;
+    return observer.getListeners();
+  }
+  
+  public void run() {
+    log.debug("fam running");
+    
+    while (true) {
+      if (!running) {
+        break;
+      }
+      
+      final Map currentObservers = observers;
+      
+      for (Iterator it = currentObservers.values().iterator(); it.hasNext();) {
+        final FilesystemAlterationObserver observer = (FilesystemAlterationObserver) it.next();
+        observer.checkAndNotify();
+      }
+      
+      if (!running) break;
+      try {
+        Thread.sleep(delay);
+      } catch (final InterruptedException e) {}
     }
     
-    public void addListener(final File pRoot, final FilesystemAlterationListener pListener) {
-        
-        FilesystemAlterationObserver observer;
-        
-        synchronized (observersLock) {
-            observer = (FilesystemAlterationObserver) observers.get(pRoot);
-            
-            if (observer == null) {
-                final Map newObservers = new HashMap(observers);
-                observer = new FilesystemAlterationObserverImpl(pRoot);
-                newObservers.put(pRoot, observer);
-                observers = Collections.unmodifiableMap(newObservers);
-            }
-        }
-        
-        observer.addListener(pListener);
-    }
-    
-    public void removeListener(final FilesystemAlterationListener pListener) {
-        synchronized (observersLock) {
-            for (Iterator it = observers.values().iterator(); it.hasNext();) {
-                final FilesystemAlterationObserver observer = (FilesystemAlterationObserver) it.next();
-                observer.removeListener(pListener);
-                // FIXME: remove observer if there are no listeners?
-            }
-        }
-    }
-    
-    public FilesystemAlterationListener[] getListenersFor(final File pRoot) {
-        final FilesystemAlterationObserver observer = (FilesystemAlterationObserver) observers.get(pRoot);
-        
-        if (observer == null) {
-            return new FilesystemAlterationListener[0];
-        }
-        
-        return observer.getListeners();
-    }
-    
-    public void run() {
-        log.debug("fam running");
-        
-        while (true) {
-            if (!running) {
-                break;
-            }
-            
-            final Map currentObservers = observers;
-            
-            for (Iterator it = currentObservers.values().iterator(); it.hasNext();) {
-                final FilesystemAlterationObserver observer = (FilesystemAlterationObserver) it.next();
-                observer.checkAndNotify();
-            }
-            
-            if (!running) break;
-            try {
-                Thread.sleep(delay);
-            } catch (final InterruptedException e) {}
-        }
-        
-        log.debug("fam exiting");
-    }
-    
+    log.debug("fam exiting");
+  }
+  
 }

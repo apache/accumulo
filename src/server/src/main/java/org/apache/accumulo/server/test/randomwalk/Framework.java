@@ -24,91 +24,91 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
 
 public class Framework {
+  
+  private static final Logger log = Logger.getLogger(Framework.class);
+  private HashMap<String,Node> nodes = new HashMap<String,Node>();
+  private static String configDir = null;
+  private static final Framework INSTANCE = new Framework();
+  
+  /**
+   * @return Singleton instance of Framework
+   */
+  public static Framework getInstance() {
+    return INSTANCE;
+  }
+  
+  public static String getConfigDir() {
+    return configDir;
+  }
+  
+  public static void setConfigDir(String confDir) {
+    configDir = confDir;
+  }
+  
+  /**
+   * Run random walk framework
+   * 
+   * @param startName
+   *          Full name of starting graph or test
+   * @param traversals
+   *          Number of nodes that should be visited
+   */
+  public void run(String startName, State state, String confDir) {
     
-    private static final Logger log = Logger.getLogger(Framework.class);
-    private HashMap<String,Node> nodes = new HashMap<String,Node>();
-    private static String configDir = null;
-    private static final Framework INSTANCE = new Framework();
+    try {
+      setConfigDir(confDir);
+      Node node = getNode(startName);
+      node.visit(state, new Properties());
+    } catch (Exception e) {
+      log.error("Error during random walk", e);
+      System.exit(-1);
+    }
+    System.exit(0);
+  }
+  
+  /**
+   * Creates node (if it does not already exist) and inserts into map
+   * 
+   * @param id
+   *          Name of node
+   * @return Node specified by id
+   * @throws Exception
+   */
+  public Node getNode(String id) throws Exception {
     
-    /**
-     * @return Singleton instance of Framework
-     */
-    public static Framework getInstance() {
-        return INSTANCE;
+    // check for node in nodes
+    if (nodes.containsKey(id)) {
+      return nodes.get(id);
     }
     
-    public static String getConfigDir() {
-        return configDir;
+    // otherwise create and put in nodes
+    Node node = null;
+    if (id.endsWith(".xml")) {
+      node = new Module(new File(configDir + "modules/" + id));
+    } else {
+      node = (Test) Class.forName(id).newInstance();
     }
+    nodes.put(id, node);
+    return node;
+  }
+  
+  public static void main(String[] args) throws Exception {
     
-    public static void setConfigDir(String confDir) {
-        configDir = confDir;
+    if (args.length != 3) {
+      throw new IllegalArgumentException("usage : Framework <configDir> <logPath> <module>");
     }
+    String configDir = args[0];
+    String logPath = args[1];
+    String module = args[2];
     
-    /**
-     * Run random walk framework
-     * 
-     * @param startName
-     *            Full name of starting graph or test
-     * @param traversals
-     *            Number of nodes that should be visited
-     */
-    public void run(String startName, State state, String confDir) {
-        
-        try {
-            setConfigDir(confDir);
-            Node node = getNode(startName);
-            node.visit(state, new Properties());
-        } catch (Exception e) {
-            log.error("Error during random walk", e);
-            System.exit(-1);
-        }
-        System.exit(0);
-    }
+    System.setProperty("logpath", logPath);
     
-    /**
-     * Creates node (if it does not already exist) and inserts into map
-     * 
-     * @param id
-     *            Name of node
-     * @return Node specified by id
-     * @throws Exception
-     */
-    public Node getNode(String id) throws Exception {
-        
-        // check for node in nodes
-        if (nodes.containsKey(id)) {
-            return nodes.get(id);
-        }
-        
-        // otherwise create and put in nodes
-        Node node = null;
-        if (id.endsWith(".xml")) {
-            node = new Module(new File(configDir + "modules/" + id));
-        } else {
-            node = (Test) Class.forName(id).newInstance();
-        }
-        nodes.put(id, node);
-        return node;
-    }
+    DOMConfigurator.configure(configDir + "logger.xml");
     
-    public static void main(String[] args) throws Exception {
-        
-        if (args.length != 3) {
-            throw new IllegalArgumentException("usage : Framework <configDir> <logPath> <module>");
-        }
-        String configDir = args[0];
-        String logPath = args[1];
-        String module = args[2];
-        
-        System.setProperty("logpath", logPath);
-        
-        DOMConfigurator.configure(configDir + "logger.xml");
-        
-        Properties props = new Properties();
-        props.load(new FileInputStream(configDir + "/randomwalk.conf"));
-        
-        State state = new State(props);
-        getInstance().run(module, state, configDir);
-    }
+    Properties props = new Properties();
+    props.load(new FileInputStream(configDir + "/randomwalk.conf"));
+    
+    State state = new State(props);
+    getInstance().run(module, state, configDir);
+  }
 }

@@ -38,21 +38,21 @@ import org.apache.accumulo.core.data.Mutation;
  */
 
 public interface Constraint {
-    
-    /**
-     * Implementers of this method should return a short one sentence description of what a given violation code means.
-     * 
-     */
-    
-    String getViolationDescription(short violationCode);
-    
-    /**
-     * Checks a mutation for constrain violations. If the mutation contains no violations, then the implementation should return null. Otherwise it should
-     * return a list of violation codes.
-     * 
-     * Violation codes must be non negative. Negative violation codes are reserved for system use.
-     * 
-     */
-    
-    List<Short> check(Mutation mutation);
+  
+  /**
+   * Implementers of this method should return a short one sentence description of what a given violation code means.
+   * 
+   */
+  
+  String getViolationDescription(short violationCode);
+  
+  /**
+   * Checks a mutation for constrain violations. If the mutation contains no violations, then the implementation should return null. Otherwise it should return
+   * a list of violation codes.
+   * 
+   * Violation codes must be non negative. Negative violation codes are reserved for system use.
+   * 
+   */
+  
+  List<Short> check(Mutation mutation);
 }

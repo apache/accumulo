@@ -37,56 +37,56 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.collections.iterators.IteratorChain;
 
 public class MockBatchScanner extends MockScannerBase implements BatchScanner {
+  
+  final List<Range> ranges = new ArrayList<Range>();
+  
+  public MockBatchScanner(MockTable mockTable, Authorizations authorizations) {
+    super(mockTable, authorizations);
+  }
+  
+  @Override
+  public void setRanges(Collection<Range> ranges) {
+    this.ranges.clear();
+    this.ranges.addAll(ranges);
+  }
+  
+  static class RangesFilter implements Filter {
+    List<Range> ranges;
     
-    final List<Range> ranges = new ArrayList<Range>();
-    
-    public MockBatchScanner(MockTable mockTable, Authorizations authorizations) {
-        super(mockTable, authorizations);
+    public RangesFilter(List<Range> ranges) {
+      this.ranges = ranges;
     }
     
     @Override
-    public void setRanges(Collection<Range> ranges) {
-        this.ranges.clear();
-        this.ranges.addAll(ranges);
-    }
-    
-    static class RangesFilter implements Filter {
-        List<Range> ranges;
-        
-        public RangesFilter(List<Range> ranges) {
-            this.ranges = ranges;
-        }
-        
-        @Override
-        public void init(Map<String,String> options) {}
-        
-        @Override
-        public boolean accept(Key k, Value v) {
-            for (Range r : ranges) {
-                if (r.contains(k)) return true;
-            }
-            return false;
-        }
-    }
-    
-    @SuppressWarnings("unchecked")
-    @Override
-    public Iterator<Entry<Key,Value>> iterator() {
-        IteratorChain chain = new IteratorChain();
-        for (Range range : ranges) {
-            SortedKeyValueIterator<Key,Value> i = new SortedMapIterator(table.table);
-            try {
-                i = createFilter(i);
-                i.seek(range, createColumnBSS(columns), !columns.isEmpty());
-                chain.addIterator(new IteratorAdapter(new FilteringIterator(i, Collections.singletonList(new RangesFilter(ranges)))));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return chain;
-    }
+    public void init(Map<String,String> options) {}
     
     @Override
-    public void close() {}
-    
+    public boolean accept(Key k, Value v) {
+      for (Range r : ranges) {
+        if (r.contains(k)) return true;
+      }
+      return false;
+    }
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Override
+  public Iterator<Entry<Key,Value>> iterator() {
+    IteratorChain chain = new IteratorChain();
+    for (Range range : ranges) {
+      SortedKeyValueIterator<Key,Value> i = new SortedMapIterator(table.table);
+      try {
+        i = createFilter(i);
+        i.seek(range, createColumnBSS(columns), !columns.isEmpty());
+        chain.addIterator(new IteratorAdapter(new FilteringIterator(i, Collections.singletonList(new RangesFilter(ranges)))));
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    return chain;
+  }
+  
+  @Override
+  public void close() {}
+  
 }

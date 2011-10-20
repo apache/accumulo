@@ -32,30 +32,30 @@ import java.util.Map;
  * 
  */
 public interface OptionDescriber {
-    public static class IteratorOptions {
-        public final Map<String,String> namedOptions;
-        public final List<String> unnamedOptionDescriptions;
-        public final String name;
-        public final String description;
-        
-        /*
-         * IteratorOptions requires the following: name is the distinguishing name for the iterator or filter description is a description of the iterator or
-         * filter namedOptions is a map from specifically named options to their descriptions (null if unused) e.g., the AgeOffFilter requires a parameter
-         * called "ttl", so its namedOptions = Collections.singletonMap("ttl", "time to live (milliseconds)") unnamedOptionDescriptions is a list of
-         * descriptions of additional options that don't have fixed names (null if unused) the descriptions are intended to describe a category, and the user
-         * will provide parameter names and values in that category e.g., the FilteringIterator needs a list of Filters intended to be named by their priority
-         * numbers, so its unnamedOptionDescriptions = Collections.singletonList("<filterPriorityNumber> <ageoff|regex|filterClass>")
-         */
-        public IteratorOptions(String name, String description, Map<String,String> namedOptions, List<String> unnamedOptionDescriptions) {
-            this.name = name;
-            this.namedOptions = namedOptions;
-            this.unnamedOptionDescriptions = unnamedOptionDescriptions;
-            this.description = description;
-        }
-        
+  public static class IteratorOptions {
+    public final Map<String,String> namedOptions;
+    public final List<String> unnamedOptionDescriptions;
+    public final String name;
+    public final String description;
+    
+    /*
+     * IteratorOptions requires the following: name is the distinguishing name for the iterator or filter description is a description of the iterator or filter
+     * namedOptions is a map from specifically named options to their descriptions (null if unused) e.g., the AgeOffFilter requires a parameter called "ttl", so
+     * its namedOptions = Collections.singletonMap("ttl", "time to live (milliseconds)") unnamedOptionDescriptions is a list of descriptions of additional
+     * options that don't have fixed names (null if unused) the descriptions are intended to describe a category, and the user will provide parameter names and
+     * values in that category e.g., the FilteringIterator needs a list of Filters intended to be named by their priority numbers, so its
+     * unnamedOptionDescriptions = Collections.singletonList("<filterPriorityNumber> <ageoff|regex|filterClass>")
+     */
+    public IteratorOptions(String name, String description, Map<String,String> namedOptions, List<String> unnamedOptionDescriptions) {
+      this.name = name;
+      this.namedOptions = namedOptions;
+      this.unnamedOptionDescriptions = unnamedOptionDescriptions;
+      this.description = description;
     }
     
-    public IteratorOptions describeOptions();
-    
-    public boolean validateOptions(Map<String,String> options);
+  }
+  
+  public IteratorOptions describeOptions();
+  
+  public boolean validateOptions(Map<String,String> options);
 }

@@ -33,35 +33,35 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class PrintInfo {
-    public static void main(String[] args) throws Exception {
-        Configuration conf = new Configuration();
-        FileSystem fs = FileSystem.get(conf);
-        
-        Options opts = new Options();
-        Option dumpKeys = new Option("d", "dump", false, "dump the key/value pairs");
-        opts.addOption(dumpKeys);
-        
-        CommandLine commandLine = new BasicParser().parse(opts, args);
-        
-        for (String arg : commandLine.getArgs()) {
-            
-            Path path = new Path(arg);
-            CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null);
-            Reader iter = new RFile.Reader(_rdr);
-            
-            iter.printInfo();
-            
-            if (commandLine.hasOption(dumpKeys.getOpt())) {
-                iter.seek(new Range((Key) null, (Key) null), new ArrayList<ByteSequence>(), false);
-                while (iter.hasTop()) {
-                    Key key = iter.getTopKey();
-                    Value value = iter.getTopValue();
-                    System.out.println(key + " -> " + value);
-                    iter.next();
-                }
-            }
-            
-            iter.close();
+  public static void main(String[] args) throws Exception {
+    Configuration conf = new Configuration();
+    FileSystem fs = FileSystem.get(conf);
+    
+    Options opts = new Options();
+    Option dumpKeys = new Option("d", "dump", false, "dump the key/value pairs");
+    opts.addOption(dumpKeys);
+    
+    CommandLine commandLine = new BasicParser().parse(opts, args);
+    
+    for (String arg : commandLine.getArgs()) {
+      
+      Path path = new Path(arg);
+      CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null);
+      Reader iter = new RFile.Reader(_rdr);
+      
+      iter.printInfo();
+      
+      if (commandLine.hasOption(dumpKeys.getOpt())) {
+        iter.seek(new Range((Key) null, (Key) null), new ArrayList<ByteSequence>(), false);
+        while (iter.hasTop()) {
+          Key key = iter.getTopKey();
+          Value value = iter.getTopValue();
+          System.out.println(key + " -> " + value);
+          iter.next();
         }
+      }
+      
+      iter.close();
     }
+  }
 }

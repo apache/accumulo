@@ -27,13 +27,13 @@ import java.io.IOException;
  */
 
 public interface ABlockWriter extends DataOutput {
-    
-    public long getCompressedSize() throws IOException;
-    
-    public void close() throws IOException;
-    
-    public long getRawSize() throws IOException;
-    
-    public DataOutputStream getStream() throws IOException;
-    
+  
+  public long getCompressedSize() throws IOException;
+  
+  public void close() throws IOException;
+  
+  public long getRawSize() throws IOException;
+  
+  public DataOutputStream getStream() throws IOException;
+  
 }

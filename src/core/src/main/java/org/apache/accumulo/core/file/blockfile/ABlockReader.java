@@ -27,11 +27,11 @@ import java.io.IOException;
  */
 
 public interface ABlockReader extends DataInput {
-    
-    public long getRawSize();
-    
-    public DataInputStream getStream() throws IOException;
-    
-    public void close() throws IOException;
-    
+  
+  public long getRawSize();
+  
+  public DataInputStream getStream() throws IOException;
+  
+  public void close() throws IOException;
+  
 }

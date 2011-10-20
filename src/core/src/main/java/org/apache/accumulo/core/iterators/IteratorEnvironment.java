@@ -24,13 +24,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 
 public interface IteratorEnvironment {
-    
-    SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException;
-    
-    AccumuloConfiguration getConfig();
-    
-    IteratorScope getIteratorScope();
-    
-    boolean isFullMajorCompaction();
-    
+  
+  SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException;
+  
+  AccumuloConfiguration getConfig();
+  
+  IteratorScope getIteratorScope();
+  
+  boolean isFullMajorCompaction();
+  
 }

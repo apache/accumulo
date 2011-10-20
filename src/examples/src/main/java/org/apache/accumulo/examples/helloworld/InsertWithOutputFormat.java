@@ -31,46 +31,46 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 public class InsertWithOutputFormat extends Configured implements Tool {
-    // this is a tool because when you run a mapreduce, you will need to use the
-    // ToolRunner
-    // if you want libjars to be passed properly to the map and reduce tasks
-    // even though this class isn't a mapreduce
-    @Override
-    public int run(String[] args) throws Exception {
-        if (args.length != 5) {
-            System.out.println("Usage: accumulo " + this.getClass().getName() + " <instance name> <zoo keepers> <tablename> <username> <password>");
-            return 1;
-        }
-        Text tableName = new Text(args[2]);
-        Job job = new Job(getConf());
-        Configuration conf = job.getConfiguration();
-        AccumuloOutputFormat.setZooKeeperInstance(job, args[0], args[1]);
-        AccumuloOutputFormat.setOutputInfo(job, args[3], args[4].getBytes(), true, null);
-        job.setOutputFormatClass(AccumuloOutputFormat.class);
-        
-        // when running a mapreduce, you won't need to instantiate the output
-        // format and record writer
-        // mapreduce will do that for you, and you will just use
-        // output.collect(tableName, mutation)
-        TaskAttemptContext context = new TaskAttemptContext(conf, new TaskAttemptID());
-        RecordWriter<Text,Mutation> rw = new AccumuloOutputFormat().getRecordWriter(context);
-        
-        Text colf = new Text("colfam");
-        System.out.println("writing ...");
-        for (int i = 0; i < 10000; i++) {
-            Mutation m = new Mutation(new Text(String.format("row_%d", i)));
-            for (int j = 0; j < 5; j++) {
-                m.put(colf, new Text(String.format("colqual_%d", j)), new Value((String.format("value_%d_%d", i, j)).getBytes()));
-            }
-            rw.write(tableName, m); // repeat until done
-            if (i % 100 == 0) System.out.println(i);
-        }
-        
-        rw.close(context); // close when done
-        return 0;
+  // this is a tool because when you run a mapreduce, you will need to use the
+  // ToolRunner
+  // if you want libjars to be passed properly to the map and reduce tasks
+  // even though this class isn't a mapreduce
+  @Override
+  public int run(String[] args) throws Exception {
+    if (args.length != 5) {
+      System.out.println("Usage: accumulo " + this.getClass().getName() + " <instance name> <zoo keepers> <tablename> <username> <password>");
+      return 1;
+    }
+    Text tableName = new Text(args[2]);
+    Job job = new Job(getConf());
+    Configuration conf = job.getConfiguration();
+    AccumuloOutputFormat.setZooKeeperInstance(job, args[0], args[1]);
+    AccumuloOutputFormat.setOutputInfo(job, args[3], args[4].getBytes(), true, null);
+    job.setOutputFormatClass(AccumuloOutputFormat.class);
+    
+    // when running a mapreduce, you won't need to instantiate the output
+    // format and record writer
+    // mapreduce will do that for you, and you will just use
+    // output.collect(tableName, mutation)
+    TaskAttemptContext context = new TaskAttemptContext(conf, new TaskAttemptID());
+    RecordWriter<Text,Mutation> rw = new AccumuloOutputFormat().getRecordWriter(context);
+    
+    Text colf = new Text("colfam");
+    System.out.println("writing ...");
+    for (int i = 0; i < 10000; i++) {
+      Mutation m = new Mutation(new Text(String.format("row_%d", i)));
+      for (int j = 0; j < 5; j++) {
+        m.put(colf, new Text(String.format("colqual_%d", j)), new Value((String.format("value_%d_%d", i, j)).getBytes()));
+      }
+      rw.write(tableName, m); // repeat until done
+      if (i % 100 == 0) System.out.println(i);
     }
     
-    public static void main(String[] args) throws Exception {
-        System.exit(ToolRunner.run(CachedConfiguration.getInstance(), new InsertWithOutputFormat(), args));
-    }
+    rw.close(context); // close when done
+    return 0;
+  }
+  
+  public static void main(String[] args) throws Exception {
+    System.exit(ToolRunner.run(CachedConfiguration.getInstance(), new InsertWithOutputFormat(), args));
+  }
 }

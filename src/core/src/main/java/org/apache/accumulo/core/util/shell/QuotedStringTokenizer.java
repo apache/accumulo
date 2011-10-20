@@ -30,85 +30,85 @@ import org.apache.accumulo.core.util.BadArgumentException;
  */
 
 public class QuotedStringTokenizer implements Iterable<String> {
-    private ArrayList<String> tokens;
-    private String input;
+  private ArrayList<String> tokens;
+  private String input;
+  
+  public QuotedStringTokenizer(String t) throws BadArgumentException {
+    tokens = new ArrayList<String>();
+    this.input = t;
+    createTokens();
+  }
+  
+  public String[] getTokens() {
+    return tokens.toArray(new String[tokens.size()]);
+  }
+  
+  private void createTokens() throws BadArgumentException {
+    boolean inQuote = false;
+    boolean inEscapeSequence = false;
+    String hexChars = null;
+    char inQuoteChar = '"';
+    StringBuilder sb = new StringBuilder();
     
-    public QuotedStringTokenizer(String t) throws BadArgumentException {
-        tokens = new ArrayList<String>();
-        this.input = t;
-        createTokens();
-    }
-    
-    public String[] getTokens() {
-        return tokens.toArray(new String[tokens.size()]);
-    }
-    
-    private void createTokens() throws BadArgumentException {
-        boolean inQuote = false;
-        boolean inEscapeSequence = false;
-        String hexChars = null;
-        char inQuoteChar = '"';
-        StringBuilder sb = new StringBuilder();
-        
-        for (int i = 0; i < input.length(); ++i) {
-            char ch = input.charAt(i);
-            
-            // if I ended up in an escape sequence, check for valid escapable character, and add it as a literal
-            if (inEscapeSequence) {
-                inEscapeSequence = false;
-                if (ch == 'x') hexChars = "";
-                else if (ch == ' ' || ch == '\'' || ch == '"' || ch == '\\') sb.append(ch);
-                else throw new BadArgumentException("can only escape single quotes, double quotes, the space character, the backslash, and hex input", input, i);
-            }
-            // in a hex escape sequence
-            else if (hexChars != null) {
-                int digit = Character.digit(ch, 16);
-                if (digit < 0) throw new BadArgumentException("expected hex character", input, i);
-                hexChars += ch;
-                if (hexChars.length() == 2) {
-                    byte b;
-                    try {
-                        b = (byte) (0xff & Short.parseShort(hexChars, 16));
-                        if (!Character.isValidCodePoint(b)) throw new NumberFormatException();
-                    } catch (NumberFormatException e) {
-                        throw new BadArgumentException("unsupported non-ascii character", input, i);
-                    }
-                    sb.append((char) b);
-                    hexChars = null;
-                }
-            }
-            // in a quote, either end the quote, start escape, or continue a token
-            else if (inQuote) {
-                if (ch == inQuoteChar) {
-                    inQuote = false;
-                    tokens.add(sb.toString());
-                    sb = new StringBuilder();
-                } else if (ch == '\\') inEscapeSequence = true;
-                else sb.append(ch);
-            }
-            // not in a quote, either enter a quote, end a token, start escape, or continue a token
-            else {
-                if (ch == '\'' || ch == '"') {
-                    if (sb.length() > 0) {
-                        tokens.add(sb.toString());
-                        sb = new StringBuilder();
-                    }
-                    inQuote = true;
-                    inQuoteChar = ch;
-                } else if (ch == ' ' && sb.length() > 0) {
-                    tokens.add(sb.toString());
-                    sb = new StringBuilder();
-                } else if (ch == '\\') inEscapeSequence = true;
-                else if (ch != ' ') sb.append(ch);
-            }
+    for (int i = 0; i < input.length(); ++i) {
+      char ch = input.charAt(i);
+      
+      // if I ended up in an escape sequence, check for valid escapable character, and add it as a literal
+      if (inEscapeSequence) {
+        inEscapeSequence = false;
+        if (ch == 'x') hexChars = "";
+        else if (ch == ' ' || ch == '\'' || ch == '"' || ch == '\\') sb.append(ch);
+        else throw new BadArgumentException("can only escape single quotes, double quotes, the space character, the backslash, and hex input", input, i);
+      }
+      // in a hex escape sequence
+      else if (hexChars != null) {
+        int digit = Character.digit(ch, 16);
+        if (digit < 0) throw new BadArgumentException("expected hex character", input, i);
+        hexChars += ch;
+        if (hexChars.length() == 2) {
+          byte b;
+          try {
+            b = (byte) (0xff & Short.parseShort(hexChars, 16));
+            if (!Character.isValidCodePoint(b)) throw new NumberFormatException();
+          } catch (NumberFormatException e) {
+            throw new BadArgumentException("unsupported non-ascii character", input, i);
+          }
+          sb.append((char) b);
+          hexChars = null;
         }
-        if (inQuote) throw new BadArgumentException("missing terminating quote", input, input.length());
-        else if (inEscapeSequence || hexChars != null) throw new BadArgumentException("escape sequence not complete", input, input.length());
-        if (sb.length() > 0) tokens.add(sb.toString());
+      }
+      // in a quote, either end the quote, start escape, or continue a token
+      else if (inQuote) {
+        if (ch == inQuoteChar) {
+          inQuote = false;
+          tokens.add(sb.toString());
+          sb = new StringBuilder();
+        } else if (ch == '\\') inEscapeSequence = true;
+        else sb.append(ch);
+      }
+      // not in a quote, either enter a quote, end a token, start escape, or continue a token
+      else {
+        if (ch == '\'' || ch == '"') {
+          if (sb.length() > 0) {
+            tokens.add(sb.toString());
+            sb = new StringBuilder();
+          }
+          inQuote = true;
+          inQuoteChar = ch;
+        } else if (ch == ' ' && sb.length() > 0) {
+          tokens.add(sb.toString());
+          sb = new StringBuilder();
+        } else if (ch == '\\') inEscapeSequence = true;
+        else if (ch != ' ') sb.append(ch);
+      }
     }
-    
-    @Override
-    public Iterator<String> iterator() {
-        return tokens.iterator();
-    }
+    if (inQuote) throw new BadArgumentException("missing terminating quote", input, input.length());
+    else if (inEscapeSequence || hexChars != null) throw new BadArgumentException("escape sequence not complete", input, input.length());
+    if (sb.length() > 0) tokens.add(sb.toString());
+  }
+  
+  @Override
+  public Iterator<String> iterator() {
+    return tokens.iterator();
+  }
 }

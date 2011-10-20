@@ -44,81 +44,81 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
 public class MockScannerBase implements ScannerBase {
-    
-    List<IterInfo> ssiList = new ArrayList<IterInfo>();
-    Map<String,Map<String,String>> ssio = new HashMap<String,Map<String,String>>();
-    
-    final HashSet<Column> columns = new HashSet<Column>();
-    protected final MockTable table;
-    protected final Authorizations auths;
-    
-    MockScannerBase(MockTable mockTable, Authorizations authorizations) {
-        this.table = mockTable;
-        this.auths = authorizations;
+  
+  List<IterInfo> ssiList = new ArrayList<IterInfo>();
+  Map<String,Map<String,String>> ssio = new HashMap<String,Map<String,String>>();
+  
+  final HashSet<Column> columns = new HashSet<Column>();
+  protected final MockTable table;
+  protected final Authorizations auths;
+  
+  MockScannerBase(MockTable mockTable, Authorizations authorizations) {
+    this.table = mockTable;
+    this.auths = authorizations;
+  }
+  
+  public void setScanIterators(int priority, String iteratorClass, String iteratorName) throws IOException {
+    ssiList.add(new IterInfo(priority, iteratorClass, iteratorName));
+  }
+  
+  public void setScanIteratorOption(String iteratorName, String key, String value) {
+    Map<String,String> kv = ssio.get(iteratorName);
+    if (kv == null) ssio.put(iteratorName, kv = new HashMap<String,String>());
+    kv.put(key, value);
+  }
+  
+  public void fetchColumnFamily(Text col) {
+    columns.add(new Column(TextUtil.getBytes(col), null, null));
+  }
+  
+  public void fetchColumn(Text colFam, Text colQual) {
+    columns.add(new Column(TextUtil.getBytes(colFam), TextUtil.getBytes(colQual), null));
+  }
+  
+  public void clearColumns() {
+    columns.clear();
+  }
+  
+  public void clearScanIterators() {
+    ssiList.clear();
+    ssio.clear();
+  }
+  
+  static HashSet<ByteSequence> createColumnBSS(Collection<Column> columns) {
+    HashSet<ByteSequence> columnSet = new HashSet<ByteSequence>();
+    for (Column c : columns) {
+      columnSet.add(new ArrayByteSequence(c.getColumnFamily()));
     }
-    
-    public void setScanIterators(int priority, String iteratorClass, String iteratorName) throws IOException {
-        ssiList.add(new IterInfo(priority, iteratorClass, iteratorName));
-    }
-    
-    public void setScanIteratorOption(String iteratorName, String key, String value) {
-        Map<String,String> kv = ssio.get(iteratorName);
-        if (kv == null) ssio.put(iteratorName, kv = new HashMap<String,String>());
-        kv.put(key, value);
-    }
-    
-    public void fetchColumnFamily(Text col) {
-        columns.add(new Column(TextUtil.getBytes(col), null, null));
-    }
-    
-    public void fetchColumn(Text colFam, Text colQual) {
-        columns.add(new Column(TextUtil.getBytes(colFam), TextUtil.getBytes(colQual), null));
-    }
-    
-    public void clearColumns() {
-        columns.clear();
-    }
-    
-    public void clearScanIterators() {
-        ssiList.clear();
-        ssio.clear();
-    }
-    
-    static HashSet<ByteSequence> createColumnBSS(Collection<Column> columns) {
-        HashSet<ByteSequence> columnSet = new HashSet<ByteSequence>();
-        for (Column c : columns) {
-            columnSet.add(new ArrayByteSequence(c.getColumnFamily()));
-        }
-        return columnSet;
-    }
-    
-    public SortedKeyValueIterator<Key,Value> createFilter(SortedKeyValueIterator<Key,Value> inner) throws IOException {
-        IteratorEnvironment iterEnv = null;
-        byte[] defaultLabels = {};
-        inner = new ColumnFamilySkippingIterator(new DeletingIterator(inner, false));
-        SystemScanIterator systemIter = new SystemScanIterator(inner, auths, defaultLabels, columns);
-        AccumuloConfiguration conf = new MockConfiguration(table.settings);
-        SortedKeyValueIterator<Key,Value> result = IteratorUtil.loadIterators(IteratorScope.scan, systemIter, null, conf, ssiList, ssio, iterEnv);
-        return result;
-    }
-    
-    public void setupRegex(String iteratorName, int iteratorPriority) throws IOException {
-        throw new UnsupportedOperationException();
-    }
-    
-    public void setRowRegex(String regex) {
-        throw new UnsupportedOperationException();
-    }
-    
-    public void setColumnFamilyRegex(String regex) {
-        throw new UnsupportedOperationException();
-    }
-    
-    public void setColumnQualifierRegex(String regex) {
-        throw new UnsupportedOperationException();
-    }
-    
-    public void setValueRegex(String regex) {
-        throw new UnsupportedOperationException();
-    }
+    return columnSet;
+  }
+  
+  public SortedKeyValueIterator<Key,Value> createFilter(SortedKeyValueIterator<Key,Value> inner) throws IOException {
+    IteratorEnvironment iterEnv = null;
+    byte[] defaultLabels = {};
+    inner = new ColumnFamilySkippingIterator(new DeletingIterator(inner, false));
+    SystemScanIterator systemIter = new SystemScanIterator(inner, auths, defaultLabels, columns);
+    AccumuloConfiguration conf = new MockConfiguration(table.settings);
+    SortedKeyValueIterator<Key,Value> result = IteratorUtil.loadIterators(IteratorScope.scan, systemIter, null, conf, ssiList, ssio, iterEnv);
+    return result;
+  }
+  
+  public void setupRegex(String iteratorName, int iteratorPriority) throws IOException {
+    throw new UnsupportedOperationException();
+  }
+  
+  public void setRowRegex(String regex) {
+    throw new UnsupportedOperationException();
+  }
+  
+  public void setColumnFamilyRegex(String regex) {
+    throw new UnsupportedOperationException();
+  }
+  
+  public void setColumnQualifierRegex(String regex) {
+    throw new UnsupportedOperationException();
+  }
+  
+  public void setValueRegex(String regex) {
+    throw new UnsupportedOperationException();
+  }
 }

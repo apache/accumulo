@@ -25,25 +25,25 @@ import java.util.TimerTask;
  * 
  */
 public class SimpleTimer {
-    
-    private static SimpleTimer instance;
-    private Timer timer;
-    
-    public static synchronized SimpleTimer getInstance() {
-        if (instance == null) instance = new SimpleTimer();
-        return instance;
-    }
-    
-    private SimpleTimer() {
-        timer = new Timer("SimpleTimer", true);
-    }
-    
-    public void schedule(TimerTask task, long delay) {
-        timer.schedule(task, delay);
-    }
-    
-    public void schedule(TimerTask task, long delay, long period) {
-        timer.schedule(task, delay, period);
-    }
-    
+  
+  private static SimpleTimer instance;
+  private Timer timer;
+  
+  public static synchronized SimpleTimer getInstance() {
+    if (instance == null) instance = new SimpleTimer();
+    return instance;
+  }
+  
+  private SimpleTimer() {
+    timer = new Timer("SimpleTimer", true);
+  }
+  
+  public void schedule(TimerTask task, long delay) {
+    timer.schedule(task, delay);
+  }
+  
+  public void schedule(TimerTask task, long delay, long period) {
+    timer.schedule(task, delay, period);
+  }
+  
 }

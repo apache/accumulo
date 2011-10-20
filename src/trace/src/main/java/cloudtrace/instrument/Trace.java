@@ -29,68 +29,68 @@ import cloudtrace.thrift.TInfo;
  * that the trace continues on the new thread.
  */
 public class Trace {
-    
-    // Initiate tracing if it isn't already started
-    public static Span on(String description) {
-        return Tracer.getInstance().on(description);
+  
+  // Initiate tracing if it isn't already started
+  public static Span on(String description) {
+    return Tracer.getInstance().on(description);
+  }
+  
+  // Turn tracing off:
+  public static void off() {
+    Tracer.getInstance().stopTracing();
+    Tracer.getInstance().flush();
+  }
+  
+  public static void offNoFlush() {
+    Tracer.getInstance().stopTracing();
+  }
+  
+  // Are we presently tracing?
+  public static boolean isTracing() {
+    return Tracer.getInstance().isTracing();
+  }
+  
+  // If we are tracing, return the current span, else null
+  public static Span currentTrace() {
+    return Tracer.getInstance().currentTrace();
+  }
+  
+  // Create a new time span, if tracing is on
+  public static Span start(String description) {
+    return Tracer.getInstance().start(description);
+  }
+  
+  // Start a trace in the current thread from information passed via RPC
+  public static Span trace(TInfo info, String description) {
+    if (info.traceId == 0) {
+      return Tracer.NULL_SPAN;
     }
-    
-    // Turn tracing off:
-    public static void off() {
-        Tracer.getInstance().stopTracing();
-        Tracer.getInstance().flush();
-    }
-    
-    public static void offNoFlush() {
-        Tracer.getInstance().stopTracing();
-    }
-    
-    // Are we presently tracing?
-    public static boolean isTracing() {
-        return Tracer.getInstance().isTracing();
-    }
-    
-    // If we are tracing, return the current span, else null
-    public static Span currentTrace() {
-        return Tracer.getInstance().currentTrace();
-    }
-    
-    // Create a new time span, if tracing is on
-    public static Span start(String description) {
-        return Tracer.getInstance().start(description);
-    }
-    
-    // Start a trace in the current thread from information passed via RPC
-    public static Span trace(TInfo info, String description) {
-        if (info.traceId == 0) {
-            return Tracer.NULL_SPAN;
-        }
-        return Tracer.getInstance().continueTrace(description, info.traceId, info.parentId);
-    }
-    
-    // Initiate a trace in this thread, starting now
-    public static Span startThread(Span parent, String description) {
-        return Tracer.getInstance().startThread(parent, description);
-    }
-    
-    // Stop a trace in this thread, starting now
-    public static void endThread(Span span) {
-        Tracer.getInstance().endThread(span);
-    }
-    
-    // Wrap the runnable in a new span, if tracing
-    public static Runnable wrap(Runnable runnable) {
-        if (isTracing()) return new TraceRunnable(Trace.currentTrace(), runnable);
-        return runnable;
-    }
-    
-    // Wrap all calls to the given object with spans
-    public static <T> T wrapAll(T instance) {
-        return TraceProxy.trace(instance);
-    }
-    
-    // Sample trace all calls to the given object
-    public static <T> T wrapAll(T instance, Sampler dist) {
-        return TraceProxy.trace(instance, dist);
-    }
+    return Tracer.getInstance().continueTrace(description, info.traceId, info.parentId);
+  }
+  
+  // Initiate a trace in this thread, starting now
+  public static Span startThread(Span parent, String description) {
+    return Tracer.getInstance().startThread(parent, description);
+  }
+  
+  // Stop a trace in this thread, starting now
+  public static void endThread(Span span) {
+    Tracer.getInstance().endThread(span);
+  }
+  
+  // Wrap the runnable in a new span, if tracing
+  public static Runnable wrap(Runnable runnable) {
+    if (isTracing()) return new TraceRunnable(Trace.currentTrace(), runnable);
+    return runnable;
+  }
+  
+  // Wrap all calls to the given object with spans
+  public static <T> T wrapAll(T instance) {
+    return TraceProxy.trace(instance);
+  }
+  
+  // Sample trace all calls to the given object
+  public static <T> T wrapAll(T instance, Sampler dist) {
+    return TraceProxy.trace(instance, dist);
+  }
 }

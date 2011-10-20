@@ -21,10 +21,10 @@ package org.apache.accumulo.server.util.time;
  * 
  */
 public class SystemTime implements ProvidesTime {
-    
-    @Override
-    public long currentTime() {
-        return System.currentTimeMillis();
-    }
-    
+  
+  @Override
+  public long currentTime() {
+    return System.currentTimeMillis();
+  }
+  
 }

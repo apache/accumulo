@@ -34,62 +34,62 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 class MultiIndexIterator extends HeapIterator implements FileSKVIterator {
+  
+  private RFile.Reader source;
+  
+  MultiIndexIterator(RFile.Reader source, List<List<IndexEntry>> indexes) {
+    super(indexes.size());
     
-    private RFile.Reader source;
+    this.source = source;
     
-    MultiIndexIterator(RFile.Reader source, List<List<IndexEntry>> indexes) {
-        super(indexes.size());
-        
-        this.source = source;
-        
-        for (List<IndexEntry> index : indexes) {
-            addSource(new IndexIterator(index.iterator()));
-        }
+    for (List<IndexEntry> index : indexes) {
+      addSource(new IndexIterator(index.iterator()));
     }
-    
-    @Override
-    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-        throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-        throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-        throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public void close() throws IOException {
-        source.close();
-    }
-    
-    @Override
-    public void closeDeepCopies() throws IOException {
-        throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public Key getFirstKey() throws IOException {
-        throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public Key getLastKey() throws IOException {
-        throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public DataInputStream getMetaStore(String name) throws IOException {
-        throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public void setInterruptFlag(AtomicBoolean flag) {
-        throw new UnsupportedOperationException();
-    }
-    
+  }
+  
+  @Override
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public void close() throws IOException {
+    source.close();
+  }
+  
+  @Override
+  public void closeDeepCopies() throws IOException {
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public Key getFirstKey() throws IOException {
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public Key getLastKey() throws IOException {
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public DataInputStream getMetaStore(String name) throws IOException {
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public void setInterruptFlag(AtomicBoolean flag) {
+    throw new UnsupportedOperationException();
+  }
+  
 }

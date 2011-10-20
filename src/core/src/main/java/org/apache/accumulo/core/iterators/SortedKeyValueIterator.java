@@ -32,26 +32,26 @@ import org.apache.hadoop.io.WritableComparable;
  */
 
 public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extends Writable> {
-    
-    void init(SortedKeyValueIterator<K,V> source, Map<String,String> options, IteratorEnvironment env) throws IOException;
-    
-    // we should add method to get a continue key that appropriately translates
-    
-    boolean hasTop();
-    
-    void next() throws IOException;
-    
-    /**
-     * An iterator must seek to the first key in the range taking inclusiveness into account. However, an iterator does not have to stop at the end of the
-     * range. The whole range is provided so that iterators can make optimizations.
-     */
-    void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException;
-    
-    K getTopKey();
-    
-    V getTopValue();
-    
-    // create a deep copy of this iterator as though seek had not yet been called
-    // init must not be called after clone, on either of the instances
-    SortedKeyValueIterator<K,V> deepCopy(IteratorEnvironment env);
+  
+  void init(SortedKeyValueIterator<K,V> source, Map<String,String> options, IteratorEnvironment env) throws IOException;
+  
+  // we should add method to get a continue key that appropriately translates
+  
+  boolean hasTop();
+  
+  void next() throws IOException;
+  
+  /**
+   * An iterator must seek to the first key in the range taking inclusiveness into account. However, an iterator does not have to stop at the end of the range.
+   * The whole range is provided so that iterators can make optimizations.
+   */
+  void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException;
+  
+  K getTopKey();
+  
+  V getTopValue();
+  
+  // create a deep copy of this iterator as though seek had not yet been called
+  // init must not be called after clone, on either of the instances
+  SortedKeyValueIterator<K,V> deepCopy(IteratorEnvironment env);
 }

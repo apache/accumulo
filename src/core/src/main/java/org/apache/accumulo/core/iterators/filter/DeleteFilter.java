@@ -24,10 +24,10 @@ import org.apache.accumulo.core.data.Value;
  * 
  */
 public class DeleteFilter extends RegExFilter {
-    
-    @Override
-    public boolean accept(Key key, Value value) {
-        return !(super.accept(key, value));
-    }
-    
+  
+  @Override
+  public boolean accept(Key key, Value value) {
+    return !(super.accept(key, value));
+  }
+  
 }

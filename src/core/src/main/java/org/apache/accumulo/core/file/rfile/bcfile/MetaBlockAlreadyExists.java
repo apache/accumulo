@@ -24,13 +24,13 @@ import java.io.IOException;
  */
 @SuppressWarnings("serial")
 public class MetaBlockAlreadyExists extends IOException {
-    /**
-     * Constructor
-     * 
-     * @param s
-     *            message.
-     */
-    MetaBlockAlreadyExists(String s) {
-        super(s);
-    }
+  /**
+   * Constructor
+   * 
+   * @param s
+   *          message.
+   */
+  MetaBlockAlreadyExists(String s) {
+    super(s);
+  }
 }
