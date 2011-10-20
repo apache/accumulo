@@ -52,7 +52,7 @@ public class ZooReaderWriter extends ZooReader {
   
   public ZooReaderWriter(String string, int timeInMillis, String auth) {
     super(string, timeInMillis);
-    this.auth = "acu:" + auth;
+    this.auth = "accumulo:" + auth;
   }
   
   public void recursiveDelete(String zPath, NodeMissingPolicy policy) throws KeeperException, InterruptedException {
