@@ -15,6 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This script will check the configuration and uniformity of all the nodes in a cluster.
+# Checks
+#   each node is reachable via ssh
+#   login identity is the same
+#   the physical memory is the same
+#   the mounts are the same on each machine
+#   a set of writable locations (typically different disks) are in fact writable
+# 
+# In order to check for writable partitions, you must configure the WRITABLE variable below.
+#
 
 import subprocess
 import time
@@ -23,9 +33,12 @@ import os
 import sys
 import fcntl
 import signal
+if not sys.platform.startswith('linux'):
+   sys.stderr.write('This script only works on linux, sorry.\n')
+   sys.exit(1)
 
 TIMEOUT = 5
-WRITABLE = [('/data%02d/hadoop' % n) for n in range(3)]
+WRITABLE = []
 #WRITABLE = ['/srv/hdfs1', '/srv/hdfs2', '/srv/hdfs3']
 
 def ssh(slave, *args):
@@ -127,6 +140,9 @@ def checkMemory(slaves):
 
 def checkWritable(slaves):
     'Touch all the directories that should be writable by this user return any nodes that fail'
+    if not WRITABLE:
+       print '# WRITABLE value not configured, not checking partitions'
+       return []
     handles = runAll(slaves, 'touch', *WRITABLE)
     bad = set()
     for h in handles:
@@ -163,7 +179,7 @@ def checkMounts(slaves):
 
 def main(argv):
     if len(argv) < 1:
-        sys.stderr.write('Usage: check_slaves.py slaves\n')
+        sys.stderr.write('Usage: check_slaves slaves\n')
         sys.exit(1)
     sys.stdin.close()
     slaves = set()
