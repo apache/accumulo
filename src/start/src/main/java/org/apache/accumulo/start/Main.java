@@ -90,7 +90,7 @@ public class Main {
           } catch (Exception e) {
             System.err.println("Thread \"" + Thread.currentThread().getName() + "\" died " + e.getMessage());
             e.printStackTrace(System.err);
-            throw new RuntimeException(e);
+            System.exit(1);
           }
         }
       };

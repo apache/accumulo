@@ -208,6 +208,7 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
   
   private static HashMap<String,Long> prevGcTime = new HashMap<String,Long>();
   private static long lastMemorySize = 0;
+  private static long gcTimeIncreasedCount;
   private static AtomicLong scanCount = new AtomicLong();
   private static final Class<? extends LoggerStrategy> DEFAULT_LOGGER_STRATEGY = RoundRobinLoggerStrategy.class;
   
@@ -266,6 +267,15 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     }
     
     long mem = rt.freeMemory();
+    if (maxIncreaseInCollectionTime == 0) {
+      gcTimeIncreasedCount = 0;
+    } else {
+      gcTimeIncreasedCount++;
+      if (gcTimeIncreasedCount > 3 && mem < rt.totalMemory() * 0.05) {
+        log.warn("Running low on memory");
+        gcTimeIncreasedCount = 0;
+      }
+    }
     
     if (mem > lastMemorySize) {
       sawChange = true;
