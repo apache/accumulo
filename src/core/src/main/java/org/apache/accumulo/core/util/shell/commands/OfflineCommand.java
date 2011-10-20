@@ -24,18 +24,18 @@ import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.TableOperation;
 
 public class OfflineCommand extends TableOperation {
-    
-    @Override
-    public String description() {
-        return "starts the process of taking table offline";
+  
+  @Override
+  public String description() {
+    return "starts the process of taking table offline";
+  }
+  
+  protected void doTableOp(Shell shellState, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    if (tableName.equals(Constants.METADATA_TABLE_NAME)) {
+      Shell.log.info("  You cannot take the " + Constants.METADATA_TABLE_NAME + " offline.");
+    } else {
+      Shell.log.info("Attempting to begin taking " + tableName + " offline");
+      shellState.getConnector().tableOperations().offline(tableName);
     }
-    
-    protected void doTableOp(Shell shellState, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-        if (tableName.equals(Constants.METADATA_TABLE_NAME)) {
-            Shell.log.info("  You cannot take the " + Constants.METADATA_TABLE_NAME + " offline.");
-        } else {
-            Shell.log.info("Attempting to begin taking " + tableName + " offline");
-            shellState.getConnector().tableOperations().offline(tableName);
-        }
-    }
+  }
 }

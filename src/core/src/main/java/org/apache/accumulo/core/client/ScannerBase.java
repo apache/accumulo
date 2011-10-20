@@ -29,158 +29,158 @@ import org.apache.hadoop.io.Text;
  * 
  */
 public interface ScannerBase extends Iterable<Entry<Key,Value>> {
-    
-    /**
-     * Add a server-side scan iterator.
-     * 
-     * @param iteratorClass
-     *            the fully qualified class name of the iterator to be applied at scan time
-     * @param iteratorName
-     *            a nickname for the iterator
-     * @throws IOException
-     *             if an exception occurs reading from the iterator stack
-     * 
-     */
-    public void addScanIterator(IteratorSetting cfg);
-    
-    /**
-     * Update the options for an iterator. Note that this does <b>not</b> change the iterator options during a scan, it just replaces the given option on a
-     * configured iterator before a scan is started.
-     * 
-     * @param iteratorName
-     *            the name of the iterator to change
-     * @param key
-     *            the name of the option
-     * @param value
-     *            the new value for the named option
-     */
-    public void updateScanIteratorOption(String iteratorName, String key, String value);
-    
-    /**
-     * @deprecated since 1.4
-     * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-     * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-     */
-    public void setScanIterators(int priority, String iteratorClass, String iteratorName);
-    
-    /**
-     * @deprecated since 1.4
-     * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-     * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-     */
-    public void setScanIteratorOption(String iteratorName, String key, String value);
-    
-    /**
-     * Call this method to initialize regular expressions on a scanner. If it is not called, reasonable defaults will be used.
-     * 
-     * @param iteratorName
-     *            a nickname for the iterator
-     * @param iteratorPriority
-     *            determines the order in which iterators are applied (system iterators are always applied first, then per-table and scan-time, lowest first)
-     * @throws IOException
-     *             if an exception occurs reading from the iterator stack
-     * 
-     * @deprecated since 1.4
-     * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-     * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-     */
-    public void setupRegex(String iteratorName, int iteratorPriority) throws IOException;
-    
-    /**
-     * 
-     * Set a row regular expression that filters non matching entries server side.
-     * 
-     * @param regex
-     *            java regular expression to match
-     * 
-     * @deprecated since 1.4
-     * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-     * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-     * @see {@link org.apache.accumulo.core.iterators.filter.RegExFilter#ROW_REGEX}
-     * 
-     *      <pre>
-     * // Use the more flexible addScanIterator method:
-     * ScanIterator cfg = new ScanIterator(&quot;regex&quot;, RegexIterator.class);
-     * RegexIterator.setRegexs(cfg, row, null, null, null, false);
-     * scanner.addScanIterator(priority, cfg);
-     * </pre>
-     */
-    public void setRowRegex(String regex);
-    
-    /**
-     * 
-     * Set a column family regular expression that filters non matching entries server side.
-     * 
-     * @param regex
-     *            java regular expression to match
-     * 
-     * @deprecated since 1.4
-     * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-     * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-     * @see {@link org.apache.accumulo.core.iterators.filter.RegExFilter#COLF_REGEX}
-     */
-    public void setColumnFamilyRegex(String regex);
-    
-    /**
-     * Use addScanIterator(int, ScanIterator);
-     * 
-     * Set a column qualifier regular expression that filters non matching entries server side.
-     * 
-     * @param regex
-     *            java regular expression to match
-     * 
-     * @deprecated since 1.4
-     * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-     * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-     * @see {@link org.apache.accumulo.core.iterators.filter.RegExFilter#COLQ_REGEX}.
-     * 
-     */
-    public void setColumnQualifierRegex(String regex);
-    
-    /**
-     * Set a value regular expression that filters non matching entries server side.
-     * 
-     * @param regex
-     *            java regular expression to match
-     * 
-     * @deprecated since 1.4
-     * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-     * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-     * @see {@link org.apache.accumulo.core.iterators.filter.RegExFilter#VALUE_REGEX}
-     */
-    public void setValueRegex(String regex);
-    
-    /**
-     * @param col
-     *            limit the scan to only this column family (multiple calls appends to the list of column families to limit)
-     */
-    public void fetchColumnFamily(Text col);
-    
-    /**
-     * Limits the scan to only this column, identified by family and qualifier. Multiple calls appends to the list of columns to be fetched.
-     * 
-     * @param colFam
-     *            the column family of the column to be fetched
-     * @param colQual
-     *            the column qualifier of the column to be fetched
-     */
-    public void fetchColumn(Text colFam, Text colQual);
-    
-    /**
-     * Clears the columns to be fetched (useful for resetting the scanner for reuse)
-     */
-    public void clearColumns();
-    
-    /**
-     * Clears scan iterators prior to returning a scanner to the pool.
-     */
-    public void clearScanIterators();
-    
-    /**
-     * Returns an iterator over a accumulo table. This iterator uses the options that are currently set for its lifetime. So setting options will have no effect
-     * on existing iterators.
-     * 
-     * Keys returned by the iterator are not guaranteed to be in sorted order.
-     */
-    public Iterator<Entry<Key,Value>> iterator();
+  
+  /**
+   * Add a server-side scan iterator.
+   * 
+   * @param iteratorClass
+   *          the fully qualified class name of the iterator to be applied at scan time
+   * @param iteratorName
+   *          a nickname for the iterator
+   * @throws IOException
+   *           if an exception occurs reading from the iterator stack
+   * 
+   */
+  public void addScanIterator(IteratorSetting cfg);
+  
+  /**
+   * Update the options for an iterator. Note that this does <b>not</b> change the iterator options during a scan, it just replaces the given option on a
+   * configured iterator before a scan is started.
+   * 
+   * @param iteratorName
+   *          the name of the iterator to change
+   * @param key
+   *          the name of the option
+   * @param value
+   *          the new value for the named option
+   */
+  public void updateScanIteratorOption(String iteratorName, String key, String value);
+  
+  /**
+   * @deprecated since 1.4
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
+   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
+   */
+  public void setScanIterators(int priority, String iteratorClass, String iteratorName);
+  
+  /**
+   * @deprecated since 1.4
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
+   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
+   */
+  public void setScanIteratorOption(String iteratorName, String key, String value);
+  
+  /**
+   * Call this method to initialize regular expressions on a scanner. If it is not called, reasonable defaults will be used.
+   * 
+   * @param iteratorName
+   *          a nickname for the iterator
+   * @param iteratorPriority
+   *          determines the order in which iterators are applied (system iterators are always applied first, then per-table and scan-time, lowest first)
+   * @throws IOException
+   *           if an exception occurs reading from the iterator stack
+   * 
+   * @deprecated since 1.4
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
+   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
+   */
+  public void setupRegex(String iteratorName, int iteratorPriority) throws IOException;
+  
+  /**
+   * 
+   * Set a row regular expression that filters non matching entries server side.
+   * 
+   * @param regex
+   *          java regular expression to match
+   * 
+   * @deprecated since 1.4
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
+   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
+   * @see {@link org.apache.accumulo.core.iterators.filter.RegExFilter#ROW_REGEX}
+   * 
+   *      <pre>
+   * // Use the more flexible addScanIterator method:
+   * ScanIterator cfg = new ScanIterator(&quot;regex&quot;, RegexIterator.class);
+   * RegexIterator.setRegexs(cfg, row, null, null, null, false);
+   * scanner.addScanIterator(priority, cfg);
+   * </pre>
+   */
+  public void setRowRegex(String regex);
+  
+  /**
+   * 
+   * Set a column family regular expression that filters non matching entries server side.
+   * 
+   * @param regex
+   *          java regular expression to match
+   * 
+   * @deprecated since 1.4
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
+   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
+   * @see {@link org.apache.accumulo.core.iterators.filter.RegExFilter#COLF_REGEX}
+   */
+  public void setColumnFamilyRegex(String regex);
+  
+  /**
+   * Use addScanIterator(int, ScanIterator);
+   * 
+   * Set a column qualifier regular expression that filters non matching entries server side.
+   * 
+   * @param regex
+   *          java regular expression to match
+   * 
+   * @deprecated since 1.4
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
+   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
+   * @see {@link org.apache.accumulo.core.iterators.filter.RegExFilter#COLQ_REGEX}.
+   * 
+   */
+  public void setColumnQualifierRegex(String regex);
+  
+  /**
+   * Set a value regular expression that filters non matching entries server side.
+   * 
+   * @param regex
+   *          java regular expression to match
+   * 
+   * @deprecated since 1.4
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
+   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
+   * @see {@link org.apache.accumulo.core.iterators.filter.RegExFilter#VALUE_REGEX}
+   */
+  public void setValueRegex(String regex);
+  
+  /**
+   * @param col
+   *          limit the scan to only this column family (multiple calls appends to the list of column families to limit)
+   */
+  public void fetchColumnFamily(Text col);
+  
+  /**
+   * Limits the scan to only this column, identified by family and qualifier. Multiple calls appends to the list of columns to be fetched.
+   * 
+   * @param colFam
+   *          the column family of the column to be fetched
+   * @param colQual
+   *          the column qualifier of the column to be fetched
+   */
+  public void fetchColumn(Text colFam, Text colQual);
+  
+  /**
+   * Clears the columns to be fetched (useful for resetting the scanner for reuse)
+   */
+  public void clearColumns();
+  
+  /**
+   * Clears scan iterators prior to returning a scanner to the pool.
+   */
+  public void clearScanIterators();
+  
+  /**
+   * Returns an iterator over a accumulo table. This iterator uses the options that are currently set for its lifetime. So setting options will have no effect
+   * on existing iterators.
+   * 
+   * Keys returned by the iterator are not guaranteed to be in sorted order.
+   */
+  public Iterator<Entry<Key,Value>> iterator();
 }

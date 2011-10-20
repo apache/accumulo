@@ -35,90 +35,90 @@ import org.apache.accumulo.server.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
 
 public class BatchVerify extends Test {
+  
+  @Override
+  public void visit(State state, Properties props) throws Exception {
     
-    @Override
-    public void visit(State state, Properties props) throws Exception {
-        
-        Random rand = new Random();
-        
-        int numWrites = state.getInteger("numWrites");
-        int maxVerify = Integer.parseInt(props.getProperty("maxVerify", "2000"));
-        int numVerify = rand.nextInt(maxVerify - 1) + 1;
-        
-        if (numVerify > (numWrites / 4)) {
-            numVerify = numWrites / 4;
-        }
-        
-        Connector conn = state.getConnector();
-        BatchScanner scanner = conn.createBatchScanner(state.getString("seqTableName"), new Authorizations(), 2);
-        
-        int count = 0;
-        List<Range> ranges = new ArrayList<Range>();
-        while (count < numVerify) {
-            int rangeStart = rand.nextInt(numWrites);
-            int rangeEnd = rangeStart + 99;
-            if (rangeEnd > (numWrites - 1)) {
-                rangeEnd = numWrites - 1;
-            }
-            count += (rangeEnd - rangeStart) + 1;
-            ranges.add(new Range(new Text(String.format("%010d", rangeStart)), new Text(String.format("%010d", rangeEnd))));
-        }
-        
-        ranges = Range.mergeOverlapping(ranges);
-        Collections.sort(ranges);
-        
-        if (count == 0 || ranges.size() == 0) return;
-        
-        log.debug(String.format("scanning %d rows in the following %d ranges:", count, ranges.size()));
-        for (Range r : ranges) {
-            log.debug(r);
-        }
-        
-        scanner.setRanges(ranges);
-        
-        List<Key> keys = new ArrayList<Key>();
-        for (Entry<Key,Value> entry : scanner) {
-            keys.add(entry.getKey());
-        }
-        
-        log.debug("scan returned " + keys.size() + " rows. now verifying...");
-        
-        Collections.sort(keys);
-        
-        Iterator<Key> iterator = keys.iterator();
-        int curKey = Integer.parseInt(iterator.next().getRow().toString());
-        boolean done = false;
-        for (Range r : ranges) {
-            int start = Integer.parseInt(r.getStartKey().getRow().toString());
-            int end = Integer.parseInt(String.copyValueOf(r.getEndKey().getRow().toString().toCharArray(), 0, 10));
-            for (int i = start; i <= end; i++) {
-                
-                if (done) {
-                    log.error("missing key " + i);
-                    break;
-                }
-                
-                while (curKey < i) {
-                    log.error("extra key " + curKey);
-                    if (iterator.hasNext() == false) {
-                        done = true;
-                        break;
-                    }
-                    curKey = Integer.parseInt(iterator.next().getRow().toString());
-                }
-                
-                if (curKey > i) {
-                    log.error("missing key " + i);
-                }
-                
-                if (iterator.hasNext()) {
-                    curKey = Integer.parseInt(iterator.next().getRow().toString());
-                } else {
-                    done = true;
-                }
-            }
-        }
-        
-        log.debug("verify is now complete");
+    Random rand = new Random();
+    
+    int numWrites = state.getInteger("numWrites");
+    int maxVerify = Integer.parseInt(props.getProperty("maxVerify", "2000"));
+    int numVerify = rand.nextInt(maxVerify - 1) + 1;
+    
+    if (numVerify > (numWrites / 4)) {
+      numVerify = numWrites / 4;
     }
+    
+    Connector conn = state.getConnector();
+    BatchScanner scanner = conn.createBatchScanner(state.getString("seqTableName"), new Authorizations(), 2);
+    
+    int count = 0;
+    List<Range> ranges = new ArrayList<Range>();
+    while (count < numVerify) {
+      int rangeStart = rand.nextInt(numWrites);
+      int rangeEnd = rangeStart + 99;
+      if (rangeEnd > (numWrites - 1)) {
+        rangeEnd = numWrites - 1;
+      }
+      count += (rangeEnd - rangeStart) + 1;
+      ranges.add(new Range(new Text(String.format("%010d", rangeStart)), new Text(String.format("%010d", rangeEnd))));
+    }
+    
+    ranges = Range.mergeOverlapping(ranges);
+    Collections.sort(ranges);
+    
+    if (count == 0 || ranges.size() == 0) return;
+    
+    log.debug(String.format("scanning %d rows in the following %d ranges:", count, ranges.size()));
+    for (Range r : ranges) {
+      log.debug(r);
+    }
+    
+    scanner.setRanges(ranges);
+    
+    List<Key> keys = new ArrayList<Key>();
+    for (Entry<Key,Value> entry : scanner) {
+      keys.add(entry.getKey());
+    }
+    
+    log.debug("scan returned " + keys.size() + " rows. now verifying...");
+    
+    Collections.sort(keys);
+    
+    Iterator<Key> iterator = keys.iterator();
+    int curKey = Integer.parseInt(iterator.next().getRow().toString());
+    boolean done = false;
+    for (Range r : ranges) {
+      int start = Integer.parseInt(r.getStartKey().getRow().toString());
+      int end = Integer.parseInt(String.copyValueOf(r.getEndKey().getRow().toString().toCharArray(), 0, 10));
+      for (int i = start; i <= end; i++) {
+        
+        if (done) {
+          log.error("missing key " + i);
+          break;
+        }
+        
+        while (curKey < i) {
+          log.error("extra key " + curKey);
+          if (iterator.hasNext() == false) {
+            done = true;
+            break;
+          }
+          curKey = Integer.parseInt(iterator.next().getRow().toString());
+        }
+        
+        if (curKey > i) {
+          log.error("missing key " + i);
+        }
+        
+        if (iterator.hasNext()) {
+          curKey = Integer.parseInt(iterator.next().getRow().toString());
+        } else {
+          done = true;
+        }
+      }
+    }
+    
+    log.debug("verify is now complete");
+  }
 }

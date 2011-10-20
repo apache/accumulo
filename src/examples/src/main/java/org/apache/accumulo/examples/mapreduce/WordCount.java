@@ -43,81 +43,81 @@ import org.apache.hadoop.util.ToolRunner;
  * 
  */
 public class WordCount extends Configured implements Tool {
-    private static Options opts;
-    private static Option passwordOpt;
-    private static Option usernameOpt;
-    private static String USAGE = "wordCount <instance name> <zoo keepers> <input dir> <output table>";
+  private static Options opts;
+  private static Option passwordOpt;
+  private static Option usernameOpt;
+  private static String USAGE = "wordCount <instance name> <zoo keepers> <input dir> <output table>";
+  
+  static {
+    usernameOpt = new Option("u", "username", true, "username");
+    passwordOpt = new Option("p", "password", true, "password");
     
-    static {
-        usernameOpt = new Option("u", "username", true, "username");
-        passwordOpt = new Option("p", "password", true, "password");
-        
-        opts = new Options();
-        
-        opts.addOption(usernameOpt);
-        opts.addOption(passwordOpt);
-    }
+    opts = new Options();
     
-    public static class MapClass extends Mapper<LongWritable,Text,Text,Mutation> {
-        @Override
-        public void map(LongWritable key, Text value, Context output) throws IOException {
-            String[] words = value.toString().split("\\s+");
-            
-            for (String word : words) {
-                
-                Mutation mutation = new Mutation(new Text(word));
-                mutation.put(new Text("count"), new Text("20080906"), new Value("1".getBytes()));
-                
-                try {
-                    output.write(null, mutation);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
+    opts.addOption(usernameOpt);
+    opts.addOption(passwordOpt);
+  }
+  
+  public static class MapClass extends Mapper<LongWritable,Text,Text,Mutation> {
+    @Override
+    public void map(LongWritable key, Text value, Context output) throws IOException {
+      String[] words = value.toString().split("\\s+");
+      
+      for (String word : words) {
+        
+        Mutation mutation = new Mutation(new Text(word));
+        mutation.put(new Text("count"), new Text("20080906"), new Value("1".getBytes()));
+        
+        try {
+          output.write(null, mutation);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
         }
+      }
+    }
+  }
+  
+  public int run(String[] unprocessed_args) throws Exception {
+    Parser p = new BasicParser();
+    
+    CommandLine cl = p.parse(opts, unprocessed_args);
+    String[] args = cl.getArgs();
+    
+    String username = cl.getOptionValue(usernameOpt.getOpt(), "root");
+    String password = cl.getOptionValue(passwordOpt.getOpt(), "secret");
+    
+    if (args.length != 4) {
+      System.out.println("ERROR: Wrong number of parameters: " + args.length + " instead of 4.");
+      return printUsage();
     }
     
-    public int run(String[] unprocessed_args) throws Exception {
-        Parser p = new BasicParser();
-        
-        CommandLine cl = p.parse(opts, unprocessed_args);
-        String[] args = cl.getArgs();
-        
-        String username = cl.getOptionValue(usernameOpt.getOpt(), "root");
-        String password = cl.getOptionValue(passwordOpt.getOpt(), "secret");
-        
-        if (args.length != 4) {
-            System.out.println("ERROR: Wrong number of parameters: " + args.length + " instead of 4.");
-            return printUsage();
-        }
-        
-        Job job = new Job(getConf(), WordCount.class.getName());
-        job.setJarByClass(this.getClass());
-        
-        job.setInputFormatClass(TextInputFormat.class);
-        TextInputFormat.setInputPaths(job, new Path(args[2]));
-        
-        job.setMapperClass(MapClass.class);
-        
-        job.setNumReduceTasks(0);
-        
-        job.setOutputFormatClass(AccumuloOutputFormat.class);
-        job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(Mutation.class);
-        AccumuloOutputFormat.setOutputInfo(job, username, password.getBytes(), true, args[3]);
-        AccumuloOutputFormat.setZooKeeperInstance(job, args[0], args[1]);
-        job.waitForCompletion(true);
-        return 0;
-    }
+    Job job = new Job(getConf(), WordCount.class.getName());
+    job.setJarByClass(this.getClass());
     
-    private int printUsage() {
-        HelpFormatter hf = new HelpFormatter();
-        hf.printHelp(USAGE, opts);
-        return 0;
-    }
+    job.setInputFormatClass(TextInputFormat.class);
+    TextInputFormat.setInputPaths(job, new Path(args[2]));
     
-    public static void main(String[] args) throws Exception {
-        int res = ToolRunner.run(CachedConfiguration.getInstance(), new WordCount(), args);
-        System.exit(res);
-    }
+    job.setMapperClass(MapClass.class);
+    
+    job.setNumReduceTasks(0);
+    
+    job.setOutputFormatClass(AccumuloOutputFormat.class);
+    job.setOutputKeyClass(Text.class);
+    job.setOutputValueClass(Mutation.class);
+    AccumuloOutputFormat.setOutputInfo(job, username, password.getBytes(), true, args[3]);
+    AccumuloOutputFormat.setZooKeeperInstance(job, args[0], args[1]);
+    job.waitForCompletion(true);
+    return 0;
+  }
+  
+  private int printUsage() {
+    HelpFormatter hf = new HelpFormatter();
+    hf.printHelp(USAGE, opts);
+    return 0;
+  }
+  
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(CachedConfiguration.getInstance(), new WordCount(), args);
+    System.exit(res);
+  }
 }

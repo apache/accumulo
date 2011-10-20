@@ -47,103 +47,102 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class BulkImporterTest {
+  
+  static final SortedSet<KeyExtent> fakeMetaData = new TreeSet<KeyExtent>();
+  static final Text tableId = new Text("1");
+  static {
+    fakeMetaData.add(new KeyExtent(tableId, new Text("a"), null));
+    for (String part : new String[] {"b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"}) {
+      fakeMetaData.add(new KeyExtent(tableId, new Text(part), fakeMetaData.last().getEndRow()));
+    }
+    fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().getEndRow()));
+  }
+  
+  class MockTabletLocator extends TabletLocator {
+    int invalidated = 0;
     
-    static final SortedSet<KeyExtent> fakeMetaData = new TreeSet<KeyExtent>();
-    static final Text tableId = new Text("1");
-    static {
-        fakeMetaData.add(new KeyExtent(tableId, new Text("a"), null));
-        for (String part : new String[] {"b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"}) {
-            fakeMetaData.add(new KeyExtent(tableId, new Text(part), fakeMetaData.last().getEndRow()));
-        }
-        fakeMetaData.add(new KeyExtent(tableId, null, fakeMetaData.last().getEndRow()));
+    @Override
+    public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      return new TabletLocation(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(), "localhost");
     }
     
-    class MockTabletLocator extends TabletLocator {
-        int invalidated = 0;
-        
-        @Override
-        public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException,
-                TableNotFoundException {
-            return new TabletLocation(fakeMetaData.tailSet(new KeyExtent(tableId, row, null)).first(), "localhost");
-        }
-        
-        @Override
-        public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures)
-                throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-            throw new NotImplementedException();
-        }
-        
-        @Override
-        public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
-                AccumuloSecurityException, TableNotFoundException {
-            throw new NotImplementedException();
-        }
-        
-        @Override
-        public void invalidateCache(KeyExtent failedExtent) {
-            invalidated++;
-        }
-        
-        @Override
-        public void invalidateCache(Collection<KeyExtent> keySet) {
-            throw new NotImplementedException();
-        }
-        
-        @Override
-        public void invalidateCache() {
-            throw new NotImplementedException();
-        }
-        
-        @Override
-        public void invalidateCache(String server) {
-            throw new NotImplementedException();
-        }
+    @Override
+    public void binMutations(List<Mutation> mutations, Map<String,TabletServerMutations> binnedMutations, List<Mutation> failures) throws AccumuloException,
+        AccumuloSecurityException, TableNotFoundException {
+      throw new NotImplementedException();
     }
     
-    @Test
-    public void testFindOverlappingTablets() throws Exception {
-        MockTabletLocator locator = new MockTabletLocator();
-        FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
-        AccumuloConfiguration acuConf = AccumuloConfiguration.getDefaultConfiguration();
-        String file = "target/testFile.rf";
-        fs.delete(new Path(file), true);
-        FileSKVWriter writer = FileOperations.getInstance().openWriter(file, fs, fs.getConf(), acuConf);
-        writer.startDefaultLocalityGroup();
-        Value empty = new Value(new byte[] {});
-        writer.append(new Key("a", "cf", "cq"), empty);
-        writer.append(new Key("a", "cf", "cq1"), empty);
-        writer.append(new Key("a", "cf", "cq2"), empty);
-        writer.append(new Key("a", "cf", "cq3"), empty);
-        writer.append(new Key("a", "cf", "cq4"), empty);
-        writer.append(new Key("a", "cf", "cq5"), empty);
-        writer.append(new Key("d", "cf", "cq"), empty);
-        writer.append(new Key("d", "cf", "cq1"), empty);
-        writer.append(new Key("d", "cf", "cq2"), empty);
-        writer.append(new Key("d", "cf", "cq3"), empty);
-        writer.append(new Key("d", "cf", "cq4"), empty);
-        writer.append(new Key("d", "cf", "cq5"), empty);
-        writer.append(new Key("ichabod", "cf", "cq"), empty);
-        writer.append(new Key("icky", "cf", "cq1"), empty);
-        writer.append(new Key("iffy", "cf", "cq2"), empty);
-        writer.append(new Key("internal", "cf", "cq3"), empty);
-        writer.append(new Key("is", "cf", "cq4"), empty);
-        writer.append(new Key("iterator", "cf", "cq5"), empty);
-        writer.append(new Key("xyzzy", "cf", "cq"), empty);
-        writer.close();
-        List<TabletLocation> overlaps = BulkImporter.findOverlappingTablets(acuConf, fs, locator, new Path(file));
-        Assert.assertEquals(4, overlaps.size());
-        Collections.sort(overlaps);
-        Assert.assertEquals(overlaps.get(0).tablet_extent, new KeyExtent(tableId, new Text("a"), null));
-        Assert.assertEquals(overlaps.get(1).tablet_extent, new KeyExtent(tableId, new Text("d"), new Text("c")));
-        Assert.assertEquals(overlaps.get(2).tablet_extent, new KeyExtent(tableId, new Text("j"), new Text("i")));
-        Assert.assertEquals(overlaps.get(3).tablet_extent, new KeyExtent(tableId, null, new Text("l")));
-        
-        List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(acuConf, fs, locator, new Path(file), new KeyExtent(tableId, new Text("h"),
-                new Text("b")));
-        Assert.assertEquals(2, overlaps2.size());
-        Assert.assertEquals(overlaps2.get(0).tablet_extent, new KeyExtent(tableId, new Text("d"), new Text("c")));
-        Assert.assertEquals(overlaps2.get(1).tablet_extent, new KeyExtent(tableId, new Text("j"), new Text("i")));
-        Assert.assertEquals(locator.invalidated, 1);
+    @Override
+    public List<Range> binRanges(List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException, AccumuloSecurityException,
+        TableNotFoundException {
+      throw new NotImplementedException();
     }
     
+    @Override
+    public void invalidateCache(KeyExtent failedExtent) {
+      invalidated++;
+    }
+    
+    @Override
+    public void invalidateCache(Collection<KeyExtent> keySet) {
+      throw new NotImplementedException();
+    }
+    
+    @Override
+    public void invalidateCache() {
+      throw new NotImplementedException();
+    }
+    
+    @Override
+    public void invalidateCache(String server) {
+      throw new NotImplementedException();
+    }
+  }
+  
+  @Test
+  public void testFindOverlappingTablets() throws Exception {
+    MockTabletLocator locator = new MockTabletLocator();
+    FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
+    AccumuloConfiguration acuConf = AccumuloConfiguration.getDefaultConfiguration();
+    String file = "target/testFile.rf";
+    fs.delete(new Path(file), true);
+    FileSKVWriter writer = FileOperations.getInstance().openWriter(file, fs, fs.getConf(), acuConf);
+    writer.startDefaultLocalityGroup();
+    Value empty = new Value(new byte[] {});
+    writer.append(new Key("a", "cf", "cq"), empty);
+    writer.append(new Key("a", "cf", "cq1"), empty);
+    writer.append(new Key("a", "cf", "cq2"), empty);
+    writer.append(new Key("a", "cf", "cq3"), empty);
+    writer.append(new Key("a", "cf", "cq4"), empty);
+    writer.append(new Key("a", "cf", "cq5"), empty);
+    writer.append(new Key("d", "cf", "cq"), empty);
+    writer.append(new Key("d", "cf", "cq1"), empty);
+    writer.append(new Key("d", "cf", "cq2"), empty);
+    writer.append(new Key("d", "cf", "cq3"), empty);
+    writer.append(new Key("d", "cf", "cq4"), empty);
+    writer.append(new Key("d", "cf", "cq5"), empty);
+    writer.append(new Key("ichabod", "cf", "cq"), empty);
+    writer.append(new Key("icky", "cf", "cq1"), empty);
+    writer.append(new Key("iffy", "cf", "cq2"), empty);
+    writer.append(new Key("internal", "cf", "cq3"), empty);
+    writer.append(new Key("is", "cf", "cq4"), empty);
+    writer.append(new Key("iterator", "cf", "cq5"), empty);
+    writer.append(new Key("xyzzy", "cf", "cq"), empty);
+    writer.close();
+    List<TabletLocation> overlaps = BulkImporter.findOverlappingTablets(acuConf, fs, locator, new Path(file));
+    Assert.assertEquals(4, overlaps.size());
+    Collections.sort(overlaps);
+    Assert.assertEquals(overlaps.get(0).tablet_extent, new KeyExtent(tableId, new Text("a"), null));
+    Assert.assertEquals(overlaps.get(1).tablet_extent, new KeyExtent(tableId, new Text("d"), new Text("c")));
+    Assert.assertEquals(overlaps.get(2).tablet_extent, new KeyExtent(tableId, new Text("j"), new Text("i")));
+    Assert.assertEquals(overlaps.get(3).tablet_extent, new KeyExtent(tableId, null, new Text("l")));
+    
+    List<TabletLocation> overlaps2 = BulkImporter.findOverlappingTablets(acuConf, fs, locator, new Path(file), new KeyExtent(tableId, new Text("h"), new Text(
+        "b")));
+    Assert.assertEquals(2, overlaps2.size());
+    Assert.assertEquals(overlaps2.get(0).tablet_extent, new KeyExtent(tableId, new Text("d"), new Text("c")));
+    Assert.assertEquals(overlaps2.get(1).tablet_extent, new KeyExtent(tableId, new Text("j"), new Text("i")));
+    Assert.assertEquals(locator.invalidated, 1);
+  }
+  
 }

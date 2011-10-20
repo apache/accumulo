@@ -27,52 +27,52 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class ListScansCommand extends Command {
+  
+  private Option tserverOption, disablePaginationOpt;
+  
+  @Override
+  public String description() {
+    return "list what scans are currently running in accumulo. See the accumulo.core.client.admin.ActiveScan javadoc for more information about columns.";
+  }
+  
+  @Override
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     
-    private Option tserverOption, disablePaginationOpt;
+    List<String> tservers;
     
-    @Override
-    public String description() {
-        return "list what scans are currently running in accumulo. See the accumulo.core.client.admin.ActiveScan javadoc for more information about columns.";
+    InstanceOperations instanceOps = shellState.getConnector().instanceOperations();
+    
+    boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
+    
+    if (cl.hasOption(tserverOption.getOpt())) {
+      tservers = new ArrayList<String>();
+      tservers.add(cl.getOptionValue(tserverOption.getOpt()));
+    } else {
+      tservers = instanceOps.getTabletServers();
     }
     
-    @Override
-    public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-        
-        List<String> tservers;
-        
-        InstanceOperations instanceOps = shellState.getConnector().instanceOperations();
-        
-        boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
-        
-        if (cl.hasOption(tserverOption.getOpt())) {
-            tservers = new ArrayList<String>();
-            tservers.add(cl.getOptionValue(tserverOption.getOpt()));
-        } else {
-            tservers = instanceOps.getTabletServers();
-        }
-        
-        shellState.printLines(new ActiveScanIterator(tservers, instanceOps), paginate);
-        
-        return 0;
-    }
+    shellState.printLines(new ActiveScanIterator(tservers, instanceOps), paginate);
     
-    @Override
-    public int numArgs() {
-        return 0;
-    }
+    return 0;
+  }
+  
+  @Override
+  public int numArgs() {
+    return 0;
+  }
+  
+  @Override
+  public Options getOptions() {
+    Options opts = new Options();
     
-    @Override
-    public Options getOptions() {
-        Options opts = new Options();
-        
-        tserverOption = new Option("ts", "tabletServer", true, "list scans for a specific tablet server");
-        tserverOption.setArgName("tablet server");
-        opts.addOption(tserverOption);
-        
-        disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
-        opts.addOption(disablePaginationOpt);
-        
-        return opts;
-    }
+    tserverOption = new Option("ts", "tabletServer", true, "list scans for a specific tablet server");
+    tserverOption.setArgName("tablet server");
+    opts.addOption(tserverOption);
     
+    disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
+    opts.addOption(disablePaginationOpt);
+    
+    return opts;
+  }
+  
 }

@@ -30,19 +30,19 @@ import org.apache.accumulo.server.monitor.servlets.BasicServlet;
  * 
  */
 public class getSlaves {
-    
-    public static final List<String> main() throws IOException {
-        List<String> result = new ArrayList<String>();
-        InputStream input = BasicServlet.class.getClassLoader().getResourceAsStream("slaves");
-        byte[] buffer = new byte[1024];
-        int n;
-        StringBuilder all = new StringBuilder();
-        while ((n = input.read(buffer)) > 0)
-            all.append(new String(buffer, 0, n));
-        for (String slave : all.toString().split("\n")) {
-            slave = slave.trim();
-            if (slave.length() > 0 && slave.indexOf("#") < 0) result.add(slave);
-        }
-        return result;
+  
+  public static final List<String> main() throws IOException {
+    List<String> result = new ArrayList<String>();
+    InputStream input = BasicServlet.class.getClassLoader().getResourceAsStream("slaves");
+    byte[] buffer = new byte[1024];
+    int n;
+    StringBuilder all = new StringBuilder();
+    while ((n = input.read(buffer)) > 0)
+      all.append(new String(buffer, 0, n));
+    for (String slave : all.toString().split("\n")) {
+      slave = slave.trim();
+      if (slave.length() > 0 && slave.indexOf("#") < 0) result.add(slave);
     }
+    return result;
+  }
 }

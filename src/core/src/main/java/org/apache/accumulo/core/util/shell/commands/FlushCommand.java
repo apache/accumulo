@@ -28,49 +28,49 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class FlushCommand extends TableOperation {
-    
-    private Text startRow;
-    private Text endRow;
-    
-    private boolean wait;
-    private Option optStartRow, optEndRow, waitOpt;
-    
-    @Override
-    public String description() {
-        return "flushes a tables data that is currently in memory to disk";
+  
+  private Text startRow;
+  private Text endRow;
+  
+  private boolean wait;
+  private Option optStartRow, optEndRow, waitOpt;
+  
+  @Override
+  public String description() {
+    return "flushes a tables data that is currently in memory to disk";
+  }
+  
+  protected void doTableOp(Shell shellState, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    shellState.getConnector().tableOperations().flush(tableName, startRow, endRow, wait);
+    Shell.log.info("Flush of table " + tableName + (wait ? " completed." : " initiated..."));
+    if (tableName.equals(Constants.METADATA_TABLE_NAME)) {
+      Shell.log.info("  May need to flush " + Constants.METADATA_TABLE_NAME + " table multiple times.");
+      Shell.log.info("  Flushing " + Constants.METADATA_TABLE_NAME + " causes writes to itself and");
+      Shell.log.info("  minor compactions, which also cause writes to itself.");
+      Shell.log.info("  Check the monitor web page and give it time to settle.");
     }
+  }
+  
+  @Override
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+    wait = cl.hasOption(waitOpt.getLongOpt());
+    startRow = null;
+    if (cl.hasOption(optStartRow.getOpt())) startRow = new Text(cl.getOptionValue(optStartRow.getOpt()));
+    endRow = null;
+    if (cl.hasOption(optEndRow.getOpt())) endRow = new Text(cl.getOptionValue(optEndRow.getOpt()));
+    return super.execute(fullCommand, cl, shellState);
+  }
+  
+  @Override
+  public Options getOptions() {
+    Options opts = super.getOptions();
+    waitOpt = new Option("w", "wait", false, "wait for flush to finish");
+    opts.addOption(waitOpt);
+    optStartRow = new Option("b", "begin-row", true, "begin row");
+    opts.addOption(optStartRow);
+    optEndRow = new Option("e", "end-row", true, "end row");
+    opts.addOption(optEndRow);
     
-    protected void doTableOp(Shell shellState, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-        shellState.getConnector().tableOperations().flush(tableName, startRow, endRow, wait);
-        Shell.log.info("Flush of table " + tableName + (wait ? " completed." : " initiated..."));
-        if (tableName.equals(Constants.METADATA_TABLE_NAME)) {
-            Shell.log.info("  May need to flush " + Constants.METADATA_TABLE_NAME + " table multiple times.");
-            Shell.log.info("  Flushing " + Constants.METADATA_TABLE_NAME + " causes writes to itself and");
-            Shell.log.info("  minor compactions, which also cause writes to itself.");
-            Shell.log.info("  Check the monitor web page and give it time to settle.");
-        }
-    }
-    
-    @Override
-    public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-        wait = cl.hasOption(waitOpt.getLongOpt());
-        startRow = null;
-        if (cl.hasOption(optStartRow.getOpt())) startRow = new Text(cl.getOptionValue(optStartRow.getOpt()));
-        endRow = null;
-        if (cl.hasOption(optEndRow.getOpt())) endRow = new Text(cl.getOptionValue(optEndRow.getOpt()));
-        return super.execute(fullCommand, cl, shellState);
-    }
-    
-    @Override
-    public Options getOptions() {
-        Options opts = super.getOptions();
-        waitOpt = new Option("w", "wait", false, "wait for flush to finish");
-        opts.addOption(waitOpt);
-        optStartRow = new Option("b", "begin-row", true, "begin row");
-        opts.addOption(optStartRow);
-        optEndRow = new Option("e", "end-row", true, "end row");
-        opts.addOption(optEndRow);
-        
-        return opts;
-    }
+    return opts;
+  }
 }

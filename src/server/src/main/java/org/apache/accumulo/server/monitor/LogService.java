@@ -37,108 +37,108 @@ import org.apache.log4j.spi.LoggingEvent;
  * 
  */
 public class LogService extends org.apache.log4j.AppenderSkeleton {
+  
+  private static final Logger log = Logger.getLogger(LogService.class);
+  
+  /**
+   * Read logging events forward to us over the net.
+   * 
+   */
+  static class SocketServer implements Runnable {
+    private ServerSocket server = null;
     
-    private static final Logger log = Logger.getLogger(LogService.class);
-    
-    /**
-     * Read logging events forward to us over the net.
-     * 
-     */
-    static class SocketServer implements Runnable {
-        private ServerSocket server = null;
-        
-        public SocketServer(int port) {
-            try {
-                server = new ServerSocket(port);
-            } catch (IOException io) {
-                throw new RuntimeException(io);
-            }
-        }
-        
-        public void run() {
-            try {
-                while (true) {
-                    log.debug("Waiting for log message senders");
-                    Socket socket = server.accept();
-                    log.debug("Got a new connection");
-                    Thread t = new Daemon(new SocketNode(socket, LogManager.getLoggerRepository()));
-                    t.start();
-                }
-            } catch (IOException io) {
-                log.error(io, io);
-            }
-        }
+    public SocketServer(int port) {
+      try {
+        server = new ServerSocket(port);
+      } catch (IOException io) {
+        throw new RuntimeException(io);
+      }
     }
     
-    static void startLogListener() {
-        try {
-            new Daemon(new SocketServer(ServerConfiguration.getSystemConfiguration().getPort(Property.MONITOR_LOG4J_PORT))).start();
-        } catch (Throwable t) {
-            log.info("Unable to listen to cluster-wide ports", t);
+    public void run() {
+      try {
+        while (true) {
+          log.debug("Waiting for log message senders");
+          Socket socket = server.accept();
+          log.debug("Got a new connection");
+          Thread t = new Daemon(new SocketNode(socket, LogManager.getLoggerRepository()));
+          t.start();
         }
+      } catch (IOException io) {
+        log.error(io, io);
+      }
     }
-    
-    static private LogService instance = null;
-    
-    synchronized public static LogService getInstance() {
-        if (instance == null) return new LogService();
-        return instance;
+  }
+  
+  static void startLogListener() {
+    try {
+      new Daemon(new SocketServer(ServerConfiguration.getSystemConfiguration().getPort(Property.MONITOR_LOG4J_PORT))).start();
+    } catch (Throwable t) {
+      log.info("Unable to listen to cluster-wide ports", t);
     }
+  }
+  
+  static private LogService instance = null;
+  
+  synchronized public static LogService getInstance() {
+    if (instance == null) return new LogService();
+    return instance;
+  }
+  
+  private static final int MAX_LOGS = 50;
+  
+  private LinkedHashMap<String,DedupedLogEvent> events = new LinkedHashMap<String,DedupedLogEvent>(MAX_LOGS + 1, (float) .75, true) {
     
-    private static final int MAX_LOGS = 50;
-    
-    private LinkedHashMap<String,DedupedLogEvent> events = new LinkedHashMap<String,DedupedLogEvent>(MAX_LOGS + 1, (float) .75, true) {
-        
-        private static final long serialVersionUID = 1L;
-        
-        @Override
-        @SuppressWarnings("rawtypes")
-        protected boolean removeEldestEntry(Map.Entry eldest) {
-            return size() > MAX_LOGS;
-        }
-    };
-    
-    public LogService() {
-        synchronized (LogService.class) {
-            instance = this;
-        }
-    }
+    private static final long serialVersionUID = 1L;
     
     @Override
-    synchronized protected void append(LoggingEvent ev) {
-        Object application = ev.getMDC("application");
-        if (application == null || application.toString().isEmpty()) return;
-        
-        DedupedLogEvent dev = new DedupedLogEvent(ev);
-        
-        // if event is present, increase the count
-        if (events.containsKey(dev.toString())) {
-            DedupedLogEvent oldDev = events.remove(dev.toString());
-            dev.setCount(oldDev.getCount() + 1);
-        }
-        events.put(dev.toString(), dev);
+    @SuppressWarnings("rawtypes")
+    protected boolean removeEldestEntry(Map.Entry eldest) {
+      return size() > MAX_LOGS;
     }
+  };
+  
+  public LogService() {
+    synchronized (LogService.class) {
+      instance = this;
+    }
+  }
+  
+  @Override
+  synchronized protected void append(LoggingEvent ev) {
+    Object application = ev.getMDC("application");
+    if (application == null || application.toString().isEmpty()) return;
     
-    @Override
-    public void close() {
-        events = null;
-    }
+    DedupedLogEvent dev = new DedupedLogEvent(ev);
     
-    @Override
-    public synchronized void doAppend(LoggingEvent event) {
-        super.doAppend(event);
+    // if event is present, increase the count
+    if (events.containsKey(dev.toString())) {
+      DedupedLogEvent oldDev = events.remove(dev.toString());
+      dev.setCount(oldDev.getCount() + 1);
     }
-    
-    @Override
-    public boolean requiresLayout() {
-        return false;
-    }
-    
-    synchronized public List<DedupedLogEvent> getEvents() {
-        return new ArrayList<DedupedLogEvent>(events.values());
-    }
-    
-    synchronized public void clear() {
-        events.clear();
-    }
+    events.put(dev.toString(), dev);
+  }
+  
+  @Override
+  public void close() {
+    events = null;
+  }
+  
+  @Override
+  public synchronized void doAppend(LoggingEvent event) {
+    super.doAppend(event);
+  }
+  
+  @Override
+  public boolean requiresLayout() {
+    return false;
+  }
+  
+  synchronized public List<DedupedLogEvent> getEvents() {
+    return new ArrayList<DedupedLogEvent>(events.values());
+  }
+  
+  synchronized public void clear() {
+    events.clear();
+  }
 }

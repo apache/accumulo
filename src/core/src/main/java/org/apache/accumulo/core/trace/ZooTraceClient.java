@@ -35,51 +35,51 @@ import cloudtrace.instrument.receivers.SendSpansViaThrift;
  * 
  */
 public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
-    
-    private static final Logger log = Logger.getLogger(ZooTraceClient.class);
-    
-    final ZooReader zoo;
-    final String path;
-    final Random random = new Random();
-    final List<String> hosts = new ArrayList<String>();
-    
-    public ZooTraceClient(ZooReader zoo, String path, String host, String service, long millis) throws IOException, KeeperException, InterruptedException {
-        super(host, service, millis);
-        this.path = path;
-        this.zoo = zoo;
-        zoo.getChildren(path, this);
+  
+  private static final Logger log = Logger.getLogger(ZooTraceClient.class);
+  
+  final ZooReader zoo;
+  final String path;
+  final Random random = new Random();
+  final List<String> hosts = new ArrayList<String>();
+  
+  public ZooTraceClient(ZooReader zoo, String path, String host, String service, long millis) throws IOException, KeeperException, InterruptedException {
+    super(host, service, millis);
+    this.path = path;
+    this.zoo = zoo;
+    zoo.getChildren(path, this);
+  }
+  
+  @Override
+  synchronized protected String getSpanKey(Map<String,String> data) {
+    if (hosts.size() > 0) {
+      return hosts.get(random.nextInt(hosts.size()));
     }
-    
-    @Override
-    synchronized protected String getSpanKey(Map<String,String> data) {
-        if (hosts.size() > 0) {
-            return hosts.get(random.nextInt(hosts.size()));
-        }
-        return null;
+    return null;
+  }
+  
+  @Override
+  public void process(WatchedEvent event) {
+    try {
+      updateHosts(path, zoo.getChildren(path, null));
+    } catch (Exception ex) {
+      log.error("unable to get destination hosts in zookeeper", ex);
     }
-    
-    @Override
-    public void process(WatchedEvent event) {
-        try {
-            updateHosts(path, zoo.getChildren(path, null));
-        } catch (Exception ex) {
-            log.error("unable to get destination hosts in zookeeper", ex);
-        }
+  }
+  
+  synchronized private void updateHosts(String path, List<String> children) {
+    log.debug("Scanning trace hosts in zookeeper: " + path);
+    try {
+      List<String> hosts = new ArrayList<String>();
+      for (String child : children) {
+        byte[] data = zoo.getData(path + "/" + child, null);
+        hosts.add(new String(data));
+      }
+      this.hosts.clear();
+      this.hosts.addAll(hosts);
+      log.debug("Trace hosts: " + this.hosts);
+    } catch (Exception ex) {
+      log.error("unable to get destination hosts in zookeeper", ex);
     }
-    
-    synchronized private void updateHosts(String path, List<String> children) {
-        log.debug("Scanning trace hosts in zookeeper: " + path);
-        try {
-            List<String> hosts = new ArrayList<String>();
-            for (String child : children) {
-                byte[] data = zoo.getData(path + "/" + child, null);
-                hosts.add(new String(data));
-            }
-            this.hosts.clear();
-            this.hosts.addAll(hosts);
-            log.debug("Trace hosts: " + this.hosts);
-        } catch (Exception ex) {
-            log.error("unable to get destination hosts in zookeeper", ex);
-        }
-    }
+  }
 }

@@ -38,124 +38,124 @@ import org.apache.hadoop.io.MapFile.Reader;
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class MultiReader {
+  
+  /**
+   * Group together the next key/value from a Reader with the Reader
+   * 
+   */
+  private static class Index implements Comparable<Index> {
+    Reader reader;
+    WritableComparable key;
+    Writable value;
+    boolean cached = false;
     
-    /**
-     * Group together the next key/value from a Reader with the Reader
-     * 
-     */
-    private static class Index implements Comparable<Index> {
-        Reader reader;
-        WritableComparable key;
-        Writable value;
-        boolean cached = false;
-        
-        private static Object create(java.lang.Class<?> klass) {
-            try {
-                return klass.getConstructor().newInstance();
-            } catch (Throwable t) {
-                throw new RuntimeException("Unable to construct objects to use for comparison");
-            }
-        }
-        
-        public Index(Reader reader) {
-            this.reader = reader;
-            key = (WritableComparable) create(reader.getKeyClass());
-            value = (Writable) create(reader.getValueClass());
-        }
-        
-        private void cache() throws IOException {
-            if (!cached && reader.next(key, value)) {
-                cached = true;
-            }
-        }
-        
-        public int compareTo(Index o) {
-            try {
-                cache();
-                o.cache();
-                // no more data: always goes to the end
-                if (!cached) return 1;
-                if (!o.cached) return -1;
-                return key.compareTo(o.key);
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
-            }
-        }
+    private static Object create(java.lang.Class<?> klass) {
+      try {
+        return klass.getConstructor().newInstance();
+      } catch (Throwable t) {
+        throw new RuntimeException("Unable to construct objects to use for comparison");
+      }
     }
     
-    private PriorityBuffer heap = new PriorityBuffer();
+    public Index(Reader reader) {
+      this.reader = reader;
+      key = (WritableComparable) create(reader.getKeyClass());
+      value = (Writable) create(reader.getValueClass());
+    }
     
-    public MultiReader(FileSystem fs, Configuration conf, String directory) throws IOException {
-        boolean foundFinish = false;
-        for (FileStatus child : fs.listStatus(new Path(directory))) {
-            if (child.getPath().getName().startsWith("_")) continue;
-            if (child.getPath().getName().equals("finished")) {
-                foundFinish = true;
-                continue;
-            }
-            heap.add(new Index(new Reader(fs, child.getPath().toString(), conf)));
+    private void cache() throws IOException {
+      if (!cached && reader.next(key, value)) {
+        cached = true;
+      }
+    }
+    
+    public int compareTo(Index o) {
+      try {
+        cache();
+        o.cache();
+        // no more data: always goes to the end
+        if (!cached) return 1;
+        if (!o.cached) return -1;
+        return key.compareTo(o.key);
+      } catch (IOException ex) {
+        throw new RuntimeException(ex);
+      }
+    }
+  }
+  
+  private PriorityBuffer heap = new PriorityBuffer();
+  
+  public MultiReader(FileSystem fs, Configuration conf, String directory) throws IOException {
+    boolean foundFinish = false;
+    for (FileStatus child : fs.listStatus(new Path(directory))) {
+      if (child.getPath().getName().startsWith("_")) continue;
+      if (child.getPath().getName().equals("finished")) {
+        foundFinish = true;
+        continue;
+      }
+      heap.add(new Index(new Reader(fs, child.getPath().toString(), conf)));
+    }
+    if (!foundFinish) throw new IOException("Sort \"finished\" flag not found in " + directory);
+  }
+  
+  private static void copy(Writable src, Writable dest) throws IOException {
+    // not exactly efficient...
+    DataOutputBuffer output = new DataOutputBuffer();
+    src.write(output);
+    DataInputBuffer input = new DataInputBuffer();
+    input.reset(output.getData(), output.getLength());
+    dest.readFields(input);
+  }
+  
+  public synchronized boolean next(WritableComparable key, Writable val) throws IOException {
+    Index elt = (Index) heap.remove();
+    try {
+      elt.cache();
+      if (elt.cached) {
+        copy(elt.key, key);
+        copy(elt.value, val);
+        elt.cached = false;
+      } else {
+        return false;
+      }
+    } finally {
+      heap.add(elt);
+    }
+    return true;
+  }
+  
+  public synchronized boolean seek(WritableComparable key) throws IOException {
+    PriorityBuffer reheap = new PriorityBuffer(heap.size());
+    boolean result = false;
+    for (Object obj : heap) {
+      Index index = (Index) obj;
+      try {
+        WritableComparable found = index.reader.getClosest(key, index.value, true);
+        if (found != null && found.compareTo(key) == 0) {
+          result = true;
         }
-        if (!foundFinish) throw new IOException("Sort \"finished\" flag not found in " + directory);
+      } catch (EOFException ex) {
+        // thrown if key is beyond all data in the map
+      }
+      index.cached = false;
+      reheap.add(index);
     }
-    
-    private static void copy(Writable src, Writable dest) throws IOException {
-        // not exactly efficient...
-        DataOutputBuffer output = new DataOutputBuffer();
-        src.write(output);
-        DataInputBuffer input = new DataInputBuffer();
-        input.reset(output.getData(), output.getLength());
-        dest.readFields(input);
+    heap = reheap;
+    return result;
+  }
+  
+  public void close() throws IOException {
+    IOException problem = null;
+    for (Object obj : heap) {
+      Index index = (Index) obj;
+      try {
+        index.reader.close();
+      } catch (IOException ex) {
+        problem = ex;
+      }
     }
-    
-    public synchronized boolean next(WritableComparable key, Writable val) throws IOException {
-        Index elt = (Index) heap.remove();
-        try {
-            elt.cache();
-            if (elt.cached) {
-                copy(elt.key, key);
-                copy(elt.value, val);
-                elt.cached = false;
-            } else {
-                return false;
-            }
-        } finally {
-            heap.add(elt);
-        }
-        return true;
-    }
-    
-    public synchronized boolean seek(WritableComparable key) throws IOException {
-        PriorityBuffer reheap = new PriorityBuffer(heap.size());
-        boolean result = false;
-        for (Object obj : heap) {
-            Index index = (Index) obj;
-            try {
-                WritableComparable found = index.reader.getClosest(key, index.value, true);
-                if (found != null && found.compareTo(key) == 0) {
-                    result = true;
-                }
-            } catch (EOFException ex) {
-                // thrown if key is beyond all data in the map
-            }
-            index.cached = false;
-            reheap.add(index);
-        }
-        heap = reheap;
-        return result;
-    }
-    
-    public void close() throws IOException {
-        IOException problem = null;
-        for (Object obj : heap) {
-            Index index = (Index) obj;
-            try {
-                index.reader.close();
-            } catch (IOException ex) {
-                problem = ex;
-            }
-        }
-        if (problem != null) throw problem;
-        heap = null;
-    }
-    
+    if (problem != null) throw problem;
+    heap = null;
+  }
+  
 }

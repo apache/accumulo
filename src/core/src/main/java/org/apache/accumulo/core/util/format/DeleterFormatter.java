@@ -30,67 +30,67 @@ import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.log4j.Logger;
 
 public class DeleterFormatter extends DefaultFormatter {
-    
-    private static final Logger log = Logger.getLogger(DeleterFormatter.class);
-    private BatchWriter writer;
-    private Shell shellState;
-    private boolean printTimestamps;
-    private boolean force;
-    private boolean more;
-    
-    public DeleterFormatter(BatchWriter writer, Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, Shell shellState, boolean force) {
-        super.initialize(scanner, printTimestamps);
-        this.writer = writer;
-        this.shellState = shellState;
-        this.printTimestamps = printTimestamps;
-        this.force = force;
-        this.more = true;
+  
+  private static final Logger log = Logger.getLogger(DeleterFormatter.class);
+  private BatchWriter writer;
+  private Shell shellState;
+  private boolean printTimestamps;
+  private boolean force;
+  private boolean more;
+  
+  public DeleterFormatter(BatchWriter writer, Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, Shell shellState, boolean force) {
+    super.initialize(scanner, printTimestamps);
+    this.writer = writer;
+    this.shellState = shellState;
+    this.printTimestamps = printTimestamps;
+    this.force = force;
+    this.more = true;
+  }
+  
+  @Override
+  public boolean hasNext() {
+    if (!getScannerIterator().hasNext() || !more) {
+      try {
+        writer.close();
+      } catch (MutationsRejectedException e) {
+        log.error(e.toString());
+        if (Shell.isDebuggingEnabled()) for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries())
+          log.trace(cvs.toString());
+      }
+      return false;
     }
-    
-    @Override
-    public boolean hasNext() {
-        if (!getScannerIterator().hasNext() || !more) {
-            try {
-                writer.close();
-            } catch (MutationsRejectedException e) {
-                log.error(e.toString());
-                if (Shell.isDebuggingEnabled()) for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries())
-                    log.trace(cvs.toString());
-            }
-            return false;
-        }
-        return true;
-    }
-    
-    @Override
-    public String next() {
-        Entry<Key,Value> next = getScannerIterator().next();
-        Key key = next.getKey();
-        Mutation m = new Mutation(key.getRow());
-        String entryStr = formatEntry(next, printTimestamps);
-        boolean delete = force;
+    return true;
+  }
+  
+  @Override
+  public String next() {
+    Entry<Key,Value> next = getScannerIterator().next();
+    Key key = next.getKey();
+    Mutation m = new Mutation(key.getRow());
+    String entryStr = formatEntry(next, printTimestamps);
+    boolean delete = force;
+    try {
+      if (!force) {
+        shellState.getReader().flushConsole();
+        String line = shellState.getReader().readLine("Delete { " + entryStr + " } ? ");
+        more = line != null;
+        delete = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
+      }
+      if (delete) {
+        m.putDelete(key.getColumnFamily(), key.getColumnQualifier(), new ColumnVisibility(key.getColumnVisibility()), key.getTimestamp());
         try {
-            if (!force) {
-                shellState.getReader().flushConsole();
-                String line = shellState.getReader().readLine("Delete { " + entryStr + " } ? ");
-                more = line != null;
-                delete = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
-            }
-            if (delete) {
-                m.putDelete(key.getColumnFamily(), key.getColumnQualifier(), new ColumnVisibility(key.getColumnVisibility()), key.getTimestamp());
-                try {
-                    writer.addMutation(m);
-                } catch (MutationsRejectedException e) {
-                    log.error(e.toString());
-                    if (Shell.isDebuggingEnabled()) for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries())
-                        log.trace(cvs.toString());
-                }
-            }
-            shellState.getReader().printString(String.format("[%s] %s\n", delete ? "DELETED" : "SKIPPED", entryStr));
-        } catch (IOException e) {
-            log.error("Cannot write to console", e);
-            throw new RuntimeException(e);
+          writer.addMutation(m);
+        } catch (MutationsRejectedException e) {
+          log.error(e.toString());
+          if (Shell.isDebuggingEnabled()) for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries())
+            log.trace(cvs.toString());
         }
-        return null;
+      }
+      shellState.getReader().printString(String.format("[%s] %s\n", delete ? "DELETED" : "SKIPPED", entryStr));
+    } catch (IOException e) {
+      log.error("Cannot write to console", e);
+      throw new RuntimeException(e);
     }
+    return null;
+  }
 }

@@ -24,171 +24,171 @@ import javax.servlet.http.HttpServlet;
 // the version of jetty from 5.1.4 to 6.1.14.
 
 public class EmbeddedWebServer {
+  
+  public static EmbeddedWebServer create(int port) throws ClassNotFoundException {
+    try {
+      return new EmbeddedWebServer5_1(port);
+    } catch (ClassNotFoundException ex) {
+      return new EmbeddedWebServer6_1(port);
+    }
+  }
+  
+  public static EmbeddedWebServer create() throws ClassNotFoundException {
+    try {
+      return new EmbeddedWebServer5_1();
+    } catch (ClassNotFoundException ex) {
+      return new EmbeddedWebServer6_1();
+    }
+  }
+  
+  public void addServlet(Class<? extends HttpServlet> klass, String where) {}
+  
+  public int getPort() {
+    return 0;
+  }
+  
+  public void start() {}
+  
+  public void stop() {}
+  
+  static public class EmbeddedWebServer6_1 extends EmbeddedWebServer {
+    // 6.1
+    Object server = null;
+    Object sock;
+    Object handler;
     
-    public static EmbeddedWebServer create(int port) throws ClassNotFoundException {
-        try {
-            return new EmbeddedWebServer5_1(port);
-        } catch (ClassNotFoundException ex) {
-            return new EmbeddedWebServer6_1(port);
-        }
+    public EmbeddedWebServer6_1() throws ClassNotFoundException {
+      this(0);
     }
     
-    public static EmbeddedWebServer create() throws ClassNotFoundException {
-        try {
-            return new EmbeddedWebServer5_1();
-        } catch (ClassNotFoundException ex) {
-            return new EmbeddedWebServer6_1();
-        }
+    public EmbeddedWebServer6_1(int port) throws ClassNotFoundException {
+      // Works for both
+      try {
+        ClassLoader loader = this.getClass().getClassLoader();
+        server = loader.loadClass("org.mortbay.jetty.Server").getConstructor().newInstance();
+        sock = loader.loadClass("org.mortbay.jetty.bio.SocketConnector").getConstructor().newInstance();
+        handler = loader.loadClass("org.mortbay.jetty.servlet.ServletHandler").getConstructor().newInstance();
+        Method method = sock.getClass().getMethod("setPort", Integer.TYPE);
+        method.invoke(sock, port);
+      } catch (ClassNotFoundException ex) {
+        throw ex;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     }
     
-    public void addServlet(Class<? extends HttpServlet> klass, String where) {}
+    public void addServlet(Class<? extends HttpServlet> klass, String where) {
+      try {
+        Method method = handler.getClass().getMethod("addServletWithMapping", klass.getClass(), where.getClass());
+        method.invoke(handler, klass, where);
+      } catch (Exception ex) {
+        throw new RuntimeException(ex);
+      }
+    }
     
     public int getPort() {
-        return 0;
+      try {
+        
+        Method method = sock.getClass().getMethod("getLocalPort");
+        return (Integer) method.invoke(sock);
+      } catch (Exception ex) {
+        throw new RuntimeException(ex);
+      }
     }
     
-    public void start() {}
-    
-    public void stop() {}
-    
-    static public class EmbeddedWebServer6_1 extends EmbeddedWebServer {
-        // 6.1
-        Object server = null;
-        Object sock;
-        Object handler;
-        
-        public EmbeddedWebServer6_1() throws ClassNotFoundException {
-            this(0);
-        }
-        
-        public EmbeddedWebServer6_1(int port) throws ClassNotFoundException {
-            // Works for both
-            try {
-                ClassLoader loader = this.getClass().getClassLoader();
-                server = loader.loadClass("org.mortbay.jetty.Server").getConstructor().newInstance();
-                sock = loader.loadClass("org.mortbay.jetty.bio.SocketConnector").getConstructor().newInstance();
-                handler = loader.loadClass("org.mortbay.jetty.servlet.ServletHandler").getConstructor().newInstance();
-                Method method = sock.getClass().getMethod("setPort", Integer.TYPE);
-                method.invoke(sock, port);
-            } catch (ClassNotFoundException ex) {
-                throw ex;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-        
-        public void addServlet(Class<? extends HttpServlet> klass, String where) {
-            try {
-                Method method = handler.getClass().getMethod("addServletWithMapping", klass.getClass(), where.getClass());
-                method.invoke(handler, klass, where);
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
-            }
-        }
-        
-        public int getPort() {
-            try {
-                
-                Method method = sock.getClass().getMethod("getLocalPort");
-                return (Integer) method.invoke(sock);
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
-            }
-        }
-        
-        public void start() {
-            try {
-                Class<?> klass = server.getClass().getClassLoader().loadClass("org.mortbay.jetty.Connector");
-                Method method = server.getClass().getMethod("addConnector", klass);
-                method.invoke(server, sock);
-                klass = server.getClass().getClassLoader().loadClass("org.mortbay.jetty.Handler");
-                method = server.getClass().getMethod("setHandler", klass);
-                method.invoke(server, handler);
-                method = server.getClass().getMethod("start");
-                method.invoke(server);
-            } catch (Exception e) {
-                stop();
-                throw new RuntimeException(e);
-            }
-        }
-        
-        public void stop() {
-            try {
-                Method method = server.getClass().getMethod("stop");
-                method.invoke(server);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
+    public void start() {
+      try {
+        Class<?> klass = server.getClass().getClassLoader().loadClass("org.mortbay.jetty.Connector");
+        Method method = server.getClass().getMethod("addConnector", klass);
+        method.invoke(server, sock);
+        klass = server.getClass().getClassLoader().loadClass("org.mortbay.jetty.Handler");
+        method = server.getClass().getMethod("setHandler", klass);
+        method.invoke(server, handler);
+        method = server.getClass().getMethod("start");
+        method.invoke(server);
+      } catch (Exception e) {
+        stop();
+        throw new RuntimeException(e);
+      }
     }
     
-    static public class EmbeddedWebServer5_1 extends EmbeddedWebServer {
-        Object sock;
-        Object server = null;
-        
-        public EmbeddedWebServer5_1() throws ClassNotFoundException {
-            this(0);
-        }
-        
-        public EmbeddedWebServer5_1(int port) throws ClassNotFoundException {
-            Method method;
-            try {
-                ClassLoader loader = this.getClass().getClassLoader();
-                server = loader.loadClass("org.mortbay.jetty.Server").getConstructor().newInstance();
-                sock = loader.loadClass("org.mortbay.http.SocketListener").getConstructor().newInstance();
-                method = sock.getClass().getMethod("setPort", Integer.TYPE);
-                method.invoke(sock, port);
-            } catch (ClassNotFoundException ex) {
-                throw ex;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            
-        }
-        
-        public void addServlet(Class<? extends HttpServlet> klass, String where) {
-            try {
-                Method method = server.getClass().getMethod("getContext", String.class);
-                Object ctx = method.invoke(server, "/");
-                method = ctx.getClass().getMethod("addServlet", String.class, String.class, String.class);
-                method.invoke(ctx, where, where, klass.getName());
-                Class<?> httpContextClass = this.getClass().getClassLoader().loadClass("org.mortbay.http.HttpContext");
-                method = server.getClass().getMethod("addContext", httpContextClass);
-                method.invoke(server, ctx);
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
-            }
-        }
-        
-        public int getPort() {
-            try {
-                Method method = sock.getClass().getMethod("getPort");
-                return (Integer) method.invoke(sock);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-        
-        public void start() {
-            try {
-                Class<?> listener = getClass().getClassLoader().loadClass("org.mortbay.http.HttpListener");
-                Method method = server.getClass().getMethod("addListener", listener);
-                method.invoke(server, sock);
-                method = server.getClass().getMethod("start");
-                method.invoke(server);
-            } catch (Exception e) {
-                stop();
-                throw new RuntimeException(e);
-            }
-        }
-        
-        public void stop() {
-            try {
-                Method method = server.getClass().getMethod("stop");
-                method.invoke(server);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
+    public void stop() {
+      try {
+        Method method = server.getClass().getMethod("stop");
+        method.invoke(server);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     }
+  }
+  
+  static public class EmbeddedWebServer5_1 extends EmbeddedWebServer {
+    Object sock;
+    Object server = null;
+    
+    public EmbeddedWebServer5_1() throws ClassNotFoundException {
+      this(0);
+    }
+    
+    public EmbeddedWebServer5_1(int port) throws ClassNotFoundException {
+      Method method;
+      try {
+        ClassLoader loader = this.getClass().getClassLoader();
+        server = loader.loadClass("org.mortbay.jetty.Server").getConstructor().newInstance();
+        sock = loader.loadClass("org.mortbay.http.SocketListener").getConstructor().newInstance();
+        method = sock.getClass().getMethod("setPort", Integer.TYPE);
+        method.invoke(sock, port);
+      } catch (ClassNotFoundException ex) {
+        throw ex;
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+      
+    }
+    
+    public void addServlet(Class<? extends HttpServlet> klass, String where) {
+      try {
+        Method method = server.getClass().getMethod("getContext", String.class);
+        Object ctx = method.invoke(server, "/");
+        method = ctx.getClass().getMethod("addServlet", String.class, String.class, String.class);
+        method.invoke(ctx, where, where, klass.getName());
+        Class<?> httpContextClass = this.getClass().getClassLoader().loadClass("org.mortbay.http.HttpContext");
+        method = server.getClass().getMethod("addContext", httpContextClass);
+        method.invoke(server, ctx);
+      } catch (Exception ex) {
+        throw new RuntimeException(ex);
+      }
+    }
+    
+    public int getPort() {
+      try {
+        Method method = sock.getClass().getMethod("getPort");
+        return (Integer) method.invoke(sock);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+    
+    public void start() {
+      try {
+        Class<?> listener = getClass().getClassLoader().loadClass("org.mortbay.http.HttpListener");
+        Method method = server.getClass().getMethod("addListener", listener);
+        method.invoke(server, sock);
+        method = server.getClass().getMethod("start");
+        method.invoke(server);
+      } catch (Exception e) {
+        stop();
+        throw new RuntimeException(e);
+      }
+    }
+    
+    public void stop() {
+      try {
+        Method method = server.getClass().getMethod("stop");
+        method.invoke(server);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
 }

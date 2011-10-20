@@ -40,104 +40,104 @@ import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.log4j.Logger;
 
 public class TableLoadBalancer extends TabletBalancer {
+  
+  private static final Logger log = Logger.getLogger(TableLoadBalancer.class);
+  
+  Map<String,TabletBalancer> perTableBalancers = new HashMap<String,TabletBalancer>();
+  
+  private TabletBalancer constructNewBalancerForTable(String clazzName, String table) throws Exception {
+    Class<? extends TabletBalancer> clazz = AccumuloClassLoader.loadClass(clazzName, TabletBalancer.class);
+    Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(String.class);
+    return constructor.newInstance(table);
+  }
+  
+  protected String getLoadBalancerClassNameForTable(String table) {
+    return ServerConfiguration.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
+  }
+  
+  protected TabletBalancer getBalancerForTable(String table) {
+    TabletBalancer balancer = perTableBalancers.get(table);
     
-    private static final Logger log = Logger.getLogger(TableLoadBalancer.class);
+    String clazzName = getLoadBalancerClassNameForTable(table);
     
-    Map<String,TabletBalancer> perTableBalancers = new HashMap<String,TabletBalancer>();
-    
-    private TabletBalancer constructNewBalancerForTable(String clazzName, String table) throws Exception {
-        Class<? extends TabletBalancer> clazz = AccumuloClassLoader.loadClass(clazzName, TabletBalancer.class);
-        Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(String.class);
-        return constructor.newInstance(table);
-    }
-    
-    protected String getLoadBalancerClassNameForTable(String table) {
-        return ServerConfiguration.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
-    }
-    
-    protected TabletBalancer getBalancerForTable(String table) {
-        TabletBalancer balancer = perTableBalancers.get(table);
-        
-        String clazzName = getLoadBalancerClassNameForTable(table);
-        
-        if (clazzName == null) clazzName = DefaultLoadBalancer.class.getName();
-        if (balancer != null) {
-            if (clazzName.equals(balancer.getClass().getName()) == false) {
-                // the balancer class for this table does not match the class specified in the configuration
-                try {
-                    // attempt to construct a balancer with the specified class
-                    TabletBalancer newBalancer = constructNewBalancerForTable(clazzName, table);
-                    if (newBalancer != null) {
-                        balancer = newBalancer;
-                        perTableBalancers.put(table, balancer);
-                    }
-                } catch (Exception e) {
-                    log.warn("Failed to load table balancer class ", e);
-                }
-            }
-        }
-        if (balancer == null) {
-            try {
-                balancer = constructNewBalancerForTable(clazzName, table);
-                log.info("Loaded class : " + clazzName);
-            } catch (Exception e) {
-                log.warn("Failed to load table balancer class ", e);
-            }
-            
-            if (balancer == null) {
-                log.info("Using balancer " + DefaultLoadBalancer.class.getName() + " for table " + table);
-                balancer = new DefaultLoadBalancer(table);
-            }
+    if (clazzName == null) clazzName = DefaultLoadBalancer.class.getName();
+    if (balancer != null) {
+      if (clazzName.equals(balancer.getClass().getName()) == false) {
+        // the balancer class for this table does not match the class specified in the configuration
+        try {
+          // attempt to construct a balancer with the specified class
+          TabletBalancer newBalancer = constructNewBalancerForTable(clazzName, table);
+          if (newBalancer != null) {
+            balancer = newBalancer;
             perTableBalancers.put(table, balancer);
+          }
+        } catch (Exception e) {
+          log.warn("Failed to load table balancer class ", e);
         }
-        return balancer;
+      }
     }
-    
-    @Override
-    public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
-            Map<KeyExtent,TServerInstance> assignments) {
-        // separate the unassigned into tables
-        Map<String,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<String,Map<KeyExtent,TServerInstance>>();
-        for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
-            Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned.get(e.getKey().getTableId().toString());
-            if (tableUnassigned == null) {
-                tableUnassigned = new HashMap<KeyExtent,TServerInstance>();
-                groupedUnassigned.put(e.getKey().getTableId().toString(), tableUnassigned);
-            }
-            tableUnassigned.put(e.getKey(), e.getValue());
-        }
-        for (Entry<String,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
-            Map<KeyExtent,TServerInstance> newAssignments = new HashMap<KeyExtent,TServerInstance>();
-            getBalancerForTable(e.getKey()).getAssignments(current, e.getValue(), newAssignments);
-            assignments.putAll(newAssignments);
-        }
+    if (balancer == null) {
+      try {
+        balancer = constructNewBalancerForTable(clazzName, table);
+        log.info("Loaded class : " + clazzName);
+      } catch (Exception e) {
+        log.warn("Failed to load table balancer class ", e);
+      }
+      
+      if (balancer == null) {
+        log.info("Using balancer " + DefaultLoadBalancer.class.getName() + " for table " + table);
+        balancer = new DefaultLoadBalancer(table);
+      }
+      perTableBalancers.put(table, balancer);
     }
-    
-    private TableOperations tops = null;
-    
-    protected TableOperations getTableOperations() {
-        if (tops == null) try {
-            tops = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemCredentials()).tableOperations();
-        } catch (AccumuloException e) {
-            log.error("Unable to access table operations from within table balancer", e);
-        } catch (AccumuloSecurityException e) {
-            log.error("Unable to access table operations from within table balancer", e);
-        }
-        return tops;
+    return balancer;
+  }
+  
+  @Override
+  public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
+      Map<KeyExtent,TServerInstance> assignments) {
+    // separate the unassigned into tables
+    Map<String,Map<KeyExtent,TServerInstance>> groupedUnassigned = new HashMap<String,Map<KeyExtent,TServerInstance>>();
+    for (Entry<KeyExtent,TServerInstance> e : unassigned.entrySet()) {
+      Map<KeyExtent,TServerInstance> tableUnassigned = groupedUnassigned.get(e.getKey().getTableId().toString());
+      if (tableUnassigned == null) {
+        tableUnassigned = new HashMap<KeyExtent,TServerInstance>();
+        groupedUnassigned.put(e.getKey().getTableId().toString(), tableUnassigned);
+      }
+      tableUnassigned.put(e.getKey(), e.getValue());
     }
-    
-    @Override
-    public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
-        long minBalanceTime = 5 * 1000;
-        // Iterate over the tables and balance each of them
-        TableOperations t = getTableOperations();
-        if (t == null) return minBalanceTime;
-        for (String s : t.tableIdMap().values()) {
-            ArrayList<TabletMigration> newMigrations = new ArrayList<TabletMigration>();
-            long tableBalanceTime = getBalancerForTable(s).balance(current, migrations, newMigrations);
-            if (tableBalanceTime < minBalanceTime) minBalanceTime = tableBalanceTime;
-            migrationsOut.addAll(newMigrations);
-        }
-        return minBalanceTime;
+    for (Entry<String,Map<KeyExtent,TServerInstance>> e : groupedUnassigned.entrySet()) {
+      Map<KeyExtent,TServerInstance> newAssignments = new HashMap<KeyExtent,TServerInstance>();
+      getBalancerForTable(e.getKey()).getAssignments(current, e.getValue(), newAssignments);
+      assignments.putAll(newAssignments);
     }
+  }
+  
+  private TableOperations tops = null;
+  
+  protected TableOperations getTableOperations() {
+    if (tops == null) try {
+      tops = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemCredentials()).tableOperations();
+    } catch (AccumuloException e) {
+      log.error("Unable to access table operations from within table balancer", e);
+    } catch (AccumuloSecurityException e) {
+      log.error("Unable to access table operations from within table balancer", e);
+    }
+    return tops;
+  }
+  
+  @Override
+  public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
+    long minBalanceTime = 5 * 1000;
+    // Iterate over the tables and balance each of them
+    TableOperations t = getTableOperations();
+    if (t == null) return minBalanceTime;
+    for (String s : t.tableIdMap().values()) {
+      ArrayList<TabletMigration> newMigrations = new ArrayList<TabletMigration>();
+      long tableBalanceTime = getBalancerForTable(s).balance(current, migrations, newMigrations);
+      if (tableBalanceTime < minBalanceTime) minBalanceTime = tableBalanceTime;
+      migrationsOut.addAll(newMigrations);
+    }
+    return minBalanceTime;
+  }
 }

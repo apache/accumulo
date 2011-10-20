@@ -52,384 +52,384 @@ import org.apache.log4j.Logger;
  * 
  */
 public class TabletServerLogger {
+  
+  private static final Logger log = Logger.getLogger(TabletServerLogger.class);
+  
+  private final AtomicLong logSizeEstimate = new AtomicLong();
+  private final long maxSize;
+  
+  private final TabletServer tserver;
+  
+  // The current log set: always updated to a new set with every change of loggers
+  private final List<RemoteLogger> loggers = new ArrayList<RemoteLogger>();
+  
+  // The current generation of logSet.
+  // Because multiple threads can be using a log set at one time, a log
+  // failure is likely to affect multiple threads, who will all attempt to
+  // create a new logSet. This will cause many unnecessary updates to the
+  // metadata table.
+  // We'll use this generational counter to determine if another thread has
+  // already fetched a new logSet.
+  private AtomicInteger logSetId = new AtomicInteger();
+  
+  // Use a ReadWriteLock to allow multiple threads to use the log set, but obtain a write lock to change them
+  private ReentrantReadWriteLock logSetLock = new ReentrantReadWriteLock();
+  
+  private final AtomicInteger seqGen = new AtomicInteger();
+  
+  private static boolean enabled(Tablet tablet) {
+    String table = tablet.getExtent().getTableId().toString();
+    return ServerConfiguration.getTableConfiguration(table).getBoolean(Property.TABLE_WALOG_ENABLED);
+  }
+  
+  private static boolean enabled(CommitSession commitSession) {
+    return enabled(commitSession.getTablet());
+  }
+  
+  static private abstract class TestCallWithWriteLock {
+    abstract boolean test();
     
-    private static final Logger log = Logger.getLogger(TabletServerLogger.class);
-    
-    private final AtomicLong logSizeEstimate = new AtomicLong();
-    private final long maxSize;
-    
-    private final TabletServer tserver;
-    
-    // The current log set: always updated to a new set with every change of loggers
-    private final List<RemoteLogger> loggers = new ArrayList<RemoteLogger>();
-    
-    // The current generation of logSet.
-    // Because multiple threads can be using a log set at one time, a log
-    // failure is likely to affect multiple threads, who will all attempt to
-    // create a new logSet. This will cause many unnecessary updates to the
-    // metadata table.
-    // We'll use this generational counter to determine if another thread has
-    // already fetched a new logSet.
-    private AtomicInteger logSetId = new AtomicInteger();
-    
-    // Use a ReadWriteLock to allow multiple threads to use the log set, but obtain a write lock to change them
-    private ReentrantReadWriteLock logSetLock = new ReentrantReadWriteLock();
-    
-    private final AtomicInteger seqGen = new AtomicInteger();
-    
-    private static boolean enabled(Tablet tablet) {
-        String table = tablet.getExtent().getTableId().toString();
-        return ServerConfiguration.getTableConfiguration(table).getBoolean(Property.TABLE_WALOG_ENABLED);
-    }
-    
-    private static boolean enabled(CommitSession commitSession) {
-        return enabled(commitSession.getTablet());
-    }
-    
-    static private abstract class TestCallWithWriteLock {
-        abstract boolean test();
-        
-        abstract void withWriteLock() throws IOException;
-    }
-    
-    /**
-     * Pattern taken from the documentation for ReentrantReadWriteLock
-     * 
-     * @param rwlock
-     *            lock to use
-     * @param code
-     *            a test/work pair
-     * @throws IOException
-     */
-    private static void testLockAndRun(ReadWriteLock rwlock, TestCallWithWriteLock code) throws IOException {
-        // Get a read lock
-        rwlock.readLock().lock();
+    abstract void withWriteLock() throws IOException;
+  }
+  
+  /**
+   * Pattern taken from the documentation for ReentrantReadWriteLock
+   * 
+   * @param rwlock
+   *          lock to use
+   * @param code
+   *          a test/work pair
+   * @throws IOException
+   */
+  private static void testLockAndRun(ReadWriteLock rwlock, TestCallWithWriteLock code) throws IOException {
+    // Get a read lock
+    rwlock.readLock().lock();
+    try {
+      // does some condition exist that needs the write lock?
+      if (code.test()) {
+        // Yes, let go of the readlock
+        rwlock.readLock().unlock();
+        // Grab the write lock
+        rwlock.writeLock().lock();
         try {
-            // does some condition exist that needs the write lock?
-            if (code.test()) {
-                // Yes, let go of the readlock
-                rwlock.readLock().unlock();
-                // Grab the write lock
-                rwlock.writeLock().lock();
-                try {
-                    // double-check the condition, since we let go of the lock
-                    if (code.test()) {
-                        // perform the work with with write lock held
-                        code.withWriteLock();
-                    }
-                } finally {
-                    // regain the readlock
-                    rwlock.readLock().lock();
-                    // unlock the write lock
-                    rwlock.writeLock().unlock();
-                }
-            }
+          // double-check the condition, since we let go of the lock
+          if (code.test()) {
+            // perform the work with with write lock held
+            code.withWriteLock();
+          }
         } finally {
-            // always let go of the lock
-            rwlock.readLock().unlock();
+          // regain the readlock
+          rwlock.readLock().lock();
+          // unlock the write lock
+          rwlock.writeLock().unlock();
         }
+      }
+    } finally {
+      // always let go of the lock
+      rwlock.readLock().unlock();
     }
-    
-    public TabletServerLogger(TabletServer tserver, long maxSize) {
-        this.tserver = tserver;
-        this.maxSize = maxSize;
-    }
-    
-    private int initializeLoggers(final List<RemoteLogger> copy) throws IOException {
-        final int[] result = {-1};
-        testLockAndRun(logSetLock, new TestCallWithWriteLock() {
-            boolean test() {
-                copy.clear();
-                copy.addAll(loggers);
-                if (!loggers.isEmpty()) result[0] = logSetId.get();
-                return loggers.isEmpty();
-            }
-            
-            void withWriteLock() throws IOException {
-                try {
-                    createLoggers();
-                    copy.clear();
-                    copy.addAll(loggers);
-                    if (copy.size() > 0) result[0] = logSetId.get();
-                    else result[0] = -1;
-                } catch (IOException e) {
-                    log.error("Unable to create loggers", e);
-                }
-            }
-        });
-        return result[0];
-    }
-    
-    public void getLoggers(Set<String> loggersOut) {
-        logSetLock.readLock().lock();
+  }
+  
+  public TabletServerLogger(TabletServer tserver, long maxSize) {
+    this.tserver = tserver;
+    this.maxSize = maxSize;
+  }
+  
+  private int initializeLoggers(final List<RemoteLogger> copy) throws IOException {
+    final int[] result = {-1};
+    testLockAndRun(logSetLock, new TestCallWithWriteLock() {
+      boolean test() {
+        copy.clear();
+        copy.addAll(loggers);
+        if (!loggers.isEmpty()) result[0] = logSetId.get();
+        return loggers.isEmpty();
+      }
+      
+      void withWriteLock() throws IOException {
         try {
-            for (RemoteLogger logger : loggers) {
-                loggersOut.add(logger.getLogger());
-            }
-        } finally {
-            logSetLock.readLock().unlock();
+          createLoggers();
+          copy.clear();
+          copy.addAll(loggers);
+          if (copy.size() > 0) result[0] = logSetId.get();
+          else result[0] = -1;
+        } catch (IOException e) {
+          log.error("Unable to create loggers", e);
         }
+      }
+    });
+    return result[0];
+  }
+  
+  public void getLoggers(Set<String> loggersOut) {
+    logSetLock.readLock().lock();
+    try {
+      for (RemoteLogger logger : loggers) {
+        loggersOut.add(logger.getLogger());
+      }
+    } finally {
+      logSetLock.readLock().unlock();
+    }
+  }
+  
+  synchronized private void createLoggers() throws IOException {
+    if (!logSetLock.isWriteLockedByCurrentThread()) {
+      throw new IllegalStateException("createLoggers should be called with write lock held!");
     }
     
-    synchronized private void createLoggers() throws IOException {
-        if (!logSetLock.isWriteLockedByCurrentThread()) {
-            throw new IllegalStateException("createLoggers should be called with write lock held!");
-        }
-        
-        if (loggers.size() != 0) {
-            throw new IllegalStateException("createLoggers should not be called when loggers.size() is " + loggers.size());
-        }
-        
-        try {
-            while (true) {
-                Set<String> loggerAddresses = tserver.getLoggers();
-                if (!loggerAddresses.isEmpty()) {
-                    for (String logger : loggerAddresses) {
-                        try {
-                            loggers.add(new RemoteLogger(logger, UUID.randomUUID()));
-                        } catch (LoggerClosedException t) {
-                            close();
-                            break;
-                        } catch (Exception t) {
-                            close();
-                            log.warn("Unable to connect to " + logger + ": " + t);
-                            break;
-                        }
-                    }
-                    
-                    if (loggers.size() == loggerAddresses.size()) break;
-                    if (loggers.size() > 0) {
-                        // something is screwy, loggers.size() should be 0 or loggerAddresses.size()..
-                        throw new RuntimeException("Unexpected number of loggers " + loggers.size() + " " + loggerAddresses.size());
-                    }
-                }
-                UtilWaitThread.sleep(1000);
-            }
-            logSetId.incrementAndGet();
-            return;
-        } catch (Exception t) {
-            throw new IOException(t);
-        }
+    if (loggers.size() != 0) {
+      throw new IllegalStateException("createLoggers should not be called when loggers.size() is " + loggers.size());
     }
     
-    public void resetLoggers() throws IOException {
-        logSetLock.writeLock().lock();
-        try {
-            close();
-        } finally {
-            logSetLock.writeLock().unlock();
-        }
-    }
-    
-    synchronized private void close() throws IOException {
-        if (!logSetLock.isWriteLockedByCurrentThread()) {
-            throw new IllegalStateException("close should be called with write lock held!");
-        }
-        try {
-            for (RemoteLogger logger : loggers) {
-                try {
-                    logger.close();
-                } catch (LoggerClosedException ex) {
-                    // expected
-                } catch (Throwable ex) {
-                    log.error("Unable to cleanly close logger " + logger.getLogger() + ": " + ex);
-                }
-            }
-            loggers.clear();
-            logSizeEstimate.set(0);
-        } catch (Throwable t) {
-            throw new IOException(t);
-        }
-    }
-    
-    interface Writer {
-        void write(RemoteLogger logger, int seq) throws Exception;
-    }
-    
-    private int write(CommitSession commitSession, boolean mincFinish, Writer writer) throws IOException {
-        List<CommitSession> sessions = Collections.singletonList(commitSession);
-        return write(sessions, mincFinish, writer);
-    }
-    
-    private int write(Collection<CommitSession> sessions, boolean mincFinish, Writer writer) throws IOException {
-        // Work very hard not to lock this during calls to the outside world
-        int currentLogSet = logSetId.get();
-        
-        int seq = -1;
-        
-        int attempt = 0;
-        boolean success = false;
-        while (!success) {
+    try {
+      while (true) {
+        Set<String> loggerAddresses = tserver.getLoggers();
+        if (!loggerAddresses.isEmpty()) {
+          for (String logger : loggerAddresses) {
             try {
-                // get a reference to the loggers that no other thread can touch
-                ArrayList<RemoteLogger> copy = new ArrayList<RemoteLogger>();
-                currentLogSet = initializeLoggers(copy);
-                
-                // add the logger to the log set for the memory in the tablet,
-                // update the metadata table if we've never used this tablet
-                
-                if (currentLogSet == logSetId.get()) {
-                    for (CommitSession commitSession : sessions) {
-                        if (commitSession.beginUpdatingLogsUsed(copy, mincFinish)) {
-                            try {
-                                // Scribble out a tablet definition and then write to the metadata table
-                                defineTablet(commitSession);
-                                if (currentLogSet == logSetId.get()) tserver.addLoggersToMetadata(copy, commitSession.getExtent(), commitSession.getLogId());
-                            } finally {
-                                commitSession.finishUpdatingLogsUsed();
-                            }
-                        }
-                    }
-                }
-                
-                // Make sure that the logs haven't changed out from underneath our copy
-                if (currentLogSet == logSetId.get()) {
-                    
-                    // write the mutation to the logs
-                    seq = seqGen.incrementAndGet();
-                    if (seq < 0) throw new RuntimeException("Logger sequence generator wrapped!  Onos!!!11!eleven");
-                    for (RemoteLogger wal : copy) {
-                        writer.write(wal, seq);
-                    }
-                    
-                    // double-check: did the log set change?
-                    success = (currentLogSet == logSetId.get());
-                }
+              loggers.add(new RemoteLogger(logger, UUID.randomUUID()));
+            } catch (LoggerClosedException t) {
+              close();
+              break;
             } catch (Exception t) {
-                if (attempt == 0) {
-                    log.info("Log write failed: another thread probably closed the log");
-                } else {
-                    log.error("Unexpected error writing to log, retrying attempt " + (attempt + 1), t);
-                    UtilWaitThread.sleep(100);
-                }
-            } finally {
-                attempt++;
+              close();
+              log.warn("Unable to connect to " + logger + ": " + t);
+              break;
             }
-            // Some sort of write failure occurred. Grab the write lock and reset the logs.
-            // But since multiple threads will attempt it, only attempt the reset when
-            // the logs haven't changed.
-            final int finalCurrent = currentLogSet;
-            if (!success) {
-                testLockAndRun(logSetLock, new TestCallWithWriteLock() {
-                    
-                    @Override
-                    boolean test() {
-                        return finalCurrent == logSetId.get();
-                    }
-                    
-                    @Override
-                    void withWriteLock() throws IOException {
-                        close();
-                    }
-                });
-            }
+          }
+          
+          if (loggers.size() == loggerAddresses.size()) break;
+          if (loggers.size() > 0) {
+            // something is screwy, loggers.size() should be 0 or loggerAddresses.size()..
+            throw new RuntimeException("Unexpected number of loggers " + loggers.size() + " " + loggerAddresses.size());
+          }
         }
-        // if the log gets too big, reset it .. grab the write lock first
-        logSizeEstimate.addAndGet(4 * 3); // event, tid, seq overhead
-        testLockAndRun(logSetLock, new TestCallWithWriteLock() {
-            boolean test() {
-                return logSizeEstimate.get() > maxSize;
-            }
-            
-            void withWriteLock() throws IOException {
-                close();
-            }
-        });
-        return seq;
+        UtilWaitThread.sleep(1000);
+      }
+      logSetId.incrementAndGet();
+      return;
+    } catch (Exception t) {
+      throw new IOException(t);
     }
-    
-    public int defineTablet(final CommitSession commitSession) throws IOException {
-        // scribble this into the metadata tablet, too.
-        if (!enabled(commitSession)) return -1;
-        return write(commitSession, false, new Writer() {
-            @Override
-            public void write(RemoteLogger logger, int ignored) throws Exception {
-                logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(), commitSession.getExtent());
-            }
-        });
+  }
+  
+  public void resetLoggers() throws IOException {
+    logSetLock.writeLock().lock();
+    try {
+      close();
+    } finally {
+      logSetLock.writeLock().unlock();
     }
-    
-    public int log(final CommitSession commitSession, final int tabletSeq, final Mutation m) throws IOException {
-        if (!enabled(commitSession)) return -1;
-        int seq = write(commitSession, false, new Writer() {
-            @Override
-            public void write(RemoteLogger logger, int ignored) throws Exception {
-                logger.log(tabletSeq, commitSession.getLogId(), m);
-            }
-        });
-        logSizeEstimate.addAndGet(m.numBytes());
-        return seq;
+  }
+  
+  synchronized private void close() throws IOException {
+    if (!logSetLock.isWriteLockedByCurrentThread()) {
+      throw new IllegalStateException("close should be called with write lock held!");
     }
-    
-    public int logManyTablets(Map<CommitSession,List<Mutation>> mutations) throws IOException {
-        
-        final Map<CommitSession,List<Mutation>> loggables = new HashMap<CommitSession,List<Mutation>>(mutations);
-        for (CommitSession t : mutations.keySet()) {
-            if (!enabled(t)) loggables.remove(t);
-        }
-        if (loggables.size() == 0) return -1;
-        
-        int seq = write(loggables.keySet(), false, new Writer() {
-            @Override
-            public void write(RemoteLogger logger, int ignored) throws Exception {
-                List<TabletMutations> copy = new ArrayList<TabletMutations>(loggables.size());
-                for (Entry<CommitSession,List<Mutation>> entry : loggables.entrySet()) {
-                    CommitSession cs = entry.getKey();
-                    ArrayList<TMutation> tmutations = new ArrayList<TMutation>(entry.getValue().size());
-                    for (Mutation m : entry.getValue())
-                        tmutations.add(m.toThrift());
-                    copy.add(new TabletMutations(cs.getLogId(), cs.getWALogSeq(), tmutations));
-                }
-                logger.logManyTablets(copy);
-            }
-        });
-        for (List<Mutation> entry : loggables.values()) {
-            if (entry.size() < 1) throw new IllegalArgumentException("logManyTablets: logging empty mutation list");
-            for (Mutation m : entry) {
-                logSizeEstimate.addAndGet(m.numBytes());
-            }
-        }
-        return seq;
-    }
-    
-    public void minorCompactionFinished(final CommitSession commitSession, final String fullyQualifiedFileName, final int walogSeq) throws IOException {
-        
-        if (!enabled(commitSession)) return;
-        
-        long t1 = System.currentTimeMillis();
-        
-        int seq = write(commitSession, true, new Writer() {
-            @Override
-            public void write(RemoteLogger logger, int ignored) throws Exception {
-                logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), fullyQualifiedFileName);
-            }
-        });
-        
-        long t2 = System.currentTimeMillis();
-        
-        log.debug(" wrote MinC finish  " + seq + ": writeTime:" + (t2 - t1) + "ms ");
-    }
-    
-    public int minorCompactionStarted(final CommitSession commitSession, final int seq, final String fullyQualifiedFileName) throws IOException {
-        if (!enabled(commitSession)) return -1;
-        write(commitSession, false, new Writer() {
-            @Override
-            public void write(RemoteLogger logger, int ignored) throws Exception {
-                logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName);
-            }
-        });
-        return seq;
-    }
-    
-    public void recover(Tablet tablet, List<String> logs, Set<String> tabletFiles, MutationReceiver mr) throws IOException {
-        if (!enabled(tablet)) return;
+    try {
+      for (RemoteLogger logger : loggers) {
         try {
-            SortedLogRecovery recovery = new SortedLogRecovery();
-            KeyExtent extent = tablet.getExtent();
-            recovery.recover(extent, logs, tabletFiles, mr);
-        } catch (Exception e) {
-            throw new IOException(e);
+          logger.close();
+        } catch (LoggerClosedException ex) {
+          // expected
+        } catch (Throwable ex) {
+          log.error("Unable to cleanly close logger " + logger.getLogger() + ": " + ex);
         }
+      }
+      loggers.clear();
+      logSizeEstimate.set(0);
+    } catch (Throwable t) {
+      throw new IOException(t);
     }
+  }
+  
+  interface Writer {
+    void write(RemoteLogger logger, int seq) throws Exception;
+  }
+  
+  private int write(CommitSession commitSession, boolean mincFinish, Writer writer) throws IOException {
+    List<CommitSession> sessions = Collections.singletonList(commitSession);
+    return write(sessions, mincFinish, writer);
+  }
+  
+  private int write(Collection<CommitSession> sessions, boolean mincFinish, Writer writer) throws IOException {
+    // Work very hard not to lock this during calls to the outside world
+    int currentLogSet = logSetId.get();
     
+    int seq = -1;
+    
+    int attempt = 0;
+    boolean success = false;
+    while (!success) {
+      try {
+        // get a reference to the loggers that no other thread can touch
+        ArrayList<RemoteLogger> copy = new ArrayList<RemoteLogger>();
+        currentLogSet = initializeLoggers(copy);
+        
+        // add the logger to the log set for the memory in the tablet,
+        // update the metadata table if we've never used this tablet
+        
+        if (currentLogSet == logSetId.get()) {
+          for (CommitSession commitSession : sessions) {
+            if (commitSession.beginUpdatingLogsUsed(copy, mincFinish)) {
+              try {
+                // Scribble out a tablet definition and then write to the metadata table
+                defineTablet(commitSession);
+                if (currentLogSet == logSetId.get()) tserver.addLoggersToMetadata(copy, commitSession.getExtent(), commitSession.getLogId());
+              } finally {
+                commitSession.finishUpdatingLogsUsed();
+              }
+            }
+          }
+        }
+        
+        // Make sure that the logs haven't changed out from underneath our copy
+        if (currentLogSet == logSetId.get()) {
+          
+          // write the mutation to the logs
+          seq = seqGen.incrementAndGet();
+          if (seq < 0) throw new RuntimeException("Logger sequence generator wrapped!  Onos!!!11!eleven");
+          for (RemoteLogger wal : copy) {
+            writer.write(wal, seq);
+          }
+          
+          // double-check: did the log set change?
+          success = (currentLogSet == logSetId.get());
+        }
+      } catch (Exception t) {
+        if (attempt == 0) {
+          log.info("Log write failed: another thread probably closed the log");
+        } else {
+          log.error("Unexpected error writing to log, retrying attempt " + (attempt + 1), t);
+          UtilWaitThread.sleep(100);
+        }
+      } finally {
+        attempt++;
+      }
+      // Some sort of write failure occurred. Grab the write lock and reset the logs.
+      // But since multiple threads will attempt it, only attempt the reset when
+      // the logs haven't changed.
+      final int finalCurrent = currentLogSet;
+      if (!success) {
+        testLockAndRun(logSetLock, new TestCallWithWriteLock() {
+          
+          @Override
+          boolean test() {
+            return finalCurrent == logSetId.get();
+          }
+          
+          @Override
+          void withWriteLock() throws IOException {
+            close();
+          }
+        });
+      }
+    }
+    // if the log gets too big, reset it .. grab the write lock first
+    logSizeEstimate.addAndGet(4 * 3); // event, tid, seq overhead
+    testLockAndRun(logSetLock, new TestCallWithWriteLock() {
+      boolean test() {
+        return logSizeEstimate.get() > maxSize;
+      }
+      
+      void withWriteLock() throws IOException {
+        close();
+      }
+    });
+    return seq;
+  }
+  
+  public int defineTablet(final CommitSession commitSession) throws IOException {
+    // scribble this into the metadata tablet, too.
+    if (!enabled(commitSession)) return -1;
+    return write(commitSession, false, new Writer() {
+      @Override
+      public void write(RemoteLogger logger, int ignored) throws Exception {
+        logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(), commitSession.getExtent());
+      }
+    });
+  }
+  
+  public int log(final CommitSession commitSession, final int tabletSeq, final Mutation m) throws IOException {
+    if (!enabled(commitSession)) return -1;
+    int seq = write(commitSession, false, new Writer() {
+      @Override
+      public void write(RemoteLogger logger, int ignored) throws Exception {
+        logger.log(tabletSeq, commitSession.getLogId(), m);
+      }
+    });
+    logSizeEstimate.addAndGet(m.numBytes());
+    return seq;
+  }
+  
+  public int logManyTablets(Map<CommitSession,List<Mutation>> mutations) throws IOException {
+    
+    final Map<CommitSession,List<Mutation>> loggables = new HashMap<CommitSession,List<Mutation>>(mutations);
+    for (CommitSession t : mutations.keySet()) {
+      if (!enabled(t)) loggables.remove(t);
+    }
+    if (loggables.size() == 0) return -1;
+    
+    int seq = write(loggables.keySet(), false, new Writer() {
+      @Override
+      public void write(RemoteLogger logger, int ignored) throws Exception {
+        List<TabletMutations> copy = new ArrayList<TabletMutations>(loggables.size());
+        for (Entry<CommitSession,List<Mutation>> entry : loggables.entrySet()) {
+          CommitSession cs = entry.getKey();
+          ArrayList<TMutation> tmutations = new ArrayList<TMutation>(entry.getValue().size());
+          for (Mutation m : entry.getValue())
+            tmutations.add(m.toThrift());
+          copy.add(new TabletMutations(cs.getLogId(), cs.getWALogSeq(), tmutations));
+        }
+        logger.logManyTablets(copy);
+      }
+    });
+    for (List<Mutation> entry : loggables.values()) {
+      if (entry.size() < 1) throw new IllegalArgumentException("logManyTablets: logging empty mutation list");
+      for (Mutation m : entry) {
+        logSizeEstimate.addAndGet(m.numBytes());
+      }
+    }
+    return seq;
+  }
+  
+  public void minorCompactionFinished(final CommitSession commitSession, final String fullyQualifiedFileName, final int walogSeq) throws IOException {
+    
+    if (!enabled(commitSession)) return;
+    
+    long t1 = System.currentTimeMillis();
+    
+    int seq = write(commitSession, true, new Writer() {
+      @Override
+      public void write(RemoteLogger logger, int ignored) throws Exception {
+        logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), fullyQualifiedFileName);
+      }
+    });
+    
+    long t2 = System.currentTimeMillis();
+    
+    log.debug(" wrote MinC finish  " + seq + ": writeTime:" + (t2 - t1) + "ms ");
+  }
+  
+  public int minorCompactionStarted(final CommitSession commitSession, final int seq, final String fullyQualifiedFileName) throws IOException {
+    if (!enabled(commitSession)) return -1;
+    write(commitSession, false, new Writer() {
+      @Override
+      public void write(RemoteLogger logger, int ignored) throws Exception {
+        logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName);
+      }
+    });
+    return seq;
+  }
+  
+  public void recover(Tablet tablet, List<String> logs, Set<String> tabletFiles, MutationReceiver mr) throws IOException {
+    if (!enabled(tablet)) return;
+    try {
+      SortedLogRecovery recovery = new SortedLogRecovery();
+      KeyExtent extent = tablet.getExtent();
+      recovery.recover(extent, logs, tabletFiles, mr);
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+  }
+  
 }

@@ -33,171 +33,171 @@ import org.apache.hadoop.io.Text;
 import junit.framework.TestCase;
 
 public class RegExFilterTest extends TestCase {
+  
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  
+  private Key nkv(TreeMap<Key,Value> tm, String row, String cf, String cq, String val) {
+    Key k = nk(row, cf, cq);
+    tm.put(k, new Value(val.getBytes()));
+    return k;
+  }
+  
+  private Key nk(String row, String cf, String cq) {
+    return new Key(new Text(row), new Text(cf), new Text(cq));
+  }
+  
+  public void test1() throws IOException {
+    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
     
-    private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+    Key k1 = nkv(tm, "boo1", "yup", "20080201", "dog");
+    Key k2 = nkv(tm, "boo1", "yap", "20080202", "cat");
+    Key k3 = nkv(tm, "boo2", "yip", "20080203", "hamster");
     
-    private Key nkv(TreeMap<Key,Value> tm, String row, String cf, String cq, String val) {
-        Key k = nk(row, cf, cq);
-        tm.put(k, new Value(val.getBytes()));
-        return k;
-    }
+    RegExFilter rei = new RegExFilter(new SortedMapIterator(tm));
+    rei.describeOptions();
     
-    private Key nk(String row, String cf, String cq) {
-        return new Key(new Text(row), new Text(cf), new Text(cq));
-    }
+    HashMap<String,String> options = new HashMap<String,String>();
     
-    public void test1() throws IOException {
-        TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
-        
-        Key k1 = nkv(tm, "boo1", "yup", "20080201", "dog");
-        Key k2 = nkv(tm, "boo1", "yap", "20080202", "cat");
-        Key k3 = nkv(tm, "boo2", "yip", "20080203", "hamster");
-        
-        RegExFilter rei = new RegExFilter(new SortedMapIterator(tm));
-        rei.describeOptions();
-        
-        HashMap<String,String> options = new HashMap<String,String>();
-        
-        options.put(RegExFilter.ROW_REGEX, ".*2");
-        rei.validateOptions(options);
-        rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
-        rei.seek(new Range(), EMPTY_COL_FAMS, false);
-        
-        assertTrue(rei.hasTop());
-        assertTrue(rei.getTopKey().equals(k3));
-        rei.next();
-        assertFalse(rei.hasTop());
-        
-        // -----------------------------------------------------
-        options.clear();
-        
-        options.put(RegExFilter.COLF_REGEX, "ya.*");
-        rei.validateOptions(options);
-        rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
-        rei.seek(new Range(), EMPTY_COL_FAMS, false);
-        
-        assertTrue(rei.hasTop());
-        assertTrue(rei.getTopKey().equals(k2));
-        rei.next();
-        assertFalse(rei.hasTop());
-        
-        // -----------------------------------------------------
-        options.clear();
-        
-        options.put(RegExFilter.COLQ_REGEX, ".*01");
-        rei.validateOptions(options);
-        rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
-        rei.seek(new Range(), EMPTY_COL_FAMS, false);
-        
-        assertTrue(rei.hasTop());
-        assertTrue(rei.getTopKey().equals(k1));
-        rei.next();
-        assertFalse(rei.hasTop());
-        
-        // -----------------------------------------------------
-        options.clear();
-        
-        options.put(RegExFilter.VALUE_REGEX, ".*at");
-        rei.validateOptions(options);
-        rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
-        rei.seek(new Range(), EMPTY_COL_FAMS, false);
-        
-        assertTrue(rei.hasTop());
-        assertTrue(rei.getTopKey().equals(k2));
-        rei.next();
-        assertFalse(rei.hasTop());
-        
-        // -----------------------------------------------------
-        options.clear();
-        
-        options.put(RegExFilter.VALUE_REGEX, ".*ap");
-        rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
-        rei.seek(new Range(), EMPTY_COL_FAMS, false);
-        
-        assertFalse(rei.hasTop());
-        
-        // -----------------------------------------------------
-        options.clear();
-        
-        options.put(RegExFilter.COLF_REGEX, "ya.*");
-        options.put(RegExFilter.VALUE_REGEX, ".*at");
-        rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
-        rei.seek(new Range(), EMPTY_COL_FAMS, false);
-        
-        assertTrue(rei.hasTop());
-        assertTrue(rei.getTopKey().equals(k2));
-        rei.next();
-        assertFalse(rei.hasTop());
-        
-        // -----------------------------------------------------
-        options.clear();
-        
-        options.put(RegExFilter.COLF_REGEX, "ya.*");
-        options.put(RegExFilter.VALUE_REGEX, ".*ap");
-        rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
-        rei.seek(new Range(), EMPTY_COL_FAMS, false);
-        
-        assertFalse(rei.hasTop());
-        
-        // -----------------------------------------------------
-        options.clear();
-        
-        options.put(RegExFilter.ROW_REGEX, "boo1");
-        rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
-        rei.seek(new Range(), EMPTY_COL_FAMS, false);
-        
-        assertTrue(rei.hasTop());
-        assertTrue(rei.getTopKey().equals(k2));
-        rei.next();
-        assertTrue(rei.hasTop());
-        assertTrue(rei.getTopKey().equals(k1));
-        rei.next();
-        assertFalse(rei.hasTop());
-        
-        // -----------------------------------------------------
-        options.clear();
-        
-        rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
-        rei.seek(new Range(), EMPTY_COL_FAMS, false);
-        
-        assertTrue(rei.hasTop());
-        assertTrue(rei.getTopKey().equals(k2));
-        rei.next();
-        assertTrue(rei.hasTop());
-        assertTrue(rei.getTopKey().equals(k1));
-        rei.next();
-        assertTrue(rei.hasTop());
-        assertTrue(rei.getTopKey().equals(k3));
-        rei.next();
-        assertFalse(rei.hasTop());
-        
-        // -----------------------------------------------------
-        options.clear();
-        
-        options.put(RegExFilter.ROW_REGEX, "hamster");
-        options.put(RegExFilter.COLQ_REGEX, "hamster");
-        options.put(RegExFilter.VALUE_REGEX, "hamster");
-        options.put(RegExFilter.OR_FIELDS, "true");
-        rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
-        rei.seek(new Range(), EMPTY_COL_FAMS, false);
-        
-        assertTrue(rei.hasTop());
-        assertTrue(rei.getTopKey().equals(k3));
-        rei.next();
-        assertFalse(rei.hasTop());
-        
-        // -----------------------------------------------------
-        options.clear();
-        
-        options.put(RegExFilter.COLF_REGEX, "ya.*");
-        options.put(RegExFilter.COLQ_REGEX, "hamster");
-        options.put(RegExFilter.OR_FIELDS, "true");
-        rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
-        rei.seek(new Range(), EMPTY_COL_FAMS, false);
-        
-        assertTrue(rei.hasTop());
-        assertTrue(rei.getTopKey().equals(k2));
-        rei.next();
-        assertFalse(rei.hasTop());
-    }
+    options.put(RegExFilter.ROW_REGEX, ".*2");
+    rei.validateOptions(options);
+    rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(rei.hasTop());
+    assertTrue(rei.getTopKey().equals(k3));
+    rei.next();
+    assertFalse(rei.hasTop());
+    
+    // -----------------------------------------------------
+    options.clear();
+    
+    options.put(RegExFilter.COLF_REGEX, "ya.*");
+    rei.validateOptions(options);
+    rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(rei.hasTop());
+    assertTrue(rei.getTopKey().equals(k2));
+    rei.next();
+    assertFalse(rei.hasTop());
+    
+    // -----------------------------------------------------
+    options.clear();
+    
+    options.put(RegExFilter.COLQ_REGEX, ".*01");
+    rei.validateOptions(options);
+    rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(rei.hasTop());
+    assertTrue(rei.getTopKey().equals(k1));
+    rei.next();
+    assertFalse(rei.hasTop());
+    
+    // -----------------------------------------------------
+    options.clear();
+    
+    options.put(RegExFilter.VALUE_REGEX, ".*at");
+    rei.validateOptions(options);
+    rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(rei.hasTop());
+    assertTrue(rei.getTopKey().equals(k2));
+    rei.next();
+    assertFalse(rei.hasTop());
+    
+    // -----------------------------------------------------
+    options.clear();
+    
+    options.put(RegExFilter.VALUE_REGEX, ".*ap");
+    rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertFalse(rei.hasTop());
+    
+    // -----------------------------------------------------
+    options.clear();
+    
+    options.put(RegExFilter.COLF_REGEX, "ya.*");
+    options.put(RegExFilter.VALUE_REGEX, ".*at");
+    rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(rei.hasTop());
+    assertTrue(rei.getTopKey().equals(k2));
+    rei.next();
+    assertFalse(rei.hasTop());
+    
+    // -----------------------------------------------------
+    options.clear();
+    
+    options.put(RegExFilter.COLF_REGEX, "ya.*");
+    options.put(RegExFilter.VALUE_REGEX, ".*ap");
+    rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertFalse(rei.hasTop());
+    
+    // -----------------------------------------------------
+    options.clear();
+    
+    options.put(RegExFilter.ROW_REGEX, "boo1");
+    rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(rei.hasTop());
+    assertTrue(rei.getTopKey().equals(k2));
+    rei.next();
+    assertTrue(rei.hasTop());
+    assertTrue(rei.getTopKey().equals(k1));
+    rei.next();
+    assertFalse(rei.hasTop());
+    
+    // -----------------------------------------------------
+    options.clear();
+    
+    rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(rei.hasTop());
+    assertTrue(rei.getTopKey().equals(k2));
+    rei.next();
+    assertTrue(rei.hasTop());
+    assertTrue(rei.getTopKey().equals(k1));
+    rei.next();
+    assertTrue(rei.hasTop());
+    assertTrue(rei.getTopKey().equals(k3));
+    rei.next();
+    assertFalse(rei.hasTop());
+    
+    // -----------------------------------------------------
+    options.clear();
+    
+    options.put(RegExFilter.ROW_REGEX, "hamster");
+    options.put(RegExFilter.COLQ_REGEX, "hamster");
+    options.put(RegExFilter.VALUE_REGEX, "hamster");
+    options.put(RegExFilter.OR_FIELDS, "true");
+    rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(rei.hasTop());
+    assertTrue(rei.getTopKey().equals(k3));
+    rei.next();
+    assertFalse(rei.hasTop());
+    
+    // -----------------------------------------------------
+    options.clear();
+    
+    options.put(RegExFilter.COLF_REGEX, "ya.*");
+    options.put(RegExFilter.COLQ_REGEX, "hamster");
+    options.put(RegExFilter.OR_FIELDS, "true");
+    rei.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(rei.hasTop());
+    assertTrue(rei.getTopKey().equals(k2));
+    rei.next();
+    assertFalse(rei.hasTop());
+  }
 }

@@ -49,284 +49,283 @@ import org.apache.hadoop.io.Text;
  * 
  */
 public class UndefinedAnalyzer {
+  
+  static class UndefinedNode {
     
-    static class UndefinedNode {
-        
-        public UndefinedNode(String undef2, String ref2) {
-            this.undef = undef2;
-            this.ref = ref2;
-        }
-        
-        String undef;
-        String ref;
+    public UndefinedNode(String undef2, String ref2) {
+      this.undef = undef2;
+      this.ref = ref2;
     }
     
-    static class IngestInfo {
-        
-        Map<String,TreeMap<Long,Long>> flushes = new HashMap<String,TreeMap<Long,Long>>();
-        
-        public IngestInfo(String logDir) throws Exception {
-            File dir = new File(logDir);
-            File[] ingestLogs = dir.listFiles(new FilenameFilter() {
-                public boolean accept(java.io.File dir, String name) {
-                    return name.endsWith("ingest.out");
-                }
-            });
-            
-            for (File log : ingestLogs) {
-                parseLog(log);
-            }
+    String undef;
+    String ref;
+  }
+  
+  static class IngestInfo {
+    
+    Map<String,TreeMap<Long,Long>> flushes = new HashMap<String,TreeMap<Long,Long>>();
+    
+    public IngestInfo(String logDir) throws Exception {
+      File dir = new File(logDir);
+      File[] ingestLogs = dir.listFiles(new FilenameFilter() {
+        public boolean accept(java.io.File dir, String name) {
+          return name.endsWith("ingest.out");
         }
-        
-        private void parseLog(File log) throws Exception {
-            BufferedReader reader = new BufferedReader(new FileReader(log));
-            
-            String line;
-            TreeMap<Long,Long> tm = null;
-            
-            while ((line = reader.readLine()) != null) {
-                if (!line.startsWith("UUID")) continue;
-                String[] tokens = line.split("\\s");
-                String time = tokens[1];
-                String uuid = tokens[2];
-                
-                if (flushes.containsKey(uuid)) {
-                    System.err.println("WARN Duplicate uuid " + log);
-                    return;
-                }
-                
-                tm = new TreeMap<Long,Long>(Collections.reverseOrder());
-                tm.put(0l, Long.parseLong(time));
-                flushes.put(uuid, tm);
-                break;
-                
-            }
-            
-            if (tm == null) {
-                System.err.println("WARN Bad ingest log " + log);
-                return;
-            }
-            
-            while ((line = reader.readLine()) != null) {
-                String[] tokens = line.split("\\s");
-                
-                if (!tokens[0].equals("FLUSH")) continue;
-                
-                String time = tokens[1];
-                String count = tokens[4];
-                
-                tm.put(Long.parseLong(count), Long.parseLong(time));
-            }
-            
-        }
-        
-        Iterator<Long> getTimes(String uuid, long count) {
-            TreeMap<Long,Long> tm = flushes.get(uuid);
-            
-            if (tm == null) return null;
-            
-            return tm.tailMap(count).values().iterator();
-        }
+      });
+      
+      for (File log : ingestLogs) {
+        parseLog(log);
+      }
     }
     
-    static class TabletAssignment {
-        String tablet;
-        String endRow;
-        String prevEndRow;
-        String server;
-        long time;
+    private void parseLog(File log) throws Exception {
+      BufferedReader reader = new BufferedReader(new FileReader(log));
+      
+      String line;
+      TreeMap<Long,Long> tm = null;
+      
+      while ((line = reader.readLine()) != null) {
+        if (!line.startsWith("UUID")) continue;
+        String[] tokens = line.split("\\s");
+        String time = tokens[1];
+        String uuid = tokens[2];
         
-        TabletAssignment(String tablet, String er, String per, String server, long time) {
-            this.tablet = new String(tablet);
-            this.endRow = new String(er);
-            this.prevEndRow = new String(per);
-            this.server = new String(server);
-            this.time = time;
+        if (flushes.containsKey(uuid)) {
+          System.err.println("WARN Duplicate uuid " + log);
+          return;
         }
         
-        public boolean contains(String row) {
-            return prevEndRow.compareTo(row) < 0 && endRow.compareTo(row) >= 0;
-        }
+        tm = new TreeMap<Long,Long>(Collections.reverseOrder());
+        tm.put(0l, Long.parseLong(time));
+        flushes.put(uuid, tm);
+        break;
+        
+      }
+      
+      if (tm == null) {
+        System.err.println("WARN Bad ingest log " + log);
+        return;
+      }
+      
+      while ((line = reader.readLine()) != null) {
+        String[] tokens = line.split("\\s");
+        
+        if (!tokens[0].equals("FLUSH")) continue;
+        
+        String time = tokens[1];
+        String count = tokens[4];
+        
+        tm.put(Long.parseLong(count), Long.parseLong(time));
+      }
+      
     }
     
-    static class TabletHistory {
-        
-        List<TabletAssignment> assignments = new ArrayList<TabletAssignment>();
-        
-        TabletHistory(String tableId, String acuLogDir) throws Exception {
-            File dir = new File(acuLogDir);
-            File[] masterLogs = dir.listFiles(new FilenameFilter() {
-                public boolean accept(java.io.File dir, String name) {
-                    return name.matches("master.*debug.log.*");
-                }
-            });
-            
-            SimpleDateFormat sdf = new SimpleDateFormat("dd HH:mm:ss,SSS yyyy MM");
-            String currentYear = (Calendar.getInstance().get(Calendar.YEAR)) + "";
-            String currentMonth = (Calendar.getInstance().get(Calendar.MONTH) + 1) + "";
-            
-            for (File masterLog : masterLogs) {
-                
-                BufferedReader reader = new BufferedReader(new FileReader(masterLog));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (line.contains("TABLET_LOADED")) {
-                        String[] tokens = line.split("\\s+");
-                        String tablet = tokens[8];
-                        String server = tokens[10];
-                        
-                        int pos1 = -1;
-                        int pos2 = -1;
-                        int pos3 = -1;
-                        
-                        for (int i = 0; i < tablet.length(); i++) {
-                            if (tablet.charAt(i) == '<' || tablet.charAt(i) == ';') {
-                                if (pos1 == -1) {
-                                    pos1 = i;
-                                } else if (pos2 == -1) {
-                                    pos2 = i;
-                                } else {
-                                    pos3 = i;
-                                }
-                            }
-                        }
-                        
-                        if (pos1 > 0 && pos2 > 0 && pos3 == -1) {
-                            String tid = tablet.substring(0, pos1);
-                            String endRow = tablet.charAt(pos1) == '<' ? "8000000000000000" : tablet.substring(pos1 + 1, pos2);
-                            String prevEndRow = tablet.charAt(pos2) == '<' ? "" : tablet.substring(pos2 + 1);
-                            if (tid.equals(tableId)) {
-                                // System.out.println(" "+server+" "+tid+" "+endRow+" "+prevEndRow);
-                                Date date = sdf.parse(tokens[0] + " " + tokens[1] + " " + currentYear + " " + currentMonth);
-                                // System.out.println(" "+date);
-                                
-                                assignments.add(new TabletAssignment(tablet, endRow, prevEndRow, server, date.getTime()));
-                                
-                            }
-                        } else if (!tablet.startsWith("!0")) {
-                            System.err.println("Cannot parse tablet " + tablet);
-                        }
-                        
-                    }
-                }
-            }
-        }
-        
-        TabletAssignment findMostRecentAssignment(String row, long time1, long time2) {
-            
-            long latest = Long.MIN_VALUE;
-            TabletAssignment ret = null;
-            
-            for (TabletAssignment assignment : assignments) {
-                if (assignment.contains(row) && assignment.time <= time2 && assignment.time > latest) {
-                    latest = assignment.time;
-                    ret = assignment;
-                }
-            }
-            
-            return ret;
-        }
+    Iterator<Long> getTimes(String uuid, long count) {
+      TreeMap<Long,Long> tm = flushes.get(uuid);
+      
+      if (tm == null) return null;
+      
+      return tm.tailMap(count).values().iterator();
+    }
+  }
+  
+  static class TabletAssignment {
+    String tablet;
+    String endRow;
+    String prevEndRow;
+    String server;
+    long time;
+    
+    TabletAssignment(String tablet, String er, String per, String server, long time) {
+      this.tablet = new String(tablet);
+      this.endRow = new String(er);
+      this.prevEndRow = new String(per);
+      this.server = new String(server);
+      this.time = time;
     }
     
-    public static void main(String[] args) throws Exception {
-        
-        if (args.length != 7) {
-            System.err.println("Usage : " + UndefinedAnalyzer.class.getName() + " <instance> <zoo> <user> <pass> <table> <ci log dir> <acu log dir>");
-            return;
+    public boolean contains(String row) {
+      return prevEndRow.compareTo(row) < 0 && endRow.compareTo(row) >= 0;
+    }
+  }
+  
+  static class TabletHistory {
+    
+    List<TabletAssignment> assignments = new ArrayList<TabletAssignment>();
+    
+    TabletHistory(String tableId, String acuLogDir) throws Exception {
+      File dir = new File(acuLogDir);
+      File[] masterLogs = dir.listFiles(new FilenameFilter() {
+        public boolean accept(java.io.File dir, String name) {
+          return name.matches("master.*debug.log.*");
         }
+      });
+      
+      SimpleDateFormat sdf = new SimpleDateFormat("dd HH:mm:ss,SSS yyyy MM");
+      String currentYear = (Calendar.getInstance().get(Calendar.YEAR)) + "";
+      String currentMonth = (Calendar.getInstance().get(Calendar.MONTH) + 1) + "";
+      
+      for (File masterLog : masterLogs) {
         
-        String instanceName = args[0];
-        String zooKeepers = args[1];
-        
-        String user = args[2];
-        String password = args[3];
-        
-        String table = args[4];
-        String logDir = args[5];
-        String acuLogDir = args[6];
-        
-        List<UndefinedNode> undefs = new ArrayList<UndefinedNode>();
-        
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedReader reader = new BufferedReader(new FileReader(masterLog));
         String line;
         while ((line = reader.readLine()) != null) {
-            String[] tokens = line.split("\\s");
-            String undef = tokens[0];
-            String ref = tokens[1];
+          if (line.contains("TABLET_LOADED")) {
+            String[] tokens = line.split("\\s+");
+            String tablet = tokens[8];
+            String server = tokens[10];
             
-            undefs.add(new UndefinedNode(undef, ref));
-        }
-        
-        ZooKeeperInstance zki = new ZooKeeperInstance(instanceName, zooKeepers);
-        Connector conn = zki.getConnector(user, password.getBytes());
-        BatchScanner bscanner = conn.createBatchScanner(table, Constants.NO_AUTHS, 20);
-        
-        List<Range> refs = new ArrayList<Range>();
-        
-        for (UndefinedNode undefinedNode : undefs)
-            refs.add(new Range(new Text(undefinedNode.ref)));
-        
-        bscanner.setRanges(refs);
-        
-        HashMap<String,List<String>> refInfo = new HashMap<String,List<String>>();
-        
-        for (Entry<Key,Value> entry : bscanner) {
-            String ref = entry.getKey().getRow().toString();
-            List<String> vals = refInfo.get(ref);
-            if (vals == null) {
-                vals = new ArrayList<String>();
-                refInfo.put(ref, vals);
-            }
+            int pos1 = -1;
+            int pos2 = -1;
+            int pos3 = -1;
             
-            vals.add(entry.getValue().toString());
-        }
-        
-        bscanner.close();
-        
-        IngestInfo ingestInfo = new IngestInfo(logDir);
-        TabletHistory tabletHistory = new TabletHistory(Tables.getTableId(zki, table), acuLogDir);
-        
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-        
-        for (UndefinedNode undefinedNode : undefs) {
-            
-            List<String> refVals = refInfo.get(undefinedNode.ref);
-            if (refVals != null) {
-                for (String refVal : refVals) {
-                    TabletAssignment ta = null;
-                    
-                    String[] tokens = refVal.split(":");
-                    
-                    String uuid = tokens[0];
-                    String count = tokens[1];
-                    
-                    String t1 = "";
-                    String t2 = "";
-                    
-                    Iterator<Long> times = ingestInfo.getTimes(uuid, Long.parseLong(count, 16));
-                    if (times != null) {
-                        if (times.hasNext()) {
-                            long time2 = times.next();
-                            t2 = sdf.format(new Date(time2));
-                            if (times.hasNext()) {
-                                long time1 = times.next();
-                                t1 = sdf.format(new Date(time1));
-                                ta = tabletHistory.findMostRecentAssignment(undefinedNode.undef, time1, time2);
-                            }
-                        }
-                    }
-                    
-                    if (ta == null) System.out.println(undefinedNode.undef + " " + undefinedNode.ref + " " + uuid + " " + t1 + " " + t2);
-                    else System.out.println(undefinedNode.undef + " " + undefinedNode.ref + " " + ta.tablet + " " + ta.server + " " + uuid + " " + t1 + " "
-                            + t2);
-                    
+            for (int i = 0; i < tablet.length(); i++) {
+              if (tablet.charAt(i) == '<' || tablet.charAt(i) == ';') {
+                if (pos1 == -1) {
+                  pos1 = i;
+                } else if (pos2 == -1) {
+                  pos2 = i;
+                } else {
+                  pos3 = i;
                 }
-            } else {
-                System.out.println(undefinedNode.undef + " " + undefinedNode.ref);
+              }
             }
             
+            if (pos1 > 0 && pos2 > 0 && pos3 == -1) {
+              String tid = tablet.substring(0, pos1);
+              String endRow = tablet.charAt(pos1) == '<' ? "8000000000000000" : tablet.substring(pos1 + 1, pos2);
+              String prevEndRow = tablet.charAt(pos2) == '<' ? "" : tablet.substring(pos2 + 1);
+              if (tid.equals(tableId)) {
+                // System.out.println(" "+server+" "+tid+" "+endRow+" "+prevEndRow);
+                Date date = sdf.parse(tokens[0] + " " + tokens[1] + " " + currentYear + " " + currentMonth);
+                // System.out.println(" "+date);
+                
+                assignments.add(new TabletAssignment(tablet, endRow, prevEndRow, server, date.getTime()));
+                
+              }
+            } else if (!tablet.startsWith("!0")) {
+              System.err.println("Cannot parse tablet " + tablet);
+            }
+            
+          }
         }
-        
+      }
     }
     
+    TabletAssignment findMostRecentAssignment(String row, long time1, long time2) {
+      
+      long latest = Long.MIN_VALUE;
+      TabletAssignment ret = null;
+      
+      for (TabletAssignment assignment : assignments) {
+        if (assignment.contains(row) && assignment.time <= time2 && assignment.time > latest) {
+          latest = assignment.time;
+          ret = assignment;
+        }
+      }
+      
+      return ret;
+    }
+  }
+  
+  public static void main(String[] args) throws Exception {
+    
+    if (args.length != 7) {
+      System.err.println("Usage : " + UndefinedAnalyzer.class.getName() + " <instance> <zoo> <user> <pass> <table> <ci log dir> <acu log dir>");
+      return;
+    }
+    
+    String instanceName = args[0];
+    String zooKeepers = args[1];
+    
+    String user = args[2];
+    String password = args[3];
+    
+    String table = args[4];
+    String logDir = args[5];
+    String acuLogDir = args[6];
+    
+    List<UndefinedNode> undefs = new ArrayList<UndefinedNode>();
+    
+    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+    String line;
+    while ((line = reader.readLine()) != null) {
+      String[] tokens = line.split("\\s");
+      String undef = tokens[0];
+      String ref = tokens[1];
+      
+      undefs.add(new UndefinedNode(undef, ref));
+    }
+    
+    ZooKeeperInstance zki = new ZooKeeperInstance(instanceName, zooKeepers);
+    Connector conn = zki.getConnector(user, password.getBytes());
+    BatchScanner bscanner = conn.createBatchScanner(table, Constants.NO_AUTHS, 20);
+    
+    List<Range> refs = new ArrayList<Range>();
+    
+    for (UndefinedNode undefinedNode : undefs)
+      refs.add(new Range(new Text(undefinedNode.ref)));
+    
+    bscanner.setRanges(refs);
+    
+    HashMap<String,List<String>> refInfo = new HashMap<String,List<String>>();
+    
+    for (Entry<Key,Value> entry : bscanner) {
+      String ref = entry.getKey().getRow().toString();
+      List<String> vals = refInfo.get(ref);
+      if (vals == null) {
+        vals = new ArrayList<String>();
+        refInfo.put(ref, vals);
+      }
+      
+      vals.add(entry.getValue().toString());
+    }
+    
+    bscanner.close();
+    
+    IngestInfo ingestInfo = new IngestInfo(logDir);
+    TabletHistory tabletHistory = new TabletHistory(Tables.getTableId(zki, table), acuLogDir);
+    
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+    
+    for (UndefinedNode undefinedNode : undefs) {
+      
+      List<String> refVals = refInfo.get(undefinedNode.ref);
+      if (refVals != null) {
+        for (String refVal : refVals) {
+          TabletAssignment ta = null;
+          
+          String[] tokens = refVal.split(":");
+          
+          String uuid = tokens[0];
+          String count = tokens[1];
+          
+          String t1 = "";
+          String t2 = "";
+          
+          Iterator<Long> times = ingestInfo.getTimes(uuid, Long.parseLong(count, 16));
+          if (times != null) {
+            if (times.hasNext()) {
+              long time2 = times.next();
+              t2 = sdf.format(new Date(time2));
+              if (times.hasNext()) {
+                long time1 = times.next();
+                t1 = sdf.format(new Date(time1));
+                ta = tabletHistory.findMostRecentAssignment(undefinedNode.undef, time1, time2);
+              }
+            }
+          }
+          
+          if (ta == null) System.out.println(undefinedNode.undef + " " + undefinedNode.ref + " " + uuid + " " + t1 + " " + t2);
+          else System.out.println(undefinedNode.undef + " " + undefinedNode.ref + " " + ta.tablet + " " + ta.server + " " + uuid + " " + t1 + " " + t2);
+          
+        }
+      } else {
+        System.out.println(undefinedNode.undef + " " + undefinedNode.ref);
+      }
+      
+    }
+    
+  }
+  
 }

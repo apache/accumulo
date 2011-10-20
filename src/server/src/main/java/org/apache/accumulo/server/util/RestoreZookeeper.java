@@ -37,81 +37,81 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 public class RestoreZookeeper {
+  
+  private static class Restore extends DefaultHandler {
+    ZooKeeper zk = null;
+    Stack<String> cwd = new Stack<String>();
+    boolean overwrite = false;
     
-    private static class Restore extends DefaultHandler {
-        ZooKeeper zk = null;
-        Stack<String> cwd = new Stack<String>();
-        boolean overwrite = false;
-        
-        Restore(ZooKeeper zk, boolean overwrite) {
-            this.zk = zk;
-            this.overwrite = overwrite;
-        }
-        
-        @Override
-        public void startElement(String uri, String localName, String name, Attributes attributes) throws SAXException {
-            if ("node".equals(name)) {
-                String child = attributes.getValue("name");
-                if (child == null) throw new RuntimeException("name attribute not set");
-                String encoding = attributes.getValue("encoding");
-                String value = attributes.getValue("value");
-                if (value == null) value = "";
-                String path = cwd.lastElement() + "/" + child;
-                create(path, value, encoding);
-                cwd.push(path);
-            } else if ("dump".equals(name)) {
-                String root = attributes.getValue("root");
-                cwd.push(root);
-                create(root, "", "utf-8");
-            }
-        }
-        
-        @Override
-        public void endElement(String uri, String localName, String name) throws SAXException {
-            cwd.pop();
-        }
-        
-        private void create(String path, String value, String encoding) {
-            byte[] data = value.getBytes();
-            if ("base64".equals(encoding)) data = Base64.decodeBase64(value.getBytes());
-            try {
-                try {
-                    ZooUtil.putPersistentData(zk, path, data, overwrite ? NodeExistsPolicy.OVERWRITE : NodeExistsPolicy.FAIL);
-                } catch (KeeperException e) {
-                    if (e.code().equals(KeeperException.Code.NODEEXISTS)) throw new RuntimeException(path + " exists.  Remove it first.");
-                    throw e;
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
+    Restore(ZooKeeper zk, boolean overwrite) {
+      this.zk = zk;
+      this.overwrite = overwrite;
     }
     
-    /**
-     * @param args
-     * @throws Exception
-     */
-    public static void main(String[] args) throws Exception {
-        Logger.getRootLogger().setLevel(Level.WARN);
-        
-        String server = args[0];
-        int timeout = 30 * 1000;
-        InputStream in = System.in;
-        boolean overwrite = false;
-        if (args.length > 1) {
-            in = new FileInputStream(args[1]);
-        }
-        for (String arg : args)
-            if (arg.equals("--overwrite")) overwrite = true;
-        
-        ZooKeeper zk = new ZooKeeper(server, timeout, new Watcher() {
-            @Override
-            public void process(WatchedEvent event) {}
-        });
-        
-        SAXParserFactory factory = SAXParserFactory.newInstance();
-        SAXParser parser = factory.newSAXParser();
-        parser.parse(in, new Restore(zk, overwrite));
-        in.close();
+    @Override
+    public void startElement(String uri, String localName, String name, Attributes attributes) throws SAXException {
+      if ("node".equals(name)) {
+        String child = attributes.getValue("name");
+        if (child == null) throw new RuntimeException("name attribute not set");
+        String encoding = attributes.getValue("encoding");
+        String value = attributes.getValue("value");
+        if (value == null) value = "";
+        String path = cwd.lastElement() + "/" + child;
+        create(path, value, encoding);
+        cwd.push(path);
+      } else if ("dump".equals(name)) {
+        String root = attributes.getValue("root");
+        cwd.push(root);
+        create(root, "", "utf-8");
+      }
     }
+    
+    @Override
+    public void endElement(String uri, String localName, String name) throws SAXException {
+      cwd.pop();
+    }
+    
+    private void create(String path, String value, String encoding) {
+      byte[] data = value.getBytes();
+      if ("base64".equals(encoding)) data = Base64.decodeBase64(value.getBytes());
+      try {
+        try {
+          ZooUtil.putPersistentData(zk, path, data, overwrite ? NodeExistsPolicy.OVERWRITE : NodeExistsPolicy.FAIL);
+        } catch (KeeperException e) {
+          if (e.code().equals(KeeperException.Code.NODEEXISTS)) throw new RuntimeException(path + " exists.  Remove it first.");
+          throw e;
+        }
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
+  
+  /**
+   * @param args
+   * @throws Exception
+   */
+  public static void main(String[] args) throws Exception {
+    Logger.getRootLogger().setLevel(Level.WARN);
+    
+    String server = args[0];
+    int timeout = 30 * 1000;
+    InputStream in = System.in;
+    boolean overwrite = false;
+    if (args.length > 1) {
+      in = new FileInputStream(args[1]);
+    }
+    for (String arg : args)
+      if (arg.equals("--overwrite")) overwrite = true;
+    
+    ZooKeeper zk = new ZooKeeper(server, timeout, new Watcher() {
+      @Override
+      public void process(WatchedEvent event) {}
+    });
+    
+    SAXParserFactory factory = SAXParserFactory.newInstance();
+    SAXParser parser = factory.newSAXParser();
+    parser.parse(in, new Restore(zk, overwrite));
+    in.close();
+  }
 }

@@ -32,88 +32,88 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 
 public class MasterClient {
-    private static final Logger log = Logger.getLogger(MasterClient.class);
+  private static final Logger log = Logger.getLogger(MasterClient.class);
+  
+  public static MasterClientService.Iface getConnection(Instance instance) throws TTransportException {
+    ArgumentChecker.notNull(instance);
     
-    public static MasterClientService.Iface getConnection(Instance instance) throws TTransportException {
-        ArgumentChecker.notNull(instance);
-        
-        while (true) {
-            
-            List<String> locations = instance.getMasterLocations();
-            
-            while (locations.size() == 0) {
-                log.debug("No masters, will retry...");
-                UtilWaitThread.sleep(250);
-                locations = instance.getMasterLocations();
-            }
-            
-            String master = locations.get(0);
-            int portHint = instance.getConfiguration().getPort(Property.MASTER_CLIENTPORT);
-            
-            try {
-                // Master requests can take a long time: don't ever time out
-                MasterClientService.Iface client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), master, Property.MASTER_CLIENTPORT,
-                        instance.getConfiguration());
-                return client;
-            } catch (TTransportException tte) {
-                log.debug("Failed to connect to master=" + master + " portHint=" + portHint + ", will retry... ", tte);
-            }
-            
-            UtilWaitThread.sleep(250);
-        }
-        
+    while (true) {
+      
+      List<String> locations = instance.getMasterLocations();
+      
+      while (locations.size() == 0) {
+        log.debug("No masters, will retry...");
+        UtilWaitThread.sleep(250);
+        locations = instance.getMasterLocations();
+      }
+      
+      String master = locations.get(0);
+      int portHint = instance.getConfiguration().getPort(Property.MASTER_CLIENTPORT);
+      
+      try {
+        // Master requests can take a long time: don't ever time out
+        MasterClientService.Iface client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), master, Property.MASTER_CLIENTPORT,
+            instance.getConfiguration());
+        return client;
+      } catch (TTransportException tte) {
+        log.debug("Failed to connect to master=" + master + " portHint=" + portHint + ", will retry... ", tte);
+      }
+      
+      UtilWaitThread.sleep(250);
     }
     
-    public static void close(MasterClientService.Iface iface) {
-        TServiceClient client = (TServiceClient) iface;
-        if (client != null && client.getInputProtocol() != null && client.getInputProtocol().getTransport() != null) {
-            ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());
-        } else {
-            log.debug("Attempt to close null connection to the master", new Exception());
-        }
+  }
+  
+  public static void close(MasterClientService.Iface iface) {
+    TServiceClient client = (TServiceClient) iface;
+    if (client != null && client.getInputProtocol() != null && client.getInputProtocol().getTransport() != null) {
+      ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());
+    } else {
+      log.debug("Attempt to close null connection to the master", new Exception());
     }
-    
-    public static <T> T execute(Instance instance, ClientExecReturn<T,MasterClientService.Iface> exec) throws AccumuloException, AccumuloSecurityException {
-        MasterClientService.Iface client = null;
-        while (true) {
-            try {
-                client = getConnection(instance);
-                return exec.execute(client);
-            } catch (TTransportException tte) {
-                log.debug("MasterClient request failed, retrying ... ", tte);
-                UtilWaitThread.sleep(100);
-            } catch (ThriftSecurityException e) {
-                throw new AccumuloSecurityException(e.user, e.code, e);
-            } catch (AccumuloException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new AccumuloException(e);
-            } finally {
-                if (client != null) close(client);
-            }
-        }
+  }
+  
+  public static <T> T execute(Instance instance, ClientExecReturn<T,MasterClientService.Iface> exec) throws AccumuloException, AccumuloSecurityException {
+    MasterClientService.Iface client = null;
+    while (true) {
+      try {
+        client = getConnection(instance);
+        return exec.execute(client);
+      } catch (TTransportException tte) {
+        log.debug("MasterClient request failed, retrying ... ", tte);
+        UtilWaitThread.sleep(100);
+      } catch (ThriftSecurityException e) {
+        throw new AccumuloSecurityException(e.user, e.code, e);
+      } catch (AccumuloException e) {
+        throw e;
+      } catch (Exception e) {
+        throw new AccumuloException(e);
+      } finally {
+        if (client != null) close(client);
+      }
     }
-    
-    public static void execute(Instance instance, ClientExec<MasterClientService.Iface> exec) throws AccumuloException, AccumuloSecurityException {
-        MasterClientService.Iface client = null;
-        while (true) {
-            try {
-                client = getConnection(instance);
-                exec.execute(client);
-                break;
-            } catch (TTransportException tte) {
-                log.debug("MasterClient request failed, retrying ... ", tte);
-                UtilWaitThread.sleep(100);
-            } catch (ThriftSecurityException e) {
-                throw new AccumuloSecurityException(e.user, e.code, e);
-            } catch (AccumuloException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new AccumuloException(e);
-            } finally {
-                if (client != null) close(client);
-            }
-        }
+  }
+  
+  public static void execute(Instance instance, ClientExec<MasterClientService.Iface> exec) throws AccumuloException, AccumuloSecurityException {
+    MasterClientService.Iface client = null;
+    while (true) {
+      try {
+        client = getConnection(instance);
+        exec.execute(client);
+        break;
+      } catch (TTransportException tte) {
+        log.debug("MasterClient request failed, retrying ... ", tte);
+        UtilWaitThread.sleep(100);
+      } catch (ThriftSecurityException e) {
+        throw new AccumuloSecurityException(e.user, e.code, e);
+      } catch (AccumuloException e) {
+        throw e;
+      } catch (Exception e) {
+        throw new AccumuloException(e);
+      } finally {
+        if (client != null) close(client);
+      }
     }
-    
+  }
+  
 }

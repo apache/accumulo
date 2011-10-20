@@ -41,154 +41,154 @@ import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
 
 public class ScanCommand extends Command {
+  
+  private Option scanOptAuths, scanOptStartRow, scanOptEndRow, scanOptColumns, disablePaginationOpt, tableOpt, showFewOpt;
+  protected Option timestampOpt;
+  
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      IOException, ParseException {
     
-    private Option scanOptAuths, scanOptStartRow, scanOptEndRow, scanOptColumns, disablePaginationOpt, tableOpt, showFewOpt;
-    protected Option timestampOpt;
+    String tableName;
     
-    public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-            IOException, ParseException {
-        
-        String tableName;
-        
-        if (cl.hasOption(tableOpt.getOpt())) {
-            tableName = cl.getOptionValue(tableOpt.getOpt());
-            if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
-        } else {
-            shellState.checkTableState();
-            tableName = shellState.getTableName();
+    if (cl.hasOption(tableOpt.getOpt())) {
+      tableName = cl.getOptionValue(tableOpt.getOpt());
+      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+    } else {
+      shellState.checkTableState();
+      tableName = shellState.getTableName();
+    }
+    // handle first argument, if present, the authorizations list to
+    // scan with
+    Authorizations auths = getAuths(cl, shellState);
+    Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
+    
+    // handle session-specific scan iterators
+    addScanIterators(shellState, scanner, tableName);
+    
+    // handle remaining optional arguments
+    scanner.setRange(getRange(cl));
+    
+    // handle columns
+    fetchColumns(cl, scanner);
+    
+    // output the records
+    if (cl.hasOption(showFewOpt.getOpt())) {
+      String showLength = cl.getOptionValue(showFewOpt.getOpt());
+      try {
+        int length = Integer.parseInt(showLength);
+        if (length < 1) {
+          throw new IllegalArgumentException();
         }
-        // handle first argument, if present, the authorizations list to
-        // scan with
-        Authorizations auths = getAuths(cl, shellState);
-        Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
-        
-        // handle session-specific scan iterators
-        addScanIterators(shellState, scanner, tableName);
-        
-        // handle remaining optional arguments
-        scanner.setRange(getRange(cl));
-        
-        // handle columns
-        fetchColumns(cl, scanner);
-        
-        // output the records
-        if (cl.hasOption(showFewOpt.getOpt())) {
-            String showLength = cl.getOptionValue(showFewOpt.getOpt());
-            try {
-                int length = Integer.parseInt(showLength);
-                if (length < 1) {
-                    throw new IllegalArgumentException();
-                }
-                BinaryFormatter.getlength(length);
-                printBinaryRecords(cl, shellState, scanner);
-            } catch (NumberFormatException nfe) {
-                shellState.getReader().printString("Arg must be an integer. \n");
-            } catch (IllegalArgumentException iae) {
-                shellState.getReader().printString("Arg must be greater than one. \n");
-            }
-            
-        } else {
-            printRecords(cl, shellState, scanner);
-        }
-        
-        return 0;
+        BinaryFormatter.getlength(length);
+        printBinaryRecords(cl, shellState, scanner);
+      } catch (NumberFormatException nfe) {
+        shellState.getReader().printString("Arg must be an integer. \n");
+      } catch (IllegalArgumentException iae) {
+        shellState.getReader().printString("Arg must be greater than one. \n");
+      }
+      
+    } else {
+      printRecords(cl, shellState, scanner);
     }
     
-    protected void addScanIterators(Shell shellState, Scanner scanner, String tableName) {
-        Map<String,Map<String,String>> tableIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
-        if (tableIterators == null) return;
-        
-        for (Entry<String,Map<String,String>> entry : tableIterators.entrySet()) {
-            Map<String,String> options = new HashMap<String,String>(entry.getValue());
-            String className = options.remove("iteratorClassName");
-            int priority = Integer.parseInt(options.remove("iteratorPriority"));
-            String name = entry.getKey();
-            
-            Shell.log.debug("Setting scan iterator " + name + " at priority " + priority + " using class name " + className);
-            IteratorSetting si = new IteratorSetting(priority, name, className);
-            for (Entry<String,String> option : options.entrySet()) {
-                Shell.log.debug("Setting option for " + name + ": " + option.getKey() + "=" + option.getValue());
-            }
-            si.addOptions(options.entrySet());
-            scanner.addScanIterator(si);
-        }
-    }
+    return 0;
+  }
+  
+  protected void addScanIterators(Shell shellState, Scanner scanner, String tableName) {
+    Map<String,Map<String,String>> tableIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
+    if (tableIterators == null) return;
     
-    protected void printRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner) throws IOException {
-        shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
+    for (Entry<String,Map<String,String>> entry : tableIterators.entrySet()) {
+      Map<String,String> options = new HashMap<String,String>(entry.getValue());
+      String className = options.remove("iteratorClassName");
+      int priority = Integer.parseInt(options.remove("iteratorPriority"));
+      String name = entry.getKey();
+      
+      Shell.log.debug("Setting scan iterator " + name + " at priority " + priority + " using class name " + className);
+      IteratorSetting si = new IteratorSetting(priority, name, className);
+      for (Entry<String,String> option : options.entrySet()) {
+        Shell.log.debug("Setting option for " + name + ": " + option.getKey() + "=" + option.getValue());
+      }
+      si.addOptions(options.entrySet());
+      scanner.addScanIterator(si);
     }
+  }
+  
+  protected void printRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner) throws IOException {
+    shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
+  }
+  
+  protected void printBinaryRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner) throws IOException {
+    shellState.printBinaryRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
+  }
+  
+  protected void fetchColumns(CommandLine cl, ScannerBase scanner) {
+    if (cl.hasOption(scanOptColumns.getOpt())) {
+      for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
+        String sa[] = a.split(":", 2);
+        if (sa.length == 1) scanner.fetchColumnFamily(new Text(a));
+        else scanner.fetchColumn(new Text(sa[0]), new Text(sa[1]));
+      }
+    }
+  }
+  
+  protected Range getRange(CommandLine cl) {
+    Text startRow = cl.hasOption(scanOptStartRow.getOpt()) ? new Text(cl.getOptionValue(scanOptStartRow.getOpt())) : null;
+    Text endRow = cl.hasOption(scanOptEndRow.getOpt()) ? new Text(cl.getOptionValue(scanOptEndRow.getOpt())) : null;
+    Range r = new Range(startRow, endRow);
+    return r;
+  }
+  
+  protected Authorizations getAuths(CommandLine cl, Shell shellState) throws AccumuloSecurityException, AccumuloException {
+    String user = shellState.getConnector().whoami();
+    Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
+    if (cl.hasOption(scanOptAuths.getOpt())) {
+      auths = CreateUserCommand.parseAuthorizations(cl.getOptionValue(scanOptAuths.getOpt()));
+    }
+    return auths;
+  }
+  
+  @Override
+  public String description() {
+    return "scans the table, and displays the resulting records";
+  }
+  
+  @Override
+  public Options getOptions() {
+    Options o = new Options();
     
-    protected void printBinaryRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner) throws IOException {
-        shellState.printBinaryRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
-    }
+    scanOptAuths = new Option("s", "scan-authorizations", true, "scan authorizations (all user auths are used if this argument is not specified)");
+    scanOptStartRow = new Option("b", "begin-row", true, "begin row (inclusive)");
+    scanOptEndRow = new Option("e", "end-row", true, "end row (inclusive)");
+    scanOptColumns = new Option("c", "columns", true, "comma-separated columns");
+    timestampOpt = new Option("st", "show-timestamps", false, "enables displaying timestamps");
+    disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
+    tableOpt = new Option(Shell.tableOption, "tableName", true, "table to be scanned");
+    showFewOpt = new Option("f", "show few", true, "Only shows certain amount of characters");
     
-    protected void fetchColumns(CommandLine cl, ScannerBase scanner) {
-        if (cl.hasOption(scanOptColumns.getOpt())) {
-            for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
-                String sa[] = a.split(":", 2);
-                if (sa.length == 1) scanner.fetchColumnFamily(new Text(a));
-                else scanner.fetchColumn(new Text(sa[0]), new Text(sa[1]));
-            }
-        }
-    }
+    scanOptAuths.setArgName("comma-separated-authorizations");
+    scanOptStartRow.setArgName("start-row");
+    scanOptEndRow.setArgName("end-row");
+    scanOptColumns.setArgName("{<columnfamily>[:<columnqualifier>]}");
+    tableOpt.setArgName("table");
+    tableOpt.setRequired(false);
+    showFewOpt.setRequired(false);
+    showFewOpt.setArgName("int");
     
-    protected Range getRange(CommandLine cl) {
-        Text startRow = cl.hasOption(scanOptStartRow.getOpt()) ? new Text(cl.getOptionValue(scanOptStartRow.getOpt())) : null;
-        Text endRow = cl.hasOption(scanOptEndRow.getOpt()) ? new Text(cl.getOptionValue(scanOptEndRow.getOpt())) : null;
-        Range r = new Range(startRow, endRow);
-        return r;
-    }
+    o.addOption(scanOptAuths);
+    o.addOption(scanOptStartRow);
+    o.addOption(scanOptEndRow);
+    o.addOption(scanOptColumns);
+    o.addOption(timestampOpt);
+    o.addOption(disablePaginationOpt);
+    o.addOption(tableOpt);
+    o.addOption(showFewOpt);
     
-    protected Authorizations getAuths(CommandLine cl, Shell shellState) throws AccumuloSecurityException, AccumuloException {
-        String user = shellState.getConnector().whoami();
-        Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
-        if (cl.hasOption(scanOptAuths.getOpt())) {
-            auths = CreateUserCommand.parseAuthorizations(cl.getOptionValue(scanOptAuths.getOpt()));
-        }
-        return auths;
-    }
-    
-    @Override
-    public String description() {
-        return "scans the table, and displays the resulting records";
-    }
-    
-    @Override
-    public Options getOptions() {
-        Options o = new Options();
-        
-        scanOptAuths = new Option("s", "scan-authorizations", true, "scan authorizations (all user auths are used if this argument is not specified)");
-        scanOptStartRow = new Option("b", "begin-row", true, "begin row (inclusive)");
-        scanOptEndRow = new Option("e", "end-row", true, "end row (inclusive)");
-        scanOptColumns = new Option("c", "columns", true, "comma-separated columns");
-        timestampOpt = new Option("st", "show-timestamps", false, "enables displaying timestamps");
-        disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
-        tableOpt = new Option(Shell.tableOption, "tableName", true, "table to be scanned");
-        showFewOpt = new Option("f", "show few", true, "Only shows certain amount of characters");
-        
-        scanOptAuths.setArgName("comma-separated-authorizations");
-        scanOptStartRow.setArgName("start-row");
-        scanOptEndRow.setArgName("end-row");
-        scanOptColumns.setArgName("{<columnfamily>[:<columnqualifier>]}");
-        tableOpt.setArgName("table");
-        tableOpt.setRequired(false);
-        showFewOpt.setRequired(false);
-        showFewOpt.setArgName("int");
-        
-        o.addOption(scanOptAuths);
-        o.addOption(scanOptStartRow);
-        o.addOption(scanOptEndRow);
-        o.addOption(scanOptColumns);
-        o.addOption(timestampOpt);
-        o.addOption(disablePaginationOpt);
-        o.addOption(tableOpt);
-        o.addOption(showFewOpt);
-        
-        return o;
-    }
-    
-    @Override
-    public int numArgs() {
-        return 0;
-    }
+    return o;
+  }
+  
+  @Override
+  public int numArgs() {
+    return 0;
+  }
 }

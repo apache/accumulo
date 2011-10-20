@@ -26,17 +26,17 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 
 public class TableDiskUsage {
+  
+  /**
+   * @param args
+   */
+  public static void main(String[] args) throws Exception {
+    FileSystem fs = FileSystem.get(new Configuration());
     
-    /**
-     * @param args
-     */
-    public static void main(String[] args) throws Exception {
-        FileSystem fs = FileSystem.get(new Configuration());
-        
-        Instance instance = HdfsZooInstance.getInstance();
-        Connector conn = instance.getConnector("root", "secret");
-        
-        org.apache.accumulo.core.util.TableDiskUsage.printDiskUsage(ServerConfiguration.getSystemConfiguration(), Arrays.asList(args), fs, conn);
-    }
+    Instance instance = HdfsZooInstance.getInstance();
+    Connector conn = instance.getConnector("root", "secret");
     
+    org.apache.accumulo.core.util.TableDiskUsage.printDiskUsage(ServerConfiguration.getSystemConfiguration(), Arrays.asList(args), fs, conn);
+  }
+  
 }

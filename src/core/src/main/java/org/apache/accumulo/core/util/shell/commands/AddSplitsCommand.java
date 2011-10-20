@@ -33,80 +33,80 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Text;
 
 public class AddSplitsCommand extends Command {
-    private Option tableOpt, optSplitsFile, base64Opt;
+  private Option tableOpt, optSplitsFile, base64Opt;
+  
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      MissingArgumentException, FileNotFoundException {
+    String tableName;
     
-    public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-            MissingArgumentException, FileNotFoundException {
-        String tableName;
-        
-        if (cl.hasOption(tableOpt.getOpt())) {
-            tableName = cl.getOptionValue(tableOpt.getOpt());
-            if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
-        }
-        
-        else {
-            shellState.checkTableState();
-            tableName = shellState.getTableName();
-        }
-        
-        boolean decode = cl.hasOption(base64Opt.getOpt());
-        
-        TreeSet<Text> splits = new TreeSet<Text>();
-        
-        if (cl.hasOption(optSplitsFile.getOpt())) {
-            String f = cl.getOptionValue(optSplitsFile.getOpt());
-            
-            String line;
-            java.util.Scanner file = new java.util.Scanner(new File(f));
-            while (file.hasNextLine()) {
-                line = file.nextLine();
-                if (!line.isEmpty()) splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
-            }
-        } else {
-            if (cl.getArgList().isEmpty()) throw new MissingArgumentException("No split points specified");
-            
-            for (String s : cl.getArgs()) {
-                splits.add(new Text(s));
-            }
-        }
-        
-        if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
-        shellState.getConnector().tableOperations().addSplits(tableName, splits);
-        
-        return 0;
+    if (cl.hasOption(tableOpt.getOpt())) {
+      tableName = cl.getOptionValue(tableOpt.getOpt());
+      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
     }
     
-    @Override
-    public String description() {
-        return "add split points to an existing table";
+    else {
+      shellState.checkTableState();
+      tableName = shellState.getTableName();
     }
     
-    @Override
-    public Options getOptions() {
-        Options o = new Options();
-        
-        tableOpt = new Option(Shell.tableOption, "table", true, "name of a table to add split points to");
-        tableOpt.setArgName("tableName");
-        tableOpt.setRequired(false);
-        
-        optSplitsFile = new Option("sf", "splits-file", true, "file with newline separated list of rows to add to table");
-        optSplitsFile.setArgName("filename");
-        
-        base64Opt = new Option("b64", "base64encoded", false, "decode encoded split points");
-        
-        o.addOption(tableOpt);
-        o.addOption(optSplitsFile);
-        o.addOption(base64Opt);
-        return o;
+    boolean decode = cl.hasOption(base64Opt.getOpt());
+    
+    TreeSet<Text> splits = new TreeSet<Text>();
+    
+    if (cl.hasOption(optSplitsFile.getOpt())) {
+      String f = cl.getOptionValue(optSplitsFile.getOpt());
+      
+      String line;
+      java.util.Scanner file = new java.util.Scanner(new File(f));
+      while (file.hasNextLine()) {
+        line = file.nextLine();
+        if (!line.isEmpty()) splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
+      }
+    } else {
+      if (cl.getArgList().isEmpty()) throw new MissingArgumentException("No split points specified");
+      
+      for (String s : cl.getArgs()) {
+        splits.add(new Text(s));
+      }
     }
     
-    @Override
-    public String usage() {
-        return getName() + " [<split>{ <split>} ]";
-    }
+    if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+    shellState.getConnector().tableOperations().addSplits(tableName, splits);
     
-    @Override
-    public int numArgs() {
-        return Shell.NO_FIXED_ARG_LENGTH_CHECK;
-    }
+    return 0;
+  }
+  
+  @Override
+  public String description() {
+    return "add split points to an existing table";
+  }
+  
+  @Override
+  public Options getOptions() {
+    Options o = new Options();
+    
+    tableOpt = new Option(Shell.tableOption, "table", true, "name of a table to add split points to");
+    tableOpt.setArgName("tableName");
+    tableOpt.setRequired(false);
+    
+    optSplitsFile = new Option("sf", "splits-file", true, "file with newline separated list of rows to add to table");
+    optSplitsFile.setArgName("filename");
+    
+    base64Opt = new Option("b64", "base64encoded", false, "decode encoded split points");
+    
+    o.addOption(tableOpt);
+    o.addOption(optSplitsFile);
+    o.addOption(base64Opt);
+    return o;
+  }
+  
+  @Override
+  public String usage() {
+    return getName() + " [<split>{ <split>} ]";
+  }
+  
+  @Override
+  public int numArgs() {
+    return Shell.NO_FIXED_ARG_LENGTH_CHECK;
+  }
 }

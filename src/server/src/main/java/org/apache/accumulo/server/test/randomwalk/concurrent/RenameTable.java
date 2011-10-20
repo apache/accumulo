@@ -27,26 +27,26 @@ import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 
 public class RenameTable extends Test {
+  
+  @Override
+  public void visit(State state, Properties props) throws Exception {
+    Connector conn = state.getConnector();
     
-    @Override
-    public void visit(State state, Properties props) throws Exception {
-        Connector conn = state.getConnector();
-        
-        Random rand = (Random) state.get("rand");
-        
-        @SuppressWarnings("unchecked")
-        List<String> tableNames = (List<String>) state.get("tables");
-        
-        String srcTableName = tableNames.get(rand.nextInt(tableNames.size()));
-        String newTableName = tableNames.get(rand.nextInt(tableNames.size()));
-        
-        try {
-            conn.tableOperations().rename(srcTableName, newTableName);
-            log.debug("Renamed table " + srcTableName + " " + newTableName);
-        } catch (TableExistsException e) {
-            log.debug("Rename " + srcTableName + " failed, " + newTableName + " exist");
-        } catch (TableNotFoundException e) {
-            log.debug("Rename " + srcTableName + " failed, doesnt exist");
-        }
+    Random rand = (Random) state.get("rand");
+    
+    @SuppressWarnings("unchecked")
+    List<String> tableNames = (List<String>) state.get("tables");
+    
+    String srcTableName = tableNames.get(rand.nextInt(tableNames.size()));
+    String newTableName = tableNames.get(rand.nextInt(tableNames.size()));
+    
+    try {
+      conn.tableOperations().rename(srcTableName, newTableName);
+      log.debug("Renamed table " + srcTableName + " " + newTableName);
+    } catch (TableExistsException e) {
+      log.debug("Rename " + srcTableName + " failed, " + newTableName + " exist");
+    } catch (TableNotFoundException e) {
+      log.debug("Rename " + srcTableName + " failed, doesnt exist");
     }
+  }
 }

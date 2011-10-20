@@ -36,40 +36,40 @@ import org.apache.hadoop.io.Text;
  */
 
 public class Query {
+  
+  /**
+   * @param args
+   */
+  public static void main(String[] args) throws Exception {
     
-    /**
-     * @param args
-     */
-    public static void main(String[] args) throws Exception {
-        
-        if (args.length < 6) {
-            System.err.println("Usage : " + Query.class.getName() + " <instance> <zoo keepers> <table> <user> <pass> <term>{ <term>}");
-            System.exit(-1);
-        }
-        
-        String instance = args[0];
-        String zooKeepers = args[1];
-        String table = args[2];
-        String user = args[3];
-        String pass = args[4];
-        
-        ZooKeeperInstance zki = new ZooKeeperInstance(instance, zooKeepers);
-        Connector conn = zki.getConnector(user, pass.getBytes());
-        
-        BatchScanner bs = conn.createBatchScanner(table, Constants.NO_AUTHS, 20);
-        
-        Text columns[] = new Text[args.length - 5];
-        for (int i = 5; i < args.length; i++) {
-            columns[i - 5] = new Text(args[i]);
-        }
-        IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
-        ii.addOption(IntersectingIterator.columnFamiliesOptionName, IntersectingIterator.encodeColumns(columns));
-        bs.addScanIterator(ii);
-        bs.setRanges(Collections.singleton(new Range()));
-        for (Entry<Key,Value> entry : bs) {
-            System.out.println("  " + entry.getKey().getColumnQualifier());
-        }
-        
+    if (args.length < 6) {
+      System.err.println("Usage : " + Query.class.getName() + " <instance> <zoo keepers> <table> <user> <pass> <term>{ <term>}");
+      System.exit(-1);
     }
     
+    String instance = args[0];
+    String zooKeepers = args[1];
+    String table = args[2];
+    String user = args[3];
+    String pass = args[4];
+    
+    ZooKeeperInstance zki = new ZooKeeperInstance(instance, zooKeepers);
+    Connector conn = zki.getConnector(user, pass.getBytes());
+    
+    BatchScanner bs = conn.createBatchScanner(table, Constants.NO_AUTHS, 20);
+    
+    Text columns[] = new Text[args.length - 5];
+    for (int i = 5; i < args.length; i++) {
+      columns[i - 5] = new Text(args[i]);
+    }
+    IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
+    ii.addOption(IntersectingIterator.columnFamiliesOptionName, IntersectingIterator.encodeColumns(columns));
+    bs.addScanIterator(ii);
+    bs.setRanges(Collections.singleton(new Range()));
+    for (Entry<Key,Value> entry : bs) {
+      System.out.println("  " + entry.getKey().getColumnQualifier());
+    }
+    
+  }
+  
 }

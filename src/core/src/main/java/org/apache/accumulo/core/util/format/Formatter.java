@@ -23,5 +23,5 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
 public interface Formatter extends Iterator<String> {
-    public void initialize(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps);
+  public void initialize(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps);
 }

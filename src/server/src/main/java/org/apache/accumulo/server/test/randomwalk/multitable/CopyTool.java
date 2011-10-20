@@ -32,40 +32,40 @@ import org.apache.hadoop.util.Tool;
 import org.apache.log4j.Logger;
 
 public class CopyTool extends Configured implements Tool {
-    protected final Logger log = Logger.getLogger(this.getClass());
+  protected final Logger log = Logger.getLogger(this.getClass());
+  
+  public static class SeqMapClass extends Mapper<Key,Value,Text,Mutation> {
+    public void map(Key key, Value val, Context output) throws IOException, InterruptedException {
+      Mutation m = new Mutation(key.getRow());
+      m.put(key.getColumnFamily(), key.getColumnQualifier(), val);
+      output.write(null, m);
+    }
+  }
+  
+  public int run(String[] args) throws Exception {
+    Job job = new Job(getConf(), this.getClass().getSimpleName());
+    job.setJarByClass(this.getClass());
     
-    public static class SeqMapClass extends Mapper<Key,Value,Text,Mutation> {
-        public void map(Key key, Value val, Context output) throws IOException, InterruptedException {
-            Mutation m = new Mutation(key.getRow());
-            m.put(key.getColumnFamily(), key.getColumnQualifier(), val);
-            output.write(null, m);
-        }
+    if (job.getJar() == null) {
+      log.error("M/R requires a jar file!  Run mvn package.");
+      return 1;
     }
     
-    public int run(String[] args) throws Exception {
-        Job job = new Job(getConf(), this.getClass().getSimpleName());
-        job.setJarByClass(this.getClass());
-        
-        if (job.getJar() == null) {
-            log.error("M/R requires a jar file!  Run mvn package.");
-            return 1;
-        }
-        
-        job.setInputFormatClass(AccumuloInputFormat.class);
-        AccumuloInputFormat.setInputInfo(job, args[0], args[1].getBytes(), args[2], new Authorizations());
-        AccumuloInputFormat.setZooKeeperInstance(job, args[3], args[4]);
-        
-        job.setMapperClass(SeqMapClass.class);
-        job.setMapOutputKeyClass(Text.class);
-        job.setMapOutputValueClass(Mutation.class);
-        
-        job.setNumReduceTasks(0);
-        
-        job.setOutputFormatClass(AccumuloOutputFormat.class);
-        AccumuloOutputFormat.setOutputInfo(job, args[0], args[1].getBytes(), true, args[5]);
-        AccumuloOutputFormat.setZooKeeperInstance(job, args[3], args[4]);
-        
-        job.waitForCompletion(true);
-        return job.isSuccessful() ? 0 : 1;
-    }
+    job.setInputFormatClass(AccumuloInputFormat.class);
+    AccumuloInputFormat.setInputInfo(job, args[0], args[1].getBytes(), args[2], new Authorizations());
+    AccumuloInputFormat.setZooKeeperInstance(job, args[3], args[4]);
+    
+    job.setMapperClass(SeqMapClass.class);
+    job.setMapOutputKeyClass(Text.class);
+    job.setMapOutputValueClass(Mutation.class);
+    
+    job.setNumReduceTasks(0);
+    
+    job.setOutputFormatClass(AccumuloOutputFormat.class);
+    AccumuloOutputFormat.setOutputInfo(job, args[0], args[1].getBytes(), true, args[5]);
+    AccumuloOutputFormat.setZooKeeperInstance(job, args[3], args[4]);
+    
+    job.waitForCompletion(true);
+    return job.isSuccessful() ? 0 : 1;
+  }
 }

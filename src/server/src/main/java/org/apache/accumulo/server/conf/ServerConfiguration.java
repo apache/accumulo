@@ -28,64 +28,64 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 
 public class ServerConfiguration {
-    
-    private static Map<String,TableConfiguration> tableInstances = new HashMap<String,TableConfiguration>(1);
-    private static SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
-    
-    public static synchronized SiteConfiguration getSiteConfiguration() {
-        checkPermissions();
-        return SiteConfiguration.getInstance(getDefaultConfiguration());
+  
+  private static Map<String,TableConfiguration> tableInstances = new HashMap<String,TableConfiguration>(1);
+  private static SecurityPermission CONFIGURATION_PERMISSION = new SecurityPermission("configurationPermission");
+  
+  public static synchronized SiteConfiguration getSiteConfiguration() {
+    checkPermissions();
+    return SiteConfiguration.getInstance(getDefaultConfiguration());
+  }
+  
+  private static void checkPermissions() {
+    SecurityManager sm = System.getSecurityManager();
+    if (sm != null) {
+      sm.checkPermission(CONFIGURATION_PERMISSION);
     }
-    
-    private static void checkPermissions() {
-        SecurityManager sm = System.getSecurityManager();
-        if (sm != null) {
-            sm.checkPermission(CONFIGURATION_PERMISSION);
-        }
+  }
+  
+  private static synchronized ZooConfiguration getZooConfiguration() {
+    checkPermissions();
+    return ZooConfiguration.getInstance(getSiteConfiguration());
+  }
+  
+  public static synchronized DefaultConfiguration getDefaultConfiguration() {
+    checkPermissions();
+    return DefaultConfiguration.getInstance();
+  }
+  
+  public static synchronized AccumuloConfiguration getSystemConfiguration() {
+    return getZooConfiguration();
+  }
+  
+  public static TableConfiguration getTableConfiguration(String instanceId, String tableId) {
+    checkPermissions();
+    synchronized (tableInstances) {
+      TableConfiguration conf = tableInstances.get(tableId);
+      if (conf == null) {
+        conf = new TableConfiguration(instanceId, tableId, getSystemConfiguration());
+        ConfigSanityCheck.validate(conf);
+        tableInstances.put(tableId, conf);
+      }
+      return conf;
     }
-    
-    private static synchronized ZooConfiguration getZooConfiguration() {
-        checkPermissions();
-        return ZooConfiguration.getInstance(getSiteConfiguration());
+  }
+  
+  public static TableConfiguration getTableConfiguration(String tableId) {
+    return getTableConfiguration(HdfsZooInstance.getInstance().getInstanceID(), tableId);
+  }
+  
+  static void removeTableIdInstance(String tableId) {
+    synchronized (tableInstances) {
+      tableInstances.remove(tableId);
     }
-    
-    public static synchronized DefaultConfiguration getDefaultConfiguration() {
-        checkPermissions();
-        return DefaultConfiguration.getInstance();
+  }
+  
+  static void expireAllTableObservers() {
+    synchronized (tableInstances) {
+      for (Entry<String,TableConfiguration> entry : tableInstances.entrySet()) {
+        entry.getValue().expireAllObservers();
+      }
     }
-    
-    public static synchronized AccumuloConfiguration getSystemConfiguration() {
-        return getZooConfiguration();
-    }
-    
-    public static TableConfiguration getTableConfiguration(String instanceId, String tableId) {
-        checkPermissions();
-        synchronized (tableInstances) {
-            TableConfiguration conf = tableInstances.get(tableId);
-            if (conf == null) {
-                conf = new TableConfiguration(instanceId, tableId, getSystemConfiguration());
-                ConfigSanityCheck.validate(conf);
-                tableInstances.put(tableId, conf);
-            }
-            return conf;
-        }
-    }
-    
-    public static TableConfiguration getTableConfiguration(String tableId) {
-        return getTableConfiguration(HdfsZooInstance.getInstance().getInstanceID(), tableId);
-    }
-    
-    static void removeTableIdInstance(String tableId) {
-        synchronized (tableInstances) {
-            tableInstances.remove(tableId);
-        }
-    }
-    
-    static void expireAllTableObservers() {
-        synchronized (tableInstances) {
-            for (Entry<String,TableConfiguration> entry : tableInstances.entrySet()) {
-                entry.getValue().expireAllObservers();
-            }
-        }
-    }
+  }
 }

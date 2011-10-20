@@ -27,45 +27,45 @@ import org.apache.thrift.transport.TTransportException;
 
 // Thrift-959 removed the small buffer from TSocket; this adds it back for servers
 public class TBufferedServerSocket extends TServerTransport {
-    
-    // expose acceptImpl
-    static class TServerSocket extends org.apache.thrift.transport.TServerSocket {
-        public TServerSocket(ServerSocket serverSocket) {
-            super(serverSocket);
-        }
-        
-        public TSocket acceptImplPublic() throws TTransportException {
-            return acceptImpl();
-        }
+  
+  // expose acceptImpl
+  static class TServerSocket extends org.apache.thrift.transport.TServerSocket {
+    public TServerSocket(ServerSocket serverSocket) {
+      super(serverSocket);
     }
     
-    final TServerSocket impl;
-    final int bufferSize;
-    
-    public TBufferedServerSocket(ServerSocket serverSocket, int bufferSize) {
-        this.impl = new TServerSocket(serverSocket);
-        this.bufferSize = bufferSize;
+    public TSocket acceptImplPublic() throws TTransportException {
+      return acceptImpl();
     }
-    
-    @Override
-    public void listen() throws TTransportException {
-        impl.listen();
+  }
+  
+  final TServerSocket impl;
+  final int bufferSize;
+  
+  public TBufferedServerSocket(ServerSocket serverSocket, int bufferSize) {
+    this.impl = new TServerSocket(serverSocket);
+    this.bufferSize = bufferSize;
+  }
+  
+  @Override
+  public void listen() throws TTransportException {
+    impl.listen();
+  }
+  
+  @Override
+  public void close() {
+    impl.close();
+  }
+  
+  // Wrap accepted sockets using buffered IO
+  @Override
+  protected TTransport acceptImpl() throws TTransportException {
+    TSocket sock = impl.acceptImplPublic();
+    try {
+      return new TBufferedSocket(sock, this.bufferSize);
+    } catch (IOException e) {
+      throw new TTransportException(e);
     }
-    
-    @Override
-    public void close() {
-        impl.close();
-    }
-    
-    // Wrap accepted sockets using buffered IO
-    @Override
-    protected TTransport acceptImpl() throws TTransportException {
-        TSocket sock = impl.acceptImplPublic();
-        try {
-            return new TBufferedSocket(sock, this.bufferSize);
-        } catch (IOException e) {
-            throw new TTransportException(e);
-        }
-    }
-    
+  }
+  
 }

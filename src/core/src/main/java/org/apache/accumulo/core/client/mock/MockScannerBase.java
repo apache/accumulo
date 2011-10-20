@@ -44,73 +44,73 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang.NotImplementedException;
 
 public class MockScannerBase extends ScannerOptions implements ScannerBase {
-    
-    protected final MockTable table;
-    protected final Authorizations auths;
-    
-    MockScannerBase(MockTable mockTable, Authorizations authorizations) {
-        this.table = mockTable;
-        this.auths = authorizations;
+  
+  protected final MockTable table;
+  protected final Authorizations auths;
+  
+  MockScannerBase(MockTable mockTable, Authorizations authorizations) {
+    this.table = mockTable;
+    this.auths = authorizations;
+  }
+  
+  static HashSet<ByteSequence> createColumnBSS(Collection<Column> columns) {
+    HashSet<ByteSequence> columnSet = new HashSet<ByteSequence>();
+    for (Column c : columns) {
+      columnSet.add(new ArrayByteSequence(c.getColumnFamily()));
     }
-    
-    static HashSet<ByteSequence> createColumnBSS(Collection<Column> columns) {
-        HashSet<ByteSequence> columnSet = new HashSet<ByteSequence>();
-        for (Column c : columns) {
-            columnSet.add(new ArrayByteSequence(c.getColumnFamily()));
-        }
-        return columnSet;
-    }
-    
-    static class MockIteratorEnvironment implements IteratorEnvironment {
-        @Override
-        public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
-            throw new NotImplementedException();
-        }
-        
-        @Override
-        public AccumuloConfiguration getConfig() {
-            return AccumuloConfiguration.getDefaultConfiguration();
-        }
-        
-        @Override
-        public IteratorScope getIteratorScope() {
-            return IteratorScope.scan;
-        }
-        
-        @Override
-        public boolean isFullMajorCompaction() {
-            return false;
-        }
-        
-        private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
-        
-        @Override
-        public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
-            topLevelIterators.add(iter);
-        }
-        
-        SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
-            if (topLevelIterators.isEmpty()) return iter;
-            ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<SortedKeyValueIterator<Key,Value>>(topLevelIterators);
-            allIters.add(iter);
-            return new MultiIterator(allIters, false);
-        }
-    }
-    
-    public SortedKeyValueIterator<Key,Value> createFilter(SortedKeyValueIterator<Key,Value> inner) throws IOException {
-        byte[] defaultLabels = {};
-        inner = new ColumnFamilySkippingIterator(new DeletingIterator(inner, false));
-        ColumnQualifierFilter cqf = new ColumnQualifierFilter(inner, new HashSet<Column>(fetchedColumns));
-        VisibilityFilter vf = new VisibilityFilter(cqf, auths, defaultLabels);
-        AccumuloConfiguration conf = new MockConfiguration(table.settings);
-        MockIteratorEnvironment iterEnv = new MockIteratorEnvironment();
-        SortedKeyValueIterator<Key,Value> result = iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, vf, null, conf,
-                serverSideIteratorList, serverSideIteratorOptions, iterEnv));
-        return result;
+    return columnSet;
+  }
+  
+  static class MockIteratorEnvironment implements IteratorEnvironment {
+    @Override
+    public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
+      throw new NotImplementedException();
     }
     
     @Override
-    public Iterator<Entry<Key,Value>> iterator() {
-        throw new UnsupportedOperationException();
+    public AccumuloConfiguration getConfig() {
+      return AccumuloConfiguration.getDefaultConfiguration();
     }
+    
+    @Override
+    public IteratorScope getIteratorScope() {
+      return IteratorScope.scan;
+    }
+    
+    @Override
+    public boolean isFullMajorCompaction() {
+      return false;
+    }
+    
+    private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<SortedKeyValueIterator<Key,Value>>();
+    
+    @Override
+    public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
+      topLevelIterators.add(iter);
+    }
+    
+    SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
+      if (topLevelIterators.isEmpty()) return iter;
+      ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<SortedKeyValueIterator<Key,Value>>(topLevelIterators);
+      allIters.add(iter);
+      return new MultiIterator(allIters, false);
+    }
+  }
+  
+  public SortedKeyValueIterator<Key,Value> createFilter(SortedKeyValueIterator<Key,Value> inner) throws IOException {
+    byte[] defaultLabels = {};
+    inner = new ColumnFamilySkippingIterator(new DeletingIterator(inner, false));
+    ColumnQualifierFilter cqf = new ColumnQualifierFilter(inner, new HashSet<Column>(fetchedColumns));
+    VisibilityFilter vf = new VisibilityFilter(cqf, auths, defaultLabels);
+    AccumuloConfiguration conf = new MockConfiguration(table.settings);
+    MockIteratorEnvironment iterEnv = new MockIteratorEnvironment();
+    SortedKeyValueIterator<Key,Value> result = iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, vf, null, conf,
+        serverSideIteratorList, serverSideIteratorOptions, iterEnv));
+    return result;
+  }
+  
+  @Override
+  public Iterator<Entry<Key,Value>> iterator() {
+    throw new UnsupportedOperationException();
+  }
 }

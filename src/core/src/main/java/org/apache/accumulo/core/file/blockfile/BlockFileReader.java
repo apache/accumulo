@@ -27,15 +27,15 @@ import java.io.IOException;
  */
 
 public interface BlockFileReader {
-    
-    public ABlockReader getMetaBlock(String name) throws IOException;
-    
-    public ABlockReader getDataBlock(int blockIndex) throws IOException;
-    
-    public void close() throws IOException;
-    
-    public ABlockReader getMetaBlock(long offset, long compressedSize, long rawSize) throws IOException;
-    
-    public ABlockReader getDataBlock(long offset, long compressedSize, long rawSize) throws IOException;
-    
+  
+  public ABlockReader getMetaBlock(String name) throws IOException;
+  
+  public ABlockReader getDataBlock(int blockIndex) throws IOException;
+  
+  public void close() throws IOException;
+  
+  public ABlockReader getMetaBlock(long offset, long compressedSize, long rawSize) throws IOException;
+  
+  public ABlockReader getDataBlock(long offset, long compressedSize, long rawSize) throws IOException;
+  
 }

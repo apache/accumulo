@@ -45,93 +45,93 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
  * Other methods from FileOutputFormat to configure options are ignored Compression is using the DefaultCodec and is always on
  */
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
-    private static final String PREFIX = AccumuloOutputFormat.class.getSimpleName();
-    public static final String FILE_TYPE = PREFIX + ".file_type";
-    public static final String BLOCK_SIZE = PREFIX + ".block_size";
+  private static final String PREFIX = AccumuloOutputFormat.class.getSimpleName();
+  public static final String FILE_TYPE = PREFIX + ".file_type";
+  public static final String BLOCK_SIZE = PREFIX + ".block_size";
+  
+  private static final String INSTANCE_HAS_BEEN_SET = PREFIX + ".instanceConfigured";
+  private static final String INSTANCE_NAME = PREFIX + ".instanceName";
+  private static final String ZOOKEEPERS = PREFIX + ".zooKeepers";
+  
+  @Override
+  public RecordWriter<Key,Value> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
+    // get the path of the temporary output file
+    Configuration conf = job.getConfiguration();
     
-    private static final String INSTANCE_HAS_BEEN_SET = PREFIX + ".instanceConfigured";
-    private static final String INSTANCE_NAME = PREFIX + ".instanceName";
-    private static final String ZOOKEEPERS = PREFIX + ".zooKeepers";
+    String extension = conf.get(FILE_TYPE);
+    if (extension == null || extension.isEmpty()) extension = RFile.EXTENSION;
     
-    @Override
-    public RecordWriter<Key,Value> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
-        // get the path of the temporary output file
-        Configuration conf = job.getConfiguration();
-        
-        String extension = conf.get(FILE_TYPE);
-        if (extension == null || extension.isEmpty()) extension = RFile.EXTENSION;
-        
-        handleBlockSize(job);
-        Path file = this.getDefaultWorkFile(job, "." + extension);
-        
-        final FileSKVWriter out = FileOperations.getInstance().openWriter(file.toString(), file.getFileSystem(conf), conf,
-                AccumuloConfiguration.getDefaultConfiguration());
-        out.startDefaultLocalityGroup();
-        
-        return new RecordWriter<Key,Value>() {
-            @Override
-            public void write(Key key, Value value) throws IOException {
-                out.append(key, value);
-            }
-            
-            @Override
-            public void close(TaskAttemptContext context) throws IOException, InterruptedException {
-                out.close();
-            }
-        };
+    handleBlockSize(job);
+    Path file = this.getDefaultWorkFile(job, "." + extension);
+    
+    final FileSKVWriter out = FileOperations.getInstance().openWriter(file.toString(), file.getFileSystem(conf), conf,
+        AccumuloConfiguration.getDefaultConfiguration());
+    out.startDefaultLocalityGroup();
+    
+    return new RecordWriter<Key,Value>() {
+      @Override
+      public void write(Key key, Value value) throws IOException {
+        out.append(key, value);
+      }
+      
+      @Override
+      public void close(TaskAttemptContext context) throws IOException, InterruptedException {
+        out.close();
+      }
+    };
+  }
+  
+  protected static void handleBlockSize(JobContext job) {
+    Configuration conf = job.getConfiguration();
+    int blockSize;
+    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) {
+      blockSize = (int) getInstance(job).getConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
+    } else {
+      blockSize = getBlockSize(job);
     }
+    conf.setInt("io.seqfile.compress.blocksize", blockSize);
     
-    protected static void handleBlockSize(JobContext job) {
-        Configuration conf = job.getConfiguration();
-        int blockSize;
-        if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) {
-            blockSize = (int) getInstance(job).getConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
-        } else {
-            blockSize = getBlockSize(job);
-        }
-        conf.setInt("io.seqfile.compress.blocksize", blockSize);
-        
-    }
+  }
+  
+  public static void setFileType(JobContext job, String type) {
+    job.getConfiguration().set(FILE_TYPE, type);
+  }
+  
+  public static void setBlockSize(JobContext job, int blockSize) {
+    job.getConfiguration().setInt(BLOCK_SIZE, blockSize);
+  }
+  
+  private static int getBlockSize(JobContext job) {
+    return job.getConfiguration().getInt(BLOCK_SIZE,
+        (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
+  }
+  
+  /**
+   * 
+   * @param job
+   * @param instanceName
+   * @param zooKeepers
+   * @deprecated since 1.4, use {@link #setBlockSize(JobContext, int)} to set block size no other configurations are used by OutputFormat
+   */
+  public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
+    Configuration conf = job.getConfiguration();
+    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) throw new IllegalStateException("Instance info can only be set once per job");
+    conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
     
-    public static void setFileType(JobContext job, String type) {
-        job.getConfiguration().set(FILE_TYPE, type);
-    }
-    
-    public static void setBlockSize(JobContext job, int blockSize) {
-        job.getConfiguration().setInt(BLOCK_SIZE, blockSize);
-    }
-    
-    private static int getBlockSize(JobContext job) {
-        return job.getConfiguration().getInt(BLOCK_SIZE,
-                (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
-    }
-    
-    /**
-     * 
-     * @param job
-     * @param instanceName
-     * @param zooKeepers
-     * @deprecated since 1.4, use {@link #setBlockSize(JobContext, int)} to set block size no other configurations are used by OutputFormat
-     */
-    public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
-        Configuration conf = job.getConfiguration();
-        if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) throw new IllegalStateException("Instance info can only be set once per job");
-        conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
-        
-        ArgumentChecker.notNull(instanceName, zooKeepers);
-        conf.set(INSTANCE_NAME, instanceName);
-        conf.set(ZOOKEEPERS, zooKeepers);
-    }
-    
-    /**
-     * 
-     * @param job
-     * @return
-     * 
-     * @deprecated since 1.4, use {@link #setBlockSize(JobContext, int)} no other configurations are used by OutputFormat
-     */
-    protected static Instance getInstance(JobContext job) {
-        Configuration conf = job.getConfiguration();
-        return new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS));
-    }
+    ArgumentChecker.notNull(instanceName, zooKeepers);
+    conf.set(INSTANCE_NAME, instanceName);
+    conf.set(ZOOKEEPERS, zooKeepers);
+  }
+  
+  /**
+   * 
+   * @param job
+   * @return
+   * 
+   * @deprecated since 1.4, use {@link #setBlockSize(JobContext, int)} no other configurations are used by OutputFormat
+   */
+  protected static Instance getInstance(JobContext job) {
+    Configuration conf = job.getConfiguration();
+    return new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS));
+  }
 }

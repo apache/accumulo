@@ -33,61 +33,61 @@ import org.apache.log4j.Logger;
 import org.apache.thrift.transport.TTransportException;
 
 public class ShutdownTServer extends MasterRepo {
-    
-    private static final long serialVersionUID = 1L;
-    private static final Logger log = Logger.getLogger(ShutdownTServer.class);
-    private TServerInstance server;
-    private boolean force;
-    
-    public ShutdownTServer(TServerInstance server, boolean force) {
-        this.server = server;
-        this.force = force;
+  
+  private static final long serialVersionUID = 1L;
+  private static final Logger log = Logger.getLogger(ShutdownTServer.class);
+  private TServerInstance server;
+  private boolean force;
+  
+  public ShutdownTServer(TServerInstance server, boolean force) {
+    this.server = server;
+    this.force = force;
+  }
+  
+  @Override
+  public long isReady(long tid, Master environment) throws Exception {
+    return 0;
+  }
+  
+  @Override
+  public Repo<Master> call(long tid, Master m) throws Exception {
+    // suppress assignment of tablets to the server
+    if (force) {
+      String tserver = AddressUtil.toString(server.getLocation());
+      String path = ZooUtil.getRoot(m.getInstance()) + Constants.ZTSERVERS + "/" + tserver;
+      ZooLock.deleteLock(path);
+      path = ZooUtil.getRoot(m.getInstance()) + Constants.ZDEADTSERVERS + "/" + tserver;
+      ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      zoo.putPersistentData(path, "forced down".getBytes(), NodeExistsPolicy.OVERWRITE);
+      return new DisconnectLogger(server.getLocation().getAddress().getHostAddress());
     }
     
-    @Override
-    public long isReady(long tid, Master environment) throws Exception {
-        return 0;
-    }
-    
-    @Override
-    public Repo<Master> call(long tid, Master m) throws Exception {
-        // suppress assignment of tablets to the server
-        if (force) {
-            String tserver = AddressUtil.toString(server.getLocation());
-            String path = ZooUtil.getRoot(m.getInstance()) + Constants.ZTSERVERS + "/" + tserver;
-            ZooLock.deleteLock(path);
-            path = ZooUtil.getRoot(m.getInstance()) + Constants.ZDEADTSERVERS + "/" + tserver;
-            ZooReaderWriter zoo = ZooReaderWriter.getInstance();
-            zoo.putPersistentData(path, "forced down".getBytes(), NodeExistsPolicy.OVERWRITE);
-            return new DisconnectLogger(server.getLocation().getAddress().getHostAddress());
+    // TODO move this to isReady() and drop while loop?
+    Listener listener = m.getEventCoordinator().getListener();
+    m.shutdownTServer(server);
+    while (m.stillMaster() && m.onlineTabletServers().contains(server)) {
+      TServerConnection connection = m.getConnection(server);
+      if (connection != null) {
+        try {
+          TabletServerStatus status = connection.getTableMap();
+          if (status.tableMap != null && status.tableMap.isEmpty()) {
+            log.info("tablet server hosts no tablets " + server);
+            connection.halt(m.getMasterLock());
+            log.info("tablet server asked to halt " + server);
+            break;
+          }
+        } catch (TTransportException ex) {
+          // expected
+        } catch (Exception ex) {
+          log.error("Error talking to tablet server " + server + ": " + ex);
         }
-        
-        // TODO move this to isReady() and drop while loop?
-        Listener listener = m.getEventCoordinator().getListener();
-        m.shutdownTServer(server);
-        while (m.stillMaster() && m.onlineTabletServers().contains(server)) {
-            TServerConnection connection = m.getConnection(server);
-            if (connection != null) {
-                try {
-                    TabletServerStatus status = connection.getTableMap();
-                    if (status.tableMap != null && status.tableMap.isEmpty()) {
-                        log.info("tablet server hosts no tablets " + server);
-                        connection.halt(m.getMasterLock());
-                        log.info("tablet server asked to halt " + server);
-                        break;
-                    }
-                } catch (TTransportException ex) {
-                    // expected
-                } catch (Exception ex) {
-                    log.error("Error talking to tablet server " + server + ": " + ex);
-                }
-            }
-            listener.waitForEvents(1000);
-        }
-        
-        return new DisconnectLogger(server.getLocation().getAddress().getHostAddress());
+      }
+      listener.waitForEvents(1000);
     }
     
-    @Override
-    public void undo(long tid, Master m) throws Exception {}
+    return new DisconnectLogger(server.getLocation().getAddress().getHostAddress());
+  }
+  
+  @Override
+  public void undo(long tid, Master m) throws Exception {}
 }

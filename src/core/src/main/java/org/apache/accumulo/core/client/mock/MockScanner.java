@@ -30,76 +30,76 @@ import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.security.Authorizations;
 
 public class MockScanner extends MockScannerBase implements Scanner {
+  
+  int timeOut = 0;
+  int batchSize = 0;
+  Range range = new Range();
+  
+  MockScanner(MockTable table, Authorizations auths) {
+    super(table, auths);
+  }
+  
+  @Override
+  public void setTimeOut(int timeOut) {
+    this.timeOut = timeOut;
+  }
+  
+  @Override
+  public int getTimeOut() {
+    return timeOut;
+  }
+  
+  @Override
+  public void setRange(Range range) {
+    this.range = range;
+  }
+  
+  @Override
+  public Range getRange() {
+    return this.range;
+  }
+  
+  @Override
+  public void setBatchSize(int size) {
+    this.batchSize = size;
+  }
+  
+  @Override
+  public int getBatchSize() {
+    return this.batchSize;
+  }
+  
+  @Override
+  public void enableIsolation() {}
+  
+  @Override
+  public void disableIsolation() {}
+  
+  static class RangeFilter extends Filter {
+    Range range;
     
-    int timeOut = 0;
-    int batchSize = 0;
-    Range range = new Range();
-    
-    MockScanner(MockTable table, Authorizations auths) {
-        super(table, auths);
+    public RangeFilter(SortedKeyValueIterator<Key,Value> i, Range range) {
+      super(i);
+      this.range = range;
     }
     
     @Override
-    public void setTimeOut(int timeOut) {
-        this.timeOut = timeOut;
+    public boolean accept(Key k, Value v) {
+      return range.contains(k);
+    }
+  }
+  
+  @Override
+  public Iterator<Entry<Key,Value>> iterator() {
+    SortedKeyValueIterator<Key,Value> i = new SortedMapIterator(table.table);
+    try {
+      i = new RangeFilter(createFilter(i), range);
+      i.seek(range, createColumnBSS(fetchedColumns), !fetchedColumns.isEmpty());
+      return new IteratorAdapter(i);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
     
-    @Override
-    public int getTimeOut() {
-        return timeOut;
-    }
-    
-    @Override
-    public void setRange(Range range) {
-        this.range = range;
-    }
-    
-    @Override
-    public Range getRange() {
-        return this.range;
-    }
-    
-    @Override
-    public void setBatchSize(int size) {
-        this.batchSize = size;
-    }
-    
-    @Override
-    public int getBatchSize() {
-        return this.batchSize;
-    }
-    
-    @Override
-    public void enableIsolation() {}
-    
-    @Override
-    public void disableIsolation() {}
-    
-    static class RangeFilter extends Filter {
-        Range range;
-        
-        public RangeFilter(SortedKeyValueIterator<Key,Value> i, Range range) {
-            super(i);
-            this.range = range;
-        }
-        
-        @Override
-        public boolean accept(Key k, Value v) {
-            return range.contains(k);
-        }
-    }
-    
-    @Override
-    public Iterator<Entry<Key,Value>> iterator() {
-        SortedKeyValueIterator<Key,Value> i = new SortedMapIterator(table.table);
-        try {
-            i = new RangeFilter(createFilter(i), range);
-            i.seek(range, createColumnBSS(fetchedColumns), !fetchedColumns.isEmpty());
-            return new IteratorAdapter(i);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        
-    }
-    
+  }
+  
 }

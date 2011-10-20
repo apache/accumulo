@@ -27,59 +27,59 @@ import java.util.Map;
  * Simple one RFile soft reference cache.
  */
 public class SimpleBlockCache implements BlockCache {
-    private static class Ref extends SoftReference<byte[]> {
-        public String blockId;
-        
-        public Ref(String blockId, byte buf[], ReferenceQueue<byte[]> q) {
-            super(buf, q);
-            this.blockId = blockId;
-        }
+  private static class Ref extends SoftReference<byte[]> {
+    public String blockId;
+    
+    public Ref(String blockId, byte buf[], ReferenceQueue<byte[]> q) {
+      super(buf, q);
+      this.blockId = blockId;
     }
-    
-    private Map<String,Ref> cache = new HashMap<String,Ref>();
-    
-    private ReferenceQueue<byte[]> q = new ReferenceQueue<byte[]>();
-    public int dumps = 0;
-    
-    /**
-     * Constructor
-     */
-    public SimpleBlockCache() {
-        super();
+  }
+  
+  private Map<String,Ref> cache = new HashMap<String,Ref>();
+  
+  private ReferenceQueue<byte[]> q = new ReferenceQueue<byte[]>();
+  public int dumps = 0;
+  
+  /**
+   * Constructor
+   */
+  public SimpleBlockCache() {
+    super();
+  }
+  
+  void processQueue() {
+    Ref r;
+    while ((r = (Ref) q.poll()) != null) {
+      cache.remove(r.blockId);
+      dumps++;
     }
-    
-    void processQueue() {
-        Ref r;
-        while ((r = (Ref) q.poll()) != null) {
-            cache.remove(r.blockId);
-            dumps++;
-        }
-    }
-    
-    /**
-     * @return the size
-     */
-    public synchronized int size() {
-        processQueue();
-        return cache.size();
-    }
-    
-    public synchronized byte[] getBlock(String blockName) {
-        processQueue(); // clear out some crap.
-        Ref ref = cache.get(blockName);
-        if (ref == null) return null;
-        return ref.get();
-    }
-    
-    public synchronized void cacheBlock(String blockName, byte buf[]) {
-        cache.put(blockName, new Ref(blockName, buf, q));
-    }
-    
-    public synchronized void cacheBlock(String blockName, byte buf[], boolean inMemory) {
-        cache.put(blockName, new Ref(blockName, buf, q));
-    }
-    
-    public void shutdown() {
-        // noop
-    }
+  }
+  
+  /**
+   * @return the size
+   */
+  public synchronized int size() {
+    processQueue();
+    return cache.size();
+  }
+  
+  public synchronized byte[] getBlock(String blockName) {
+    processQueue(); // clear out some crap.
+    Ref ref = cache.get(blockName);
+    if (ref == null) return null;
+    return ref.get();
+  }
+  
+  public synchronized void cacheBlock(String blockName, byte buf[]) {
+    cache.put(blockName, new Ref(blockName, buf, q));
+  }
+  
+  public synchronized void cacheBlock(String blockName, byte buf[], boolean inMemory) {
+    cache.put(blockName, new Ref(blockName, buf, q));
+  }
+  
+  public void shutdown() {
+    // noop
+  }
 }

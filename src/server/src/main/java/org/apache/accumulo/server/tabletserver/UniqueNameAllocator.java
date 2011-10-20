@@ -32,47 +32,47 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
  */
 
 public class UniqueNameAllocator {
-    private long next = 0;
-    private long maxAllocated = 0;
-    private String nextNamePath;
-    private Random rand;
+  private long next = 0;
+  private long maxAllocated = 0;
+  private String nextNamePath;
+  private Random rand;
+  
+  private UniqueNameAllocator() {
+    nextNamePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZNEXT_FILE;
+    rand = new Random();
+  }
+  
+  public synchronized String getNextName() {
     
-    private UniqueNameAllocator() {
-        nextNamePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZNEXT_FILE;
-        rand = new Random();
+    while (next >= maxAllocated) {
+      final int allocate = 100 + rand.nextInt(100);
+      
+      try {
+        byte[] max = ZooReaderWriter.getInstance().mutate(nextNamePath, null, ZooUtil.PRIVATE, new ZooReaderWriter.Mutator() {
+          public byte[] mutate(byte[] currentValue) throws Exception {
+            long l = Long.parseLong(new String(currentValue), Character.MAX_RADIX);
+            l += allocate;
+            return Long.toString(l, Character.MAX_RADIX).getBytes();
+          }
+        });
+        
+        maxAllocated = Long.parseLong(new String(max), Character.MAX_RADIX);
+        next = maxAllocated - allocate;
+        
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     }
     
-    public synchronized String getNextName() {
-        
-        while (next >= maxAllocated) {
-            final int allocate = 100 + rand.nextInt(100);
-            
-            try {
-                byte[] max = ZooReaderWriter.getInstance().mutate(nextNamePath, null, ZooUtil.PRIVATE, new ZooReaderWriter.Mutator() {
-                    public byte[] mutate(byte[] currentValue) throws Exception {
-                        long l = Long.parseLong(new String(currentValue), Character.MAX_RADIX);
-                        l += allocate;
-                        return Long.toString(l, Character.MAX_RADIX).getBytes();
-                    }
-                });
-                
-                maxAllocated = Long.parseLong(new String(max), Character.MAX_RADIX);
-                next = maxAllocated - allocate;
-                
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-        
-        return new String(FastFormat.toZeroPaddedString(next++, 7, Character.MAX_RADIX, new byte[0]));
-    }
+    return new String(FastFormat.toZeroPaddedString(next++, 7, Character.MAX_RADIX, new byte[0]));
+  }
+  
+  private static UniqueNameAllocator instance = null;
+  
+  public static synchronized UniqueNameAllocator getInstance() {
+    if (instance == null) instance = new UniqueNameAllocator();
     
-    private static UniqueNameAllocator instance = null;
-    
-    public static synchronized UniqueNameAllocator getInstance() {
-        if (instance == null) instance = new UniqueNameAllocator();
-        
-        return instance;
-    }
-    
+    return instance;
+  }
+  
 }

@@ -30,51 +30,51 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class GetGroupsCommand extends Command {
+  
+  private Option tableOpt;
+  
+  @Override
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     
-    private Option tableOpt;
+    String tableName;
     
-    @Override
-    public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-        
-        String tableName;
-        
-        if (cl.hasOption(tableOpt.getOpt())) {
-            tableName = cl.getOptionValue(tableOpt.getOpt());
-            if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
-        }
-        
-        else {
-            shellState.checkTableState();
-            tableName = shellState.getTableName();
-        }
-        
-        Map<String,Set<Text>> groups = shellState.getConnector().tableOperations().getLocalityGroups(tableName);
-        
-        for (Entry<String,Set<Text>> entry : groups.entrySet())
-            shellState.getReader().printString(entry.getKey() + "=" + LocalityGroupUtil.encodeColumnFamilies(entry.getValue()) + "\n");
-        
-        return 0;
+    if (cl.hasOption(tableOpt.getOpt())) {
+      tableName = cl.getOptionValue(tableOpt.getOpt());
+      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
     }
     
-    @Override
-    public String description() {
-        return "gets the locality groups for a given table";
+    else {
+      shellState.checkTableState();
+      tableName = shellState.getTableName();
     }
     
-    @Override
-    public int numArgs() {
-        return 0;
-    }
+    Map<String,Set<Text>> groups = shellState.getConnector().tableOperations().getLocalityGroups(tableName);
     
-    @Override
-    public Options getOptions() {
-        Options opts = new Options();
-        
-        tableOpt = new Option(Shell.tableOption, "table", true, "get locality groups for specified table");
-        tableOpt.setArgName("table");
-        tableOpt.setRequired(false);
-        opts.addOption(tableOpt);
-        return opts;
-    }
+    for (Entry<String,Set<Text>> entry : groups.entrySet())
+      shellState.getReader().printString(entry.getKey() + "=" + LocalityGroupUtil.encodeColumnFamilies(entry.getValue()) + "\n");
     
+    return 0;
+  }
+  
+  @Override
+  public String description() {
+    return "gets the locality groups for a given table";
+  }
+  
+  @Override
+  public int numArgs() {
+    return 0;
+  }
+  
+  @Override
+  public Options getOptions() {
+    Options opts = new Options();
+    
+    tableOpt = new Option(Shell.tableOption, "table", true, "get locality groups for specified table");
+    tableOpt.setArgName("table");
+    tableOpt.setRequired(false);
+    opts.addOption(tableOpt);
+    return opts;
+  }
+  
 }

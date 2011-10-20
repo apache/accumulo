@@ -31,67 +31,67 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class MutationLog {
-    private FSDataOutputStream logout;
+  private FSDataOutputStream logout;
+  
+  public static final byte MUTATION_EVENT = 1;
+  public static final byte CLOSE_EVENT = 2;
+  
+  public MutationLog(Path logfile) throws IOException {
     
-    public static final byte MUTATION_EVENT = 1;
-    public static final byte CLOSE_EVENT = 2;
+    Configuration conf = CachedConfiguration.getInstance();
+    FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
     
-    public MutationLog(Path logfile) throws IOException {
-        
-        Configuration conf = CachedConfiguration.getInstance();
-        FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
-        
-        if (!fs.exists(logfile)) logout = fs.create(logfile);
-    }
+    if (!fs.exists(logfile)) logout = fs.create(logfile);
+  }
+  
+  public void log(Mutation m) throws IOException {
+    // write event type
+    logout.writeByte(MUTATION_EVENT);
     
-    public void log(Mutation m) throws IOException {
-        // write event type
-        logout.writeByte(MUTATION_EVENT);
-        
-        // write event
-        m.write(logout);
-        logout.flush();
-    }
+    // write event
+    m.write(logout);
+    logout.flush();
+  }
+  
+  public void close() throws IOException {
+    logout.writeByte(CLOSE_EVENT);
+    logout.close();
+  }
+  
+  public static Iterator<Mutation> replay(Path logfile, Tablet t, long min_timestamp) throws IOException {
+    Configuration conf = CachedConfiguration.getInstance();
+    FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
     
-    public void close() throws IOException {
-        logout.writeByte(CLOSE_EVENT);
-        logout.close();
-    }
+    final FSDataInputStream login = fs.open(logfile);
     
-    public static Iterator<Mutation> replay(Path logfile, Tablet t, long min_timestamp) throws IOException {
-        Configuration conf = CachedConfiguration.getInstance();
-        FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
+    final Mutation mutation = new Mutation();
+    
+    return new Iterator<Mutation>() {
+      
+      byte eventType;
+      
+      {
+        eventType = login.readByte();
+      }
+      
+      public boolean hasNext() {
+        return eventType != CLOSE_EVENT;
+      }
+      
+      public Mutation next() {
+        try {
+          mutation.readFields(login);
+          eventType = login.readByte();
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
         
-        final FSDataInputStream login = fs.open(logfile);
-        
-        final Mutation mutation = new Mutation();
-        
-        return new Iterator<Mutation>() {
-            
-            byte eventType;
-            
-            {
-                eventType = login.readByte();
-            }
-            
-            public boolean hasNext() {
-                return eventType != CLOSE_EVENT;
-            }
-            
-            public Mutation next() {
-                try {
-                    mutation.readFields(login);
-                    eventType = login.readByte();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-                
-                return mutation;
-            }
-            
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-        };
-    }
+        return mutation;
+      }
+      
+      public void remove() {
+        throw new UnsupportedOperationException();
+      }
+    };
+  }
 }

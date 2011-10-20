@@ -30,180 +30,180 @@ import org.apache.accumulo.core.security.Authorizations;
  * This Connector requires a master to be running to be instantiated, and for certain calls, such as getTables()
  */
 public class Connector {
-    final Connector impl;
-    
-    /**
-     * Construct an Connector from an {@link Instance}
-     * 
-     * @deprecated Not for client use
-     * @param instance
-     *            contains the precise connection information to identify the running accumulo instance
-     * @param user
-     *            a valid accumulo user
-     * @param password
-     *            the password for the user
-     * @throws AccumuloException
-     *             when a generic exception occurs
-     * @throws AccumuloSecurityException
-     *             when a user's credentials are invalid
-     * @see Instance.getConnector(String user, byte[] password)
-     */
-    public Connector(Instance instance, String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
-        impl = instance.getConnector(user, password);
-    }
-    
-    /**
-     * @see Instance.getConnector(String user, byte[] password)
-     * @deprecated Not for client use
-     */
-    public Connector() {
-        impl = null;
-    }
-    
-    /**
-     * Factory method to create a BatchScanner connected to Accumulo.
-     * 
-     * @param tableName
-     *            the name of the table to query
-     * @param authorizations
-     *            A set of authorization labels that will be checked against the column visibility of each key inorder to filter data. The authorizations passed
-     *            in for scanning are intersected with the accumulo users set of authorizations. So if the accumulo user has authorizations (A1, A2) and
-     *            authorizations (A2,A3) are passed, then (A2) will be used for the scan.
-     * @param numQueryThreads
-     *            the number of concurrent threads to spawn for querying
-     * 
-     * @return BatchScanner object for configuring and querying
-     * @throws TableNotFoundException
-     *             when the specified table doesn't exist
-     */
-    public BatchScanner createBatchScanner(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException {
-        return impl.createBatchScanner(tableName, authorizations, numQueryThreads);
-    }
-    
-    /**
-     * Factory method to create a BatchDeleter connected to Accumulo.
-     * 
-     * @param tableName
-     *            the name of the table to query and delete from
-     * @param authorizations
-     *            A set of authorization labels that will be checked against the column visibility of each key inorder to filter data. The authorizations passed
-     *            in for scanning are intersected with the accumulo users set of authorizations. So if the accumulo user has authorizations (A1, A2) and
-     *            authorizations (A2,A3) are passed, then (A2) will be used for the scan.
-     * @param numQueryThreads
-     *            the number of concurrent threads to spawn for querying
-     * @param maxMemory
-     *            size in bytes of the maximum memory to batch before writing
-     * @param maxLatency
-     *            size in milliseconds; set to 0 or Long.MAX_VALUE to allow the maximum time to hold a batch before writing
-     * @param maxWriteThreads
-     *            the maximum number of threads to use for writing data to the tablet servers
-     * 
-     * @return BatchDeleter object for configuring and deleting
-     * @throws TableNotFoundException
-     *             when the specified table doesn't exist
-     */
-    public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency,
-            int maxWriteThreads) throws TableNotFoundException {
-        return impl.createBatchDeleter(tableName, authorizations, numQueryThreads, maxMemory, maxLatency, maxWriteThreads);
-    }
-    
-    /**
-     * Factory method to create a BatchWriter connected to Accumulo.
-     * 
-     * @param tableName
-     *            the name of the table to insert data into
-     * @param maxMemory
-     *            size in bytes of the maximum memory to batch before writing
-     * @param maxLatency
-     *            time in milliseconds; set to 0 or Long.MAX_VALUE to allow the maximum time to hold a batch before writing
-     * @param maxWriteThreads
-     *            the maximum number of threads to use for writing data to the tablet servers
-     * 
-     * @return BatchWriter object for configuring and writing data to
-     * @throws TableNotFoundException
-     *             when the specified table doesn't exist
-     */
-    public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
-        return impl.createBatchWriter(tableName, maxMemory, maxLatency, maxWriteThreads);
-    }
-    
-    /**
-     * Factory method to create a Multi-Table BatchWriter connected to Accumulo. Multi-table batch writers can queue data for multiple tables, which is good for
-     * ingesting data into multiple tables from the same source
-     * 
-     * @param maxMemory
-     *            size in bytes of the maximum memory to batch before writing
-     * @param maxLatency
-     *            size in milliseconds; set to 0 or Long.MAX_VALUE to allow the maximum time to hold a batch before writing
-     * @param maxWriteThreads
-     *            the maximum number of threads to use for writing data to the tablet servers
-     * 
-     * @return MultiTableBatchWriter object for configuring and writing data to
-     */
-    public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, int maxLatency, int maxWriteThreads) {
-        return impl.createMultiTableBatchWriter(maxMemory, maxLatency, maxWriteThreads);
-    }
-    
-    /**
-     * Factory method to create a Scanner connected to Accumulo.
-     * 
-     * @param tableName
-     *            the name of the table to query data from
-     * @param authorizations
-     *            A set of authorization labels that will be checked against the column visibility of each key inorder to filter data. The authorizations passed
-     *            in for scanning are intersected with the accumulo users set of authorizations. So if the accumulo user has authorizations (A1, A2) and
-     *            authorizations (A2,A3) are passed, then (A2) will be used for the scan.
-     * 
-     * @return Scanner object for configuring and querying data with
-     * @throws TableNotFoundException
-     *             when the specified table doesn't exist
-     */
-    public Scanner createScanner(String tableName, Authorizations authorizations) throws TableNotFoundException {
-        return impl.createScanner(tableName, authorizations);
-    }
-    
-    /**
-     * Accessor method for internal instance object.
-     * 
-     * @return the internal instance object
-     */
-    public Instance getInstance() {
-        return impl.getInstance();
-    }
-    
-    /**
-     * Get the current user for this connector
-     * 
-     * @return the user name
-     */
-    public String whoami() {
-        return impl.whoami();
-    }
-    
-    /**
-     * Retrieves a TableOperations object to perform table functions, such as create and delete
-     * 
-     * @return an object to manipulate tables
-     */
-    public synchronized TableOperations tableOperations() {
-        return impl.tableOperations();
-    }
-    
-    /**
-     * Retrieves a SecurityOperations object to perform user security operations, such as creating users
-     * 
-     * @return an object to modify users and permissions
-     */
-    public synchronized SecurityOperations securityOperations() {
-        return impl.securityOperations();
-    }
-    
-    /**
-     * Retrieves a InstanceOperations object to modify instance configuration
-     * 
-     * @return an object to modify instance configuration
-     */
-    public synchronized InstanceOperations instanceOperations() {
-        return impl.instanceOperations();
-    }
+  final Connector impl;
+  
+  /**
+   * Construct an Connector from an {@link Instance}
+   * 
+   * @deprecated Not for client use
+   * @param instance
+   *          contains the precise connection information to identify the running accumulo instance
+   * @param user
+   *          a valid accumulo user
+   * @param password
+   *          the password for the user
+   * @throws AccumuloException
+   *           when a generic exception occurs
+   * @throws AccumuloSecurityException
+   *           when a user's credentials are invalid
+   * @see Instance.getConnector(String user, byte[] password)
+   */
+  public Connector(Instance instance, String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
+    impl = instance.getConnector(user, password);
+  }
+  
+  /**
+   * @see Instance.getConnector(String user, byte[] password)
+   * @deprecated Not for client use
+   */
+  public Connector() {
+    impl = null;
+  }
+  
+  /**
+   * Factory method to create a BatchScanner connected to Accumulo.
+   * 
+   * @param tableName
+   *          the name of the table to query
+   * @param authorizations
+   *          A set of authorization labels that will be checked against the column visibility of each key inorder to filter data. The authorizations passed in
+   *          for scanning are intersected with the accumulo users set of authorizations. So if the accumulo user has authorizations (A1, A2) and authorizations
+   *          (A2,A3) are passed, then (A2) will be used for the scan.
+   * @param numQueryThreads
+   *          the number of concurrent threads to spawn for querying
+   * 
+   * @return BatchScanner object for configuring and querying
+   * @throws TableNotFoundException
+   *           when the specified table doesn't exist
+   */
+  public BatchScanner createBatchScanner(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException {
+    return impl.createBatchScanner(tableName, authorizations, numQueryThreads);
+  }
+  
+  /**
+   * Factory method to create a BatchDeleter connected to Accumulo.
+   * 
+   * @param tableName
+   *          the name of the table to query and delete from
+   * @param authorizations
+   *          A set of authorization labels that will be checked against the column visibility of each key inorder to filter data. The authorizations passed in
+   *          for scanning are intersected with the accumulo users set of authorizations. So if the accumulo user has authorizations (A1, A2) and authorizations
+   *          (A2,A3) are passed, then (A2) will be used for the scan.
+   * @param numQueryThreads
+   *          the number of concurrent threads to spawn for querying
+   * @param maxMemory
+   *          size in bytes of the maximum memory to batch before writing
+   * @param maxLatency
+   *          size in milliseconds; set to 0 or Long.MAX_VALUE to allow the maximum time to hold a batch before writing
+   * @param maxWriteThreads
+   *          the maximum number of threads to use for writing data to the tablet servers
+   * 
+   * @return BatchDeleter object for configuring and deleting
+   * @throws TableNotFoundException
+   *           when the specified table doesn't exist
+   */
+  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency,
+      int maxWriteThreads) throws TableNotFoundException {
+    return impl.createBatchDeleter(tableName, authorizations, numQueryThreads, maxMemory, maxLatency, maxWriteThreads);
+  }
+  
+  /**
+   * Factory method to create a BatchWriter connected to Accumulo.
+   * 
+   * @param tableName
+   *          the name of the table to insert data into
+   * @param maxMemory
+   *          size in bytes of the maximum memory to batch before writing
+   * @param maxLatency
+   *          time in milliseconds; set to 0 or Long.MAX_VALUE to allow the maximum time to hold a batch before writing
+   * @param maxWriteThreads
+   *          the maximum number of threads to use for writing data to the tablet servers
+   * 
+   * @return BatchWriter object for configuring and writing data to
+   * @throws TableNotFoundException
+   *           when the specified table doesn't exist
+   */
+  public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
+    return impl.createBatchWriter(tableName, maxMemory, maxLatency, maxWriteThreads);
+  }
+  
+  /**
+   * Factory method to create a Multi-Table BatchWriter connected to Accumulo. Multi-table batch writers can queue data for multiple tables, which is good for
+   * ingesting data into multiple tables from the same source
+   * 
+   * @param maxMemory
+   *          size in bytes of the maximum memory to batch before writing
+   * @param maxLatency
+   *          size in milliseconds; set to 0 or Long.MAX_VALUE to allow the maximum time to hold a batch before writing
+   * @param maxWriteThreads
+   *          the maximum number of threads to use for writing data to the tablet servers
+   * 
+   * @return MultiTableBatchWriter object for configuring and writing data to
+   */
+  public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, int maxLatency, int maxWriteThreads) {
+    return impl.createMultiTableBatchWriter(maxMemory, maxLatency, maxWriteThreads);
+  }
+  
+  /**
+   * Factory method to create a Scanner connected to Accumulo.
+   * 
+   * @param tableName
+   *          the name of the table to query data from
+   * @param authorizations
+   *          A set of authorization labels that will be checked against the column visibility of each key inorder to filter data. The authorizations passed in
+   *          for scanning are intersected with the accumulo users set of authorizations. So if the accumulo user has authorizations (A1, A2) and authorizations
+   *          (A2,A3) are passed, then (A2) will be used for the scan.
+   * 
+   * @return Scanner object for configuring and querying data with
+   * @throws TableNotFoundException
+   *           when the specified table doesn't exist
+   */
+  public Scanner createScanner(String tableName, Authorizations authorizations) throws TableNotFoundException {
+    return impl.createScanner(tableName, authorizations);
+  }
+  
+  /**
+   * Accessor method for internal instance object.
+   * 
+   * @return the internal instance object
+   */
+  public Instance getInstance() {
+    return impl.getInstance();
+  }
+  
+  /**
+   * Get the current user for this connector
+   * 
+   * @return the user name
+   */
+  public String whoami() {
+    return impl.whoami();
+  }
+  
+  /**
+   * Retrieves a TableOperations object to perform table functions, such as create and delete
+   * 
+   * @return an object to manipulate tables
+   */
+  public synchronized TableOperations tableOperations() {
+    return impl.tableOperations();
+  }
+  
+  /**
+   * Retrieves a SecurityOperations object to perform user security operations, such as creating users
+   * 
+   * @return an object to modify users and permissions
+   */
+  public synchronized SecurityOperations securityOperations() {
+    return impl.securityOperations();
+  }
+  
+  /**
+   * Retrieves a InstanceOperations object to modify instance configuration
+   * 
+   * @return an object to modify instance configuration
+   */
+  public synchronized InstanceOperations instanceOperations() {
+    return impl.instanceOperations();
+  }
 }

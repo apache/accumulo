@@ -43,121 +43,121 @@ import org.apache.thrift.TException;
 import org.junit.Test;
 
 public class TableLoadBalancerTest {
+  
+  static private TServerInstance mkts(String address, String session) throws Exception {
+    return new TServerInstance(AddressUtil.parseAddress(address, 1234), session);
+  }
+  
+  static private TabletServerStatus status(Object... config) {
+    TabletServerStatus result = new TabletServerStatus();
+    result.tableMap = new HashMap<String,TableInfo>();
+    String tablename = null;
+    for (Object c : config) {
+      if (c instanceof String) {
+        tablename = (String) c;
+      } else {
+        TableInfo info = new TableInfo();
+        int count = (Integer) c;
+        info.onlineTablets = count;
+        info.tablets = count;
+        result.tableMap.put(tablename, info);
+      }
+    }
+    return result;
+  }
+  
+  static MockInstance instance = new MockInstance("mockamatic");
+  
+  static SortedMap<TServerInstance,TabletServerStatus> state;
+  
+  static List<TabletStats> generateFakeTablets(TServerInstance tserver, String tableId) {
+    List<TabletStats> result = new ArrayList<TabletStats>();
+    TabletServerStatus tableInfo = state.get(tserver);
+    // generate some fake tablets
+    for (int i = 0; i < tableInfo.tableMap.get(tableId).onlineTablets; i++) {
+      TabletStats stats = new TabletStats();
+      stats.extent = new KeyExtent(new Text(tableId), new Text(tserver.host() + String.format("%03d", i + 1)), new Text(tserver.host()
+          + String.format("%03d", i))).toThrift();
+      result.add(stats);
+    }
+    return result;
+  }
+  
+  static class DefaultLoadBalancer extends org.apache.accumulo.server.master.balancer.DefaultLoadBalancer {
     
-    static private TServerInstance mkts(String address, String session) throws Exception {
-        return new TServerInstance(AddressUtil.parseAddress(address, 1234), session);
+    public DefaultLoadBalancer(String table) {
+      super(table);
     }
     
-    static private TabletServerStatus status(Object... config) {
-        TabletServerStatus result = new TabletServerStatus();
-        result.tableMap = new HashMap<String,TableInfo>();
-        String tablename = null;
-        for (Object c : config) {
-            if (c instanceof String) {
-                tablename = (String) c;
-            } else {
-                TableInfo info = new TableInfo();
-                int count = (Integer) c;
-                info.onlineTablets = count;
-                info.tablets = count;
-                result.tableMap.put(tablename, info);
-            }
-        }
-        return result;
+    @Override
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
+      return generateFakeTablets(tserver, tableId);
+    }
+  }
+  
+  // ugh... so wish I had provided mock objects to the LoadBalancer in the master
+  static class TableLoadBalancer extends org.apache.accumulo.server.master.balancer.TableLoadBalancer {
+    
+    TableLoadBalancer() {
+      super();
     }
     
-    static MockInstance instance = new MockInstance("mockamatic");
-    
-    static SortedMap<TServerInstance,TabletServerStatus> state;
-    
-    static List<TabletStats> generateFakeTablets(TServerInstance tserver, String tableId) {
-        List<TabletStats> result = new ArrayList<TabletStats>();
-        TabletServerStatus tableInfo = state.get(tserver);
-        // generate some fake tablets
-        for (int i = 0; i < tableInfo.tableMap.get(tableId).onlineTablets; i++) {
-            TabletStats stats = new TabletStats();
-            stats.extent = new KeyExtent(new Text(tableId), new Text(tserver.host() + String.format("%03d", i + 1)), new Text(tserver.host()
-                    + String.format("%03d", i))).toThrift();
-            result.add(stats);
-        }
-        return result;
+    // need to use our mock instance
+    @Override
+    protected TableOperations getTableOperations() {
+      try {
+        return instance.getConnector("user", "pass").tableOperations();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
     }
     
-    static class DefaultLoadBalancer extends org.apache.accumulo.server.master.balancer.DefaultLoadBalancer {
-        
-        public DefaultLoadBalancer(String table) {
-            super(table);
-        }
-        
-        @Override
-        public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
-            return generateFakeTablets(tserver, tableId);
-        }
+    // use our new classname to test class loading
+    @Override
+    protected String getLoadBalancerClassNameForTable(String table) {
+      return DefaultLoadBalancer.class.getName();
     }
     
-    // ugh... so wish I had provided mock objects to the LoadBalancer in the master
-    static class TableLoadBalancer extends org.apache.accumulo.server.master.balancer.TableLoadBalancer {
-        
-        TableLoadBalancer() {
-            super();
-        }
-        
-        // need to use our mock instance
-        @Override
-        protected TableOperations getTableOperations() {
-            try {
-                return instance.getConnector("user", "pass").tableOperations();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-        
-        // use our new classname to test class loading
-        @Override
-        protected String getLoadBalancerClassNameForTable(String table) {
-            return DefaultLoadBalancer.class.getName();
-        }
-        
-        // we don't have real tablet servers to ask: invent some online tablets
-        @Override
-        public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
-            return generateFakeTablets(tserver, tableId);
-        }
+    // we don't have real tablet servers to ask: invent some online tablets
+    @Override
+    public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
+      return generateFakeTablets(tserver, tableId);
     }
+  }
+  
+  @Test
+  public void test() throws Exception {
+    Connector c = instance.getConnector("user", "pass".getBytes());
+    c.tableOperations().create("t1");
+    c.tableOperations().create("t2");
+    c.tableOperations().create("t3");
+    state = new TreeMap<TServerInstance,TabletServerStatus>();
+    TServerInstance svr = mkts("10.0.0.1:1234", "0x01020304");
+    state.put(svr, status("t1", 10, "t2", 10, "t3", 10));
     
-    @Test
-    public void test() throws Exception {
-        Connector c = instance.getConnector("user", "pass".getBytes());
-        c.tableOperations().create("t1");
-        c.tableOperations().create("t2");
-        c.tableOperations().create("t3");
-        state = new TreeMap<TServerInstance,TabletServerStatus>();
-        TServerInstance svr = mkts("10.0.0.1:1234", "0x01020304");
-        state.put(svr, status("t1", 10, "t2", 10, "t3", 10));
-        
-        Set<KeyExtent> migrations = Collections.emptySet();
-        List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
-        TableLoadBalancer tls = new TableLoadBalancer();
-        tls.balance(state, migrations, migrationsOut);
-        Assert.assertEquals(0, migrationsOut.size());
-        
-        state.put(mkts("10.0.0.2:1234", "0x02030405"), status());
-        tls = new TableLoadBalancer();
-        tls.balance(state, migrations, migrationsOut);
-        int count = 0;
-        Map<String,Integer> movedByTable = new HashMap<String,Integer>();
-        movedByTable.put("t1", new Integer(0));
-        movedByTable.put("t2", new Integer(0));
-        movedByTable.put("t3", new Integer(0));
-        for (TabletMigration migration : migrationsOut) {
-            if (migration.oldServer.equals(svr)) count++;
-            String key = migration.tablet.getTableId().toString();
-            movedByTable.put(key, movedByTable.get(key) + 1);
-        }
-        Assert.assertEquals(15, count);
-        for (Integer moved : movedByTable.values()) {
-            Assert.assertEquals(5, moved.intValue());
-        }
+    Set<KeyExtent> migrations = Collections.emptySet();
+    List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
+    TableLoadBalancer tls = new TableLoadBalancer();
+    tls.balance(state, migrations, migrationsOut);
+    Assert.assertEquals(0, migrationsOut.size());
+    
+    state.put(mkts("10.0.0.2:1234", "0x02030405"), status());
+    tls = new TableLoadBalancer();
+    tls.balance(state, migrations, migrationsOut);
+    int count = 0;
+    Map<String,Integer> movedByTable = new HashMap<String,Integer>();
+    movedByTable.put("t1", new Integer(0));
+    movedByTable.put("t2", new Integer(0));
+    movedByTable.put("t3", new Integer(0));
+    for (TabletMigration migration : migrationsOut) {
+      if (migration.oldServer.equals(svr)) count++;
+      String key = migration.tablet.getTableId().toString();
+      movedByTable.put(key, movedByTable.get(key) + 1);
     }
-    
+    Assert.assertEquals(15, count);
+    for (Integer moved : movedByTable.values()) {
+      Assert.assertEquals(5, moved.intValue());
+    }
+  }
+  
 }

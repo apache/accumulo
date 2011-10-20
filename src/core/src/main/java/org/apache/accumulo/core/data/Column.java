@@ -34,135 +34,135 @@ import org.apache.hadoop.io.WritableComparator;
 import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 public class Column implements WritableComparable<Column> {
-    
-    static private int compareBytes(byte[] a, byte[] b) {
-        if (a == null && b == null) return 0;
-        if (a == null) return -1;
-        if (b == null) return 1;
-        return WritableComparator.compareBytes(a, 0, a.length, b, 0, b.length);
+  
+  static private int compareBytes(byte[] a, byte[] b) {
+    if (a == null && b == null) return 0;
+    if (a == null) return -1;
+    if (b == null) return 1;
+    return WritableComparator.compareBytes(a, 0, a.length, b, 0, b.length);
+  }
+  
+  public int compareTo(Column that) {
+    int result;
+    result = compareBytes(this.columnFamily, that.columnFamily);
+    if (result != 0) return result;
+    result = compareBytes(this.columnQualifier, that.columnQualifier);
+    if (result != 0) return result;
+    return compareBytes(this.columnVisibility, that.columnVisibility);
+  }
+  
+  public void readFields(DataInput in) throws IOException {
+    if (in.readBoolean()) {
+      int len = in.readInt();
+      columnFamily = new byte[len];
+      in.readFully(columnFamily);
+    } else {
+      columnFamily = null;
     }
     
-    public int compareTo(Column that) {
-        int result;
-        result = compareBytes(this.columnFamily, that.columnFamily);
-        if (result != 0) return result;
-        result = compareBytes(this.columnQualifier, that.columnQualifier);
-        if (result != 0) return result;
-        return compareBytes(this.columnVisibility, that.columnVisibility);
+    if (in.readBoolean()) {
+      int len = in.readInt();
+      columnQualifier = new byte[len];
+      in.readFully(columnQualifier);
+    } else {
+      columnQualifier = null;
     }
     
-    public void readFields(DataInput in) throws IOException {
-        if (in.readBoolean()) {
-            int len = in.readInt();
-            columnFamily = new byte[len];
-            in.readFully(columnFamily);
-        } else {
-            columnFamily = null;
-        }
-        
-        if (in.readBoolean()) {
-            int len = in.readInt();
-            columnQualifier = new byte[len];
-            in.readFully(columnQualifier);
-        } else {
-            columnQualifier = null;
-        }
-        
-        if (in.readBoolean()) {
-            int len = in.readInt();
-            columnVisibility = new byte[len];
-            in.readFully(columnVisibility);
-        } else {
-            columnVisibility = null;
-        }
+    if (in.readBoolean()) {
+      int len = in.readInt();
+      columnVisibility = new byte[len];
+      in.readFully(columnVisibility);
+    } else {
+      columnVisibility = null;
+    }
+  }
+  
+  @Override
+  public void write(DataOutput out) throws IOException {
+    if (columnFamily == null) {
+      out.writeBoolean(false);
+    } else {
+      out.writeBoolean(true);
+      out.writeInt(columnFamily.length);
+      out.write(columnFamily);
     }
     
-    @Override
-    public void write(DataOutput out) throws IOException {
-        if (columnFamily == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeInt(columnFamily.length);
-            out.write(columnFamily);
-        }
-        
-        if (columnQualifier == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeInt(columnQualifier.length);
-            out.write(columnQualifier);
-        }
-        
-        if (columnVisibility == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeInt(columnVisibility.length);
-            out.write(columnVisibility);
-        }
+    if (columnQualifier == null) {
+      out.writeBoolean(false);
+    } else {
+      out.writeBoolean(true);
+      out.writeInt(columnQualifier.length);
+      out.write(columnQualifier);
     }
     
-    public byte[] columnFamily;
-    public byte[] columnQualifier;
-    public byte[] columnVisibility;
-    
-    public Column() {}
-    
-    public Column(byte[] columnFamily, byte[] columnQualifier, byte[] columnVisibility) {
-        this();
-        this.columnFamily = columnFamily;
-        this.columnQualifier = columnQualifier;
-        this.columnVisibility = columnVisibility;
+    if (columnVisibility == null) {
+      out.writeBoolean(false);
+    } else {
+      out.writeBoolean(true);
+      out.writeInt(columnVisibility.length);
+      out.write(columnVisibility);
     }
+  }
+  
+  public byte[] columnFamily;
+  public byte[] columnQualifier;
+  public byte[] columnVisibility;
+  
+  public Column() {}
+  
+  public Column(byte[] columnFamily, byte[] columnQualifier, byte[] columnVisibility) {
+    this();
+    this.columnFamily = columnFamily;
+    this.columnQualifier = columnQualifier;
+    this.columnVisibility = columnVisibility;
+  }
+  
+  public Column(TColumn tcol) {
+    this(toBytes(tcol.columnFamily), toBytes(tcol.columnQualifier), toBytes(tcol.columnVisibility));
+  }
+  
+  @Override
+  public boolean equals(Object that) {
+    if (that == null) return false;
+    if (that instanceof Column) return this.equals((Column) that);
+    return false;
+  }
+  
+  public boolean equals(Column that) {
+    return this.compareTo(that) == 0;
+  }
+  
+  private static int hash(byte[] b) {
+    if (b == null) return 0;
     
-    public Column(TColumn tcol) {
-        this(toBytes(tcol.columnFamily), toBytes(tcol.columnQualifier), toBytes(tcol.columnVisibility));
-    }
-    
-    @Override
-    public boolean equals(Object that) {
-        if (that == null) return false;
-        if (that instanceof Column) return this.equals((Column) that);
-        return false;
-    }
-    
-    public boolean equals(Column that) {
-        return this.compareTo(that) == 0;
-    }
-    
-    private static int hash(byte[] b) {
-        if (b == null) return 0;
-        
-        return WritableComparator.hashBytes(b, b.length);
-    }
-    
-    @Override
-    public int hashCode() {
-        return hash(columnFamily) + hash(columnQualifier) + hash(columnVisibility);
-    }
-    
-    public byte[] getColumnFamily() {
-        return columnFamily;
-    }
-    
-    public byte[] getColumnQualifier() {
-        return columnQualifier;
-    }
-    
-    public byte[] getColumnVisibility() {
-        return columnVisibility;
-    }
-    
-    public String toString() {
-        return new String(columnFamily == null ? new byte[0] : columnFamily) + ":" + new String(columnQualifier == null ? new byte[0] : columnQualifier) + ":"
-                + new String(columnVisibility == null ? new byte[0] : columnVisibility);
-    }
-    
-    public TColumn toThrift() {
-        return new TColumn(columnFamily == null ? null : ByteBuffer.wrap(columnFamily), columnQualifier == null ? null : ByteBuffer.wrap(columnQualifier),
-                columnVisibility == null ? null : ByteBuffer.wrap(columnVisibility));
-    }
-    
+    return WritableComparator.hashBytes(b, b.length);
+  }
+  
+  @Override
+  public int hashCode() {
+    return hash(columnFamily) + hash(columnQualifier) + hash(columnVisibility);
+  }
+  
+  public byte[] getColumnFamily() {
+    return columnFamily;
+  }
+  
+  public byte[] getColumnQualifier() {
+    return columnQualifier;
+  }
+  
+  public byte[] getColumnVisibility() {
+    return columnVisibility;
+  }
+  
+  public String toString() {
+    return new String(columnFamily == null ? new byte[0] : columnFamily) + ":" + new String(columnQualifier == null ? new byte[0] : columnQualifier) + ":"
+        + new String(columnVisibility == null ? new byte[0] : columnVisibility);
+  }
+  
+  public TColumn toThrift() {
+    return new TColumn(columnFamily == null ? null : ByteBuffer.wrap(columnFamily), columnQualifier == null ? null : ByteBuffer.wrap(columnQualifier),
+        columnVisibility == null ? null : ByteBuffer.wrap(columnVisibility));
+  }
+  
 }

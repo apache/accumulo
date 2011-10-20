@@ -31,17 +31,17 @@ import org.apache.accumulo.core.data.Range;
  */
 
 public interface BatchScanner extends ScannerBase {
-    
-    /**
-     * Allows scanning over multiple ranges efficiently.
-     * 
-     * @param ranges
-     *            specifies the non-overlapping ranges to query
-     */
-    void setRanges(Collection<Range> ranges);
-    
-    /**
-     * Cleans up and finalizes the scanner
-     */
-    void close();
+  
+  /**
+   * Allows scanning over multiple ranges efficiently.
+   * 
+   * @param ranges
+   *          specifies the non-overlapping ranges to query
+   */
+  void setRanges(Collection<Range> ranges);
+  
+  /**
+   * Cleans up and finalizes the scanner
+   */
+  void close();
 }

@@ -35,103 +35,103 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class MultiReaderTest {
-    
-    Configuration conf = CachedConfiguration.getInstance();
-    FileSystem fs;
-    
-    @Before
-    public void setUp() throws Exception {
-        // quiet log messages about compress.CodecPool
-        Logger.getRootLogger().setLevel(Level.ERROR);
-        fs = FileSystem.getLocal(conf);
-        Path root = new Path("manyMaps");
-        fs.mkdirs(root);
-        fs.create(new Path(root, "finished")).close();
-        Writer writer = new Writer(conf, fs, "manyMaps/odd", IntWritable.class, BytesWritable.class);
-        BytesWritable value = new BytesWritable("someValue".getBytes());
-        for (int i = 1; i < 1000; i += 2) {
-            writer.append(new IntWritable(i), value);
-        }
-        writer.close();
-        writer = new Writer(conf, fs, "manyMaps/even", IntWritable.class, BytesWritable.class);
-        for (int i = 0; i < 1000; i += 2) {
-            if (i == 10) continue;
-            writer.append(new IntWritable(i), value);
-        }
-        writer.close();
+  
+  Configuration conf = CachedConfiguration.getInstance();
+  FileSystem fs;
+  
+  @Before
+  public void setUp() throws Exception {
+    // quiet log messages about compress.CodecPool
+    Logger.getRootLogger().setLevel(Level.ERROR);
+    fs = FileSystem.getLocal(conf);
+    Path root = new Path("manyMaps");
+    fs.mkdirs(root);
+    fs.create(new Path(root, "finished")).close();
+    Writer writer = new Writer(conf, fs, "manyMaps/odd", IntWritable.class, BytesWritable.class);
+    BytesWritable value = new BytesWritable("someValue".getBytes());
+    for (int i = 1; i < 1000; i += 2) {
+      writer.append(new IntWritable(i), value);
     }
-    
-    @After
-    public void tearDown() throws Exception {
-        if (fs != null) fs.delete(new Path("manyMaps"), true);
+    writer.close();
+    writer = new Writer(conf, fs, "manyMaps/even", IntWritable.class, BytesWritable.class);
+    for (int i = 0; i < 1000; i += 2) {
+      if (i == 10) continue;
+      writer.append(new IntWritable(i), value);
     }
+    writer.close();
+  }
+  
+  @After
+  public void tearDown() throws Exception {
+    if (fs != null) fs.delete(new Path("manyMaps"), true);
+  }
+  
+  private void scan(MultiReader reader, int start) throws IOException {
+    IntWritable key = new IntWritable();
+    BytesWritable value = new BytesWritable();
     
-    private void scan(MultiReader reader, int start) throws IOException {
-        IntWritable key = new IntWritable();
-        BytesWritable value = new BytesWritable();
-        
-        for (int i = start + 1; i < 1000; i++) {
-            if (i == 10) continue;
-            assertTrue(reader.next(key, value));
-            assertEquals(i, key.get());
-        }
+    for (int i = start + 1; i < 1000; i++) {
+      if (i == 10) continue;
+      assertTrue(reader.next(key, value));
+      assertEquals(i, key.get());
     }
+  }
+  
+  private void scanOdd(MultiReader reader, int start) throws IOException {
+    IntWritable key = new IntWritable();
+    BytesWritable value = new BytesWritable();
     
-    private void scanOdd(MultiReader reader, int start) throws IOException {
-        IntWritable key = new IntWritable();
-        BytesWritable value = new BytesWritable();
-        
-        for (int i = start + 2; i < 1000; i += 2) {
-            assertTrue(reader.next(key, value));
-            assertEquals(i, key.get());
-        }
+    for (int i = start + 2; i < 1000; i += 2) {
+      assertTrue(reader.next(key, value));
+      assertEquals(i, key.get());
     }
+  }
+  
+  @Test
+  public void testMultiReader() throws IOException {
+    MultiReader reader = new MultiReader(fs, conf, "manyMaps");
+    IntWritable key = new IntWritable();
+    BytesWritable value = new BytesWritable();
     
-    @Test
-    public void testMultiReader() throws IOException {
-        MultiReader reader = new MultiReader(fs, conf, "manyMaps");
-        IntWritable key = new IntWritable();
-        BytesWritable value = new BytesWritable();
-        
-        for (int i = 0; i < 1000; i++) {
-            if (i == 10) continue;
-            assertTrue(reader.next(key, value));
-            assertEquals(i, key.get());
-        }
-        assertEquals(value.compareTo(new BytesWritable("someValue".getBytes())), 0);
-        assertFalse(reader.next(key, value));
-        
-        key.set(500);
-        assertTrue(reader.seek(key));
-        scan(reader, 500);
-        key.set(10);
-        assertFalse(reader.seek(key));
-        scan(reader, 10);
-        key.set(1000);
-        assertFalse(reader.seek(key));
-        assertFalse(reader.next(key, value));
-        key.set(-1);
-        assertFalse(reader.seek(key));
-        key.set(0);
-        assertTrue(reader.next(key, value));
-        assertEquals(0, key.get());
-        reader.close();
-        
-        fs.delete(new Path("manyMaps/even"), true);
-        reader = new MultiReader(fs, conf, "manyMaps");
-        key.set(501);
-        assertTrue(reader.seek(key));
-        scanOdd(reader, 501);
-        key.set(1000);
-        assertFalse(reader.seek(key));
-        assertFalse(reader.next(key, value));
-        key.set(-1);
-        assertFalse(reader.seek(key));
-        key.set(1);
-        assertTrue(reader.next(key, value));
-        assertEquals(1, key.get());
-        reader.close();
-        
+    for (int i = 0; i < 1000; i++) {
+      if (i == 10) continue;
+      assertTrue(reader.next(key, value));
+      assertEquals(i, key.get());
     }
+    assertEquals(value.compareTo(new BytesWritable("someValue".getBytes())), 0);
+    assertFalse(reader.next(key, value));
     
+    key.set(500);
+    assertTrue(reader.seek(key));
+    scan(reader, 500);
+    key.set(10);
+    assertFalse(reader.seek(key));
+    scan(reader, 10);
+    key.set(1000);
+    assertFalse(reader.seek(key));
+    assertFalse(reader.next(key, value));
+    key.set(-1);
+    assertFalse(reader.seek(key));
+    key.set(0);
+    assertTrue(reader.next(key, value));
+    assertEquals(0, key.get());
+    reader.close();
+    
+    fs.delete(new Path("manyMaps/even"), true);
+    reader = new MultiReader(fs, conf, "manyMaps");
+    key.set(501);
+    assertTrue(reader.seek(key));
+    scanOdd(reader, 501);
+    key.set(1000);
+    assertFalse(reader.seek(key));
+    assertFalse(reader.next(key, value));
+    key.set(-1);
+    assertFalse(reader.seek(key));
+    key.set(1);
+    assertTrue(reader.next(key, value));
+    assertEquals(1, key.get());
+    reader.close();
+    
+  }
+  
 }

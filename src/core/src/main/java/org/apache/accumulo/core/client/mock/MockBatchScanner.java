@@ -33,49 +33,49 @@ import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.security.Authorizations;
 
 public class MockBatchScanner extends MockScannerBase implements BatchScanner {
+  
+  final List<Range> ranges = new ArrayList<Range>();
+  
+  public MockBatchScanner(MockTable mockTable, Authorizations authorizations) {
+    super(mockTable, authorizations);
+  }
+  
+  @Override
+  public void setRanges(Collection<Range> ranges) {
+    this.ranges.clear();
+    this.ranges.addAll(ranges);
+  }
+  
+  static class RangesFilter extends Filter {
+    List<Range> ranges;
     
-    final List<Range> ranges = new ArrayList<Range>();
-    
-    public MockBatchScanner(MockTable mockTable, Authorizations authorizations) {
-        super(mockTable, authorizations);
+    public RangesFilter(SortedKeyValueIterator<Key,Value> iterator, List<Range> ranges) {
+      super(iterator);
+      this.ranges = ranges;
     }
     
     @Override
-    public void setRanges(Collection<Range> ranges) {
-        this.ranges.clear();
-        this.ranges.addAll(ranges);
+    public boolean accept(Key k, Value v) {
+      for (Range r : ranges) {
+        if (r.contains(k)) return true;
+      }
+      return false;
     }
-    
-    static class RangesFilter extends Filter {
-        List<Range> ranges;
-        
-        public RangesFilter(SortedKeyValueIterator<Key,Value> iterator, List<Range> ranges) {
-            super(iterator);
-            this.ranges = ranges;
-        }
-        
-        @Override
-        public boolean accept(Key k, Value v) {
-            for (Range r : ranges) {
-                if (r.contains(k)) return true;
-            }
-            return false;
-        }
+  }
+  
+  @Override
+  public Iterator<Entry<Key,Value>> iterator() {
+    SortedKeyValueIterator<Key,Value> i = new SortedMapIterator(table.table);
+    try {
+      i = new RangesFilter(createFilter(i), ranges);
+      i.seek(new Range(), createColumnBSS(fetchedColumns), !fetchedColumns.isEmpty());
+      return new IteratorAdapter(i);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-    
-    @Override
-    public Iterator<Entry<Key,Value>> iterator() {
-        SortedKeyValueIterator<Key,Value> i = new SortedMapIterator(table.table);
-        try {
-            i = new RangesFilter(createFilter(i), ranges);
-            i.seek(new Range(), createColumnBSS(fetchedColumns), !fetchedColumns.isEmpty());
-            return new IteratorAdapter(i);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-    
-    @Override
-    public void close() {}
-    
+  }
+  
+  @Override
+  public void close() {}
+  
 }

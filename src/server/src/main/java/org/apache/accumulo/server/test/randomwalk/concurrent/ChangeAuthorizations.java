@@ -28,33 +28,33 @@ import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 
 public class ChangeAuthorizations extends Test {
+  
+  @Override
+  public void visit(State state, Properties props) throws Exception {
+    Connector conn = state.getConnector();
     
-    @Override
-    public void visit(State state, Properties props) throws Exception {
-        Connector conn = state.getConnector();
-        
-        Random rand = (Random) state.get("rand");
-        
-        @SuppressWarnings("unchecked")
-        List<String> userNames = (List<String>) state.get("users");
-        
-        String userName = userNames.get(rand.nextInt(userNames.size()));
-        try {
-            List<byte[]> auths = new ArrayList<byte[]>(conn.securityOperations().getUserAuthorizations(userName).getAuthorizations());
-            
-            if (rand.nextBoolean()) {
-                String authorization = String.format("a%d", rand.nextInt(5000));
-                log.debug("adding authorization " + authorization);
-                auths.add(authorization.getBytes());
-            } else {
-                if (auths.size() > 0) {
-                    log.debug("removing authorization " + new String(auths.remove(0)));
-                }
-            }
-            conn.securityOperations().changeUserAuthorizations(userName, new Authorizations(auths));
-        } catch (AccumuloSecurityException ex) {
-            log.debug("Unable to change user authorizations: " + ex.getCause());
+    Random rand = (Random) state.get("rand");
+    
+    @SuppressWarnings("unchecked")
+    List<String> userNames = (List<String>) state.get("users");
+    
+    String userName = userNames.get(rand.nextInt(userNames.size()));
+    try {
+      List<byte[]> auths = new ArrayList<byte[]>(conn.securityOperations().getUserAuthorizations(userName).getAuthorizations());
+      
+      if (rand.nextBoolean()) {
+        String authorization = String.format("a%d", rand.nextInt(5000));
+        log.debug("adding authorization " + authorization);
+        auths.add(authorization.getBytes());
+      } else {
+        if (auths.size() > 0) {
+          log.debug("removing authorization " + new String(auths.remove(0)));
         }
+      }
+      conn.securityOperations().changeUserAuthorizations(userName, new Authorizations(auths));
+    } catch (AccumuloSecurityException ex) {
+      log.debug("Unable to change user authorizations: " + ex.getCause());
     }
-    
+  }
+  
 }

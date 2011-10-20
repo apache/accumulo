@@ -44,131 +44,133 @@ import org.apache.hadoop.util.ToolRunner;
  * 
  */
 public class ContinuousMoru extends Configured implements Tool {
-    private static final String PREFIX = ContinuousMoru.class.getSimpleName() + ".";
-    private static final String MAX_CQ = PREFIX + "MAX_CQ";
-    private static final String MAX_CF = PREFIX + "MAX_CF";
-    private static final String MAX = PREFIX + "MAX";
-    private static final String MIN = PREFIX + "MIN";
-    private static final String CI_ID = PREFIX + "CI_ID";
+  private static final String PREFIX = ContinuousMoru.class.getSimpleName() + ".";
+  private static final String MAX_CQ = PREFIX + "MAX_CQ";
+  private static final String MAX_CF = PREFIX + "MAX_CF";
+  private static final String MAX = PREFIX + "MAX";
+  private static final String MIN = PREFIX + "MIN";
+  private static final String CI_ID = PREFIX + "CI_ID";
+  
+  static enum Counts {
+    SELF_READ;
+  }
+  
+  public static class CMapper extends Mapper<Key,Value,Text,Mutation> {
     
-    static enum Counts {
-        SELF_READ;
+    private short max_cf;
+    private short max_cq;
+    private Random random;
+    private String ingestInstanceId;
+    private byte[] iiId;
+    private long count;
+    
+    public void setup(Context context) throws IOException, InterruptedException {
+      int max_cf = context.getConfiguration().getInt(MAX_CF, -1);
+      int max_cq = context.getConfiguration().getInt(MAX_CQ, -1);
+      
+      if (max_cf > Short.MAX_VALUE || max_cq > Short.MAX_VALUE) throw new IllegalArgumentException();
+      
+      this.max_cf = (short) max_cf;
+      this.max_cq = (short) max_cq;
+      
+      random = new Random();
+      ingestInstanceId = context.getConfiguration().get(CI_ID);
+      iiId = ingestInstanceId.getBytes();
+      
+      count = 0;
     }
     
-    public static class CMapper extends Mapper<Key,Value,Text,Mutation> {
+    public void map(Key key, Value data, Context context) throws IOException, InterruptedException {
+      
+      ContinuousWalk.validate(key, data);
+      
+      if (WritableComparator.compareBytes(iiId, 0, iiId.length, data.get(), 0, iiId.length) != 0) {
+        // only rewrite data not written by this M/R job
+        byte[] val = data.get();
         
-        private short max_cf;
-        private short max_cq;
-        private Random random;
-        private String ingestInstanceId;
-        private byte[] iiId;
-        private long count;
-        
-        public void setup(Context context) throws IOException, InterruptedException {
-            int max_cf = context.getConfiguration().getInt(MAX_CF, -1);
-            int max_cq = context.getConfiguration().getInt(MAX_CQ, -1);
-            
-            if (max_cf > Short.MAX_VALUE || max_cq > Short.MAX_VALUE) throw new IllegalArgumentException();
-            
-            this.max_cf = (short) max_cf;
-            this.max_cq = (short) max_cq;
-            
-            random = new Random();
-            ingestInstanceId = context.getConfiguration().get(CI_ID);
-            iiId = ingestInstanceId.getBytes();
-            
-            count = 0;
+        int offset = ContinuousWalk.getPrevRowOffset(val);
+        if (offset > 0) {
+          long rowLong = Long.parseLong(new String(val, offset, 16), 16);
+          Mutation m = ContinuousIngest.genMutation(rowLong, random.nextInt(max_cf), random.nextInt(max_cq), iiId, count++, key.getRowData().toArray(), random,
+              true);
+          context.write(null, m);
         }
         
-        public void map(Key key, Value data, Context context) throws IOException, InterruptedException {
-            
-            ContinuousWalk.validate(key, data);
-            
-            if (WritableComparator.compareBytes(iiId, 0, iiId.length, data.get(), 0, iiId.length) != 0) {
-                // only rewrite data not written by this M/R job
-                byte[] val = data.get();
-                
-                int offset = ContinuousWalk.getPrevRowOffset(val);
-                if (offset > 0) {
-                    long rowLong = Long.parseLong(new String(val, offset, 16), 16);
-                    Mutation m = ContinuousIngest.genMutation(rowLong, random.nextInt(max_cf), random.nextInt(max_cq), iiId, count++, key.getRowData()
-                            .toArray(), random, true);
-                    context.write(null, m);
-                }
-                
-            } else {
-                context.getCounter(Counts.SELF_READ).increment(1);
-            }
-        }
+      } else {
+        context.getCounter(Counts.SELF_READ).increment(1);
+      }
+    }
+  }
+  
+  @Override
+  public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
+    if (args.length != 13) {
+      throw new IllegalArgumentException("Usage : " + ContinuousMoru.class.getName()
+          + " <instance name> <zookeepers> <user> <pass> <table> <min> <max> <max cf> <max cq> <max mem> <max latency> <num threads> <max maps>");
     }
     
-    @Override
-    public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
-        if (args.length != 13) {
-            throw new IllegalArgumentException("Usage : " + ContinuousMoru.class.getName()
-                    + " <instance name> <zookeepers> <user> <pass> <table> <min> <max> <max cf> <max cq> <max mem> <max latency> <num threads> <max maps>");
-        }
-        
-        String instance = args[0];
-        String zookeepers = args[1];
-        String user = args[2];
-        String pass = args[3];
-        String table = args[4];
-        String min = args[5];
-        String max = args[6];
-        String max_cf = args[7];
-        String max_cq = args[8];
-        String maxMem = args[9];
-        String maxLatency = args[10];
-        String numThreads = args[11];
-        String maxMaps = args[12];
-        
-        Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
-        job.setJarByClass(this.getClass());
-        
-        job.setInputFormatClass(AccumuloInputFormat.class);
-        AccumuloInputFormat.setInputInfo(job, user, pass.getBytes(), table, new Authorizations());
-        AccumuloInputFormat.setZooKeeperInstance(job, instance, zookeepers);
-        
-        // set up ranges
-        try {
-            AccumuloInputFormat.setRanges(job, new ZooKeeperInstance(instance, zookeepers).getConnector(user, pass.getBytes()).tableOperations()
-                    .splitRangeByTablets(table, new Range(), Integer.parseInt(maxMaps)));
-            AccumuloInputFormat.disableAutoAdjustRanges(job);
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
-        
-        job.setMapperClass(CMapper.class);
-        
-        job.setNumReduceTasks(0);
-        
-        job.setOutputFormatClass(AccumuloOutputFormat.class);
-        AccumuloOutputFormat.setOutputInfo(job, user, pass.getBytes(), false, table);
-        AccumuloOutputFormat.setZooKeeperInstance(job, instance, zookeepers);
-        AccumuloOutputFormat.setMaxLatency(job, (int) (Integer.parseInt(maxLatency) / 1000.0));
-        AccumuloOutputFormat.setMaxMutationBufferSize(job, Long.parseLong(maxMem));
-        AccumuloOutputFormat.setMaxWriteThreads(job, Integer.parseInt(numThreads));
-        
-        Configuration conf = job.getConfiguration();
-        conf.setLong(MIN, Long.parseLong(min));
-        conf.setLong(MAX, Long.parseLong(max));
-        conf.setInt(MAX_CF, Integer.parseInt(max_cf));
-        conf.setInt(MAX_CQ, Integer.parseInt(max_cq));
-        conf.set(CI_ID, UUID.randomUUID().toString());
-        
-        job.waitForCompletion(true);
-        return job.isSuccessful() ? 0 : 1;
+    String instance = args[0];
+    String zookeepers = args[1];
+    String user = args[2];
+    String pass = args[3];
+    String table = args[4];
+    String min = args[5];
+    String max = args[6];
+    String max_cf = args[7];
+    String max_cq = args[8];
+    String maxMem = args[9];
+    String maxLatency = args[10];
+    String numThreads = args[11];
+    String maxMaps = args[12];
+    
+    Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+    job.setJarByClass(this.getClass());
+    
+    job.setInputFormatClass(AccumuloInputFormat.class);
+    AccumuloInputFormat.setInputInfo(job, user, pass.getBytes(), table, new Authorizations());
+    AccumuloInputFormat.setZooKeeperInstance(job, instance, zookeepers);
+    
+    // set up ranges
+    try {
+      AccumuloInputFormat.setRanges(
+          job,
+          new ZooKeeperInstance(instance, zookeepers).getConnector(user, pass.getBytes()).tableOperations()
+              .splitRangeByTablets(table, new Range(), Integer.parseInt(maxMaps)));
+      AccumuloInputFormat.disableAutoAdjustRanges(job);
+    } catch (Exception e) {
+      throw new IOException(e);
     }
     
-    /**
-     * 
-     * @param args
-     *            instanceName zookeepers username password table columns outputpath
-     * @throws Exception
-     */
-    public static void main(String[] args) throws Exception {
-        int res = ToolRunner.run(CachedConfiguration.getInstance(), new ContinuousMoru(), args);
-        if (res != 0) System.exit(res);
-    }
+    job.setMapperClass(CMapper.class);
+    
+    job.setNumReduceTasks(0);
+    
+    job.setOutputFormatClass(AccumuloOutputFormat.class);
+    AccumuloOutputFormat.setOutputInfo(job, user, pass.getBytes(), false, table);
+    AccumuloOutputFormat.setZooKeeperInstance(job, instance, zookeepers);
+    AccumuloOutputFormat.setMaxLatency(job, (int) (Integer.parseInt(maxLatency) / 1000.0));
+    AccumuloOutputFormat.setMaxMutationBufferSize(job, Long.parseLong(maxMem));
+    AccumuloOutputFormat.setMaxWriteThreads(job, Integer.parseInt(numThreads));
+    
+    Configuration conf = job.getConfiguration();
+    conf.setLong(MIN, Long.parseLong(min));
+    conf.setLong(MAX, Long.parseLong(max));
+    conf.setInt(MAX_CF, Integer.parseInt(max_cf));
+    conf.setInt(MAX_CQ, Integer.parseInt(max_cq));
+    conf.set(CI_ID, UUID.randomUUID().toString());
+    
+    job.waitForCompletion(true);
+    return job.isSuccessful() ? 0 : 1;
+  }
+  
+  /**
+   * 
+   * @param args
+   *          instanceName zookeepers username password table columns outputpath
+   * @throws Exception
+   */
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(CachedConfiguration.getInstance(), new ContinuousMoru(), args);
+    if (res != 0) System.exit(res);
+  }
 }

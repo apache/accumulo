@@ -37,108 +37,108 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 public class ChangeSecret {
+  
+  public static void main(String[] args) throws Exception {
+    String oldPass = null;
+    String newPass = null;
+    if (args.length < 2) {
+      System.err.println("Usage: accumulo " + ChangeSecret.class.getName() + " oldPass newPass");
+      System.exit(-1);
+    }
+    oldPass = args[0];
+    newPass = args[1];
     
-    public static void main(String[] args) throws Exception {
-        String oldPass = null;
-        String newPass = null;
-        if (args.length < 2) {
-            System.err.println("Usage: accumulo " + ChangeSecret.class.getName() + " oldPass newPass");
-            System.exit(-1);
-        }
-        oldPass = args[0];
-        newPass = args[1];
-        
-        FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-        Instance inst = HdfsZooInstance.getInstance();
-        if (!verifyAccumuloIsDown(inst, oldPass)) System.exit(-1);
-        String instanceId = rewriteZooKeeperInstance(inst, oldPass, newPass);
-        updateHdfs(fs, inst, instanceId);
-        if (oldPass != null) {
-            deleteInstance(inst, oldPass);
-        }
-        System.out.println("New instance id is " + instanceId);
-        System.out.println("Be sure to put your new secret in accumulo-site.xml");
+    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
+    Instance inst = HdfsZooInstance.getInstance();
+    if (!verifyAccumuloIsDown(inst, oldPass)) System.exit(-1);
+    String instanceId = rewriteZooKeeperInstance(inst, oldPass, newPass);
+    updateHdfs(fs, inst, instanceId);
+    if (oldPass != null) {
+      deleteInstance(inst, oldPass);
+    }
+    System.out.println("New instance id is " + instanceId);
+    System.out.println("Be sure to put your new secret in accumulo-site.xml");
+  }
+  
+  interface Visitor {
+    void visit(ZooReader zoo, String path) throws Exception;
+  }
+  
+  private static void recurse(ZooReader zoo, String root, Visitor v) {
+    try {
+      v.visit(zoo, root);
+      for (String child : zoo.getChildren(root)) {
+        recurse(zoo, root + "/" + child, v);
+      }
+    } catch (Exception ex) {
+      throw new RuntimeException(ex);
+    }
+  }
+  
+  private static boolean verifyAccumuloIsDown(Instance inst, String oldPassword) {
+    ZooReader zooReader = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), oldPassword);
+    String root = ZooUtil.getRoot(inst);
+    final List<String> ephemerals = new ArrayList<String>();
+    recurse(zooReader, root, new Visitor() {
+      public void visit(ZooReader zoo, String path) throws Exception {
+        Stat stat = zoo.getStatus(path);
+        if (stat.getEphemeralOwner() != 0) ephemerals.add(path);
+      }
+    });
+    if (ephemerals.size() == 0) {
+      return true;
     }
     
-    interface Visitor {
-        void visit(ZooReader zoo, String path) throws Exception;
+    System.err.println("The following ephemeral nodes exist, something is still running:");
+    for (String path : ephemerals) {
+      System.err.println(path);
     }
-    
-    private static void recurse(ZooReader zoo, String root, Visitor v) {
-        try {
-            v.visit(zoo, root);
-            for (String child : zoo.getChildren(root)) {
-                recurse(zoo, root + "/" + child, v);
+    return false;
+  }
+  
+  private static String rewriteZooKeeperInstance(final Instance inst, String oldPass, String newPass) throws Exception {
+    final ZooReaderWriter orig = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), oldPass);
+    final ZooReaderWriter new_ = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), newPass);
+    final String newInstanceId = UUID.randomUUID().toString();
+    String root = ZooUtil.getRoot(inst);
+    recurse(orig, root, new Visitor() {
+      public void visit(ZooReader zoo, String path) throws Exception {
+        String newPath = path.replace(inst.getInstanceID(), newInstanceId);
+        byte[] data = zoo.getData(path, null);
+        List<ACL> acls = orig.getZooKeeper().getACL(path, new Stat());
+        if (acls.containsAll(Ids.READ_ACL_UNSAFE)) {
+          new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);
+        } else {
+          // upgrade
+          if (acls.contains(Ids.OPEN_ACL_UNSAFE)) {
+            // make user nodes private, they contain the user's password
+            String parts[] = path.split("/");
+            if (parts[parts.length - 2].equals("users")) {
+              new_.putPrivatePersistentData(newPath, data, NodeExistsPolicy.FAIL);
+            } else {
+              // everything else can have the readable acl
+              new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);
             }
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
+          } else {
+            new_.putPrivatePersistentData(newPath, data, NodeExistsPolicy.FAIL);
+          }
         }
-    }
-    
-    private static boolean verifyAccumuloIsDown(Instance inst, String oldPassword) {
-        ZooReader zooReader = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), oldPassword);
-        String root = ZooUtil.getRoot(inst);
-        final List<String> ephemerals = new ArrayList<String>();
-        recurse(zooReader, root, new Visitor() {
-            public void visit(ZooReader zoo, String path) throws Exception {
-                Stat stat = zoo.getStatus(path);
-                if (stat.getEphemeralOwner() != 0) ephemerals.add(path);
-            }
-        });
-        if (ephemerals.size() == 0) {
-            return true;
-        }
-        
-        System.err.println("The following ephemeral nodes exist, something is still running:");
-        for (String path : ephemerals) {
-            System.err.println(path);
-        }
-        return false;
-    }
-    
-    private static String rewriteZooKeeperInstance(final Instance inst, String oldPass, String newPass) throws Exception {
-        final ZooReaderWriter orig = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), oldPass);
-        final ZooReaderWriter new_ = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), newPass);
-        final String newInstanceId = UUID.randomUUID().toString();
-        String root = ZooUtil.getRoot(inst);
-        recurse(orig, root, new Visitor() {
-            public void visit(ZooReader zoo, String path) throws Exception {
-                String newPath = path.replace(inst.getInstanceID(), newInstanceId);
-                byte[] data = zoo.getData(path, null);
-                List<ACL> acls = orig.getZooKeeper().getACL(path, new Stat());
-                if (acls.containsAll(Ids.READ_ACL_UNSAFE)) {
-                    new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);
-                } else {
-                    // upgrade
-                    if (acls.contains(Ids.OPEN_ACL_UNSAFE)) {
-                        // make user nodes private, they contain the user's password
-                        String parts[] = path.split("/");
-                        if (parts[parts.length - 2].equals("users")) {
-                            new_.putPrivatePersistentData(newPath, data, NodeExistsPolicy.FAIL);
-                        } else {
-                            // everything else can have the readable acl
-                            new_.putPersistentData(newPath, data, NodeExistsPolicy.FAIL);
-                        }
-                    } else {
-                        new_.putPrivatePersistentData(newPath, data, NodeExistsPolicy.FAIL);
-                    }
-                }
-            }
-        });
-        String path = "/accumulo/instances/" + inst.getInstanceName();
-        orig.recursiveDelete(path, NodeMissingPolicy.SKIP);
-        new_.putPersistentData(path, newInstanceId.getBytes(), NodeExistsPolicy.OVERWRITE);
-        return newInstanceId;
-    }
-    
-    private static void updateHdfs(FileSystem fs, Instance inst, String newInstanceId) throws IOException {
-        fs.delete(ServerConstants.getInstanceIdLocation(), true);
-        fs.mkdirs(ServerConstants.getInstanceIdLocation());
-        fs.create(new Path(ServerConstants.getInstanceIdLocation(), newInstanceId)).close();
-    }
-    
-    private static void deleteInstance(Instance origInstance, String oldPass) throws Exception {
-        ZooReaderWriter orig = new ZooReaderWriter(origInstance.getZooKeepers(), origInstance.getZooKeepersSessionTimeOut(), oldPass);
-        orig.recursiveDelete("/accumulo/" + origInstance.getInstanceID(), NodeMissingPolicy.SKIP);
-    }
+      }
+    });
+    String path = "/accumulo/instances/" + inst.getInstanceName();
+    orig.recursiveDelete(path, NodeMissingPolicy.SKIP);
+    new_.putPersistentData(path, newInstanceId.getBytes(), NodeExistsPolicy.OVERWRITE);
+    return newInstanceId;
+  }
+  
+  private static void updateHdfs(FileSystem fs, Instance inst, String newInstanceId) throws IOException {
+    fs.delete(ServerConstants.getInstanceIdLocation(), true);
+    fs.mkdirs(ServerConstants.getInstanceIdLocation());
+    fs.create(new Path(ServerConstants.getInstanceIdLocation(), newInstanceId)).close();
+  }
+  
+  private static void deleteInstance(Instance origInstance, String oldPass) throws Exception {
+    ZooReaderWriter orig = new ZooReaderWriter(origInstance.getZooKeepers(), origInstance.getZooKeepersSessionTimeOut(), oldPass);
+    orig.recursiveDelete("/accumulo/" + origInstance.getInstanceID(), NodeMissingPolicy.SKIP);
+  }
 }

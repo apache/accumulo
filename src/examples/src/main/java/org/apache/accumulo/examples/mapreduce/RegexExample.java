@@ -34,44 +34,44 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 public class RegexExample extends Configured implements Tool {
-    public static class RegexMapper extends Mapper<Key,Value,Key,Value> {
-        public void map(Key row, Value data, Context context) throws IOException, InterruptedException {
-            context.write(row, data);
-        }
+  public static class RegexMapper extends Mapper<Key,Value,Key,Value> {
+    public void map(Key row, Value data, Context context) throws IOException, InterruptedException {
+      context.write(row, data);
     }
+  }
+  
+  public int run(String[] args) throws Exception {
+    Job job = new Job(getConf(), this.getClass().getSimpleName());
+    job.setJarByClass(this.getClass());
     
-    public int run(String[] args) throws Exception {
-        Job job = new Job(getConf(), this.getClass().getSimpleName());
-        job.setJarByClass(this.getClass());
-        
-        job.setInputFormatClass(AccumuloInputFormat.class);
-        AccumuloInputFormat.setZooKeeperInstance(job, args[0], args[1]);
-        AccumuloInputFormat.setInputInfo(job, args[2], args[3].getBytes(), args[4], new Authorizations());
-        
-        IteratorSetting regex = new IteratorSetting(50, "regex", RegExIterator.class);
-        RegExIterator.setRegexs(regex, args[5], args[6], args[7], args[8], false);
-        AccumuloInputFormat.addIterator(job, regex);
-        
-        job.setMapperClass(RegexMapper.class);
-        job.setMapOutputKeyClass(Key.class);
-        job.setMapOutputValueClass(Value.class);
-        
-        job.setNumReduceTasks(0);
-        
-        job.setOutputFormatClass(TextOutputFormat.class);
-        TextOutputFormat.setOutputPath(job, new Path(args[9]));
-        
-        System.out.println("setRowRegex: " + args[5]);
-        System.out.println("setColumnFamilyRegex: " + args[6]);
-        System.out.println("setColumnQualifierRegex: " + args[7]);
-        System.out.println("setValueRegex: " + args[8]);
-        
-        job.waitForCompletion(true);
-        return job.isSuccessful() ? 0 : 1;
-    }
+    job.setInputFormatClass(AccumuloInputFormat.class);
+    AccumuloInputFormat.setZooKeeperInstance(job, args[0], args[1]);
+    AccumuloInputFormat.setInputInfo(job, args[2], args[3].getBytes(), args[4], new Authorizations());
     
-    public static void main(String[] args) throws Exception {
-        int res = ToolRunner.run(CachedConfiguration.getInstance(), new RegexExample(), args);
-        if (res != 0) System.exit(res);
-    }
+    IteratorSetting regex = new IteratorSetting(50, "regex", RegExIterator.class);
+    RegExIterator.setRegexs(regex, args[5], args[6], args[7], args[8], false);
+    AccumuloInputFormat.addIterator(job, regex);
+    
+    job.setMapperClass(RegexMapper.class);
+    job.setMapOutputKeyClass(Key.class);
+    job.setMapOutputValueClass(Value.class);
+    
+    job.setNumReduceTasks(0);
+    
+    job.setOutputFormatClass(TextOutputFormat.class);
+    TextOutputFormat.setOutputPath(job, new Path(args[9]));
+    
+    System.out.println("setRowRegex: " + args[5]);
+    System.out.println("setColumnFamilyRegex: " + args[6]);
+    System.out.println("setColumnQualifierRegex: " + args[7]);
+    System.out.println("setValueRegex: " + args[8]);
+    
+    job.waitForCompletion(true);
+    return job.isSuccessful() ? 0 : 1;
+  }
+  
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(CachedConfiguration.getInstance(), new RegexExample(), args);
+    if (res != 0) System.exit(res);
+  }
 }

@@ -44,136 +44,135 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
  * Provides a class for administering the accumulo instance
  */
 public class InstanceOperations {
-    private Instance instance;
-    private AuthInfo credentials;
-    
-    /**
-     * @param instance
-     *            the connection information for this instance
-     * @param credentials
-     *            the username/password for this connection
-     */
-    public InstanceOperations(Instance instance, AuthInfo credentials) {
-        ArgumentChecker.notNull(instance, credentials);
-        this.instance = instance;
-        this.credentials = credentials;
-    }
-    
-    /**
-     * Sets an instance property in zookeeper. Tablet servers will pull this setting and override the equivalent setting in accumulo-site.xml
-     * 
-     * @param property
-     *            the name of a per-table property
-     * @param value
-     *            the value to set a per-table property to
-     * @throws AccumuloException
-     *             if a general error occurs
-     * @throws AccumuloSecurityException
-     *             if the user does not have permission
-     */
-    public void setProperty(final String property, final String value) throws AccumuloException, AccumuloSecurityException {
-        ArgumentChecker.notNull(property, value);
-        MasterClient.execute(instance, new ClientExec<MasterClientService.Iface>() {
-            @Override
-            public void execute(MasterClientService.Iface client) throws Exception {
-                client.setSystemProperty(null, credentials, property, value);
-            }
+  private Instance instance;
+  private AuthInfo credentials;
+  
+  /**
+   * @param instance
+   *          the connection information for this instance
+   * @param credentials
+   *          the username/password for this connection
+   */
+  public InstanceOperations(Instance instance, AuthInfo credentials) {
+    ArgumentChecker.notNull(instance, credentials);
+    this.instance = instance;
+    this.credentials = credentials;
+  }
+  
+  /**
+   * Sets an instance property in zookeeper. Tablet servers will pull this setting and override the equivalent setting in accumulo-site.xml
+   * 
+   * @param property
+   *          the name of a per-table property
+   * @param value
+   *          the value to set a per-table property to
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   */
+  public void setProperty(final String property, final String value) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(property, value);
+    MasterClient.execute(instance, new ClientExec<MasterClientService.Iface>() {
+      @Override
+      public void execute(MasterClientService.Iface client) throws Exception {
+        client.setSystemProperty(null, credentials, property, value);
+      }
+    });
+  }
+  
+  /**
+   * Removes a instance property from zookeeper
+   * 
+   * @param tableName
+   *          the name of the table
+   * @param property
+   *          the name of a per-table property
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission
+   */
+  public void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(property);
+    MasterClient.execute(instance, new ClientExec<MasterClientService.Iface>() {
+      @Override
+      public void execute(MasterClientService.Iface client) throws Exception {
+        client.removeSystemProperty(null, credentials, property);
+      }
+    });
+  }
+  
+  public Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException {
+    return ServerClient.execute(instance, new ClientExecReturn<Map<String,String>,ClientService.Iface>() {
+      @Override
+      public Map<String,String> execute(ClientService.Iface client) throws Exception {
+        return client.getConfiguration(ConfigurationType.CURRENT);
+      }
+    });
+  }
+  
+  public Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException {
+    return ServerClient.execute(instance, new ClientExecReturn<Map<String,String>,ClientService.Iface>() {
+      @Override
+      public Map<String,String> execute(ClientService.Iface client) throws Exception {
+        return client.getConfiguration(ConfigurationType.SITE);
+      }
+    });
+  }
+  
+  /**
+   * List the current tablet servers participating in the accumulo instance
+   * 
+   * @return
+   */
+  
+  public List<String> getTabletServers() {
+    return ZooCache.getInstance(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()).getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS);
+  }
+  
+  /**
+   * List the active scans on tablet server. The tablet server address should be of the form <ip address>:<port>
+   * 
+   * @param tserver
+   * @return
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+  
+  public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
+    List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan> tas = ThriftUtil.execute(tserver, instance.getConfiguration(),
+        new ClientExecReturn<List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan>,TabletClientService.Iface>() {
+          @Override
+          public List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan> execute(Iface client) throws Exception {
+            return client.getActiveScans(null, credentials);
+          }
         });
+    List<ActiveScan> as = new ArrayList<ActiveScan>();
+    for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : tas) {
+      try {
+        as.add(new ActiveScan(instance, activeScan));
+      } catch (TableNotFoundException e) {
+        throw new AccumuloException(e);
+      }
     }
-    
-    /**
-     * Removes a instance property from zookeeper
-     * 
-     * @param tableName
-     *            the name of the table
-     * @param property
-     *            the name of a per-table property
-     * @throws AccumuloException
-     *             if a general error occurs
-     * @throws AccumuloSecurityException
-     *             if the user does not have permission
-     */
-    public void removeProperty(final String property) throws AccumuloException, AccumuloSecurityException {
-        ArgumentChecker.notNull(property);
-        MasterClient.execute(instance, new ClientExec<MasterClientService.Iface>() {
-            @Override
-            public void execute(MasterClientService.Iface client) throws Exception {
-                client.removeSystemProperty(null, credentials, property);
-            }
-        });
-    }
-    
-    public Map<String,String> getSystemConfiguration() throws AccumuloException, AccumuloSecurityException {
-        return ServerClient.execute(instance, new ClientExecReturn<Map<String,String>,ClientService.Iface>() {
-            @Override
-            public Map<String,String> execute(ClientService.Iface client) throws Exception {
-                return client.getConfiguration(ConfigurationType.CURRENT);
-            }
-        });
-    }
-    
-    public Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException {
-        return ServerClient.execute(instance, new ClientExecReturn<Map<String,String>,ClientService.Iface>() {
-            @Override
-            public Map<String,String> execute(ClientService.Iface client) throws Exception {
-                return client.getConfiguration(ConfigurationType.SITE);
-            }
-        });
-    }
-    
-    /**
-     * List the current tablet servers participating in the accumulo instance
-     * 
-     * @return
-     */
-    
-    public List<String> getTabletServers() {
-        return ZooCache.getInstance(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()).getChildren(
-                ZooUtil.getRoot(instance) + Constants.ZTSERVERS);
-    }
-    
-    /**
-     * List the active scans on tablet server. The tablet server address should be of the form <ip address>:<port>
-     * 
-     * @param tserver
-     * @return
-     * @throws AccumuloException
-     * @throws AccumuloSecurityException
-     */
-    
-    public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
-        List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan> tas = ThriftUtil.execute(tserver, instance.getConfiguration(),
-                new ClientExecReturn<List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan>,TabletClientService.Iface>() {
-                    @Override
-                    public List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan> execute(Iface client) throws Exception {
-                        return client.getActiveScans(null, credentials);
-                    }
-                });
-        List<ActiveScan> as = new ArrayList<ActiveScan>();
-        for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : tas) {
-            try {
-                as.add(new ActiveScan(instance, activeScan));
-            } catch (TableNotFoundException e) {
-                throw new AccumuloException(e);
-            }
-        }
-        return as;
-    }
-    
-    /**
-     * Test to see if the instance can load the given class as the given type.
-     * 
-     * @param className
-     * @param asTypeName
-     * @return
-     * @throws AccumuloException
-     */
-    public boolean testClassLoad(final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException {
-        return ServerClient.execute(instance, new ClientExecReturn<Boolean,ClientService.Iface>() {
-            @Override
-            public Boolean execute(ClientService.Iface client) throws Exception {
-                return client.checkClass(null, className, asTypeName);
-            }
-        });
-    }
+    return as;
+  }
+  
+  /**
+   * Test to see if the instance can load the given class as the given type.
+   * 
+   * @param className
+   * @param asTypeName
+   * @return
+   * @throws AccumuloException
+   */
+  public boolean testClassLoad(final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException {
+    return ServerClient.execute(instance, new ClientExecReturn<Boolean,ClientService.Iface>() {
+      @Override
+      public Boolean execute(ClientService.Iface client) throws Exception {
+        return client.checkClass(null, className, asTypeName);
+      }
+    });
+  }
 }

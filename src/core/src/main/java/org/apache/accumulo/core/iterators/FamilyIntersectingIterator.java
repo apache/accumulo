@@ -31,121 +31,121 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 public class FamilyIntersectingIterator extends IntersectingIterator {
-    public static final Text DEFAULT_INDEX_COLF = new Text("i");
-    public static final Text DEFAULT_DOC_COLF = new Text("e");
-    
-    public static final String indexFamilyOptionName = "indexFamily";
-    public static final String docFamilyOptionName = "docFamily";
-    
-    private static Text indexColf = DEFAULT_INDEX_COLF;
-    private static Text docColf = DEFAULT_DOC_COLF;
-    private static Set<ByteSequence> indexColfSet;
-    private static Set<ByteSequence> docColfSet;
-    
-    private static final byte[] nullByte = {0};
-    
-    public SortedKeyValueIterator<Key,Value> docSource;
-    
-    @Override
-    protected Key buildKey(Text partition, Text term, Text docID) {
-        Text colq = new Text(term);
-        colq.append(nullByte, 0, 1);
-        colq.append(docID.getBytes(), 0, docID.getLength());
-        colq.append(nullByte, 0, 1);
-        return new Key(partition, indexColf, colq);
+  public static final Text DEFAULT_INDEX_COLF = new Text("i");
+  public static final Text DEFAULT_DOC_COLF = new Text("e");
+  
+  public static final String indexFamilyOptionName = "indexFamily";
+  public static final String docFamilyOptionName = "docFamily";
+  
+  private static Text indexColf = DEFAULT_INDEX_COLF;
+  private static Text docColf = DEFAULT_DOC_COLF;
+  private static Set<ByteSequence> indexColfSet;
+  private static Set<ByteSequence> docColfSet;
+  
+  private static final byte[] nullByte = {0};
+  
+  public SortedKeyValueIterator<Key,Value> docSource;
+  
+  @Override
+  protected Key buildKey(Text partition, Text term, Text docID) {
+    Text colq = new Text(term);
+    colq.append(nullByte, 0, 1);
+    colq.append(docID.getBytes(), 0, docID.getLength());
+    colq.append(nullByte, 0, 1);
+    return new Key(partition, indexColf, colq);
+  }
+  
+  @Override
+  protected Key buildKey(Text partition, Text term) {
+    Text colq = new Text(term);
+    return new Key(partition, indexColf, colq);
+  }
+  
+  @Override
+  protected Text getDocID(Key key) {
+    Text colq = key.getColumnQualifier();
+    int firstZeroIndex = colq.find("\0");
+    if (firstZeroIndex < 0) {
+      throw new IllegalArgumentException("bad docid: " + key.toString());
     }
-    
-    @Override
-    protected Key buildKey(Text partition, Text term) {
-        Text colq = new Text(term);
-        return new Key(partition, indexColf, colq);
+    int secondZeroIndex = colq.find("\0", firstZeroIndex + 1);
+    if (secondZeroIndex < 0) {
+      throw new IllegalArgumentException("bad docid: " + key.toString());
     }
-    
-    @Override
-    protected Text getDocID(Key key) {
-        Text colq = key.getColumnQualifier();
-        int firstZeroIndex = colq.find("\0");
-        if (firstZeroIndex < 0) {
-            throw new IllegalArgumentException("bad docid: " + key.toString());
-        }
-        int secondZeroIndex = colq.find("\0", firstZeroIndex + 1);
-        if (secondZeroIndex < 0) {
-            throw new IllegalArgumentException("bad docid: " + key.toString());
-        }
-        int thirdZeroIndex = colq.find("\0", secondZeroIndex + 1);
-        if (thirdZeroIndex < 0) {
-            throw new IllegalArgumentException("bad docid: " + key.toString());
-        }
-        Text docID = new Text();
-        try {
-            docID.set(colq.getBytes(), firstZeroIndex + 1, thirdZeroIndex - 1 - firstZeroIndex);
-        } catch (ArrayIndexOutOfBoundsException e) {
-            throw new IllegalArgumentException("bad indices for docid: " + key.toString() + " " + firstZeroIndex + " " + secondZeroIndex + " " + thirdZeroIndex);
-        }
-        return docID;
+    int thirdZeroIndex = colq.find("\0", secondZeroIndex + 1);
+    if (thirdZeroIndex < 0) {
+      throw new IllegalArgumentException("bad docid: " + key.toString());
     }
-    
-    @Override
-    protected Text getTerm(Key key) {
-        if (indexColf.compareTo(key.getColumnFamily().getBytes(), 0, indexColf.getLength()) < 0) {
-            // We're past the index column family, so return a term that will sort lexicographically last.
-            // The last unicode character should suffice
-            return new Text("\uFFFD");
-        }
-        Text colq = key.getColumnQualifier();
-        int zeroIndex = colq.find("\0");
-        Text term = new Text();
-        term.set(colq.getBytes(), 0, zeroIndex);
-        return term;
+    Text docID = new Text();
+    try {
+      docID.set(colq.getBytes(), firstZeroIndex + 1, thirdZeroIndex - 1 - firstZeroIndex);
+    } catch (ArrayIndexOutOfBoundsException e) {
+      throw new IllegalArgumentException("bad indices for docid: " + key.toString() + " " + firstZeroIndex + " " + secondZeroIndex + " " + thirdZeroIndex);
     }
-    
-    @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-        super.init(source, options, env);
-        if (options.containsKey(indexFamilyOptionName)) indexColf = new Text(options.get(indexFamilyOptionName));
-        if (options.containsKey(docFamilyOptionName)) docColf = new Text(options.get(docFamilyOptionName));
-        docSource = source.deepCopy(env);
-        indexColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(indexColf.getBytes(), 0, indexColf.getLength()));
+    return docID;
+  }
+  
+  @Override
+  protected Text getTerm(Key key) {
+    if (indexColf.compareTo(key.getColumnFamily().getBytes(), 0, indexColf.getLength()) < 0) {
+      // We're past the index column family, so return a term that will sort lexicographically last.
+      // The last unicode character should suffice
+      return new Text("\uFFFD");
     }
+    Text colq = key.getColumnQualifier();
+    int zeroIndex = colq.find("\0");
+    Text term = new Text();
+    term.set(colq.getBytes(), 0, zeroIndex);
+    return term;
+  }
+  
+  @Override
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    super.init(source, options, env);
+    if (options.containsKey(indexFamilyOptionName)) indexColf = new Text(options.get(indexFamilyOptionName));
+    if (options.containsKey(docFamilyOptionName)) docColf = new Text(options.get(docFamilyOptionName));
+    docSource = source.deepCopy(env);
+    indexColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(indexColf.getBytes(), 0, indexColf.getLength()));
+  }
+  
+  @Override
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public void seek(Range range, Collection<ByteSequence> seekColumnFamilies, boolean inclusive) throws IOException {
+    super.seek(range, indexColfSet, true);
     
-    @Override
-    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-        throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  protected void advanceToIntersection() throws IOException {
+    super.advanceToIntersection();
+    if (topKey == null) return;
+    if (log.isTraceEnabled()) log.trace("using top key to seek for doc: " + topKey.toString());
+    Key docKey = buildDocKey();
+    docSource.seek(new Range(docKey, true, null, false), docColfSet, true);
+    log.debug("got doc key: " + docSource.getTopKey().toString());
+    if (docSource.hasTop() && docKey.compareTo(docSource.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL) == 0) {
+      value = docSource.getTopValue();
     }
-    
-    @Override
-    public void seek(Range range, Collection<ByteSequence> seekColumnFamilies, boolean inclusive) throws IOException {
-        super.seek(range, indexColfSet, true);
-        
-    }
-    
-    @Override
-    protected void advanceToIntersection() throws IOException {
-        super.advanceToIntersection();
-        if (topKey == null) return;
-        if (log.isTraceEnabled()) log.trace("using top key to seek for doc: " + topKey.toString());
-        Key docKey = buildDocKey();
-        docSource.seek(new Range(docKey, true, null, false), docColfSet, true);
-        log.debug("got doc key: " + docSource.getTopKey().toString());
-        if (docSource.hasTop() && docKey.compareTo(docSource.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL) == 0) {
-            value = docSource.getTopValue();
-        }
-        log.debug("got doc value: " + value.toString());
-    }
-    
-    protected Key buildDocKey() {
-        if (log.isTraceEnabled()) log.trace("building doc key for " + currentPartition + " " + currentDocID);
-        int zeroIndex = currentDocID.find("\0");
-        if (zeroIndex < 0) throw new IllegalArgumentException("bad current docID");
-        Text colf = new Text(docColf);
-        colf.append(nullByte, 0, 1);
-        colf.append(currentDocID.getBytes(), 0, zeroIndex);
-        docColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(colf.getBytes(), 0, colf.getLength()));
-        if (log.isTraceEnabled()) log.trace(zeroIndex + " " + currentDocID.getLength());
-        Text colq = new Text();
-        colq.set(currentDocID.getBytes(), zeroIndex + 1, currentDocID.getLength() - zeroIndex - 2);
-        Key k = new Key(currentPartition, colf, colq);
-        if (log.isTraceEnabled()) log.trace("built doc key for seek: " + k.toString());
-        return k;
-    }
+    log.debug("got doc value: " + value.toString());
+  }
+  
+  protected Key buildDocKey() {
+    if (log.isTraceEnabled()) log.trace("building doc key for " + currentPartition + " " + currentDocID);
+    int zeroIndex = currentDocID.find("\0");
+    if (zeroIndex < 0) throw new IllegalArgumentException("bad current docID");
+    Text colf = new Text(docColf);
+    colf.append(nullByte, 0, 1);
+    colf.append(currentDocID.getBytes(), 0, zeroIndex);
+    docColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(colf.getBytes(), 0, colf.getLength()));
+    if (log.isTraceEnabled()) log.trace(zeroIndex + " " + currentDocID.getLength());
+    Text colq = new Text();
+    colq.set(currentDocID.getBytes(), zeroIndex + 1, currentDocID.getLength() - zeroIndex - 2);
+    Key k = new Key(currentPartition, colf, colq);
+    if (log.isTraceEnabled()) log.trace("built doc key for seek: " + k.toString());
+    return k;
+  }
 }

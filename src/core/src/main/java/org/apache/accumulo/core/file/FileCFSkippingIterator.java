@@ -28,42 +28,42 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 
 public class FileCFSkippingIterator extends ColumnFamilySkippingIterator implements FileSKVIterator {
-    
-    public FileCFSkippingIterator(FileSKVIterator src) {
-        super(src);
-    }
-    
-    protected FileCFSkippingIterator(SortedKeyValueIterator<Key,Value> src, Set<ByteSequence> colFamSet, boolean inclusive) {
-        super(src, colFamSet, inclusive);
-    }
-    
-    @Override
-    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-        return new FileCFSkippingIterator(getSource().deepCopy(env), colFamSet, inclusive);
-    }
-    
-    @Override
-    public void closeDeepCopies() throws IOException {
-        ((FileSKVIterator) getSource()).closeDeepCopies();
-    }
-    
-    @Override
-    public void close() throws IOException {
-        ((FileSKVIterator) getSource()).close();
-    }
-    
-    @Override
-    public Key getFirstKey() throws IOException {
-        return ((FileSKVIterator) getSource()).getFirstKey();
-    }
-    
-    @Override
-    public Key getLastKey() throws IOException {
-        return ((FileSKVIterator) getSource()).getLastKey();
-    }
-    
-    @Override
-    public DataInputStream getMetaStore(String name) throws IOException {
-        return ((FileSKVIterator) getSource()).getMetaStore(name);
-    }
+  
+  public FileCFSkippingIterator(FileSKVIterator src) {
+    super(src);
+  }
+  
+  protected FileCFSkippingIterator(SortedKeyValueIterator<Key,Value> src, Set<ByteSequence> colFamSet, boolean inclusive) {
+    super(src, colFamSet, inclusive);
+  }
+  
+  @Override
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    return new FileCFSkippingIterator(getSource().deepCopy(env), colFamSet, inclusive);
+  }
+  
+  @Override
+  public void closeDeepCopies() throws IOException {
+    ((FileSKVIterator) getSource()).closeDeepCopies();
+  }
+  
+  @Override
+  public void close() throws IOException {
+    ((FileSKVIterator) getSource()).close();
+  }
+  
+  @Override
+  public Key getFirstKey() throws IOException {
+    return ((FileSKVIterator) getSource()).getFirstKey();
+  }
+  
+  @Override
+  public Key getLastKey() throws IOException {
+    return ((FileSKVIterator) getSource()).getLastKey();
+  }
+  
+  @Override
+  public DataInputStream getMetaStore(String name) throws IOException {
+    return ((FileSKVIterator) getSource()).getMetaStore(name);
+  }
 }

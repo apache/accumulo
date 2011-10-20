@@ -41,22 +41,22 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  */
 
 public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
-    @Override
-    public RecordReader<Key,Value> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
-        log.setLevel(getLogLevel(context));
-        return new RecordReaderBase<Key,Value>() {
-            @Override
-            public boolean nextKeyValue() throws IOException, InterruptedException {
-                if (scannerIterator.hasNext()) {
-                    ++numKeysRead;
-                    Entry<Key,Value> entry = scannerIterator.next();
-                    currentK = currentKey = entry.getKey();
-                    currentV = currentValue = entry.getValue();
-                    if (log.isTraceEnabled()) log.trace("Processing key/value pair: " + DefaultFormatter.formatEntry(entry, true));
-                    return true;
-                }
-                return false;
-            }
-        };
-    }
+  @Override
+  public RecordReader<Key,Value> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+    log.setLevel(getLogLevel(context));
+    return new RecordReaderBase<Key,Value>() {
+      @Override
+      public boolean nextKeyValue() throws IOException, InterruptedException {
+        if (scannerIterator.hasNext()) {
+          ++numKeysRead;
+          Entry<Key,Value> entry = scannerIterator.next();
+          currentK = currentKey = entry.getKey();
+          currentV = currentValue = entry.getValue();
+          if (log.isTraceEnabled()) log.trace("Processing key/value pair: " + DefaultFormatter.formatEntry(entry, true));
+          return true;
+        }
+        return false;
+      }
+    };
+  }
 }

@@ -31,14 +31,14 @@ import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TTransport;
 
 public class TTimeoutTransport {
-    
-    public static TTransport create(SocketAddress addr, long timeoutMillis) throws IOException {
-        Socket socket = SelectorProvider.provider().openSocketChannel().socket();
-        socket.setSoLinger(false, 0);
-        socket.setTcpNoDelay(true);
-        socket.connect(addr);
-        InputStream input = new BufferedInputStream(new SocketInputStream(socket, timeoutMillis), 1024 * 10);
-        OutputStream output = new BufferedOutputStream(new SocketOutputStream(socket, timeoutMillis), 1024 * 10);
-        return new TIOStreamTransport(input, output);
-    }
+  
+  public static TTransport create(SocketAddress addr, long timeoutMillis) throws IOException {
+    Socket socket = SelectorProvider.provider().openSocketChannel().socket();
+    socket.setSoLinger(false, 0);
+    socket.setTcpNoDelay(true);
+    socket.connect(addr);
+    InputStream input = new BufferedInputStream(new SocketInputStream(socket, timeoutMillis), 1024 * 10);
+    OutputStream output = new BufferedOutputStream(new SocketOutputStream(socket, timeoutMillis), 1024 * 10);
+    return new TIOStreamTransport(input, output);
+  }
 }

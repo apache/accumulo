@@ -33,78 +33,78 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class RevokeCommand extends Command {
-    private Option systemOpt, tableOpt, userOpt;
+  private Option systemOpt, tableOpt, userOpt;
+  
+  @Override
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException {
+    String user = cl.hasOption(userOpt.getOpt()) ? cl.getOptionValue(userOpt.getOpt()) : shellState.getConnector().whoami();
     
-    @Override
-    public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException {
-        String user = cl.hasOption(userOpt.getOpt()) ? cl.getOptionValue(userOpt.getOpt()) : shellState.getConnector().whoami();
-        
-        String permission[] = cl.getArgs()[0].split("\\.", 2);
-        if (cl.hasOption(systemOpt.getOpt()) && permission[0].equalsIgnoreCase("System")) {
-            try {
-                shellState.getConnector().securityOperations().revokeSystemPermission(user, SystemPermission.valueOf(permission[1]));
-                Shell.log.debug("Revoked from " + user + " the " + permission[1] + " permission");
-            } catch (IllegalArgumentException e) {
-                throw new BadArgumentException("No such system permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
-            }
-        } else if (cl.hasOption(tableOpt.getOpt()) && permission[0].equalsIgnoreCase("Table")) {
-            String tableName = cl.getOptionValue(tableOpt.getOpt());
-            try {
-                shellState.getConnector().securityOperations().revokeTablePermission(user, tableName, TablePermission.valueOf(permission[1]));
-                Shell.log.debug("Revoked from " + user + " the " + permission[1] + " permission on table " + tableName);
-            } catch (IllegalArgumentException e) {
-                throw new BadArgumentException("No such table permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
-            }
-        } else {
-            throw new BadArgumentException("Unrecognized permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
-        }
-        return 0;
+    String permission[] = cl.getArgs()[0].split("\\.", 2);
+    if (cl.hasOption(systemOpt.getOpt()) && permission[0].equalsIgnoreCase("System")) {
+      try {
+        shellState.getConnector().securityOperations().revokeSystemPermission(user, SystemPermission.valueOf(permission[1]));
+        Shell.log.debug("Revoked from " + user + " the " + permission[1] + " permission");
+      } catch (IllegalArgumentException e) {
+        throw new BadArgumentException("No such system permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+      }
+    } else if (cl.hasOption(tableOpt.getOpt()) && permission[0].equalsIgnoreCase("Table")) {
+      String tableName = cl.getOptionValue(tableOpt.getOpt());
+      try {
+        shellState.getConnector().securityOperations().revokeTablePermission(user, tableName, TablePermission.valueOf(permission[1]));
+        Shell.log.debug("Revoked from " + user + " the " + permission[1] + " permission on table " + tableName);
+      } catch (IllegalArgumentException e) {
+        throw new BadArgumentException("No such table permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+      }
+    } else {
+      throw new BadArgumentException("Unrecognized permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
     }
+    return 0;
+  }
+  
+  @Override
+  public String description() {
+    return "revokes system or table permissions from a user";
+  }
+  
+  @Override
+  public String usage() {
+    return getName() + " <permission>";
+  }
+  
+  @Override
+  public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> completionSet) {
+    Token cmd = new Token(getName());
+    cmd.addSubcommand(new Token(TablePermission.printableValues()));
+    cmd.addSubcommand(new Token(SystemPermission.printableValues()));
+    root.addSubcommand(cmd);
+  }
+  
+  @Override
+  public Options getOptions() {
+    Options o = new Options();
+    OptionGroup group = new OptionGroup();
     
-    @Override
-    public String description() {
-        return "revokes system or table permissions from a user";
-    }
+    tableOpt = new Option(Shell.tableOption, "table", true, "revoke a table permission on this table");
+    systemOpt = new Option("s", "system", false, "revoke a system permission");
     
-    @Override
-    public String usage() {
-        return getName() + " <permission>";
-    }
+    tableOpt.setArgName("table");
     
-    @Override
-    public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> completionSet) {
-        Token cmd = new Token(getName());
-        cmd.addSubcommand(new Token(TablePermission.printableValues()));
-        cmd.addSubcommand(new Token(SystemPermission.printableValues()));
-        root.addSubcommand(cmd);
-    }
+    group.addOption(systemOpt);
+    group.addOption(tableOpt);
+    group.setRequired(true);
     
-    @Override
-    public Options getOptions() {
-        Options o = new Options();
-        OptionGroup group = new OptionGroup();
-        
-        tableOpt = new Option(Shell.tableOption, "table", true, "revoke a table permission on this table");
-        systemOpt = new Option("s", "system", false, "revoke a system permission");
-        
-        tableOpt.setArgName("table");
-        
-        group.addOption(systemOpt);
-        group.addOption(tableOpt);
-        group.setRequired(true);
-        
-        o.addOptionGroup(group);
-        
-        userOpt = new Option(Shell.userOption, "user", true, "user to operate on");
-        userOpt.setArgName("username");
-        userOpt.setRequired(true);
-        o.addOption(userOpt);
-        
-        return o;
-    }
+    o.addOptionGroup(group);
     
-    @Override
-    public int numArgs() {
-        return 1;
-    }
+    userOpt = new Option(Shell.userOption, "user", true, "user to operate on");
+    userOpt.setArgName("username");
+    userOpt.setRequired(true);
+    o.addOption(userOpt);
+    
+    return o;
+  }
+  
+  @Override
+  public int numArgs() {
+    return 1;
+  }
 }

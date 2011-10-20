@@ -176,2037 +176,2030 @@ import cloudtrace.thrift.TInfo;
  * The master will also coordinate log recoveries and reports general status.
  */
 public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObserver, CurrentState, JobComplete {
+  
+  final private static Logger log = Logger.getLogger(Master.class);
+  
+  final private static int ONE_SECOND = 1000;
+  final private static Text METADATA_TABLE_ID = new Text(Constants.METADATA_TABLE_ID);
+  final private static long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
+  final private static long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
+  final private static long WAIT_BETWEEN_ERRORS = ONE_SECOND;
+  final private static long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
+  final private static int MAX_CLEANUP_WAIT_TIME = 1000;
+  final private static int TIME_TO_WAIT_BETWEEN_LOCK_CHECKS = 1000;
+  final private static int MAX_TSERVER_WORK_CHUNK = 5000;
+  final private static int MAX_BAD_STATUS_COUNT = 3;
+  
+  static class MergeStats {
+    MergeInfo info;
+    int hosted = 0;
+    int unassigned = 0;
+    int chopped = 0;
+    int needsToBeChopped = 0;
+    int total = 0;
+    boolean lowerSplit = false;
+    boolean upperSplit = false;
     
-    final private static Logger log = Logger.getLogger(Master.class);
-    
-    final private static int ONE_SECOND = 1000;
-    final private static Text METADATA_TABLE_ID = new Text(Constants.METADATA_TABLE_ID);
-    final private static long TIME_TO_WAIT_BETWEEN_SCANS = 60 * ONE_SECOND;
-    final private static long TIME_BETWEEN_MIGRATION_CLEANUPS = 5 * 60 * ONE_SECOND;
-    final private static long WAIT_BETWEEN_ERRORS = ONE_SECOND;
-    final private static long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
-    final private static int MAX_CLEANUP_WAIT_TIME = 1000;
-    final private static int TIME_TO_WAIT_BETWEEN_LOCK_CHECKS = 1000;
-    final private static int MAX_TSERVER_WORK_CHUNK = 5000;
-    final private static int MAX_BAD_STATUS_COUNT = 3;
-    
-    static class MergeStats {
-        MergeInfo info;
-        int hosted = 0;
-        int unassigned = 0;
-        int chopped = 0;
-        int needsToBeChopped = 0;
-        int total = 0;
-        boolean lowerSplit = false;
-        boolean upperSplit = false;
-        
-        public MergeStats(MergeInfo info) {
-            this.info = info;
-            if (info.getState().equals(MergeState.NONE)) return;
-            if (info.getRange().getEndRow() == null) upperSplit = true;
-            if (info.getRange().getPrevEndRow() == null) lowerSplit = true;
-        }
-        
-        void update(KeyExtent ke, TabletState state, boolean chopped) {
-            if (info.getState().equals(MergeState.NONE)) return;
-            if (!upperSplit && info.getRange().getEndRow().equals(ke.getPrevEndRow())) {
-                log.info("Upper split found");
-                upperSplit = true;
-            }
-            if (!lowerSplit && info.getRange().getPrevEndRow().equals(ke.getEndRow())) {
-                log.info("Lower split found");
-                lowerSplit = true;
-            }
-            if (!info.overlaps(ke)) return;
-            if (info.needsToBeChopped(ke)) {
-                this.needsToBeChopped++;
-                if (chopped) this.chopped++;
-            }
-            this.total++;
-            if (state.equals(TabletState.HOSTED)) this.hosted++;
-            if (state.equals(TabletState.UNASSIGNED)) this.unassigned++;
-        }
+    public MergeStats(MergeInfo info) {
+      this.info = info;
+      if (info.getState().equals(MergeState.NONE)) return;
+      if (info.getRange().getEndRow() == null) upperSplit = true;
+      if (info.getRange().getPrevEndRow() == null) lowerSplit = true;
     }
     
-    final private Instance instance;
-    final private String hostname;
-    final private FileSystem fs;
-    final private LiveTServerSet tserverSet;
-    final private List<TabletGroupWatcher> watchers = new ArrayList<TabletGroupWatcher>();
-    final private Authenticator authenticator;
-    final private Map<TServerInstance,AtomicInteger> badServers = Collections
-            .synchronizedMap(new DefaultMap<TServerInstance,AtomicInteger>(new AtomicInteger()));
-    final private Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<TServerInstance>());
-    final private SortedMap<KeyExtent,TServerInstance> migrations = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
-    final private TabletBalancer tabletBalancer;
-    final private EventCoordinator nextEvent = new EventCoordinator();
-    final private Object mergeLock = new Object();
-    
-    private ZooLock masterLock = null;
-    private TServer clientService = null;
-    private TabletServerLoggers loggers = null;
-    private CoordinateRecoveryTask recovery = null;
-    
-    private MasterState state = MasterState.INITIAL;
-    
-    private Fate<Master> fate;
-    
-    volatile private SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections
-            .unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
-    
-    private LoggerBalancer loggerBalancer;
-    
-    synchronized private MasterState getMasterState() {
-        return state;
+    void update(KeyExtent ke, TabletState state, boolean chopped) {
+      if (info.getState().equals(MergeState.NONE)) return;
+      if (!upperSplit && info.getRange().getEndRow().equals(ke.getPrevEndRow())) {
+        log.info("Upper split found");
+        upperSplit = true;
+      }
+      if (!lowerSplit && info.getRange().getPrevEndRow().equals(ke.getEndRow())) {
+        log.info("Lower split found");
+        lowerSplit = true;
+      }
+      if (!info.overlaps(ke)) return;
+      if (info.needsToBeChopped(ke)) {
+        this.needsToBeChopped++;
+        if (chopped) this.chopped++;
+      }
+      this.total++;
+      if (state.equals(TabletState.HOSTED)) this.hosted++;
+      if (state.equals(TabletState.UNASSIGNED)) this.unassigned++;
     }
-    
-    public boolean stillMaster() {
-        return getMasterState() != MasterState.STOP;
+  }
+  
+  final private Instance instance;
+  final private String hostname;
+  final private FileSystem fs;
+  final private LiveTServerSet tserverSet;
+  final private List<TabletGroupWatcher> watchers = new ArrayList<TabletGroupWatcher>();
+  final private Authenticator authenticator;
+  final private Map<TServerInstance,AtomicInteger> badServers = Collections.synchronizedMap(new DefaultMap<TServerInstance,AtomicInteger>(new AtomicInteger()));
+  final private Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<TServerInstance>());
+  final private SortedMap<KeyExtent,TServerInstance> migrations = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
+  final private TabletBalancer tabletBalancer;
+  final private EventCoordinator nextEvent = new EventCoordinator();
+  final private Object mergeLock = new Object();
+  
+  private ZooLock masterLock = null;
+  private TServer clientService = null;
+  private TabletServerLoggers loggers = null;
+  private CoordinateRecoveryTask recovery = null;
+  
+  private MasterState state = MasterState.INITIAL;
+  
+  private Fate<Master> fate;
+  
+  volatile private SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections
+      .unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
+  
+  private LoggerBalancer loggerBalancer;
+  
+  synchronized private MasterState getMasterState() {
+    return state;
+  }
+  
+  public boolean stillMaster() {
+    return getMasterState() != MasterState.STOP;
+  }
+  
+  static final boolean X = true;
+  static final boolean _ = false;
+  static final boolean transitionOK[][] = {
+    //                          INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
+    /* INITIAL                  */{X,         X,      _,      _,        _,          _,      X},
+    /* HAVE_LOCK                */{_,         X,      X,      X,        _,          _,      X},
+    /* SAFE_MODE                */{_,         _,      X,      X,        X,          _,      X},
+    /* NORMAL                   */{_,         _,      X,      X,        X,          _,      X},
+    /* UNLOAD_METADATA_TABLETS  */{_,         _,      X,      X,        X,          X,      X},
+    /* UNLOAD_ROOT_TABLET       */{_,         _,      _,      _,        _,          X,      X},
+    /* STOP                     */{_,         _,      _,      _,        _,          _,      X},}; 
+  
+  synchronized private void setMasterState(MasterState newState) {
+    if (state.equals(newState)) return;
+    if (!transitionOK[state.ordinal()][newState.ordinal()]) {
+      log.error("Programmer error: master should not transition from " + state + " to " + newState);
     }
-    
-    static final boolean X = true;
-    static final boolean _ = false;
-    static final boolean transitionOK[][] = {
-        //                          INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
-        /* INITIAL                  */{X,         X,      _,      _,        _,          _,      X},
-        /* HAVE_LOCK                */{_,         X,      X,      X,        _,          _,      X},
-        /* SAFE_MODE                */{_,         _,      X,      X,        X,          _,      X},
-        /* NORMAL                   */{_,         _,      X,      X,        X,          _,      X},
-        /* UNLOAD_METADATA_TABLETS  */{_,         _,      X,      X,        X,          X,      X},
-        /* UNLOAD_ROOT_TABLET       */{_,         _,      _,      _,        _,          X,      X},
-        /* STOP                     */{_,         _,      _,      _,        _,          _,      X},}; 
-    
-    synchronized private void setMasterState(MasterState newState) {
-        if (state.equals(newState)) return;
-        if (!transitionOK[state.ordinal()][newState.ordinal()]) {
-            log.error("Programmer error: master should not transition from " + state + " to " + newState);
-        }
-        MasterState oldState = state;
-        state = newState;
-        nextEvent.event("State changed from %s to %s", oldState, newState);
-        if (newState == MasterState.STOP) {
-            // Give the server a little time before shutdown so the client
-            // thread requesting the stop can return
-            SimpleTimer.getInstance().schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    // This frees the main thread and will cause the master to exit
-                    clientService.stop();
-                }
-                
-            }, 100l, 1000l);
+    MasterState oldState = state;
+    state = newState;
+    nextEvent.event("State changed from %s to %s", oldState, newState);
+    if (newState == MasterState.STOP) {
+      // Give the server a little time before shutdown so the client
+      // thread requesting the stop can return
+      SimpleTimer.getInstance().schedule(new TimerTask() {
+        @Override
+        public void run() {
+          // This frees the main thread and will cause the master to exit
+          clientService.stop();
         }
         
-        if (oldState != newState && (newState == MasterState.SAFE_MODE || newState == MasterState.NORMAL)) {
-            upgradeSettings();
-        }
+      }, 100l, 1000l);
     }
     
-    private void upgradeSettings() {
-        AccumuloConfiguration conf = ServerConfiguration.getTableConfiguration(Constants.METADATA_TABLE_ID);
-        ZooReaderWriter zoo = ZooReaderWriter.getInstance();
-        if (!conf.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) {
-            try {
-                // make sure the last shutdown was clean
-                OfflineMetadataScanner scanner = new OfflineMetadataScanner();
-                scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
-                boolean fail = false;
-                for (Entry<Key,Value> entry : scanner) {
-                    log.error(String.format("Unable to upgrade: extent %s has log entry %s", entry.getKey().getRow(), entry.getValue()));
-                    fail = true;
-                }
-                if (fail) throw new Exception("Upgrade requires a clean shutdown");
-                
-                // perform 1.2 -> 1.3 settings
-                zset(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet", String.format("%s,%s", Constants.METADATA_TABLET_COLUMN_FAMILY.toString(),
-                        Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY.toString()));
-                zset(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server", String.format("%s,%s,%s,%s",
-                        Constants.METADATA_DATAFILE_COLUMN_FAMILY.toString(), Constants.METADATA_LOG_COLUMN_FAMILY.toString(),
-                        Constants.METADATA_SERVER_COLUMN_FAMILY.toString(), Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY.toString()));
-                zset(Property.TABLE_LOCALITY_GROUPS.getKey(), "tablet,server");
-                zset(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
-                zset(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
-                zset(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
-                for (String id : Tables.getIdToNameMap(instance).keySet())
-                    zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + "/state", "ONLINE".getBytes(), NodeExistsPolicy.OVERWRITE);
-            } catch (Exception ex) {
-                log.fatal("Error performing upgrade", ex);
-                System.exit(1);
+    if (oldState != newState && (newState == MasterState.SAFE_MODE || newState == MasterState.NORMAL)) {
+      upgradeSettings();
+    }
+  }
+  
+  private void upgradeSettings() {
+    AccumuloConfiguration conf = ServerConfiguration.getTableConfiguration(Constants.METADATA_TABLE_ID);
+    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    if (!conf.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) {
+      try {
+        // make sure the last shutdown was clean
+        OfflineMetadataScanner scanner = new OfflineMetadataScanner();
+        scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
+        boolean fail = false;
+        for (Entry<Key,Value> entry : scanner) {
+          log.error(String.format("Unable to upgrade: extent %s has log entry %s", entry.getKey().getRow(), entry.getValue()));
+          fail = true;
+        }
+        if (fail) throw new Exception("Upgrade requires a clean shutdown");
+        
+        // perform 1.2 -> 1.3 settings
+        zset(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
+            String.format("%s,%s", Constants.METADATA_TABLET_COLUMN_FAMILY.toString(), Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY.toString()));
+        zset(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server", String.format("%s,%s,%s,%s", Constants.METADATA_DATAFILE_COLUMN_FAMILY.toString(),
+            Constants.METADATA_LOG_COLUMN_FAMILY.toString(), Constants.METADATA_SERVER_COLUMN_FAMILY.toString(),
+            Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY.toString()));
+        zset(Property.TABLE_LOCALITY_GROUPS.getKey(), "tablet,server");
+        zset(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
+        zset(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
+        zset(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
+        for (String id : Tables.getIdToNameMap(instance).keySet())
+          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + "/state", "ONLINE".getBytes(), NodeExistsPolicy.OVERWRITE);
+      } catch (Exception ex) {
+        log.fatal("Error performing upgrade", ex);
+        System.exit(1);
+      }
+      
+    }
+    String zkInstanceRoot = ZooUtil.getRoot(instance);
+    try {
+      if (!zoo.exists(zkInstanceRoot + Constants.ZTABLE_LOCKS)) {
+        zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLE_LOCKS, new byte[0], NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(zkInstanceRoot + Constants.ZHDFS_RESERVATIONS, new byte[0], NodeExistsPolicy.FAIL);
+      }
+    } catch (Exception ex) {
+      log.fatal("Error performing upgrade", ex);
+      System.exit(1);
+    }
+    
+  }
+  
+  private static void zset(String property, String value) throws KeeperException, InterruptedException {
+    TablePropUtil.setTableProperty(Constants.METADATA_TABLE_ID, property, value);
+  }
+  
+  private int assignedOrHosted(Text tableId) {
+    int result = 0;
+    for (TabletGroupWatcher watcher : watchers) {
+      TableCounts count = watcher.getStats(tableId);
+      result += count.hosted() + count.assigned();
+    }
+    return result;
+  }
+  
+  private int totalAssignedOrHosted() {
+    int result = 0;
+    for (TabletGroupWatcher watcher : watchers) {
+      for (TableCounts counts : watcher.getStats().values()) {
+        result += counts.assigned() + counts.hosted();
+      }
+    }
+    return result;
+  }
+  
+  private int nonMetaDataTabletsAssignedOrHosted() {
+    return totalAssignedOrHosted() - assignedOrHosted(new Text(Constants.METADATA_TABLE_ID));
+  }
+  
+  private int notHosted() {
+    int result = 0;
+    for (TabletGroupWatcher watcher : watchers) {
+      for (TableCounts counts : watcher.getStats().values()) {
+        result += counts.assigned() + counts.unassigned() + counts.assignedToDeadServers();
+      }
+    }
+    return result;
+  }
+  
+  // The number of unassigned tablets that should be assigned: displayed on the monitor page
+  private int displayUnassigned() {
+    int result = 0;
+    Text meta = new Text(Constants.METADATA_TABLE_ID);
+    switch (getMasterState()) {
+      case NORMAL:
+        // Count offline tablets for online tables
+        for (TabletGroupWatcher watcher : watchers) {
+          TableManager manager = TableManager.getInstance();
+          for (Entry<Text,TableCounts> entry : watcher.getStats().entrySet()) {
+            Text tableId = entry.getKey();
+            TableCounts counts = entry.getValue();
+            TableState tableState = manager.getTableState(tableId.toString());
+            if (tableState != null && tableState.equals(TableState.ONLINE)) {
+              result += counts.unassigned() + counts.assignedToDeadServers();
+            }
+          }
+        }
+        break;
+      case SAFE_MODE:
+        // Count offline tablets for the METADATA table
+        for (TabletGroupWatcher watcher : watchers) {
+          result += watcher.getStats(meta).unassigned();
+        }
+        break;
+      case UNLOAD_METADATA_TABLETS:
+      case UNLOAD_ROOT_TABLET:
+        for (TabletGroupWatcher watcher : watchers) {
+          result += watcher.getStats(meta).unassigned();
+        }
+        break;
+      default:
+        break;
+    }
+    return result;
+  }
+  
+  private void checkNotMetadataTable(String tableName, TableOperation operation) throws ThriftTableOperationException {
+    if (tableName.compareTo(Constants.METADATA_TABLE_NAME) == 0) {
+      String why = "Table names cannot be == " + Constants.METADATA_TABLE_NAME;
+      log.warn(why);
+      throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.OTHER, why);
+    }
+  }
+  
+  private void checkTableName(String tableName, TableOperation operation) throws ThriftTableOperationException {
+    if (!tableName.matches(Constants.VALID_TABLE_NAME_REGEX)) {
+      String why = "Table names must only contain word characters (letters, digits, and underscores): " + tableName;
+      log.warn(why);
+      throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.OTHER, why);
+    }
+  }
+  
+  private void verify(AuthInfo credentials, String tableId, TableOperation op, boolean match) throws ThriftSecurityException, ThriftTableOperationException {
+    if (!match) {
+      Tables.clearCache(instance);
+      if (!Tables.exists(instance, tableId)) throw new ThriftTableOperationException(tableId, null, op, TableOperationExceptionType.NOTFOUND, null);
+      else throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+  }
+  
+  private void verify(AuthInfo credentials, boolean match) throws ThriftSecurityException {
+    if (!match) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+  }
+  
+  private boolean check(AuthInfo credentials, SystemPermission permission) throws ThriftSecurityException {
+    try {
+      return authenticator.hasSystemPermission(credentials, credentials.user, permission);
+    } catch (AccumuloSecurityException e) {
+      throw e.asThriftException();
+    }
+  }
+  
+  private boolean check(AuthInfo credentials, String tableId, TablePermission permission) throws ThriftSecurityException {
+    try {
+      return authenticator.hasTablePermission(credentials, credentials.user, tableId, permission);
+    } catch (AccumuloSecurityException e) {
+      throw e.asThriftException();
+    }
+  }
+  
+  public void mustBeOnline(final String tableId) throws ThriftTableOperationException {
+    Tables.clearCache(instance);
+    if (!Tables.getTableState(instance, tableId).equals(TableState.ONLINE)) throw new ThriftTableOperationException(tableId, null, TableOperation.MERGE,
+        TableOperationExceptionType.OFFLINE, "table is not online");
+  }
+  
+  Connector getConnector() throws AccumuloException, AccumuloSecurityException {
+    return instance.getConnector(SecurityConstants.getSystemCredentials());
+  }
+  
+  private void waitAround(EventCoordinator.Listener listener) {
+    listener.waitForEvents(ONE_SECOND);
+  }
+  
+  // @TODO: maybe move this to Property? We do this in TabletServer, Master, TableLoadBalancer, etc.
+  public static <T> T createInstanceFromPropertyName(Property property, Class<T> base, T defaultInstance) {
+    String clazzName = ServerConfiguration.getSystemConfiguration().get(property);
+    T instance = null;
+    
+    try {
+      Class<? extends T> clazz = AccumuloClassLoader.loadClass(clazzName, base);
+      instance = clazz.newInstance();
+      log.info("Loaded class : " + clazzName);
+    } catch (Exception e) {
+      log.warn("Failed to load class ", e);
+    }
+    
+    if (instance == null) {
+      log.info("Using " + defaultInstance.getClass().getName());
+      instance = defaultInstance;
+    }
+    return instance;
+  }
+  
+  public Master(String[] args) throws IOException {
+    Accumulo.init("master");
+    
+    log.info("Version " + Constants.VERSION);
+    instance = HdfsZooInstance.getInstance();
+    log.info("Instance " + instance.getInstanceID());
+    
+    hostname = Accumulo.getLocalAddress(args).getHostName();
+    fs = TraceFileSystem.wrap(FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));
+    ;
+    authenticator = ZKAuthenticator.getInstance();
+    
+    tserverSet = new LiveTServerSet(instance, this);
+    
+    this.tabletBalancer = createInstanceFromPropertyName(Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
+    this.loggerBalancer = createInstanceFromPropertyName(Property.MASTER_LOGGER_BALANCER, LoggerBalancer.class, new SimpleLoggerBalancer());
+    Accumulo.enableTracing(hostname, "master");
+  }
+  
+  public TServerConnection getConnection(TServerInstance server) {
+    try {
+      return tserverSet.getConnection(server);
+    } catch (TException ex) {
+      return null;
+    }
+  }
+  
+  private class MasterClientServiceHandler implements MasterClientService.Iface {
+    
+    protected String checkTableId(String tableName, TableOperation operation) throws ThriftTableOperationException {
+      final String tableId = Tables.getNameToIdMap(HdfsZooInstance.getInstance()).get(tableName);
+      if (tableId == null) throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.NOTFOUND, null);
+      return tableId;
+    }
+    
+    @Override
+    public long initiateFlush(TInfo tinfo, AuthInfo c, String tableId) throws ThriftSecurityException, ThriftTableOperationException, TException {
+      verify(c, tableId, TableOperation.FLUSH, check(c, tableId, TablePermission.WRITE) || check(c, tableId, TablePermission.ALTER_TABLE));
+      
+      String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_FLUSH_ID;
+      
+      ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      byte fid[];
+      try {
+        fid = zoo.mutate(zTablePath, null, null, new Mutator() {
+          @Override
+          public byte[] mutate(byte[] currentValue) throws Exception {
+            long flushID = Long.parseLong(new String(currentValue));
+            flushID++;
+            return ("" + flushID).getBytes();
+          }
+        });
+      } catch (NoNodeException nne) {
+        throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
+      } catch (Exception e) {
+        log.warn(e.getMessage(), e);
+        throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.OTHER, null);
+      }
+      return Long.parseLong(new String(fid));
+    }
+    
+    @Override
+    public void waitForFlush(TInfo tinfo, AuthInfo c, String tableId, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
+        throws ThriftSecurityException, ThriftTableOperationException, TException {
+      verify(c, tableId, TableOperation.FLUSH, check(c, tableId, TablePermission.WRITE) || check(c, tableId, TablePermission.ALTER_TABLE));
+      
+      if (endRow != null && startRow != null && ByteBufferUtil.toText(startRow).compareTo(ByteBufferUtil.toText(endRow)) >= 0) throw new ThriftTableOperationException(
+          tableId, null, TableOperation.FLUSH, TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
+      
+      Set<TServerInstance> serversToFlush = new HashSet<TServerInstance>(tserverSet.getCurrentServers());
+      
+      for (long l = 0; l < maxLoops; l++) {
+        
+        for (TServerInstance instance : serversToFlush) {
+          try {
+            final TServerConnection server = tserverSet.getConnection(instance);
+            if (server != null) server.flush(masterLock, tableId, ByteBufferUtil.toBytes(startRow), ByteBufferUtil.toBytes(endRow));
+          } catch (TException ex) {
+            log.error(ex.toString());
+          }
+        }
+        
+        if (l == maxLoops - 1) break;
+        
+        UtilWaitThread.sleep(50);
+        
+        serversToFlush.clear();
+        
+        try {
+          Connector conn = getConnector();
+          Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
+          ColumnFQ.fetch(scanner, Constants.METADATA_FLUSH_COLUMN);
+          ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
+          scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
+          scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
+          scanner.setRange(new KeyExtent(new Text(tableId), null, ByteBufferUtil.toText(startRow)).toMetadataRange());
+          
+          // TODO this used to be TabletIterator... any problems with splits/merges?
+          RowIterator ri = new RowIterator(scanner);
+          
+          int tabletsToWaitFor = 0;
+          int tabletCount = 0;
+          
+          Text ert = ByteBufferUtil.toText(endRow);
+          
+          while (ri.hasNext()) {
+            Iterator<Entry<Key,Value>> row = ri.next();
+            long tabletFlushID = -1;
+            int logs = 0;
+            boolean online = false;
+            
+            TServerInstance server = null;
+            
+            Entry<Key,Value> entry = null;
+            while (row.hasNext()) {
+              entry = row.next();
+              Key key = entry.getKey();
+              
+              if (Constants.METADATA_FLUSH_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier())) {
+                tabletFlushID = Long.parseLong(entry.getValue().toString());
+              }
+              
+              if (Constants.METADATA_LOG_COLUMN_FAMILY.equals(key.getColumnFamily())) logs++;
+              
+              if (Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY.equals(key.getColumnFamily())) {
+                online = true;
+                server = new TServerInstance(entry.getValue(), key.getColumnQualifier());
+              }
+              
             }
             
-        }
-        String zkInstanceRoot = ZooUtil.getRoot(instance);
-        try {
-            if (!zoo.exists(zkInstanceRoot + Constants.ZTABLE_LOCKS)) {
-                zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLE_LOCKS, new byte[0], NodeExistsPolicy.FAIL);
-                zoo.putPersistentData(zkInstanceRoot + Constants.ZHDFS_RESERVATIONS, new byte[0], NodeExistsPolicy.FAIL);
+            // when tablet is not online and has no logs, there is no reason to wait for it
+            if ((online || logs > 0) && tabletFlushID < flushID) {
+              tabletsToWaitFor++;
+              if (server != null) serversToFlush.add(server);
             }
-        } catch (Exception ex) {
-            log.fatal("Error performing upgrade", ex);
-            System.exit(1);
-        }
-        
-    }
-    
-    private static void zset(String property, String value) throws KeeperException, InterruptedException {
-        TablePropUtil.setTableProperty(Constants.METADATA_TABLE_ID, property, value);
-    }
-    
-    private int assignedOrHosted(Text tableId) {
-        int result = 0;
-        for (TabletGroupWatcher watcher : watchers) {
-            TableCounts count = watcher.getStats(tableId);
-            result += count.hosted() + count.assigned();
-        }
-        return result;
-    }
-    
-    private int totalAssignedOrHosted() {
-        int result = 0;
-        for (TabletGroupWatcher watcher : watchers) {
-            for (TableCounts counts : watcher.getStats().values()) {
-                result += counts.assigned() + counts.hosted();
-            }
-        }
-        return result;
-    }
-    
-    private int nonMetaDataTabletsAssignedOrHosted() {
-        return totalAssignedOrHosted() - assignedOrHosted(new Text(Constants.METADATA_TABLE_ID));
-    }
-    
-    private int notHosted() {
-        int result = 0;
-        for (TabletGroupWatcher watcher : watchers) {
-            for (TableCounts counts : watcher.getStats().values()) {
-                result += counts.assigned() + counts.unassigned() + counts.assignedToDeadServers();
-            }
-        }
-        return result;
-    }
-    
-    // The number of unassigned tablets that should be assigned: displayed on the monitor page
-    private int displayUnassigned() {
-        int result = 0;
-        Text meta = new Text(Constants.METADATA_TABLE_ID);
-        switch (getMasterState()) {
-            case NORMAL:
-                // Count offline tablets for online tables
-                for (TabletGroupWatcher watcher : watchers) {
-                    TableManager manager = TableManager.getInstance();
-                    for (Entry<Text,TableCounts> entry : watcher.getStats().entrySet()) {
-                        Text tableId = entry.getKey();
-                        TableCounts counts = entry.getValue();
-                        TableState tableState = manager.getTableState(tableId.toString());
-                        if (tableState != null && tableState.equals(TableState.ONLINE)) {
-                            result += counts.unassigned() + counts.assignedToDeadServers();
-                        }
-                    }
-                }
-                break;
-            case SAFE_MODE:
-                // Count offline tablets for the METADATA table
-                for (TabletGroupWatcher watcher : watchers) {
-                    result += watcher.getStats(meta).unassigned();
-                }
-                break;
-            case UNLOAD_METADATA_TABLETS:
-            case UNLOAD_ROOT_TABLET:
-                for (TabletGroupWatcher watcher : watchers) {
-                    result += watcher.getStats(meta).unassigned();
-                }
-                break;
-            default:
-                break;
-        }
-        return result;
-    }
-    
-    private void checkNotMetadataTable(String tableName, TableOperation operation) throws ThriftTableOperationException {
-        if (tableName.compareTo(Constants.METADATA_TABLE_NAME) == 0) {
-            String why = "Table names cannot be == " + Constants.METADATA_TABLE_NAME;
-            log.warn(why);
-            throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.OTHER, why);
-        }
-    }
-    
-    private void checkTableName(String tableName, TableOperation operation) throws ThriftTableOperationException {
-        if (!tableName.matches(Constants.VALID_TABLE_NAME_REGEX)) {
-            String why = "Table names must only contain word characters (letters, digits, and underscores): " + tableName;
-            log.warn(why);
-            throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.OTHER, why);
-        }
-    }
-    
-    private void verify(AuthInfo credentials, String tableId, TableOperation op, boolean match) throws ThriftSecurityException, ThriftTableOperationException {
-        if (!match) {
-            Tables.clearCache(instance);
-            if (!Tables.exists(instance, tableId)) throw new ThriftTableOperationException(tableId, null, op, TableOperationExceptionType.NOTFOUND, null);
-            else throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-        }
-    }
-    
-    private void verify(AuthInfo credentials, boolean match) throws ThriftSecurityException {
-        if (!match) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    
-    private boolean check(AuthInfo credentials, SystemPermission permission) throws ThriftSecurityException {
-        try {
-            return authenticator.hasSystemPermission(credentials, credentials.user, permission);
+            
+            tabletCount++;
+            
+            Text tabletEndRow = new KeyExtent(entry.getKey().getRow(), (Text) null).getEndRow();
+            if (tabletEndRow == null || (ert != null && tabletEndRow.compareTo(ert) >= 0)) break;
+          }
+          
+          if (tabletsToWaitFor == 0) break;
+          
+          // TODO detect case of table offline AND tablets w/ logs?
+          
+          if (tabletCount == 0 && !Tables.exists(instance, tableId)) throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH,
+              TableOperationExceptionType.NOTFOUND, null);
+          
+        } catch (AccumuloException e) {
+          log.debug("Failed to scan !METADATA table to wait for flush " + tableId, e);
+        } catch (TabletDeletedException tde) {
+          log.debug("Failed to scan !METADATA table to wait for flush " + tableId, tde);
         } catch (AccumuloSecurityException e) {
-            throw e.asThriftException();
+          log.warn(e.getMessage(), e);
+          throw new ThriftSecurityException();
+        } catch (TableNotFoundException e) {
+          log.error(e.getMessage(), e);
+          throw new ThriftTableOperationException();
         }
+      }
+      
     }
     
-    private boolean check(AuthInfo credentials, String tableId, TablePermission permission) throws ThriftSecurityException {
+    @Override
+    public MasterMonitorInfo getMasterStats(TInfo info, AuthInfo credentials) throws ThriftSecurityException, TException {
+      final MasterMonitorInfo result = new MasterMonitorInfo();
+      result.loggers = new ArrayList<LoggerStatus>();
+      for (String logger : loggers.getLoggersFromZooKeeper().values()) {
+        result.loggers.add(new LoggerStatus(logger));
+      }
+      result.recovery = recovery.status();
+      
+      result.tServerInfo = new ArrayList<TabletServerStatus>();
+      result.tableMap = new DefaultMap<String,TableInfo>(new TableInfo());
+      for (Entry<TServerInstance,TabletServerStatus> serverEntry : tserverStatus.entrySet()) {
+        final TabletServerStatus status = serverEntry.getValue();
+        result.tServerInfo.add(status);
+        for (Entry<String,TableInfo> entry : status.tableMap.entrySet()) {
+          String table = entry.getKey();
+          TableInfo summary = result.tableMap.get(table);
+          Monitor.add(summary, entry.getValue());
+        }
+      }
+      result.badTServers = new HashMap<String,Byte>();
+      synchronized (badServers) {
+        for (TServerInstance bad : badServers.keySet()) {
+          result.badTServers.put(bad.hostPort(), TabletServerState.UNRESPONSIVE.getId());
+        }
+      }
+      result.state = getMasterState();
+      result.goalState = getMasterGoalState();
+      result.unassignedTablets = Master.this.displayUnassigned();
+      result.serversShuttingDown = new HashSet<String>();
+      synchronized (serversToShutdown) {
+        for (TServerInstance server : serversToShutdown)
+          result.serversShuttingDown.add(server.hostPort());
+      }
+      DeadServerList obit = new DeadServerList(ZooUtil.getRoot(instance) + Constants.ZDEADTSERVERS);
+      result.deadTabletServers = obit.getList();
+      obit = new DeadServerList(ZooUtil.getRoot(instance) + Constants.ZDEADLOGGERS);
+      result.deadLoggers = obit.getList();
+      return result;
+    }
+    
+    private void alterTableProperty(AuthInfo c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
+        ThriftTableOperationException {
+      final String tableId = checkTableId(tableName, op);
+      verify(c, tableId, op, check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
+      
+      try {
+        if (value == null) {
+          TablePropUtil.removeTableProperty(tableId, property);
+        } else if (!TablePropUtil.setTableProperty(tableId, property, value)) {
+          throw new Exception("Invalid table property.");
+        }
+      } catch (Exception e) {
+        log.error("Problem altering table property", e);
+        throw new ThriftTableOperationException(tableId, tableName, op, TableOperationExceptionType.OTHER, e.getMessage());
+      }
+    }
+    
+    @Override
+    public void removeTableProperty(TInfo info, AuthInfo credentials, String tableName, String property) throws ThriftSecurityException,
+        ThriftTableOperationException, TException {
+      alterTableProperty(credentials, tableName, property, null, TableOperation.REMOVE_PROPERTY);
+    }
+    
+    @Override
+    public void setTableProperty(TInfo info, AuthInfo credentials, String tableName, String property, String value) throws ThriftSecurityException,
+        ThriftTableOperationException, TException {
+      alterTableProperty(credentials, tableName, property, value, TableOperation.SET_PROPERTY);
+    }
+    
+    @Override
+    public void shutdown(TInfo info, AuthInfo c, boolean stopTabletServers) throws ThriftSecurityException, TException {
+      verify(c, check(c, SystemPermission.SYSTEM));
+      Master.this.shutdown(stopTabletServers);
+    }
+    
+    @Override
+    public void shutdownTabletServer(TInfo info, AuthInfo c, String tabletServer, boolean force) throws ThriftSecurityException, TException {
+      verify(c, check(c, SystemPermission.SYSTEM));
+      
+      final InetSocketAddress addr = AddressUtil.parseAddress(tabletServer, Property.TSERV_CLIENTPORT);
+      final String addrString = org.apache.accumulo.core.util.AddressUtil.toString(addr);
+      final TServerInstance doomed = tserverSet.find(addrString);
+      if (!force) {
+        final TServerConnection server = tserverSet.getConnection(doomed);
+        if (server == null) {
+          log.warn("No server found for name " + tabletServer);
+          return;
+        }
+      }
+      
+      long tid = fate.startTransaction();
+      fate.seedTransaction(tid, new ShutdownTServer(doomed, force), false);
+      fate.waitForCompletion(tid);
+      fate.delete(tid);
+    }
+    
+    @Override
+    public void reportSplitExtent(TInfo info, AuthInfo credentials, String serverName, TabletSplit split) throws TException {
+      if (migrations.remove(new KeyExtent(split.oldTablet)) != null) {
+        log.info("Canceled migration of " + split.oldTablet);
+      }
+      for (TServerInstance instance : tserverSet.getCurrentServers()) {
+        if (serverName.equals(instance.hostPort())) {
+          nextEvent.event("%s reported split %s, %s", serverName, new KeyExtent(split.newTablets.get(0)), new KeyExtent(split.newTablets.get(0)));
+          return;
+        }
+      }
+      log.warn("Got a split from a server we don't recognize: " + serverName);
+    }
+    
+    @Override
+    public void reportTabletStatus(TInfo info, AuthInfo credentials, String serverName, TabletLoadState status, TKeyExtent ttablet) throws TException {
+      KeyExtent tablet = new KeyExtent(ttablet);
+      
+      switch (status) {
+        case LOAD_FAILURE:
+          log.error(serverName + " reports assignment failed for tablet " + tablet);
+          break;
+        case LOADED:
+          nextEvent.event("tablet %s was loaded", tablet);
+          break;
+        case UNLOADED:
+          nextEvent.event("tablet %s was unloaded", tablet);
+          break;
+        case UNLOAD_ERROR:
+          log.error(serverName + " reports unload failed for tablet " + tablet);
+          break;
+        case UNLOAD_FAILURE_NOT_SERVING:
+          if (log.isTraceEnabled()) {
+            log.trace(serverName + " reports unload failed: not serving tablet, could be a split: " + tablet);
+          }
+          break;
+        case CHOPPED:
+          nextEvent.event("tablet %s chopped", tablet);
+          break;
+      }
+    }
+    
+    @Override
+    public void setMasterGoalState(TInfo info, AuthInfo c, MasterGoalState state) throws ThriftSecurityException, TException {
+      verify(c, check(c, SystemPermission.SYSTEM));
+      Master.this.setMasterGoalState(state);
+    }
+    
+    @Override
+    public void removeSystemProperty(TInfo info, AuthInfo c, String property) throws ThriftSecurityException, TException {
+      
+      verify(c, check(c, SystemPermission.SYSTEM));
+      try {
+        SystemPropUtil.removeSystemProperty(property);
+      } catch (Exception e) {
+        log.error("Problem removing config property in zookeeper", e);
+        throw new TException(e.getMessage());
+      }
+    }
+    
+    @Override
+    public void setSystemProperty(TInfo info, AuthInfo credentials, String property, String value) throws ThriftSecurityException, TException {
+      verify(credentials, check(credentials, SystemPermission.SYSTEM));
+      try {
+        SystemPropUtil.setSystemProperty(property, value);
+      } catch (Exception e) {
+        log.error("Problem setting config property in zookeeper", e);
+        throw new TException(e.getMessage());
+      }
+    }
+    
+    private void authenticate(AuthInfo credentials) throws ThriftSecurityException {
+      try {
+        if (!authenticator.authenticateUser(credentials, credentials.user, credentials.password)) throw new ThriftSecurityException(credentials.user,
+            SecurityErrorCode.BAD_CREDENTIALS);
+      } catch (AccumuloSecurityException e) {
+        throw e.asThriftException();
+      }
+    }
+    
+    @Override
+    public long beginTableOperation(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException, TException {
+      authenticate(credentials);
+      return fate.startTransaction();
+    }
+    
+    @Override
+    public void executeTableOperation(TInfo tinfo, AuthInfo c, long opid, org.apache.accumulo.core.master.thrift.TableOperation op, List<ByteBuffer> arguments,
+        Map<String,String> options, boolean autoCleanup) throws ThriftSecurityException, ThriftTableOperationException, TException {
+      
+      authenticate(c);
+      
+      switch (op) {
+        case CREATE: {
+          String tableName = ByteBufferUtil.toString(arguments.get(0));
+          
+          verify(c, check(c, SystemPermission.CREATE_TABLE));
+          checkNotMetadataTable(tableName, TableOperation.CREATE);
+          checkTableName(tableName, TableOperation.CREATE);
+          
+          org.apache.accumulo.core.client.admin.TimeType timeType = org.apache.accumulo.core.client.admin.TimeType.valueOf(ByteBufferUtil.toString(arguments
+              .get(1)));
+          fate.seedTransaction(opid, new CreateTable(c.user, tableName, timeType, options), autoCleanup);
+          
+          break;
+        }
+        case RENAME: {
+          String oldTableName = ByteBufferUtil.toString(arguments.get(0));
+          String newTableName = ByteBufferUtil.toString(arguments.get(1));
+          
+          String tableId = checkTableId(oldTableName, TableOperation.RENAME);
+          checkNotMetadataTable(oldTableName, TableOperation.RENAME);
+          checkNotMetadataTable(newTableName, TableOperation.RENAME);
+          checkTableName(newTableName, TableOperation.RENAME);
+          verify(c, tableId, TableOperation.RENAME, check(c, tableId, TablePermission.ALTER_TABLE) || check(c, SystemPermission.ALTER_TABLE));
+          
+          fate.seedTransaction(opid, new RenameTable(tableId, oldTableName, newTableName), autoCleanup);
+          
+          break;
+        }
+        case CLONE: {
+          String srcTableId = ByteBufferUtil.toString(arguments.get(0));
+          String tableName = ByteBufferUtil.toString(arguments.get(1));
+          
+          checkNotMetadataTable(tableName, TableOperation.CLONE);
+          checkTableName(tableName, TableOperation.CLONE);
+          verify(c, srcTableId, TableOperation.CLONE, check(c, SystemPermission.CREATE_TABLE) && check(c, srcTableId, TablePermission.READ));
+          
+          Map<String,String> propertiesToSet = new HashMap<String,String>();
+          Set<String> propertiesToExclude = new HashSet<String>();
+          
+          for (Entry<String,String> entry : options.entrySet()) {
+            if (entry.getValue() == null) {
+              propertiesToExclude.add(entry.getKey());
+              continue;
+            }
+            
+            if (!TablePropUtil.isPropertyValid(entry.getKey(), entry.getValue())) {
+              throw new ThriftTableOperationException(null, tableName, TableOperation.CLONE, TableOperationExceptionType.OTHER, "Property or value not valid "
+                  + entry.getKey() + "=" + entry.getValue());
+            }
+            
+            propertiesToSet.put(entry.getKey(), entry.getValue());
+          }
+          
+          fate.seedTransaction(opid, new CloneTable(c.user, srcTableId, tableName, propertiesToSet, propertiesToExclude), autoCleanup);
+          
+          break;
+        }
+        case DELETE: {
+          String tableName = ByteBufferUtil.toString(arguments.get(0));
+          final String tableId = checkTableId(tableName, TableOperation.DELETE);
+          checkNotMetadataTable(tableName, TableOperation.DELETE);
+          verify(c, tableId, TableOperation.DELETE, check(c, SystemPermission.DROP_TABLE) || check(c, tableId, TablePermission.DROP_TABLE));
+          
+          fate.seedTransaction(opid, new DeleteTable(tableId), autoCleanup);
+          break;
+        }
+        case ONLINE: {
+          String tableName = ByteBufferUtil.toString(arguments.get(0));
+          final String tableId = checkTableId(tableName, TableOperation.ONLINE);
+          checkNotMetadataTable(tableName, TableOperation.ONLINE);
+          verify(c, tableId, TableOperation.ONLINE,
+              check(c, SystemPermission.SYSTEM) || check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
+          
+          fate.seedTransaction(opid, new ChangeTableState(tableId, TableOperation.ONLINE), autoCleanup);
+          break;
+        }
+        case OFFLINE: {
+          String tableName = ByteBufferUtil.toString(arguments.get(0));
+          final String tableId = checkTableId(tableName, TableOperation.OFFLINE);
+          checkNotMetadataTable(tableName, TableOperation.OFFLINE);
+          verify(c, tableId, TableOperation.OFFLINE,
+              check(c, SystemPermission.SYSTEM) || check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
+          
+          fate.seedTransaction(opid, new ChangeTableState(tableId, TableOperation.OFFLINE), autoCleanup);
+          break;
+        }
+        case MERGE: {
+          String tableName = ByteBufferUtil.toString(arguments.get(0));
+          Text startRow = ByteBufferUtil.toText(arguments.get(1));
+          Text endRow = ByteBufferUtil.toText(arguments.get(2));
+          
+          final String tableId = checkTableId(tableName, TableOperation.MERGE);
+          checkNotMetadataTable(tableName, TableOperation.MERGE);
+          verify(c, tableId, TableOperation.MERGE,
+              check(c, SystemPermission.SYSTEM) || check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
+          
+          fate.seedTransaction(opid, new TableRangeOp(MergeInfo.Operation.MERGE, tableId, startRow, endRow), autoCleanup);
+          break;
+        }
+        case DELETE_RANGE: {
+          String tableName = ByteBufferUtil.toString(arguments.get(0));
+          Text startRow = ByteBufferUtil.toText(arguments.get(1));
+          Text endRow = ByteBufferUtil.toText(arguments.get(2));
+          
+          final String tableId = checkTableId(tableName, TableOperation.DELETE_RANGE);
+          checkNotMetadataTable(tableName, TableOperation.DELETE_RANGE);
+          verify(c, tableId, TableOperation.DELETE_RANGE, check(c, SystemPermission.SYSTEM) || check(c, tableId, TablePermission.WRITE));
+          
+          fate.seedTransaction(opid, new TableRangeOp(MergeInfo.Operation.DELETE, tableId, startRow, endRow), autoCleanup);
+          break;
+        }
+        case BULK_IMPORT: {
+          String tableName = ByteBufferUtil.toString(arguments.get(0));
+          String dir = ByteBufferUtil.toString(arguments.get(1));
+          String failDir = ByteBufferUtil.toString(arguments.get(2));
+          boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(3)));
+          
+          final String tableId = checkTableId(tableName, TableOperation.BULK_IMPORT);
+          checkNotMetadataTable(tableName, TableOperation.BULK_IMPORT);
+          verify(c, tableId, TableOperation.BULK_IMPORT, check(c, tableId, TablePermission.BULK_IMPORT));
+          
+          fate.seedTransaction(opid, new BulkImport(tableId, dir, failDir, setTime), autoCleanup);
+          break;
+        }
+        case COMPACT: {
+          String tableId = ByteBufferUtil.toString(arguments.get(0));
+          byte[] startRow = ByteBufferUtil.toBytes(arguments.get(1));
+          byte[] endRow = ByteBufferUtil.toBytes(arguments.get(2));
+          
+          verify(c, tableId, TableOperation.COMPACT,
+              check(c, tableId, TablePermission.WRITE) || check(c, tableId, TablePermission.ALTER_TABLE) || check(c, SystemPermission.ALTER_TABLE));
+          
+          fate.seedTransaction(opid, new CompactRange(tableId, startRow, endRow), autoCleanup);
+          break;
+        }
+        default:
+          throw new UnsupportedOperationException();
+      }
+      
+    }
+    
+    @Override
+    public String waitForTableOperation(TInfo tinfo, AuthInfo credentials, long opid) throws ThriftSecurityException, ThriftTableOperationException, TException {
+      authenticate(credentials);
+      
+      TStatus status = fate.waitForCompletion(opid);
+      if (status == TStatus.FAILED) {
+        Exception e = fate.getException(opid);
+        if (e instanceof ThriftTableOperationException) throw (ThriftTableOperationException) e;
+        if (e instanceof ThriftSecurityException) throw (ThriftSecurityException) e;
+        else if (e instanceof RuntimeException) throw (RuntimeException) e;
+        else throw new RuntimeException(e);
+      }
+      
+      String ret = fate.getReturn(opid);
+      if (ret == null) ret = ""; // thrift does not like returning null
+      return ret;
+    }
+    
+    @Override
+    public void finishTableOperation(TInfo tinfo, AuthInfo credentials, long opid) throws ThriftSecurityException, TException {
+      authenticate(credentials);
+      
+      fate.delete(opid);
+      
+    }
+  }
+  
+  public MergeInfo getMergeInfo(Text tableId) {
+    synchronized (mergeLock) {
+      try {
+        String path = ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId.toString() + "/merge";
+        if (!ZooReaderWriter.getInstance().exists(path)) return new MergeInfo();
+        byte[] data = ZooReaderWriter.getInstance().getData(path, new Stat());
+        DataInputBuffer in = new DataInputBuffer();
+        in.reset(data, data.length);
+        MergeInfo info = new MergeInfo();
+        info.readFields(in);
+        return info;
+      } catch (KeeperException.NoNodeException ex) {
+        log.info("Error reading merge state, it probably just finished");
+        return new MergeInfo();
+      } catch (Exception ex) {
+        log.warn("Unexpected error reading merge state", ex);
+        return new MergeInfo();
+      }
+    }
+  }
+  
+  public void setMergeState(MergeInfo info, MergeState state) throws IOException, KeeperException, InterruptedException {
+    synchronized (mergeLock) {
+      String path = ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + info.getRange().getTableId().toString() + "/merge";
+      info.setState(state);
+      if (state.equals(MergeState.NONE)) {
+        ZooReaderWriter.getInstance().recursiveDelete(path, NodeMissingPolicy.SKIP);
+      } else {
+        DataOutputBuffer out = new DataOutputBuffer();
         try {
-            return authenticator.hasTablePermission(credentials, credentials.user, tableId, permission);
-        } catch (AccumuloSecurityException e) {
-            throw e.asThriftException();
+          info.write(out);
+        } catch (IOException ex) {
+          throw new RuntimeException("Unlikely", ex);
         }
+        ZooReaderWriter.getInstance().putPersistentData(path, out.getData(),
+            state.equals(MergeState.STARTED) ? ZooUtil.NodeExistsPolicy.FAIL : ZooUtil.NodeExistsPolicy.OVERWRITE);
+      }
+      mergeLock.notifyAll();
+    }
+    nextEvent.event("Merge state of %s set to %s", info.getRange(), state);
+  }
+  
+  public void clearMergeState(Text tableId) throws IOException, KeeperException, InterruptedException {
+    synchronized (mergeLock) {
+      String path = ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId.toString() + "/merge";
+      ZooReaderWriter.getInstance().recursiveDelete(path, NodeMissingPolicy.SKIP);
+      mergeLock.notifyAll();
+    }
+    nextEvent.event("Merge state of %s cleared", tableId);
+  }
+  
+  private void setMasterGoalState(MasterGoalState state) {
+    try {
+      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMASTER_GOAL_STATE, state.name().getBytes(),
+          NodeExistsPolicy.OVERWRITE);
+    } catch (Exception ex) {
+      log.error("Unable to set master goal state in zookeeper");
+    }
+  }
+  
+  MasterGoalState getMasterGoalState() {
+    while (true)
+      try {
+        byte[] data = ZooReaderWriter.getInstance().getData(ZooUtil.getRoot(instance) + Constants.ZMASTER_GOAL_STATE, null);
+        return MasterGoalState.valueOf(new String(data));
+      } catch (Exception e) {
+        log.error("Problem getting real goal state: " + e);
+        UtilWaitThread.sleep(1000);
+      }
+  }
+  
+  private void shutdown(boolean stopTabletServers) {
+    if (stopTabletServers) {
+      setMasterGoalState(MasterGoalState.CLEAN_STOP);
+      EventCoordinator.Listener eventListener = nextEvent.getListener();
+      do {
+        waitAround(eventListener);
+      } while (tserverSet.size() > 0);
+    }
+    setMasterState(MasterState.STOP);
+  }
+  
+  public boolean hasCycled(long time) {
+    for (TabletGroupWatcher watcher : watchers) {
+      if (watcher.stats.lastScanFinished() < time) return false;
     }
     
-    public void mustBeOnline(final String tableId) throws ThriftTableOperationException {
-        Tables.clearCache(instance);
-        if (!Tables.getTableState(instance, tableId).equals(TableState.ONLINE)) throw new ThriftTableOperationException(tableId, null, TableOperation.MERGE,
-                TableOperationExceptionType.OFFLINE, "table is not online");
+    return true;
+  }
+  
+  public void clearMigrations(String tableId) {
+    synchronized (migrations) {
+      Iterator<KeyExtent> iterator = migrations.keySet().iterator();
+      while (iterator.hasNext()) {
+        KeyExtent extent = iterator.next();
+        if (extent.getTableId().toString().equals(tableId)) {
+          iterator.remove();
+        }
+      }
     }
-    
-    Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-        return instance.getConnector(SecurityConstants.getSystemCredentials());
+  }
+  
+  static enum TabletGoalState {
+    HOSTED, UNASSIGNED, DELETED
+  };
+  
+  TabletGoalState getSystemGoalState(TabletLocationState tls) {
+    switch (getMasterState()) {
+      case NORMAL:
+        return TabletGoalState.HOSTED;
+      case HAVE_LOCK: // fall-through intended
+      case INITIAL: // fall-through intended
+      case SAFE_MODE:
+        if (tls.extent.getTableId().equals(METADATA_TABLE_ID)) return TabletGoalState.HOSTED;
+        return TabletGoalState.UNASSIGNED;
+      case UNLOAD_METADATA_TABLETS:
+        if (tls.extent.equals(Constants.ROOT_TABLET_EXTENT)) return TabletGoalState.HOSTED;
+        return TabletGoalState.UNASSIGNED;
+      case UNLOAD_ROOT_TABLET:
+        return TabletGoalState.UNASSIGNED;
+      case STOP:
+        return TabletGoalState.UNASSIGNED;
     }
-    
-    private void waitAround(EventCoordinator.Listener listener) {
-        listener.waitForEvents(ONE_SECOND);
-    }
-    
-    // @TODO: maybe move this to Property? We do this in TabletServer, Master, TableLoadBalancer, etc.
-    public static <T> T createInstanceFromPropertyName(Property property, Class<T> base, T defaultInstance) {
-        String clazzName = ServerConfiguration.getSystemConfiguration().get(property);
-        T instance = null;
-        
-        try {
-            Class<? extends T> clazz = AccumuloClassLoader.loadClass(clazzName, base);
-            instance = clazz.newInstance();
-            log.info("Loaded class : " + clazzName);
-        } catch (Exception e) {
-            log.warn("Failed to load class ", e);
-        }
-        
-        if (instance == null) {
-            log.info("Using " + defaultInstance.getClass().getName());
-            instance = defaultInstance;
-        }
-        return instance;
-    }
-    
-    public Master(String[] args) throws IOException {
-        Accumulo.init("master");
-        
-        log.info("Version " + Constants.VERSION);
-        instance = HdfsZooInstance.getInstance();
-        log.info("Instance " + instance.getInstanceID());
-        
-        hostname = Accumulo.getLocalAddress(args).getHostName();
-        fs = TraceFileSystem.wrap(FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));
-        ;
-        authenticator = ZKAuthenticator.getInstance();
-        
-        tserverSet = new LiveTServerSet(instance, this);
-        
-        this.tabletBalancer = createInstanceFromPropertyName(Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
-        this.loggerBalancer = createInstanceFromPropertyName(Property.MASTER_LOGGER_BALANCER, LoggerBalancer.class, new SimpleLoggerBalancer());
-        Accumulo.enableTracing(hostname, "master");
-    }
-    
-    public TServerConnection getConnection(TServerInstance server) {
-        try {
-            return tserverSet.getConnection(server);
-        } catch (TException ex) {
-            return null;
-        }
-    }
-    
-    private class MasterClientServiceHandler implements MasterClientService.Iface {
-        
-        protected String checkTableId(String tableName, TableOperation operation) throws ThriftTableOperationException {
-            final String tableId = Tables.getNameToIdMap(HdfsZooInstance.getInstance()).get(tableName);
-            if (tableId == null) throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.NOTFOUND, null);
-            return tableId;
-        }
-        
-        @Override
-        public long initiateFlush(TInfo tinfo, AuthInfo c, String tableId) throws ThriftSecurityException, ThriftTableOperationException, TException {
-            verify(c, tableId, TableOperation.FLUSH, check(c, tableId, TablePermission.WRITE) || check(c, tableId, TablePermission.ALTER_TABLE));
-            
-            String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId
-                    + Constants.ZTABLE_FLUSH_ID;
-            
-            ZooReaderWriter zoo = ZooReaderWriter.getInstance();
-            byte fid[];
-            try {
-                fid = zoo.mutate(zTablePath, null, null, new Mutator() {
-                    @Override
-                    public byte[] mutate(byte[] currentValue) throws Exception {
-                        long flushID = Long.parseLong(new String(currentValue));
-                        flushID++;
-                        return ("" + flushID).getBytes();
-                    }
-                });
-            } catch (NoNodeException nne) {
-                throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
-            } catch (Exception e) {
-                log.warn(e.getMessage(), e);
-                throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.OTHER, null);
-            }
-            return Long.parseLong(new String(fid));
-        }
-        
-        @Override
-        public void waitForFlush(TInfo tinfo, AuthInfo c, String tableId, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
-                throws ThriftSecurityException, ThriftTableOperationException, TException {
-            verify(c, tableId, TableOperation.FLUSH, check(c, tableId, TablePermission.WRITE) || check(c, tableId, TablePermission.ALTER_TABLE));
-            
-            if (endRow != null && startRow != null && ByteBufferUtil.toText(startRow).compareTo(ByteBufferUtil.toText(endRow)) >= 0) throw new ThriftTableOperationException(
-                    tableId, null, TableOperation.FLUSH, TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
-            
-            Set<TServerInstance> serversToFlush = new HashSet<TServerInstance>(tserverSet.getCurrentServers());
-            
-            for (long l = 0; l < maxLoops; l++) {
-                
-                for (TServerInstance instance : serversToFlush) {
-                    try {
-                        final TServerConnection server = tserverSet.getConnection(instance);
-                        if (server != null) server.flush(masterLock, tableId, ByteBufferUtil.toBytes(startRow), ByteBufferUtil.toBytes(endRow));
-                    } catch (TException ex) {
-                        log.error(ex.toString());
-                    }
-                }
-                
-                if (l == maxLoops - 1) break;
-                
-                UtilWaitThread.sleep(50);
-                
-                serversToFlush.clear();
-                
-                try {
-                    Connector conn = getConnector();
-                    Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
-                    ColumnFQ.fetch(scanner, Constants.METADATA_FLUSH_COLUMN);
-                    ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
-                    scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
-                    scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
-                    scanner.setRange(new KeyExtent(new Text(tableId), null, ByteBufferUtil.toText(startRow)).toMetadataRange());
-                    
-                    // TODO this used to be TabletIterator... any problems with splits/merges?
-                    RowIterator ri = new RowIterator(scanner);
-                    
-                    int tabletsToWaitFor = 0;
-                    int tabletCount = 0;
-                    
-                    Text ert = ByteBufferUtil.toText(endRow);
-                    
-                    while (ri.hasNext()) {
-                        Iterator<Entry<Key,Value>> row = ri.next();
-                        long tabletFlushID = -1;
-                        int logs = 0;
-                        boolean online = false;
-                        
-                        TServerInstance server = null;
-                        
-                        Entry<Key,Value> entry = null;
-                        while (row.hasNext()) {
-                            entry = row.next();
-                            Key key = entry.getKey();
-                            
-                            if (Constants.METADATA_FLUSH_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier())) {
-                                tabletFlushID = Long.parseLong(entry.getValue().toString());
-                            }
-                            
-                            if (Constants.METADATA_LOG_COLUMN_FAMILY.equals(key.getColumnFamily())) logs++;
-                            
-                            if (Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY.equals(key.getColumnFamily())) {
-                                online = true;
-                                server = new TServerInstance(entry.getValue(), key.getColumnQualifier());
-                            }
-                            
-                        }
-                        
-                        // when tablet is not online and has no logs, there is no reason to wait for it
-                        if ((online || logs > 0) && tabletFlushID < flushID) {
-                            tabletsToWaitFor++;
-                            if (server != null) serversToFlush.add(server);
-                        }
-                        
-                        tabletCount++;
-                        
-                        Text tabletEndRow = new KeyExtent(entry.getKey().getRow(), (Text) null).getEndRow();
-                        if (tabletEndRow == null || (ert != null && tabletEndRow.compareTo(ert) >= 0)) break;
-                    }
-                    
-                    if (tabletsToWaitFor == 0) break;
-                    
-                    // TODO detect case of table offline AND tablets w/ logs?
-                    
-                    if (tabletCount == 0 && !Tables.exists(instance, tableId)) throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH,
-                            TableOperationExceptionType.NOTFOUND, null);
-                    
-                } catch (AccumuloException e) {
-                    log.debug("Failed to scan !METADATA table to wait for flush " + tableId, e);
-                } catch (TabletDeletedException tde) {
-                    log.debug("Failed to scan !METADATA table to wait for flush " + tableId, tde);
-                } catch (AccumuloSecurityException e) {
-                    log.warn(e.getMessage(), e);
-                    throw new ThriftSecurityException();
-                } catch (TableNotFoundException e) {
-                    log.error(e.getMessage(), e);
-                    throw new ThriftTableOperationException();
-                }
-            }
-            
-        }
-        
-        @Override
-        public MasterMonitorInfo getMasterStats(TInfo info, AuthInfo credentials) throws ThriftSecurityException, TException {
-            final MasterMonitorInfo result = new MasterMonitorInfo();
-            result.loggers = new ArrayList<LoggerStatus>();
-            for (String logger : loggers.getLoggersFromZooKeeper().values()) {
-                result.loggers.add(new LoggerStatus(logger));
-            }
-            result.recovery = recovery.status();
-            
-            result.tServerInfo = new ArrayList<TabletServerStatus>();
-            result.tableMap = new DefaultMap<String,TableInfo>(new TableInfo());
-            for (Entry<TServerInstance,TabletServerStatus> serverEntry : tserverStatus.entrySet()) {
-                final TabletServerStatus status = serverEntry.getValue();
-                result.tServerInfo.add(status);
-                for (Entry<String,TableInfo> entry : status.tableMap.entrySet()) {
-                    String table = entry.getKey();
-                    TableInfo summary = result.tableMap.get(table);
-                    Monitor.add(summary, entry.getValue());
-                }
-            }
-            result.badTServers = new HashMap<String,Byte>();
-            synchronized (badServers) {
-                for (TServerInstance bad : badServers.keySet()) {
-                    result.badTServers.put(bad.hostPort(), TabletServerState.UNRESPONSIVE.getId());
-                }
-            }
-            result.state = getMasterState();
-            result.goalState = getMasterGoalState();
-            result.unassignedTablets = Master.this.displayUnassigned();
-            result.serversShuttingDown = new HashSet<String>();
-            synchronized (serversToShutdown) {
-                for (TServerInstance server : serversToShutdown)
-                    result.serversShuttingDown.add(server.hostPort());
-            }
-            DeadServerList obit = new DeadServerList(ZooUtil.getRoot(instance) + Constants.ZDEADTSERVERS);
-            result.deadTabletServers = obit.getList();
-            obit = new DeadServerList(ZooUtil.getRoot(instance) + Constants.ZDEADLOGGERS);
-            result.deadLoggers = obit.getList();
-            return result;
-        }
-        
-        private void alterTableProperty(AuthInfo c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
-                ThriftTableOperationException {
-            final String tableId = checkTableId(tableName, op);
-            verify(c, tableId, op, check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
-            
-            try {
-                if (value == null) {
-                    TablePropUtil.removeTableProperty(tableId, property);
-                } else if (!TablePropUtil.setTableProperty(tableId, property, value)) {
-                    throw new Exception("Invalid table property.");
-                }
-            } catch (Exception e) {
-                log.error("Problem altering table property", e);
-                throw new ThriftTableOperationException(tableId, tableName, op, TableOperationExceptionType.OTHER, e.getMessage());
-            }
-        }
-        
-        @Override
-        public void removeTableProperty(TInfo info, AuthInfo credentials, String tableName, String property) throws ThriftSecurityException,
-                ThriftTableOperationException, TException {
-            alterTableProperty(credentials, tableName, property, null, TableOperation.REMOVE_PROPERTY);
-        }
-        
-        @Override
-        public void setTableProperty(TInfo info, AuthInfo credentials, String tableName, String property, String value) throws ThriftSecurityException,
-                ThriftTableOperationException, TException {
-            alterTableProperty(credentials, tableName, property, value, TableOperation.SET_PROPERTY);
-        }
-        
-        @Override
-        public void shutdown(TInfo info, AuthInfo c, boolean stopTabletServers) throws ThriftSecurityException, TException {
-            verify(c, check(c, SystemPermission.SYSTEM));
-            Master.this.shutdown(stopTabletServers);
-        }
-        
-        @Override
-        public void shutdownTabletServer(TInfo info, AuthInfo c, String tabletServer, boolean force) throws ThriftSecurityException, TException {
-            verify(c, check(c, SystemPermission.SYSTEM));
-            
-            final InetSocketAddress addr = AddressUtil.parseAddress(tabletServer, Property.TSERV_CLIENTPORT);
-            final String addrString = org.apache.accumulo.core.util.AddressUtil.toString(addr);
-            final TServerInstance doomed = tserverSet.find(addrString);
-            if (!force) {
-                final TServerConnection server = tserverSet.getConnection(doomed);
-                if (server == null) {
-                    log.warn("No server found for name " + tabletServer);
-                    return;
-                }
-            }
-            
-            long tid = fate.startTransaction();
-            fate.seedTransaction(tid, new ShutdownTServer(doomed, force), false);
-            fate.waitForCompletion(tid);
-            fate.delete(tid);
-        }
-        
-        @Override
-        public void reportSplitExtent(TInfo info, AuthInfo credentials, String serverName, TabletSplit split) throws TException {
-            if (migrations.remove(new KeyExtent(split.oldTablet)) != null) {
-                log.info("Canceled migration of " + split.oldTablet);
-            }
-            for (TServerInstance instance : tserverSet.getCurrentServers()) {
-                if (serverName.equals(instance.hostPort())) {
-                    nextEvent.event("%s reported split %s, %s", serverName, new KeyExtent(split.newTablets.get(0)), new KeyExtent(split.newTablets.get(0)));
-                    return;
-                }
-            }
-            log.warn("Got a split from a server we don't recognize: " + serverName);
-        }
-        
-        @Override
-        public void reportTabletStatus(TInfo info, AuthInfo credentials, String serverName, TabletLoadState status, TKeyExtent ttablet) throws TException {
-            KeyExtent tablet = new KeyExtent(ttablet);
-            
-            switch (status) {
-                case LOAD_FAILURE:
-                    log.error(serverName + " reports assignment failed for tablet " + tablet);
-                    break;
-                case LOADED:
-                    nextEvent.event("tablet %s was loaded", tablet);
-                    break;
-                case UNLOADED:
-                    nextEvent.event("tablet %s was unloaded", tablet);
-                    break;
-                case UNLOAD_ERROR:
-                    log.error(serverName + " reports unload failed for tablet " + tablet);
-                    break;
-                case UNLOAD_FAILURE_NOT_SERVING:
-                    if (log.isTraceEnabled()) {
-                        log.trace(serverName + " reports unload failed: not serving tablet, could be a split: " + tablet);
-                    }
-                    break;
-                case CHOPPED:
-                    nextEvent.event("tablet %s chopped", tablet);
-                    break;
-            }
-        }
-        
-        @Override
-        public void setMasterGoalState(TInfo info, AuthInfo c, MasterGoalState state) throws ThriftSecurityException, TException {
-            verify(c, check(c, SystemPermission.SYSTEM));
-            Master.this.setMasterGoalState(state);
-        }
-        
-        @Override
-        public void removeSystemProperty(TInfo info, AuthInfo c, String property) throws ThriftSecurityException, TException {
-            
-            verify(c, check(c, SystemPermission.SYSTEM));
-            try {
-                SystemPropUtil.removeSystemProperty(property);
-            } catch (Exception e) {
-                log.error("Problem removing config property in zookeeper", e);
-                throw new TException(e.getMessage());
-            }
-        }
-        
-        @Override
-        public void setSystemProperty(TInfo info, AuthInfo credentials, String property, String value) throws ThriftSecurityException, TException {
-            verify(credentials, check(credentials, SystemPermission.SYSTEM));
-            try {
-                SystemPropUtil.setSystemProperty(property, value);
-            } catch (Exception e) {
-                log.error("Problem setting config property in zookeeper", e);
-                throw new TException(e.getMessage());
-            }
-        }
-        
-        private void authenticate(AuthInfo credentials) throws ThriftSecurityException {
-            try {
-                if (!authenticator.authenticateUser(credentials, credentials.user, credentials.password)) throw new ThriftSecurityException(credentials.user,
-                        SecurityErrorCode.BAD_CREDENTIALS);
-            } catch (AccumuloSecurityException e) {
-                throw e.asThriftException();
-            }
-        }
-        
-        @Override
-        public long beginTableOperation(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException, TException {
-            authenticate(credentials);
-            return fate.startTransaction();
-        }
-        
-        @Override
-        public void executeTableOperation(TInfo tinfo, AuthInfo c, long opid, org.apache.accumulo.core.master.thrift.TableOperation op,
-                List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup) throws ThriftSecurityException, ThriftTableOperationException,
-                TException {
-            
-            authenticate(c);
-            
-            switch (op) {
-                case CREATE: {
-                    String tableName = ByteBufferUtil.toString(arguments.get(0));
-                    
-                    verify(c, check(c, SystemPermission.CREATE_TABLE));
-                    checkNotMetadataTable(tableName, TableOperation.CREATE);
-                    checkTableName(tableName, TableOperation.CREATE);
-                    
-                    org.apache.accumulo.core.client.admin.TimeType timeType = org.apache.accumulo.core.client.admin.TimeType.valueOf(ByteBufferUtil
-                            .toString(arguments.get(1)));
-                    fate.seedTransaction(opid, new CreateTable(c.user, tableName, timeType, options), autoCleanup);
-                    
-                    break;
-                }
-                case RENAME: {
-                    String oldTableName = ByteBufferUtil.toString(arguments.get(0));
-                    String newTableName = ByteBufferUtil.toString(arguments.get(1));
-                    
-                    String tableId = checkTableId(oldTableName, TableOperation.RENAME);
-                    checkNotMetadataTable(oldTableName, TableOperation.RENAME);
-                    checkNotMetadataTable(newTableName, TableOperation.RENAME);
-                    checkTableName(newTableName, TableOperation.RENAME);
-                    verify(c, tableId, TableOperation.RENAME, check(c, tableId, TablePermission.ALTER_TABLE) || check(c, SystemPermission.ALTER_TABLE));
-                    
-                    fate.seedTransaction(opid, new RenameTable(tableId, oldTableName, newTableName), autoCleanup);
-                    
-                    break;
-                }
-                case CLONE: {
-                    String srcTableId = ByteBufferUtil.toString(arguments.get(0));
-                    String tableName = ByteBufferUtil.toString(arguments.get(1));
-                    
-                    checkNotMetadataTable(tableName, TableOperation.CLONE);
-                    checkTableName(tableName, TableOperation.CLONE);
-                    verify(c, srcTableId, TableOperation.CLONE, check(c, SystemPermission.CREATE_TABLE) && check(c, srcTableId, TablePermission.READ));
-                    
-                    Map<String,String> propertiesToSet = new HashMap<String,String>();
-                    Set<String> propertiesToExclude = new HashSet<String>();
-                    
-                    for (Entry<String,String> entry : options.entrySet()) {
-                        if (entry.getValue() == null) {
-                            propertiesToExclude.add(entry.getKey());
-                            continue;
-                        }
-                        
-                        if (!TablePropUtil.isPropertyValid(entry.getKey(), entry.getValue())) {
-                            throw new ThriftTableOperationException(null, tableName, TableOperation.CLONE, TableOperationExceptionType.OTHER,
-                                    "Property or value not valid " + entry.getKey() + "=" + entry.getValue());
-                        }
-                        
-                        propertiesToSet.put(entry.getKey(), entry.getValue());
-                    }
-                    
-                    fate.seedTransaction(opid, new CloneTable(c.user, srcTableId, tableName, propertiesToSet, propertiesToExclude), autoCleanup);
-                    
-                    break;
-                }
-                case DELETE: {
-                    String tableName = ByteBufferUtil.toString(arguments.get(0));
-                    final String tableId = checkTableId(tableName, TableOperation.DELETE);
-                    checkNotMetadataTable(tableName, TableOperation.DELETE);
-                    verify(c, tableId, TableOperation.DELETE, check(c, SystemPermission.DROP_TABLE) || check(c, tableId, TablePermission.DROP_TABLE));
-                    
-                    fate.seedTransaction(opid, new DeleteTable(tableId), autoCleanup);
-                    break;
-                }
-                case ONLINE: {
-                    String tableName = ByteBufferUtil.toString(arguments.get(0));
-                    final String tableId = checkTableId(tableName, TableOperation.ONLINE);
-                    checkNotMetadataTable(tableName, TableOperation.ONLINE);
-                    verify(c, tableId, TableOperation.ONLINE,
-                            check(c, SystemPermission.SYSTEM) || check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
-                    
-                    fate.seedTransaction(opid, new ChangeTableState(tableId, TableOperation.ONLINE), autoCleanup);
-                    break;
-                }
-                case OFFLINE: {
-                    String tableName = ByteBufferUtil.toString(arguments.get(0));
-                    final String tableId = checkTableId(tableName, TableOperation.OFFLINE);
-                    checkNotMetadataTable(tableName, TableOperation.OFFLINE);
-                    verify(c, tableId, TableOperation.OFFLINE,
-                            check(c, SystemPermission.SYSTEM) || check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
-                    
-                    fate.seedTransaction(opid, new ChangeTableState(tableId, TableOperation.OFFLINE), autoCleanup);
-                    break;
-                }
-                case MERGE: {
-                    String tableName = ByteBufferUtil.toString(arguments.get(0));
-                    Text startRow = ByteBufferUtil.toText(arguments.get(1));
-                    Text endRow = ByteBufferUtil.toText(arguments.get(2));
-                    
-                    final String tableId = checkTableId(tableName, TableOperation.MERGE);
-                    checkNotMetadataTable(tableName, TableOperation.MERGE);
-                    verify(c, tableId, TableOperation.MERGE,
-                            check(c, SystemPermission.SYSTEM) || check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
-                    
-                    fate.seedTransaction(opid, new TableRangeOp(MergeInfo.Operation.MERGE, tableId, startRow, endRow), autoCleanup);
-                    break;
-                }
-                case DELETE_RANGE: {
-                    String tableName = ByteBufferUtil.toString(arguments.get(0));
-                    Text startRow = ByteBufferUtil.toText(arguments.get(1));
-                    Text endRow = ByteBufferUtil.toText(arguments.get(2));
-                    
-                    final String tableId = checkTableId(tableName, TableOperation.DELETE_RANGE);
-                    checkNotMetadataTable(tableName, TableOperation.DELETE_RANGE);
-                    verify(c, tableId, TableOperation.DELETE_RANGE, check(c, SystemPermission.SYSTEM) || check(c, tableId, TablePermission.WRITE));
-                    
-                    fate.seedTransaction(opid, new TableRangeOp(MergeInfo.Operation.DELETE, tableId, startRow, endRow), autoCleanup);
-                    break;
-                }
-                case BULK_IMPORT: {
-                    String tableName = ByteBufferUtil.toString(arguments.get(0));
-                    String dir = ByteBufferUtil.toString(arguments.get(1));
-                    String failDir = ByteBufferUtil.toString(arguments.get(2));
-                    boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(3)));
-                    
-                    final String tableId = checkTableId(tableName, TableOperation.BULK_IMPORT);
-                    checkNotMetadataTable(tableName, TableOperation.BULK_IMPORT);
-                    verify(c, tableId, TableOperation.BULK_IMPORT, check(c, tableId, TablePermission.BULK_IMPORT));
-                    
-                    fate.seedTransaction(opid, new BulkImport(tableId, dir, failDir, setTime), autoCleanup);
-                    break;
-                }
-                case COMPACT: {
-                    String tableId = ByteBufferUtil.toString(arguments.get(0));
-                    byte[] startRow = ByteBufferUtil.toBytes(arguments.get(1));
-                    byte[] endRow = ByteBufferUtil.toBytes(arguments.get(2));
-                    
-                    verify(c, tableId, TableOperation.COMPACT, check(c, tableId, TablePermission.WRITE) || check(c, tableId, TablePermission.ALTER_TABLE)
-                            || check(c, SystemPermission.ALTER_TABLE));
-                    
-                    fate.seedTransaction(opid, new CompactRange(tableId, startRow, endRow), autoCleanup);
-                    break;
-                }
-                default:
-                    throw new UnsupportedOperationException();
-            }
-            
-        }
-        
-        @Override
-        public String waitForTableOperation(TInfo tinfo, AuthInfo credentials, long opid) throws ThriftSecurityException, ThriftTableOperationException,
-                TException {
-            authenticate(credentials);
-            
-            TStatus status = fate.waitForCompletion(opid);
-            if (status == TStatus.FAILED) {
-                Exception e = fate.getException(opid);
-                if (e instanceof ThriftTableOperationException) throw (ThriftTableOperationException) e;
-                if (e instanceof ThriftSecurityException) throw (ThriftSecurityException) e;
-                else if (e instanceof RuntimeException) throw (RuntimeException) e;
-                else throw new RuntimeException(e);
-            }
-            
-            String ret = fate.getReturn(opid);
-            if (ret == null) ret = ""; // thrift does not like returning null
-            return ret;
-        }
-        
-        @Override
-        public void finishTableOperation(TInfo tinfo, AuthInfo credentials, long opid) throws ThriftSecurityException, TException {
-            authenticate(credentials);
-            
-            fate.delete(opid);
-            
-        }
-    }
-    
-    public MergeInfo getMergeInfo(Text tableId) {
-        synchronized (mergeLock) {
-            try {
-                String path = ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId.toString() + "/merge";
-                if (!ZooReaderWriter.getInstance().exists(path)) return new MergeInfo();
-                byte[] data = ZooReaderWriter.getInstance().getData(path, new Stat());
-                DataInputBuffer in = new DataInputBuffer();
-                in.reset(data, data.length);
-                MergeInfo info = new MergeInfo();
-                info.readFields(in);
-                return info;
-            } catch (KeeperException.NoNodeException ex) {
-                log.info("Error reading merge state, it probably just finished");
-                return new MergeInfo();
-            } catch (Exception ex) {
-                log.warn("Unexpected error reading merge state", ex);
-                return new MergeInfo();
-            }
-        }
-    }
-    
-    public void setMergeState(MergeInfo info, MergeState state) throws IOException, KeeperException, InterruptedException {
-        synchronized (mergeLock) {
-            String path = ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + info.getRange().getTableId().toString() + "/merge";
-            info.setState(state);
-            if (state.equals(MergeState.NONE)) {
-                ZooReaderWriter.getInstance().recursiveDelete(path, NodeMissingPolicy.SKIP);
-            } else {
-                DataOutputBuffer out = new DataOutputBuffer();
-                try {
-                    info.write(out);
-                } catch (IOException ex) {
-                    throw new RuntimeException("Unlikely", ex);
-                }
-                ZooReaderWriter.getInstance().putPersistentData(path, out.getData(),
-                        state.equals(MergeState.STARTED) ? ZooUtil.NodeExistsPolicy.FAIL : ZooUtil.NodeExistsPolicy.OVERWRITE);
-            }
-            mergeLock.notifyAll();
-        }
-        nextEvent.event("Merge state of %s set to %s", info.getRange(), state);
-    }
-    
-    public void clearMergeState(Text tableId) throws IOException, KeeperException, InterruptedException {
-        synchronized (mergeLock) {
-            String path = ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId.toString() + "/merge";
-            ZooReaderWriter.getInstance().recursiveDelete(path, NodeMissingPolicy.SKIP);
-            mergeLock.notifyAll();
-        }
-        nextEvent.event("Merge state of %s cleared", tableId);
-    }
-    
-    private void setMasterGoalState(MasterGoalState state) {
-        try {
-            ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMASTER_GOAL_STATE, state.name().getBytes(),
-                    NodeExistsPolicy.OVERWRITE);
-        } catch (Exception ex) {
-            log.error("Unable to set master goal state in zookeeper");
-        }
-    }
-    
-    MasterGoalState getMasterGoalState() {
-        while (true)
-            try {
-                byte[] data = ZooReaderWriter.getInstance().getData(ZooUtil.getRoot(instance) + Constants.ZMASTER_GOAL_STATE, null);
-                return MasterGoalState.valueOf(new String(data));
-            } catch (Exception e) {
-                log.error("Problem getting real goal state: " + e);
-                UtilWaitThread.sleep(1000);
-            }
-    }
-    
-    private void shutdown(boolean stopTabletServers) {
-        if (stopTabletServers) {
-            setMasterGoalState(MasterGoalState.CLEAN_STOP);
-            EventCoordinator.Listener eventListener = nextEvent.getListener();
-            do {
-                waitAround(eventListener);
-            } while (tserverSet.size() > 0);
-        }
-        setMasterState(MasterState.STOP);
-    }
-    
-    public boolean hasCycled(long time) {
-        for (TabletGroupWatcher watcher : watchers) {
-            if (watcher.stats.lastScanFinished() < time) return false;
-        }
-        
-        return true;
-    }
-    
-    public void clearMigrations(String tableId) {
-        synchronized (migrations) {
-            Iterator<KeyExtent> iterator = migrations.keySet().iterator();
-            while (iterator.hasNext()) {
-                KeyExtent extent = iterator.next();
-                if (extent.getTableId().toString().equals(tableId)) {
-                    iterator.remove();
-                }
-            }
-        }
-    }
-    
-    static enum TabletGoalState {
-        HOSTED, UNASSIGNED, DELETED
-    };
-    
-    TabletGoalState getSystemGoalState(TabletLocationState tls) {
-        switch (getMasterState()) {
-            case NORMAL:
-                return TabletGoalState.HOSTED;
-            case HAVE_LOCK: // fall-through intended
-            case INITIAL: // fall-through intended
-            case SAFE_MODE:
-                if (tls.extent.getTableId().equals(METADATA_TABLE_ID)) return TabletGoalState.HOSTED;
-                return TabletGoalState.UNASSIGNED;
-            case UNLOAD_METADATA_TABLETS:
-                if (tls.extent.equals(Constants.ROOT_TABLET_EXTENT)) return TabletGoalState.HOSTED;
-                return TabletGoalState.UNASSIGNED;
-            case UNLOAD_ROOT_TABLET:
-                return TabletGoalState.UNASSIGNED;
-            case STOP:
-                return TabletGoalState.UNASSIGNED;
-        }
-        // unreachable
+    // unreachable
+    return TabletGoalState.HOSTED;
+  }
+  
+  TabletGoalState getTableGoalState(KeyExtent extent) {
+    TableState tableState = TableManager.getInstance().getTableState(extent.getTableId().toString());
+    if (tableState == null) return TabletGoalState.DELETED;
+    switch (tableState) {
+      case DELETING:
+        return TabletGoalState.DELETED;
+      case OFFLINE:
+      case NEW:
+        return TabletGoalState.UNASSIGNED;
+      default:
         return TabletGoalState.HOSTED;
     }
-    
-    TabletGoalState getTableGoalState(KeyExtent extent) {
-        TableState tableState = TableManager.getInstance().getTableState(extent.getTableId().toString());
-        if (tableState == null) return TabletGoalState.DELETED;
-        switch (tableState) {
-            case DELETING:
-                return TabletGoalState.DELETED;
-            case OFFLINE:
-            case NEW:
-                return TabletGoalState.UNASSIGNED;
-            default:
-                return TabletGoalState.HOSTED;
+  }
+  
+  TabletGoalState getGoalState(TabletLocationState tls, MergeInfo mergeInfo) {
+    KeyExtent extent = tls.extent;
+    // Shutting down?
+    TabletGoalState state = getSystemGoalState(tls);
+    if (state == TabletGoalState.HOSTED) {
+      if (tls.current != null && serversToShutdown.contains(tls.current)) {
+        return TabletGoalState.UNASSIGNED;
+      }
+      // Handle merge transitions
+      if (mergeInfo.getRange() != null) {
+        if (mergeInfo.overlaps(extent)) {
+          switch (mergeInfo.getState()) {
+            case NONE:
+            case COMPLETE:
+              break;
+            case STARTED:
+            case SPLITTING:
+              return TabletGoalState.HOSTED;
+            case WAITING_FOR_CHOPPED:
+              return tls.chopped ? TabletGoalState.UNASSIGNED : TabletGoalState.HOSTED;
+            case WAITING_FOR_OFFLINE:
+            case MERGING:
+              return TabletGoalState.UNASSIGNED;
+          }
         }
+      }
+      
+      // taking table offline?
+      state = getTableGoalState(extent);
+      if (state == TabletGoalState.HOSTED) {
+        // Maybe this tablet needs to be migrated
+        TServerInstance dest = migrations.get(extent);
+        if (dest != null && tls.current != null && !dest.equals(tls.current)) {
+          return TabletGoalState.UNASSIGNED;
+        }
+      }
+    }
+    return state;
+  }
+  
+  private class TabletGroupWatcher extends Daemon {
+    
+    final TabletStateStore store;
+    final TableStats stats = new TableStats();
+    
+    TabletGroupWatcher(TabletStateStore store) {
+      this.store = store;
     }
     
-    TabletGoalState getGoalState(TabletLocationState tls, MergeInfo mergeInfo) {
-        KeyExtent extent = tls.extent;
-        // Shutting down?
-        TabletGoalState state = getSystemGoalState(tls);
-        if (state == TabletGoalState.HOSTED) {
-            if (tls.current != null && serversToShutdown.contains(tls.current)) {
-                return TabletGoalState.UNASSIGNED;
-            }
-            // Handle merge transitions
-            if (mergeInfo.getRange() != null) {
-                if (mergeInfo.overlaps(extent)) {
-                    switch (mergeInfo.getState()) {
-                        case NONE:
-                        case COMPLETE:
-                            break;
-                        case STARTED:
-                        case SPLITTING:
-                            return TabletGoalState.HOSTED;
-                        case WAITING_FOR_CHOPPED:
-                            return tls.chopped ? TabletGoalState.UNASSIGNED : TabletGoalState.HOSTED;
-                        case WAITING_FOR_OFFLINE:
-                        case MERGING:
-                            return TabletGoalState.UNASSIGNED;
-                    }
-                }
-            }
-            
-            // taking table offline?
-            state = getTableGoalState(extent);
-            if (state == TabletGoalState.HOSTED) {
-                // Maybe this tablet needs to be migrated
-                TServerInstance dest = migrations.get(extent);
-                if (dest != null && tls.current != null && !dest.equals(tls.current)) {
-                    return TabletGoalState.UNASSIGNED;
-                }
-            }
-        }
-        return state;
+    Map<Text,TableCounts> getStats() {
+      return stats.getLast();
     }
     
-    private class TabletGroupWatcher extends Daemon {
-        
-        final TabletStateStore store;
-        final TableStats stats = new TableStats();
-        
-        TabletGroupWatcher(TabletStateStore store) {
-            this.store = store;
-        }
-        
-        Map<Text,TableCounts> getStats() {
-            return stats.getLast();
-        }
-        
-        TableCounts getStats(Text tableId) {
-            return stats.getLast(tableId);
-        }
-        
-        public void run() {
-            
-            Thread.currentThread().setName("Watching " + store.name());
-            int[] oldCounts = new int[TabletState.values().length];
-            EventCoordinator.Listener eventListener = nextEvent.getListener();
-            
-            while (stillMaster()) {
-                int totalUnloaded = 0;
-                int unloaded = 0;
-                try {
-                    Map<Text,MergeStats> mergeStatsCache = new HashMap<Text,MergeStats>();
-                    
-                    // Get the current status for the current list of tservers
-                    SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<TServerInstance,TabletServerStatus>();
-                    for (TServerInstance entry : tserverSet.getCurrentServers()) {
-                        currentTServers.put(entry, tserverStatus.get(entry));
-                    }
-                    
-                    if (currentTServers.size() == 0) {
-                        eventListener.waitForEvents(TIME_TO_WAIT_BETWEEN_SCANS);
-                        continue;
-                    }
-                    
-                    // Don't move tablets to servers that are shutting down
-                    SortedMap<TServerInstance,TabletServerStatus> destinations = new TreeMap<TServerInstance,TabletServerStatus>(currentTServers);
-                    destinations.keySet().removeAll(serversToShutdown);
-                    
-                    List<Assignment> assignments = new ArrayList<Assignment>();
-                    List<Assignment> assigned = new ArrayList<Assignment>();
-                    List<TabletLocationState> assignedToDeadServers = new ArrayList<TabletLocationState>();
-                    Map<KeyExtent,TServerInstance> unassigned = new HashMap<KeyExtent,TServerInstance>();
-                    
-                    int[] counts = new int[TabletState.values().length];
-                    stats.begin();
-                    // Walk through the tablets in our store, and work tablets
-                    // towards their goal
-                    for (TabletLocationState tls : store) {
-                        if (tls == null) {
-                            continue;
-                        }
-                        
-                        // Don't overwhelm the tablet servers with work
-                        if (unassigned.size() + unloaded > MAX_TSERVER_WORK_CHUNK * currentTServers.size()) {
-                            flushChanges(destinations, assignments, assigned, assignedToDeadServers, unassigned);
-                            assignments.clear();
-                            assigned.clear();
-                            assignedToDeadServers.clear();
-                            unassigned.clear();
-                            unloaded = 0;
-                            eventListener.waitForEvents(TIME_TO_WAIT_BETWEEN_SCANS);
-                        }
-                        Text tableId = tls.extent.getTableId();
-                        MergeStats mergeStats = mergeStatsCache.get(tableId);
-                        if (mergeStats == null) {
-                            mergeStatsCache.put(tableId, mergeStats = new MergeStats(getMergeInfo(tableId)));
-                        }
-                        TabletGoalState goal = getGoalState(tls, mergeStats.info);
-                        TServerInstance server = tls.getServer();
-                        TabletState state = tls.getState(currentTServers.keySet());
-                        stats.update(tableId, state);
-                        mergeStats.update(tls.extent, state, tls.chopped);
-                        sendChopRequest(mergeStats.info, state, tls);
-                        sendSplitRequest(mergeStats.info, state, tls);
-                        
-                        // Always follow through with assignments
-                        if (state == TabletState.ASSIGNED) {
-                            goal = TabletGoalState.HOSTED;
-                        }
-                        
-                        if (goal == TabletGoalState.HOSTED) {
-                            if (state != TabletState.HOSTED && !tls.walogs.isEmpty()) {
-                                if (!recovery.recover(SecurityConstants.getSystemCredentials(), tls.extent, tls.walogs, Master.this)) {
-                                    continue;
-                                }
-                            }
-                            switch (state) {
-                                case HOSTED:
-                                    if (server.equals(migrations.get(tls.extent))) migrations.remove(tls.extent);
-                                    break;
-                                case ASSIGNED_TO_DEAD_SERVER:
-                                    assignedToDeadServers.add(tls);
-                                    log.info("Current servers " + currentTServers.keySet());
-                                    break;
-                                case UNASSIGNED:
-                                    // maybe it's a finishing migration
-                                    TServerInstance dest = migrations.get(tls.extent);
-                                    if (dest != null && destinations.keySet().contains(dest)) {
-                                        assignments.add(new Assignment(tls.extent, dest));
-                                    } else {
-                                        unassigned.put(tls.extent, server);
-                                    }
-                                    break;
-                                case ASSIGNED:
-                                    // Send another reminder
-                                    assigned.add(new Assignment(tls.extent, tls.future));
-                                    break;
-                            }
-                        } else {
-                            switch (state) {
-                                case UNASSIGNED:
-                                    break;
-                                case ASSIGNED_TO_DEAD_SERVER:
-                                    assignedToDeadServers.add(tls);
-                                    log.info("Current servers " + currentTServers.keySet());
-                                    break;
-                                case HOSTED:
-                                    TServerConnection conn = tserverSet.getConnection(server);
-                                    if (conn != null) {
-                                        conn.unloadTablet(masterLock, tls.extent, goal != TabletGoalState.DELETED);
-                                        unloaded++;
-                                        totalUnloaded++;
-                                    } else {
-                                        log.warn("Could not connect to server " + server);
-                                    }
-                                    break;
-                                case ASSIGNED:
-                                    break;
-                            }
-                        }
-                        counts[state.ordinal()]++;
-                    }
-                    
-                    flushChanges(destinations, assignments, assigned, assignedToDeadServers, unassigned);
-                    
-                    // provide stats after flushing changes to avoid race conditions w/ delete table
-                    stats.end();
-                    
-                    // Report changes
-                    for (TabletState state : TabletState.values()) {
-                        int i = state.ordinal();
-                        if (counts[i] > 0 && counts[i] != oldCounts[i]) {
-                            nextEvent.event("[%s]: %d tablets are %s", store.name(), counts[i], state.name());
-                        }
-                    }
-                    log.debug(String.format("[%s]: scan time %.2f seconds", store.name(), stats.getScanTime() / 1000.));
-                    oldCounts = counts;
-                    if (totalUnloaded > 0) {
-                        nextEvent.event("[%s]: %d tablets unloaded", store.name(), totalUnloaded);
-                    }
-                    
-                    updateMergeState(mergeStatsCache);
-                    
-                    log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(), TIME_TO_WAIT_BETWEEN_SCANS / 1000.));
-                    eventListener.waitForEvents(TIME_TO_WAIT_BETWEEN_SCANS);
-                } catch (Exception ex) {
-                    log.error("Error processing table state for store " + store.name(), ex);
-                    UtilWaitThread.sleep(WAIT_BETWEEN_ERRORS);
-                }
-            }
-        }
-        
-        private void sendSplitRequest(MergeInfo info, TabletState state, TabletLocationState tls) {
-            // Already split?
-            if (!info.getState().equals(MergeState.SPLITTING)) return;
-            // Merges don't split
-            if (!info.isDelete()) return;
-            // Online and ready to split?
-            if (!state.equals(TabletState.HOSTED)) return;
-            // Does this extent cover the end points of the delete?
-            KeyExtent range = info.getRange();
-            if (tls.extent.overlaps(range)) {
-                for (Text splitPoint : new Text[] {range.getPrevEndRow(), range.getEndRow()}) {
-                    if (splitPoint == null) continue;
-                    if (!tls.extent.contains(splitPoint)) continue;
-                    if (splitPoint.equals(tls.extent.getEndRow())) continue;
-                    if (splitPoint.equals(tls.extent.getPrevEndRow())) continue;
-                    try {
-                        TServerConnection conn;
-                        conn = tserverSet.getConnection(tls.current);
-                        if (conn != null) {
-                            log.info("Asking " + tls.current + " to split " + tls.extent + " at " + splitPoint);
-                            conn.splitTablet(masterLock, tls.extent, splitPoint);
-                        } else {
-                            log.warn("Not connected to server " + tls.current);
-                        }
-                    } catch (Exception e) {
-                        log.warn("Error asking tablet server to split a tablet: " + e);
-                    }
-                }
-            }
-        }
-        
-        private void sendChopRequest(MergeInfo info, TabletState state, TabletLocationState tls) {
-            // Don't bother if we're in the wrong state
-            if (!info.getState().equals(MergeState.WAITING_FOR_CHOPPED)) return;
-            // Tablet must be online
-            if (!state.equals(TabletState.HOSTED)) return;
-            // Tablet isn't already chopped
-            if (tls.chopped) return;
-            // Tablet ranges intersect
-            if (info.needsToBeChopped(tls.extent)) {
-                TServerConnection conn;
-                try {
-                    conn = tserverSet.getConnection(tls.current);
-                    if (conn != null) {
-                        log.info("Asking " + tls.current + " to chop " + tls.extent);
-                        conn.chop(masterLock, tls.extent);
-                    } else {
-                        log.warn("Could not connect to server " + tls.current);
-                    }
-                } catch (TException e) {
-                    log.warn("Communications error asking tablet server to chop a tablet");
-                }
-            }
-        }
-        
-        private void updateMergeState(Map<Text,MergeStats> mergeStatsCache) {
-            for (MergeStats stats : mergeStatsCache.values()) {
-                MergeState state = stats.info.getState();
-                try {
-                    if (state == MergeState.STARTED) {
-                        setMergeState(stats.info, state = MergeState.SPLITTING);
-                    }
-                    if (state == MergeState.SPLITTING) {
-                        log.info(stats.hosted + " are hosted, total " + stats.total);
-                        if (!stats.info.isDelete() && stats.total == 1) {
-                            log.info("Merge range is already contained in a single tablet");
-                            setMergeState(stats.info, state = MergeState.COMPLETE);
-                        } else if (stats.hosted == stats.total) {
-                            if (stats.info.isDelete()) {
-                                if (!stats.lowerSplit) log.info("Waiting for " + stats.info + " lower split to occur");
-                                else if (!stats.upperSplit) log.info("Waiting for " + stats.info + " upper split to occur");
-                                else setMergeState(stats.info, state = MergeState.WAITING_FOR_CHOPPED);
-                            } else {
-                                setMergeState(stats.info, state = MergeState.WAITING_FOR_CHOPPED);
-                            }
-                        } else {
-                            log.info("Waiting for " + stats.hosted + " hosted tablets to be " + stats.total);
-                        }
-                    }
-                    if (state == MergeState.WAITING_FOR_CHOPPED) {
-                        log.info(stats.chopped + " tablets are chopped");
-                        if (stats.chopped == stats.needsToBeChopped) {
-                            setMergeState(stats.info, state = MergeState.WAITING_FOR_OFFLINE);
-                        } else {
-                            log.info("Waiting for " + stats.chopped + " chopped tablets to be " + stats.needsToBeChopped);
-                        }
-                    }
-                    if (state == MergeState.WAITING_FOR_OFFLINE) {
-                        if (stats.chopped != stats.needsToBeChopped) {
-                            log.warn("Unexpected state: chopped tablets should be " + stats.needsToBeChopped + " was " + stats.chopped + " merge "
-                                    + stats.info.getRange());
-                            // Perhaps a split occurred after we chopped, but before we went offline: start over
-                            setMergeState(stats.info, state = MergeState.SPLITTING);
-                        } else {
-                            log.info(stats.chopped + " tablets are chopped, " + stats.unassigned + " are offline");
-                            if (stats.unassigned == stats.total && stats.chopped == stats.needsToBeChopped) {
-                                setMergeState(stats.info, state = MergeState.MERGING);
-                            } else {
-                                log.info("Waiting for " + stats.unassigned + " unassigned tablets to be " + stats.total);
-                            }
-                        }
-                    }
-                    if (state == MergeState.MERGING) {
-                        if (stats.hosted != 0) {
-                            // Shouldn't happen
-                            log.error("Unexpected state: hosted tablets should be zero " + stats.hosted + " merge " + stats.info.getRange());
-                        }
-                        if (stats.unassigned != stats.total) {
-                            // Shouldn't happen
-                            log.error("Unexpected state: unassigned tablets should be " + stats.total + " was " + stats.unassigned + " merge "
-                                    + stats.info.getRange());
-                        }
-                        log.info(stats.unassigned + " tablets are unassigned");
-                        if (stats.hosted == 0 && stats.unassigned == stats.total) {
-                            try {
-                                if (stats.info.isDelete()) deleteTablets(stats.info);
-                                else mergeMetadataRecords(stats.info);
-                                setMergeState(stats.info, state = MergeState.COMPLETE);
-                            } catch (Exception ex) {
-                                log.error("Unable merge metadata table records", ex);
-                            }
-                        }
-                    }
-                    if (state == MergeState.COMPLETE) {
-                        setMergeState(stats.info, MergeState.NONE);
-                    }
-                } catch (Exception ex) {
-                    log.error("Unable to update merge state for merge " + stats.info.getRange(), ex);
-                }
-            }
-        }
-        
-        private void deleteTablets(MergeInfo info) throws AccumuloException {
-            KeyExtent range = info.getRange();
-            log.debug("Deleting tablets for " + range);
-            char timeType = '\0';
-            KeyExtent followingTablet = null;
-            if (range.getEndRow() != null) {
-                Key nextExtent = new Key(range.getEndRow()).followingKey(PartialKey.ROW);
-                followingTablet = getHighTablet(new KeyExtent(range.getTableId(), nextExtent.getRow(), range.getEndRow()));
-                log.debug("Found following tablet " + followingTablet);
-            }
-            try {
-                Connector conn = getConnector();
-                Text start = range.getPrevEndRow();
-                if (start == null) {
-                    start = new Text();
-                }
-                log.debug("Making file deletion entries for " + range);
-                Range deleteRange = new Range(KeyExtent.getMetadataEntry(range.getTableId(), start), false, KeyExtent.getMetadataEntry(range.getTableId(),
-                        range.getEndRow()), true);
-                Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-                scanner.setRange(deleteRange);
-                ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
-                ColumnFQ.fetch(scanner, Constants.METADATA_TIME_COLUMN);
-                scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
-                scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
-                Set<String> datafiles = new TreeSet<String>();
-                for (Entry<Key,Value> entry : scanner) {
-                    Key key = entry.getKey();
-                    if (key.compareColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY) == 0) {
-                        datafiles.add(key.getColumnQualifier().toString());
-                        if (datafiles.size() > 1000) {
-                            MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
-                            datafiles.clear();
-                        }
-                    } else if (Constants.METADATA_TIME_COLUMN.hasColumns(key)) {
-                        timeType = entry.getValue().toString().charAt(0);
-                    } else if (key.compareColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
-                        throw new IllegalStateException("Tablet " + key.getRow() + " is assigned during a merge!");
-                    } else if (Constants.METADATA_DIRECTORY_COLUMN.hasColumns(key)) {
-                        datafiles.add(entry.getValue().toString());
-                        if (datafiles.size() > 1000) {
-                            MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
-                            datafiles.clear();
-                        }
-                    }
-                }
-                MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
-                log.debug("Removing metadata table entries in range " + deleteRange);
-                BatchDeleter bd = conn.createBatchDeleter(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS, 4, 100000l, 1000l, 4);
-                bd.setRanges(Collections.singleton(deleteRange));
-                bd.delete();
-                
-                if (followingTablet != null) {
-                    log.debug("Updating prevRow of " + followingTablet + " to " + range.getPrevEndRow());
-                    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000l, 100l, 1);
-                    try {
-                        Mutation m = new Mutation(followingTablet.getMetadataEntry());
-                        ColumnFQ.put(m, Constants.METADATA_PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(range.getPrevEndRow()));
-                        bw.addMutation(m);
-                        bw.flush();
-                    } finally {
-                        bw.close();
-                    }
-                } else {
-                    // Recreate the default tablet to hold the end of the table
-                    log.debug("Recreating the last tablet to point to " + range.getPrevEndRow());
-                    MetadataTable.addTablet(new KeyExtent(range.getTableId(), null, range.getPrevEndRow()), Constants.DEFAULT_TABLET_LOCATION,
-                            SecurityConstants.getSystemCredentials(), timeType, masterLock);
-                }
-            } catch (Exception ex) {
-                throw new AccumuloException(ex);
-            }
-        }
-        
-        private void mergeMetadataRecords(MergeInfo info) throws AccumuloException {
-            KeyExtent range = info.getRange();
-            log.debug("Merging metadata for " + range);
-            KeyExtent stop = getHighTablet(range);
-            log.debug("Highest tablet is " + stop);
-            Value firstPrevRowValue = null;
-            Text stopRow = stop.getMetadataEntry();
-            Text start = range.getPrevEndRow();
-            if (start == null) {
-                start = new Text();
-            }
-            Range scanRange = new Range(KeyExtent.getMetadataEntry(range.getTableId(), start), false, stopRow, true);
-            try {
-                long fileCount = 0;
-                Connector conn = getConnector();
-                // Make file entries in highest tablet
-                BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000000L, 1000L, 1);
-                Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-                scanner.setRange(scanRange);
-                ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
-                scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
-                Mutation m = new Mutation(stopRow);
-                for (Entry<Key,Value> entry : scanner) {
-                    Key key = entry.getKey();
-                    Value value = entry.getValue();
-                    if (key.getRow().equals(stopRow)) break;
-                    if (key.getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
-                        m.put(key.getColumnFamily(), key.getColumnQualifier(), value);
-                        fileCount++;
-                    } else if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(key) && firstPrevRowValue == null) {
-                        log.debug("prevRow entry for lowest tablet is " + value);
-                        firstPrevRowValue = new Value(value);
-                    }
-                }
-                if (!m.getUpdates().isEmpty()) {
-                    bw.addMutation(m);
-                    bw.flush();
-                }
-                log.debug("Moved " + fileCount + " files to " + stop);
-                
-                if (firstPrevRowValue == null) {
-                    log.debug("tablet already merged");
-                    return;
-                }
-                
-                stop.setPrevEndRow(KeyExtent.decodePrevEndRow(firstPrevRowValue));
-                Mutation updatePrevRow = stop.getPrevRowUpdateMutation();
-                log.debug("Setting the prevRow for last tablet: " + stop);
-                bw.addMutation(updatePrevRow);
-                bw.flush();
-                
-                // Delete everything in the other tablets
-                scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-                log.debug("Scanning range " + scanRange);
-                scanner.setRange(scanRange);
-                for (Entry<Key,Value> entry : scanner) {
-                    Key key = entry.getKey();
-                    if (key.getRow().equals(stopRow)) break;
-                    if (Constants.METADATA_DIRECTORY_COLUMN.hasColumns(key)) {
-                        bw.addMutation(MetadataTable.createDeleteMutation(range.getTableId().toString(), entry.getValue().toString()));
-                    }
-                    
-                    // TODO could group by row
-                    m = new Mutation(key.getRow());
-                    m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
-                    log.debug("deleting entry " + key);
-                    bw.addMutation(m);
-                }
-                bw.flush();
-                
-                // Clean-up the last chopped marker
-                scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-                scanner.fetchColumnFamily(Constants.METADATA_CHOPPED_COLUMN_FAMILY);
-                scanner.setRange(new Range(stopRow, stopRow));
-                for (Entry<Key,Value> entry : scanner) {
-                    Key key = entry.getKey();
-                    m = new Mutation(key.getRow());
-                    m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
-                    log.debug("deleting entry " + key);
-                    bw.addMutation(m);
-                }
-                bw.flush();
-                
-            } catch (Exception ex) {
-                throw new AccumuloException(ex);
-            }
-        }
-        
-        private KeyExtent getHighTablet(KeyExtent range) throws AccumuloException {
-            try {
-                Connector conn = getConnector();
-                Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-                ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
-                KeyExtent start = new KeyExtent(range.getTableId(), range.getEndRow(), null);
-                scanner.setRange(new Range(start.getMetadataEntry(), null));
-                Iterator<Entry<Key,Value>> iterator = scanner.iterator();
-                if (!iterator.hasNext()) {
-                    throw new AccumuloException("No last tablet for a merge " + range);
-                }
-                Entry<Key,Value> entry = iterator.next();
-                return new KeyExtent(entry.getKey().getRow(), KeyExtent.decodePrevEndRow(entry.getValue()));
-            } catch (Exception ex) {
-                throw new AccumuloException("Unexpected failure finding the last tablet for a merge " + range, ex);
-            }
-        }
-        
-        private void flushChanges(SortedMap<TServerInstance,TabletServerStatus> currentTServers, List<Assignment> assignments, List<Assignment> assigned,
-                List<TabletLocationState> assignedToDeadServers, Map<KeyExtent,TServerInstance> unassigned) throws DistributedStoreException, TException {
-            if (!assignedToDeadServers.isEmpty()) {
-                int maxServersToShow = min(assignedToDeadServers.size(), 100);
-                log.debug(assignedToDeadServers.size() + " assigned to dead servers: " + assignedToDeadServers.subList(0, maxServersToShow) + "...");
-                store.unassign(assignedToDeadServers);
-                nextEvent.event("Marked %d tablets as unassigned because they don't have current servers", assignedToDeadServers.size());
-            }
-            
-            if (!currentTServers.isEmpty()) {
-                Map<KeyExtent,TServerInstance> assignedOut = new HashMap<KeyExtent,TServerInstance>();
-                tabletBalancer.getAssignments(Collections.unmodifiableSortedMap(currentTServers), Collections.unmodifiableMap(unassigned), assignedOut);
-                for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
-                    if (unassigned.containsKey(assignment.getKey())) {
-                        if (assignment.getValue() != null) {
-                            log.debug(store.name() + " assigning tablet " + assignment);
-                            assignments.add(new Assignment(assignment.getKey(), assignment.getValue()));
-                        }
-                    } else {
-                        log.warn(store.name() + " load balancer assigning tablet that was not nominated for assignment " + assignment.getKey());
-                    }
-                }
-                if (!unassigned.isEmpty() && assignedOut.isEmpty()) log.warn("Load balancer failed to assign any tablets");
-            }
-            
-            if (assignments.size() > 0) {
-                log.info(String.format("Assigning %d tablets", assignments.size()));
-                store.setFutureLocations(assignments);
-            }
-            assignments.addAll(assigned);
-            for (Assignment a : assignments) {
-                TServerConnection conn = tserverSet.getConnection(a.server);
-                if (conn != null) {
-                    conn.assignTablet(masterLock, a.tablet);
-                } else {
-                    log.warn("Could not connect to server " + a.server);
-                }
-            }
-        }
-        
+    TableCounts getStats(Text tableId) {
+      return stats.getLast(tableId);
     }
     
-    private class MigrationCleanupThread extends Daemon {
-        
-        public void run() {
-            setName("Migration Cleanup Thread");
-            while (stillMaster()) {
-                if (!migrations.isEmpty()) {
-                    try {
-                        cleanupMutations();
-                    } catch (Exception ex) {
-                        log.error("Error cleaning up migrations", ex);
-                    }
-                }
-                UtilWaitThread.sleep(TIME_BETWEEN_MIGRATION_CLEANUPS);
+    public void run() {
+      
+      Thread.currentThread().setName("Watching " + store.name());
+      int[] oldCounts = new int[TabletState.values().length];
+      EventCoordinator.Listener eventListener = nextEvent.getListener();
+      
+      while (stillMaster()) {
+        int totalUnloaded = 0;
+        int unloaded = 0;
+        try {
+          Map<Text,MergeStats> mergeStatsCache = new HashMap<Text,MergeStats>();
+          
+          // Get the current status for the current list of tservers
+          SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<TServerInstance,TabletServerStatus>();
+          for (TServerInstance entry : tserverSet.getCurrentServers()) {
+            currentTServers.put(entry, tserverStatus.get(entry));
+          }
+          
+          if (currentTServers.size() == 0) {
+            eventListener.waitForEvents(TIME_TO_WAIT_BETWEEN_SCANS);
+            continue;
+          }
+          
+          // Don't move tablets to servers that are shutting down
+          SortedMap<TServerInstance,TabletServerStatus> destinations = new TreeMap<TServerInstance,TabletServerStatus>(currentTServers);
+          destinations.keySet().removeAll(serversToShutdown);
+          
+          List<Assignment> assignments = new ArrayList<Assignment>();
+          List<Assignment> assigned = new ArrayList<Assignment>();
+          List<TabletLocationState> assignedToDeadServers = new ArrayList<TabletLocationState>();
+          Map<KeyExtent,TServerInstance> unassigned = new HashMap<KeyExtent,TServerInstance>();
+          
+          int[] counts = new int[TabletState.values().length];
+          stats.begin();
+          // Walk through the tablets in our store, and work tablets
+          // towards their goal
+          for (TabletLocationState tls : store) {
+            if (tls == null) {
+              continue;
             }
-        }
-        
-        // If a migrating tablet splits, and the tablet dies before sending the
-        // master a message, the migration will refer to a non-existing tablet,
-        // so it can never complete. Periodically scan the metadata table and
-        // remove any migrating tablets that no longer exist.
-        private void cleanupMutations() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-            Connector connector = getConnector();
-            Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-            ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
-            Set<KeyExtent> found = new HashSet<KeyExtent>();
-            for (Entry<Key,Value> entry : scanner) {
-                KeyExtent extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
-                if (migrations.containsKey(extent)) {
-                    found.add(extent);
-                }
-            }
-            Set<KeyExtent> notFound = new HashSet<KeyExtent>(migrations.keySet());
-            notFound.removeAll(found);
-            for (KeyExtent extent : notFound) {
-                log.info("Canceling migration of " + extent + " to " + migrations.get(extent) + ": tablet no longer exists (probably due to a split)");
-                migrations.remove(extent);
-            }
-        }
-    }
-    
-    private class StatusThread extends Daemon {
-        
-        public void run() {
-            setName("Status Thread");
-            EventCoordinator.Listener eventListener = nextEvent.getListener();
-            while (stillMaster()) {
-                int count = 0;
-                long wait = DEFAULT_WAIT_FOR_WATCHER;
-                try {
-                    switch (getMasterGoalState()) {
-                        case NORMAL:
-                            switch (getMasterState()) {
-                                case HAVE_LOCK:
-                                case SAFE_MODE:
-                                    setMasterState(MasterState.NORMAL);
-                                default:
-                                    break;
-                            }
-                            break;
-                        case SAFE_MODE:
-                            if (getMasterState() == MasterState.NORMAL) {
-                                setMasterState(MasterState.SAFE_MODE);
-                            }
-                            break;
-                        case CLEAN_STOP:
-                            switch (getMasterState()) {
-                                case NORMAL:
-                                    setMasterState(MasterState.SAFE_MODE);
-                                    break;
-                                case SAFE_MODE:
-                                    count = nonMetaDataTabletsAssignedOrHosted();
-                                    log.debug(String.format("There are %d non-metadata tablets assigned or hosted", count));
-                                    if (count == 0) setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
-                                    break;
-                                case UNLOAD_METADATA_TABLETS:
-                                    count = assignedOrHosted(METADATA_TABLE_ID);
-                                    log.debug(String.format("There are %d metadata tablets assigned or hosted", count));
-                                    // Assumes last tablet hosted is the root tablet;
-                                    // it's possible
-                                    // that's not the case (root tablet is offline?)
-                                    if (count == 1) setMasterState(MasterState.UNLOAD_ROOT_TABLET);
-                                    break;
-                                case UNLOAD_ROOT_TABLET:
-                                    count = assignedOrHosted(METADATA_TABLE_ID);
-                                    if (count > 0) log.debug(String.format("The root tablet is still assigned or hosted"));
-                                    if (count == 0) {
-                                        Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
-                                        log.debug("stopping " + currentServers.size() + " tablet servers");
-                                        for (TServerInstance server : currentServers) {
-                                            try {
-                                                serversToShutdown.add(server);
-                                                tserverSet.getConnection(server).fastHalt(masterLock);
-                                            } catch (TException e) {
-                                                // its probably down, and we don't care
-                                            } finally {
-                                                tserverSet.remove(server);
-                                            }
-                                        }
-                                        if (currentServers.size() == 0) setMasterState(MasterState.STOP);
-                                    }
-                                    break;
-                                default:
-                                    break;
-                            }
-                    }
-                    wait = updateStatus();
-                    eventListener.waitForEvents(wait);
-                } catch (Throwable t) {
-                    log.error("Error balancing tablets", t);
-                    UtilWaitThread.sleep(WAIT_BETWEEN_ERRORS);
-                }
-            }
-        }
-        
-        private long updateStatus() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-            tserverStatus = Collections.synchronizedSortedMap(gatherTableInformation());
-            checkForHeldServer(tserverStatus);
             
-            if (!badServers.isEmpty()) {
-                log.debug("not balancing because the balance information is out-of-date " + badServers.keySet());
-            } else if (notHosted() > 0) {
-                log.debug("not balancing because there are unhosted tablets");
-            } else if (getMasterGoalState() == MasterGoalState.CLEAN_STOP) {
-                log.debug("not balancing because the master is attempting to stop cleanly");
+            // Don't overwhelm the tablet servers with work
+            if (unassigned.size() + unloaded > MAX_TSERVER_WORK_CHUNK * currentTServers.size()) {
+              flushChanges(destinations, assignments, assigned, assignedToDeadServers, unassigned);
+              assignments.clear();
+              assigned.clear();
+              assignedToDeadServers.clear();
+              unassigned.clear();
+              unloaded = 0;
+              eventListener.waitForEvents(TIME_TO_WAIT_BETWEEN_SCANS);
+            }
+            Text tableId = tls.extent.getTableId();
+            MergeStats mergeStats = mergeStatsCache.get(tableId);
+            if (mergeStats == null) {
+              mergeStatsCache.put(tableId, mergeStats = new MergeStats(getMergeInfo(tableId)));
+            }
+            TabletGoalState goal = getGoalState(tls, mergeStats.info);
+            TServerInstance server = tls.getServer();
+            TabletState state = tls.getState(currentTServers.keySet());
+            stats.update(tableId, state);
+            mergeStats.update(tls.extent, state, tls.chopped);
+            sendChopRequest(mergeStats.info, state, tls);
+            sendSplitRequest(mergeStats.info, state, tls);
+            
+            // Always follow through with assignments
+            if (state == TabletState.ASSIGNED) {
+              goal = TabletGoalState.HOSTED;
+            }
+            
+            if (goal == TabletGoalState.HOSTED) {
+              if (state != TabletState.HOSTED && !tls.walogs.isEmpty()) {
+                if (!recovery.recover(SecurityConstants.getSystemCredentials(), tls.extent, tls.walogs, Master.this)) {
+                  continue;
+                }
+              }
+              switch (state) {
+                case HOSTED:
+                  if (server.equals(migrations.get(tls.extent))) migrations.remove(tls.extent);
+                  break;
+                case ASSIGNED_TO_DEAD_SERVER:
+                  assignedToDeadServers.add(tls);
+                  log.info("Current servers " + currentTServers.keySet());
+                  break;
+                case UNASSIGNED:
+                  // maybe it's a finishing migration
+                  TServerInstance dest = migrations.get(tls.extent);
+                  if (dest != null && destinations.keySet().contains(dest)) {
+                    assignments.add(new Assignment(tls.extent, dest));
+                  } else {
+                    unassigned.put(tls.extent, server);
+                  }
+                  break;
+                case ASSIGNED:
+                  // Send another reminder
+                  assigned.add(new Assignment(tls.extent, tls.future));
+                  break;
+              }
             } else {
-                balanceLoggers();
-                return balanceTablets();
+              switch (state) {
+                case UNASSIGNED:
+                  break;
+                case ASSIGNED_TO_DEAD_SERVER:
+                  assignedToDeadServers.add(tls);
+                  log.info("Current servers " + currentTServers.keySet());
+                  break;
+                case HOSTED:
+                  TServerConnection conn = tserverSet.getConnection(server);
+                  if (conn != null) {
+                    conn.unloadTablet(masterLock, tls.extent, goal != TabletGoalState.DELETED);
+                    unloaded++;
+                    totalUnloaded++;
+                  } else {
+                    log.warn("Could not connect to server " + server);
+                  }
+                  break;
+                case ASSIGNED:
+                  break;
+              }
             }
-            return DEFAULT_WAIT_FOR_WATCHER;
-        }
-        
-        private void checkForHeldServer(SortedMap<TServerInstance,TabletServerStatus> tserverStatus) {
-            TServerInstance instance = null;
-            int crazyHoldTime = 0;
-            int someHoldTime = 0;
-            final long maxWait = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.TSERV_HOLD_TIME_SUICIDE);
-            for (Entry<TServerInstance,TabletServerStatus> entry : tserverStatus.entrySet()) {
-                if (entry.getValue().getHoldTime() > 0) {
-                    someHoldTime++;
-                    if (entry.getValue().getHoldTime() > maxWait) {
-                        instance = entry.getKey();
-                        crazyHoldTime++;
-                    }
-                }
+            counts[state.ordinal()]++;
+          }
+          
+          flushChanges(destinations, assignments, assigned, assignedToDeadServers, unassigned);
+          
+          // provide stats after flushing changes to avoid race conditions w/ delete table
+          stats.end();
+          
+          // Report changes
+          for (TabletState state : TabletState.values()) {
+            int i = state.ordinal();
+            if (counts[i] > 0 && counts[i] != oldCounts[i]) {
+              nextEvent.event("[%s]: %d tablets are %s", store.name(), counts[i], state.name());
             }
-            if (crazyHoldTime == 1 && someHoldTime == 1 && tserverStatus.size() > 1) {
-                log.warn("Tablet server " + instance + " exceeded maximum hold time: attempting to kill it");
-                try {
-                    TServerConnection connection = tserverSet.getConnection(instance);
-                    if (connection != null) connection.fastHalt(masterLock);
-                } catch (TException e) {
-                    log.error(e, e);
-                }
-                tserverSet.remove(instance);
-            }
-        }
-        
-        private void balanceLoggers() {
-            List<LoggerUser> logUsers = new ArrayList<LoggerUser>();
-            for (Entry<TServerInstance,TabletServerStatus> entry : tserverStatus.entrySet()) {
-                logUsers.add(new TServerUsesLoggers(entry.getKey(), entry.getValue()));
-            }
-            List<String> logNames = new ArrayList<String>(loggers.getLoggersFromZooKeeper().values());
-            Map<LoggerUser,List<String>> assignmentsOut = new HashMap<LoggerUser,List<String>>();
-            int loggersPerServer = ServerConfiguration.getSystemConfiguration().getCount(Property.TSERV_LOGGER_COUNT);
-            loggerBalancer.balance(logUsers, logNames, assignmentsOut, loggersPerServer);
-            for (Entry<LoggerUser,List<String>> entry : assignmentsOut.entrySet()) {
-                TServerUsesLoggers tserver = (TServerUsesLoggers) entry.getKey();
-                try {
-                    log.debug("Telling " + tserver.getInstance() + " to use loggers " + entry.getValue());
-                    TServerConnection connection = tserverSet.getConnection(tserver.getInstance());
-                    if (connection != null) connection.useLoggers(new HashSet<String>(entry.getValue()));
-                } catch (Exception ex) {
-                    log.warn("Unable to talk to " + tserver.getInstance(), ex);
-                }
-            }
-        }
-        
-        private long balanceTablets() {
-            List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
-            long wait = tabletBalancer.balance(Collections.unmodifiableSortedMap(tserverStatus), Collections.unmodifiableSet(migrations.keySet()),
-                    migrationsOut);
-            
-            for (TabletMigration m : TabletBalancer.checkMigrationSanity(tserverStatus.keySet(), migrationsOut)) {
-                if (migrations.containsKey(m.tablet)) {
-                    log.warn("balancer requested migration more than once, skipping " + m);
-                    continue;
-                }
-                migrations.put(m.tablet, m.newServer);
-                log.debug("migration " + m);
-            }
-            if (migrationsOut.size() > 0) {
-                nextEvent.event("Migrating %d more tablets, %d total", migrationsOut.size(), migrations.size());
-            }
-            return wait;
-        }
-        
-    }
-    
-    private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation() {
-        long start = System.currentTimeMillis();
-        SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<TServerInstance,TabletServerStatus>();
-        for (TServerInstance server : tserverSet.getCurrentServers()) {
-            try {
-                TabletServerStatus status = tserverSet.getConnection(server).getTableMap();
-                result.put(server, status);
-            } catch (Exception ex) {
-                log.error("unable to get tablet server status " + server);
-                if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
-                    log.warn("attempting to stop " + server);
-                    try {
-                        TServerConnection connection = tserverSet.getConnection(server);
-                        if (connection != null) connection.halt(masterLock);
-                    } catch (TTransportException e) {
-                        // ignore: it's probably down
-                    } catch (Exception e) {
-                        log.info("error talking to troublesome tablet server ", e);
-                    }
-                    badServers.remove(server);
-                    tserverSet.remove(server);
-                }
-            }
-        }
-        log.debug(String.format("Finished gathering information from %d servers in %.2f seconds", result.size(), (System.currentTimeMillis() - start) / 1000.));
-        return result;
-    }
-    
-    public void run() throws IOException, InterruptedException, KeeperException {
-        final String zroot = ZooUtil.getRoot(instance);
-        
-        getMasterLock(zroot + Constants.ZMASTER_LOCK);
-        
-        TableManager.getInstance().addObserver(this);
-        
-        recovery = new CoordinateRecoveryTask(fs);
-        Thread recoveryThread = new Daemon(new LoggingRunnable(log, recovery), "Recovery Status");
-        recoveryThread.start();
-        
-        loggers = new TabletServerLoggers(this, ServerConfiguration.getSystemConfiguration());
-        loggers.scanZooKeeperForUpdates();
-        
-        StatusThread statusThread = new StatusThread();
-        statusThread.start();
-        
-        MigrationCleanupThread migrationCleanupThread = new MigrationCleanupThread();
-        migrationCleanupThread.start();
-        
-        tserverSet.startListeningForTabletServerChanges();
-        
-        final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(this), new MetaDataStateStore(this)};
-        for (int i = 0; i < stores.length; i++) {
-            watchers.add(new TabletGroupWatcher(stores[i]));
-        }
-        for (TabletGroupWatcher watcher : watchers) {
-            watcher.start();
-        }
-        
-        // TODO: add shutdown for fate object
-        try {
-            fate = new Fate<Master>(this, new org.apache.accumulo.server.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
-                    ZooReaderWriter.getInstance()), 4);
-        } catch (KeeperException e) {
-            throw new IOException(e);
-        } catch (InterruptedException e) {
-            throw new IOException(e);
-        }
-        
-        Processor processor = new MasterClientService.Processor(TraceWrap.service(new MasterClientServiceHandler()));
-        clientService = TServerUtils.startServer(Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
-                Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK).server;
-        
-        while (!clientService.isServing()) {
-            UtilWaitThread.sleep(100);
-        }
-        while (clientService.isServing()) {
-            UtilWaitThread.sleep(500);
-        }
-        
-        final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
-        statusThread.join(remaining(deadline));
-        
-        recovery.stop();
-        recoveryThread.join(remaining(deadline));
-        
-        // quit, even if the tablet servers somehow jam up and the watchers
-        // don't stop
-        for (TabletGroupWatcher watcher : watchers) {
-            watcher.join(remaining(deadline));
-        }
-        log.info("exiting");
-    }
-    
-    private long remaining(long deadline) {
-        return Math.max(1, deadline - System.currentTimeMillis());
-    }
-    
-    public ZooLock getMasterLock() {
-        return masterLock;
-    }
-    
-    private void getMasterLock(final String zMasterLoc) throws KeeperException, InterruptedException {
-        log.info("trying to get master lock");
-        LockWatcher masterLockWatcher = new ZooLock.LockWatcher() {
-            public void lostLock(LockLossReason reason) {
-                Halt.halt("Master lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
-            }
-        };
-        long current = System.currentTimeMillis();
-        final long waitTime = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-        final String masterClientAddress = hostname + ":" + ServerConfiguration.getSystemConfiguration().getPort(Property.MASTER_CLIENTPORT);
-        
-        boolean locked = false;
-        while (System.currentTimeMillis() - current < waitTime) {
-            masterLock = new ZooLock(zMasterLoc);
-            if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes())) {
-                locked = true;
-                break;
-            }
-            UtilWaitThread.sleep(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS);
-        }
-        if (!locked) {
-            log.info("Failed to get master lock, even after waiting for session timeout, becoming back-up server");
-            while (true) {
-                masterLock = new ZooLock(zMasterLoc);
-                if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes())) {
-                    break;
-                }
-                UtilWaitThread.sleep(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS);
-            }
-        }
-        setMasterState(MasterState.HAVE_LOCK);
-    }
-    
-    public static void main(String[] args) throws Exception {
-        Master master = new Master(args);
-        master.run();
-    }
-    
-    @Override
-    public void newLogger(String address) {
-        try {
-            RemoteLogger remote = new RemoteLogger(address);
-            for (String onDisk : remote.getClosedLogs()) {
-                Path path = new Path(ServerConstants.getRecoveryDir(), onDisk + ".failed");
-                if (fs.exists(path)) {
-                    fs.delete(path, true);
-                }
-            }
+          }
+          log.debug(String.format("[%s]: scan time %.2f seconds", store.name(), stats.getScanTime() / 1000.));
+          oldCounts = counts;
+          if (totalUnloaded > 0) {
+            nextEvent.event("[%s]: %d tablets unloaded", store.name(), totalUnloaded);
+          }
+          
+          updateMergeState(mergeStatsCache);
+          
+          log.debug(String.format("[%s] sleeping for %.2f seconds", store.name(), TIME_TO_WAIT_BETWEEN_SCANS / 1000.));
+          eventListener.waitForEvents(TIME_TO_WAIT_BETWEEN_SCANS);
         } catch (Exception ex) {
-            log.warn("Unexpected error clearing failed recovery markers for new logger", ex);
+          log.error("Error processing table state for store " + store.name(), ex);
+          UtilWaitThread.sleep(WAIT_BETWEEN_ERRORS);
         }
-        DeadServerList obit = new DeadServerList(ZooUtil.getRoot(instance) + Constants.ZDEADLOGGERS);
-        obit.delete(address);
-        nextEvent.event("Added logger %s", address);
+      }
     }
     
-    static final String I_DONT_KNOW_WHY = "unexpected failure";
-    
-    @Override
-    public void deadLogger(String address) {
-        DeadServerList obit = new DeadServerList(ZooUtil.getRoot(instance) + Constants.ZDEADLOGGERS);
-        InetSocketAddress parseAddress = AddressUtil.parseAddress(address, Property.LOGGER_PORT);
-        String cause = I_DONT_KNOW_WHY;
-        for (TServerInstance server : serversToShutdown) {
-            if (server.getLocation().getHostName().equals(parseAddress.getHostName())) {
-                cause = "clean shutdown";
-                break;
+    private void sendSplitRequest(MergeInfo info, TabletState state, TabletLocationState tls) {
+      // Already split?
+      if (!info.getState().equals(MergeState.SPLITTING)) return;
+      // Merges don't split
+      if (!info.isDelete()) return;
+      // Online and ready to split?
+      if (!state.equals(TabletState.HOSTED)) return;
+      // Does this extent cover the end points of the delete?
+      KeyExtent range = info.getRange();
+      if (tls.extent.overlaps(range)) {
+        for (Text splitPoint : new Text[] {range.getPrevEndRow(), range.getEndRow()}) {
+          if (splitPoint == null) continue;
+          if (!tls.extent.contains(splitPoint)) continue;
+          if (splitPoint.equals(tls.extent.getEndRow())) continue;
+          if (splitPoint.equals(tls.extent.getPrevEndRow())) continue;
+          try {
+            TServerConnection conn;
+            conn = tserverSet.getConnection(tls.current);
+            if (conn != null) {
+              log.info("Asking " + tls.current + " to split " + tls.extent + " at " + splitPoint);
+              conn.splitTablet(masterLock, tls.extent, splitPoint);
+            } else {
+              log.warn("Not connected to server " + tls.current);
             }
+          } catch (Exception e) {
+            log.warn("Error asking tablet server to split a tablet: " + e);
+          }
         }
-        obit.post(address, cause);
-        log.info("Noticed logger went away: " + address);
+      }
     }
     
-    @Override
-    public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
-        DeadServerList obit = new DeadServerList(ZooUtil.getRoot(instance) + Constants.ZDEADTSERVERS);
-        if (added.size() > 0) {
-            log.info("New servers: " + added);
-            for (TServerInstance up : added)
-                obit.delete(up.hostPort());
+    private void sendChopRequest(MergeInfo info, TabletState state, TabletLocationState tls) {
+      // Don't bother if we're in the wrong state
+      if (!info.getState().equals(MergeState.WAITING_FOR_CHOPPED)) return;
+      // Tablet must be online
+      if (!state.equals(TabletState.HOSTED)) return;
+      // Tablet isn't already chopped
+      if (tls.chopped) return;
+      // Tablet ranges intersect
+      if (info.needsToBeChopped(tls.extent)) {
+        TServerConnection conn;
+        try {
+          conn = tserverSet.getConnection(tls.current);
+          if (conn != null) {
+            log.info("Asking " + tls.current + " to chop " + tls.extent);
+            conn.chop(masterLock, tls.extent);
+          } else {
+            log.warn("Could not connect to server " + tls.current);
+          }
+        } catch (TException e) {
+          log.warn("Communications error asking tablet server to chop a tablet");
         }
-        for (TServerInstance dead : deleted) {
-            String cause = I_DONT_KNOW_WHY;
-            if (serversToShutdown.contains(dead)) cause = "clean shutdown"; // maybe an incorrect assumption
-            if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) obit.post(dead.hostPort(), cause);
+      }
+    }
+    
+    private void updateMergeState(Map<Text,MergeStats> mergeStatsCache) {
+      for (MergeStats stats : mergeStatsCache.values()) {
+        MergeState state = stats.info.getState();
+        try {
+          if (state == MergeState.STARTED) {
+            setMergeState(stats.info, state = MergeState.SPLITTING);
+          }
+          if (state == MergeState.SPLITTING) {
+            log.info(stats.hosted + " are hosted, total " + stats.total);
+            if (!stats.info.isDelete() && stats.total == 1) {
+              log.info("Merge range is already contained in a single tablet");
+              setMergeState(stats.info, state = MergeState.COMPLETE);
+            } else if (stats.hosted == stats.total) {
+              if (stats.info.isDelete()) {
+                if (!stats.lowerSplit) log.info("Waiting for " + stats.info + " lower split to occur");
+                else if (!stats.upperSplit) log.info("Waiting for " + stats.info + " upper split to occur");
+                else setMergeState(stats.info, state = MergeState.WAITING_FOR_CHOPPED);
+              } else {
+                setMergeState(stats.info, state = MergeState.WAITING_FOR_CHOPPED);
+              }
+            } else {
+              log.info("Waiting for " + stats.hosted + " hosted tablets to be " + stats.total);
+            }
+          }
+          if (state == MergeState.WAITING_FOR_CHOPPED) {
+            log.info(stats.chopped + " tablets are chopped");
+            if (stats.chopped == stats.needsToBeChopped) {
+              setMergeState(stats.info, state = MergeState.WAITING_FOR_OFFLINE);
+            } else {
+              log.info("Waiting for " + stats.chopped + " chopped tablets to be " + stats.needsToBeChopped);
+            }
+          }
+          if (state == MergeState.WAITING_FOR_OFFLINE) {
+            if (stats.chopped != stats.needsToBeChopped) {
+              log.warn("Unexpected state: chopped tablets should be " + stats.needsToBeChopped + " was " + stats.chopped + " merge " + stats.info.getRange());
+              // Perhaps a split occurred after we chopped, but before we went offline: start over
+              setMergeState(stats.info, state = MergeState.SPLITTING);
+            } else {
+              log.info(stats.chopped + " tablets are chopped, " + stats.unassigned + " are offline");
+              if (stats.unassigned == stats.total && stats.chopped == stats.needsToBeChopped) {
+                setMergeState(stats.info, state = MergeState.MERGING);
+              } else {
+                log.info("Waiting for " + stats.unassigned + " unassigned tablets to be " + stats.total);
+              }
+            }
+          }
+          if (state == MergeState.MERGING) {
+            if (stats.hosted != 0) {
+              // Shouldn't happen
+              log.error("Unexpected state: hosted tablets should be zero " + stats.hosted + " merge " + stats.info.getRange());
+            }
+            if (stats.unassigned != stats.total) {
+              // Shouldn't happen
+              log.error("Unexpected state: unassigned tablets should be " + stats.total + " was " + stats.unassigned + " merge " + stats.info.getRange());
+            }
+            log.info(stats.unassigned + " tablets are unassigned");
+            if (stats.hosted == 0 && stats.unassigned == stats.total) {
+              try {
+                if (stats.info.isDelete()) deleteTablets(stats.info);
+                else mergeMetadataRecords(stats.info);
+                setMergeState(stats.info, state = MergeState.COMPLETE);
+              } catch (Exception ex) {
+                log.error("Unable merge metadata table records", ex);
+              }
+            }
+          }
+          if (state == MergeState.COMPLETE) {
+            setMergeState(stats.info, MergeState.NONE);
+          }
+        } catch (Exception ex) {
+          log.error("Unable to update merge state for merge " + stats.info.getRange(), ex);
+        }
+      }
+    }
+    
+    private void deleteTablets(MergeInfo info) throws AccumuloException {
+      KeyExtent range = info.getRange();
+      log.debug("Deleting tablets for " + range);
+      char timeType = '\0';
+      KeyExtent followingTablet = null;
+      if (range.getEndRow() != null) {
+        Key nextExtent = new Key(range.getEndRow()).followingKey(PartialKey.ROW);
+        followingTablet = getHighTablet(new KeyExtent(range.getTableId(), nextExtent.getRow(), range.getEndRow()));
+        log.debug("Found following tablet " + followingTablet);
+      }
+      try {
+        Connector conn = getConnector();
+        Text start = range.getPrevEndRow();
+        if (start == null) {
+          start = new Text();
+        }
+        log.debug("Making file deletion entries for " + range);
+        Range deleteRange = new Range(KeyExtent.getMetadataEntry(range.getTableId(), start), false, KeyExtent.getMetadataEntry(range.getTableId(),
+            range.getEndRow()), true);
+        Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        scanner.setRange(deleteRange);
+        ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
+        ColumnFQ.fetch(scanner, Constants.METADATA_TIME_COLUMN);
+        scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
+        scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
+        Set<String> datafiles = new TreeSet<String>();
+        for (Entry<Key,Value> entry : scanner) {
+          Key key = entry.getKey();
+          if (key.compareColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY) == 0) {
+            datafiles.add(key.getColumnQualifier().toString());
+            if (datafiles.size() > 1000) {
+              MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
+              datafiles.clear();
+            }
+          } else if (Constants.METADATA_TIME_COLUMN.hasColumns(key)) {
+            timeType = entry.getValue().toString().charAt(0);
+          } else if (key.compareColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
+            throw new IllegalStateException("Tablet " + key.getRow() + " is assigned during a merge!");
+          } else if (Constants.METADATA_DIRECTORY_COLUMN.hasColumns(key)) {
+            datafiles.add(entry.getValue().toString());
+            if (datafiles.size() > 1000) {
+              MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
+              datafiles.clear();
+            }
+          }
+        }
+        MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
+        log.debug("Removing metadata table entries in range " + deleteRange);
+        BatchDeleter bd = conn.createBatchDeleter(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS, 4, 100000l, 1000l, 4);
+        bd.setRanges(Collections.singleton(deleteRange));
+        bd.delete();
+        
+        if (followingTablet != null) {
+          log.debug("Updating prevRow of " + followingTablet + " to " + range.getPrevEndRow());
+          BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000l, 100l, 1);
+          try {
+            Mutation m = new Mutation(followingTablet.getMetadataEntry());
+            ColumnFQ.put(m, Constants.METADATA_PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(range.getPrevEndRow()));
+            bw.addMutation(m);
+            bw.flush();
+          } finally {
+            bw.close();
+          }
+        } else {
+          // Recreate the default tablet to hold the end of the table
+          log.debug("Recreating the last tablet to point to " + range.getPrevEndRow());
+          MetadataTable.addTablet(new KeyExtent(range.getTableId(), null, range.getPrevEndRow()), Constants.DEFAULT_TABLET_LOCATION,
+              SecurityConstants.getSystemCredentials(), timeType, masterLock);
+        }
+      } catch (Exception ex) {
+        throw new AccumuloException(ex);
+      }
+    }
+    
+    private void mergeMetadataRecords(MergeInfo info) throws AccumuloException {
+      KeyExtent range = info.getRange();
+      log.debug("Merging metadata for " + range);
+      KeyExtent stop = getHighTablet(range);
+      log.debug("Highest tablet is " + stop);
+      Value firstPrevRowValue = null;
+      Text stopRow = stop.getMetadataEntry();
+      Text start = range.getPrevEndRow();
+      if (start == null) {
+        start = new Text();
+      }
+      Range scanRange = new Range(KeyExtent.getMetadataEntry(range.getTableId(), start), false, stopRow, true);
+      try {
+        long fileCount = 0;
+        Connector conn = getConnector();
+        // Make file entries in highest tablet
+        BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000000L, 1000L, 1);
+        Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        scanner.setRange(scanRange);
+        ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+        scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
+        Mutation m = new Mutation(stopRow);
+        for (Entry<Key,Value> entry : scanner) {
+          Key key = entry.getKey();
+          Value value = entry.getValue();
+          if (key.getRow().equals(stopRow)) break;
+          if (key.getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
+            m.put(key.getColumnFamily(), key.getColumnQualifier(), value);
+            fileCount++;
+          } else if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(key) && firstPrevRowValue == null) {
+            log.debug("prevRow entry for lowest tablet is " + value);
+            firstPrevRowValue = new Value(value);
+          }
+        }
+        if (!m.getUpdates().isEmpty()) {
+          bw.addMutation(m);
+          bw.flush();
+        }
+        log.debug("Moved " + fileCount + " files to " + stop);
+        
+        if (firstPrevRowValue == null) {
+          log.debug("tablet already merged");
+          return;
         }
         
-        Set<TServerInstance> unexpected = new HashSet<TServerInstance>(deleted);
-        unexpected.removeAll(this.serversToShutdown);
-        if (unexpected.size() > 0) {
-            if (stillMaster() && !getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
-                log.warn("Lost servers " + unexpected);
-            }
-        }
-        serversToShutdown.removeAll(deleted);
-        badServers.keySet().removeAll(deleted);
+        stop.setPrevEndRow(KeyExtent.decodePrevEndRow(firstPrevRowValue));
+        Mutation updatePrevRow = stop.getPrevRowUpdateMutation();
+        log.debug("Setting the prevRow for last tablet: " + stop);
+        bw.addMutation(updatePrevRow);
+        bw.flush();
         
-        synchronized (migrations) {
-            Iterator<Entry<KeyExtent,TServerInstance>> iter = migrations.entrySet().iterator();
-            while (iter.hasNext()) {
-                Entry<KeyExtent,TServerInstance> entry = iter.next();
-                if (deleted.contains(entry.getValue())) {
-                    log.info("Canceling migration of " + entry.getKey() + " to " + entry.getValue());
-                    iter.remove();
-                }
-            }
+        // Delete everything in the other tablets
+        scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        log.debug("Scanning range " + scanRange);
+        scanner.setRange(scanRange);
+        for (Entry<Key,Value> entry : scanner) {
+          Key key = entry.getKey();
+          if (key.getRow().equals(stopRow)) break;
+          if (Constants.METADATA_DIRECTORY_COLUMN.hasColumns(key)) {
+            bw.addMutation(MetadataTable.createDeleteMutation(range.getTableId().toString(), entry.getValue().toString()));
+          }
+          
+          // TODO could group by row
+          m = new Mutation(key.getRow());
+          m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
+          log.debug("deleting entry " + key);
+          bw.addMutation(m);
         }
-        nextEvent.event("There are now %d tablet servers", current.size());
-    }
-    
-    @Override
-    public void stateChanged(String tableId, TableState state) {
-        nextEvent.event("Table state in zookeeper changed for %s to %s", tableId, state);
-    }
-    
-    @Override
-    public void initialize(Map<String,TableState> tableIdToStateMap) {}
-    
-    @Override
-    public void sessionExpired() {}
-    
-    @Override
-    public Set<String> onlineTables() {
-        Set<String> result = new HashSet<String>();
-        if (getMasterState() != MasterState.NORMAL) {
-            if (getMasterState() != MasterState.UNLOAD_METADATA_TABLETS) result.add(Constants.METADATA_TABLE_ID);
-            return result;
-        }
-        TableManager manager = TableManager.getInstance();
+        bw.flush();
         
-        for (String tableId : Tables.getIdToNameMap(instance).keySet()) {
-            TableState state = manager.getTableState(tableId);
-            if (state != null) {
-                if (state == TableState.ONLINE) result.add(tableId);
+        // Clean-up the last chopped marker
+        scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        scanner.fetchColumnFamily(Constants.METADATA_CHOPPED_COLUMN_FAMILY);
+        scanner.setRange(new Range(stopRow, stopRow));
+        for (Entry<Key,Value> entry : scanner) {
+          Key key = entry.getKey();
+          m = new Mutation(key.getRow());
+          m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
+          log.debug("deleting entry " + key);
+          bw.addMutation(m);
+        }
+        bw.flush();
+        
+      } catch (Exception ex) {
+        throw new AccumuloException(ex);
+      }
+    }
+    
+    private KeyExtent getHighTablet(KeyExtent range) throws AccumuloException {
+      try {
+        Connector conn = getConnector();
+        Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+        KeyExtent start = new KeyExtent(range.getTableId(), range.getEndRow(), null);
+        scanner.setRange(new Range(start.getMetadataEntry(), null));
+        Iterator<Entry<Key,Value>> iterator = scanner.iterator();
+        if (!iterator.hasNext()) {
+          throw new AccumuloException("No last tablet for a merge " + range);
+        }
+        Entry<Key,Value> entry = iterator.next();
+        return new KeyExtent(entry.getKey().getRow(), KeyExtent.decodePrevEndRow(entry.getValue()));
+      } catch (Exception ex) {
+        throw new AccumuloException("Unexpected failure finding the last tablet for a merge " + range, ex);
+      }
+    }
+    
+    private void flushChanges(SortedMap<TServerInstance,TabletServerStatus> currentTServers, List<Assignment> assignments, List<Assignment> assigned,
+        List<TabletLocationState> assignedToDeadServers, Map<KeyExtent,TServerInstance> unassigned) throws DistributedStoreException, TException {
+      if (!assignedToDeadServers.isEmpty()) {
+        int maxServersToShow = min(assignedToDeadServers.size(), 100);
+        log.debug(assignedToDeadServers.size() + " assigned to dead servers: " + assignedToDeadServers.subList(0, maxServersToShow) + "...");
+        store.unassign(assignedToDeadServers);
+        nextEvent.event("Marked %d tablets as unassigned because they don't have current servers", assignedToDeadServers.size());
+      }
+      
+      if (!currentTServers.isEmpty()) {
+        Map<KeyExtent,TServerInstance> assignedOut = new HashMap<KeyExtent,TServerInstance>();
+        tabletBalancer.getAssignments(Collections.unmodifiableSortedMap(currentTServers), Collections.unmodifiableMap(unassigned), assignedOut);
+        for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
+          if (unassigned.containsKey(assignment.getKey())) {
+            if (assignment.getValue() != null) {
+              log.debug(store.name() + " assigning tablet " + assignment);
+              assignments.add(new Assignment(assignment.getKey(), assignment.getValue()));
             }
+          } else {
+            log.warn(store.name() + " load balancer assigning tablet that was not nominated for assignment " + assignment.getKey());
+          }
         }
-        return result;
-    }
-    
-    @Override
-    public Set<TServerInstance> onlineTabletServers() {
-        return tserverSet.getCurrentServers();
-    }
-    
-    public Map<String,String> getLoggers() {
-        return loggers.getLoggersFromZooKeeper();
-    }
-    
-    @Override
-    public Collection<MergeInfo> merges() {
-        List<MergeInfo> result = new ArrayList<MergeInfo>();
-        for (String tableId : Tables.getIdToNameMap(instance).keySet()) {
-            result.add(getMergeInfo(new Text(tableId)));
+        if (!unassigned.isEmpty() && assignedOut.isEmpty()) log.warn("Load balancer failed to assign any tablets");
+      }
+      
+      if (assignments.size() > 0) {
+        log.info(String.format("Assigning %d tablets", assignments.size()));
+        store.setFutureLocations(assignments);
+      }
+      assignments.addAll(assigned);
+      for (Assignment a : assignments) {
+        TServerConnection conn = tserverSet.getConnection(a.server);
+        if (conn != null) {
+          conn.assignTablet(masterLock, a.tablet);
+        } else {
+          log.warn("Could not connect to server " + a.server);
         }
-        return result;
+      }
     }
     
-    @Override
-    public void finished(LogFile entry) {
-        nextEvent.event("Log recovery %s complete ", entry);
+  }
+  
+  private class MigrationCleanupThread extends Daemon {
+    
+    public void run() {
+      setName("Migration Cleanup Thread");
+      while (stillMaster()) {
+        if (!migrations.isEmpty()) {
+          try {
+            cleanupMutations();
+          } catch (Exception ex) {
+            log.error("Error cleaning up migrations", ex);
+          }
+        }
+        UtilWaitThread.sleep(TIME_BETWEEN_MIGRATION_CLEANUPS);
+      }
     }
     
-    public void killTServer(TServerInstance server) {
-        nextEvent.event("Forcing server down %s", server);
-        serversToShutdown.add(server);
+    // If a migrating tablet splits, and the tablet dies before sending the
+    // master a message, the migration will refer to a non-existing tablet,
+    // so it can never complete. Periodically scan the metadata table and
+    // remove any migrating tablets that no longer exist.
+    private void cleanupMutations() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      Connector connector = getConnector();
+      Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+      ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+      Set<KeyExtent> found = new HashSet<KeyExtent>();
+      for (Entry<Key,Value> entry : scanner) {
+        KeyExtent extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
+        if (migrations.containsKey(extent)) {
+          found.add(extent);
+        }
+      }
+      Set<KeyExtent> notFound = new HashSet<KeyExtent>(migrations.keySet());
+      notFound.removeAll(found);
+      for (KeyExtent extent : notFound) {
+        log.info("Canceling migration of " + extent + " to " + migrations.get(extent) + ": tablet no longer exists (probably due to a split)");
+        migrations.remove(extent);
+      }
+    }
+  }
+  
+  private class StatusThread extends Daemon {
+    
+    public void run() {
+      setName("Status Thread");
+      EventCoordinator.Listener eventListener = nextEvent.getListener();
+      while (stillMaster()) {
+        int count = 0;
+        long wait = DEFAULT_WAIT_FOR_WATCHER;
+        try {
+          switch (getMasterGoalState()) {
+            case NORMAL:
+              switch (getMasterState()) {
+                case HAVE_LOCK:
+                case SAFE_MODE:
+                  setMasterState(MasterState.NORMAL);
+                default:
+                  break;
+              }
+              break;
+            case SAFE_MODE:
+              if (getMasterState() == MasterState.NORMAL) {
+                setMasterState(MasterState.SAFE_MODE);
+              }
+              break;
+            case CLEAN_STOP:
+              switch (getMasterState()) {
+                case NORMAL:
+                  setMasterState(MasterState.SAFE_MODE);
+                  break;
+                case SAFE_MODE:
+                  count = nonMetaDataTabletsAssignedOrHosted();
+                  log.debug(String.format("There are %d non-metadata tablets assigned or hosted", count));
+                  if (count == 0) setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
+                  break;
+                case UNLOAD_METADATA_TABLETS:
+                  count = assignedOrHosted(METADATA_TABLE_ID);
+                  log.debug(String.format("There are %d metadata tablets assigned or hosted", count));
+                  // Assumes last tablet hosted is the root tablet;
+                  // it's possible
+                  // that's not the case (root tablet is offline?)
+                  if (count == 1) setMasterState(MasterState.UNLOAD_ROOT_TABLET);
+                  break;
+                case UNLOAD_ROOT_TABLET:
+                  count = assignedOrHosted(METADATA_TABLE_ID);
+                  if (count > 0) log.debug(String.format("The root tablet is still assigned or hosted"));
+                  if (count == 0) {
+                    Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
+                    log.debug("stopping " + currentServers.size() + " tablet servers");
+                    for (TServerInstance server : currentServers) {
+                      try {
+                        serversToShutdown.add(server);
+                        tserverSet.getConnection(server).fastHalt(masterLock);
+                      } catch (TException e) {
+                        // its probably down, and we don't care
+                      } finally {
+                        tserverSet.remove(server);
+                      }
+                    }
+                    if (currentServers.size() == 0) setMasterState(MasterState.STOP);
+                  }
+                  break;
+                default:
+                  break;
+              }
+          }
+          wait = updateStatus();
+          eventListener.waitForEvents(wait);
+        } catch (Throwable t) {
+          log.error("Error balancing tablets", t);
+          UtilWaitThread.sleep(WAIT_BETWEEN_ERRORS);
+        }
+      }
     }
     
-    // recovers state from the persistent transaction to shutdown a server
-    public void shutdownTServer(TServerInstance server) {
-        nextEvent.event("Tablet Server shutdown requested for %s", server);
-        serversToShutdown.add(server);
+    private long updateStatus() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      tserverStatus = Collections.synchronizedSortedMap(gatherTableInformation());
+      checkForHeldServer(tserverStatus);
+      
+      if (!badServers.isEmpty()) {
+        log.debug("not balancing because the balance information is out-of-date " + badServers.keySet());
+      } else if (notHosted() > 0) {
+        log.debug("not balancing because there are unhosted tablets");
+      } else if (getMasterGoalState() == MasterGoalState.CLEAN_STOP) {
+        log.debug("not balancing because the master is attempting to stop cleanly");
+      } else {
+        balanceLoggers();
+        return balanceTablets();
+      }
+      return DEFAULT_WAIT_FOR_WATCHER;
     }
     
-    public EventCoordinator getEventCoordinator() {
-        return nextEvent;
+    private void checkForHeldServer(SortedMap<TServerInstance,TabletServerStatus> tserverStatus) {
+      TServerInstance instance = null;
+      int crazyHoldTime = 0;
+      int someHoldTime = 0;
+      final long maxWait = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.TSERV_HOLD_TIME_SUICIDE);
+      for (Entry<TServerInstance,TabletServerStatus> entry : tserverStatus.entrySet()) {
+        if (entry.getValue().getHoldTime() > 0) {
+          someHoldTime++;
+          if (entry.getValue().getHoldTime() > maxWait) {
+            instance = entry.getKey();
+            crazyHoldTime++;
+          }
+        }
+      }
+      if (crazyHoldTime == 1 && someHoldTime == 1 && tserverStatus.size() > 1) {
+        log.warn("Tablet server " + instance + " exceeded maximum hold time: attempting to kill it");
+        try {
+          TServerConnection connection = tserverSet.getConnection(instance);
+          if (connection != null) connection.fastHalt(masterLock);
+        } catch (TException e) {
+          log.error(e, e);
+        }
+        tserverSet.remove(instance);
+      }
     }
     
-    public Instance getInstance() {
-        return this.instance;
+    private void balanceLoggers() {
+      List<LoggerUser> logUsers = new ArrayList<LoggerUser>();
+      for (Entry<TServerInstance,TabletServerStatus> entry : tserverStatus.entrySet()) {
+        logUsers.add(new TServerUsesLoggers(entry.getKey(), entry.getValue()));
+      }
+      List<String> logNames = new ArrayList<String>(loggers.getLoggersFromZooKeeper().values());
+      Map<LoggerUser,List<String>> assignmentsOut = new HashMap<LoggerUser,List<String>>();
+      int loggersPerServer = ServerConfiguration.getSystemConfiguration().getCount(Property.TSERV_LOGGER_COUNT);
+      loggerBalancer.balance(logUsers, logNames, assignmentsOut, loggersPerServer);
+      for (Entry<LoggerUser,List<String>> entry : assignmentsOut.entrySet()) {
+        TServerUsesLoggers tserver = (TServerUsesLoggers) entry.getKey();
+        try {
+          log.debug("Telling " + tserver.getInstance() + " to use loggers " + entry.getValue());
+          TServerConnection connection = tserverSet.getConnection(tserver.getInstance());
+          if (connection != null) connection.useLoggers(new HashSet<String>(entry.getValue()));
+        } catch (Exception ex) {
+          log.warn("Unable to talk to " + tserver.getInstance(), ex);
+        }
+      }
     }
     
+    private long balanceTablets() {
+      List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
+      long wait = tabletBalancer.balance(Collections.unmodifiableSortedMap(tserverStatus), Collections.unmodifiableSet(migrations.keySet()), migrationsOut);
+      
+      for (TabletMigration m : TabletBalancer.checkMigrationSanity(tserverStatus.keySet(), migrationsOut)) {
+        if (migrations.containsKey(m.tablet)) {
+          log.warn("balancer requested migration more than once, skipping " + m);
+          continue;
+        }
+        migrations.put(m.tablet, m.newServer);
+        log.debug("migration " + m);
+      }
+      if (migrationsOut.size() > 0) {
+        nextEvent.event("Migrating %d more tablets, %d total", migrationsOut.size(), migrations.size());
+      }
+      return wait;
+    }
+    
+  }
+  
+  private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation() {
+    long start = System.currentTimeMillis();
+    SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<TServerInstance,TabletServerStatus>();
+    for (TServerInstance server : tserverSet.getCurrentServers()) {
+      try {
+        TabletServerStatus status = tserverSet.getConnection(server).getTableMap();
+        result.put(server, status);
+      } catch (Exception ex) {
+        log.error("unable to get tablet server status " + server);
+        if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
+          log.warn("attempting to stop " + server);
+          try {
+            TServerConnection connection = tserverSet.getConnection(server);
+            if (connection != null) connection.halt(masterLock);
+          } catch (TTransportException e) {
+            // ignore: it's probably down
+          } catch (Exception e) {
+            log.info("error talking to troublesome tablet server ", e);
+          }
+          badServers.remove(server);
+          tserverSet.remove(server);
+        }
+      }
+    }
+    log.debug(String.format("Finished gathering information from %d servers in %.2f seconds", result.size(), (System.currentTimeMillis() - start) / 1000.));
+    return result;
+  }
+  
+  public void run() throws IOException, InterruptedException, KeeperException {
+    final String zroot = ZooUtil.getRoot(instance);
+    
+    getMasterLock(zroot + Constants.ZMASTER_LOCK);
+    
+    TableManager.getInstance().addObserver(this);
+    
+    recovery = new CoordinateRecoveryTask(fs);
+    Thread recoveryThread = new Daemon(new LoggingRunnable(log, recovery), "Recovery Status");
+    recoveryThread.start();
+    
+    loggers = new TabletServerLoggers(this, ServerConfiguration.getSystemConfiguration());
+    loggers.scanZooKeeperForUpdates();
+    
+    StatusThread statusThread = new StatusThread();
+    statusThread.start();
+    
+    MigrationCleanupThread migrationCleanupThread = new MigrationCleanupThread();
+    migrationCleanupThread.start();
+    
+    tserverSet.startListeningForTabletServerChanges();
+    
+    final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(this), new MetaDataStateStore(this)};
+    for (int i = 0; i < stores.length; i++) {
+      watchers.add(new TabletGroupWatcher(stores[i]));
+    }
+    for (TabletGroupWatcher watcher : watchers) {
+      watcher.start();
+    }
+    
+    // TODO: add shutdown for fate object
+    try {
+      fate = new Fate<Master>(this, new org.apache.accumulo.server.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
+          ZooReaderWriter.getInstance()), 4);
+    } catch (KeeperException e) {
+      throw new IOException(e);
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    }
+    
+    Processor processor = new MasterClientService.Processor(TraceWrap.service(new MasterClientServiceHandler()));
+    clientService = TServerUtils.startServer(Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
+        Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK).server;
+    
+    while (!clientService.isServing()) {
+      UtilWaitThread.sleep(100);
+    }
+    while (clientService.isServing()) {
+      UtilWaitThread.sleep(500);
+    }
+    
+    final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
+    statusThread.join(remaining(deadline));
+    
+    recovery.stop();
+    recoveryThread.join(remaining(deadline));
+    
+    // quit, even if the tablet servers somehow jam up and the watchers
+    // don't stop
+    for (TabletGroupWatcher watcher : watchers) {
+      watcher.join(remaining(deadline));
+    }
+    log.info("exiting");
+  }
+  
+  private long remaining(long deadline) {
+    return Math.max(1, deadline - System.currentTimeMillis());
+  }
+  
+  public ZooLock getMasterLock() {
+    return masterLock;
+  }
+  
+  private void getMasterLock(final String zMasterLoc) throws KeeperException, InterruptedException {
+    log.info("trying to get master lock");
+    LockWatcher masterLockWatcher = new ZooLock.LockWatcher() {
+      public void lostLock(LockLossReason reason) {
+        Halt.halt("Master lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+      }
+    };
+    long current = System.currentTimeMillis();
+    final long waitTime = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    final String masterClientAddress = hostname + ":" + ServerConfiguration.getSystemConfiguration().getPort(Property.MASTER_CLIENTPORT);
+    
+    boolean locked = false;
+    while (System.currentTimeMillis() - current < waitTime) {
+      masterLock = new ZooLock(zMasterLoc);
+      if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes())) {
+        locked = true;
+        break;
+      }
+      UtilWaitThread.sleep(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS);
+    }
+    if (!locked) {
+      log.info("Failed to get master lock, even after waiting for session timeout, becoming back-up server");
+      while (true) {
+        masterLock = new ZooLock(zMasterLoc);
+        if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes())) {
+          break;
+        }
+        UtilWaitThread.sleep(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS);
+      }
+    }
+    setMasterState(MasterState.HAVE_LOCK);
+  }
+  
+  public static void main(String[] args) throws Exception {
+    Master master = new Master(args);
+    master.run();
+  }
+  
+  @Override
+  public void newLogger(String address) {
+    try {
+      RemoteLogger remote = new RemoteLogger(address);
+      for (String onDisk : remote.getClosedLogs()) {
+        Path path = new Path(ServerConstants.getRecoveryDir(), onDisk + ".failed");
+        if (fs.exists(path)) {
+          fs.delete(path, true);
+        }
+      }
+    } catch (Exception ex) {
+      log.warn("Unexpected error clearing failed recovery markers for new logger", ex);
+    }
+    DeadServerList obit = new DeadServerList(ZooUtil.getRoot(instance) + Constants.ZDEADLOGGERS);
+    obit.delete(address);
+    nextEvent.event("Added logger %s", address);
+  }
+  
+  static final String I_DONT_KNOW_WHY = "unexpected failure";
+  
+  @Override
+  public void deadLogger(String address) {
+    DeadServerList obit = new DeadServerList(ZooUtil.getRoot(instance) + Constants.ZDEADLOGGERS);
+    InetSocketAddress parseAddress = AddressUtil.parseAddress(address, Property.LOGGER_PORT);
+    String cause = I_DONT_KNOW_WHY;
+    for (TServerInstance server : serversToShutdown) {
+      if (server.getLocation().getHostName().equals(parseAddress.getHostName())) {
+        cause = "clean shutdown";
+        break;
+      }
+    }
+    obit.post(address, cause);
+    log.info("Noticed logger went away: " + address);
+  }
+  
+  @Override
+  public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
+    DeadServerList obit = new DeadServerList(ZooUtil.getRoot(instance) + Constants.ZDEADTSERVERS);
+    if (added.size() > 0) {
+      log.info("New servers: " + added);
+      for (TServerInstance up : added)
+        obit.delete(up.hostPort());
+    }
+    for (TServerInstance dead : deleted) {
+      String cause = I_DONT_KNOW_WHY;
+      if (serversToShutdown.contains(dead)) cause = "clean shutdown"; // maybe an incorrect assumption
+      if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) obit.post(dead.hostPort(), cause);
+    }
+    
+    Set<TServerInstance> unexpected = new HashSet<TServerInstance>(deleted);
+    unexpected.removeAll(this.serversToShutdown);
+    if (unexpected.size() > 0) {
+      if (stillMaster() && !getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) {
+        log.warn("Lost servers " + unexpected);
+      }
+    }
+    serversToShutdown.removeAll(deleted);
+    badServers.keySet().removeAll(deleted);
+    
+    synchronized (migrations) {
+      Iterator<Entry<KeyExtent,TServerInstance>> iter = migrations.entrySet().iterator();
+      while (iter.hasNext()) {
+        Entry<KeyExtent,TServerInstance> entry = iter.next();
+        if (deleted.contains(entry.getValue())) {
+          log.info("Canceling migration of " + entry.getKey() + " to " + entry.getValue());
+          iter.remove();
+        }
+      }
+    }
+    nextEvent.event("There are now %d tablet servers", current.size());
+  }
+  
+  @Override
+  public void stateChanged(String tableId, TableState state) {
+    nextEvent.event("Table state in zookeeper changed for %s to %s", tableId, state);
+  }
+  
+  @Override
+  public void initialize(Map<String,TableState> tableIdToStateMap) {}
+  
+  @Override
+  public void sessionExpired() {}
+  
+  @Override
+  public Set<String> onlineTables() {
+    Set<String> result = new HashSet<String>();
+    if (getMasterState() != MasterState.NORMAL) {
+      if (getMasterState() != MasterState.UNLOAD_METADATA_TABLETS) result.add(Constants.METADATA_TABLE_ID);
+      return result;
+    }
+    TableManager manager = TableManager.getInstance();
+    
+    for (String tableId : Tables.getIdToNameMap(instance).keySet()) {
+      TableState state = manager.getTableState(tableId);
+      if (state != null) {
+        if (state == TableState.ONLINE) result.add(tableId);
+      }
+    }
+    return result;
+  }
+  
+  @Override
+  public Set<TServerInstance> onlineTabletServers() {
+    return tserverSet.getCurrentServers();
+  }
+  
+  public Map<String,String> getLoggers() {
+    return loggers.getLoggersFromZooKeeper();
+  }
+  
+  @Override
+  public Collection<MergeInfo> merges() {
+    List<MergeInfo> result = new ArrayList<MergeInfo>();
+    for (String tableId : Tables.getIdToNameMap(instance).keySet()) {
+      result.add(getMergeInfo(new Text(tableId)));
+    }
+    return result;
+  }
+  
+  @Override
+  public void finished(LogFile entry) {
+    nextEvent.event("Log recovery %s complete ", entry);
+  }
+  
+  public void killTServer(TServerInstance server) {
+    nextEvent.event("Forcing server down %s", server);
+    serversToShutdown.add(server);
+  }
+  
+  // recovers state from the persistent transaction to shutdown a server
+  public void shutdownTServer(TServerInstance server) {
+    nextEvent.event("Tablet Server shutdown requested for %s", server);
+    serversToShutdown.add(server);
+  }
+  
+  public EventCoordinator getEventCoordinator() {
+    return nextEvent;
+  }
+  
+  public Instance getInstance() {
+    return this.instance;
+  }
+  
 }

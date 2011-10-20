@@ -32,74 +32,74 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 
 public class TabletServerLoggers implements Watcher {
+  
+  private static final Logger log = Logger.getLogger(TabletServerLoggers.class);
+  
+  // Map from zookeeper path to address
+  private Map<String,String> names = new HashMap<String,String>();
+  
+  private ZooCache cache;
+  private LoggerWatcher watcher;
+  
+  interface LoggerWatcher {
+    void newLogger(String address);
     
-    private static final Logger log = Logger.getLogger(TabletServerLoggers.class);
-    
-    // Map from zookeeper path to address
-    private Map<String,String> names = new HashMap<String,String>();
-    
-    private ZooCache cache;
-    private LoggerWatcher watcher;
-    
-    interface LoggerWatcher {
-        void newLogger(String address);
-        
-        void deadLogger(String address);
+    void deadLogger(String address);
+  }
+  
+  public TabletServerLoggers(LoggerWatcher watcher, AccumuloConfiguration conf) {
+    cache = new ZooCache(conf, this);
+    this.watcher = watcher;
+  }
+  
+  private String loggerPath() {
+    return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZLOGGERS;
+  }
+  
+  synchronized public Map<String,String> getLoggersFromZooKeeper() {
+    String path = loggerPath();
+    Map<String,String> current = new HashMap<String,String>();
+    for (String child : cache.getChildren(path)) {
+      byte[] value = cache.get(path + "/" + child);
+      if (value != null) current.put(child, new String(value));
     }
-    
-    public TabletServerLoggers(LoggerWatcher watcher, AccumuloConfiguration conf) {
-        cache = new ZooCache(conf, this);
-        this.watcher = watcher;
+    return current;
+  }
+  
+  synchronized public void scanZooKeeperForUpdates() {
+    Map<String,String> current = getLoggersFromZooKeeper();
+    if (log.isDebugEnabled()) {
+      if (current.entrySet().size() < 100) {
+        for (Entry<String,String> entry : current.entrySet())
+          log.debug("looking at logger " + entry.getKey() + " -> " + entry.getValue());
+      } else {
+        log.debug("looking at " + current.entrySet().size() + " loggers");
+      }
     }
-    
-    private String loggerPath() {
-        return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZLOGGERS;
+    Set<String> currentAddresses = new HashSet<String>(current.values());
+    Set<String> deleted = new HashSet<String>(names.keySet());
+    deleted.removeAll(current.keySet());
+    Set<String> new_ = new HashSet<String>(current.keySet());
+    new_.removeAll(names.keySet());
+    for (String logger : deleted) {
+      String address = names.get(logger);
+      if (!currentAddresses.contains(address)) {
+        watcher.deadLogger(address);
+      }
     }
-    
-    synchronized public Map<String,String> getLoggersFromZooKeeper() {
-        String path = loggerPath();
-        Map<String,String> current = new HashMap<String,String>();
-        for (String child : cache.getChildren(path)) {
-            byte[] value = cache.get(path + "/" + child);
-            if (value != null) current.put(child, new String(value));
-        }
-        return current;
+    for (String logger : new_) {
+      String address = current.get(logger);
+      watcher.newLogger(address);
     }
-    
-    synchronized public void scanZooKeeperForUpdates() {
-        Map<String,String> current = getLoggersFromZooKeeper();
-        if (log.isDebugEnabled()) {
-            if (current.entrySet().size() < 100) {
-                for (Entry<String,String> entry : current.entrySet())
-                    log.debug("looking at logger " + entry.getKey() + " -> " + entry.getValue());
-            } else {
-                log.debug("looking at " + current.entrySet().size() + " loggers");
-            }
-        }
-        Set<String> currentAddresses = new HashSet<String>(current.values());
-        Set<String> deleted = new HashSet<String>(names.keySet());
-        deleted.removeAll(current.keySet());
-        Set<String> new_ = new HashSet<String>(current.keySet());
-        new_.removeAll(names.keySet());
-        for (String logger : deleted) {
-            String address = names.get(logger);
-            if (!currentAddresses.contains(address)) {
-                watcher.deadLogger(address);
-            }
-        }
-        for (String logger : new_) {
-            String address = current.get(logger);
-            watcher.newLogger(address);
-        }
-        names = current;
+    names = current;
+  }
+  
+  @Override
+  public void process(WatchedEvent event) {
+    try {
+      scanZooKeeperForUpdates();
+    } catch (Exception ex) {
+      log.info("Got exception scanning zookeeper", ex);
     }
-    
-    @Override
-    public void process(WatchedEvent event) {
-        try {
-            scanZooKeeperForUpdates();
-        } catch (Exception ex) {
-            log.info("Got exception scanning zookeeper", ex);
-        }
-    }
+  }
 }

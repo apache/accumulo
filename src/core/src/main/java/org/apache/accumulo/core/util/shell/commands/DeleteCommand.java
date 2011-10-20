@@ -33,56 +33,56 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class DeleteCommand extends Command {
-    private Option deleteOptAuths, timestampOpt;
+  private Option deleteOptAuths, timestampOpt;
+  
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      IOException, ConstraintViolationException {
+    shellState.checkTableState();
     
-    public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-            IOException, ConstraintViolationException {
-        shellState.checkTableState();
-        
-        Mutation m = new Mutation(new Text(cl.getArgs()[0]));
-        
-        if (cl.hasOption(deleteOptAuths.getOpt())) {
-            ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(deleteOptAuths.getOpt()));
-            if (cl.hasOption(timestampOpt.getOpt())) m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le,
-                    Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
-            else m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le);
-        } else if (cl.hasOption(timestampOpt.getOpt())) m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]),
-                Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
-        else m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]));
-        
-        BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), m.estimatedMemoryUsed() + 0L, 0L, 1);
-        bw.addMutation(m);
-        bw.close();
-        return 0;
-    }
+    Mutation m = new Mutation(new Text(cl.getArgs()[0]));
     
-    @Override
-    public String description() {
-        return "deletes a record from a table";
-    }
+    if (cl.hasOption(deleteOptAuths.getOpt())) {
+      ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(deleteOptAuths.getOpt()));
+      if (cl.hasOption(timestampOpt.getOpt())) m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le,
+          Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
+      else m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le);
+    } else if (cl.hasOption(timestampOpt.getOpt())) m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]),
+        Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
+    else m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]));
     
-    @Override
-    public String usage() {
-        return getName() + " <row> <colfamily> <colqualifier>";
-    }
+    BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), m.estimatedMemoryUsed() + 0L, 0L, 1);
+    bw.addMutation(m);
+    bw.close();
+    return 0;
+  }
+  
+  @Override
+  public String description() {
+    return "deletes a record from a table";
+  }
+  
+  @Override
+  public String usage() {
+    return getName() + " <row> <colfamily> <colqualifier>";
+  }
+  
+  @Override
+  public Options getOptions() {
+    Options o = new Options();
     
-    @Override
-    public Options getOptions() {
-        Options o = new Options();
-        
-        deleteOptAuths = new Option("l", "authorization-label", true, "formatted authorization label expression");
-        deleteOptAuths.setArgName("expression");
-        o.addOption(deleteOptAuths);
-        
-        timestampOpt = new Option("t", "timestamp", true, "timestamp to use for insert");
-        timestampOpt.setArgName("timestamp");
-        o.addOption(timestampOpt);
-        
-        return o;
-    }
+    deleteOptAuths = new Option("l", "authorization-label", true, "formatted authorization label expression");
+    deleteOptAuths.setArgName("expression");
+    o.addOption(deleteOptAuths);
     
-    @Override
-    public int numArgs() {
-        return 3;
-    }
+    timestampOpt = new Option("t", "timestamp", true, "timestamp to use for insert");
+    timestampOpt.setArgName("timestamp");
+    o.addOption(timestampOpt);
+    
+    return o;
+  }
+  
+  @Override
+  public int numArgs() {
+    return 3;
+  }
 }

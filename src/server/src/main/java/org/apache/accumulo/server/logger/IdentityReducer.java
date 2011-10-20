@@ -22,7 +22,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 
 // No longer needed after hadoop 0.20.1 
 public class IdentityReducer extends Reducer<WritableComparable<?>,Writable,WritableComparable<?>,Writable> {
-    public IdentityReducer() {
-        super();
-    }
+  public IdentityReducer() {
+    super();
+  }
 }

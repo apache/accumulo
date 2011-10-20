@@ -42,236 +42,236 @@ import org.apache.hadoop.io.Text;
  * This iterator works in a similar way to the RowDeletingIterator. See its javadoc about locality groups.
  */
 public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
-    
-    public static final Value SUPPRESS_ROW_VALUE = new Value("SUPPRESS_ROW".getBytes());
-    
-    private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[] {});
-    
-    /* key into hash map, value refers to the row supression limit (maxColumns) */
-    public static final String MAX_COLUMNS = "max_columns";
-    
-    private SortedKeyValueIterator<Key,Value> source;
-    
-    // a cache of keys
-    private ArrayList<Key> keys = new ArrayList<Key>();
-    private ArrayList<Value> values = new ArrayList<Value>();
-    
-    private int currentPosition;
-    
-    private int maxColumns;
-    
-    private boolean propogateSuppression = false;
-    
-    private Range range;
-    private Collection<ByteSequence> columnFamilies;
-    private boolean inclusive;
-    private boolean dropEmptyColFams;
-    
-    private boolean isSuppressionMarker(Key key, Value val) {
-        return key.getColumnFamilyData().length() == 0 && key.getColumnQualifierData().length() == 0 && key.getColumnVisibilityData().length() == 0
-                && val.equals(SUPPRESS_ROW_VALUE);
+  
+  public static final Value SUPPRESS_ROW_VALUE = new Value("SUPPRESS_ROW".getBytes());
+  
+  private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[] {});
+  
+  /* key into hash map, value refers to the row supression limit (maxColumns) */
+  public static final String MAX_COLUMNS = "max_columns";
+  
+  private SortedKeyValueIterator<Key,Value> source;
+  
+  // a cache of keys
+  private ArrayList<Key> keys = new ArrayList<Key>();
+  private ArrayList<Value> values = new ArrayList<Value>();
+  
+  private int currentPosition;
+  
+  private int maxColumns;
+  
+  private boolean propogateSuppression = false;
+  
+  private Range range;
+  private Collection<ByteSequence> columnFamilies;
+  private boolean inclusive;
+  private boolean dropEmptyColFams;
+  
+  private boolean isSuppressionMarker(Key key, Value val) {
+    return key.getColumnFamilyData().length() == 0 && key.getColumnQualifierData().length() == 0 && key.getColumnVisibilityData().length() == 0
+        && val.equals(SUPPRESS_ROW_VALUE);
+  }
+  
+  private void reseek(Key key) throws IOException {
+    if (range.afterEndKey(key)) {
+      range = new Range(range.getEndKey(), true, range.getEndKey(), range.isEndKeyInclusive());
+      source.seek(range, columnFamilies, inclusive);
+    } else {
+      range = new Range(key, true, range.getEndKey(), range.isEndKeyInclusive());
+      source.seek(range, columnFamilies, inclusive);
     }
+  }
+  
+  private void consumeRow(ByteSequence row) throws IOException {
+    // try reading a few and if still not to next row, then seek
+    int count = 0;
     
-    private void reseek(Key key) throws IOException {
-        if (range.afterEndKey(key)) {
-            range = new Range(range.getEndKey(), true, range.getEndKey(), range.isEndKeyInclusive());
-            source.seek(range, columnFamilies, inclusive);
-        } else {
-            range = new Range(key, true, range.getEndKey(), range.isEndKeyInclusive());
-            source.seek(range, columnFamilies, inclusive);
-        }
+    while (source.hasTop() && source.getTopKey().getRowData().equals(row)) {
+      source.next();
+      count++;
+      if (count >= 10) {
+        Key nextRowStart = new Key(new Text(row.toArray())).followingKey(PartialKey.ROW);
+        reseek(nextRowStart);
+        count = 0;
+      }
     }
+  }
+  
+  private void addKeyValue(Key k, Value v) {
+    if (dropEmptyColFams && k.getColumnFamilyData().equals(EMPTY)) {
+      return;
+    }
+    keys.add(new Key(k));
+    values.add(new Value(v));
+  }
+  
+  private void bufferNextRow() throws IOException {
     
-    private void consumeRow(ByteSequence row) throws IOException {
-        // try reading a few and if still not to next row, then seek
-        int count = 0;
+    keys.clear();
+    values.clear();
+    currentPosition = 0;
+    
+    while (source.hasTop() && keys.size() == 0) {
+      
+      addKeyValue(source.getTopKey(), source.getTopValue());
+      
+      if (isSuppressionMarker(source.getTopKey(), source.getTopValue())) {
         
-        while (source.hasTop() && source.getTopKey().getRowData().equals(row)) {
+        consumeRow(source.getTopKey().getRowData());
+        
+      } else {
+        
+        ByteSequence currentRow = keys.get(0).getRowData();
+        source.next();
+        
+        while (source.hasTop() && source.getTopKey().getRowData().equals(currentRow)) {
+          
+          addKeyValue(source.getTopKey(), source.getTopValue());
+          
+          if (keys.size() > maxColumns) {
+            keys.clear();
+            values.clear();
+            
+            // when the row is to big, just emit a suppression
+            // marker
+            addKeyValue(new Key(new Text(currentRow.toArray())), SUPPRESS_ROW_VALUE);
+            consumeRow(currentRow);
+          } else {
             source.next();
-            count++;
-            if (count >= 10) {
-                Key nextRowStart = new Key(new Text(row.toArray())).followingKey(PartialKey.ROW);
-                reseek(nextRowStart);
-                count = 0;
-            }
+          }
         }
+      }
+      
+    }
+  }
+  
+  private void readNextRow() throws IOException {
+    
+    bufferNextRow();
+    
+    while (!propogateSuppression && currentPosition < keys.size() && isSuppressionMarker(keys.get(0), values.get(0))) {
+      bufferNextRow();
+    }
+  }
+  
+  private LargeRowFilter(SortedKeyValueIterator<Key,Value> source, boolean propogateSuppression, int maxColumns) {
+    this.source = source;
+    this.propogateSuppression = propogateSuppression;
+    this.maxColumns = maxColumns;
+  }
+  
+  public LargeRowFilter() {}
+  
+  @Override
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    this.source = source;
+    this.maxColumns = Integer.parseInt(options.get(MAX_COLUMNS));
+    this.propogateSuppression = env.getIteratorScope() != IteratorScope.scan;
+  }
+  
+  @Override
+  public boolean hasTop() {
+    return currentPosition < keys.size();
+  }
+  
+  @Override
+  public void next() throws IOException {
+    
+    if (currentPosition >= keys.size()) {
+      throw new IllegalStateException("Called next() when hasTop() is false");
     }
     
-    private void addKeyValue(Key k, Value v) {
-        if (dropEmptyColFams && k.getColumnFamilyData().equals(EMPTY)) {
-            return;
-        }
-        keys.add(new Key(k));
-        values.add(new Value(v));
+    currentPosition++;
+    
+    if (currentPosition == keys.size()) {
+      readNextRow();
+    }
+  }
+  
+  @Override
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    
+    if (inclusive && !columnFamilies.contains(EMPTY)) {
+      columnFamilies = new HashSet<ByteSequence>(columnFamilies);
+      columnFamilies.add(EMPTY);
+      dropEmptyColFams = true;
+    } else if (!inclusive && columnFamilies.contains(EMPTY)) {
+      columnFamilies = new HashSet<ByteSequence>(columnFamilies);
+      columnFamilies.remove(EMPTY);
+      dropEmptyColFams = true;
+    } else {
+      dropEmptyColFams = false;
     }
     
-    private void bufferNextRow() throws IOException {
-        
-        keys.clear();
-        values.clear();
-        currentPosition = 0;
-        
-        while (source.hasTop() && keys.size() == 0) {
-            
-            addKeyValue(source.getTopKey(), source.getTopValue());
-            
-            if (isSuppressionMarker(source.getTopKey(), source.getTopValue())) {
-                
-                consumeRow(source.getTopKey().getRowData());
-                
-            } else {
-                
-                ByteSequence currentRow = keys.get(0).getRowData();
-                source.next();
-                
-                while (source.hasTop() && source.getTopKey().getRowData().equals(currentRow)) {
-                    
-                    addKeyValue(source.getTopKey(), source.getTopValue());
-                    
-                    if (keys.size() > maxColumns) {
-                        keys.clear();
-                        values.clear();
-                        
-                        // when the row is to big, just emit a suppression
-                        // marker
-                        addKeyValue(new Key(new Text(currentRow.toArray())), SUPPRESS_ROW_VALUE);
-                        consumeRow(currentRow);
-                    } else {
-                        source.next();
-                    }
-                }
-            }
-            
-        }
-    }
+    this.range = range;
+    this.columnFamilies = columnFamilies;
+    this.inclusive = inclusive;
     
-    private void readNextRow() throws IOException {
-        
-        bufferNextRow();
-        
-        while (!propogateSuppression && currentPosition < keys.size() && isSuppressionMarker(keys.get(0), values.get(0))) {
-            bufferNextRow();
-        }
-    }
-    
-    private LargeRowFilter(SortedKeyValueIterator<Key,Value> source, boolean propogateSuppression, int maxColumns) {
-        this.source = source;
-        this.propogateSuppression = propogateSuppression;
-        this.maxColumns = maxColumns;
-    }
-    
-    public LargeRowFilter() {}
-    
-    @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-        this.source = source;
-        this.maxColumns = Integer.parseInt(options.get(MAX_COLUMNS));
-        this.propogateSuppression = env.getIteratorScope() != IteratorScope.scan;
-    }
-    
-    @Override
-    public boolean hasTop() {
-        return currentPosition < keys.size();
-    }
-    
-    @Override
-    public void next() throws IOException {
-        
-        if (currentPosition >= keys.size()) {
-            throw new IllegalStateException("Called next() when hasTop() is false");
-        }
-        
+    if (range.getStartKey() != null) {
+      // seek to beginning of row to see if there is a suppression marker
+      Range newRange = new Range(new Key(range.getStartKey().getRow()), true, range.getEndKey(), range.isEndKeyInclusive());
+      source.seek(newRange, columnFamilies, inclusive);
+      
+      readNextRow();
+      
+      // it is possible that all or some of the data read for the current
+      // row is before the start of the range
+      while (currentPosition < keys.size() && range.beforeStartKey(keys.get(currentPosition)))
         currentPosition++;
-        
-        if (currentPosition == keys.size()) {
-            readNextRow();
-        }
+      
+      if (currentPosition == keys.size()) readNextRow();
+      
+    } else {
+      source.seek(range, columnFamilies, inclusive);
+      readNextRow();
     }
     
-    @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-        
-        if (inclusive && !columnFamilies.contains(EMPTY)) {
-            columnFamilies = new HashSet<ByteSequence>(columnFamilies);
-            columnFamilies.add(EMPTY);
-            dropEmptyColFams = true;
-        } else if (!inclusive && columnFamilies.contains(EMPTY)) {
-            columnFamilies = new HashSet<ByteSequence>(columnFamilies);
-            columnFamilies.remove(EMPTY);
-            dropEmptyColFams = true;
-        } else {
-            dropEmptyColFams = false;
-        }
-        
-        this.range = range;
-        this.columnFamilies = columnFamilies;
-        this.inclusive = inclusive;
-        
-        if (range.getStartKey() != null) {
-            // seek to beginning of row to see if there is a suppression marker
-            Range newRange = new Range(new Key(range.getStartKey().getRow()), true, range.getEndKey(), range.isEndKeyInclusive());
-            source.seek(newRange, columnFamilies, inclusive);
-            
-            readNextRow();
-            
-            // it is possible that all or some of the data read for the current
-            // row is before the start of the range
-            while (currentPosition < keys.size() && range.beforeStartKey(keys.get(currentPosition)))
-                currentPosition++;
-            
-            if (currentPosition == keys.size()) readNextRow();
-            
-        } else {
-            source.seek(range, columnFamilies, inclusive);
-            readNextRow();
-        }
-        
+  }
+  
+  @Override
+  public Key getTopKey() {
+    return keys.get(currentPosition);
+  }
+  
+  @Override
+  public Value getTopValue() {
+    return values.get(currentPosition);
+  }
+  
+  @Override
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    return new LargeRowFilter(source.deepCopy(env), propogateSuppression, maxColumns);
+  }
+  
+  @Override
+  public IteratorOptions describeOptions() {
+    String description = "This iterator suppresses rows that exceed a specified number of columns. Once\n"
+        + "a row exceeds the threshold, a marker is emitted and the row is always\n" + "suppressed by this iterator after that point in time.\n"
+        + " This iterator works in a similar way to the RowDeletingIterator. See its\n" + " javadoc about locality groups.\n";
+    return new IteratorOptions(this.getClass().getSimpleName(), description, Collections.singletonMap(MAX_COLUMNS, "Number Of Columns To Begin Suppression"),
+        null);
+  }
+  
+  @Override
+  public boolean validateOptions(Map<String,String> options) {
+    if (options == null || options.size() < 1) {
+      System.out.println("Bad # of options, must supply: " + MAX_COLUMNS + " as value");
+      return false;
     }
     
-    @Override
-    public Key getTopKey() {
-        return keys.get(currentPosition);
+    if (options.containsKey(MAX_COLUMNS)) {
+      try {
+        maxColumns = Integer.parseInt(options.get(MAX_COLUMNS));
+      } catch (NumberFormatException e) {
+        e.printStackTrace();
+        return false;
+      }
+    } else {
+      System.out.println("Need to have " + MAX_COLUMNS);
+      return false;
     }
     
-    @Override
-    public Value getTopValue() {
-        return values.get(currentPosition);
-    }
-    
-    @Override
-    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-        return new LargeRowFilter(source.deepCopy(env), propogateSuppression, maxColumns);
-    }
-    
-    @Override
-    public IteratorOptions describeOptions() {
-        String description = "This iterator suppresses rows that exceed a specified number of columns. Once\n"
-                + "a row exceeds the threshold, a marker is emitted and the row is always\n" + "suppressed by this iterator after that point in time.\n"
-                + " This iterator works in a similar way to the RowDeletingIterator. See its\n" + " javadoc about locality groups.\n";
-        return new IteratorOptions(this.getClass().getSimpleName(), description,
-                Collections.singletonMap(MAX_COLUMNS, "Number Of Columns To Begin Suppression"), null);
-    }
-    
-    @Override
-    public boolean validateOptions(Map<String,String> options) {
-        if (options == null || options.size() < 1) {
-            System.out.println("Bad # of options, must supply: " + MAX_COLUMNS + " as value");
-            return false;
-        }
-        
-        if (options.containsKey(MAX_COLUMNS)) {
-            try {
-                maxColumns = Integer.parseInt(options.get(MAX_COLUMNS));
-            } catch (NumberFormatException e) {
-                e.printStackTrace();
-                return false;
-            }
-        } else {
-            System.out.println("Need to have " + MAX_COLUMNS);
-            return false;
-        }
-        
-        return true;
-    }
-    
+    return true;
+  }
+  
 }

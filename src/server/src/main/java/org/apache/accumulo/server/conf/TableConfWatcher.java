@@ -24,83 +24,83 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 
 class TableConfWatcher implements Watcher {
-    static {
-        Logger.getLogger("org.apache.zookeeper").setLevel(Level.WARN);
-        Logger.getLogger("org.apache.hadoop.io.compress").setLevel(Level.WARN);
-    }
+  static {
+    Logger.getLogger("org.apache.zookeeper").setLevel(Level.WARN);
+    Logger.getLogger("org.apache.hadoop.io.compress").setLevel(Level.WARN);
+  }
+  
+  private static final Logger log = Logger.getLogger(TableConfWatcher.class);
+  private String instanceId = null;
+  
+  TableConfWatcher(String instanceId) {
+    this.instanceId = instanceId;
+  }
+  
+  @Override
+  public void process(WatchedEvent event) {
+    String path = event.getPath();
+    if (log.isTraceEnabled()) log.trace("WatchEvent : " + path + " " + event.getState() + " " + event.getType());
     
-    private static final Logger log = Logger.getLogger(TableConfWatcher.class);
-    private String instanceId = null;
+    String tablesPrefix = ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/";
     
-    TableConfWatcher(String instanceId) {
-        this.instanceId = instanceId;
-    }
+    String tableId = null;
+    String key = null;
     
-    @Override
-    public void process(WatchedEvent event) {
-        String path = event.getPath();
-        if (log.isTraceEnabled()) log.trace("WatchEvent : " + path + " " + event.getState() + " " + event.getType());
-        
-        String tablesPrefix = ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/";
-        
-        String tableId = null;
-        String key = null;
-        
-        if (path != null) {
-            if (path.startsWith(tablesPrefix)) {
-                tableId = path.substring(tablesPrefix.length());
-                if (tableId.contains("/")) {
-                    tableId = tableId.substring(0, tableId.indexOf('/'));
-                    if (path.startsWith(tablesPrefix + tableId + Constants.ZTABLE_CONF + "/")) key = path.substring((tablesPrefix + tableId
-                            + Constants.ZTABLE_CONF + "/").length());
-                }
-            }
-            
-            if (tableId == null) {
-                log.warn("Zookeeper told me about a path I was not watching " + path + " state=" + event.getState() + " type=" + event.getType());
-                return;
-            }
+    if (path != null) {
+      if (path.startsWith(tablesPrefix)) {
+        tableId = path.substring(tablesPrefix.length());
+        if (tableId.contains("/")) {
+          tableId = tableId.substring(0, tableId.indexOf('/'));
+          if (path.startsWith(tablesPrefix + tableId + Constants.ZTABLE_CONF + "/")) key = path
+              .substring((tablesPrefix + tableId + Constants.ZTABLE_CONF + "/").length());
         }
-        
-        switch (event.getType()) {
-            case NodeDataChanged:
-                if (log.isTraceEnabled()) log.trace("EventNodeDataChanged " + event.getPath());
-                if (key != null) ServerConfiguration.getTableConfiguration(instanceId, tableId).propertyChanged(key);
-                break;
-            case NodeChildrenChanged:
-                ServerConfiguration.getTableConfiguration(instanceId, tableId).propertiesChanged(key);
-                break;
-            case NodeDeleted:
-                if (key == null) {
-                    // only remove the AccumuloConfiguration object when a
-                    // table node is deleted, not when a tables property is
-                    // deleted.
-                    ServerConfiguration.removeTableIdInstance(tableId);
-                }
-                break;
-            case None:
-                switch (event.getState()) {
-                    case Expired:
-                        ServerConfiguration.expireAllTableObservers();
-                        break;
-                    case SyncConnected:
-                        break;
-                    case Disconnected:
-                        break;
-                    default:
-                        log.warn("EventNone event not handled path = " + event.getPath() + " state=" + event.getState());
-                }
-                break;
-            case NodeCreated:
-                switch (event.getState()) {
-                    case SyncConnected:
-                        break;
-                    default:
-                        log.warn("Event NodeCreated event not handled path = " + event.getPath() + " state=" + event.getState());
-                }
-                break;
-            default:
-                log.warn("Event not handled path = " + event.getPath() + " state=" + event.getState() + " type = " + event.getType());
-        }
+      }
+      
+      if (tableId == null) {
+        log.warn("Zookeeper told me about a path I was not watching " + path + " state=" + event.getState() + " type=" + event.getType());
+        return;
+      }
     }
+    
+    switch (event.getType()) {
+      case NodeDataChanged:
+        if (log.isTraceEnabled()) log.trace("EventNodeDataChanged " + event.getPath());
+        if (key != null) ServerConfiguration.getTableConfiguration(instanceId, tableId).propertyChanged(key);
+        break;
+      case NodeChildrenChanged:
+        ServerConfiguration.getTableConfiguration(instanceId, tableId).propertiesChanged(key);
+        break;
+      case NodeDeleted:
+        if (key == null) {
+          // only remove the AccumuloConfiguration object when a
+          // table node is deleted, not when a tables property is
+          // deleted.
+          ServerConfiguration.removeTableIdInstance(tableId);
+        }
+        break;
+      case None:
+        switch (event.getState()) {
+          case Expired:
+            ServerConfiguration.expireAllTableObservers();
+            break;
+          case SyncConnected:
+            break;
+          case Disconnected:
+            break;
+          default:
+            log.warn("EventNone event not handled path = " + event.getPath() + " state=" + event.getState());
+        }
+        break;
+      case NodeCreated:
+        switch (event.getState()) {
+          case SyncConnected:
+            break;
+          default:
+            log.warn("Event NodeCreated event not handled path = " + event.getPath() + " state=" + event.getState());
+        }
+        break;
+      default:
+        log.warn("Event not handled path = " + event.getPath() + " state=" + event.getState() + " type = " + event.getType());
+    }
+  }
 }

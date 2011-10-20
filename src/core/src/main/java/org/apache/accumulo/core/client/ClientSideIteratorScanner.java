@@ -50,172 +50,172 @@ import org.apache.hadoop.io.Text;
  */
 
 public class ClientSideIteratorScanner extends ScannerOptions implements Scanner {
-    private int size;
-    private int timeOut;
+  private int size;
+  private int timeOut;
+  
+  private Range range;
+  private boolean isolated = false;
+  
+  public class ScannerTranslator implements SortedKeyValueIterator<Key,Value> {
+    protected Scanner scanner;
+    Iterator<Entry<Key,Value>> iter;
+    Entry<Key,Value> top = null;
     
-    private Range range;
-    private boolean isolated = false;
+    public ScannerTranslator(Scanner scanner) {
+      this.scanner = scanner;
+    }
     
-    public class ScannerTranslator implements SortedKeyValueIterator<Key,Value> {
-        protected Scanner scanner;
-        Iterator<Entry<Key,Value>> iter;
-        Entry<Key,Value> top = null;
-        
-        public ScannerTranslator(Scanner scanner) {
-            this.scanner = scanner;
+    @Override
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+    
+    @Override
+    public boolean hasTop() {
+      return top != null;
+    }
+    
+    @Override
+    public void next() throws IOException {
+      if (iter.hasNext()) top = iter.next();
+      else top = null;
+    }
+    
+    @Override
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+      if (!inclusive && columnFamilies.size() > 0) throw new UnsupportedOperationException();
+      scanner.setRange(range);
+      scanner.clearColumns();
+      for (ByteSequence colf : columnFamilies) {
+        scanner.fetchColumnFamily(new Text(colf.toArray()));
+      }
+      iter = scanner.iterator();
+      next();
+    }
+    
+    @Override
+    public Key getTopKey() {
+      return top.getKey();
+    }
+    
+    @Override
+    public Value getTopValue() {
+      return top.getValue();
+    }
+    
+    @Override
+    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+      return new ScannerTranslator(scanner);
+    }
+  }
+  
+  protected ScannerTranslator smi;
+  
+  public ClientSideIteratorScanner(Scanner scanner) {
+    smi = new ScannerTranslator(scanner);
+    this.range = new Range((Key) null, (Key) null);
+    this.size = Constants.SCAN_BATCH_SIZE;
+    this.timeOut = Integer.MAX_VALUE;
+  }
+  
+  public void setSource(Scanner scanner) {
+    smi = new ScannerTranslator(scanner);
+  }
+  
+  @Override
+  public Iterator<Entry<Key,Value>> iterator() {
+    smi.scanner.setBatchSize(size);
+    smi.scanner.setTimeOut(timeOut);
+    if (isolated) smi.scanner.enableIsolation();
+    else smi.scanner.disableIsolation();
+    
+    TreeMap<Integer,IterInfo> tm = new TreeMap<Integer,IterInfo>();
+    
+    for (IterInfo iterInfo : serverSideIteratorList) {
+      tm.put(iterInfo.getPriority(), iterInfo);
+    }
+    
+    SortedKeyValueIterator<Key,Value> skvi;
+    try {
+      skvi = IteratorUtil.loadIterators(smi, tm.values(), serverSideIteratorOptions, new IteratorEnvironment() {
+        @Override
+        public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
+          return null;
         }
         
         @Override
-        public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-            throw new UnsupportedOperationException();
+        public AccumuloConfiguration getConfig() {
+          return null;
         }
         
         @Override
-        public boolean hasTop() {
-            return top != null;
+        public IteratorScope getIteratorScope() {
+          return null;
         }
         
         @Override
-        public void next() throws IOException {
-            if (iter.hasNext()) top = iter.next();
-            else top = null;
+        public boolean isFullMajorCompaction() {
+          return false;
         }
         
         @Override
-        public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-            if (!inclusive && columnFamilies.size() > 0) throw new UnsupportedOperationException();
-            scanner.setRange(range);
-            scanner.clearColumns();
-            for (ByteSequence colf : columnFamilies) {
-                scanner.fetchColumnFamily(new Text(colf.toArray()));
-            }
-            iter = scanner.iterator();
-            next();
-        }
-        
-        @Override
-        public Key getTopKey() {
-            return top.getKey();
-        }
-        
-        @Override
-        public Value getTopValue() {
-            return top.getValue();
-        }
-        
-        @Override
-        public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-            return new ScannerTranslator(scanner);
-        }
+        public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {}
+      });
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
     
-    protected ScannerTranslator smi;
-    
-    public ClientSideIteratorScanner(Scanner scanner) {
-        smi = new ScannerTranslator(scanner);
-        this.range = new Range((Key) null, (Key) null);
-        this.size = Constants.SCAN_BATCH_SIZE;
-        this.timeOut = Integer.MAX_VALUE;
+    Set<ByteSequence> colfs = new TreeSet<ByteSequence>();
+    for (Column c : this.getFetchedColumns()) {
+      colfs.add(new ArrayByteSequence(c.getColumnFamily()));
     }
     
-    public void setSource(Scanner scanner) {
-        smi = new ScannerTranslator(scanner);
+    try {
+      skvi.seek(range, colfs, true);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
     
-    @Override
-    public Iterator<Entry<Key,Value>> iterator() {
-        smi.scanner.setBatchSize(size);
-        smi.scanner.setTimeOut(timeOut);
-        if (isolated) smi.scanner.enableIsolation();
-        else smi.scanner.disableIsolation();
-        
-        TreeMap<Integer,IterInfo> tm = new TreeMap<Integer,IterInfo>();
-        
-        for (IterInfo iterInfo : serverSideIteratorList) {
-            tm.put(iterInfo.getPriority(), iterInfo);
-        }
-        
-        SortedKeyValueIterator<Key,Value> skvi;
-        try {
-            skvi = IteratorUtil.loadIterators(smi, tm.values(), serverSideIteratorOptions, new IteratorEnvironment() {
-                @Override
-                public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
-                    return null;
-                }
-                
-                @Override
-                public AccumuloConfiguration getConfig() {
-                    return null;
-                }
-                
-                @Override
-                public IteratorScope getIteratorScope() {
-                    return null;
-                }
-                
-                @Override
-                public boolean isFullMajorCompaction() {
-                    return false;
-                }
-                
-                @Override
-                public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {}
-            });
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        
-        Set<ByteSequence> colfs = new TreeSet<ByteSequence>();
-        for (Column c : this.getFetchedColumns()) {
-            colfs.add(new ArrayByteSequence(c.getColumnFamily()));
-        }
-        
-        try {
-            skvi.seek(range, colfs, true);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        
-        return new IteratorAdapter(skvi);
-    }
-    
-    @Override
-    public void setTimeOut(int timeOut) {
-        this.timeOut = timeOut;
-    }
-    
-    @Override
-    public int getTimeOut() {
-        return timeOut;
-    }
-    
-    @Override
-    public void setRange(Range range) {
-        this.range = range;
-    }
-    
-    @Override
-    public Range getRange() {
-        return range;
-    }
-    
-    @Override
-    public void setBatchSize(int size) {
-        this.size = size;
-    }
-    
-    @Override
-    public int getBatchSize() {
-        return size;
-    }
-    
-    @Override
-    public void enableIsolation() {
-        this.isolated = true;
-    }
-    
-    @Override
-    public void disableIsolation() {
-        this.isolated = false;
-    }
+    return new IteratorAdapter(skvi);
+  }
+  
+  @Override
+  public void setTimeOut(int timeOut) {
+    this.timeOut = timeOut;
+  }
+  
+  @Override
+  public int getTimeOut() {
+    return timeOut;
+  }
+  
+  @Override
+  public void setRange(Range range) {
+    this.range = range;
+  }
+  
+  @Override
+  public Range getRange() {
+    return range;
+  }
+  
+  @Override
+  public void setBatchSize(int size) {
+    this.size = size;
+  }
+  
+  @Override
+  public int getBatchSize() {
+    return size;
+  }
+  
+  @Override
+  public void enableIsolation() {
+    this.isolated = true;
+  }
+  
+  @Override
+  public void disableIsolation() {
+    this.isolated = false;
+  }
 }

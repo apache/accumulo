@@ -25,80 +25,80 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
 public class SiteConfiguration extends AccumuloConfiguration {
-    private static final Logger log = Logger.getLogger(SiteConfiguration.class);
-    
-    private static AccumuloConfiguration parent = null;
-    private static SiteConfiguration instance = null;
-    
-    private static Configuration xmlConfig;
-    
-    private SiteConfiguration(AccumuloConfiguration parent) {
-        SiteConfiguration.parent = parent;
+  private static final Logger log = Logger.getLogger(SiteConfiguration.class);
+  
+  private static AccumuloConfiguration parent = null;
+  private static SiteConfiguration instance = null;
+  
+  private static Configuration xmlConfig;
+  
+  private SiteConfiguration(AccumuloConfiguration parent) {
+    SiteConfiguration.parent = parent;
+  }
+  
+  public static SiteConfiguration getInstance(AccumuloConfiguration parent) {
+    if (instance == null) {
+      instance = new SiteConfiguration(parent);
+      ConfigSanityCheck.validate(instance);
     }
-    
-    public static SiteConfiguration getInstance(AccumuloConfiguration parent) {
-        if (instance == null) {
-            instance = new SiteConfiguration(parent);
-            ConfigSanityCheck.validate(instance);
-        }
-        return instance;
+    return instance;
+  }
+  
+  private static Configuration getXmlConfig() {
+    String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
+    if (xmlConfig == null) {
+      xmlConfig = new Configuration(false);
+      
+      if (SiteConfiguration.class.getClassLoader().getResource(configFile) == null) log.warn(configFile + " not found on classpath");
+      else xmlConfig.addResource(configFile);
     }
+    return xmlConfig;
+  }
+  
+  @Override
+  public String get(Property property) {
+    String key = property.getKey();
     
-    private static Configuration getXmlConfig() {
-        String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
-        if (xmlConfig == null) {
-            xmlConfig = new Configuration(false);
-            
-            if (SiteConfiguration.class.getClassLoader().getResource(configFile) == null) log.warn(configFile + " not found on classpath");
-            else xmlConfig.addResource(configFile);
-        }
-        return xmlConfig;
-    }
+    String value = getXmlConfig().get(key);
     
-    @Override
-    public String get(Property property) {
-        String key = property.getKey();
-        
-        String value = getXmlConfig().get(key);
-        
-        if (value == null || !property.getType().isValidFormat(value)) {
-            if (value != null) log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
-            value = parent.get(property);
-        }
-        return value;
+    if (value == null || !property.getType().isValidFormat(value)) {
+      if (value != null) log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
+      value = parent.get(property);
     }
+    return value;
+  }
+  
+  @Override
+  public Iterator<Entry<String,String>> iterator() {
+    TreeMap<String,String> entries = new TreeMap<String,String>();
     
-    @Override
-    public Iterator<Entry<String,String>> iterator() {
-        TreeMap<String,String> entries = new TreeMap<String,String>();
-        
-        for (Entry<String,String> parentEntry : parent)
-            entries.put(parentEntry.getKey(), parentEntry.getValue());
-        
-        for (Entry<String,String> siteEntry : getXmlConfig())
-            entries.put(siteEntry.getKey(), siteEntry.getValue());
-        
-        return entries.entrySet().iterator();
-    }
+    for (Entry<String,String> parentEntry : parent)
+      entries.put(parentEntry.getKey(), parentEntry.getValue());
     
-    /**
-     * method here to support testing, do not call
-     */
-    public void clear() {
-        getXmlConfig().clear();
-    }
+    for (Entry<String,String> siteEntry : getXmlConfig())
+      entries.put(siteEntry.getKey(), siteEntry.getValue());
     
-    /**
-     * method here to support testing, do not call
-     */
-    public void set(Property property, String value) {
-        set(property.getKey(), value);
-    }
-    
-    /**
-     * method here to support testing, do not call
-     */
-    public void set(String key, String value) {
-        getXmlConfig().set(key, value);
-    }
+    return entries.entrySet().iterator();
+  }
+  
+  /**
+   * method here to support testing, do not call
+   */
+  public void clear() {
+    getXmlConfig().clear();
+  }
+  
+  /**
+   * method here to support testing, do not call
+   */
+  public void set(Property property, String value) {
+    set(property.getKey(), value);
+  }
+  
+  /**
+   * method here to support testing, do not call
+   */
+  public void set(String key, String value) {
+    getXmlConfig().set(key, value);
+  }
 }

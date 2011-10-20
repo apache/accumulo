@@ -30,69 +30,69 @@ import org.apache.log4j.Level;
 import org.apache.log4j.spi.LoggingEvent;
 
 public class LogServlet extends BasicServlet {
-    
-    private static final long serialVersionUID = 1L;
-    
-    protected String getTitle(HttpServletRequest req) {
-        return "Recent Logs";
+  
+  private static final long serialVersionUID = 1L;
+  
+  protected String getTitle(HttpServletRequest req) {
+    return "Recent Logs";
+  }
+  
+  @Override
+  protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
+    boolean clear = true;
+    SimpleDateFormat fmt = new SimpleDateFormat("dd HH:mm:ss,SSSS");
+    Table logTable = new Table("logTable", "Recent&nbsp;Logs");
+    logTable.addSortableColumn("Time", new DateTimeType(fmt), null);
+    logTable.addSortableColumn("Application");
+    logTable.addSortableColumn("Count");
+    logTable.addSortableColumn("Level", new LogLevelType(), null);
+    logTable.addSortableColumn("Message");
+    for (DedupedLogEvent dev : LogService.getInstance().getEvents()) {
+      clear = false;
+      LoggingEvent ev = dev.getEvent();
+      Object application = ev.getMDC("application");
+      if (application == null) application = "";
+      String msg = ev.getMessage().toString();
+      StringBuilder text = new StringBuilder();
+      for (int i = 0; i < msg.length(); i++) {
+        char c = msg.charAt(i);
+        switch (Character.getType(c)) {
+          case Character.UNASSIGNED:
+          case Character.LINE_SEPARATOR:
+          case Character.NON_SPACING_MARK:
+          case Character.PRIVATE_USE:
+            c = '?';
+          default:
+            text.append(c);
+        }
+        
+      }
+      msg = text.toString();
+      if (ev.getThrowableStrRep() != null) for (String line : ev.getThrowableStrRep())
+        msg += "\n\t" + line;
+      msg = sanitize(msg.trim());
+      msg = "<pre class='logevent'>" + msg + "</pre>";
+      logTable.addRow(ev.getTimeStamp(), application, dev.getCount(), ev.getLevel(), msg);
+    }
+    if (!clear) logTable.setSubCaption("<a href='/op?action=clearLog&redir=" + currentPage(req) + "'>Clear&nbsp;All&nbsp;Events</a>");
+    logTable.generate(req, sb);
+    if (!clear) sb.append("<div class='center'><a href='/op?action=clearLog&redir=").append(currentPage(req))
+        .append("'>Clear&nbsp;All&nbsp;Events</a></div>\n");
+  }
+  
+  private static class LogLevelType extends StringType<Level> {
+    @Override
+    public String alignment() {
+      return "center";
     }
     
     @Override
-    protected void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
-        boolean clear = true;
-        SimpleDateFormat fmt = new SimpleDateFormat("dd HH:mm:ss,SSSS");
-        Table logTable = new Table("logTable", "Recent&nbsp;Logs");
-        logTable.addSortableColumn("Time", new DateTimeType(fmt), null);
-        logTable.addSortableColumn("Application");
-        logTable.addSortableColumn("Count");
-        logTable.addSortableColumn("Level", new LogLevelType(), null);
-        logTable.addSortableColumn("Message");
-        for (DedupedLogEvent dev : LogService.getInstance().getEvents()) {
-            clear = false;
-            LoggingEvent ev = dev.getEvent();
-            Object application = ev.getMDC("application");
-            if (application == null) application = "";
-            String msg = ev.getMessage().toString();
-            StringBuilder text = new StringBuilder();
-            for (int i = 0; i < msg.length(); i++) {
-                char c = msg.charAt(i);
-                switch (Character.getType(c)) {
-                    case Character.UNASSIGNED:
-                    case Character.LINE_SEPARATOR:
-                    case Character.NON_SPACING_MARK:
-                    case Character.PRIVATE_USE:
-                        c = '?';
-                    default:
-                        text.append(c);
-                }
-                
-            }
-            msg = text.toString();
-            if (ev.getThrowableStrRep() != null) for (String line : ev.getThrowableStrRep())
-                msg += "\n\t" + line;
-            msg = sanitize(msg.trim());
-            msg = "<pre class='logevent'>" + msg + "</pre>";
-            logTable.addRow(ev.getTimeStamp(), application, dev.getCount(), ev.getLevel(), msg);
-        }
-        if (!clear) logTable.setSubCaption("<a href='/op?action=clearLog&redir=" + currentPage(req) + "'>Clear&nbsp;All&nbsp;Events</a>");
-        logTable.generate(req, sb);
-        if (!clear) sb.append("<div class='center'><a href='/op?action=clearLog&redir=").append(currentPage(req))
-                .append("'>Clear&nbsp;All&nbsp;Events</a></div>\n");
+    public String format(Object obj) {
+      if (obj == null) return "-";
+      Level l = (Level) obj;
+      if (l.equals(Level.ERROR) || l.equals(Level.FATAL)) return "<div class='error'>" + l.toString() + "</div>";
+      else if (l.equals(Level.WARN)) return "<div class='warning'>" + l.toString() + "</div>";
+      else return l.toString();
     }
-    
-    private static class LogLevelType extends StringType<Level> {
-        @Override
-        public String alignment() {
-            return "center";
-        }
-        
-        @Override
-        public String format(Object obj) {
-            if (obj == null) return "-";
-            Level l = (Level) obj;
-            if (l.equals(Level.ERROR) || l.equals(Level.FATAL)) return "<div class='error'>" + l.toString() + "</div>";
-            else if (l.equals(Level.WARN)) return "<div class='warning'>" + l.toString() + "</div>";
-            else return l.toString();
-        }
-    }
+  }
 }

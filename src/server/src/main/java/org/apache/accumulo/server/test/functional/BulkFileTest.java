@@ -39,80 +39,78 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 public class BulkFileTest extends FunctionalTest {
+  
+  @Override
+  public void cleanup() throws Exception {}
+  
+  @Override
+  public Map<String,String> getInitialConfig() {
+    return Collections.emptyMap();
+  }
+  
+  @Override
+  public List<TableSetup> getTablesToCreate() {
+    return Collections.singletonList(new TableSetup("bulkFile", "0333", "0666", "0999", "1333", "1666"));
+  }
+  
+  @Override
+  public void run() throws Exception {
+    Configuration conf = new Configuration();
+    FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
     
-    @Override
-    public void cleanup() throws Exception {}
+    String dir = "/tmp/bulk_test_diff_files_89723987592";
     
-    @Override
-    public Map<String,String> getInitialConfig() {
-        return Collections.emptyMap();
+    fs.delete(new Path(dir), true);
+    
+    FileSKVWriter writer1 = FileOperations.getInstance().openWriter(dir + "/f1." + MyMapFile.EXTENSION, fs, conf, ServerConfiguration.getSystemConfiguration());
+    writer1.startDefaultLocalityGroup();
+    writeData(writer1, 0, 333);
+    writer1.close();
+    
+    fs.rename(new Path(dir + "/f1." + MyMapFile.EXTENSION), new Path(dir + "/f1"));
+    
+    FileSKVWriter writer2 = FileOperations.getInstance().openWriter(dir + "/f2." + MyMapFile.EXTENSION, fs, conf, ServerConfiguration.getSystemConfiguration());
+    writer2.startDefaultLocalityGroup();
+    writeData(writer2, 334, 999);
+    writer2.close();
+    
+    FileSKVWriter writer3 = FileOperations.getInstance().openWriter(dir + "/f3." + RFile.EXTENSION, fs, conf, ServerConfiguration.getSystemConfiguration());
+    writer3.startDefaultLocalityGroup();
+    writeData(writer3, 1000, 1999);
+    writer3.close();
+    
+    bulkImport(fs, "bulkFile", dir);
+    
+    checkMapFiles("bulkFile", 6, 6, 1, 1);
+    
+    verifyData("bulkFile", 0, 1999);
+    
+  }
+  
+  private void verifyData(String table, int s, int e) throws Exception {
+    Scanner scanner = getConnector().createScanner(table, Constants.NO_AUTHS);
+    
+    Iterator<Entry<Key,Value>> iter = scanner.iterator();
+    
+    for (int i = s; i <= e; i++) {
+      if (!iter.hasNext()) throw new Exception("row " + i + " not found");
+      
+      Entry<Key,Value> entry = iter.next();
+      
+      String row = String.format("%04d", i);
+      
+      if (!entry.getKey().getRow().equals(new Text(row))) throw new Exception("unexpected row " + entry.getKey() + " " + i);
+      
+      if (Integer.parseInt(entry.getValue().toString()) != i) throw new Exception("unexpected value " + entry + " " + i);
     }
     
-    @Override
-    public List<TableSetup> getTablesToCreate() {
-        return Collections.singletonList(new TableSetup("bulkFile", "0333", "0666", "0999", "1333", "1666"));
+    if (iter.hasNext()) throw new Exception("found more than expected " + iter.next());
+  }
+  
+  private void writeData(FileSKVWriter w, int s, int e) throws Exception {
+    for (int i = s; i <= e; i++) {
+      w.append(new Key(new Text(String.format("%04d", i))), new Value(("" + i).getBytes()));
     }
-    
-    @Override
-    public void run() throws Exception {
-        Configuration conf = new Configuration();
-        FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
-        
-        String dir = "/tmp/bulk_test_diff_files_89723987592";
-        
-        fs.delete(new Path(dir), true);
-        
-        FileSKVWriter writer1 = FileOperations.getInstance().openWriter(dir + "/f1." + MyMapFile.EXTENSION, fs, conf,
-                ServerConfiguration.getSystemConfiguration());
-        writer1.startDefaultLocalityGroup();
-        writeData(writer1, 0, 333);
-        writer1.close();
-        
-        fs.rename(new Path(dir + "/f1." + MyMapFile.EXTENSION), new Path(dir + "/f1"));
-        
-        FileSKVWriter writer2 = FileOperations.getInstance().openWriter(dir + "/f2." + MyMapFile.EXTENSION, fs, conf,
-                ServerConfiguration.getSystemConfiguration());
-        writer2.startDefaultLocalityGroup();
-        writeData(writer2, 334, 999);
-        writer2.close();
-        
-        FileSKVWriter writer3 = FileOperations.getInstance().openWriter(dir + "/f3." + RFile.EXTENSION, fs, conf, ServerConfiguration.getSystemConfiguration());
-        writer3.startDefaultLocalityGroup();
-        writeData(writer3, 1000, 1999);
-        writer3.close();
-        
-        bulkImport(fs, "bulkFile", dir);
-        
-        checkMapFiles("bulkFile", 6, 6, 1, 1);
-        
-        verifyData("bulkFile", 0, 1999);
-        
-    }
-    
-    private void verifyData(String table, int s, int e) throws Exception {
-        Scanner scanner = getConnector().createScanner(table, Constants.NO_AUTHS);
-        
-        Iterator<Entry<Key,Value>> iter = scanner.iterator();
-        
-        for (int i = s; i <= e; i++) {
-            if (!iter.hasNext()) throw new Exception("row " + i + " not found");
-            
-            Entry<Key,Value> entry = iter.next();
-            
-            String row = String.format("%04d", i);
-            
-            if (!entry.getKey().getRow().equals(new Text(row))) throw new Exception("unexpected row " + entry.getKey() + " " + i);
-            
-            if (Integer.parseInt(entry.getValue().toString()) != i) throw new Exception("unexpected value " + entry + " " + i);
-        }
-        
-        if (iter.hasNext()) throw new Exception("found more than expected " + iter.next());
-    }
-    
-    private void writeData(FileSKVWriter w, int s, int e) throws Exception {
-        for (int i = s; i <= e; i++) {
-            w.append(new Key(new Text(String.format("%04d", i))), new Value(("" + i).getBytes()));
-        }
-    }
-    
+  }
+  
 }

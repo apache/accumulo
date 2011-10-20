@@ -29,38 +29,38 @@ import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 
 public class VerifyIndex extends Test {
+  
+  @Override
+  public void visit(State state, Properties props) throws Exception {
     
-    @Override
-    public void visit(State state, Properties props) throws Exception {
-        
-        String indexTableName = (String) state.get("indexTableName");
-        String tmpIndexTableName = indexTableName + "_tmp";
-        
-        // scan new and old index and verify identical
-        Scanner indexScanner1 = state.getConnector().createScanner(tmpIndexTableName, Constants.NO_AUTHS);
-        Scanner indexScanner2 = state.getConnector().createScanner(indexTableName, Constants.NO_AUTHS);
-        
-        Iterator<Entry<Key,Value>> iter = indexScanner2.iterator();
-        
-        int count = 0;
-        
-        for (Entry<Key,Value> entry : indexScanner1) {
-            if (!iter.hasNext()) throw new Exception("index rebuild mismatch " + entry.getKey() + " " + indexTableName);
-            
-            Key key1 = entry.getKey();
-            Key key2 = iter.next().getKey();
-            
-            if (key1.compareTo(key2, PartialKey.ROW_COLFAM_COLQUAL) != 0) throw new Exception("index rebuild mismatch " + key1 + " " + key2 + " "
-                    + indexTableName + " " + tmpIndexTableName);
-            count++;
-        }
-        
-        if (iter.hasNext()) throw new Exception("index rebuild mismatch " + iter.next().getKey() + " " + tmpIndexTableName);
-        
-        log.debug("Verified " + count + " index entries ");
-        
-        state.getConnector().tableOperations().delete(indexTableName);
-        state.getConnector().tableOperations().rename(tmpIndexTableName, indexTableName);
+    String indexTableName = (String) state.get("indexTableName");
+    String tmpIndexTableName = indexTableName + "_tmp";
+    
+    // scan new and old index and verify identical
+    Scanner indexScanner1 = state.getConnector().createScanner(tmpIndexTableName, Constants.NO_AUTHS);
+    Scanner indexScanner2 = state.getConnector().createScanner(indexTableName, Constants.NO_AUTHS);
+    
+    Iterator<Entry<Key,Value>> iter = indexScanner2.iterator();
+    
+    int count = 0;
+    
+    for (Entry<Key,Value> entry : indexScanner1) {
+      if (!iter.hasNext()) throw new Exception("index rebuild mismatch " + entry.getKey() + " " + indexTableName);
+      
+      Key key1 = entry.getKey();
+      Key key2 = iter.next().getKey();
+      
+      if (key1.compareTo(key2, PartialKey.ROW_COLFAM_COLQUAL) != 0) throw new Exception("index rebuild mismatch " + key1 + " " + key2 + " " + indexTableName
+          + " " + tmpIndexTableName);
+      count++;
     }
     
+    if (iter.hasNext()) throw new Exception("index rebuild mismatch " + iter.next().getKey() + " " + tmpIndexTableName);
+    
+    log.debug("Verified " + count + " index entries ");
+    
+    state.getConnector().tableOperations().delete(indexTableName);
+    state.getConnector().tableOperations().rename(tmpIndexTableName, indexTableName);
+  }
+  
 }

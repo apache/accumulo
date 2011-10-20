@@ -41,92 +41,92 @@ import org.apache.hadoop.io.Text;
  */
 
 public class ContinuousQuery {
-    public static void main(String[] args) throws Exception {
-        
-        if (args.length < 7) {
-            System.err.println("Usage : " + ContinuousQuery.class.getName()
-                    + " <instance> <zoo keepers> <shard table> <doc2word table> <user> <pass> <num query terms> [iterations]");
-            System.exit(-1);
-        }
-        
-        String instance = args[0];
-        String zooKeepers = args[1];
-        String table = args[2];
-        String docTable = args[3];
-        String user = args[4];
-        String pass = args[5];
-        int numTerms = Integer.parseInt(args[6]);
-        long iterations = Long.MAX_VALUE;
-        if (args.length >= 7) iterations = Long.parseLong(args[7]);
-        
-        ZooKeeperInstance zki = new ZooKeeperInstance(instance, zooKeepers);
-        Connector conn = zki.getConnector(user, pass.getBytes());
-        
-        ArrayList<Text[]> randTerms = findRandomTerms(conn.createScanner(docTable, Constants.NO_AUTHS), numTerms);
-        
-        Random rand = new Random();
-        
-        for (long i = 0; i < iterations; i += 1) {
-            Text[] columns = randTerms.get(rand.nextInt(randTerms.size()));
-            
-            BatchScanner bs = conn.createBatchScanner(table, Constants.NO_AUTHS, 20);
-            IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
-            IntersectingIterator.setColumnFamilies(ii, columns);
-            bs.addScanIterator(ii);
-            bs.setRanges(Collections.singleton(new Range()));
-            
-            long t1 = System.currentTimeMillis();
-            int count = 0;
-            for (@SuppressWarnings("unused")
-            Entry<Key,Value> entry : bs) {
-                count++;
-            }
-            long t2 = System.currentTimeMillis();
-            
-            System.out.printf("  %s %,d %6.3f\n", Arrays.asList(columns), count, (t2 - t1) / 1000.0);
-            
-        }
-        
+  public static void main(String[] args) throws Exception {
+    
+    if (args.length < 7) {
+      System.err.println("Usage : " + ContinuousQuery.class.getName()
+          + " <instance> <zoo keepers> <shard table> <doc2word table> <user> <pass> <num query terms> [iterations]");
+      System.exit(-1);
     }
     
-    private static ArrayList<Text[]> findRandomTerms(Scanner scanner, int numTerms) {
-        
-        Text currentRow = null;
-        
-        ArrayList<Text> words = new ArrayList<Text>();
-        ArrayList<Text[]> ret = new ArrayList<Text[]>();
-        
-        Random rand = new Random();
-        
-        for (Entry<Key,Value> entry : scanner) {
-            Key key = entry.getKey();
-            
-            if (currentRow == null) currentRow = key.getRow();
-            
-            if (!currentRow.equals(key.getRow())) {
-                selectRandomWords(words, ret, rand, numTerms);
-                words.clear();
-                currentRow = key.getRow();
-            }
-            
-            words.add(key.getColumnFamily());
-            
-        }
-        
+    String instance = args[0];
+    String zooKeepers = args[1];
+    String table = args[2];
+    String docTable = args[3];
+    String user = args[4];
+    String pass = args[5];
+    int numTerms = Integer.parseInt(args[6]);
+    long iterations = Long.MAX_VALUE;
+    if (args.length >= 7) iterations = Long.parseLong(args[7]);
+    
+    ZooKeeperInstance zki = new ZooKeeperInstance(instance, zooKeepers);
+    Connector conn = zki.getConnector(user, pass.getBytes());
+    
+    ArrayList<Text[]> randTerms = findRandomTerms(conn.createScanner(docTable, Constants.NO_AUTHS), numTerms);
+    
+    Random rand = new Random();
+    
+    for (long i = 0; i < iterations; i += 1) {
+      Text[] columns = randTerms.get(rand.nextInt(randTerms.size()));
+      
+      BatchScanner bs = conn.createBatchScanner(table, Constants.NO_AUTHS, 20);
+      IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
+      IntersectingIterator.setColumnFamilies(ii, columns);
+      bs.addScanIterator(ii);
+      bs.setRanges(Collections.singleton(new Range()));
+      
+      long t1 = System.currentTimeMillis();
+      int count = 0;
+      for (@SuppressWarnings("unused")
+      Entry<Key,Value> entry : bs) {
+        count++;
+      }
+      long t2 = System.currentTimeMillis();
+      
+      System.out.printf("  %s %,d %6.3f\n", Arrays.asList(columns), count, (t2 - t1) / 1000.0);
+      
+    }
+    
+  }
+  
+  private static ArrayList<Text[]> findRandomTerms(Scanner scanner, int numTerms) {
+    
+    Text currentRow = null;
+    
+    ArrayList<Text> words = new ArrayList<Text>();
+    ArrayList<Text[]> ret = new ArrayList<Text[]>();
+    
+    Random rand = new Random();
+    
+    for (Entry<Key,Value> entry : scanner) {
+      Key key = entry.getKey();
+      
+      if (currentRow == null) currentRow = key.getRow();
+      
+      if (!currentRow.equals(key.getRow())) {
         selectRandomWords(words, ret, rand, numTerms);
-        
-        return ret;
+        words.clear();
+        currentRow = key.getRow();
+      }
+      
+      words.add(key.getColumnFamily());
+      
     }
     
-    private static void selectRandomWords(ArrayList<Text> words, ArrayList<Text[]> ret, Random rand, int numTerms) {
-        if (words.size() >= numTerms) {
-            Collections.shuffle(words, rand);
-            Text docWords[] = new Text[numTerms];
-            for (int i = 0; i < docWords.length; i++) {
-                docWords[i] = words.get(i);
-            }
-            
-            ret.add(docWords);
-        }
+    selectRandomWords(words, ret, rand, numTerms);
+    
+    return ret;
+  }
+  
+  private static void selectRandomWords(ArrayList<Text> words, ArrayList<Text[]> ret, Random rand, int numTerms) {
+    if (words.size() >= numTerms) {
+      Collections.shuffle(words, rand);
+      Text docWords[] = new Text[numTerms];
+      for (int i = 0; i < docWords.length; i++) {
+        docWords[i] = words.get(i);
+      }
+      
+      ret.add(docWords);
     }
+  }
 }

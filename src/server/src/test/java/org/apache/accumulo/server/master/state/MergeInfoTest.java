@@ -26,51 +26,51 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class MergeInfoTest {
-    
-    MergeInfo readWrite(MergeInfo info) throws Exception {
-        DataOutputBuffer buffer = new DataOutputBuffer();
-        info.write(buffer);
-        DataInputBuffer in = new DataInputBuffer();
-        in.reset(buffer.getData(), 0, buffer.getLength());
-        MergeInfo info2 = new MergeInfo();
-        info2.readFields(in);
-        Assert.assertEquals(info.range, info2.range);
-        Assert.assertEquals(info.state, info2.state);
-        Assert.assertEquals(info.operation, info2.operation);
-        return info2;
-    }
-    
-    KeyExtent ke(String tableId, String endRow, String prevEndRow) {
-        return new KeyExtent(new Text(tableId), endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
-    }
-    
-    @Test
-    public void testWritable() throws Exception {
-        MergeInfo info;
-        info = readWrite(new MergeInfo(ke("a", null, "b"), MergeInfo.Operation.MERGE));
-        info = readWrite(new MergeInfo(ke("a", "b", null), MergeInfo.Operation.MERGE));
-        info = readWrite(new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.MERGE));
-        info = readWrite(new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.DELETE));
-        Assert.assertTrue(info.isDelete());
-        info.setState(MergeState.COMPLETE);
-    }
-    
-    @Test
-    public void testNeedsToBeChopped() throws Exception {
-        MergeInfo info = new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.DELETE);
-        Assert.assertTrue(info.needsToBeChopped(ke("x", "c", "b")));
-        Assert.assertTrue(info.overlaps(ke("x", "c", "b")));
-        Assert.assertFalse(info.needsToBeChopped(ke("y", "c", "b")));
-        Assert.assertFalse(info.needsToBeChopped(ke("x", "c", "bb")));
-        Assert.assertFalse(info.needsToBeChopped(ke("x", "b", "a")));
-        info = new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.MERGE);
-        Assert.assertTrue(info.needsToBeChopped(ke("x", "c", "a")));
-        Assert.assertTrue(info.needsToBeChopped(ke("x", "aa", "a")));
-        Assert.assertTrue(info.needsToBeChopped(ke("x", null, null)));
-        Assert.assertFalse(info.needsToBeChopped(ke("x", "c", "b")));
-        Assert.assertFalse(info.needsToBeChopped(ke("y", "c", "b")));
-        Assert.assertFalse(info.needsToBeChopped(ke("x", "c", "bb")));
-        Assert.assertTrue(info.needsToBeChopped(ke("x", "b", "a")));
-    }
-    
+  
+  MergeInfo readWrite(MergeInfo info) throws Exception {
+    DataOutputBuffer buffer = new DataOutputBuffer();
+    info.write(buffer);
+    DataInputBuffer in = new DataInputBuffer();
+    in.reset(buffer.getData(), 0, buffer.getLength());
+    MergeInfo info2 = new MergeInfo();
+    info2.readFields(in);
+    Assert.assertEquals(info.range, info2.range);
+    Assert.assertEquals(info.state, info2.state);
+    Assert.assertEquals(info.operation, info2.operation);
+    return info2;
+  }
+  
+  KeyExtent ke(String tableId, String endRow, String prevEndRow) {
+    return new KeyExtent(new Text(tableId), endRow == null ? null : new Text(endRow), prevEndRow == null ? null : new Text(prevEndRow));
+  }
+  
+  @Test
+  public void testWritable() throws Exception {
+    MergeInfo info;
+    info = readWrite(new MergeInfo(ke("a", null, "b"), MergeInfo.Operation.MERGE));
+    info = readWrite(new MergeInfo(ke("a", "b", null), MergeInfo.Operation.MERGE));
+    info = readWrite(new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.MERGE));
+    info = readWrite(new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.DELETE));
+    Assert.assertTrue(info.isDelete());
+    info.setState(MergeState.COMPLETE);
+  }
+  
+  @Test
+  public void testNeedsToBeChopped() throws Exception {
+    MergeInfo info = new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.DELETE);
+    Assert.assertTrue(info.needsToBeChopped(ke("x", "c", "b")));
+    Assert.assertTrue(info.overlaps(ke("x", "c", "b")));
+    Assert.assertFalse(info.needsToBeChopped(ke("y", "c", "b")));
+    Assert.assertFalse(info.needsToBeChopped(ke("x", "c", "bb")));
+    Assert.assertFalse(info.needsToBeChopped(ke("x", "b", "a")));
+    info = new MergeInfo(ke("x", "b", "a"), MergeInfo.Operation.MERGE);
+    Assert.assertTrue(info.needsToBeChopped(ke("x", "c", "a")));
+    Assert.assertTrue(info.needsToBeChopped(ke("x", "aa", "a")));
+    Assert.assertTrue(info.needsToBeChopped(ke("x", null, null)));
+    Assert.assertFalse(info.needsToBeChopped(ke("x", "c", "b")));
+    Assert.assertFalse(info.needsToBeChopped(ke("y", "c", "b")));
+    Assert.assertFalse(info.needsToBeChopped(ke("x", "c", "bb")));
+    Assert.assertTrue(info.needsToBeChopped(ke("x", "b", "a")));
+  }
+  
 }

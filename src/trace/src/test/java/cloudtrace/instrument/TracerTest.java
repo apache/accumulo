@@ -43,136 +43,136 @@ import cloudtrace.thrift.TInfo;
 import cloudtrace.thrift.TestService;
 
 public class TracerTest {
-    static class SpanStruct {
-        public SpanStruct(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
-            super();
-            this.traceId = traceId;
-            this.spanId = spanId;
-            this.parentId = parentId;
-            this.start = start;
-            this.stop = stop;
-            this.description = description;
-            this.data = data;
-        }
-        
-        public long traceId;
-        public long spanId;
-        public long parentId;
-        public long start;
-        public long stop;
-        public String description;
-        public Map<String,String> data;
-        
-        public long millis() {
-            return stop - start;
-        }
+  static class SpanStruct {
+    public SpanStruct(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
+      super();
+      this.traceId = traceId;
+      this.spanId = spanId;
+      this.parentId = parentId;
+      this.start = start;
+      this.stop = stop;
+      this.description = description;
+      this.data = data;
     }
     
-    static class TestReceiver implements SpanReceiver {
-        public Map<Long,List<SpanStruct>> traces = new HashMap<Long,List<SpanStruct>>();
-        
-        @Override
-        public void span(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
-            SpanStruct span = new SpanStruct(traceId, spanId, parentId, start, stop, description, data);
-            if (!traces.containsKey(traceId)) traces.put(traceId, new ArrayList<SpanStruct>());
-            traces.get(traceId).add(span);
-        }
-        
-        @Override
-        public void flush() {}
+    public long traceId;
+    public long spanId;
+    public long parentId;
+    public long start;
+    public long stop;
+    public String description;
+    public Map<String,String> data;
+    
+    public long millis() {
+      return stop - start;
+    }
+  }
+  
+  static class TestReceiver implements SpanReceiver {
+    public Map<Long,List<SpanStruct>> traces = new HashMap<Long,List<SpanStruct>>();
+    
+    @Override
+    public void span(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
+      SpanStruct span = new SpanStruct(traceId, spanId, parentId, start, stop, description, data);
+      if (!traces.containsKey(traceId)) traces.put(traceId, new ArrayList<SpanStruct>());
+      traces.get(traceId).add(span);
     }
     
-    @Test
-    public void testTrace() throws Exception {
-        TestReceiver tracer = new TestReceiver();
-        Tracer.getInstance().addReceiver(tracer);
-        
-        assertFalse(Trace.isTracing());
-        Trace.start("nop").stop();
-        assertTrue(tracer.traces.size() == 0);
-        assertFalse(Trace.isTracing());
-        
-        Trace.on("nop").stop();
-        assertTrue(tracer.traces.size() == 1);
-        assertFalse(Trace.isTracing());
-        
-        Span start = Trace.on("testing");
-        assertEquals(Trace.currentTrace(), start);
+    @Override
+    public void flush() {}
+  }
+  
+  @Test
+  public void testTrace() throws Exception {
+    TestReceiver tracer = new TestReceiver();
+    Tracer.getInstance().addReceiver(tracer);
+    
+    assertFalse(Trace.isTracing());
+    Trace.start("nop").stop();
+    assertTrue(tracer.traces.size() == 0);
+    assertFalse(Trace.isTracing());
+    
+    Trace.on("nop").stop();
+    assertTrue(tracer.traces.size() == 1);
+    assertFalse(Trace.isTracing());
+    
+    Span start = Trace.on("testing");
+    assertEquals(Trace.currentTrace(), start);
+    assertTrue(Trace.isTracing());
+    
+    Trace.start("shortest trace ever");
+    Trace.currentTrace().stop();
+    long traceId = Trace.currentTrace().traceId();
+    assertNotNull(tracer.traces.get(traceId));
+    assertTrue(tracer.traces.get(traceId).size() == 1);
+    assertEquals("shortest trace ever", tracer.traces.get(traceId).get(0).description);
+    
+    Span pause = Trace.start("pause");
+    Thread.sleep(100);
+    pause.stop();
+    assertTrue(tracer.traces.get(traceId).size() == 2);
+    assertTrue(tracer.traces.get(traceId).get(1).millis() >= 100);
+    
+    Thread t = new Thread(Trace.wrap(new Runnable() {
+      @Override
+      public void run() {
         assertTrue(Trace.isTracing());
-        
-        Trace.start("shortest trace ever");
-        Trace.currentTrace().stop();
-        long traceId = Trace.currentTrace().traceId();
-        assertNotNull(tracer.traces.get(traceId));
-        assertTrue(tracer.traces.get(traceId).size() == 1);
-        assertEquals("shortest trace ever", tracer.traces.get(traceId).get(0).description);
-        
-        Span pause = Trace.start("pause");
-        Thread.sleep(100);
-        pause.stop();
-        assertTrue(tracer.traces.get(traceId).size() == 2);
-        assertTrue(tracer.traces.get(traceId).get(1).millis() >= 100);
-        
-        Thread t = new Thread(Trace.wrap(new Runnable() {
-            @Override
-            public void run() {
-                assertTrue(Trace.isTracing());
-            }
-        }), "My Task");
-        t.start();
-        t.join();
-        
-        assertTrue(tracer.traces.get(traceId).size() == 3);
-        assertEquals("My Task", tracer.traces.get(traceId).get(2).description);
-        Trace.off();
-        assertFalse(Trace.isTracing());
-    }
+      }
+    }), "My Task");
+    t.start();
+    t.join();
     
-    static class Service implements TestService.Iface {
-        @Override
-        public boolean checkTrace(TInfo t, String message) throws TException {
-            Span trace = Trace.start(message);
-            try {
-                return Trace.isTracing();
-            } finally {
-                trace.stop();
-            }
-        }
+    assertTrue(tracer.traces.get(traceId).size() == 3);
+    assertEquals("My Task", tracer.traces.get(traceId).get(2).description);
+    Trace.off();
+    assertFalse(Trace.isTracing());
+  }
+  
+  static class Service implements TestService.Iface {
+    @Override
+    public boolean checkTrace(TInfo t, String message) throws TException {
+      Span trace = Trace.start(message);
+      try {
+        return Trace.isTracing();
+      } finally {
+        trace.stop();
+      }
     }
+  }
+  
+  @Test
+  public void testThrift() throws Exception {
+    TestReceiver tracer = new TestReceiver();
+    Tracer.getInstance().addReceiver(tracer);
     
-    @Test
-    public void testThrift() throws Exception {
-        TestReceiver tracer = new TestReceiver();
-        Tracer.getInstance().addReceiver(tracer);
-        
-        ServerSocket socket = new ServerSocket(0);
-        TServerSocket transport = new TServerSocket(socket);
-        transport.listen();
-        TThreadPoolServer.Args args = new TThreadPoolServer.Args(transport);
-        args.processor(new TestService.Processor(TraceWrap.service(new Service())));
-        final TServer tserver = new TThreadPoolServer(args);
-        Thread t = new Thread() {
-            public void run() {
-                tserver.serve();
-            }
-        };
-        t.start();
-        TTransport clientTransport = new TSocket(new Socket("localhost", socket.getLocalPort()));
-        TestService.Iface client = new TestService.Client(new TBinaryProtocol(clientTransport), new TBinaryProtocol(clientTransport));
-        client = TraceWrap.client(client);
-        assertFalse(client.checkTrace(null, "test"));
-        
-        Span start = Trace.on("start");
-        assertTrue(client.checkTrace(null, "my test"));
-        start.stop();
-        
-        assertNotNull(tracer.traces.get(start.traceId()));
-        String traces[] = {"my test", "checkTrace", "client:checkTrace", "start"};
-        assertTrue(tracer.traces.get(start.traceId()).size() == traces.length);
-        for (int i = 0; i < traces.length; i++)
-            assertEquals(traces[i], tracer.traces.get(start.traceId()).get(i).description);
-        
-        tserver.stop();
-        t.join(100);
-    }
+    ServerSocket socket = new ServerSocket(0);
+    TServerSocket transport = new TServerSocket(socket);
+    transport.listen();
+    TThreadPoolServer.Args args = new TThreadPoolServer.Args(transport);
+    args.processor(new TestService.Processor(TraceWrap.service(new Service())));
+    final TServer tserver = new TThreadPoolServer(args);
+    Thread t = new Thread() {
+      public void run() {
+        tserver.serve();
+      }
+    };
+    t.start();
+    TTransport clientTransport = new TSocket(new Socket("localhost", socket.getLocalPort()));
+    TestService.Iface client = new TestService.Client(new TBinaryProtocol(clientTransport), new TBinaryProtocol(clientTransport));
+    client = TraceWrap.client(client);
+    assertFalse(client.checkTrace(null, "test"));
+    
+    Span start = Trace.on("start");
+    assertTrue(client.checkTrace(null, "my test"));
+    start.stop();
+    
+    assertNotNull(tracer.traces.get(start.traceId()));
+    String traces[] = {"my test", "checkTrace", "client:checkTrace", "start"};
+    assertTrue(tracer.traces.get(start.traceId()).size() == traces.length);
+    for (int i = 0; i < traces.length; i++)
+      assertEquals(traces[i], tracer.traces.get(start.traceId()).get(i).description);
+    
+    tserver.stop();
+    t.join(100);
+  }
 }

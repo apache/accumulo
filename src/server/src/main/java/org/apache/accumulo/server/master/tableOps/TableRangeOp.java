@@ -43,87 +43,87 @@ import org.apache.hadoop.io.Text;
  */
 
 class TableRangeOpWait extends MasterRepo {
-    
-    private static final long serialVersionUID = 1L;
-    private String tableId;
-    
-    public TableRangeOpWait(String tableId) {
-        this.tableId = tableId;
+  
+  private static final long serialVersionUID = 1L;
+  private String tableId;
+  
+  public TableRangeOpWait(String tableId) {
+    this.tableId = tableId;
+  }
+  
+  @Override
+  public long isReady(long tid, Master env) throws Exception {
+    Text tableIdText = new Text(tableId);
+    if (!env.getMergeInfo(tableIdText).getState().equals(MergeState.NONE)) {
+      return 50;
     }
-    
-    @Override
-    public long isReady(long tid, Master env) throws Exception {
-        Text tableIdText = new Text(tableId);
-        if (!env.getMergeInfo(tableIdText).getState().equals(MergeState.NONE)) {
-            return 50;
-        }
-        return 0;
-    }
-    
-    @Override
-    public Repo<Master> call(long tid, Master env) throws Exception {
-        Text tableIdText = new Text(tableId);
-        MergeInfo mergeInfo = env.getMergeInfo(tableIdText);
-        log.warn("removing merge information " + mergeInfo);
-        env.clearMergeState(tableIdText);
-        Utils.unreserveTable(tableId, tid, true);
-        return null;
-    }
-    
+    return 0;
+  }
+  
+  @Override
+  public Repo<Master> call(long tid, Master env) throws Exception {
+    Text tableIdText = new Text(tableId);
+    MergeInfo mergeInfo = env.getMergeInfo(tableIdText);
+    log.warn("removing merge information " + mergeInfo);
+    env.clearMergeState(tableIdText);
+    Utils.unreserveTable(tableId, tid, true);
+    return null;
+  }
+  
 }
 
 public class TableRangeOp extends MasterRepo {
+  
+  private static final long serialVersionUID = 1L;
+  
+  private String tableId;
+  private byte[] startRow;
+  private byte[] endRow;
+  private Operation op;
+  
+  @Override
+  public long isReady(long tid, Master environment) throws Exception {
+    return Utils.reserveTable(tableId, tid, true, true, TableOperation.MERGE);
+  }
+  
+  public TableRangeOp(MergeInfo.Operation op, String tableId, Text startRow, Text endRow) throws ThriftTableOperationException {
     
-    private static final long serialVersionUID = 1L;
+    this.tableId = tableId;
+    this.startRow = TextUtil.getBytes(startRow);
+    this.endRow = TextUtil.getBytes(endRow);
+    this.op = op;
+  }
+  
+  @Override
+  public Repo<Master> call(long tid, Master env) throws Exception {
     
-    private String tableId;
-    private byte[] startRow;
-    private byte[] endRow;
-    private Operation op;
+    Text start = startRow.length == 0 ? null : new Text(startRow);
+    Text end = endRow.length == 0 ? null : new Text(endRow);
+    Text tableIdText = new Text(tableId);
     
-    @Override
-    public long isReady(long tid, Master environment) throws Exception {
-        return Utils.reserveTable(tableId, tid, true, true, TableOperation.MERGE);
+    if (start != null && end != null) if (start.compareTo(end) >= 0) throw new ThriftTableOperationException(tableId, null, TableOperation.MERGE,
+        TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
+    
+    env.mustBeOnline(tableId);
+    
+    MergeInfo info = env.getMergeInfo(tableIdText);
+    
+    if (info.getState() == MergeState.NONE) {
+      KeyExtent range = new KeyExtent(tableIdText, end, start);
+      env.setMergeState(new MergeInfo(range, op), MergeState.STARTED);
     }
     
-    public TableRangeOp(MergeInfo.Operation op, String tableId, Text startRow, Text endRow) throws ThriftTableOperationException {
-        
-        this.tableId = tableId;
-        this.startRow = TextUtil.getBytes(startRow);
-        this.endRow = TextUtil.getBytes(endRow);
-        this.op = op;
-    }
-    
-    @Override
-    public Repo<Master> call(long tid, Master env) throws Exception {
-        
-        Text start = startRow.length == 0 ? null : new Text(startRow);
-        Text end = endRow.length == 0 ? null : new Text(endRow);
-        Text tableIdText = new Text(tableId);
-        
-        if (start != null && end != null) if (start.compareTo(end) >= 0) throw new ThriftTableOperationException(tableId, null, TableOperation.MERGE,
-                TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
-        
-        env.mustBeOnline(tableId);
-        
-        MergeInfo info = env.getMergeInfo(tableIdText);
-        
-        if (info.getState() == MergeState.NONE) {
-            KeyExtent range = new KeyExtent(tableIdText, end, start);
-            env.setMergeState(new MergeInfo(range, op), MergeState.STARTED);
-        }
-        
-        return new TableRangeOpWait(tableId);
-    }
-    
-    @Override
-    public void undo(long tid, Master env) throws Exception {
-        // Not sure this is a good thing to do. The Master state engine should be the one to remove it.
-        Text tableIdText = new Text(tableId);
-        MergeInfo mergeInfo = env.getMergeInfo(tableIdText);
-        if (mergeInfo.getState() != MergeState.NONE) log.warn("removing merge information " + mergeInfo);
-        env.clearMergeState(tableIdText);
-        Utils.unreserveTable(tableId, tid, true);
-    }
-    
+    return new TableRangeOpWait(tableId);
+  }
+  
+  @Override
+  public void undo(long tid, Master env) throws Exception {
+    // Not sure this is a good thing to do. The Master state engine should be the one to remove it.
+    Text tableIdText = new Text(tableId);
+    MergeInfo mergeInfo = env.getMergeInfo(tableIdText);
+    if (mergeInfo.getState() != MergeState.NONE) log.warn("removing merge information " + mergeInfo);
+    env.clearMergeState(tableIdText);
+    Utils.unreserveTable(tableId, tid, true);
+  }
+  
 }

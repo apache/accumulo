@@ -21,5 +21,5 @@ package org.apache.accumulo.server.util.time;
  * 
  */
 public interface ProvidesTime {
-    public long currentTime();
+  public long currentTime();
 }

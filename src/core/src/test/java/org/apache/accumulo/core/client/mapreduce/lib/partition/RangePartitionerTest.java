@@ -26,57 +26,57 @@ import org.apache.hadoop.mapreduce.JobID;
 import org.junit.Test;
 
 public class RangePartitionerTest {
-    
-    private static Text[] cutArray = new Text[] {new Text("A"), new Text("B"), new Text("C")};
-    
-    @Test
-    public void testNoSubBins() {
-        for (int i = -2; i < 2; ++i) {
-            checkExpectedBins(i, new String[] {"A", "B", "C"}, new int[] {0, 1, 2});
-            checkExpectedBins(i, new String[] {"C", "A", "B"}, new int[] {2, 0, 1});
-            checkExpectedBins(i, new String[] {"", "AA", "BB", "CC"}, new int[] {0, 1, 2, 3});
-        }
+  
+  private static Text[] cutArray = new Text[] {new Text("A"), new Text("B"), new Text("C")};
+  
+  @Test
+  public void testNoSubBins() {
+    for (int i = -2; i < 2; ++i) {
+      checkExpectedBins(i, new String[] {"A", "B", "C"}, new int[] {0, 1, 2});
+      checkExpectedBins(i, new String[] {"C", "A", "B"}, new int[] {2, 0, 1});
+      checkExpectedBins(i, new String[] {"", "AA", "BB", "CC"}, new int[] {0, 1, 2, 3});
     }
+  }
+  
+  @Test
+  public void testSubBins() {
+    checkExpectedRangeBins(2, new String[] {"A", "B", "C"}, new int[] {1, 3, 5});
+    checkExpectedRangeBins(2, new String[] {"C", "A", "B"}, new int[] {5, 1, 3});
+    checkExpectedRangeBins(2, new String[] {"", "AA", "BB", "CC"}, new int[] {1, 3, 5, 7});
     
-    @Test
-    public void testSubBins() {
-        checkExpectedRangeBins(2, new String[] {"A", "B", "C"}, new int[] {1, 3, 5});
-        checkExpectedRangeBins(2, new String[] {"C", "A", "B"}, new int[] {5, 1, 3});
-        checkExpectedRangeBins(2, new String[] {"", "AA", "BB", "CC"}, new int[] {1, 3, 5, 7});
-        
-        checkExpectedRangeBins(3, new String[] {"A", "B", "C"}, new int[] {2, 5, 8});
-        checkExpectedRangeBins(3, new String[] {"C", "A", "B"}, new int[] {8, 2, 5});
-        checkExpectedRangeBins(3, new String[] {"", "AA", "BB", "CC"}, new int[] {2, 5, 8, 11});
-        
-        checkExpectedRangeBins(10, new String[] {"A", "B", "C"}, new int[] {9, 19, 29});
-        checkExpectedRangeBins(10, new String[] {"C", "A", "B"}, new int[] {29, 9, 19});
-        checkExpectedRangeBins(10, new String[] {"", "AA", "BB", "CC"}, new int[] {9, 19, 29, 39});
-    }
+    checkExpectedRangeBins(3, new String[] {"A", "B", "C"}, new int[] {2, 5, 8});
+    checkExpectedRangeBins(3, new String[] {"C", "A", "B"}, new int[] {8, 2, 5});
+    checkExpectedRangeBins(3, new String[] {"", "AA", "BB", "CC"}, new int[] {2, 5, 8, 11});
     
-    private RangePartitioner prepPartitioner(int numSubBins) {
-        JobContext job = new JobContext(new Configuration(), new JobID());
-        RangePartitioner.setNumSubBins(job, numSubBins);
-        RangePartitioner rp = new RangePartitioner();
-        rp.setConf(job.getConfiguration());
-        return rp;
+    checkExpectedRangeBins(10, new String[] {"A", "B", "C"}, new int[] {9, 19, 29});
+    checkExpectedRangeBins(10, new String[] {"C", "A", "B"}, new int[] {29, 9, 19});
+    checkExpectedRangeBins(10, new String[] {"", "AA", "BB", "CC"}, new int[] {9, 19, 29, 39});
+  }
+  
+  private RangePartitioner prepPartitioner(int numSubBins) {
+    JobContext job = new JobContext(new Configuration(), new JobID());
+    RangePartitioner.setNumSubBins(job, numSubBins);
+    RangePartitioner rp = new RangePartitioner();
+    rp.setConf(job.getConfiguration());
+    return rp;
+  }
+  
+  private void checkExpectedRangeBins(int numSubBins, String[] strings, int[] rangeEnds) {
+    assertTrue(strings.length == rangeEnds.length);
+    for (int i = 0; i < strings.length; ++i) {
+      int endRange = rangeEnds[i];
+      int startRange = endRange + 1 - numSubBins;
+      int part = prepPartitioner(numSubBins).findPartition(new Text(strings[i]), cutArray, numSubBins);
+      assertTrue(part >= startRange);
+      assertTrue(part <= endRange);
     }
-    
-    private void checkExpectedRangeBins(int numSubBins, String[] strings, int[] rangeEnds) {
-        assertTrue(strings.length == rangeEnds.length);
-        for (int i = 0; i < strings.length; ++i) {
-            int endRange = rangeEnds[i];
-            int startRange = endRange + 1 - numSubBins;
-            int part = prepPartitioner(numSubBins).findPartition(new Text(strings[i]), cutArray, numSubBins);
-            assertTrue(part >= startRange);
-            assertTrue(part <= endRange);
-        }
+  }
+  
+  private void checkExpectedBins(int numSubBins, String[] strings, int[] bins) {
+    assertTrue(strings.length == bins.length);
+    for (int i = 0; i < strings.length; ++i) {
+      int bin = bins[i], part = prepPartitioner(numSubBins).findPartition(new Text(strings[i]), cutArray, numSubBins);
+      assertTrue(bin == part);
     }
-    
-    private void checkExpectedBins(int numSubBins, String[] strings, int[] bins) {
-        assertTrue(strings.length == bins.length);
-        for (int i = 0; i < strings.length; ++i) {
-            int bin = bins[i], part = prepPartitioner(numSubBins).findPartition(new Text(strings[i]), cutArray, numSubBins);
-            assertTrue(bin == part);
-        }
-    }
+  }
 }

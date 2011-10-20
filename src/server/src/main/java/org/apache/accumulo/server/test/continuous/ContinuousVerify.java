@@ -45,144 +45,144 @@ import org.apache.hadoop.util.ToolRunner;
  */
 
 public class ContinuousVerify extends Configured implements Tool {
+  
+  public static final VLongWritable DEF = new VLongWritable(-1);
+  
+  public static class CMapper extends Mapper<Key,Value,LongWritable,VLongWritable> {
     
-    public static final VLongWritable DEF = new VLongWritable(-1);
+    private LongWritable row = new LongWritable();
+    private LongWritable ref = new LongWritable();
+    private VLongWritable vrow = new VLongWritable();
     
-    public static class CMapper extends Mapper<Key,Value,LongWritable,VLongWritable> {
-        
-        private LongWritable row = new LongWritable();
-        private LongWritable ref = new LongWritable();
-        private VLongWritable vrow = new VLongWritable();
-        
-        private long corrupt = 0;
-        
-        public void map(Key key, Value data, Context context) throws IOException, InterruptedException {
-            long r = Long.parseLong(key.getRow().toString(), 16);
-            if (r < 0) throw new IllegalArgumentException();
-            
-            try {
-                ContinuousWalk.validate(key, data);
-            } catch (BadChecksumException bce) {
-                context.getCounter(Counts.CORRUPT).increment(1);
-                if (corrupt < 1000) {
-                    System.out.println("ERROR Bad checksum : " + key);
-                } else if (corrupt == 1000) {
-                    System.out.println("Too many bad checksums, not printing anymore!");
-                }
-                corrupt++;
-                return;
-            }
-            
-            row.set(r);
-            
-            context.write(row, DEF);
-            byte[] val = data.get();
-            
-            int offset = ContinuousWalk.getPrevRowOffset(val);
-            if (offset > 0) {
-                ref.set(Long.parseLong(new String(val, offset, 16), 16));
-                vrow.set(r);
-                context.write(ref, vrow);
-            }
+    private long corrupt = 0;
+    
+    public void map(Key key, Value data, Context context) throws IOException, InterruptedException {
+      long r = Long.parseLong(key.getRow().toString(), 16);
+      if (r < 0) throw new IllegalArgumentException();
+      
+      try {
+        ContinuousWalk.validate(key, data);
+      } catch (BadChecksumException bce) {
+        context.getCounter(Counts.CORRUPT).increment(1);
+        if (corrupt < 1000) {
+          System.out.println("ERROR Bad checksum : " + key);
+        } else if (corrupt == 1000) {
+          System.out.println("Too many bad checksums, not printing anymore!");
         }
+        corrupt++;
+        return;
+      }
+      
+      row.set(r);
+      
+      context.write(row, DEF);
+      byte[] val = data.get();
+      
+      int offset = ContinuousWalk.getPrevRowOffset(val);
+      if (offset > 0) {
+        ref.set(Long.parseLong(new String(val, offset, 16), 16));
+        vrow.set(r);
+        context.write(ref, vrow);
+      }
     }
+  }
+  
+  public static enum Counts {
+    UNREFERENCED, UNDEFINED, REFERENCED, CORRUPT
+  }
+  
+  public static class CReducer extends Reducer<LongWritable,VLongWritable,Text,Text> {
+    private ArrayList<Long> refs = new ArrayList<Long>();
     
-    public static enum Counts {
-        UNREFERENCED, UNDEFINED, REFERENCED, CORRUPT
-    }
-    
-    public static class CReducer extends Reducer<LongWritable,VLongWritable,Text,Text> {
-        private ArrayList<Long> refs = new ArrayList<Long>();
-        
-        public void reduce(LongWritable key, Iterable<VLongWritable> values, Context context) throws IOException, InterruptedException {
-            
-            int defCount = 0;
-            
-            refs.clear();
-            for (VLongWritable type : values) {
-                if (type.get() == -1) {
-                    defCount++;
-                } else {
-                    refs.add(type.get());
-                }
-            }
-            
-            if (defCount == 0 && refs.size() > 0) {
-                StringBuilder sb = new StringBuilder();
-                String comma = "";
-                for (Long ref : refs) {
-                    sb.append(comma);
-                    comma = ",";
-                    sb.append(new String(ContinuousIngest.genRow(ref)));
-                }
-                
-                context.write(new Text(ContinuousIngest.genRow(key.get())), new Text(sb.toString()));
-                context.getCounter(Counts.UNDEFINED).increment(1);
-                
-            } else if (defCount > 0 && refs.size() == 0) {
-                context.getCounter(Counts.UNREFERENCED).increment(1);
-            } else {
-                context.getCounter(Counts.REFERENCED).increment(1);
-            }
-            
+    public void reduce(LongWritable key, Iterable<VLongWritable> values, Context context) throws IOException, InterruptedException {
+      
+      int defCount = 0;
+      
+      refs.clear();
+      for (VLongWritable type : values) {
+        if (type.get() == -1) {
+          defCount++;
+        } else {
+          refs.add(type.get());
         }
-    }
-    
-    @Override
-    public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
-        if (args.length != 8) {
-            throw new IllegalArgumentException("Usage : " + ContinuousVerify.class.getName()
-                    + " <instance name> <zookeepers> <user> <pass> <table> <output dir> <max mappers> <num reducers>");
+      }
+      
+      if (defCount == 0 && refs.size() > 0) {
+        StringBuilder sb = new StringBuilder();
+        String comma = "";
+        for (Long ref : refs) {
+          sb.append(comma);
+          comma = ",";
+          sb.append(new String(ContinuousIngest.genRow(ref)));
         }
         
-        String instance = args[0];
-        String zookeepers = args[1];
-        String user = args[2];
-        String pass = args[3];
-        String table = args[4];
-        String outputdir = args[5];
-        String maxMaps = args[6];
-        String reducers = args[7];
+        context.write(new Text(ContinuousIngest.genRow(key.get())), new Text(sb.toString()));
+        context.getCounter(Counts.UNDEFINED).increment(1);
         
-        Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
-        job.setJarByClass(this.getClass());
-        
-        job.setInputFormatClass(AccumuloInputFormat.class);
-        AccumuloInputFormat.setInputInfo(job, user, pass.getBytes(), table, new Authorizations());
-        AccumuloInputFormat.setZooKeeperInstance(job, instance, zookeepers);
-        
-        // set up ranges
-        try {
-            Set<Range> ranges = new ZooKeeperInstance(instance, zookeepers).getConnector(user, pass.getBytes()).tableOperations()
-                    .splitRangeByTablets(table, new Range(), Integer.parseInt(maxMaps));
-            AccumuloInputFormat.setRanges(job, ranges);
-            AccumuloInputFormat.disableAutoAdjustRanges(job);
-        } catch (Exception e) {
-            throw new IOException(e);
-        }
-        
-        job.setMapperClass(CMapper.class);
-        job.setMapOutputKeyClass(LongWritable.class);
-        job.setMapOutputValueClass(VLongWritable.class);
-        
-        job.setReducerClass(CReducer.class);
-        job.setNumReduceTasks(Integer.parseInt(reducers));
-        
-        job.setOutputFormatClass(TextOutputFormat.class);
-        TextOutputFormat.setOutputPath(job, new Path(outputdir));
-        
-        job.waitForCompletion(true);
-        return job.isSuccessful() ? 0 : 1;
+      } else if (defCount > 0 && refs.size() == 0) {
+        context.getCounter(Counts.UNREFERENCED).increment(1);
+      } else {
+        context.getCounter(Counts.REFERENCED).increment(1);
+      }
+      
+    }
+  }
+  
+  @Override
+  public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
+    if (args.length != 8) {
+      throw new IllegalArgumentException("Usage : " + ContinuousVerify.class.getName()
+          + " <instance name> <zookeepers> <user> <pass> <table> <output dir> <max mappers> <num reducers>");
     }
     
-    /**
-     * 
-     * @param args
-     *            instanceName zookeepers username password table columns outputpath
-     * @throws Exception
-     */
-    public static void main(String[] args) throws Exception {
-        int res = ToolRunner.run(CachedConfiguration.getInstance(), new ContinuousVerify(), args);
-        if (res != 0) System.exit(res);
+    String instance = args[0];
+    String zookeepers = args[1];
+    String user = args[2];
+    String pass = args[3];
+    String table = args[4];
+    String outputdir = args[5];
+    String maxMaps = args[6];
+    String reducers = args[7];
+    
+    Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+    job.setJarByClass(this.getClass());
+    
+    job.setInputFormatClass(AccumuloInputFormat.class);
+    AccumuloInputFormat.setInputInfo(job, user, pass.getBytes(), table, new Authorizations());
+    AccumuloInputFormat.setZooKeeperInstance(job, instance, zookeepers);
+    
+    // set up ranges
+    try {
+      Set<Range> ranges = new ZooKeeperInstance(instance, zookeepers).getConnector(user, pass.getBytes()).tableOperations()
+          .splitRangeByTablets(table, new Range(), Integer.parseInt(maxMaps));
+      AccumuloInputFormat.setRanges(job, ranges);
+      AccumuloInputFormat.disableAutoAdjustRanges(job);
+    } catch (Exception e) {
+      throw new IOException(e);
     }
+    
+    job.setMapperClass(CMapper.class);
+    job.setMapOutputKeyClass(LongWritable.class);
+    job.setMapOutputValueClass(VLongWritable.class);
+    
+    job.setReducerClass(CReducer.class);
+    job.setNumReduceTasks(Integer.parseInt(reducers));
+    
+    job.setOutputFormatClass(TextOutputFormat.class);
+    TextOutputFormat.setOutputPath(job, new Path(outputdir));
+    
+    job.waitForCompletion(true);
+    return job.isSuccessful() ? 0 : 1;
+  }
+  
+  /**
+   * 
+   * @param args
+   *          instanceName zookeepers username password table columns outputpath
+   * @throws Exception
+   */
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(CachedConfiguration.getInstance(), new ContinuousVerify(), args);
+    if (res != 0) System.exit(res);
+  }
 }

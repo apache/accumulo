@@ -34,47 +34,47 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.PeekingIterator;
 
 public class FileDataQuery {
-    private Connector conn = null;
-    List<Entry<Key,Value>> lastRefs;
-    private ChunkInputStream cis;
-    Scanner scanner;
-    
-    public FileDataQuery(String instanceName, String zooKeepers, String user, String password, String tableName, Authorizations auths)
-            throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-        ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
-        conn = instance.getConnector(user, password.getBytes());
-        lastRefs = new ArrayList<Entry<Key,Value>>();
-        cis = new ChunkInputStream();
-        scanner = conn.createScanner(tableName, auths);
+  private Connector conn = null;
+  List<Entry<Key,Value>> lastRefs;
+  private ChunkInputStream cis;
+  Scanner scanner;
+  
+  public FileDataQuery(String instanceName, String zooKeepers, String user, String password, String tableName, Authorizations auths) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
+    ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
+    conn = instance.getConnector(user, password.getBytes());
+    lastRefs = new ArrayList<Entry<Key,Value>>();
+    cis = new ChunkInputStream();
+    scanner = conn.createScanner(tableName, auths);
+  }
+  
+  public List<Entry<Key,Value>> getLastRefs() {
+    return lastRefs;
+  }
+  
+  public ChunkInputStream getData(String hash) {
+    scanner.setRange(new Range(hash));
+    scanner.setBatchSize(1);
+    lastRefs.clear();
+    PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(scanner.iterator());
+    if (pi.hasNext()) {
+      while (!pi.peek().getKey().getColumnFamily().equals(FileDataIngest.CHUNK_CF)) {
+        lastRefs.add(pi.peek());
+        pi.next();
+      }
     }
-    
-    public List<Entry<Key,Value>> getLastRefs() {
-        return lastRefs;
+    cis.clear();
+    cis.setSource(pi);
+    return cis;
+  }
+  
+  public String getSomeData(String hash, int numBytes) throws IOException {
+    ChunkInputStream is = getData(hash);
+    byte[] buf = new byte[numBytes];
+    if (is.read(buf) >= 0) {
+      return new String(buf);
+    } else {
+      return "";
     }
-    
-    public ChunkInputStream getData(String hash) {
-        scanner.setRange(new Range(hash));
-        scanner.setBatchSize(1);
-        lastRefs.clear();
-        PeekingIterator<Entry<Key,Value>> pi = new PeekingIterator<Entry<Key,Value>>(scanner.iterator());
-        if (pi.hasNext()) {
-            while (!pi.peek().getKey().getColumnFamily().equals(FileDataIngest.CHUNK_CF)) {
-                lastRefs.add(pi.peek());
-                pi.next();
-            }
-        }
-        cis.clear();
-        cis.setSource(pi);
-        return cis;
-    }
-    
-    public String getSomeData(String hash, int numBytes) throws IOException {
-        ChunkInputStream is = getData(hash);
-        byte[] buf = new byte[numBytes];
-        if (is.read(buf) >= 0) {
-            return new String(buf);
-        } else {
-            return "";
-        }
-    }
+  }
 }

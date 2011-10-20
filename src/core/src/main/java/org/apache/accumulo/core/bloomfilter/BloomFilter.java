@@ -78,163 +78,163 @@ import org.apache.hadoop.util.bloom.Key;
  * @see <a href="http://portal.acm.org/citation.cfm?id=362692&dl=ACM&coll=portal">Space/Time Trade-Offs in Hash Coding with Allowable Errors</a>
  */
 public class BloomFilter extends Filter {
+  
+  private static final byte[] bitvalues = new byte[] {(byte) 0x01, (byte) 0x02, (byte) 0x04, (byte) 0x08, (byte) 0x10, (byte) 0x20, (byte) 0x40, (byte) 0x80};
+  
+  /** The bit vector. */
+  BitSet bits;
+  
+  /** Default constructor - use with readFields */
+  public BloomFilter() {
+    super();
+  }
+  
+  /**
+   * Constructor
+   * 
+   * @param vectorSize
+   *          The vector size of <i>this</i> filter.
+   * @param nbHash
+   *          The number of hash function to consider.
+   * @param hashType
+   *          type of the hashing function (see {@link org.apache.hadoop.util.hash.Hash}).
+   */
+  public BloomFilter(int vectorSize, int nbHash, int hashType) {
+    super(vectorSize, nbHash, hashType);
     
-    private static final byte[] bitvalues = new byte[] {(byte) 0x01, (byte) 0x02, (byte) 0x04, (byte) 0x08, (byte) 0x10, (byte) 0x20, (byte) 0x40, (byte) 0x80};
-    
-    /** The bit vector. */
-    BitSet bits;
-    
-    /** Default constructor - use with readFields */
-    public BloomFilter() {
-        super();
+    bits = new BitSet(this.vectorSize);
+  }
+  
+  @Override
+  public void add(Key key) {
+    if (key == null) {
+      throw new NullPointerException("key cannot be null");
     }
     
-    /**
-     * Constructor
-     * 
-     * @param vectorSize
-     *            The vector size of <i>this</i> filter.
-     * @param nbHash
-     *            The number of hash function to consider.
-     * @param hashType
-     *            type of the hashing function (see {@link org.apache.hadoop.util.hash.Hash}).
-     */
-    public BloomFilter(int vectorSize, int nbHash, int hashType) {
-        super(vectorSize, nbHash, hashType);
-        
-        bits = new BitSet(this.vectorSize);
+    int[] h = hash.hash(key);
+    hash.clear();
+    
+    for (int i = 0; i < nbHash; i++) {
+      bits.set(h[i]);
+    }
+  }
+  
+  @Override
+  public void and(Filter filter) {
+    if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
+      throw new IllegalArgumentException("filters cannot be and-ed");
     }
     
-    @Override
-    public void add(Key key) {
-        if (key == null) {
-            throw new NullPointerException("key cannot be null");
+    this.bits.and(((BloomFilter) filter).bits);
+  }
+  
+  @Override
+  public boolean membershipTest(Key key) {
+    if (key == null) {
+      throw new NullPointerException("key cannot be null");
+    }
+    
+    int[] h = hash.hash(key);
+    hash.clear();
+    for (int i = 0; i < nbHash; i++) {
+      if (!bits.get(h[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+  
+  @Override
+  public void not() {
+    bits.flip(0, vectorSize - 1);
+  }
+  
+  @Override
+  public void or(Filter filter) {
+    if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
+      throw new IllegalArgumentException("filters cannot be or-ed");
+    }
+    bits.or(((BloomFilter) filter).bits);
+  }
+  
+  @Override
+  public void xor(Filter filter) {
+    if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
+      throw new IllegalArgumentException("filters cannot be xor-ed");
+    }
+    bits.xor(((BloomFilter) filter).bits);
+  }
+  
+  @Override
+  public String toString() {
+    return bits.toString();
+  }
+  
+  /**
+   * @return size of the the bloomfilter
+   */
+  public int getVectorSize() {
+    return this.vectorSize;
+  }
+  
+  // Writable
+  
+  @Override
+  public void write(DataOutput out) throws IOException {
+    super.write(out);
+    
+    ByteArrayOutputStream boas = new ByteArrayOutputStream();
+    ObjectOutputStream oos = new ObjectOutputStream(boas);
+    
+    oos.writeObject(bits);
+    oos.flush();
+    oos.close();
+    out.write(boas.toByteArray());
+  }
+  
+  @Override
+  public void readFields(DataInput in) throws IOException {
+    
+    super.readFields(in);
+    
+    bits = new BitSet(this.vectorSize);
+    byte[] bytes = null;
+    
+    if (super.getSerialVersion() != super.getVersion()) {
+      bytes = new byte[getNBytes()];
+      in.readFully(bytes);
+    }
+    
+    if (super.getSerialVersion() == super.getVersion()) {
+      // ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+      // ObjectInputStream ois = new ObjectInputStream(bais);
+      ObjectInputStream ois = new ObjectInputStream((DataInputStream) (in));
+      try {
+        bits = (BitSet) ois.readObject();
+      } catch (ClassNotFoundException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+        throw new IOException("BloomFilter tried to deserialize as bitset: " + e);
+      }
+      // can not close ois, it would close in
+      
+    } else {
+      for (int i = 0, byteIndex = 0, bitIndex = 0; i < vectorSize; i++, bitIndex++) {
+        if (bitIndex == 8) {
+          bitIndex = 0;
+          byteIndex++;
         }
-        
-        int[] h = hash.hash(key);
-        hash.clear();
-        
-        for (int i = 0; i < nbHash; i++) {
-            bits.set(h[i]);
+        if ((bytes[byteIndex] & bitvalues[bitIndex]) != 0) {
+          bits.set(i);
         }
+      }
     }
     
-    @Override
-    public void and(Filter filter) {
-        if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
-            throw new IllegalArgumentException("filters cannot be and-ed");
-        }
-        
-        this.bits.and(((BloomFilter) filter).bits);
-    }
-    
-    @Override
-    public boolean membershipTest(Key key) {
-        if (key == null) {
-            throw new NullPointerException("key cannot be null");
-        }
-        
-        int[] h = hash.hash(key);
-        hash.clear();
-        for (int i = 0; i < nbHash; i++) {
-            if (!bits.get(h[i])) {
-                return false;
-            }
-        }
-        return true;
-    }
-    
-    @Override
-    public void not() {
-        bits.flip(0, vectorSize - 1);
-    }
-    
-    @Override
-    public void or(Filter filter) {
-        if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
-            throw new IllegalArgumentException("filters cannot be or-ed");
-        }
-        bits.or(((BloomFilter) filter).bits);
-    }
-    
-    @Override
-    public void xor(Filter filter) {
-        if (filter == null || !(filter instanceof BloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
-            throw new IllegalArgumentException("filters cannot be xor-ed");
-        }
-        bits.xor(((BloomFilter) filter).bits);
-    }
-    
-    @Override
-    public String toString() {
-        return bits.toString();
-    }
-    
-    /**
-     * @return size of the the bloomfilter
-     */
-    public int getVectorSize() {
-        return this.vectorSize;
-    }
-    
-    // Writable
-    
-    @Override
-    public void write(DataOutput out) throws IOException {
-        super.write(out);
-        
-        ByteArrayOutputStream boas = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(boas);
-        
-        oos.writeObject(bits);
-        oos.flush();
-        oos.close();
-        out.write(boas.toByteArray());
-    }
-    
-    @Override
-    public void readFields(DataInput in) throws IOException {
-        
-        super.readFields(in);
-        
-        bits = new BitSet(this.vectorSize);
-        byte[] bytes = null;
-        
-        if (super.getSerialVersion() != super.getVersion()) {
-            bytes = new byte[getNBytes()];
-            in.readFully(bytes);
-        }
-        
-        if (super.getSerialVersion() == super.getVersion()) {
-            // ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-            // ObjectInputStream ois = new ObjectInputStream(bais);
-            ObjectInputStream ois = new ObjectInputStream((DataInputStream) (in));
-            try {
-                bits = (BitSet) ois.readObject();
-            } catch (ClassNotFoundException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-                throw new IOException("BloomFilter tried to deserialize as bitset: " + e);
-            }
-            // can not close ois, it would close in
-            
-        } else {
-            for (int i = 0, byteIndex = 0, bitIndex = 0; i < vectorSize; i++, bitIndex++) {
-                if (bitIndex == 8) {
-                    bitIndex = 0;
-                    byteIndex++;
-                }
-                if ((bytes[byteIndex] & bitvalues[bitIndex]) != 0) {
-                    bits.set(i);
-                }
-            }
-        }
-        
-    }
-    
-    /* @return number of bytes needed to hold bit vector */
-    private int getNBytes() {
-        return (vectorSize + 7) / 8;
-    }
-    
+  }
+  
+  /* @return number of bytes needed to hold bit vector */
+  private int getNBytes() {
+    return (vectorSize + 7) / 8;
+  }
+  
 }// end class

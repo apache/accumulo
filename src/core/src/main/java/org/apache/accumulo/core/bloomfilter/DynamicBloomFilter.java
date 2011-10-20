@@ -79,204 +79,204 @@ import org.apache.hadoop.util.bloom.Key;
  *      Filters</a>
  */
 public class DynamicBloomFilter extends Filter {
-    /**
-     * Threshold for the maximum number of key to record in a dynamic Bloom filter row.
-     */
-    private int nr;
+  /**
+   * Threshold for the maximum number of key to record in a dynamic Bloom filter row.
+   */
+  private int nr;
+  
+  /**
+   * The number of keys recorded in the current standard active Bloom filter.
+   */
+  private int currentNbRecord;
+  
+  /**
+   * The matrix of Bloom filter.
+   */
+  private BloomFilter[] matrix;
+  
+  /**
+   * Zero-args constructor for the serialization.
+   */
+  public DynamicBloomFilter() {}
+  
+  /**
+   * Constructor.
+   * <p>
+   * Builds an empty Dynamic Bloom filter.
+   * 
+   * @param vectorSize
+   *          The number of bits in the vector.
+   * @param nbHash
+   *          The number of hash function to consider.
+   * @param hashType
+   *          type of the hashing function (see {@link org.apache.hadoop.util.hash.Hash}).
+   * @param nr
+   *          The threshold for the maximum number of keys to record in a dynamic Bloom filter row.
+   */
+  public DynamicBloomFilter(int vectorSize, int nbHash, int hashType, int nr) {
+    super(vectorSize, nbHash, hashType);
     
-    /**
-     * The number of keys recorded in the current standard active Bloom filter.
-     */
-    private int currentNbRecord;
+    this.nr = nr;
+    this.currentNbRecord = 0;
     
-    /**
-     * The matrix of Bloom filter.
-     */
-    private BloomFilter[] matrix;
-    
-    /**
-     * Zero-args constructor for the serialization.
-     */
-    public DynamicBloomFilter() {}
-    
-    /**
-     * Constructor.
-     * <p>
-     * Builds an empty Dynamic Bloom filter.
-     * 
-     * @param vectorSize
-     *            The number of bits in the vector.
-     * @param nbHash
-     *            The number of hash function to consider.
-     * @param hashType
-     *            type of the hashing function (see {@link org.apache.hadoop.util.hash.Hash}).
-     * @param nr
-     *            The threshold for the maximum number of keys to record in a dynamic Bloom filter row.
-     */
-    public DynamicBloomFilter(int vectorSize, int nbHash, int hashType, int nr) {
-        super(vectorSize, nbHash, hashType);
-        
-        this.nr = nr;
-        this.currentNbRecord = 0;
-        
-        matrix = new BloomFilter[1];
-        matrix[0] = new BloomFilter(this.vectorSize, this.nbHash, this.hashType);
+    matrix = new BloomFilter[1];
+    matrix[0] = new BloomFilter(this.vectorSize, this.nbHash, this.hashType);
+  }
+  
+  @Override
+  public void add(Key key) {
+    if (key == null) {
+      throw new NullPointerException("Key can not be null");
     }
     
-    @Override
-    public void add(Key key) {
-        if (key == null) {
-            throw new NullPointerException("Key can not be null");
-        }
-        
-        BloomFilter bf = getActiveStandardBF();
-        
-        if (bf == null) {
-            addRow();
-            bf = matrix[matrix.length - 1];
-            currentNbRecord = 0;
-        }
-        
-        bf.add(key);
-        
-        currentNbRecord++;
+    BloomFilter bf = getActiveStandardBF();
+    
+    if (bf == null) {
+      addRow();
+      bf = matrix[matrix.length - 1];
+      currentNbRecord = 0;
     }
     
-    @Override
-    public void and(Filter filter) {
-        if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
-            throw new IllegalArgumentException("filters cannot be and-ed");
-        }
-        
-        DynamicBloomFilter dbf = (DynamicBloomFilter) filter;
-        
-        if (dbf.matrix.length != this.matrix.length || dbf.nr != this.nr) {
-            throw new IllegalArgumentException("filters cannot be and-ed");
-        }
-        
-        for (int i = 0; i < matrix.length; i++) {
-            matrix[i].and(dbf.matrix[i]);
-        }
+    bf.add(key);
+    
+    currentNbRecord++;
+  }
+  
+  @Override
+  public void and(Filter filter) {
+    if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
+      throw new IllegalArgumentException("filters cannot be and-ed");
     }
     
-    @Override
-    public boolean membershipTest(Key key) {
-        if (key == null) {
-            return true;
-        }
-        
-        for (int i = 0; i < matrix.length; i++) {
-            if (matrix[i].membershipTest(key)) {
-                return true;
-            }
-        }
-        
-        return false;
+    DynamicBloomFilter dbf = (DynamicBloomFilter) filter;
+    
+    if (dbf.matrix.length != this.matrix.length || dbf.nr != this.nr) {
+      throw new IllegalArgumentException("filters cannot be and-ed");
     }
     
-    @Override
-    public void not() {
-        for (int i = 0; i < matrix.length; i++) {
-            matrix[i].not();
-        }
+    for (int i = 0; i < matrix.length; i++) {
+      matrix[i].and(dbf.matrix[i]);
+    }
+  }
+  
+  @Override
+  public boolean membershipTest(Key key) {
+    if (key == null) {
+      return true;
     }
     
-    @Override
-    public void or(Filter filter) {
-        if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
-            throw new IllegalArgumentException("filters cannot be or-ed");
-        }
-        
-        DynamicBloomFilter dbf = (DynamicBloomFilter) filter;
-        
-        if (dbf.matrix.length != this.matrix.length || dbf.nr != this.nr) {
-            throw new IllegalArgumentException("filters cannot be or-ed");
-        }
-        for (int i = 0; i < matrix.length; i++) {
-            matrix[i].or(dbf.matrix[i]);
-        }
+    for (int i = 0; i < matrix.length; i++) {
+      if (matrix[i].membershipTest(key)) {
+        return true;
+      }
     }
     
-    @Override
-    public void xor(Filter filter) {
-        if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
-            throw new IllegalArgumentException("filters cannot be xor-ed");
-        }
-        DynamicBloomFilter dbf = (DynamicBloomFilter) filter;
-        
-        if (dbf.matrix.length != this.matrix.length || dbf.nr != this.nr) {
-            throw new IllegalArgumentException("filters cannot be xor-ed");
-        }
-        
-        for (int i = 0; i < matrix.length; i++) {
-            matrix[i].xor(dbf.matrix[i]);
-        }
+    return false;
+  }
+  
+  @Override
+  public void not() {
+    for (int i = 0; i < matrix.length; i++) {
+      matrix[i].not();
+    }
+  }
+  
+  @Override
+  public void or(Filter filter) {
+    if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
+      throw new IllegalArgumentException("filters cannot be or-ed");
     }
     
-    @Override
-    public String toString() {
-        StringBuilder res = new StringBuilder();
-        
-        for (int i = 0; i < matrix.length; i++) {
-            res.append(matrix[i]);
-            res.append(Character.LINE_SEPARATOR);
-        }
-        return res.toString();
+    DynamicBloomFilter dbf = (DynamicBloomFilter) filter;
+    
+    if (dbf.matrix.length != this.matrix.length || dbf.nr != this.nr) {
+      throw new IllegalArgumentException("filters cannot be or-ed");
+    }
+    for (int i = 0; i < matrix.length; i++) {
+      matrix[i].or(dbf.matrix[i]);
+    }
+  }
+  
+  @Override
+  public void xor(Filter filter) {
+    if (filter == null || !(filter instanceof DynamicBloomFilter) || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
+      throw new IllegalArgumentException("filters cannot be xor-ed");
+    }
+    DynamicBloomFilter dbf = (DynamicBloomFilter) filter;
+    
+    if (dbf.matrix.length != this.matrix.length || dbf.nr != this.nr) {
+      throw new IllegalArgumentException("filters cannot be xor-ed");
     }
     
-    // Writable
+    for (int i = 0; i < matrix.length; i++) {
+      matrix[i].xor(dbf.matrix[i]);
+    }
+  }
+  
+  @Override
+  public String toString() {
+    StringBuilder res = new StringBuilder();
     
-    @Override
-    public void write(DataOutput out) throws IOException {
-        super.write(out);
-        out.writeInt(nr);
-        out.writeInt(currentNbRecord);
-        out.writeInt(matrix.length);
-        for (int i = 0; i < matrix.length; i++) {
-            matrix[i].write(out);
-        }
+    for (int i = 0; i < matrix.length; i++) {
+      res.append(matrix[i]);
+      res.append(Character.LINE_SEPARATOR);
+    }
+    return res.toString();
+  }
+  
+  // Writable
+  
+  @Override
+  public void write(DataOutput out) throws IOException {
+    super.write(out);
+    out.writeInt(nr);
+    out.writeInt(currentNbRecord);
+    out.writeInt(matrix.length);
+    for (int i = 0; i < matrix.length; i++) {
+      matrix[i].write(out);
+    }
+  }
+  
+  @Override
+  public void readFields(DataInput in) throws IOException {
+    
+    super.readFields(in);
+    
+    nr = in.readInt();
+    currentNbRecord = in.readInt();
+    int len = in.readInt();
+    matrix = new BloomFilter[len];
+    for (int i = 0; i < matrix.length; i++) {
+      matrix[i] = new BloomFilter();
+      matrix[i].readFields(in);
+    }
+  }
+  
+  /**
+   * Adds a new row to <i>this</i> dynamic Bloom filter.
+   */
+  private void addRow() {
+    BloomFilter[] tmp = new BloomFilter[matrix.length + 1];
+    
+    for (int i = 0; i < matrix.length; i++) {
+      tmp[i] = matrix[i];
     }
     
-    @Override
-    public void readFields(DataInput in) throws IOException {
-        
-        super.readFields(in);
-        
-        nr = in.readInt();
-        currentNbRecord = in.readInt();
-        int len = in.readInt();
-        matrix = new BloomFilter[len];
-        for (int i = 0; i < matrix.length; i++) {
-            matrix[i] = new BloomFilter();
-            matrix[i].readFields(in);
-        }
+    tmp[tmp.length - 1] = new BloomFilter(vectorSize, nbHash, hashType);
+    
+    matrix = tmp;
+  }
+  
+  /**
+   * Returns the active standard Bloom filter in <i>this</i> dynamic Bloom filter.
+   * 
+   * @return BloomFilter The active standard Bloom filter. <code>Null</code> otherwise.
+   */
+  private BloomFilter getActiveStandardBF() {
+    if (currentNbRecord >= nr) {
+      return null;
     }
     
-    /**
-     * Adds a new row to <i>this</i> dynamic Bloom filter.
-     */
-    private void addRow() {
-        BloomFilter[] tmp = new BloomFilter[matrix.length + 1];
-        
-        for (int i = 0; i < matrix.length; i++) {
-            tmp[i] = matrix[i];
-        }
-        
-        tmp[tmp.length - 1] = new BloomFilter(vectorSize, nbHash, hashType);
-        
-        matrix = tmp;
-    }
-    
-    /**
-     * Returns the active standard Bloom filter in <i>this</i> dynamic Bloom filter.
-     * 
-     * @return BloomFilter The active standard Bloom filter. <code>Null</code> otherwise.
-     */
-    private BloomFilter getActiveStandardBF() {
-        if (currentNbRecord >= nr) {
-            return null;
-        }
-        
-        return matrix[matrix.length - 1];
-    }
+    return matrix[matrix.length - 1];
+  }
 }

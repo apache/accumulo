@@ -37,98 +37,98 @@ import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
  */
 
 public class SortedMapIterator implements InterruptibleIterator {
-    private Iterator<Entry<Key,Value>> iter;
-    private Entry<Key,Value> entry;
+  private Iterator<Entry<Key,Value>> iter;
+  private Entry<Key,Value> entry;
+  
+  private SortedMap<Key,Value> map;
+  private Range range;
+  
+  private AtomicBoolean interruptFlag;
+  private int interruptCheckCount = 0;
+  
+  public SortedMapIterator deepCopy(IteratorEnvironment env) {
+    return new SortedMapIterator(map, interruptFlag);
+  }
+  
+  private SortedMapIterator(SortedMap<Key,Value> map, AtomicBoolean interruptFlag) {
+    this.map = map;
+    iter = null;
+    this.range = new Range();
+    entry = null;
     
-    private SortedMap<Key,Value> map;
-    private Range range;
+    this.interruptFlag = interruptFlag;
+  }
+  
+  public SortedMapIterator(SortedMap<Key,Value> map) {
+    this(map, null);
+  }
+  
+  @Override
+  public Key getTopKey() {
+    return entry.getKey();
+  }
+  
+  @Override
+  public Value getTopValue() {
+    return entry.getValue();
+  }
+  
+  @Override
+  public boolean hasTop() {
+    return entry != null;
+  }
+  
+  @Override
+  public void next() throws IOException {
     
-    private AtomicBoolean interruptFlag;
-    private int interruptCheckCount = 0;
+    if (entry == null) throw new IllegalStateException();
     
-    public SortedMapIterator deepCopy(IteratorEnvironment env) {
-        return new SortedMapIterator(map, interruptFlag);
-    }
+    if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get()) throw new IterationInterruptedException();
     
-    private SortedMapIterator(SortedMap<Key,Value> map, AtomicBoolean interruptFlag) {
-        this.map = map;
-        iter = null;
-        this.range = new Range();
+    if (iter.hasNext()) {
+      entry = iter.next();
+      if (range.afterEndKey((Key) entry.getKey())) {
         entry = null;
-        
-        this.interruptFlag = interruptFlag;
+      }
+    } else entry = null;
+    
+  }
+  
+  @Override
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    
+    if (columnFamilies.size() != 0 || inclusive) {
+      throw new IllegalArgumentException("I do not know how to filter column families");
     }
     
-    public SortedMapIterator(SortedMap<Key,Value> map) {
-        this(map, null);
+    if (interruptFlag != null && interruptFlag.get()) throw new IterationInterruptedException();
+    
+    this.range = range;
+    
+    Key key = range.getStartKey();
+    if (key == null) {
+      key = new Key();
     }
     
-    @Override
-    public Key getTopKey() {
-        return entry.getKey();
-    }
+    iter = map.tailMap(key).entrySet().iterator();
+    if (iter.hasNext()) {
+      entry = iter.next();
+      if (range.afterEndKey(entry.getKey())) {
+        entry = null;
+      }
+    } else entry = null;
     
-    @Override
-    public Value getTopValue() {
-        return entry.getValue();
+    while (hasTop() && range.beforeStartKey(getTopKey())) {
+      next();
     }
-    
-    @Override
-    public boolean hasTop() {
-        return entry != null;
-    }
-    
-    @Override
-    public void next() throws IOException {
-        
-        if (entry == null) throw new IllegalStateException();
-        
-        if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get()) throw new IterationInterruptedException();
-        
-        if (iter.hasNext()) {
-            entry = iter.next();
-            if (range.afterEndKey((Key) entry.getKey())) {
-                entry = null;
-            }
-        } else entry = null;
-        
-    }
-    
-    @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-        
-        if (columnFamilies.size() != 0 || inclusive) {
-            throw new IllegalArgumentException("I do not know how to filter column families");
-        }
-        
-        if (interruptFlag != null && interruptFlag.get()) throw new IterationInterruptedException();
-        
-        this.range = range;
-        
-        Key key = range.getStartKey();
-        if (key == null) {
-            key = new Key();
-        }
-        
-        iter = map.tailMap(key).entrySet().iterator();
-        if (iter.hasNext()) {
-            entry = iter.next();
-            if (range.afterEndKey(entry.getKey())) {
-                entry = null;
-            }
-        } else entry = null;
-        
-        while (hasTop() && range.beforeStartKey(getTopKey())) {
-            next();
-        }
-    }
-    
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-        throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public void setInterruptFlag(AtomicBoolean flag) {
-        this.interruptFlag = flag;
-    }
+  }
+  
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public void setInterruptFlag(AtomicBoolean flag) {
+    this.interruptFlag = flag;
+  }
 }

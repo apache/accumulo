@@ -26,7 +26,7 @@ import org.apache.accumulo.core.data.Value;
  * @use accumulo.core.iterators.Filter
  **/
 public interface Filter {
-    public void init(Map<String,String> options);
-    
-    public boolean accept(Key k, Value v);
+  public void init(Map<String,String> options);
+  
+  public boolean accept(Key k, Value v);
 }

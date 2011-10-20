@@ -42,499 +42,498 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
 public class ThriftTransportPool {
-    private static SecurityPermission TRANSPORT_POOL_PERMISSION = new SecurityPermission("transportPoolPermission");
+  private static SecurityPermission TRANSPORT_POOL_PERMISSION = new SecurityPermission("transportPoolPermission");
+  
+  private static final Random random = new Random();
+  private long killTime = 1000 * 3;
+  
+  private Map<ThriftTransportKey,List<CachedConnection>> cache = new HashMap<ThriftTransportKey,List<CachedConnection>>();
+  private Map<ThriftTransportKey,Long> errorCount = new HashMap<ThriftTransportKey,Long>();
+  private Map<ThriftTransportKey,Long> errorTime = new HashMap<ThriftTransportKey,Long>();
+  private Set<ThriftTransportKey> serversWarnedAbout = new HashSet<ThriftTransportKey>();
+  
+  private static final Logger log = Logger.getLogger(ThriftTransportPool.class);
+  
+  private static final Long ERROR_THRESHOLD = 20l;
+  private static final int STUCK_THRESHOLD = 2 * 60 * 1000;
+  
+  private static class CachedConnection {
     
-    private static final Random random = new Random();
-    private long killTime = 1000 * 3;
-    
-    private Map<ThriftTransportKey,List<CachedConnection>> cache = new HashMap<ThriftTransportKey,List<CachedConnection>>();
-    private Map<ThriftTransportKey,Long> errorCount = new HashMap<ThriftTransportKey,Long>();
-    private Map<ThriftTransportKey,Long> errorTime = new HashMap<ThriftTransportKey,Long>();
-    private Set<ThriftTransportKey> serversWarnedAbout = new HashSet<ThriftTransportKey>();
-    
-    private static final Logger log = Logger.getLogger(ThriftTransportPool.class);
-    
-    private static final Long ERROR_THRESHOLD = 20l;
-    private static final int STUCK_THRESHOLD = 2 * 60 * 1000;
-    
-    private static class CachedConnection {
-        
-        public CachedConnection(CachedTTransport t) {
-            this.transport = t;
-        }
-        
-        void setReserved(boolean reserved) {
-            this.transport.setReserved(reserved);
-        }
-        
-        boolean isReserved() {
-            return this.transport.reserved;
-        }
-        
-        CachedTTransport transport;
-        
-        long lastReturnTime;
+    public CachedConnection(CachedTTransport t) {
+      this.transport = t;
     }
     
-    private static class Closer implements Runnable {
-        ThriftTransportPool pool;
-        
-        public Closer(ThriftTransportPool pool) {
-            this.pool = pool;
-        }
-        
-        public void run() {
-            while (true) {
-                
-                ArrayList<CachedConnection> connectionsToClose = new ArrayList<CachedConnection>();
-                
-                synchronized (pool) {
-                    for (List<CachedConnection> ccl : pool.cache.values()) {
-                        Iterator<CachedConnection> iter = ccl.iterator();
-                        while (iter.hasNext()) {
-                            CachedConnection cachedConnection = iter.next();
-                            
-                            if (!cachedConnection.isReserved() && System.currentTimeMillis() - cachedConnection.lastReturnTime > pool.killTime) {
-                                connectionsToClose.add(cachedConnection);
-                                iter.remove();
-                            }
-                        }
-                    }
-                    
-                    for (List<CachedConnection> ccl : pool.cache.values()) {
-                        for (CachedConnection cachedConnection : ccl) {
-                            cachedConnection.transport.checkForStuckIO(STUCK_THRESHOLD);
-                        }
-                    }
-                    
-                    Iterator<Entry<ThriftTransportKey,Long>> iter = pool.errorTime.entrySet().iterator();
-                    while (iter.hasNext()) {
-                        Entry<ThriftTransportKey,Long> entry = iter.next();
-                        long delta = System.currentTimeMillis() - entry.getValue();
-                        if (delta >= STUCK_THRESHOLD) {
-                            pool.errorCount.remove(entry.getKey());
-                            iter.remove();
-                        }
-                    }
-                }
-                
-                // close connections outside of sync block
-                for (CachedConnection cachedConnection : connectionsToClose) {
-                    cachedConnection.transport.close();
-                }
-                
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+    void setReserved(boolean reserved) {
+      this.transport.setReserved(reserved);
     }
     
-    static class CachedTTransport extends TTransport {
-        
-        private ThriftTransportKey cacheKey;
-        private TTransport wrappedTransport;
-        private boolean sawError = false;
-        
-        private volatile String ioThreadName = null;
-        private volatile long ioStartTime = 0;
-        private volatile boolean reserved = false;
-        
-        private String stuckThreadName = null;
-        
-        int ioCount = 0;
-        int lastIoCount = -1;
-        
-        private void sawError(Exception e) {
-            sawError = true;
-        }
-        
-        final void setReserved(boolean reserved) {
-            this.reserved = reserved;
-            if (reserved) {
-                ioThreadName = Thread.currentThread().getName();
-                ioCount = 0;
-                lastIoCount = -1;
-            } else {
-                if ((ioCount & 1) == 1) {
-                    // connection unreserved, but it seems io may still be
-                    // happening
-                    log.warn("Connection returned to thrift connection pool that may still be in use " + ioThreadName + " " + Thread.currentThread().getName(),
-                            new Exception());
-                }
-                
-                ioCount = 0;
-                lastIoCount = -1;
-                ioThreadName = null;
-            }
-            checkForStuckIO(STUCK_THRESHOLD);
-        }
-        
-        final void checkForStuckIO(long threshold) {
-            /*
-             * checking for stuck io needs to be light weight.
-             * 
-             * Tried to call System.currentTimeMillis() and Thread.currentThread() before every io operation.... this dramatically slowed things down. So
-             * switched to incrementing a counter before and after each io operation.
-             */
-            
-            if ((ioCount & 1) == 1) {
-                // when ioCount is odd, it means I/O is currently happening
-                if (ioCount == lastIoCount) {
-                    // still doing same I/O operation as last time this
-                    // functions was called
-                    long delta = System.currentTimeMillis() - ioStartTime;
-                    if (delta >= threshold && stuckThreadName == null) {
-                        stuckThreadName = ioThreadName;
-                        log.warn("Thread \"" + ioThreadName + "\" stuck on IO  to " + cacheKey + " for at least " + delta + " ms");
-                    }
-                } else {
-                    // remember this ioCount and the time we saw it, need to see
-                    // if it changes
-                    lastIoCount = ioCount;
-                    ioStartTime = System.currentTimeMillis();
-                    
-                    if (stuckThreadName != null) {
-                        // doing I/O, but ioCount changed so no longer stuck
-                        log.info("Thread \"" + stuckThreadName + "\" no longer stuck on IO  to " + cacheKey + " sawError = " + sawError);
-                        stuckThreadName = null;
-                    }
-                }
-            } else {
-                // I/O is not currently happening
-                if (stuckThreadName != null) {
-                    // no longer stuck, and was stuck in the past
-                    log.info("Thread \"" + stuckThreadName + "\" no longer stuck on IO  to " + cacheKey + " sawError = " + sawError);
-                    stuckThreadName = null;
-                }
-            }
-        }
-        
-        public CachedTTransport(TTransport transport, ThriftTransportKey cacheKey2) {
-            this.wrappedTransport = transport;
-            this.cacheKey = cacheKey2;
-        }
-        
-        public boolean isOpen() {
-            return wrappedTransport.isOpen();
-        }
-        
-        public void open() throws TTransportException {
-            try {
-                ioCount++;
-                wrappedTransport.open();
-            } catch (TTransportException tte) {
-                sawError(tte);
-                throw tte;
-            } finally {
-                ioCount++;
-            }
-        }
-        
-        public int read(byte[] arg0, int arg1, int arg2) throws TTransportException {
-            try {
-                ioCount++;
-                return wrappedTransport.read(arg0, arg1, arg2);
-            } catch (TTransportException tte) {
-                sawError(tte);
-                throw tte;
-            } finally {
-                ioCount++;
-            }
-        }
-        
-        public int readAll(byte[] arg0, int arg1, int arg2) throws TTransportException {
-            try {
-                ioCount++;
-                return wrappedTransport.readAll(arg0, arg1, arg2);
-            } catch (TTransportException tte) {
-                sawError(tte);
-                throw tte;
-            } finally {
-                ioCount++;
-            }
-        }
-        
-        public void write(byte[] arg0, int arg1, int arg2) throws TTransportException {
-            try {
-                ioCount++;
-                wrappedTransport.write(arg0, arg1, arg2);
-            } catch (TTransportException tte) {
-                sawError(tte);
-                throw tte;
-            } finally {
-                ioCount++;
-            }
-        }
-        
-        public void write(byte[] arg0) throws TTransportException {
-            try {
-                ioCount++;
-                wrappedTransport.write(arg0);
-            } catch (TTransportException tte) {
-                sawError(tte);
-                throw tte;
-            } finally {
-                ioCount++;
-            }
-        }
-        
-        public void close() {
-            try {
-                ioCount++;
-                wrappedTransport.close();
-            } finally {
-                ioCount++;
-            }
-            
-        }
-        
-        public void flush() throws TTransportException {
-            try {
-                ioCount++;
-                wrappedTransport.flush();
-            } catch (TTransportException tte) {
-                sawError(tte);
-                throw tte;
-            } finally {
-                ioCount++;
-            }
-        }
-        
-        public boolean peek() {
-            try {
-                ioCount++;
-                return wrappedTransport.peek();
-            } finally {
-                ioCount++;
-            }
-        }
-        
-        public byte[] getBuffer() {
-            try {
-                ioCount++;
-                return wrappedTransport.getBuffer();
-            } finally {
-                ioCount++;
-            }
-        }
-        
-        public int getBufferPosition() {
-            try {
-                ioCount++;
-                return wrappedTransport.getBufferPosition();
-            } finally {
-                ioCount++;
-            }
-        }
-        
-        public int getBytesRemainingInBuffer() {
-            try {
-                ioCount++;
-                return wrappedTransport.getBytesRemainingInBuffer();
-            } finally {
-                ioCount++;
-            }
-        }
-        
-        public void consumeBuffer(int len) {
-            try {
-                ioCount++;
-                wrappedTransport.consumeBuffer(len);
-            } finally {
-                ioCount++;
-            }
-        }
-        
-        public ThriftTransportKey getCacheKey() {
-            return cacheKey;
-        }
-        
+    boolean isReserved() {
+      return this.transport.reserved;
     }
     
-    private ThriftTransportPool() {}
+    CachedTTransport transport;
     
-    public TTransport getTransport(String location, int port) throws TTransportException {
-        return getTransport(location, port, 0);
+    long lastReturnTime;
+  }
+  
+  private static class Closer implements Runnable {
+    ThriftTransportPool pool;
+    
+    public Closer(ThriftTransportPool pool) {
+      this.pool = pool;
     }
     
-    public TTransport getTransportWithDefaultTimeout(InetSocketAddress addr, AccumuloConfiguration conf) throws TTransportException {
-        return getTransport(addr.getAddress().getHostAddress(), addr.getPort(), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
-    }
-    
-    public TTransport getTransport(InetSocketAddress addr, long timeout) throws TTransportException {
-        return getTransport(addr.getAddress().getHostAddress(), addr.getPort(), timeout);
-    }
-    
-    public TTransport getTransportWithDefaultTimeout(String location, int port, AccumuloConfiguration conf) throws TTransportException {
-        return getTransport(location, port, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
-    }
-    
-    TTransport getAnyTransport(List<ThriftTransportKey> servers) throws TTransportException {
+    public void run() {
+      while (true) {
         
-        servers = new ArrayList<ThriftTransportKey>(servers);
+        ArrayList<CachedConnection> connectionsToClose = new ArrayList<CachedConnection>();
         
-        synchronized (this) {
-            // atomically find an available location that is in the list
-            for (Entry<ThriftTransportKey,List<CachedConnection>> entry : cache.entrySet()) {
-                if (servers.contains(entry.getKey())) {
-                    for (CachedConnection cachedConnection : entry.getValue()) {
-                        if (!cachedConnection.isReserved()) {
-                            cachedConnection.setReserved(true);
-                            if (log.isTraceEnabled()) log
-                                    .trace("Using existing connection to " + entry.getKey().getLocation() + ":" + entry.getKey().getPort());
-                            return cachedConnection.transport;
-                        }
-                    }
-                }
+        synchronized (pool) {
+          for (List<CachedConnection> ccl : pool.cache.values()) {
+            Iterator<CachedConnection> iter = ccl.iterator();
+            while (iter.hasNext()) {
+              CachedConnection cachedConnection = iter.next();
+              
+              if (!cachedConnection.isReserved() && System.currentTimeMillis() - cachedConnection.lastReturnTime > pool.killTime) {
+                connectionsToClose.add(cachedConnection);
+                iter.remove();
+              }
             }
-        }
-        
-        int retryCount = 0;
-        while (servers.size() > 0 && retryCount < 10) {
-            int index = random.nextInt(servers.size());
-            try {
-                return createNewTransport(servers.get(index));
-            } catch (TTransportException tte) {
-                log.debug("Failed to connect to " + servers.get(index), tte);
-                servers.remove(index);
-                retryCount++;
-            }
-        }
-        
-        throw new TTransportException("Failed to connect to a server");
-    }
-    
-    public TTransport getTransport(String location, int port, long milliseconds) throws TTransportException {
-        return getTransport(new ThriftTransportKey(location, port, milliseconds));
-    }
-    
-    private TTransport getTransport(ThriftTransportKey cacheKey) throws TTransportException {
-        synchronized (this) {
-            // atomically reserve location if it exist in cache
-            List<CachedConnection> ccl = cache.get(cacheKey);
-            
-            if (ccl == null) {
-                ccl = new LinkedList<CachedConnection>();
-                cache.put(cacheKey, ccl);
-            }
-            
+          }
+          
+          for (List<CachedConnection> ccl : pool.cache.values()) {
             for (CachedConnection cachedConnection : ccl) {
-                if (!cachedConnection.isReserved()) {
-                    cachedConnection.setReserved(true);
-                    if (log.isTraceEnabled()) log.trace("Using existing connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
-                    return cachedConnection.transport;
-                }
+              cachedConnection.transport.checkForStuckIO(STUCK_THRESHOLD);
             }
+          }
+          
+          Iterator<Entry<ThriftTransportKey,Long>> iter = pool.errorTime.entrySet().iterator();
+          while (iter.hasNext()) {
+            Entry<ThriftTransportKey,Long> entry = iter.next();
+            long delta = System.currentTimeMillis() - entry.getValue();
+            if (delta >= STUCK_THRESHOLD) {
+              pool.errorCount.remove(entry.getKey());
+              iter.remove();
+            }
+          }
         }
         
-        return createNewTransport(cacheKey);
+        // close connections outside of sync block
+        for (CachedConnection cachedConnection : connectionsToClose) {
+          cachedConnection.transport.close();
+        }
+        
+        try {
+          Thread.sleep(500);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+  
+  static class CachedTTransport extends TTransport {
+    
+    private ThriftTransportKey cacheKey;
+    private TTransport wrappedTransport;
+    private boolean sawError = false;
+    
+    private volatile String ioThreadName = null;
+    private volatile long ioStartTime = 0;
+    private volatile boolean reserved = false;
+    
+    private String stuckThreadName = null;
+    
+    int ioCount = 0;
+    int lastIoCount = -1;
+    
+    private void sawError(Exception e) {
+      sawError = true;
     }
     
-    private TTransport createNewTransport(ThriftTransportKey cacheKey) throws TTransportException {
-        TTransport transport;
-        if (cacheKey.getTimeout() == 0) {
-            transport = AddressUtil.createTSocket(cacheKey.getLocation(), cacheKey.getPort());
+    final void setReserved(boolean reserved) {
+      this.reserved = reserved;
+      if (reserved) {
+        ioThreadName = Thread.currentThread().getName();
+        ioCount = 0;
+        lastIoCount = -1;
+      } else {
+        if ((ioCount & 1) == 1) {
+          // connection unreserved, but it seems io may still be
+          // happening
+          log.warn("Connection returned to thrift connection pool that may still be in use " + ioThreadName + " " + Thread.currentThread().getName(),
+              new Exception());
+        }
+        
+        ioCount = 0;
+        lastIoCount = -1;
+        ioThreadName = null;
+      }
+      checkForStuckIO(STUCK_THRESHOLD);
+    }
+    
+    final void checkForStuckIO(long threshold) {
+      /*
+       * checking for stuck io needs to be light weight.
+       * 
+       * Tried to call System.currentTimeMillis() and Thread.currentThread() before every io operation.... this dramatically slowed things down. So switched to
+       * incrementing a counter before and after each io operation.
+       */
+      
+      if ((ioCount & 1) == 1) {
+        // when ioCount is odd, it means I/O is currently happening
+        if (ioCount == lastIoCount) {
+          // still doing same I/O operation as last time this
+          // functions was called
+          long delta = System.currentTimeMillis() - ioStartTime;
+          if (delta >= threshold && stuckThreadName == null) {
+            stuckThreadName = ioThreadName;
+            log.warn("Thread \"" + ioThreadName + "\" stuck on IO  to " + cacheKey + " for at least " + delta + " ms");
+          }
         } else {
-            try {
-                transport = TTimeoutTransport.create(AddressUtil.parseAddress(cacheKey.getLocation(), cacheKey.getPort()), cacheKey.getTimeout());
-            } catch (IOException ex) {
-                throw new TTransportException(ex);
-            }
+          // remember this ioCount and the time we saw it, need to see
+          // if it changes
+          lastIoCount = ioCount;
+          ioStartTime = System.currentTimeMillis();
+          
+          if (stuckThreadName != null) {
+            // doing I/O, but ioCount changed so no longer stuck
+            log.info("Thread \"" + stuckThreadName + "\" no longer stuck on IO  to " + cacheKey + " sawError = " + sawError);
+            stuckThreadName = null;
+          }
         }
-        transport = ThriftUtil.transportFactory().getTransport(transport);
-        transport.open();
-        
-        if (log.isTraceEnabled()) log.trace("Creating new connection to connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
-        
-        CachedTTransport tsc = new CachedTTransport(transport, cacheKey);
-        
-        CachedConnection cc = new CachedConnection(tsc);
-        cc.setReserved(true);
-        
-        synchronized (this) {
-            List<CachedConnection> ccl = cache.get(cacheKey);
-            
-            if (ccl == null) {
-                ccl = new LinkedList<CachedConnection>();
-                cache.put(cacheKey, ccl);
-            }
-            
-            ccl.add(cc);
+      } else {
+        // I/O is not currently happening
+        if (stuckThreadName != null) {
+          // no longer stuck, and was stuck in the past
+          log.info("Thread \"" + stuckThreadName + "\" no longer stuck on IO  to " + cacheKey + " sawError = " + sawError);
+          stuckThreadName = null;
         }
-        return cc.transport;
+      }
     }
     
-    public void returnTransport(TTransport tsc) {
-        if (tsc == null) {
-            return;
-        }
-        
-        boolean existInCache = false;
-        CachedTTransport ctsc = (CachedTTransport) tsc;
-        
-        synchronized (this) {
-            List<CachedConnection> ccl = cache.get(ctsc.getCacheKey());
-            for (Iterator<CachedConnection> iterator = ccl.iterator(); iterator.hasNext();) {
-                CachedConnection cachedConnection = iterator.next();
-                if (cachedConnection.transport == tsc) {
-                    if (ctsc.sawError) {
-                        tsc.close();
-                        iterator.remove();
-                        
-                        if (log.isTraceEnabled()) log.trace("Returned connection had error " + ctsc.getCacheKey());
-                        
-                        Long ecount = errorCount.get(ctsc.getCacheKey());
-                        if (ecount == null) ecount = 0l;
-                        ecount++;
-                        errorCount.put(ctsc.getCacheKey(), ecount);
-                        
-                        Long etime = errorTime.get(ctsc.getCacheKey());
-                        if (etime == null) {
-                            errorTime.put(ctsc.getCacheKey(), System.currentTimeMillis());
-                        }
-                        
-                        if (ecount >= ERROR_THRESHOLD && !serversWarnedAbout.contains(ctsc.getCacheKey())) {
-                            log.warn("Server " + ctsc.getCacheKey() + " had " + ecount + " failures in a short time period, will not complain anymore ");
-                            serversWarnedAbout.add(ctsc.getCacheKey());
-                        }
-                        
-                        cachedConnection.setReserved(false);
-                        
-                    } else {
-                        
-                        if (log.isTraceEnabled()) log.trace("Returned connection " + ctsc.getCacheKey() + " ioCount : " + cachedConnection.transport.ioCount);
-                        
-                        cachedConnection.lastReturnTime = System.currentTimeMillis();
-                        cachedConnection.setReserved(false);
-                    }
-                    existInCache = true;
-                    break;
-                }
+    public CachedTTransport(TTransport transport, ThriftTransportKey cacheKey2) {
+      this.wrappedTransport = transport;
+      this.cacheKey = cacheKey2;
+    }
+    
+    public boolean isOpen() {
+      return wrappedTransport.isOpen();
+    }
+    
+    public void open() throws TTransportException {
+      try {
+        ioCount++;
+        wrappedTransport.open();
+      } catch (TTransportException tte) {
+        sawError(tte);
+        throw tte;
+      } finally {
+        ioCount++;
+      }
+    }
+    
+    public int read(byte[] arg0, int arg1, int arg2) throws TTransportException {
+      try {
+        ioCount++;
+        return wrappedTransport.read(arg0, arg1, arg2);
+      } catch (TTransportException tte) {
+        sawError(tte);
+        throw tte;
+      } finally {
+        ioCount++;
+      }
+    }
+    
+    public int readAll(byte[] arg0, int arg1, int arg2) throws TTransportException {
+      try {
+        ioCount++;
+        return wrappedTransport.readAll(arg0, arg1, arg2);
+      } catch (TTransportException tte) {
+        sawError(tte);
+        throw tte;
+      } finally {
+        ioCount++;
+      }
+    }
+    
+    public void write(byte[] arg0, int arg1, int arg2) throws TTransportException {
+      try {
+        ioCount++;
+        wrappedTransport.write(arg0, arg1, arg2);
+      } catch (TTransportException tte) {
+        sawError(tte);
+        throw tte;
+      } finally {
+        ioCount++;
+      }
+    }
+    
+    public void write(byte[] arg0) throws TTransportException {
+      try {
+        ioCount++;
+        wrappedTransport.write(arg0);
+      } catch (TTransportException tte) {
+        sawError(tte);
+        throw tte;
+      } finally {
+        ioCount++;
+      }
+    }
+    
+    public void close() {
+      try {
+        ioCount++;
+        wrappedTransport.close();
+      } finally {
+        ioCount++;
+      }
+      
+    }
+    
+    public void flush() throws TTransportException {
+      try {
+        ioCount++;
+        wrappedTransport.flush();
+      } catch (TTransportException tte) {
+        sawError(tte);
+        throw tte;
+      } finally {
+        ioCount++;
+      }
+    }
+    
+    public boolean peek() {
+      try {
+        ioCount++;
+        return wrappedTransport.peek();
+      } finally {
+        ioCount++;
+      }
+    }
+    
+    public byte[] getBuffer() {
+      try {
+        ioCount++;
+        return wrappedTransport.getBuffer();
+      } finally {
+        ioCount++;
+      }
+    }
+    
+    public int getBufferPosition() {
+      try {
+        ioCount++;
+        return wrappedTransport.getBufferPosition();
+      } finally {
+        ioCount++;
+      }
+    }
+    
+    public int getBytesRemainingInBuffer() {
+      try {
+        ioCount++;
+        return wrappedTransport.getBytesRemainingInBuffer();
+      } finally {
+        ioCount++;
+      }
+    }
+    
+    public void consumeBuffer(int len) {
+      try {
+        ioCount++;
+        wrappedTransport.consumeBuffer(len);
+      } finally {
+        ioCount++;
+      }
+    }
+    
+    public ThriftTransportKey getCacheKey() {
+      return cacheKey;
+    }
+    
+  }
+  
+  private ThriftTransportPool() {}
+  
+  public TTransport getTransport(String location, int port) throws TTransportException {
+    return getTransport(location, port, 0);
+  }
+  
+  public TTransport getTransportWithDefaultTimeout(InetSocketAddress addr, AccumuloConfiguration conf) throws TTransportException {
+    return getTransport(addr.getAddress().getHostAddress(), addr.getPort(), conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+  }
+  
+  public TTransport getTransport(InetSocketAddress addr, long timeout) throws TTransportException {
+    return getTransport(addr.getAddress().getHostAddress(), addr.getPort(), timeout);
+  }
+  
+  public TTransport getTransportWithDefaultTimeout(String location, int port, AccumuloConfiguration conf) throws TTransportException {
+    return getTransport(location, port, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+  }
+  
+  TTransport getAnyTransport(List<ThriftTransportKey> servers) throws TTransportException {
+    
+    servers = new ArrayList<ThriftTransportKey>(servers);
+    
+    synchronized (this) {
+      // atomically find an available location that is in the list
+      for (Entry<ThriftTransportKey,List<CachedConnection>> entry : cache.entrySet()) {
+        if (servers.contains(entry.getKey())) {
+          for (CachedConnection cachedConnection : entry.getValue()) {
+            if (!cachedConnection.isReserved()) {
+              cachedConnection.setReserved(true);
+              if (log.isTraceEnabled()) log.trace("Using existing connection to " + entry.getKey().getLocation() + ":" + entry.getKey().getPort());
+              return cachedConnection.transport;
             }
+          }
         }
-        
-        if (!existInCache) {
-            log.warn("Returned tablet server connection to cache that did not come from cache");
-            // close outside of sync block
+      }
+    }
+    
+    int retryCount = 0;
+    while (servers.size() > 0 && retryCount < 10) {
+      int index = random.nextInt(servers.size());
+      try {
+        return createNewTransport(servers.get(index));
+      } catch (TTransportException tte) {
+        log.debug("Failed to connect to " + servers.get(index), tte);
+        servers.remove(index);
+        retryCount++;
+      }
+    }
+    
+    throw new TTransportException("Failed to connect to a server");
+  }
+  
+  public TTransport getTransport(String location, int port, long milliseconds) throws TTransportException {
+    return getTransport(new ThriftTransportKey(location, port, milliseconds));
+  }
+  
+  private TTransport getTransport(ThriftTransportKey cacheKey) throws TTransportException {
+    synchronized (this) {
+      // atomically reserve location if it exist in cache
+      List<CachedConnection> ccl = cache.get(cacheKey);
+      
+      if (ccl == null) {
+        ccl = new LinkedList<CachedConnection>();
+        cache.put(cacheKey, ccl);
+      }
+      
+      for (CachedConnection cachedConnection : ccl) {
+        if (!cachedConnection.isReserved()) {
+          cachedConnection.setReserved(true);
+          if (log.isTraceEnabled()) log.trace("Using existing connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
+          return cachedConnection.transport;
+        }
+      }
+    }
+    
+    return createNewTransport(cacheKey);
+  }
+  
+  private TTransport createNewTransport(ThriftTransportKey cacheKey) throws TTransportException {
+    TTransport transport;
+    if (cacheKey.getTimeout() == 0) {
+      transport = AddressUtil.createTSocket(cacheKey.getLocation(), cacheKey.getPort());
+    } else {
+      try {
+        transport = TTimeoutTransport.create(AddressUtil.parseAddress(cacheKey.getLocation(), cacheKey.getPort()), cacheKey.getTimeout());
+      } catch (IOException ex) {
+        throw new TTransportException(ex);
+      }
+    }
+    transport = ThriftUtil.transportFactory().getTransport(transport);
+    transport.open();
+    
+    if (log.isTraceEnabled()) log.trace("Creating new connection to connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
+    
+    CachedTTransport tsc = new CachedTTransport(transport, cacheKey);
+    
+    CachedConnection cc = new CachedConnection(tsc);
+    cc.setReserved(true);
+    
+    synchronized (this) {
+      List<CachedConnection> ccl = cache.get(cacheKey);
+      
+      if (ccl == null) {
+        ccl = new LinkedList<CachedConnection>();
+        cache.put(cacheKey, ccl);
+      }
+      
+      ccl.add(cc);
+    }
+    return cc.transport;
+  }
+  
+  public void returnTransport(TTransport tsc) {
+    if (tsc == null) {
+      return;
+    }
+    
+    boolean existInCache = false;
+    CachedTTransport ctsc = (CachedTTransport) tsc;
+    
+    synchronized (this) {
+      List<CachedConnection> ccl = cache.get(ctsc.getCacheKey());
+      for (Iterator<CachedConnection> iterator = ccl.iterator(); iterator.hasNext();) {
+        CachedConnection cachedConnection = iterator.next();
+        if (cachedConnection.transport == tsc) {
+          if (ctsc.sawError) {
             tsc.close();
+            iterator.remove();
+            
+            if (log.isTraceEnabled()) log.trace("Returned connection had error " + ctsc.getCacheKey());
+            
+            Long ecount = errorCount.get(ctsc.getCacheKey());
+            if (ecount == null) ecount = 0l;
+            ecount++;
+            errorCount.put(ctsc.getCacheKey(), ecount);
+            
+            Long etime = errorTime.get(ctsc.getCacheKey());
+            if (etime == null) {
+              errorTime.put(ctsc.getCacheKey(), System.currentTimeMillis());
+            }
+            
+            if (ecount >= ERROR_THRESHOLD && !serversWarnedAbout.contains(ctsc.getCacheKey())) {
+              log.warn("Server " + ctsc.getCacheKey() + " had " + ecount + " failures in a short time period, will not complain anymore ");
+              serversWarnedAbout.add(ctsc.getCacheKey());
+            }
+            
+            cachedConnection.setReserved(false);
+            
+          } else {
+            
+            if (log.isTraceEnabled()) log.trace("Returned connection " + ctsc.getCacheKey() + " ioCount : " + cachedConnection.transport.ioCount);
+            
+            cachedConnection.lastReturnTime = System.currentTimeMillis();
+            cachedConnection.setReserved(false);
+          }
+          existInCache = true;
+          break;
         }
+      }
     }
     
-    private static ThriftTransportPool instance = new ThriftTransportPool();
-    private static final AtomicBoolean daemonStarted = new AtomicBoolean(false);
-    
-    public static ThriftTransportPool getInstance() {
-        SecurityManager sm = System.getSecurityManager();
-        if (sm != null) {
-            sm.checkPermission(TRANSPORT_POOL_PERMISSION);
-        }
-        
-        if (daemonStarted.compareAndSet(false, true)) {
-            new Daemon(new Closer(instance), "Thrift Connection Pool Checker").start();
-        }
-        return instance;
+    if (!existInCache) {
+      log.warn("Returned tablet server connection to cache that did not come from cache");
+      // close outside of sync block
+      tsc.close();
     }
+  }
+  
+  private static ThriftTransportPool instance = new ThriftTransportPool();
+  private static final AtomicBoolean daemonStarted = new AtomicBoolean(false);
+  
+  public static ThriftTransportPool getInstance() {
+    SecurityManager sm = System.getSecurityManager();
+    if (sm != null) {
+      sm.checkPermission(TRANSPORT_POOL_PERMISSION);
+    }
+    
+    if (daemonStarted.compareAndSet(false, true)) {
+      new Daemon(new Closer(instance), "Thrift Connection Pool Checker").start();
+    }
+    return instance;
+  }
 }

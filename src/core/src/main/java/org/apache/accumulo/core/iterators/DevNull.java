@@ -42,40 +42,40 @@ import org.apache.accumulo.core.data.Value;
  */
 
 public class DevNull implements SortedKeyValueIterator<Key,Value> {
+  
+  @Override
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public Key getTopKey() {
+    return null;
+  }
+  
+  @Override
+  public Value getTopValue() {
+    return null;
+  }
+  
+  @Override
+  public boolean hasTop() {
+    return false;
+  }
+  
+  @Override
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     
-    @Override
-    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-        throw new UnsupportedOperationException();
-    }
+  }
+  
+  @Override
+  public void next() throws IOException {
+    throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     
-    @Override
-    public Key getTopKey() {
-        return null;
-    }
-    
-    @Override
-    public Value getTopValue() {
-        return null;
-    }
-    
-    @Override
-    public boolean hasTop() {
-        return false;
-    }
-    
-    @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-        
-    }
-    
-    @Override
-    public void next() throws IOException {
-        throw new UnsupportedOperationException();
-    }
-    
-    @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-        
-    }
-    
+  }
+  
 }

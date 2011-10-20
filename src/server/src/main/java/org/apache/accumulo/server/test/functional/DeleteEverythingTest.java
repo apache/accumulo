@@ -34,65 +34,65 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
 public class DeleteEverythingTest extends FunctionalTest {
+  
+  @Override
+  public void cleanup() throws Exception {}
+  
+  @Override
+  public Map<String,String> getInitialConfig() {
+    Map<String,String> props = new HashMap<String,String>();
+    props.put(Property.TSERV_MAJC_DELAY.getKey(), "1s");
+    return props;
+  }
+  
+  @Override
+  public List<TableSetup> getTablesToCreate() {
+    return Collections.singletonList(new TableSetup("de"));
+  }
+  
+  @Override
+  public void run() throws Exception {
+    BatchWriter bw = getConnector().createBatchWriter("de", 1000000, 60000l, 1);
+    Mutation m = new Mutation(new Text("foo"));
+    m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes()));
+    bw.addMutation(m);
+    bw.flush();
     
-    @Override
-    public void cleanup() throws Exception {}
+    getConnector().tableOperations().flush("de", null, null, true);
     
-    @Override
-    public Map<String,String> getInitialConfig() {
-        Map<String,String> props = new HashMap<String,String>();
-        props.put(Property.TSERV_MAJC_DELAY.getKey(), "1s");
-        return props;
+    checkMapFiles("de", 1, 1, 1, 1);
+    
+    m = new Mutation(new Text("foo"));
+    m.putDelete(new Text("bar"), new Text("1910"));
+    bw.addMutation(m);
+    bw.flush();
+    
+    Scanner scanner = getConnector().createScanner("de", Constants.NO_AUTHS);
+    scanner.setRange(new Range());
+    
+    int count = 0;
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : scanner) {
+      count++;
     }
     
-    @Override
-    public List<TableSetup> getTablesToCreate() {
-        return Collections.singletonList(new TableSetup("de"));
+    if (count != 0) throw new Exception("count == " + count);
+    
+    getConnector().tableOperations().flush("de", null, null, true);
+    
+    getConnector().tableOperations().setProperty("de", Property.TABLE_MAJC_RATIO.getKey(), "1.0");
+    UtilWaitThread.sleep(4000);
+    
+    checkMapFiles("de", 1, 1, 0, 0);
+    
+    bw.close();
+    
+    count = 0;
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : scanner) {
+      count++;
     }
     
-    @Override
-    public void run() throws Exception {
-        BatchWriter bw = getConnector().createBatchWriter("de", 1000000, 60000l, 1);
-        Mutation m = new Mutation(new Text("foo"));
-        m.put(new Text("bar"), new Text("1910"), new Value("5".getBytes()));
-        bw.addMutation(m);
-        bw.flush();
-        
-        getConnector().tableOperations().flush("de", null, null, true);
-        
-        checkMapFiles("de", 1, 1, 1, 1);
-        
-        m = new Mutation(new Text("foo"));
-        m.putDelete(new Text("bar"), new Text("1910"));
-        bw.addMutation(m);
-        bw.flush();
-        
-        Scanner scanner = getConnector().createScanner("de", Constants.NO_AUTHS);
-        scanner.setRange(new Range());
-        
-        int count = 0;
-        for (@SuppressWarnings("unused")
-        Entry<Key,Value> entry : scanner) {
-            count++;
-        }
-        
-        if (count != 0) throw new Exception("count == " + count);
-        
-        getConnector().tableOperations().flush("de", null, null, true);
-        
-        getConnector().tableOperations().setProperty("de", Property.TABLE_MAJC_RATIO.getKey(), "1.0");
-        UtilWaitThread.sleep(4000);
-        
-        checkMapFiles("de", 1, 1, 0, 0);
-        
-        bw.close();
-        
-        count = 0;
-        for (@SuppressWarnings("unused")
-        Entry<Key,Value> entry : scanner) {
-            count++;
-        }
-        
-        if (count != 0) throw new Exception("count == " + count);
-    }
+    if (count != 0) throw new Exception("count == " + count);
+  }
 }

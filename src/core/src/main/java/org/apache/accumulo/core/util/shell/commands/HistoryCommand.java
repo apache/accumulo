@@ -30,76 +30,76 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class HistoryCommand extends Command {
+  
+  private Option clearHist;
+  
+  @Override
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     
-    private Option clearHist;
+    String histDir = System.getenv("HOME") + "/.accumulo";
+    int counter = 0;
     
-    @Override
-    public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+    if (cl.hasOption(clearHist.getOpt())) {
+      
+      try {
         
-        String histDir = System.getenv("HOME") + "/.accumulo";
-        int counter = 0;
+        FileWriter outFile = new FileWriter(histDir + "/shell_history.txt");
+        PrintWriter out = new PrintWriter(outFile);
+        out.close();
         
-        if (cl.hasOption(clearHist.getOpt())) {
-            
-            try {
-                
-                FileWriter outFile = new FileWriter(histDir + "/shell_history.txt");
-                PrintWriter out = new PrintWriter(outFile);
-                out.close();
-                
-            } catch (IOException e) {
-                
-                e.printStackTrace();
-            }
+      } catch (IOException e) {
+        
+        e.printStackTrace();
+      }
+    }
+    
+    else {
+      try {
+        BufferedReader in = new BufferedReader(new FileReader(histDir + "/shell_history.txt"));
+        String Line;
+        try {
+          Line = in.readLine();
+          while (Line != null) {
+            shellState.getReader().printString(counter + " " + Line);
+            shellState.getReader().printNewline();
+            counter++;
+            Line = in.readLine();
+          }
+        } catch (IOException e) {
+          
+          e.printStackTrace();
         }
+      } catch (FileNotFoundException e) {
         
-        else {
-            try {
-                BufferedReader in = new BufferedReader(new FileReader(histDir + "/shell_history.txt"));
-                String Line;
-                try {
-                    Line = in.readLine();
-                    while (Line != null) {
-                        shellState.getReader().printString(counter + " " + Line);
-                        shellState.getReader().printNewline();
-                        counter++;
-                        Line = in.readLine();
-                    }
-                } catch (IOException e) {
-                    
-                    e.printStackTrace();
-                }
-            } catch (FileNotFoundException e) {
-                
-                e.printStackTrace();
-            }
-        }
-        
-        return 0;
+        e.printStackTrace();
+      }
     }
     
-    @Override
-    public String description() {
-        
-        return ("Generates a list of commands previously executed");
-    }
+    return 0;
+  }
+  
+  @Override
+  public String description() {
     
-    @Override
-    public int numArgs() {
-        return 0;
-    }
+    return ("Generates a list of commands previously executed");
+  }
+  
+  @Override
+  public int numArgs() {
+    return 0;
+  }
+  
+  @Override
+  public Options getOptions() {
+    Options o = new Options();
     
-    @Override
-    public Options getOptions() {
-        Options o = new Options();
-        
-        clearHist = new Option("c", "Clears History, takes no arguments.", false, "Clears History File");
-        clearHist.setArgName("");
-        clearHist.setRequired(false);
-        clearHist.setArgs(0);
-        
-        o.addOption(clearHist);
-        
-        return o;
-    }
+    clearHist = new Option("c", "Clears History, takes no arguments.", false, "Clears History File");
+    clearHist.setArgName("");
+    clearHist.setRequired(false);
+    clearHist.setArgs(0);
+    
+    o.addOption(clearHist);
+    
+    return o;
+  }
 }

@@ -35,53 +35,53 @@ import org.apache.hadoop.io.Text;
 import cloudtrace.thrift.RemoteSpan;
 
 public class ListType extends Basic {
+  
+  private static final long serialVersionUID = 1L;
+  
+  String getType(HttpServletRequest req) {
+    return getStringParameter(req, "type", "<Unknown>");
+  }
+  
+  int getMinutes(HttpServletRequest req) {
+    return getIntParameter(req, "minutes", Summary.DEFAULT_MINUTES);
+  }
+  
+  private static class ShowTraceLinkType extends StringType<RemoteSpan> {
     
-    private static final long serialVersionUID = 1L;
-    
-    String getType(HttpServletRequest req) {
-        return getStringParameter(req, "type", "<Unknown>");
+    public String format(Object obj) {
+      if (obj == null) return "-";
+      RemoteSpan span = (RemoteSpan) obj;
+      return String.format("<a href='/trace/show?id=%s'>%s</a>", Long.toHexString(span.traceId), TraceFormatter.formatDate(new Date(span.start)));
     }
-    
-    int getMinutes(HttpServletRequest req) {
-        return getIntParameter(req, "minutes", Summary.DEFAULT_MINUTES);
+  }
+  
+  @Override
+  public void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
+    String type = getType(req);
+    int minutes = getMinutes(req);
+    long endTime = System.currentTimeMillis();
+    long startTime = endTime - minutes * 60 * 1000;
+    Scanner scanner = getScanner(sb);
+    if (scanner == null) {
+      return;
     }
-    
-    private static class ShowTraceLinkType extends StringType<RemoteSpan> {
-        
-        public String format(Object obj) {
-            if (obj == null) return "-";
-            RemoteSpan span = (RemoteSpan) obj;
-            return String.format("<a href='/trace/show?id=%s'>%s</a>", Long.toHexString(span.traceId), TraceFormatter.formatDate(new Date(span.start)));
-        }
+    Range range = new Range(new Text("start:" + Long.toHexString(startTime)), new Text("start:" + Long.toHexString(endTime)));
+    scanner.setRange(range);
+    Table trace = new Table("trace", "Traces for " + getType(req));
+    trace.addSortableColumn("Start", new ShowTraceLinkType(), "Start Time");
+    trace.addSortableColumn("ms", new DurationType(), "Span time");
+    trace.addUnsortableColumn("Source", new StringType<String>(), "Service and location");
+    for (Entry<Key,Value> entry : scanner) {
+      RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
+      if (span.description.equals(type)) {
+        trace.addRow(span, new Long(span.stop - span.start), span.svc + ":" + span.sender);
+      }
     }
-    
-    @Override
-    public void pageBody(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) throws Exception {
-        String type = getType(req);
-        int minutes = getMinutes(req);
-        long endTime = System.currentTimeMillis();
-        long startTime = endTime - minutes * 60 * 1000;
-        Scanner scanner = getScanner(sb);
-        if (scanner == null) {
-            return;
-        }
-        Range range = new Range(new Text("start:" + Long.toHexString(startTime)), new Text("start:" + Long.toHexString(endTime)));
-        scanner.setRange(range);
-        Table trace = new Table("trace", "Traces for " + getType(req));
-        trace.addSortableColumn("Start", new ShowTraceLinkType(), "Start Time");
-        trace.addSortableColumn("ms", new DurationType(), "Span time");
-        trace.addUnsortableColumn("Source", new StringType<String>(), "Service and location");
-        for (Entry<Key,Value> entry : scanner) {
-            RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
-            if (span.description.equals(type)) {
-                trace.addRow(span, new Long(span.stop - span.start), span.svc + ":" + span.sender);
-            }
-        }
-        trace.generate(req, sb);
-    }
-    
-    @Override
-    public String getTitle(HttpServletRequest req) {
-        return "Traces for " + getType(req) + " for the last " + getMinutes(req) + " minutes";
-    }
+    trace.generate(req, sb);
+  }
+  
+  @Override
+  public String getTitle(HttpServletRequest req) {
+    return "Traces for " + getType(req) + " for the last " + getMinutes(req) + " minutes";
+  }
 }

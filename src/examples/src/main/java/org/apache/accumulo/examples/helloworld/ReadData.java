@@ -32,36 +32,36 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 public class ReadData {
-    public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-        if (args.length < 5 || args.length > 7) {
-            System.out
-                    .println("bin/accumulo accumulo.examples.helloworld.ReadData <instance name> <zoo keepers> <tablename> <username> <password> [startkey [endkey]]");
-            System.exit(1);
-        }
-        
-        String instanceName = args[0];
-        String zooKeepers = args[1];
-        String tableName = args[2];
-        String user = args[3];
-        byte[] pass = args[4].getBytes();
-        
-        ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
-        Connector connector = instance.getConnector(user, pass);
-        
-        Scanner scan = connector.createScanner(tableName, Constants.NO_AUTHS);
-        Key start = null;
-        if (args.length > 5) start = new Key(new Text(args[5]));
-        Key end = null;
-        if (args.length > 6) end = new Key(new Text(args[6]));
-        scan.setRange(new Range(start, end));
-        Iterator<Entry<Key,Value>> iter = scan.iterator();
-        
-        while (iter.hasNext()) {
-            Entry<Key,Value> e = iter.next();
-            Text colf = e.getKey().getColumnFamily();
-            Text colq = e.getKey().getColumnQualifier();
-            System.out.print("row: " + e.getKey().getRow() + ", colf: " + colf + ", colq: " + colq);
-            System.out.println(", value: " + e.getValue().toString());
-        }
+  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    if (args.length < 5 || args.length > 7) {
+      System.out
+          .println("bin/accumulo accumulo.examples.helloworld.ReadData <instance name> <zoo keepers> <tablename> <username> <password> [startkey [endkey]]");
+      System.exit(1);
     }
+    
+    String instanceName = args[0];
+    String zooKeepers = args[1];
+    String tableName = args[2];
+    String user = args[3];
+    byte[] pass = args[4].getBytes();
+    
+    ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
+    Connector connector = instance.getConnector(user, pass);
+    
+    Scanner scan = connector.createScanner(tableName, Constants.NO_AUTHS);
+    Key start = null;
+    if (args.length > 5) start = new Key(new Text(args[5]));
+    Key end = null;
+    if (args.length > 6) end = new Key(new Text(args[6]));
+    scan.setRange(new Range(start, end));
+    Iterator<Entry<Key,Value>> iter = scan.iterator();
+    
+    while (iter.hasNext()) {
+      Entry<Key,Value> e = iter.next();
+      Text colf = e.getKey().getColumnFamily();
+      Text colq = e.getKey().getColumnQualifier();
+      System.out.print("row: " + e.getKey().getRow() + ", colf: " + colf + ", colq: " + colq);
+      System.out.println(", value: " + e.getValue().toString());
+    }
+  }
 }

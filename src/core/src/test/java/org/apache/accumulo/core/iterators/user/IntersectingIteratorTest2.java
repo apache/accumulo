@@ -37,31 +37,31 @@ import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 public class IntersectingIteratorTest2 {
+  
+  @Test
+  public void test() throws Exception {
+    Value empty = new Value(new byte[] {});
+    MockInstance inst = new MockInstance("mockabye");
+    Connector connector = inst.getConnector("user", "pass");
+    connector.tableOperations().create("index");
+    BatchWriter bw = connector.createBatchWriter("index", 1000, 1000, 1);
+    Mutation m = new Mutation("000012");
+    m.put("rvy", "5000000000000000", empty);
+    m.put("15qh", "5000000000000000", empty);
+    bw.addMutation(m);
+    bw.close();
     
-    @Test
-    public void test() throws Exception {
-        Value empty = new Value(new byte[] {});
-        MockInstance inst = new MockInstance("mockabye");
-        Connector connector = inst.getConnector("user", "pass");
-        connector.tableOperations().create("index");
-        BatchWriter bw = connector.createBatchWriter("index", 1000, 1000, 1);
-        Mutation m = new Mutation("000012");
-        m.put("rvy", "5000000000000000", empty);
-        m.put("15qh", "5000000000000000", empty);
-        bw.addMutation(m);
-        bw.close();
-        
-        BatchScanner bs = connector.createBatchScanner("index", Constants.NO_AUTHS, 10);
-        IteratorSetting ii = new IteratorSetting(20, IntersectingIterator.class);
-        IntersectingIterator.setColumnFamilies(ii, new Text[] {new Text("rvy"), new Text("15qh")});
-        bs.addScanIterator(ii);
-        bs.setRanges(Collections.singleton(new Range()));
-        Iterator<Entry<Key,Value>> iterator = bs.iterator();
-        Assert.assertTrue(iterator.hasNext());
-        Entry<Key,Value> next = iterator.next();
-        Key key = next.getKey();
-        Assert.assertEquals(key.getColumnQualifier(), new Text("5000000000000000"));
-        Assert.assertFalse(iterator.hasNext());
-    }
-    
+    BatchScanner bs = connector.createBatchScanner("index", Constants.NO_AUTHS, 10);
+    IteratorSetting ii = new IteratorSetting(20, IntersectingIterator.class);
+    IntersectingIterator.setColumnFamilies(ii, new Text[] {new Text("rvy"), new Text("15qh")});
+    bs.addScanIterator(ii);
+    bs.setRanges(Collections.singleton(new Range()));
+    Iterator<Entry<Key,Value>> iterator = bs.iterator();
+    Assert.assertTrue(iterator.hasNext());
+    Entry<Key,Value> next = iterator.next();
+    Key key = next.getKey();
+    Assert.assertEquals(key.getColumnQualifier(), new Text("5000000000000000"));
+    Assert.assertFalse(iterator.hasNext());
+  }
+  
 }

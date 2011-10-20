@@ -42,73 +42,73 @@ import org.apache.hadoop.util.ToolRunner;
  * <tablename> <column> <hdfs-output-path>
  */
 public class TableToFile extends Configured implements Tool {
-    /**
-     * The Mapper class that given a row number, will generate the appropriate output line.
-     */
-    public static class TTFMapper extends Mapper<Key,Value,NullWritable,Text> {
-        public void map(Key row, Value data, Context context) throws IOException, InterruptedException {
-            final Key r = row;
-            final Value v = data;
-            Map.Entry<Key,Value> entry = new Map.Entry<Key,Value>() {
-                @Override
-                public Key getKey() {
-                    return r;
-                }
-                
-                @Override
-                public Value getValue() {
-                    return v;
-                }
-                
-                @Override
-                public Value setValue(Value value) {
-                    return null;
-                }
-            };
-            context.write(NullWritable.get(), new Text(DefaultFormatter.formatEntry(entry, false)));
-            context.setStatus("Outputed Value");
+  /**
+   * The Mapper class that given a row number, will generate the appropriate output line.
+   */
+  public static class TTFMapper extends Mapper<Key,Value,NullWritable,Text> {
+    public void map(Key row, Value data, Context context) throws IOException, InterruptedException {
+      final Key r = row;
+      final Value v = data;
+      Map.Entry<Key,Value> entry = new Map.Entry<Key,Value>() {
+        @Override
+        public Key getKey() {
+          return r;
         }
-    }
-    
-    @Override
-    public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
-        Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
-        job.setJarByClass(this.getClass());
         
-        job.setInputFormatClass(AccumuloInputFormat.class);
-        AccumuloInputFormat.setZooKeeperInstance(job, args[0], args[1]);
-        AccumuloInputFormat.setInputInfo(job, args[2], args[3].getBytes(), args[4], new Authorizations());
-        
-        HashSet<Pair<Text,Text>> columnsToFetch = new HashSet<Pair<Text,Text>>();
-        for (String col : args[5].split(",")) {
-            int idx = col.indexOf(":");
-            Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
-            Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
-            if (cf.getLength() > 0) columnsToFetch.add(new Pair<Text,Text>(cf, cq));
+        @Override
+        public Value getValue() {
+          return v;
         }
-        if (!columnsToFetch.isEmpty()) AccumuloInputFormat.fetchColumns(job, columnsToFetch);
         
-        job.setMapperClass(TTFMapper.class);
-        job.setMapOutputKeyClass(NullWritable.class);
-        job.setMapOutputValueClass(Text.class);
-        
-        job.setNumReduceTasks(0);
-        
-        job.setOutputFormatClass(TextOutputFormat.class);
-        TextOutputFormat.setOutputPath(job, new Path(args[6]));
-        
-        job.waitForCompletion(true);
-        return job.isSuccessful() ? 0 : 1;
+        @Override
+        public Value setValue(Value value) {
+          return null;
+        }
+      };
+      context.write(NullWritable.get(), new Text(DefaultFormatter.formatEntry(entry, false)));
+      context.setStatus("Outputed Value");
     }
+  }
+  
+  @Override
+  public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
+    Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
+    job.setJarByClass(this.getClass());
     
-    /**
-     * 
-     * @param args
-     *            instanceName zookeepers username password table columns outputpath
-     * @throws Exception
-     */
-    public static void main(String[] args) throws Exception {
-        int res = ToolRunner.run(CachedConfiguration.getInstance(), new TableToFile(), args);
-        if (res != 0) System.exit(res);
+    job.setInputFormatClass(AccumuloInputFormat.class);
+    AccumuloInputFormat.setZooKeeperInstance(job, args[0], args[1]);
+    AccumuloInputFormat.setInputInfo(job, args[2], args[3].getBytes(), args[4], new Authorizations());
+    
+    HashSet<Pair<Text,Text>> columnsToFetch = new HashSet<Pair<Text,Text>>();
+    for (String col : args[5].split(",")) {
+      int idx = col.indexOf(":");
+      Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
+      Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
+      if (cf.getLength() > 0) columnsToFetch.add(new Pair<Text,Text>(cf, cq));
     }
+    if (!columnsToFetch.isEmpty()) AccumuloInputFormat.fetchColumns(job, columnsToFetch);
+    
+    job.setMapperClass(TTFMapper.class);
+    job.setMapOutputKeyClass(NullWritable.class);
+    job.setMapOutputValueClass(Text.class);
+    
+    job.setNumReduceTasks(0);
+    
+    job.setOutputFormatClass(TextOutputFormat.class);
+    TextOutputFormat.setOutputPath(job, new Path(args[6]));
+    
+    job.waitForCompletion(true);
+    return job.isSuccessful() ? 0 : 1;
+  }
+  
+  /**
+   * 
+   * @param args
+   *          instanceName zookeepers username password table columns outputpath
+   * @throws Exception
+   */
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(CachedConfiguration.getInstance(), new TableToFile(), args);
+    if (res != 0) System.exit(res);
+  }
 }

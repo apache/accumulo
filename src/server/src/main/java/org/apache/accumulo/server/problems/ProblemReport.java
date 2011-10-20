@@ -40,183 +40,182 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
 
 public class ProblemReport {
-    private String tableName;
-    private ProblemType problemType;
-    private String resource;
-    private String exception;
-    private String server;
-    private long creationTime;
+  private String tableName;
+  private ProblemType problemType;
+  private String resource;
+  private String exception;
+  private String server;
+  private long creationTime;
+  
+  public ProblemReport(String table, ProblemType problemType, String resource, String server, Throwable e) {
+    this.tableName = table;
     
-    public ProblemReport(String table, ProblemType problemType, String resource, String server, Throwable e) {
-        this.tableName = table;
-        
-        this.problemType = problemType;
-        this.resource = resource;
-        
-        if (e != null) {
-            this.exception = e.getMessage();
-        }
-        
-        if (server == null) {
-            try {
-                server = InetAddress.getLocalHost().getHostAddress();
-            } catch (UnknownHostException e1) {
-                
-            }
-        }
-        
-        this.server = server;
-        this.creationTime = System.currentTimeMillis();
+    this.problemType = problemType;
+    this.resource = resource;
+    
+    if (e != null) {
+      this.exception = e.getMessage();
     }
     
-    public ProblemReport(String table, ProblemType problemType, String resource, Throwable e) {
-        this(table, problemType, resource, null, e);
-    }
-    
-    private ProblemReport(String table, ProblemType problemType, String resource, byte enc[]) throws IOException {
-        this.tableName = table;
-        this.problemType = problemType;
-        this.resource = resource;
+    if (server == null) {
+      try {
+        server = InetAddress.getLocalHost().getHostAddress();
+      } catch (UnknownHostException e1) {
         
-        decode(enc);
+      }
     }
     
-    private byte[] encode() throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(baos);
-        
-        dos.writeLong(creationTime);
-        
-        dos.writeBoolean(server != null);
-        if (server != null) {
-            dos.writeUTF(server);
-        }
-        
-        dos.writeBoolean(exception != null);
-        if (exception != null) {
-            dos.writeUTF(exception);
-        }
-        
-        dos.close();
-        baos.close();
-        
-        return baos.toByteArray();
+    this.server = server;
+    this.creationTime = System.currentTimeMillis();
+  }
+  
+  public ProblemReport(String table, ProblemType problemType, String resource, Throwable e) {
+    this(table, problemType, resource, null, e);
+  }
+  
+  private ProblemReport(String table, ProblemType problemType, String resource, byte enc[]) throws IOException {
+    this.tableName = table;
+    this.problemType = problemType;
+    this.resource = resource;
+    
+    decode(enc);
+  }
+  
+  private byte[] encode() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(baos);
+    
+    dos.writeLong(creationTime);
+    
+    dos.writeBoolean(server != null);
+    if (server != null) {
+      dos.writeUTF(server);
     }
     
-    private void decode(byte enc[]) throws IOException {
-        ByteArrayInputStream bais = new ByteArrayInputStream(enc);
-        DataInputStream dis = new DataInputStream(bais);
-        
-        creationTime = dis.readLong();
-        
-        if (dis.readBoolean()) {
-            server = dis.readUTF();
-        } else {
-            server = null;
-        }
-        
-        if (dis.readBoolean()) {
-            exception = dis.readUTF();
-        } else {
-            exception = null;
-        }
+    dos.writeBoolean(exception != null);
+    if (exception != null) {
+      dos.writeUTF(exception);
     }
     
-    void removeFromMetadataTable() throws Exception {
-        Mutation m = new Mutation(new Text("~err_" + tableName));
-        m.putDelete(new Text(problemType.name()), new Text(resource));
-        MetadataTable.getMetadataTable(SecurityConstants.getSystemCredentials()).update(m);
+    dos.close();
+    baos.close();
+    
+    return baos.toByteArray();
+  }
+  
+  private void decode(byte enc[]) throws IOException {
+    ByteArrayInputStream bais = new ByteArrayInputStream(enc);
+    DataInputStream dis = new DataInputStream(bais);
+    
+    creationTime = dis.readLong();
+    
+    if (dis.readBoolean()) {
+      server = dis.readUTF();
+    } else {
+      server = null;
     }
     
-    void saveToMetadataTable() throws Exception {
-        Mutation m = new Mutation(new Text("~err_" + tableName));
-        m.put(new Text(problemType.name()), new Text(resource), new Value(encode()));
-        MetadataTable.getMetadataTable(SecurityConstants.getSystemCredentials()).update(m);
+    if (dis.readBoolean()) {
+      exception = dis.readUTF();
+    } else {
+      exception = null;
     }
+  }
+  
+  void removeFromMetadataTable() throws Exception {
+    Mutation m = new Mutation(new Text("~err_" + tableName));
+    m.putDelete(new Text(problemType.name()), new Text(resource));
+    MetadataTable.getMetadataTable(SecurityConstants.getSystemCredentials()).update(m);
+  }
+  
+  void saveToMetadataTable() throws Exception {
+    Mutation m = new Mutation(new Text("~err_" + tableName));
+    m.put(new Text(problemType.name()), new Text(resource), new Value(encode()));
+    MetadataTable.getMetadataTable(SecurityConstants.getSystemCredentials()).update(m);
+  }
+  
+  void removeFromZooKeeper() throws Exception {
+    String zpath = getZPath();
+    ZooReaderWriter.getInstance().recursiveDelete(zpath, NodeMissingPolicy.SKIP);
+  }
+  
+  void saveToZooKeeper() throws Exception {
+    ZooReaderWriter.getInstance().putPersistentData(getZPath(), encode(), NodeExistsPolicy.OVERWRITE);
+  }
+  
+  private String getZPath() throws IOException {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(baos);
+    dos.writeUTF(getTableName());
+    dos.writeUTF(getProblemType().name());
+    dos.writeUTF(getResource());
+    dos.close();
+    baos.close();
     
-    void removeFromZooKeeper() throws Exception {
-        String zpath = getZPath();
-        ZooReaderWriter.getInstance().recursiveDelete(zpath, NodeMissingPolicy.SKIP);
-    }
+    String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZPROBLEMS + "/" + Encoding.encodeAsBase64FileName(new Text(baos.toByteArray()));
+    return zpath;
+  }
+  
+  static ProblemReport decodeZooKeeperEntry(String node) throws Exception {
+    byte bytes[] = Encoding.decodeBase64FileName(node);
     
-    void saveToZooKeeper() throws Exception {
-        ZooReaderWriter.getInstance().putPersistentData(getZPath(), encode(), NodeExistsPolicy.OVERWRITE);
-    }
+    ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+    DataInputStream dis = new DataInputStream(bais);
     
-    private String getZPath() throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(baos);
-        dos.writeUTF(getTableName());
-        dos.writeUTF(getProblemType().name());
-        dos.writeUTF(getResource());
-        dos.close();
-        baos.close();
-        
-        String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZPROBLEMS + "/"
-                + Encoding.encodeAsBase64FileName(new Text(baos.toByteArray()));
-        return zpath;
-    }
+    String tableName = dis.readUTF();
+    String problemType = dis.readUTF();
+    String resource = dis.readUTF();
     
-    static ProblemReport decodeZooKeeperEntry(String node) throws Exception {
-        byte bytes[] = Encoding.decodeBase64FileName(node);
-        
-        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-        DataInputStream dis = new DataInputStream(bais);
-        
-        String tableName = dis.readUTF();
-        String problemType = dis.readUTF();
-        String resource = dis.readUTF();
-        
-        String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZPROBLEMS + "/" + node;
-        byte[] enc = ZooReaderWriter.getInstance().getData(zpath, null);
-        
-        return new ProblemReport(tableName, ProblemType.valueOf(problemType), resource, enc);
-        
-    }
+    String zpath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZPROBLEMS + "/" + node;
+    byte[] enc = ZooReaderWriter.getInstance().getData(zpath, null);
     
-    public static ProblemReport decodeMetadataEntry(Entry<Key,Value> entry) throws IOException {
-        String tableName = entry.getKey().getRow().toString().substring("~err_".length());
-        String problemType = entry.getKey().getColumnFamily().toString();
-        String resource = entry.getKey().getColumnQualifier().toString();
-        
-        return new ProblemReport(tableName, ProblemType.valueOf(problemType), resource, entry.getValue().get());
-    }
+    return new ProblemReport(tableName, ProblemType.valueOf(problemType), resource, enc);
     
-    public String getTableName() {
-        return tableName;
-    }
+  }
+  
+  public static ProblemReport decodeMetadataEntry(Entry<Key,Value> entry) throws IOException {
+    String tableName = entry.getKey().getRow().toString().substring("~err_".length());
+    String problemType = entry.getKey().getColumnFamily().toString();
+    String resource = entry.getKey().getColumnQualifier().toString();
     
-    public ProblemType getProblemType() {
-        return problemType;
+    return new ProblemReport(tableName, ProblemType.valueOf(problemType), resource, entry.getValue().get());
+  }
+  
+  public String getTableName() {
+    return tableName;
+  }
+  
+  public ProblemType getProblemType() {
+    return problemType;
+  }
+  
+  public String getResource() {
+    return resource;
+  }
+  
+  public String getException() {
+    return exception;
+  }
+  
+  public String getServer() {
+    return server;
+  }
+  
+  public long getTime() {
+    return creationTime;
+  }
+  
+  @Override
+  public int hashCode() {
+    return tableName.hashCode() + problemType.hashCode() + resource.hashCode();
+  }
+  
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof ProblemReport) {
+      ProblemReport opr = (ProblemReport) o;
+      return tableName.equals(opr.tableName) && problemType.equals(opr.problemType) && resource.equals(opr.resource);
     }
-    
-    public String getResource() {
-        return resource;
-    }
-    
-    public String getException() {
-        return exception;
-    }
-    
-    public String getServer() {
-        return server;
-    }
-    
-    public long getTime() {
-        return creationTime;
-    }
-    
-    @Override
-    public int hashCode() {
-        return tableName.hashCode() + problemType.hashCode() + resource.hashCode();
-    }
-    
-    @Override
-    public boolean equals(Object o) {
-        if (o instanceof ProblemReport) {
-            ProblemReport opr = (ProblemReport) o;
-            return tableName.equals(opr.tableName) && problemType.equals(opr.problemType) && resource.equals(opr.resource);
-        }
-        return false;
-    }
+    return false;
+  }
 }

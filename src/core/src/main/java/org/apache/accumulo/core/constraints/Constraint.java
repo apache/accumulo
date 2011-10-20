@@ -40,29 +40,29 @@ import org.apache.accumulo.core.security.Authorizations;
  */
 
 public interface Constraint {
+  
+  public interface Environment {
+    KeyExtent getExtent();
     
-    public interface Environment {
-        KeyExtent getExtent();
-        
-        String getUser();
-        
-        Authorizations getAuthorizations();
-    }
+    String getUser();
     
-    /**
-     * Implementers of this method should return a short one sentence description of what a given violation code means.
-     * 
-     */
-    
-    String getViolationDescription(short violationCode);
-    
-    /**
-     * Checks a mutation for constrain violations. If the mutation contains no violations, then the implementation should return null. Otherwise it should
-     * return a list of violation codes.
-     * 
-     * Violation codes must be non negative. Negative violation codes are reserved for system use.
-     * 
-     */
-    
-    List<Short> check(Environment env, Mutation mutation);
+    Authorizations getAuthorizations();
+  }
+  
+  /**
+   * Implementers of this method should return a short one sentence description of what a given violation code means.
+   * 
+   */
+  
+  String getViolationDescription(short violationCode);
+  
+  /**
+   * Checks a mutation for constrain violations. If the mutation contains no violations, then the implementation should return null. Otherwise it should return
+   * a list of violation codes.
+   * 
+   * Violation codes must be non negative. Negative violation codes are reserved for system use.
+   * 
+   */
+  
+  List<Short> check(Environment env, Mutation mutation);
 }

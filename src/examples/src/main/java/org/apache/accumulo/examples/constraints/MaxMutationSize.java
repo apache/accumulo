@@ -27,18 +27,18 @@ import org.apache.accumulo.core.data.Mutation;
  * 
  */
 public class MaxMutationSize implements Constraint {
-    static final long MAX_SIZE = Runtime.getRuntime().maxMemory() >> 8;
-    static final List<Short> empty = Collections.emptyList();
-    static final List<Short> violations = Collections.singletonList(new Short((short) 0));
-    
-    @Override
-    public String getViolationDescription(short violationCode) {
-        return String.format("mutation exceeded maximum size of %d", MAX_SIZE);
-    }
-    
-    @Override
-    public List<Short> check(Environment env, Mutation mutation) {
-        if (mutation.estimatedMemoryUsed() < MAX_SIZE) return empty;
-        return violations;
-    }
+  static final long MAX_SIZE = Runtime.getRuntime().maxMemory() >> 8;
+  static final List<Short> empty = Collections.emptyList();
+  static final List<Short> violations = Collections.singletonList(new Short((short) 0));
+  
+  @Override
+  public String getViolationDescription(short violationCode) {
+    return String.format("mutation exceeded maximum size of %d", MAX_SIZE);
+  }
+  
+  @Override
+  public List<Short> check(Environment env, Mutation mutation) {
+    if (mutation.estimatedMemoryUsed() < MAX_SIZE) return empty;
+    return violations;
+  }
 }

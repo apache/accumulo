@@ -30,17 +30,17 @@ import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 
 public class PrintTable {
-    public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-        if (args.length != 3) {
-            System.out.println("Usage : PrintTable <table> <user> <password>");
-            return;
-        }
-        
-        Connector connector = HdfsZooInstance.getInstance().getConnector(args[1], args[2].getBytes());
-        Authorizations auths = connector.securityOperations().getUserAuthorizations(args[1]);
-        Scanner scanner = connector.createScanner(args[0], auths);
-        
-        for (Entry<Key,Value> entry : scanner)
-            System.out.println(DefaultFormatter.formatEntry(entry, true));
+  public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    if (args.length != 3) {
+      System.out.println("Usage : PrintTable <table> <user> <password>");
+      return;
     }
+    
+    Connector connector = HdfsZooInstance.getInstance().getConnector(args[1], args[2].getBytes());
+    Authorizations auths = connector.securityOperations().getUserAuthorizations(args[1]);
+    Scanner scanner = connector.createScanner(args[0], auths);
+    
+    for (Entry<Key,Value> entry : scanner)
+      System.out.println(DefaultFormatter.formatEntry(entry, true));
+  }
 }

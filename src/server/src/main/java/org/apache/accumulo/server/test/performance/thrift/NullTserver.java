@@ -52,159 +52,159 @@ import cloudtrace.thrift.TInfo;
  */
 
 public class NullTserver {
+  
+  private static class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
     
-    private static class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
-        
-        private long updateSession = 1;
-        
-        ThriftClientHandler(TransactionWatcher watcher) {
-            super(watcher);
-        }
-        
-        @Override
-        public long startUpdate(TInfo tinfo, AuthInfo credentials) {
-            return updateSession++;
-        }
-        
-        @Override
-        public void applyUpdates(TInfo tinfo, long updateID, TKeyExtent keyExtent, List<TMutation> mutation) {}
-        
-        @Override
-        public UpdateErrors closeUpdate(TInfo tinfo, long updateID) {
-            return new UpdateErrors(new HashMap<TKeyExtent,Long>(), new ArrayList<TConstraintViolationSummary>(), new ArrayList<TKeyExtent>());
-        }
-        
-        @Override
-        public List<TKeyExtent> bulkImport(TInfo tinfo, AuthInfo credentials, long tid, Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) {
-            return null;
-        }
-        
-        @Override
-        public void closeMultiScan(TInfo tinfo, long scanID) {}
-        
-        @Override
-        public void closeScan(TInfo tinfo, long scanID) {}
-        
-        @Override
-        public MultiScanResult continueMultiScan(TInfo tinfo, long scanID) {
-            return null;
-        }
-        
-        @Override
-        public ScanResult continueScan(TInfo tinfo, long scanID) {
-            return null;
-        }
-        
-        @Override
-        public void splitTablet(TInfo tinfo, AuthInfo credentials, TKeyExtent extent, ByteBuffer splitPoint) {
-            
-        }
-        
-        @Override
-        public InitialMultiScan startMultiScan(TInfo tinfo, AuthInfo credentials, Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns,
-                List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites) {
-            return null;
-        }
-        
-        @Override
-        public InitialScan startScan(TInfo tinfo, AuthInfo credentials, TKeyExtent extent, TRange range, List<TColumn> columns, int batchSize,
-                List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated) {
-            return null;
-        }
-        
-        @Override
-        public void update(TInfo tinfo, AuthInfo credentials, TKeyExtent keyExtent, TMutation mutation) {
-            
-        }
-        
-        @Override
-        public TabletServerStatus getTabletServerStatus(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException, TException {
-            return null;
-        }
-        
-        @Override
-        public List<TabletStats> getTabletStats(TInfo tinfo, AuthInfo credentials, String tableId) throws ThriftSecurityException, TException {
-            return null;
-        }
-        
-        @Override
-        public TabletStats getHistoricalStats(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException, TException {
-            return null;
-        }
-        
-        @Override
-        public void halt(TInfo tinfo, AuthInfo credentials, String lock) throws ThriftSecurityException, TException {}
-        
-        @Override
-        public void fastHalt(TInfo tinfo, AuthInfo credentials, String lock) {}
-        
-        @Override
-        public void loadTablet(TInfo tinfo, AuthInfo credentials, String lock, TKeyExtent extent) throws TException {}
-        
-        @Override
-        public void unloadTablet(TInfo tinfo, AuthInfo credentials, String lock, TKeyExtent extent, boolean save) throws TException {}
-        
-        @Override
-        public void useLoggers(TInfo tinfo, AuthInfo credentials, Set<String> loggers) throws TException {}
-        
-        @Override
-        public List<ActiveScan> getActiveScans(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException, TException {
-            return new ArrayList<ActiveScan>();
-        }
-        
-        @Override
-        public void chop(TInfo tinfo, AuthInfo credentials, String lock, TKeyExtent extent) throws TException {}
-        
-        @Override
-        public void flushTablet(TInfo tinfo, AuthInfo credentials, String lock, TKeyExtent extent) throws TException {
-            
-        }
-        
-        @Override
-        public void compact(TInfo tinfo, AuthInfo credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
-            
-        }
-        
-        @Override
-        public void flush(TInfo tinfo, AuthInfo credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
-            
-        }
+    private long updateSession = 1;
+    
+    ThriftClientHandler(TransactionWatcher watcher) {
+      super(watcher);
     }
     
-    public static void main(String[] args) throws Exception {
-        
-        String iname = args[0];
-        String keepers = args[1];
-        String tableName = args[2];
-        int port = Integer.parseInt(args[3]);
-        
-        TransactionWatcher watcher = new TransactionWatcher();
-        ThriftClientHandler tch = new ThriftClientHandler(watcher);
-        TabletClientService.Processor processor = new TabletClientService.Processor(tch);
-        TServerUtils.startTServer(port, processor, "NullTServer", "null tserver", 2, 1000);
-        
-        InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), port);
-        
-        // modify !METADATA
-        ZooKeeperInstance zki = new ZooKeeperInstance(iname, keepers);
-        String tableId = Tables.getTableId(zki, tableName);
-        
-        // read the locations for the table
-        Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
-        MetaDataTableScanner s = new MetaDataTableScanner(tableRange);
-        long randomSessionID = port;
-        TServerInstance instance = new TServerInstance(addr, randomSessionID);
-        List<Assignment> assignments = new ArrayList<Assignment>();
-        while (s.hasNext()) {
-            TabletLocationState next = s.next();
-            assignments.add(new Assignment(next.extent, instance));
-        }
-        // point them to this server
-        MetaDataStateStore store = new MetaDataStateStore(null);
-        store.setLocations(assignments);
-        
-        while (true) {
-            UtilWaitThread.sleep(10000);
-        }
+    @Override
+    public long startUpdate(TInfo tinfo, AuthInfo credentials) {
+      return updateSession++;
     }
+    
+    @Override
+    public void applyUpdates(TInfo tinfo, long updateID, TKeyExtent keyExtent, List<TMutation> mutation) {}
+    
+    @Override
+    public UpdateErrors closeUpdate(TInfo tinfo, long updateID) {
+      return new UpdateErrors(new HashMap<TKeyExtent,Long>(), new ArrayList<TConstraintViolationSummary>(), new ArrayList<TKeyExtent>());
+    }
+    
+    @Override
+    public List<TKeyExtent> bulkImport(TInfo tinfo, AuthInfo credentials, long tid, Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) {
+      return null;
+    }
+    
+    @Override
+    public void closeMultiScan(TInfo tinfo, long scanID) {}
+    
+    @Override
+    public void closeScan(TInfo tinfo, long scanID) {}
+    
+    @Override
+    public MultiScanResult continueMultiScan(TInfo tinfo, long scanID) {
+      return null;
+    }
+    
+    @Override
+    public ScanResult continueScan(TInfo tinfo, long scanID) {
+      return null;
+    }
+    
+    @Override
+    public void splitTablet(TInfo tinfo, AuthInfo credentials, TKeyExtent extent, ByteBuffer splitPoint) {
+      
+    }
+    
+    @Override
+    public InitialMultiScan startMultiScan(TInfo tinfo, AuthInfo credentials, Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns,
+        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites) {
+      return null;
+    }
+    
+    @Override
+    public InitialScan startScan(TInfo tinfo, AuthInfo credentials, TKeyExtent extent, TRange range, List<TColumn> columns, int batchSize,
+        List<IterInfo> ssiList, Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites, boolean isolated) {
+      return null;
+    }
+    
+    @Override
+    public void update(TInfo tinfo, AuthInfo credentials, TKeyExtent keyExtent, TMutation mutation) {
+      
+    }
+    
+    @Override
+    public TabletServerStatus getTabletServerStatus(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException, TException {
+      return null;
+    }
+    
+    @Override
+    public List<TabletStats> getTabletStats(TInfo tinfo, AuthInfo credentials, String tableId) throws ThriftSecurityException, TException {
+      return null;
+    }
+    
+    @Override
+    public TabletStats getHistoricalStats(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException, TException {
+      return null;
+    }
+    
+    @Override
+    public void halt(TInfo tinfo, AuthInfo credentials, String lock) throws ThriftSecurityException, TException {}
+    
+    @Override
+    public void fastHalt(TInfo tinfo, AuthInfo credentials, String lock) {}
+    
+    @Override
+    public void loadTablet(TInfo tinfo, AuthInfo credentials, String lock, TKeyExtent extent) throws TException {}
+    
+    @Override
+    public void unloadTablet(TInfo tinfo, AuthInfo credentials, String lock, TKeyExtent extent, boolean save) throws TException {}
+    
+    @Override
+    public void useLoggers(TInfo tinfo, AuthInfo credentials, Set<String> loggers) throws TException {}
+    
+    @Override
+    public List<ActiveScan> getActiveScans(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException, TException {
+      return new ArrayList<ActiveScan>();
+    }
+    
+    @Override
+    public void chop(TInfo tinfo, AuthInfo credentials, String lock, TKeyExtent extent) throws TException {}
+    
+    @Override
+    public void flushTablet(TInfo tinfo, AuthInfo credentials, String lock, TKeyExtent extent) throws TException {
+      
+    }
+    
+    @Override
+    public void compact(TInfo tinfo, AuthInfo credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
+      
+    }
+    
+    @Override
+    public void flush(TInfo tinfo, AuthInfo credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
+      
+    }
+  }
+  
+  public static void main(String[] args) throws Exception {
+    
+    String iname = args[0];
+    String keepers = args[1];
+    String tableName = args[2];
+    int port = Integer.parseInt(args[3]);
+    
+    TransactionWatcher watcher = new TransactionWatcher();
+    ThriftClientHandler tch = new ThriftClientHandler(watcher);
+    TabletClientService.Processor processor = new TabletClientService.Processor(tch);
+    TServerUtils.startTServer(port, processor, "NullTServer", "null tserver", 2, 1000);
+    
+    InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), port);
+    
+    // modify !METADATA
+    ZooKeeperInstance zki = new ZooKeeperInstance(iname, keepers);
+    String tableId = Tables.getTableId(zki, tableName);
+    
+    // read the locations for the table
+    Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
+    MetaDataTableScanner s = new MetaDataTableScanner(tableRange);
+    long randomSessionID = port;
+    TServerInstance instance = new TServerInstance(addr, randomSessionID);
+    List<Assignment> assignments = new ArrayList<Assignment>();
+    while (s.hasNext()) {
+      TabletLocationState next = s.next();
+      assignments.add(new Assignment(next.extent, instance));
+    }
+    // point them to this server
+    MetaDataStateStore store = new MetaDataStateStore(null);
+    store.setLocations(assignments);
+    
+    while (true) {
+      UtilWaitThread.sleep(10000);
+    }
+  }
 }

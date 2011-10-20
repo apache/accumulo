@@ -30,16 +30,16 @@ package org.apache.accumulo.core.file.blockfile.cache;
  * 
  * <pre>
  * public class SampleObject implements HeapSize {
- *     
- *     int[] numbers;
- *     int x;
+ *   
+ *   int[] numbers;
+ *   int x;
  * }
  * </pre>
  */
 public interface HeapSize {
-    /**
-     * @return Approximate 'exclusive deep size' of implementing object. Includes count of payload and hosting object sizings.
-     */
-    public long heapSize();
-    
+  /**
+   * @return Approximate 'exclusive deep size' of implementing object. Includes count of payload and hosting object sizings.
+   */
+  public long heapSize();
+  
 }

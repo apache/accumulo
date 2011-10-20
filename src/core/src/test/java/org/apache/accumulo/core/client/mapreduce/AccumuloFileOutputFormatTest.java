@@ -31,30 +31,30 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class AccumuloFileOutputFormatTest {
-    JobContext job;
-    TaskAttemptContext tac;
-    
-    @Before
-    public void setup() {
-        job = new JobContext(new Configuration(), new JobID());
-        tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());
-    }
-    
-    @Test
-    public void testSet() throws IOException, InterruptedException {
-        AccumuloFileOutputFormat.setBlockSize(job, 300);
-        validate(300);
-    }
-    
-    @Test
-    public void testUnset() throws IOException, InterruptedException {
-        validate((int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
-    }
-    
-    public void validate(int size) throws IOException, InterruptedException {
-        AccumuloFileOutputFormat.handleBlockSize(job);
-        int detSize = job.getConfiguration().getInt("io.seqfile.compress.blocksize", -1);
-        assertEquals(size, detSize);
-    }
-    
+  JobContext job;
+  TaskAttemptContext tac;
+  
+  @Before
+  public void setup() {
+    job = new JobContext(new Configuration(), new JobID());
+    tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());
+  }
+  
+  @Test
+  public void testSet() throws IOException, InterruptedException {
+    AccumuloFileOutputFormat.setBlockSize(job, 300);
+    validate(300);
+  }
+  
+  @Test
+  public void testUnset() throws IOException, InterruptedException {
+    validate((int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
+  }
+  
+  public void validate(int size) throws IOException, InterruptedException {
+    AccumuloFileOutputFormat.handleBlockSize(job);
+    int detSize = job.getConfiguration().getInt("io.seqfile.compress.blocksize", -1);
+    assertEquals(size, detSize);
+  }
+  
 }
