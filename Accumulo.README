@@ -8,13 +8,13 @@ However, if you only have source code, or you wish to make changes, you need to
 have maven configured to get Accumulo pre-requisites from repositories.  See
 the pom.xml file for the necessary components.
 
-Run mvn assembly:assembly.
+Run "mvn package && mvn assembly:single"
 
 ******************************************************************************
 2. Deployment
 
-Copy the accumulo tar file produced by mvn assembly:assembly from the target/
-directory to the desired destination, then untar it (e.g. 
+Copy the accumulo tar file produced by "mvn package && mvn assembly:single" 
+from the target/ directory to the desired destination, then untar it (e.g. 
 tar xvzf accumulo-1.4.0-incubating-SNAPSHOT-dist.tar.gz).
 
 If you are using the RPM, install the RPM on every machine that will run
