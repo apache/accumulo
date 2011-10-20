@@ -855,7 +855,14 @@ public class BulkImportHelper {
                             Key firstKey = reader.getFirstKey();
                             if (firstKey != null) {
                                 synchronizedMapFilesInfo.put(file.getPath(), new MapFileInfo(firstKey, reader.getLastKey()));
-                            } else log.warn(file.getPath() + " is an empty map file");
+                            } else {
+                                log.warn(file.getPath() + " is an empty map file, assigning it to first tablet");
+                                //this is a hack... the file is empty, it has already been moved by a tserver, so it can not be deleted
+                                //by the client now... if the file is not deleted here, it will never be removed because it is not referenced
+                                //so ask 1st tablet to import it, eventually it will be deleted...  this is the best option w/o changing
+                                //the thrift API.. if all empty files go to one tablet, more likely to be compacted away quickly
+                                synchronizedMapFilesInfo.put(file.getPath(), new MapFileInfo(new Key(), new Key()));
+                            }
                             
                         } catch (IOException ioe) {
                             successful = false;
