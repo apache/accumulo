@@ -70,7 +70,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                      'dataTable',
                      visibility,
                      100000,
-                     os.curdir)
+                     ACCUMULO_HOME+"/src")
         self.comment("  searching for a file")
         handle = self.runOn('localhost', [self.accumulo_sh(), 'org.apache.accumulo.examples.dirlist.QueryUtil',
                                           INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD,
