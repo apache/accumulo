@@ -31,17 +31,22 @@ public class CleanZookeeper {
   
   /**
    * @param args
-   *          should contain one element: the address of a zookeeper node
+   *          must contain one element: the address of a zookeeper node
+   *          a second parameter provides an additional authentication value
    * @throws IOException
    *           error connecting to accumulo or zookeeper
    */
   public static void main(String[] args) throws IOException {
     if (args.length < 1) {
-      System.err.println("Usage: " + CleanZookeeper.class.getName() + " hostname[:port]");
+      System.err.println("Usage: " + CleanZookeeper.class.getName() + " hostname[:port] [auth]");
       System.exit(1);
     }
     String root = Constants.ZROOT;
     ZooReaderWriter zk = ZooReaderWriter.getInstance();
+    if (args.length == 2) {
+      zk.getZooKeeper().addAuthInfo("digest", args[1].getBytes());
+    }
+    
     try {
       for (String child : zk.getChildren(root)) {
         if (Constants.ZINSTANCES.equals("/" + child)) {
