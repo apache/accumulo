@@ -1,5 +1,3 @@
-import os
-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -14,6 +12,8 @@ import os
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+import os
 
 import logging
 import unittest
@@ -38,6 +38,8 @@ class LateLastContact(SunnyDayTest):
     settings = SunnyDayTest.settings.copy()
     
     def runTest(self):
+        if not os.getenv("ZOOKEEPER_HOME"):
+            self.fail("ZOOKEEPER_HOME environment variable is not set please set the location of ZOOKEEPER home in this environment variable")
         self.waitForStop(self.ingester, self.waitTime())
         cfg = os.path.join(ACCUMULO_HOME, 'conf', SITE)
         import config

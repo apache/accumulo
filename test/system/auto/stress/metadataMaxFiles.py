@@ -1,5 +1,3 @@
-import unittest
-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -15,6 +13,8 @@ import unittest
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import unittest
+
 from TestUtils import TestUtilsMixin
 import os
 
@@ -27,7 +27,7 @@ class MetadataMaxFiles(TestUtilsMixin, unittest.TestCase):
     order=75
 
     settings = TestUtilsMixin.settings.copy()
-    settings['tserver.compaction.major.delay'] = 0
+    settings['tserver.compaction.major.delay'] = 1
 
     def runTest(self):
         # Create a bunch of tables with splits to split the !METADATA table
@@ -40,13 +40,11 @@ class MetadataMaxFiles(TestUtilsMixin, unittest.TestCase):
         self.shell(self.masterHost(),
                    'config -t !METADATA -s table.split.threshold=10000\n' + 
                    ''.join(['createtable test%d -sf %s\nflush -t !METADATA\n' % (i, self.splitfile) for i in range(5)]))
-        self.shutdown_accumulo()
+        self.shutdown_accumulo(150)
         
         # reconfigure accumulo to use a very small number of files
         self.stop_accumulo()
         self.settings['tserver.scan.files.open.max'] = 10
-        self.settings['tserver.compaction.major.files.open.max'] = 2
-        self.settings['tserver.compaction.major.concurrent.max'] = 1
         self.create_config_file(self.settings)
 
         # make sure the master knows about all the tables we created
