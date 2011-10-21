@@ -1,5 +1,3 @@
-from subprocess import Popen as BasePopen, PIPE
-
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -14,6 +12,8 @@ from subprocess import Popen as BasePopen, PIPE
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from subprocess import Popen as BasePopen, PIPE
 
 import os
 import time
@@ -92,13 +92,13 @@ class TestUtilsMixin:
         cmd = map(str, cmd)
         log.debug('%s: %s', host, ' '.join(cmd))
         if host == 'localhost':
-            os.environ['ACCUMULO_TSERVER_OPTS']='-Xmx1200m -Xms1000m '
+            os.environ['ACCUMULO_TSERVER_OPTS']='-Xmx500m '
             os.environ['ACCUMULO_GENERAL_OPTS']='-Dorg.apache.accumulo.config.file=%s ' % SITE
             os.environ['ACCUMULO_LOG_DIR']= ACCUMULO_HOME + '/logs/' + ID
             return Popen(cmd, stdout=PIPE, stderr=PIPE, **opts)
         else:
             cp = 'HADOOP_CLASSPATH=%s' % os.environ.get('HADOOP_CLASSPATH','')
-            jo = "ACCUMULO_TSERVER_OPTS='-Xmx500m -Xms500m'"
+            jo = "ACCUMULO_TSERVER_OPTS='-Xmx500m '"
             go = "ACCUMULO_GENERAL_OPTS='-Dorg.apache.accumulo.config.file=%s'" % SITE
             ld = 'ACCUMULO_LOG_DIR=%s/logs/%s' % (ACCUMULO_HOME, ID)
             execcmd = ['ssh', '-q', host, cp, jo, go, ld] + quote(cmd)
