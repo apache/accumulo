@@ -21,6 +21,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -42,7 +43,7 @@ public class CleanZookeeper {
       System.exit(1);
     }
     String root = Constants.ZROOT;
-    ZooReaderWriter zk = ZooReaderWriter.getInstance();
+    IZooReaderWriter zk = ZooReaderWriter.getInstance();
     if (args.length == 2) {
       zk.getZooKeeper().addAuthInfo("digest", args[1].getBytes());
     }

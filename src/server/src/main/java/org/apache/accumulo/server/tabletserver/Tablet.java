@@ -113,6 +113,7 @@ import org.apache.accumulo.server.util.MapCounter;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.accumulo.server.util.MetadataTable.LogEntry;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -744,7 +745,7 @@ public class Tablet {
     
     void bringMinorCompactionOnline(Path tmpDatafile, Path newDatafile, Path absMergeFile, DataFileValue dfv, CommitSession commitSession, long flushId) {
       
-      ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
         try {
           if (!zoo.isLockHeld(tabletServer.getLock().getLockID())) {
@@ -942,7 +943,7 @@ public class Tablet {
         
         t1 = System.currentTimeMillis();
         
-        ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+        IZooReaderWriter zoo = ZooReaderWriter.getInstance();
         
         dataSourceDeletions.incrementAndGet();
         
@@ -2256,7 +2257,7 @@ public class Tablet {
     try {
       String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + extent.getTableId()
           + Constants.ZTABLE_FLUSH_ID;
-      return Long.parseLong(new String(ZooReaderWriter.getInstance().getData(zTablePath, null)));
+      return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null)));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -2266,7 +2267,7 @@ public class Tablet {
     try {
       String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + extent.getTableId()
           + Constants.ZTABLE_COMPACT_ID;
-      return Long.parseLong(new String(ZooReaderWriter.getInstance().getData(zTablePath, null)));
+      return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null)));
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

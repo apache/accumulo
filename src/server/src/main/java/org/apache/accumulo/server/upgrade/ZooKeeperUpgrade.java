@@ -35,6 +35,7 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.util.Initialize;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -54,7 +55,7 @@ public class ZooKeeperUpgrade extends Initialize {
   private static String zkInstanceRoot;
   
   public static void main(String[] args) {
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
       zkInstanceRoot = ZooUtil.getRoot(HdfsZooInstance.getInstance());
       upgradeZooKeeper(zoo);
@@ -65,7 +66,7 @@ public class ZooKeeperUpgrade extends Initialize {
     }
   }
   
-  static void upgradeSecurity(ZooReaderWriter zoo) throws Exception {
+  static void upgradeSecurity(IZooReaderWriter zoo) throws Exception {
     
     SortedMap<String,String> tableIds = Tables.getNameToIdMap(HdfsZooInstance.getInstance());
     
@@ -91,7 +92,7 @@ public class ZooKeeperUpgrade extends Initialize {
     
   }
   
-  static void upgradeZooKeeper(ZooReaderWriter zoo) throws IOException, KeeperException, InterruptedException {
+  static void upgradeZooKeeper(IZooReaderWriter zoo) throws IOException, KeeperException, InterruptedException {
     SortedSet<String> tableNames = getOldTableNames(zoo);
     
     // initialize zookeeper layout (skip 1.1 dirs that may already be there)
@@ -143,7 +144,7 @@ public class ZooKeeperUpgrade extends Initialize {
     zoo.recursiveDelete(zkInstanceRoot + OLD_CONF_DIR, NodeMissingPolicy.SKIP);
   }
   
-  private static SortedSet<String> getOldTableNames(ZooReaderWriter zoo) throws IOException, KeeperException, InterruptedException {
+  private static SortedSet<String> getOldTableNames(IZooReaderWriter zoo) throws IOException, KeeperException, InterruptedException {
     SortedSet<String> tableNames = new TreeSet<String>();
     // get list of 1.1 tables from HDFS and ZooKeeper
     FileStatus[] tablesStatus = FileSystem.get(new Configuration()).listStatus(new Path(ServerConstants.getTablesDir()));
@@ -156,14 +157,14 @@ public class ZooKeeperUpgrade extends Initialize {
     return tableNames;
   }
   
-  private static void move(ZooReaderWriter zoo, String source, String destination) throws KeeperException, InterruptedException {
+  private static void move(IZooReaderWriter zoo, String source, String destination) throws KeeperException, InterruptedException {
     if (zoo.exists(source)) {
       zoo.recursiveCopyPersistent(source, destination, NodeExistsPolicy.FAIL);
       zoo.recursiveDelete(source, NodeMissingPolicy.SKIP);
     }
   }
   
-  private static void validateConfig(String tableId, ZooReaderWriter zoo) throws KeeperException, InterruptedException {
+  private static void validateConfig(String tableId, IZooReaderWriter zoo) throws KeeperException, InterruptedException {
     String confPath = zkInstanceRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF;
     for (String propKey : zoo.getChildren(confPath)) {
       String propKeyPath = confPath + "/" + propKey;

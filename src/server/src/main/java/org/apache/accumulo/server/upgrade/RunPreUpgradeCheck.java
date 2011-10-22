@@ -30,6 +30,7 @@ import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -55,7 +56,7 @@ public class RunPreUpgradeCheck {
     }
     
     String rootTabletWALOGS = ZROOT_PATH + "/" + HdfsZooInstance.getInstance().getInstanceID() + ZLOGS_PATH;
-    ZooReaderWriter session = ZooReaderWriter.getInstance();
+    IZooReaderWriter session = ZooReaderWriter.getInstance();
     
     if (session.exists(rootTabletWALOGS) && session.getChildren(rootTabletWALOGS).size() != 0) {
       System.err.println("The root tablet has write ahead logs");

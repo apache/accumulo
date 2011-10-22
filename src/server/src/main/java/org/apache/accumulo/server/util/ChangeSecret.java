@@ -29,6 +29,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -98,7 +99,7 @@ public class ChangeSecret {
   
   private static String rewriteZooKeeperInstance(final Instance inst, String oldPass, String newPass) throws Exception {
     final ZooReaderWriter orig = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), oldPass);
-    final ZooReaderWriter new_ = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), newPass);
+    final IZooReaderWriter new_ = new ZooReaderWriter(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), newPass);
     final String newInstanceId = UUID.randomUUID().toString();
     String root = ZooUtil.getRoot(inst);
     recurse(orig, root, new Visitor() {
@@ -138,7 +139,7 @@ public class ChangeSecret {
   }
   
   private static void deleteInstance(Instance origInstance, String oldPass) throws Exception {
-    ZooReaderWriter orig = new ZooReaderWriter(origInstance.getZooKeepers(), origInstance.getZooKeepersSessionTimeOut(), oldPass);
+    IZooReaderWriter orig = new ZooReaderWriter(origInstance.getZooKeepers(), origInstance.getZooKeepersSessionTimeOut(), oldPass);
     orig.recursiveDelete("/accumulo/" + origInstance.getInstanceID(), NodeMissingPolicy.SKIP);
   }
 }

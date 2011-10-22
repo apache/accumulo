@@ -27,6 +27,7 @@ import org.apache.accumulo.server.master.EventCoordinator.Listener;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.tableOps.MasterRepo;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
@@ -57,7 +58,7 @@ public class ShutdownTServer extends MasterRepo {
       String path = ZooUtil.getRoot(m.getInstance()) + Constants.ZTSERVERS + "/" + tserver;
       ZooLock.deleteLock(path);
       path = ZooUtil.getRoot(m.getInstance()) + Constants.ZDEADTSERVERS + "/" + tserver;
-      ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       zoo.putPersistentData(path, "forced down".getBytes(), NodeExistsPolicy.OVERWRITE);
       return new DisconnectLogger(server.getLocation().getAddress().getHostAddress());
     }

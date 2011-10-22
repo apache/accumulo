@@ -24,7 +24,7 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
-public class ZooReader {
+public class ZooReader implements IZooReader {
   
   protected String keepers;
   protected int timeout;
@@ -37,30 +37,37 @@ public class ZooReader {
     return getSession(keepers, timeout, null);
   }
   
+  @Override
   public byte[] getData(String zPath, Stat stat) throws KeeperException, InterruptedException {
     return getZooKeeper().getData(zPath, false, stat);
   }
   
+  @Override
   public Stat getStatus(String zPath) throws KeeperException, InterruptedException {
     return getZooKeeper().exists(zPath, false);
   }
   
+  @Override
   public Stat getStatus(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
     return getZooKeeper().exists(zPath, watcher);
   }
   
+  @Override
   public List<String> getChildren(String zPath) throws KeeperException, InterruptedException {
     return getZooKeeper().getChildren(zPath, false);
   }
   
+  @Override
   public List<String> getChildren(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
     return getZooKeeper().getChildren(zPath, watcher);
   }
   
+  @Override
   public boolean exists(String zPath) throws KeeperException, InterruptedException {
     return getZooKeeper().exists(zPath, false) != null;
   }
   
+  @Override
   public boolean exists(String zPath, Watcher watcher) throws KeeperException, InterruptedException {
     return getZooKeeper().exists(zPath, watcher) != null;
   }

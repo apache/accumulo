@@ -29,6 +29,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 public class CacheTestWriter {
@@ -36,7 +37,7 @@ public class CacheTestWriter {
   static final int NUM_DATA = 3;
   
   public static void main(String[] args) throws Exception {
-    ZooReaderWriter zk = ZooReaderWriter.getInstance();
+    IZooReaderWriter zk = ZooReaderWriter.getInstance();
     
     String rootDir = args[0];
     File reportDir = new File(args[1]);

@@ -36,12 +36,12 @@ public class ZooQueueLock implements QueueLock {
   
   // private static final Logger log = Logger.getLogger(ZooQueueLock.class);
   
-  private ZooReaderWriter zoo;
+  private IZooReaderWriter zoo;
   private String path;
   private boolean ephemeral;
   
   public ZooQueueLock(String path, boolean ephemeral) throws KeeperException, InterruptedException {
-    this.zoo = ZooReaderWriter.getInstance();
+    this.zoo = ZooReaderWriter.getRetryingInstance();
     this.path = path;
     this.ephemeral = ephemeral;
   }

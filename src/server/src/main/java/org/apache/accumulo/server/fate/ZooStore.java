@@ -34,7 +34,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
@@ -46,7 +46,7 @@ import org.apache.zookeeper.KeeperException.NodeExistsException;
 public class ZooStore<T> implements TStore<T> {
   
   private String path;
-  private ZooReaderWriter zk;
+  private IZooReaderWriter zk;
   private Set<Long> reserved;
   private Map<Long,Long> defered;
   private SecureRandom idgenerator;
@@ -86,7 +86,7 @@ public class ZooStore<T> implements TStore<T> {
     return Long.parseLong(txdir.split("_")[1], 16);
   }
   
-  public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
+  public ZooStore(String path, IZooReaderWriter zk) throws KeeperException, InterruptedException {
     
     this.path = path;
     this.zk = zk;

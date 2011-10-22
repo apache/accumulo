@@ -23,6 +23,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
@@ -83,7 +84,7 @@ public class ZooStore implements DistributedStore {
     try {
       log.debug("Removing " + path);
       path = relative(path);
-      ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       if (zoo.exists(path)) zoo.recursiveDelete(path, NodeMissingPolicy.SKIP);
       cache.clear();
     } catch (Exception ex) {

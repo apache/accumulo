@@ -78,6 +78,7 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.test.FastFormat;
 import org.apache.accumulo.server.trace.TraceFileSystem;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
@@ -155,7 +156,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
       Set<String> filesInUseByScans, String address, ZooLock zooLock, Set<String> unusedWalLogs, TServerInstance lastLocation, long flushId) {
     if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
       if (unusedWalLogs != null) {
-        ZooReaderWriter zk = ZooReaderWriter.getInstance();
+        IZooReaderWriter zk = ZooReaderWriter.getInstance();
         // unusedWalLogs will contain the location/name of each log in a log set
         // the log set is stored under one of the log names, but not both
         // find the entry under one of the names and delete it.
@@ -372,7 +373,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   }
   
   public static boolean recordRootTabletLocation(String address) {
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     for (int i = 0; i < SAVE_ROOT_TABLET_RETRIES; i++) {
       try {
         log.info("trying to write root tablet location to ZooKeeper as " + address);
@@ -790,7 +791,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
       String root = getZookeeperLogLocation();
       while (true) {
         try {
-          ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+          IZooReaderWriter zoo = ZooReaderWriter.getInstance();
           if (zoo.isLockHeld(zooLock.getLockID())) zoo.putPersistentData(root + "/" + entry.filename, entry.toBytes(), NodeExistsPolicy.OVERWRITE);
           break;
         } catch (KeeperException e) {
@@ -900,7 +901,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   }
   
   private static void getRootLogEntries(ArrayList<LogEntry> result) throws KeeperException, InterruptedException, IOException {
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     String root = getZookeeperLogLocation();
     for (String child : zoo.getChildren(root)) {
       LogEntry e = new LogEntry();
@@ -966,7 +967,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
         String root = getZookeeperLogLocation();
         while (true) {
           try {
-            ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+            IZooReaderWriter zoo = ZooReaderWriter.getInstance();
             if (zoo.isLockHeld(zooLock.getLockID())) zoo.recursiveDelete(root + "/" + entry.filename, NodeMissingPolicy.SKIP);
             break;
           } catch (Exception e) {

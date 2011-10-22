@@ -50,6 +50,7 @@ import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.accumulo.server.tabletserver.TabletTime;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -305,7 +306,7 @@ public class Initialize {
   
   private static void initZooKeeper(String uuid, String instanceNamePath) throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     ZooUtil.putPersistentData(zoo.getZooKeeper(), Constants.ZROOT, new byte[0], -1, NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
     ZooUtil.putPersistentData(zoo.getZooKeeper(), Constants.ZROOT + Constants.ZINSTANCES, new byte[0], -1, NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
     

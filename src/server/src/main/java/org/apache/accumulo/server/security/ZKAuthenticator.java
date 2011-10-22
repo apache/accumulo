@@ -45,6 +45,7 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
@@ -110,7 +111,7 @@ public final class ZKAuthenticator implements Authenticator {
     
     try {
       // remove old settings from zookeeper first, if any
-      ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
       synchronized (zooCache) {
         zooCache.clear();
         if (zoo.exists(ZKUserPath)) {
@@ -150,7 +151,7 @@ public final class ZKAuthenticator implements Authenticator {
       throws KeeperException, InterruptedException {
     synchronized (zooCache) {
       zooCache.clear();
-      ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
       zoo.putPrivatePersistentData(ZKUserPath + "/" + user, pass, NodeExistsPolicy.FAIL);
       zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserAuths, Tool.convertAuthorizations(auths), NodeExistsPolicy.FAIL);
       zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserSysPerms, Tool.convertSystemPermissions(sysPerms), NodeExistsPolicy.FAIL);
@@ -166,7 +167,7 @@ public final class ZKAuthenticator implements Authenticator {
   private void createTablePerm(String user, String table, Set<TablePermission> perms) throws KeeperException, InterruptedException {
     synchronized (zooCache) {
       zooCache.clear();
-      ZooReaderWriter.getInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, Tool.convertTablePermissions(perms),
+      ZooReaderWriter.getRetryingInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, Tool.convertTablePermissions(perms),
           NodeExistsPolicy.FAIL);
     }
   }
@@ -232,7 +233,7 @@ public final class ZKAuthenticator implements Authenticator {
     try {
       synchronized (zooCache) {
         zooCache.clear();
-        ZooReaderWriter.getInstance().recursiveDelete(ZKUserPath + "/" + user, NodeMissingPolicy.FAIL);
+        ZooReaderWriter.getRetryingInstance().recursiveDelete(ZKUserPath + "/" + user, NodeMissingPolicy.FAIL);
       }
       log.info("Deleted user " + user + " at the request of user " + credentials.user);
     } catch (InterruptedException e) {
@@ -256,7 +257,7 @@ public final class ZKAuthenticator implements Authenticator {
       try {
         synchronized (zooCache) {
           zooCache.clear();
-          ZooReaderWriter.getInstance().putPrivatePersistentData(ZKUserPath + "/" + user, Tool.createPass(pass), NodeExistsPolicy.OVERWRITE);
+          ZooReaderWriter.getRetryingInstance().putPrivatePersistentData(ZKUserPath + "/" + user, Tool.createPass(pass), NodeExistsPolicy.OVERWRITE);
         }
         log.info("Changed password for user " + user + " at the request of user " + credentials.user);
       } catch (KeeperException e) {
@@ -292,7 +293,7 @@ public final class ZKAuthenticator implements Authenticator {
       try {
         synchronized (zooCache) {
           zooCache.clear();
-          ZooReaderWriter.getInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserAuths, Tool.convertAuthorizations(authorizations),
+          ZooReaderWriter.getRetryingInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserAuths, Tool.convertAuthorizations(authorizations),
               NodeExistsPolicy.OVERWRITE);
         }
         log.info("Changed authorizations for user " + user + " at the request of user " + credentials.user);
@@ -396,7 +397,7 @@ public final class ZKAuthenticator implements Authenticator {
         if (perms.add(permission)) {
           synchronized (zooCache) {
             zooCache.clear();
-            ZooReaderWriter.getInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserSysPerms, Tool.convertSystemPermissions(perms),
+            ZooReaderWriter.getRetryingInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserSysPerms, Tool.convertSystemPermissions(perms),
                 NodeExistsPolicy.OVERWRITE);
           }
         }
@@ -430,7 +431,7 @@ public final class ZKAuthenticator implements Authenticator {
         if (tablePerms.add(permission)) {
           synchronized (zooCache) {
             zooCache.clear();
-            ZooReaderWriter.getInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, Tool.convertTablePermissions(tablePerms),
+            ZooReaderWriter.getRetryingInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, Tool.convertTablePermissions(tablePerms),
                 NodeExistsPolicy.OVERWRITE);
           }
         }
@@ -462,7 +463,7 @@ public final class ZKAuthenticator implements Authenticator {
         if (sysPerms.remove(permission)) {
           synchronized (zooCache) {
             zooCache.clear();
-            ZooReaderWriter.getInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserSysPerms, Tool.convertSystemPermissions(sysPerms),
+            ZooReaderWriter.getRetryingInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserSysPerms, Tool.convertSystemPermissions(sysPerms),
                 NodeExistsPolicy.OVERWRITE);
           }
         }
@@ -494,7 +495,7 @@ public final class ZKAuthenticator implements Authenticator {
       try {
         if (tablePerms.remove(permission)) {
           zooCache.clear();
-          ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+          IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
           if (tablePerms.size() == 0) zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, NodeMissingPolicy.SKIP);
           else zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, Tool.convertTablePermissions(tablePerms),
               NodeExistsPolicy.OVERWRITE);
@@ -519,7 +520,7 @@ public final class ZKAuthenticator implements Authenticator {
     try {
       synchronized (zooCache) {
         zooCache.clear();
-        ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+        IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
         for (String user : zooCache.getChildren(ZKUserPath))
           zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, NodeMissingPolicy.SKIP);
       }

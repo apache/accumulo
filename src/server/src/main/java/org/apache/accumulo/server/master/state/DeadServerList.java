@@ -22,6 +22,7 @@ import java.util.List;
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
@@ -32,7 +33,7 @@ public class DeadServerList {
   
   public DeadServerList(String path) {
     this.path = path;
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
       zoo.mkdirs(path);
     } catch (Exception ex) {
@@ -42,7 +43,7 @@ public class DeadServerList {
   
   public List<DeadServer> getList() {
     List<DeadServer> result = new ArrayList<DeadServer>();
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
       List<String> children = zoo.getChildren(path);
       if (children != null) {
@@ -60,7 +61,7 @@ public class DeadServerList {
   }
   
   public void delete(String server) {
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
       zoo.recursiveDelete(path + "/" + server, NodeMissingPolicy.SKIP);
     } catch (Exception ex) {
@@ -69,7 +70,7 @@ public class DeadServerList {
   }
   
   public void post(String server, String cause) {
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
       zoo.putPersistentData(path + "/" + server, cause.getBytes(), NodeExistsPolicy.SKIP);
     } catch (Exception ex) {

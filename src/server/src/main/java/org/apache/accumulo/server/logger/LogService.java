@@ -63,6 +63,7 @@ import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TServerUtils.ServerPort;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -242,7 +243,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
   
   void registerInZooKeeper(String zooDir) {
     try {
-      ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       String path = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + zooDir;
       path += "/logger-";
       path = zoo.putEphemeralSequential(path, addressString.getBytes());

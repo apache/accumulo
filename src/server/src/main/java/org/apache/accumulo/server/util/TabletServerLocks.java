@@ -21,6 +21,7 @@ import java.util.List;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
@@ -34,7 +35,7 @@ public class TabletServerLocks {
     String tserverPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTSERVERS;
     
     if (args.length == 1 && args[0].equals("-list")) {
-      ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       
       List<String> tabletServers = zoo.getChildren(tserverPath);
       

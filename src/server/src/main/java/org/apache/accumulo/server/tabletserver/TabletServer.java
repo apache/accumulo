@@ -175,6 +175,7 @@ import org.apache.accumulo.server.util.MetadataTable.LogEntry;
 import org.apache.accumulo.server.util.TServerUtils.ServerPort;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -2525,7 +2526,7 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
   }
   
   private void announceExistence() {
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
       String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTSERVERS + "/" + getClientAddressString();
       

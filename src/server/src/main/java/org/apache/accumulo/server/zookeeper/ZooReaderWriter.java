@@ -16,16 +16,22 @@
  */
 package org.apache.accumulo.server.zookeeper;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.security.SecurityPermission;
 import java.util.List;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooReader;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.BadVersionException;
@@ -34,13 +40,14 @@ import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
-public class ZooReaderWriter extends ZooReader {
+public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   
   private static SecurityPermission ZOOWRITER_PERMISSION = new SecurityPermission("zookeeperWriterPermission");
   
   private static ZooReaderWriter instance = null;
+  private static IZooReaderWriter retryingInstance = null;
   private final String auth;
-  
+
   @Override
   public ZooKeeper getZooKeeper() {
     SecurityManager sm = System.getSecurityManager();
@@ -55,10 +62,12 @@ public class ZooReaderWriter extends ZooReader {
     this.auth = "accumulo:" + auth;
   }
   
+  @Override
   public void recursiveDelete(String zPath, NodeMissingPolicy policy) throws KeeperException, InterruptedException {
     ZooUtil.recursiveDelete(getZooKeeper(), zPath, policy);
   }
   
+  @Override
   public void recursiveDelete(String zPath, int version, NodeMissingPolicy policy) throws KeeperException, InterruptedException {
     ZooUtil.recursiveDelete(getZooKeeper(), zPath, version, policy);
   }
@@ -68,30 +77,37 @@ public class ZooReaderWriter extends ZooReader {
    * 
    * @return true if the node was created or altered; false if it was skipped
    */
+  @Override
   public boolean putPersistentData(String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
     return ZooUtil.putPersistentData(getZooKeeper(), zPath, data, policy);
   }
   
+  @Override
   public boolean putPrivatePersistentData(String zPath, byte[] data, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
     return ZooUtil.putPrivatePersistentData(getZooKeeper(), zPath, data, policy);
   }
   
+  @Override
   public void putPersistentData(String zPath, byte[] data, int version, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
     ZooUtil.putPersistentData(getZooKeeper(), zPath, data, version, policy);
   }
   
+  @Override
   public String putPersistentSequential(String zPath, byte[] data) throws KeeperException, InterruptedException {
     return ZooUtil.putPersistentSequential(getZooKeeper(), zPath, data);
   }
   
+  @Override
   public String putEphemeralSequential(String zPath, byte[] data) throws KeeperException, InterruptedException {
     return ZooUtil.putEphemeralSequential(getZooKeeper(), zPath, data);
   }
   
+  @Override
   public void recursiveCopyPersistent(String source, String destination, NodeExistsPolicy policy) throws KeeperException, InterruptedException {
     ZooUtil.recursiveCopyPersistent(getZooKeeper(), source, destination, policy);
   }
   
+  @Override
   public void delete(String path, int version) throws InterruptedException, KeeperException {
     getZooKeeper().delete(path, version);
   }
@@ -100,6 +116,7 @@ public class ZooReaderWriter extends ZooReader {
     byte[] mutate(byte[] currentValue) throws Exception;
   }
   
+  @Override
   public byte[] mutate(String zPath, byte[] createValue, List<ACL> acl, Mutator mutator) throws Exception {
     if (createValue != null) {
       try {
@@ -132,10 +149,48 @@ public class ZooReaderWriter extends ZooReader {
     return instance;
   }
   
+  /**
+   * get an instance that retries when zookeeper connection errors occur
+   * 
+   * @return
+   */
+  public static synchronized IZooReaderWriter getRetryingInstance() {
+    
+    if(retryingInstance == null){
+      final IZooReaderWriter inst = getInstance();
+      
+      InvocationHandler ih = new InvocationHandler() {
+        @Override
+        public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
+          long retryTime = 250;
+          while(true){
+            try {
+              return method.invoke(inst, args);
+            } catch (InvocationTargetException e) {
+              if(e.getCause() instanceof KeeperException.ConnectionLossException){
+                Logger.getLogger(ZooReaderWriter.class).warn("Error connecting to zookeeper, will retry in "+retryTime, e.getCause());
+                UtilWaitThread.sleep(retryTime);
+                retryTime = Math.min(5000, retryTime + 250);
+              }else{
+                throw e.getCause();
+              }
+            }
+          }
+        }
+      };
+      
+      retryingInstance = (IZooReaderWriter) Proxy.newProxyInstance(ZooReaderWriter.class.getClassLoader(),new Class[] {IZooReaderWriter.class}, ih);
+    }
+    
+    return retryingInstance;
+  }
+  
+  @Override
   public boolean isLockHeld(ZooUtil.LockID lockID) throws KeeperException, InterruptedException {
     return ZooUtil.isLockHeld(getZooKeeper(), lockID);
   }
   
+  @Override
   public void mkdirs(String path) throws KeeperException, InterruptedException {
     if (path.equals("")) return;
     if (!path.startsWith("/")) throw new IllegalArgumentException(path + "does not start with /");

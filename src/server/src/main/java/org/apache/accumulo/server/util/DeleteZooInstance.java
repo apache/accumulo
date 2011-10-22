@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 public class DeleteZooInstance {
@@ -34,7 +35,7 @@ public class DeleteZooInstance {
       System.err.println("Usage: " + DeleteZooInstance.class.getName() + " [instanceName|UUID ... ]");
       System.exit(1);
     }
-    ZooReaderWriter zk = ZooReaderWriter.getInstance();
+    IZooReaderWriter zk = ZooReaderWriter.getInstance();
     // try instance name:
     Set<String> instances = new HashSet<String>(zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES));
     Set<String> uuids = new HashSet<String>(zk.getChildren(Constants.ZROOT));

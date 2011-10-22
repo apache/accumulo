@@ -43,6 +43,7 @@ import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.MapCounter;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.hadoop.io.Text;
@@ -190,7 +191,7 @@ public class CompactRange extends MasterRepo {
   public Repo<Master> call(long tid, Master environment) throws Exception {
     String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
     
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
     byte[] cid;
     try {
       cid = zoo.mutate(zTablePath, null, null, new Mutator() {

@@ -19,6 +19,7 @@ package org.apache.accumulo.server.util;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Level;
@@ -28,7 +29,7 @@ import org.apache.zookeeper.data.Stat;
 
 public class DumpZookeeper {
   
-  static ZooReaderWriter zk = null;
+  static IZooReaderWriter zk = null;
   
   private static final Logger log = Logger.getLogger(DumpZookeeper.class);
   

@@ -42,6 +42,7 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.util.MetadataTable.LogEntry;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -186,7 +187,7 @@ public class GarbageCollectWriteAheadLogs {
   
   private static int scanServers(Map<String,String> fileToServerMap) throws Exception {
     int count = 0;
-    ZooReaderWriter zk = ZooReaderWriter.getInstance();
+    IZooReaderWriter zk = ZooReaderWriter.getInstance();
     String loggersDir = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZLOGGERS;
     List<String> servers = zk.getChildren(loggersDir, null);
     Collections.shuffle(servers);

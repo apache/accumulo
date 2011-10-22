@@ -53,7 +53,7 @@ public class ZooLock implements Watcher {
   
   private boolean lockWasAcquired;
   final private String path;
-  final private ZooReaderWriter zooKeeper;
+  final private IZooReaderWriter zooKeeper;
   private String lock;
   private LockWatcher lockWatcher;
   
@@ -399,7 +399,7 @@ public class ZooLock implements Watcher {
   public static void deleteLock(String path) throws InterruptedException, KeeperException {
     List<String> children;
     
-    ZooReaderWriter zk = ZooReaderWriter.getInstance();
+    IZooReaderWriter zk = ZooReaderWriter.getInstance();
     children = zk.getChildren(path);
     
     if (children.size() == 0) {
@@ -421,7 +421,7 @@ public class ZooLock implements Watcher {
   public static boolean deleteLock(String path, String lockData) throws InterruptedException, KeeperException {
     List<String> children;
     
-    ZooReaderWriter zk = ZooReaderWriter.getInstance();
+    IZooReaderWriter zk = ZooReaderWriter.getInstance();
     children = zk.getChildren(path);
     
     if (children.size() == 0) {

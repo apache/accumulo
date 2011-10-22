@@ -148,6 +148,7 @@ import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock.LockLossReason;
@@ -303,7 +304,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   
   private void upgradeSettings() {
     AccumuloConfiguration conf = ServerConfiguration.getTableConfiguration(Constants.METADATA_TABLE_ID);
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     if (!conf.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) {
       try {
         // make sure the last shutdown was clean
@@ -540,7 +541,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       
       String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_FLUSH_ID;
       
-      ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       byte fid[];
       try {
         fid = zoo.mutate(zTablePath, null, null, new Mutator() {
@@ -1981,7 +1982,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     // TODO: add shutdown for fate object
     try {
       fate = new Fate<Master>(this, new org.apache.accumulo.server.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
-          ZooReaderWriter.getInstance()), 4);
+          ZooReaderWriter.getRetryingInstance()), 4);
     } catch (KeeperException e) {
       throw new IOException(e);
     } catch (InterruptedException e) {

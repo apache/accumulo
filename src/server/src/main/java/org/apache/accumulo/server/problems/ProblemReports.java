@@ -45,6 +45,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.util.NamingThreadFactory;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.io.Text;
@@ -177,7 +178,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
       
       return new Iterator<ProblemReport>() {
         
-        ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+        IZooReaderWriter zoo = ZooReaderWriter.getInstance();
         private int iter1Count = 0;
         private Iterator<String> iter1;
         

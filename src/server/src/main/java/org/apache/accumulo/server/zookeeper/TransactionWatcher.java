@@ -52,14 +52,14 @@ public class TransactionWatcher {
     
     public static void start(String type, long tid) throws KeeperException, InterruptedException {
       Instance instance = HdfsZooInstance.getInstance();
-      ZooReaderWriter writer = ZooReaderWriter.getInstance();
+      IZooReaderWriter writer = ZooReaderWriter.getInstance();
       writer.putPersistentData(ZooUtil.getRoot(instance) + "/" + type, new byte[] {}, NodeExistsPolicy.OVERWRITE);
       writer.putPersistentData(ZooUtil.getRoot(instance) + "/" + type + "/" + tid, new byte[] {}, NodeExistsPolicy.OVERWRITE);
     }
     
     public static void stop(String type, long tid) throws KeeperException, InterruptedException {
       Instance instance = HdfsZooInstance.getInstance();
-      ZooReaderWriter writer = ZooReaderWriter.getInstance();
+      IZooReaderWriter writer = ZooReaderWriter.getInstance();
       writer.recursiveDelete(ZooUtil.getRoot(instance) + "/" + type + "/" + tid, NodeMissingPolicy.SKIP);
     }
   }

@@ -36,6 +36,7 @@ import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -185,7 +186,7 @@ public class TraceServer implements Watcher {
   
   private void registerInZooKeeper(String name) throws Exception {
     String root = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTRACERS;
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes());
     zoo.exists(path, this);
   }

@@ -46,6 +46,7 @@ import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.tabletserver.TabletServer;
 import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.util.MetadataTable;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock.LockLossReason;
@@ -76,7 +77,7 @@ public class SplitRecoveryTest extends FunctionalTest {
   @Override
   public void run() throws Exception {
     String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + "/testLock";
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     zoo.putPersistentData(zPath, "".getBytes(), NodeExistsPolicy.OVERWRITE);
     ZooLock zl = new ZooLock(zPath);
     boolean gotLock = zl.tryLock(new LockWatcher() {

@@ -21,6 +21,7 @@ import java.util.List;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
@@ -64,7 +65,7 @@ public class ZooZap {
       }
     }
     
-    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     String iid = HdfsZooInstance.getInstance().getInstanceID();
     
     if (zapMaster) {
@@ -107,7 +108,7 @@ public class ZooZap {
     
   }
   
-  private static void zapDirectory(ZooReaderWriter zoo, String loggersPath) {
+  private static void zapDirectory(IZooReaderWriter zoo, String loggersPath) {
     try {
       List<String> children = zoo.getChildren(loggersPath);
       for (String child : children) {
