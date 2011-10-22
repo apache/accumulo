@@ -41,7 +41,7 @@
   </appender>
 
   <!-- Log accumulo events to the debug, normal and remote logs. -->
-  <logger name="accumulo" additivity="false">
+  <logger name="org.apache.accumulo" additivity="false">
      <level value="DEBUG"/>
      <appender-ref ref="A2" />
      <appender-ref ref="A3" />
