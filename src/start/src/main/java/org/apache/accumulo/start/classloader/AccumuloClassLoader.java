@@ -113,7 +113,7 @@ public class AccumuloClassLoader {
   /**
    * Dynamic classpath. These locations will be monitored for changes.
    */
-  public static final String DYNAMIC_CLASSPATH_VALUE = "$ACCUMULO_HOME/lib/ext/[^.].*.jar\n";
+  public static final String DEFAULT_DYNAMIC_CLASSPATH_VALUE = "$ACCUMULO_HOME/lib/ext/[^.].*.jar\n";
   
   public static final String DEFAULT_CLASSPATH_VALUE = ACCUMULO_CLASSPATH_VALUE;
   
@@ -146,7 +146,7 @@ public class AccumuloClassLoader {
   private static Object lock = new Object();
   
   private static ArrayList<URL> findDynamicURLs() throws IOException {
-    StringBuilder cp = new StringBuilder(DYNAMIC_CLASSPATH_VALUE);
+    StringBuilder cp = new StringBuilder(getAccumuloDynamicClasspathStrings());
     String envJars = System.getenv("ACCUMULO_XTRAJARS");
     if (null != envJars && !envJars.equals("")) cp = cp.append(",").append(envJars);
     String[] cps = replaceEnvVars(cp.toString(), System.getenv()).split(",");
@@ -161,7 +161,7 @@ public class AccumuloClassLoader {
   
   private static Set<File> findDirsFromUrls() throws IOException {
     Set<File> dirs = new HashSet<File>();
-    StringBuilder cp = new StringBuilder(DYNAMIC_CLASSPATH_VALUE);
+    StringBuilder cp = new StringBuilder(getAccumuloDynamicClasspathStrings());
     String envJars = System.getenv("ACCUMULO_XTRAJARS");
     if (null != envJars && !envJars.equals("")) cp = cp.append(",").append(envJars);
     String[] cps = replaceEnvVars(cp.toString(), System.getenv()).split(",");
@@ -274,43 +274,55 @@ public class AccumuloClassLoader {
     return classpath;
   }
   
+  private static String getAccumuloDynamicClasspathStrings() throws IllegalStateException {
+    return getAccumuloString(DYNAMIC_CLASSPATH_PROPERTY_NAME, DEFAULT_DYNAMIC_CLASSPATH_VALUE);
+  }
+  
+  private static String getAccumuloClasspathStrings() throws IllegalStateException {
+    return getAccumuloString(CLASSPATH_PROPERTY_NAME, ACCUMULO_CLASSPATH_VALUE);    
+  }
+  
   /**
-   * Looks for the site configuration file for Accumulo and if it has a property for accumulo.classpaths return it otherwise return the default Accumulo class
-   * path. Should throw an exception if the default configuration can not be red;
+   * Looks for the site configuration file for Accumulo and if it has a property for propertyName return it otherwise returns defaultValue
+   * Should throw an exception if the default configuration can not be read;
    * 
+   * @param propertyName Name of the property to pull
+   * @param defaultValue Value to default to if not found.
    * @return site or default class path String
    */
-  private static String getAccumuloClasspathStrings() throws IllegalStateException {
+
+  private static String getAccumuloString(String propertyName, String defaultValue) {
     try {
       DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
       DocumentBuilder db = dbf.newDocumentBuilder();
       String site_classpath_string = null;
       try {
         Document site_conf = db.parse(SITE_CONF);
-        site_classpath_string = getAccumuloClassPathStrings(site_conf);
-      } catch (Exception ex) {
-        // ignore
+        site_classpath_string = getAccumuloClassPathStrings(site_conf, propertyName);
+      } catch (Exception e) {
+        /* we don't care because this is optional and we can use defaults */
       }
       if (site_classpath_string != null) return site_classpath_string;
-      return ACCUMULO_CLASSPATH_VALUE;
+      return defaultValue;
     } catch (Exception e) {
       throw new IllegalStateException("ClassPath Strings Lookup failed", e);
     }
   }
   
   /**
-   * Parses and XML Document for a property node for a <name> with the value "accumulo.classpaths" if it finds one the function return that property's value for
+   * Parses and XML Document for a property node for a <name> with the value propertyName if it finds one the function return that property's value for
    * its <value> node. If not found the function will return null
    * 
    * @param d
    *          XMLDocument to search through
+   * @param propertyName 
    */
-  private static String getAccumuloClassPathStrings(Document d) {
+  private static String getAccumuloClassPathStrings(Document d, String propertyName) {
     NodeList pnodes = d.getElementsByTagName("property");
     for (int i = pnodes.getLength() - 1; i >= 0; i--) {
       Element current_property = (Element) pnodes.item(i);
       Node cname = current_property.getElementsByTagName("name").item(0);
-      if (cname != null && cname.getTextContent().compareTo(CLASSPATH_PROPERTY_NAME) == 0) {
+      if (cname != null && cname.getTextContent().compareTo(propertyName) == 0) {
         Node cvalue = current_property.getElementsByTagName("value").item(0);
         if (cvalue != null) {
           return cvalue.getTextContent();
