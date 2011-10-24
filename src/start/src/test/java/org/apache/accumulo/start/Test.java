@@ -47,6 +47,8 @@ public class Test extends TestCase {
     String aHome = System.getenv("ACCUMULO_HOME");
     if (aHome == null) fail("ACCUMULO_HOME must be set");
     tmpDir = new File(aHome + "/lib/ext");
+    if (!tmpDir.exists())
+      tmpDir.mkdir();
     destJar = new File(tmpDir, "Test.jar");
     if (destJar.exists()) {
       destJar.delete();
