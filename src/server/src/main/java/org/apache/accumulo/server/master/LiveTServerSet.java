@@ -41,6 +41,7 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.AddressUtil;
+import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -301,7 +302,9 @@ public class LiveTServerSet implements Watcher {
     try {
       ZooReaderWriter.getRetryingInstance().recursiveDelete(zpath, SKIP);
     } catch (Exception e) {
-      log.error("error removing tablet server lock", e);
+      String msg =  "error removing tablet server lock";
+      log.fatal(msg, e);
+      Halt.halt(msg, -1);
     }
     getZooCache().clear(zpath);
   }

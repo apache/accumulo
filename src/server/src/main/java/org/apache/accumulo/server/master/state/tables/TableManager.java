@@ -58,7 +58,7 @@ public class TableManager {
       throws KeeperException, InterruptedException {
     // state gets created last
     String zTablePath = Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId;
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_CONF, new byte[0], existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAME, tableName.getBytes(), existsPolicy);
@@ -111,7 +111,7 @@ public class TableManager {
     String statePath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
     
     try {
-      ZooReaderWriter.getInstance().mutate(statePath, (byte[]) newState.name().getBytes(), ZooUtil.PUBLIC, new Mutator() {
+      ZooReaderWriter.getRetryingInstance().mutate(statePath, (byte[]) newState.name().getBytes(), ZooUtil.PUBLIC, new Mutator() {
         @Override
         public byte[] mutate(byte[] oldData) throws Exception {
           TableState oldState = TableState.UNKNOWN;
@@ -179,13 +179,13 @@ public class TableManager {
     prepareNewTableState(instance.getInstanceID(), tableId, tableName, TableState.NEW, existsPolicy);
     String srcTablePath = Constants.ZROOT + "/" + instance.getInstanceID() + Constants.ZTABLES + "/" + srcTable + Constants.ZTABLE_CONF;
     String newTablePath = Constants.ZROOT + "/" + instance.getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF;
-    ZooReaderWriter.getInstance().recursiveCopyPersistent(srcTablePath, newTablePath, NodeExistsPolicy.OVERWRITE);
+    ZooReaderWriter.getRetryingInstance().recursiveCopyPersistent(srcTablePath, newTablePath, NodeExistsPolicy.OVERWRITE);
     
     for (Entry<String,String> entry : propertiesToSet.entrySet())
       TablePropUtil.setTableProperty(tableId, entry.getKey(), entry.getValue());
     
     for (String prop : propertiesToExclude)
-      ZooReaderWriter.getInstance().recursiveDelete(
+      ZooReaderWriter.getRetryingInstance().recursiveDelete(
           Constants.ZROOT + "/" + instance.getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF + "/" + prop, NodeMissingPolicy.SKIP);
     
     updateTableStateCache(tableId);
@@ -194,9 +194,9 @@ public class TableManager {
   public void removeTable(String tableId) throws KeeperException, InterruptedException {
     synchronized (tableStateCache) {
       tableStateCache.remove(tableId);
-      ZooReaderWriter.getInstance().recursiveDelete(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE,
+      ZooReaderWriter.getRetryingInstance().recursiveDelete(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE,
           NodeMissingPolicy.SKIP);
-      ZooReaderWriter.getInstance().recursiveDelete(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
+      ZooReaderWriter.getRetryingInstance().recursiveDelete(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
     }
   }
   

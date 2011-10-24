@@ -745,7 +745,7 @@ public class Tablet {
     
     void bringMinorCompactionOnline(Path tmpDatafile, Path newDatafile, Path absMergeFile, DataFileValue dfv, CommitSession commitSession, long flushId) {
       
-      IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+      IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
       if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
         try {
           if (!zoo.isLockHeld(tabletServer.getLock().getLockID())) {
@@ -945,7 +945,7 @@ public class Tablet {
         
         t1 = System.currentTimeMillis();
         
-        IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+        IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
         
         dataSourceDeletions.incrementAndGet();
         
