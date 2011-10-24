@@ -768,7 +768,9 @@ public class Tablet {
               fs.delete(newDatafile, true);
             }
             
-            fs.rename(tmpDatafile, newDatafile);
+            if (!fs.rename(tmpDatafile, newDatafile)) {
+              throw new IOException("rename fails");
+            }
           }
           break;
         } catch (IOException ioe) {
