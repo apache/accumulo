@@ -58,7 +58,7 @@ public class ZooUtil {
       if (lastSlash == 0) path = root;
       else path = root + "/" + sa[0].substring(0, lastSlash);
       node = sa[0].substring(lastSlash + 1);
-      eid = Long.parseLong(sa[1]);
+      eid = Long.parseLong(sa[1], 16);
     }
     
     public LockID(String path, String node, long eid) {
@@ -69,12 +69,12 @@ public class ZooUtil {
     
     public String serialize(String root) {
       
-      return path.substring(root.length()) + "/" + node + "$" + eid;
+      return path.substring(root.length()) + "/" + node + "$" + Long.toHexString(eid);
     }
     
     @Override
     public String toString() {
-      return " path = " + path + " node = " + node + " eid = " + eid;
+      return " path = " + path + " node = " + node + " eid = " + Long.toHexString(eid);
     }
   }
   
