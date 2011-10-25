@@ -218,8 +218,10 @@ table.iterator.majc.vers.opt.maxVersions=3
 Accumulo 1.2 introduces the concept of logical time. This ensures that timestamps
 set by accumulo always move forward. This helps avoid problems caused by
 TabletServers that have different time settings. The per tablet counter gives unique
-one up time stamps on a per mutation basis. When using time in milliseconds, if two
-things arrive within the same millisecond then both receive the same timestamp.
+one up time stamps on a per mutation basis. When using time in milliseconds, if
+two things arrive within the same millisecond then both receive the same
+timestamp.  When using time in milliseconds, accumulo set times will still
+always move forward and never backwards.
 
 A table can be configured to use logical timestamps at creation time as follows:
 
