@@ -120,12 +120,12 @@ the rowID, the Value or Term from the main table, the column families are the sa
 and the column qualifier of the index table contains the rowID from the main table.
 
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|} \hline
-\multicolumn{5}{|c|}{Key} & \multirow{3}{*}{Value}\\ \cline{1-5}
-\multirow{2}{*}{Row ID}& \multicolumn{3}{|c|}{Column} & \multirow{2}{*}{Timestamp} & \\ \cline{2-4}
-& Family & Qualifier & Visibility & & \\ \hline \hline
-Term & Field Name & MainRowID & & &\\ \hline
-\end{tabular}
+$\begin{array}{|c|c|c|c|c|c|} \hline
+\multicolumn{5}{|c|}{\mbox{Key}} & \multirow{3}{*}{\mbox{Value}}\\ \cline{1-5}
+\multirow{2}{*}{\mbox{Row ID}}& \multicolumn{3}{|c|}{\mbox{Column}} & \multirow{2}{*}{\mbox{Timestamp}} & \\ \cline{2-4}
+& \mbox{Family} & \mbox{Qualifier} & \mbox{Visibility} & & \\ \hline \hline
+\mbox{Term} & \mbox{Field Name} & \mbox{MainRowID} & & &\\ \hline
+\end{array}$
 \end{center}
 
 Note: We store rowIDs in the column qualifier rather than the Value so that we can
@@ -193,13 +193,13 @@ very useful and when a continuously updated summarization is desired.
 The physical schema for an entity-attribute or graph table is as follows:
 
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|} \hline
-\multicolumn{5}{|c|}{Key} & \multirow{3}{*}{Value}\\ \cline{1-5}
-\multirow{2}{*}{Row ID}& \multicolumn{3}{|c|}{Column} & \multirow{2}{*}{Timestamp} & \\ \cline{2-4}
-& Family & Qualifier & Visibility & & \\ \hline \hline
-EntityID & Attribute Name & Attribute Value & & & Weight \\ \hline
-EntityID & Edge Type & Related EntityID & & & Weight \\ \hline
-\end{tabular}
+$\begin{array}{|c|c|c|c|c|c|} \hline
+\multicolumn{5}{|c|}{\mbox{Key}} & \multirow{3}{*}{\mbox{Value}}\\ \cline{1-5}
+\multirow{2}{*}{\mbox{Row ID}}& \multicolumn{3}{|c|}{\mbox{Column}} & \multirow{2}{*}{\mbox{Timestamp}} & \\ \cline{2-4}
+& \mbox{Family} & \mbox{Qualifier} & \mbox{Visibility} & & \\ \hline \hline
+\mbox{EntityID} & \mbox{Attribute Name} & \mbox{Attribute Value} & & & \mbox{Weight} \\ \hline
+\mbox{EntityID} & \mbox{Edge Type} & \mbox{Related EntityID} & & & \mbox{Weight} \\ \hline
+\end{array}$
 \end{center}
 
 For example, to keep track of employees, managers and products the following
@@ -267,12 +267,12 @@ one TabletServer, and then creating an index of terms per record within each bin
 follows:
 
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|} \hline
-\multicolumn{5}{|c|}{Key} & \multirow{3}{*}{Value}\\ \cline{1-5}
-\multirow{2}{*}{Row ID}& \multicolumn{3}{|c|}{Column} & \multirow{2}{*}{Timestamp} & \\ \cline{2-4}
-& Family & Qualifier & Visibility & & \\ \hline \hline
-BinID & Term & DocID & & & Weght \\ \hline
-\end{tabular}
+$\begin{array}{|c|c|c|c|c|c|} \hline
+\multicolumn{5}{|c|}{\mbox{Key}} & \multirow{3}{*}{\mbox{Value}}\\ \cline{1-5}
+\multirow{2}{*}{\mbox{Row ID}}& \multicolumn{3}{|c|}{\mbox{Column}} & \multirow{2}{*}{\mbox{Timestamp}} & \\ \cline{2-4}
+& \mbox{Family} & \mbox{Qualifier} & \mbox{Visibility} & & \\ \hline \hline
+\mbox{BinID} & \mbox{Term} & \mbox{DocID} & & & \mbox{Weight} \\ \hline
+\end{array}$
 \end{center}
 
 Documents or records are mapped into bins by a user-defined ingest application. By
