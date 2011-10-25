@@ -23,11 +23,11 @@ fully relational database. Data is represented as key-value pairs, where the key
 value are comprised of the following elements:
 
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|} \hline
-\multicolumn{5}{|c|}{Key} & \multirow{3}{*}{Value}\\ \cline{1-5}
-\multirow{2}{*}{Row ID}& \multicolumn{3}{|c|}{Column} & \multirow{2}{*}{Timestamp} & \\ \cline{2-4}
-& Family & Qualifier & Visibility & & \\ \hline
-\end{tabular}
+$\begin{array}{|c|c|c|c|c|c|} \hline
+\multicolumn{5}{|c|}{\mbox{Key}} & \multirow{3}{*}{\mbox{Value}}\\ \cline{1-5}
+\multirow{2}{*}{\mbox{Row ID}}& \multicolumn{3}{|c|}{\mbox{Column}} & \multirow{2}{*}{\mbox{Timestamp}} & \\ \cline{2-4}
+& \mbox{Family} & \mbox{Qualifier} & \mbox{Visibility} & & \\ \hline
+\end{array}$
 \end{center}
 
 All elements of the Key and the Value are represented as byte arrays except for
