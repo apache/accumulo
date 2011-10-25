@@ -379,7 +379,7 @@ distribution of the row information is not flat, then you would pick
 different split points.  Now ingest and query can proceed on 4 nodes
 which can improve performance.
 
-\section{Merging tables}
+\section{Merging tablets}
 
 Over time, a table can get very large, so large that it has hundreds
 of thousands of split points.  Once there are enough tablets to spread
@@ -449,7 +449,7 @@ For example ``20110823-15:20:25.013'' might be a row that specifies a
 date and time.  In some cases, we might like to delete rows based on
 this date, say to remove all the data older than the current year.
 Accumulo supports a delete range operation which can efficiently
-remove data between two rows.  For example:
+removes data between two rows.  For example:
 
 \small
 \begin{verbatim}
@@ -473,4 +473,48 @@ unless you provide the ``--force'' option.
 Range deletion is implemented using splits at the given start/end
 positions, and will affect the number of splits in the table.
 
+\section{Cloning Tables}
+
+A new table can be created that points to an existing table's data.  This is a
+very quick metadata operation, no data is actually copied.  The cloned table
+and the source table can change independently after the clone operation.  One
+use case for this feature is testing.  For example to test a new filtering
+iterator, clone the table, add the filter to the clone, and force a major
+compaction.  To perform a test on less data, clone a table and then use delete
+range to efficiently remove a lot of data from the clone.  Another use case is
+generating a snapshot to guard against human error.  To create a snapshot,
+clone a table and then disable write permissions on the clone.
+
+The clone operation will point to the source table's files.  This is why the
+flush option is present and is enabled by default in the shell.  If the flush
+option is not enabled, then any data the source table currently has in memory
+will not exist in the clone.
+
+A cloned table copies the configuration of the source table.  However the
+permissions of the source table are not copied to the clone.  After a clone is
+created, only the user that created the clone can read and write to it.
+
+In the following example we see that data inserted after the clone operation is
+not visible in the clone.
+
+\small
+\begin{verbatim}
+root@a14> createtable people
+root@a14 people> insert 890435 name last Doe
+root@a14 people> insert 890435 name first John
+root@a14 people> clonetable people test  
+root@a14 people> insert 890436 name first Jane
+root@a14 people> insert 890436 name last Doe  
+root@a14 people> scan
+890435 name:first []    John
+890435 name:last []    Doe
+890436 name:first []    Jane
+890436 name:last []    Doe
+root@a14 people> table test
+root@a14 test> scan
+890435 name:first []    John
+890435 name:last []    Doe
+root@a14 test> 
+\end{verbatim}
+\normalsize
 

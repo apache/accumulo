@@ -20,7 +20,9 @@ bin=`dirname "$0"`
 bin=`cd "$bin"; pwd`
 cd $bin
 
-test -x /usr/bin/pdflatex || exit 0
+if [ "`which pdflatex | wc -l`" -eq 0 ]; then
+    exit 0
+fi
 
 if [ -f ../../accumulo_user_manual.pdf ]
 then
