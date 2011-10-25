@@ -26,6 +26,7 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
 
@@ -33,21 +34,32 @@ import org.apache.zookeeper.ZooKeeper.States;
  * Find a Span collector via zookeeper and push spans there via Thrift RPC
  * 
  */
-public class ZooSpanClient extends SendSpansViaThrift implements Watcher {
+public class ZooSpanClient extends SendSpansViaThrift {
   
   private static final Logger log = Logger.getLogger(ZooSpanClient.class);
   private static final int TOTAL_TIME_WAIT_CONNECT_MS = 10 * 1000;
   private static final int TIME_WAIT_CONNECT_CHECK_MS = 100;
   
-  final ZooKeeper zoo;
+  ZooKeeper zoo = null;
   final String path;
   final Random random = new Random();
   final List<String> hosts = new ArrayList<String>();
   
-  public ZooSpanClient(String keepers, String path, String host, String service, long millis) throws IOException, KeeperException, InterruptedException {
+  public ZooSpanClient(String keepers, final String path, String host, String service, long millis) throws IOException, KeeperException, InterruptedException {
     super(host, service, millis);
     this.path = path;
-    zoo = new ZooKeeper(keepers, 30 * 1000, this);
+    zoo = new ZooKeeper(keepers, 30 * 1000, new Watcher() {
+      @Override
+      public void process(WatchedEvent event) {
+        try {
+          if (zoo != null) {
+            updateHosts(path, zoo.getChildren(path, null));
+          }
+        } catch (Exception ex) {
+          log.error("unable to get destination hosts in zookeeper", ex);
+        }
+      }
+    });
     for (int i = 0; i < TOTAL_TIME_WAIT_CONNECT_MS; i += TIME_WAIT_CONNECT_CHECK_MS) {
       if (zoo.getState().equals(States.CONNECTED)) break;
       try {
@@ -83,14 +95,5 @@ public class ZooSpanClient extends SendSpansViaThrift implements Watcher {
       return host;
     }
     return null;
-  }
-  
-  @Override
-  public void process(WatchedEvent event) {
-    try {
-      updateHosts(path, zoo.getChildren(path, null));
-    } catch (Exception ex) {
-      log.error("unable to get destination hosts in zookeeper", ex);
-    }
   }
 }
