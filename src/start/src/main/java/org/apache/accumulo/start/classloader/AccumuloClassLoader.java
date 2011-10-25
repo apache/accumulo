@@ -274,11 +274,11 @@ public class AccumuloClassLoader {
     return classpath;
   }
   
-  private static String getAccumuloDynamicClasspathStrings() throws IllegalStateException {
+  public static String getAccumuloDynamicClasspathStrings() throws IllegalStateException {
     return getAccumuloString(DYNAMIC_CLASSPATH_PROPERTY_NAME, DEFAULT_DYNAMIC_CLASSPATH_VALUE);
   }
   
-  private static String getAccumuloClasspathStrings() throws IllegalStateException {
+  public static String getAccumuloClasspathStrings() throws IllegalStateException {
     return getAccumuloString(CLASSPATH_PROPERTY_NAME, ACCUMULO_CLASSPATH_VALUE);    
   }
   

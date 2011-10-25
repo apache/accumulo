@@ -22,6 +22,15 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
+import java.util.Random;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.Result;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import junit.framework.TestCase;
 
@@ -30,6 +39,10 @@ import org.apache.commons.io.IOUtils;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 public class Test extends TestCase {
   
@@ -43,12 +56,14 @@ public class Test extends TestCase {
   
   @Override
   public void setUp() {
-    
     String aHome = System.getenv("ACCUMULO_HOME");
     if (aHome == null) fail("ACCUMULO_HOME must be set");
-    tmpDir = new File(aHome + "/lib/ext");
-    if (!tmpDir.exists())
-      tmpDir.mkdir();
+    
+    String dynamicExpr = AccumuloClassLoader.getAccumuloDynamicClasspathStrings().split(";", 2)[0];
+    File f = new File(dynamicExpr.replace("$ACCUMULO_HOME", aHome));
+    
+    tmpDir = f.getParentFile();
+    if (!tmpDir.exists()) tmpDir.mkdirs();
     destJar = new File(tmpDir, "Test.jar");
     if (destJar.exists()) {
       destJar.delete();
@@ -150,12 +165,66 @@ public class Test extends TestCase {
       assertTrue(false);
     } catch (ClassNotFoundException cnfe) {}
     
-    // uncomment this block when #2987 is fixed
     if (log.isDebugEnabled()) log.debug("Test with Jar C");
     copyJar(jarC);
     test.Test e = create();
     assertEquals(e.hello(), "Hello from testC");
     
+  }
+  
+  public void testChangingDirectory() throws Exception {
+    String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
+    String SITE_CONF = System.getenv("ACCUMULO_HOME") + "/conf/" + configFile;
+    File oldConf = new File(SITE_CONF);
+    String siteBkp = SITE_CONF + ".bkp";
+    if (oldConf.exists())
+    {
+      oldConf.renameTo(new File(siteBkp));
+    }
+    oldConf = new File(siteBkp);
+    String randomFolder = System.getenv("ACCUMULO_HOME") + "/lib/notExt" + new Random().nextInt();
+
+    try {
+      
+      DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+      DocumentBuilder db = dbf.newDocumentBuilder();
+      Document d = db.parse(siteBkp);
+      
+      NodeList pnodes = d.getElementsByTagName("property");
+      for (int i = pnodes.getLength() - 1; i >= 0; i--) {
+        Element current_property = (Element) pnodes.item(i);
+        Node cname = current_property.getElementsByTagName("name").item(0);
+        if (cname != null && cname.getTextContent().compareTo(AccumuloClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME) == 0) {
+          Node cvalue = current_property.getElementsByTagName("value").item(0);
+          if (cvalue != null) {
+            cvalue.setTextContent(randomFolder+"/.*");
+          } else {
+            cvalue = d.createElement("value");
+            cvalue.setTextContent(randomFolder+"/.*");
+            current_property.appendChild(cvalue);
+          }
+          break;
+        }
+      }
+      
+      TransformerFactory cybertron = TransformerFactory.newInstance();
+      Transformer optimusPrime = cybertron.newTransformer();
+      Result result = new StreamResult(new File(SITE_CONF));
+      
+      optimusPrime.transform(new DOMSource(d), result);
+      
+      setUp();
+      testReloadingClassLoader();
+      
+    } finally {
+      new File(SITE_CONF).delete();
+      if (oldConf.exists())
+        oldConf.renameTo(new File(SITE_CONF));
+      File rf = new File(randomFolder);
+      for (File deleteMe : rf.listFiles())
+        deleteMe.delete();
+      rf.delete();
+    }
   }
   
 }
