@@ -417,12 +417,6 @@ public class Monitor {
   private static long START_TIME;
   
   public void run(String[] args) {
-    try {
-      Accumulo.init("monitor");
-      Accumulo.enableTracing(Accumulo.getLocalAddress(args).toString(), "monitor");
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
     Monitor.START_TIME = System.currentTimeMillis();
     int port = ServerConfiguration.getSystemConfiguration().getPort(Property.MONITOR_PORT);
     EmbeddedWebServer server;
@@ -469,6 +463,14 @@ public class Monitor {
         
       }
     }), "Data fetcher").start();
+    
+    try {
+      Accumulo.init("monitor");
+      Accumulo.enableTracing(Accumulo.getLocalAddress(args).toString(), "monitor");
+    } catch (UnknownHostException e) {
+      throw new RuntimeException(e);
+    }
+    
   }
   
   public static MasterMonitorInfo getMmi() {

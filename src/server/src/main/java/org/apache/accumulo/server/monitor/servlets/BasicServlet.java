@@ -23,6 +23,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Date;
+import java.util.TimerTask;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
@@ -34,12 +35,14 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.monitor.Monitor;
+import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.log4j.Logger;
 
 abstract public class BasicServlet extends HttpServlet {
   
   private static final long serialVersionUID = 1L;
   protected static final Logger log = Logger.getLogger(BasicServlet.class);
+  static String cachedInstanceName = null;
   
   abstract protected String getTitle(HttpServletRequest req);
   
@@ -86,6 +89,21 @@ abstract public class BasicServlet extends HttpServlet {
         // ignore improperly formatted user cookie
       }
     }
+    synchronized(BasicServlet.class) {
+      // Learn our instance name asynchronously so we don't hang up if zookeeper is down
+      if (cachedInstanceName == null) {
+        SimpleTimer.getInstance().schedule(new TimerTask() {
+          @Override
+          public void run() {
+            synchronized (BasicServlet.class) {
+              if (cachedInstanceName == null) {
+                cachedInstanceName = HdfsZooInstance.getInstance().getInstanceName();
+              }
+            }
+          }
+        }, 1000);
+      }
+    }
     
     // BEGIN PAGE
     sb.append("<html>\n");
@@ -112,7 +130,7 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<div id='content-wrapper'>\n");
     sb.append("<div id='content'>\n");
     sb.append("<div id='header'><h1>").append(getTitle(req)).append("</h1></div>\n");
-    sb.append("<div id='subheader'>Instance&nbsp;Name:&nbsp;").append(HdfsZooInstance.getInstance().getInstanceName())
+    sb.append("<div id='subheader'>Instance&nbsp;Name:&nbsp;").append(cachedInstanceName)
         .append("&nbsp;&nbsp;&nbsp;Version:&nbsp;").append(Constants.VERSION).append("\n");
     sb.append("<br><span class='smalltext'>Instance&nbsp;ID:&nbsp;").append(HdfsZooInstance.getInstance().getInstanceID()).append("</span>\n");
     sb.append("<br><span class='smalltext'>").append(new Date().toString().replace(" ", "&nbsp;")).append("</span></div>\n");
