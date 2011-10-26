@@ -176,19 +176,28 @@ public class Test extends TestCase {
     String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
     String SITE_CONF = System.getenv("ACCUMULO_HOME") + "/conf/" + configFile;
     File oldConf = new File(SITE_CONF);
+    boolean exists = oldConf.exists();
     String siteBkp = SITE_CONF + ".bkp";
-    if (oldConf.exists())
+    if (exists)
     {
-      oldConf.renameTo(new File(siteBkp));
+      if (oldConf.exists())
+      {
+        oldConf.renameTo(new File(siteBkp));
+      }
+      oldConf = new File(siteBkp);
     }
-    oldConf = new File(siteBkp);
     String randomFolder = System.getenv("ACCUMULO_HOME") + "/lib/notExt" + new Random().nextInt();
-
+    File rf = new File(randomFolder);
+    rf.mkdirs();
     try {
       
       DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
       DocumentBuilder db = dbf.newDocumentBuilder();
-      Document d = db.parse(siteBkp);
+      Document d;
+      if (exists)
+    	  d = db.parse(siteBkp);
+      else
+    	  d = db.parse(new File(SITE_CONF+".example"));
       
       NodeList pnodes = d.getElementsByTagName("property");
       for (int i = pnodes.getLength() - 1; i >= 0; i--) {
@@ -218,9 +227,8 @@ public class Test extends TestCase {
       
     } finally {
       new File(SITE_CONF).delete();
-      if (oldConf.exists())
+      if (exists)
         oldConf.renameTo(new File(SITE_CONF));
-      File rf = new File(randomFolder);
       for (File deleteMe : rf.listFiles())
         deleteMe.delete();
       rf.delete();
