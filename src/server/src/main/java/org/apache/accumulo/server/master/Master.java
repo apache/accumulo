@@ -136,6 +136,7 @@ import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.security.Authenticator;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.ZKAuthenticator;
+import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.tabletserver.log.RemoteLogger;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.AddressUtil;
@@ -1587,16 +1588,19 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         start = new Text();
       }
       Range scanRange = new Range(KeyExtent.getMetadataEntry(range.getTableId(), start), false, stopRow, true);
+      BatchWriter bw = null;
       try {
         long fileCount = 0;
         Connector conn = getConnector();
         // Make file entries in highest tablet
-        BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000000L, 1000L, 1);
+        bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000000L, 1000L, 1);
         Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
         scanner.setRange(scanRange);
         ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+        ColumnFQ.fetch(scanner, Constants.METADATA_TIME_COLUMN);
         scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
         Mutation m = new Mutation(stopRow);
+        String maxLogicalTime = null;
         for (Entry<Key,Value> entry : scanner) {
           Key key = entry.getKey();
           Value value = entry.getValue();
@@ -1607,8 +1611,24 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           } else if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(key) && firstPrevRowValue == null) {
             log.debug("prevRow entry for lowest tablet is " + value);
             firstPrevRowValue = new Value(value);
+          } else if (Constants.METADATA_TIME_COLUMN.hasColumns(key)) {
+            maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, value.toString());
           }
         }
+        
+        // read the logical time from the last tablet in the merge range, it is not included in
+        // the loop above
+        scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+        scanner.setRange(new Range(stopRow));
+        ColumnFQ.fetch(scanner, Constants.METADATA_TIME_COLUMN);
+        for (Entry<Key,Value> entry : scanner) {
+          if (Constants.METADATA_TIME_COLUMN.hasColumns(entry.getKey())) {
+            maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, entry.getValue().toString());
+          }
+        }
+        
+        if (maxLogicalTime != null) ColumnFQ.put(m, Constants.METADATA_TIME_COLUMN, new Value(maxLogicalTime.getBytes()));
+        
         if (!m.getUpdates().isEmpty()) {
           bw.addMutation(m);
           bw.flush();
@@ -1660,6 +1680,12 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         
       } catch (Exception ex) {
         throw new AccumuloException(ex);
+      } finally {
+        if (bw != null) try {
+          bw.close();
+        } catch (Exception ex) {
+          throw new AccumuloException(ex);
+        }
       }
     }
     

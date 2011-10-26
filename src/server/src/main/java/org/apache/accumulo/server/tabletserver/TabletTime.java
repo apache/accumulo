@@ -77,6 +77,32 @@ public abstract class TabletTime {
     
   }
   
+  public static String maxMetadataTime(String mv1, String mv2) {
+    if (mv1 == null) {
+      checkType(mv2);
+      return mv2;
+    }
+    
+    if (mv2 == null) {
+      checkType(mv1);
+      return mv1;
+    }
+    
+    if (mv1.charAt(0) != mv2.charAt(0)) throw new IllegalArgumentException("Time types differ " + mv1 + " " + mv2);
+    checkType(mv1);
+    
+    long t1 = Long.parseLong(mv1.substring(1));
+    long t2 = Long.parseLong(mv2.substring(1));
+    
+    if (t1 < t2) return mv2;
+    else return mv1;
+    
+  }
+  
+  private static void checkType(String mv1) {
+    if (mv1.charAt(0) != LOGICAL_TIME_ID && mv1.charAt(0) != MILLIS_TIME_ID) throw new IllegalArgumentException("Invalid time type " + mv1);
+  }
+  
   static class MillisTime extends TabletTime {
     
     private long lastTime;
