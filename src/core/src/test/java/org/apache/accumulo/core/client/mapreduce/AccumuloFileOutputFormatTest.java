@@ -16,28 +16,50 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
+import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class AccumuloFileOutputFormatTest {
-  JobContext job;
-  TaskAttemptContext tac;
+  static JobContext job;
+  static TaskAttemptContext tac;
+  static Path f = null;
   
   @Before
   public void setup() {
     job = new JobContext(new Configuration(), new JobID());
+
+    Path file = new Path(System.getenv("ACCUMULO_HOME")+"/target/");
+    f = new Path(file,"_temporary");
+    job.getConfiguration().set("mapred.output.dir", file.toString());
+    
     tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());
+  }
+  
+  @After
+  public void teardown() throws IOException
+  {
+    if (f!= null && f.getFileSystem(job.getConfiguration()).exists(f))
+    {
+      f.getFileSystem(job.getConfiguration()).delete(f, true);
+    }
   }
   
   @Test
@@ -49,6 +71,34 @@ public class AccumuloFileOutputFormatTest {
   @Test
   public void testUnset() throws IOException, InterruptedException {
     validate((int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
+  }
+  
+  @Test
+  public void testEmptyWrite() throws IOException, InterruptedException {
+    handleWriteTests(false);
+  }
+
+  @Test
+  public void testRealWrite() throws IOException, InterruptedException {
+    handleWriteTests(true);
+  }
+  
+  public void handleWriteTests(boolean content) throws IOException, InterruptedException {
+    AccumuloFileOutputFormat afof = new AccumuloFileOutputFormat();
+    RecordWriter<Key, Value> rw = afof.getRecordWriter(tac);
+    
+    if (content)
+      rw.write(new Key("Key"), new Value("".getBytes()));
+    
+    Path file = afof.getDefaultWorkFile(tac, ".rf");
+    System.out.println(file);
+    rw.close(tac);
+    
+    if (content)
+      assertTrue(file.getFileSystem(job.getConfiguration()).exists(file));
+    else
+      assertFalse(file.getFileSystem(job.getConfiguration()).exists(file));
+    file.getFileSystem(tac.getConfiguration()).delete(file.getParent(), true);
   }
   
   public void validate(int size) throws IOException, InterruptedException {

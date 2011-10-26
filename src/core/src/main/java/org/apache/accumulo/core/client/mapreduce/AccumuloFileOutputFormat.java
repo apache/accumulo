@@ -56,27 +56,32 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   @Override
   public RecordWriter<Key,Value> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
     // get the path of the temporary output file
-    Configuration conf = job.getConfiguration();
+    final Configuration conf = job.getConfiguration();
     
     String extension = conf.get(FILE_TYPE);
     if (extension == null || extension.isEmpty()) extension = RFile.EXTENSION;
     
     handleBlockSize(job);
-    Path file = this.getDefaultWorkFile(job, "." + extension);
+    final Path file = this.getDefaultWorkFile(job, "." + extension);
     
     final FileSKVWriter out = FileOperations.getInstance().openWriter(file.toString(), file.getFileSystem(conf), conf,
         AccumuloConfiguration.getDefaultConfiguration());
     out.startDefaultLocalityGroup();
     
     return new RecordWriter<Key,Value>() {
+      private boolean hasData = false;
+      
       @Override
       public void write(Key key, Value value) throws IOException {
         out.append(key, value);
+        hasData = true;
       }
       
       @Override
       public void close(TaskAttemptContext context) throws IOException, InterruptedException {
         out.close();
+        if (!hasData)
+          file.getFileSystem(conf).delete(file, false);
       }
     };
   }
