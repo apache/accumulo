@@ -286,7 +286,7 @@
 				<inherited>false</inherited>
 				<version>1.2</version>
 				<configuration>
-					<executable>/bin/bash</executable>
+					<executable>bash</executable>
 					<arguments>
 	   			      <argument>docs/src/user_manual/build.sh</argument>
 					</arguments>
