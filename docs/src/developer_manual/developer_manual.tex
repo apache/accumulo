@@ -28,7 +28,7 @@
 \usepackage[pdftex]{graphicx}
 \usepackage{subfigure}
 \usepackage{fancyhdr}
-\title{Accumulo Developer's Manual - Version 1.2}
+\title{Accumulo Developer's Manual - Version 1.3}
 \author{}
 %\usepackage{fancyhdr}
 %\pagestyle{fancy} 
@@ -53,18 +53,18 @@ In this manual we describe the interactions between Accumulo components, and att
 
 Accumulo includes several components, some of which are externally developed systems.
 These components and their interactions are shown at a high level in figure \ref{fig_overview}.
-External components include Zookeeper, HDFS, and Hadoop Map-Reduce.
+External components include Zookeeper, HDFS and Hadoop Map-Reduce.
 Zookeeper is used as a small, highly available key/value store to host configuration information.
 Zookeeper is also used as a distributed locking service with no single point of failure.
 HDFS is used as the underlying file system for Accumulo, and it handles replicating data, balancing data storage across disks, and providing a consistent view from each node in the cluster.
-Hadoop Map-Reduce is required by Accumulo to process write-ahead log files during a recovery.
-Map-Reduce can also be used as a client of Accumulo, but we will defer to the client component for a description of that interaction.
+
+Hadoop Map-Reduce can be used as a client of Accumulo, but we will defer to the client component for a description of that interaction.
 
 Internal Accumulo components include the Tablet Server, the Master, the Client, the Logger, the Garbage Collector, and the Monitor.
 The Tablet Server is responsible for hosting read and write activities for non-overlapping partitions of the key space in Accumulo tables, called Tablets.
 The Master plays a coordinating role in the cluster, balancing Tablet load across Tablet Servers, and servicing a number of infrequent configuration requests like table creation and user management.
 The Client in this documentation refers to the set of Java classes that interface between user code and these Accumulo components.
-The Logger is responsible for streaming write-ahead logs to disk, and also plays a role alongside the Master, HDFS, Map-Reduce, and the Tablet Server in recovering a failed Tablet.
+The Logger is responsible for streaming write-ahead logs to disk, and also plays a role alongside the Master, HDFS and the Tablet Server in recovering a failed Tablet.
 The Garbage Collector performs a reference counting operation to clean up data files and write-ahead logs that are no longer referenced in Tablet Metadata.
 The Monitor collects statistics about existing tables, operations, warnings, and errors, and makes that information available via a web service.
 Each of the aforementioned internal components is described by a series of illustrations in this documentation, and its interactions are viewed from the perspectives of read/write operations, maintenance, recovery, configuration, and monitoring.
@@ -82,7 +82,7 @@ Each of the aforementioned internal components is described by a series of illus
 Figure \ref{fig_ts_rw} shows the Tablet Server data flow during regular read/write operations.
 All of the descriptions in this section will refer to the data flows shown in figure \ref{fig_ts_rw}.
 In (1) and (8), the Client contacts RPCs within the Thrift service hosted on the TabletServer.  
-These RPCs are all the org.apache.accumulo.server.tabletserver.TabletServer.ThriftClientHandler, that implements the org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface interface.
+These RPCs are all the org.apache.accumulo.server.tabletserver.TabletServer.ThriftClientHandler, that implements the org.apache.accumulo.core.tabletserver.thrift.ThriftClientHandler.Iface interface.
 Methods within this interface are divided into read and write methods.
 
 % introduce write RPCs
@@ -139,15 +139,11 @@ Read RPCs used in (8) are split into TODO ...
 
 Maintenance operations from the perspective of the Tablet Server fall into several categories: loading, unloading, and migration of Tablets; Tablet Server status monitoring; minor compactions; major compactions; splits; and garbage collection of RFiles and write-ahead logs.
 
-Tablet loading, unloading, and migration operations are all initiated by the Master as calls to the loadTablet and unloadTablet functions of the TabletMasterService.IFace Thrift interface, which is hosted on the Tablet Server as an instance of TabletServer.TabletMasterServiceHandler.
+Tablet loading, unloading, and migration operations are all initiated by the Master as calls to the loadTablet and unloadTablet functions of the TabletClientService.IFace Thrift interface, which is hosted on the Tablet Server as an instance of TabletServer.ThriftClientHandler.
 Load and unload operations execute in the background as tasks that are performed by Executors located in the TabletServerResourceManager.
 % TODO discuss how load and unload execute
 
-Tablet Server status monitoring is initiated by the Master via a call to the ping method of TabletMasterServiceHandler.
-This operation is asynchronous, but is handled by the Thrift service thread on the Tablet Server.
-This thread then enqueues a reply to the master.
-The master message queue is the only way to get messages back to the master, and it is serviced by the main TabletServer thread.
-This keeps all Master/Tablet Server communication asynchronous.
+Tablet Server status monitoring is initiated by the Master via a call to the getTabletServerStatus method of TabletClientService.
 
 % TODO: discuss minor compactions
 % TODO: discuss major compactions
@@ -179,58 +175,23 @@ This keeps all Master/Tablet Server communication asynchronous.
 \subsection{Load Balancer}
 \subsubsection{Introduction to Accumulo Load Balancers}
 
-In Accumulo 1.2, a load balancer recommends tablet assignments (in the case of unassigned tablets) and tablet migrations (moves from one server to another).
+In Accumulo 1.3, a load balancer recommends tablet assignments (in the case of unassigned tablets) and tablet migrations (moves from one server to another).
 The load balancer is run on the master server.
 The getServerForTablet and getMigrations functions are continually polled and should be designed to be executed fast.
 Load Balancers should not be designed to make any thrift calls to the master server since this can create a deadlock.
 Load Balancers are Administrator selectable and programmable.
-The default load balancer in Accumulo 1.2 is SimpleLoadBalancer.
-SimpleLoadBalancer distributes tablets to servers so that the number of tablets on a given server is equal to the high number of tablets, ceil(total number of tablets/total number of servers), or the low number of tablets, floor(total number of tablets/total number of servers).
+The default load balancer in Accumulo 1.3 is DefaultLoadBalancer.
+DefaultLoadBalancer distributes tablets to servers so that the number of tablets on a given server is equal to the high number of tablets, ceil(total number of tablets/total number of servers), or the low number of tablets, floor(total number of tablets/total number of servers), with an equal number of tablets from each table on every server.
 When a tablet splits and the tablet server hosting the tablet is equal to the low number of tablets, the tablet stays where it is and does not migrate to another server.
 When a tablet splits and it is on a tablet server with the high number of tablets, the tablet is migrated to the first server with the low number of tablets.
 Introduced in Accumulo 1.2 are table load balancers.
 These load balancers are responsible for load balancing a particular table of the cluster.
-They can be specified using the table property TABLE\_LOAD\_BALANCER.
+They can be specified using the table property table.balancer.
 To use a table load balancer, the cluster must be running TableLoadBalancer as the system wide load balancer.
 This load balancer takes care of the details of grouping the tablets up by table and sending load balancing information to the appropriate table load balancers.
 This load balancer will by default, load the simple load balancer for every table.
-Creating a load balancer requires writing your own implementation in Java overloading the functions in the API section below.
+Creating a load balancer requires writing your own implementation in Java that implements the TabletBalancer interface.
 
-\subsubsection{Load Balancer API}
-
-This section includes the important functions that a Accumulo load balancer should overload.
-It also has a short description of the intended functionality of each function.\\
-
-\noindent\it public void tabletServerStatusUpdated(TabletServerStatsInterface server)\rm\\
-\indent tabletServerStatusUpdated is the function which allows a Load Balancer to deal with the status of a server being updated.
-This is called after a pong message update. server is the variable which provides the updated server information about a server.\\
-
-\noindent\it public void tabletDeleted(KeyExtent ke)\rm\\
-\indent tabletDeleted is the function for a load balancer to deal with a deleted tablet.
-ke is the variable which contains the key extent for the tablet which was deleted.\\
-
-\noindent\it public void tabletSplit(KeyExtent parent, List$<$KeyExtentLocation$>$ children)\rm\\
-\indent tabletSplit is the function which lets a load balancer know that a tablet has split.
-parent is the parent tablet.
-childres is a list of all the newly spilt tablets from this parent.\\
-
-\noindent\it public Set$<$TabletMigration$>$ getMigrations(Map$<$KeyExtent, ? extends TabletInfo$>$ tablets, Collection$<$? extends TabletServerStatsInterface$>$ servers)\rm\\
-\indent getMigrations is the function which should create suggested migrations for the master to improve the performance of the cluster.
-tablets is a mapping of the keyextents of all of the tablets to their tablet information. servers is a collection of all of the servers.
-This expects a set of TabletMigration to be returned representing the suggested migrations.\\
-
-\noindent\it public Map$<$TabletServerStatsInterface, Set$<$KeyExtent$>>$ getServersForTablets(Set$<$KeyExtent$>$ tablets, Map$<$KeyExtent, ? extends TabletInfoInterface$>$ tabletsStats, Collection$<$? extends TabletServerStatsInterface$>$ servers)\rm\\
-\indent getServerForTablet is the function which should assign unassigned tablets to servers.
-tablets is the key extent for the unassigned tablets.
-tabletsStats is a mapping of the keyextents of all of the tablets to their tablet information. servers is a collection of all of the servers.
-The master expects a mapping of the TabletServerStatsInterface to the KeyExtent to be returned.
-This mapping represents the assignments that should be made to each server.\\
-
-\noindent\it public void migrationComplete(KeyExtent extent)\rm\\
-\indent migrationComplete is the function for a load balancer to deal with completed migrations.\\
-
-\noindent\it public void migrationFailed(KeyExtent extent)\rm\\
-\indent migrationFailed is the function for a load balancer to deal with failed migrations.\\
 
 \section{Client Library}
 \section{Logger Operations}
