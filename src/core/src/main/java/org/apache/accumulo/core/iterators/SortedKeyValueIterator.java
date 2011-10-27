@@ -36,10 +36,9 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * @param source <tt>SortedKeyValueIterator</tt> source to read data from.
    * @param options <tt>Map</tt> map of string option names to option values.
    * @param env <tt>IteratorEnvironment</tt> environment in which iterator is being run.
-   * @throws IOException TODO
+   * @throws IOException unused.
    * @exception IllegalArgumentException if there are problems with the options.
    * @exception UnsupportedOperationException if not supported.
-   * @exception IOException
    */
   void init(SortedKeyValueIterator<K,V> source, Map<String,String> options, IteratorEnvironment env) throws IOException;
   
@@ -55,7 +54,7 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * Advances to the next K,V pair.
    * 
    * @throws IOException if an I/O error occurs.
-   * @throws IllegalStateException if called before seek.
+   * @exception IllegalStateException if called before seek.
    * @exception NoSuchElementException if next element doesn't exist.
    */
   void next() throws IOException;
@@ -98,7 +97,7 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * The behavior is unspecified if init is called after deepCopy either on the original or the copy.
    * 
    * @param env <tt>IteratorEnvironment</tt> environment in which iterator is being run.
-   * @return <tt>SortedKeyValueIterator</tt> a copy of this iterator (with the same source and settings)
+   * @return <tt>SortedKeyValueIterator</tt> a copy of this iterator (with the same source and settings).
    * @exception UnsupportedOperationException if not supported.
    */
   SortedKeyValueIterator<K,V> deepCopy(IteratorEnvironment env);
