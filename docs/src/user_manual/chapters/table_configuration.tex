@@ -520,3 +520,38 @@ root@a14 test>
 \end{verbatim}
 \normalsize
 
+The du command in the shell shows how much space a table is using in HDFS.
+This command can also show how much overlapping space two cloned tables have in
+HDFS.  In the example below du shows table ci is using 428M.  Then ci is cloned
+to cic and du shows that both tables share 428M.  After three entries are
+inserted into cic and its flushed, du shows the two tables still share 428M but
+cic has 226 bytes to itself.  Finally, table cic is compacted and then du shows
+that each table uses 428M.
+
+\small
+\begin{verbatim}
+root@a14> du ci           
+             428,482,573 [ci]
+root@a14> clonetable ci cic
+root@a14> du ci cic
+             428,482,573 [ci, cic]
+root@a14> table cic
+root@a14 cic> insert r1 cf1 cq1 v1
+root@a14 cic> insert r1 cf1 cq2 v2
+root@a14 cic> insert r1 cf1 cq3 v3 
+root@a14 cic> flush -t cic -w 
+27 15:00:13,908 [shell.Shell] INFO : Flush of table cic completed.
+root@a14 cic> du ci cic       
+             428,482,573 [ci, cic]
+                     226 [cic]
+root@a14 cic> compact -t cic -w
+27 15:00:35,871 [shell.Shell] INFO : Compacting table ...
+27 15:03:03,303 [shell.Shell] INFO : Compaction of table cic completed for given range
+root@a14 cic> du ci cic        
+             428,482,573 [ci]
+             428,482,612 [cic]
+root@a14 cic> 
+\end{verbatim}
+\normalsize
+
+
