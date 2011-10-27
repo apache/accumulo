@@ -141,19 +141,22 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
   
   public static void setInputInfo(JobContext job, String user, byte[] passwd, String table, Authorizations auths) {
     Configuration conf = job.getConfiguration();
-    if (conf.getBoolean(INPUT_INFO_HAS_BEEN_SET, false)) throw new IllegalStateException("Input info can only be set once per job");
+    if (conf.getBoolean(INPUT_INFO_HAS_BEEN_SET, false))
+      throw new IllegalStateException("Input info can only be set once per job");
     conf.setBoolean(INPUT_INFO_HAS_BEEN_SET, true);
     
     ArgumentChecker.notNull(user, passwd, table);
     conf.set(USERNAME, user);
     conf.set(PASSWORD, new String(Base64.encodeBase64(passwd)));
     conf.set(TABLE_NAME, table);
-    if (auths != null && !auths.isEmpty()) conf.set(AUTHORIZATIONS, auths.serialize());
+    if (auths != null && !auths.isEmpty())
+      conf.set(AUTHORIZATIONS, auths.serialize());
   }
   
   public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
     Configuration conf = job.getConfiguration();
-    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) throw new IllegalStateException("Instance info can only be set once per job");
+    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
+      throw new IllegalStateException("Instance info can only be set once per job");
     conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
     
     ArgumentChecker.notNull(instanceName, zooKeepers);
@@ -229,7 +232,8 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
    * @throws IOException
    */
   public static void setMaxVersions(JobContext job, int maxVersions) throws IOException {
-    if (maxVersions < 1) throw new IOException("Invalid maxVersions: " + maxVersions + ".  Must be >= 1");
+    if (maxVersions < 1)
+      throw new IOException("Invalid maxVersions: " + maxVersions + ".  Must be >= 1");
     job.getConfiguration().setInt(MAX_VERSIONS, maxVersions);
   }
   
@@ -243,10 +247,12 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
     ArgumentChecker.notNull(columnFamilyColumnQualifierPairs);
     ArrayList<String> columnStrings = new ArrayList<String>(columnFamilyColumnQualifierPairs.size());
     for (Pair<Text,Text> column : columnFamilyColumnQualifierPairs) {
-      if (column.getFirst() == null) throw new IllegalArgumentException("Column family can not be null");
+      if (column.getFirst() == null)
+        throw new IllegalArgumentException("Column family can not be null");
       
       String col = new String(Base64.encodeBase64(TextUtil.getBytes(column.getFirst())));
-      if (column.getSecond() != null) col += ":" + new String(Base64.encodeBase64(TextUtil.getBytes(column.getSecond())));
+      if (column.getSecond() != null)
+        col += ":" + new String(Base64.encodeBase64(TextUtil.getBytes(column.getSecond())));
       columnStrings.add(col);
     }
     job.getConfiguration().setStrings(COLUMNS, columnStrings.toArray(new String[0]));
@@ -299,7 +305,8 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
    *          the value
    */
   public static void setIteratorOption(JobContext job, String iteratorName, String key, String value) {
-    if (value == null) return;
+    if (value == null)
+      return;
     
     String iteratorOptions = job.getConfiguration().get(ITERATORS_OPTIONS);
     
@@ -342,12 +349,14 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
   
   protected static Instance getInstance(JobContext job) {
     Configuration conf = job.getConfiguration();
-    if (conf.getBoolean(MOCK, false)) return new MockInstance(conf.get(INSTANCE_NAME));
+    if (conf.getBoolean(MOCK, false))
+      return new MockInstance(conf.get(INSTANCE_NAME));
     return new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS));
   }
   
   protected static TabletLocator getTabletLocator(JobContext job) throws TableNotFoundException {
-    if (job.getConfiguration().getBoolean(MOCK, false)) return new MockTabletLocator();
+    if (job.getConfiguration().getBoolean(MOCK, false))
+      return new MockTabletLocator();
     Instance instance = getInstance(job);
     String username = getUsername(job);
     byte[] password = getPassword(job);
@@ -386,7 +395,8 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
     }
     try {
       String s = job.getConfiguration().get(key);
-      if (s == null) return null;
+      if (s == null)
+        return null;
       return URLDecoder.decode(s, "UTF-8");
     } catch (UnsupportedEncodingException e) {
       log.error("Failed to decode regular expression", e);
@@ -417,13 +427,17 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
   // checkOutputSpecs(JobContext job)
   protected static void validateOptions(JobContext job) throws IOException {
     Configuration conf = job.getConfiguration();
-    if (!conf.getBoolean(INPUT_INFO_HAS_BEEN_SET, false)) throw new IOException("Input info has not been set.");
-    if (!conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) throw new IOException("Instance info has not been set.");
+    if (!conf.getBoolean(INPUT_INFO_HAS_BEEN_SET, false))
+      throw new IOException("Input info has not been set.");
+    if (!conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
+      throw new IOException("Instance info has not been set.");
     // validate that we can connect as configured
     try {
       Connector c = getInstance(job).getConnector(getUsername(job), getPassword(job));
-      if (!c.securityOperations().authenticateUser(getUsername(job), getPassword(job))) throw new IOException("Unable to authenticate user");
-      if (!c.securityOperations().hasTablePermission(getUsername(job), getTablename(job), TablePermission.READ)) throw new IOException("Unable to access table");
+      if (!c.securityOperations().authenticateUser(getUsername(job), getPassword(job)))
+        throw new IOException("Unable to authenticate user");
+      if (!c.securityOperations().hasTablePermission(getUsername(job), getTablename(job), TablePermission.READ))
+        throw new IOException("Unable to access table");
     } catch (AccumuloException e) {
       throw new IOException(e);
     } catch (AccumuloSecurityException e) {
@@ -442,7 +456,8 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
     String iterators = job.getConfiguration().get(ITERATORS);
     
     // If no iterators are present, return an empty list
-    if (iterators == null || iterators.isEmpty()) return new ArrayList<AccumuloIterator>();
+    if (iterators == null || iterators.isEmpty())
+      return new ArrayList<AccumuloIterator>();
     
     // Compose the set of iterators encoded in the job configuration
     StringTokenizer tokens = new StringTokenizer(job.getConfiguration().get(ITERATORS), ITERATORS_DELIM);
@@ -459,7 +474,8 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
     String iteratorOptions = job.getConfiguration().get(ITERATORS_OPTIONS);
     
     // If no options are present, return an empty list
-    if (iteratorOptions == null || iteratorOptions.isEmpty()) return new ArrayList<AccumuloIteratorOption>();
+    if (iteratorOptions == null || iteratorOptions.isEmpty())
+      return new ArrayList<AccumuloIteratorOption>();
     
     // Compose the set of options encoded in the job configuration
     StringTokenizer tokens = new StringTokenizer(job.getConfiguration().get(ITERATORS_OPTIONS), ITERATORS_DELIM);
@@ -564,8 +580,10 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
         
         // setup a scanner within the bounds of this split
         for (Pair<Text,Text> c : getFetchedColumns(attempt)) {
-          if (c.getSecond() != null) scanner.fetchColumn(c.getFirst(), c.getSecond());
-          else scanner.fetchColumnFamily(c.getFirst());
+          if (c.getSecond() != null)
+            scanner.fetchColumn(c.getFirst(), c.getSecond());
+          else
+            scanner.fetchColumnFamily(c.getFirst());
         }
         
         scanner.setRange(split.range);
@@ -579,7 +597,8 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
       public void close() {}
       
       public float getProgress() throws IOException {
-        if (recordsRead > 0 && currentKey == null) return 1.0f;
+        if (recordsRead > 0 && currentKey == null)
+          return 1.0f;
         return split.getProgress(currentKey);
       }
       
@@ -603,7 +622,8 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
           Entry<Key,Value> entry = scannerIterator.next();
           currentKey = entry.getKey();
           currentValue = entry.getValue();
-          if (log.isTraceEnabled()) log.trace("Processing key/value pair: " + DefaultFormatter.formatEntry(entry, true));
+          if (log.isTraceEnabled())
+            log.trace("Processing key/value pair: " + DefaultFormatter.formatEntry(entry, true));
           return true;
         }
         return false;
@@ -649,7 +669,8 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
     ArrayList<InputSplit> splits = new ArrayList<InputSplit>(ranges.size());
     HashMap<Range,ArrayList<String>> splitsToAdd = null;
     
-    if (!autoAdjust) splitsToAdd = new HashMap<Range,ArrayList<String>>();
+    if (!autoAdjust)
+      splitsToAdd = new HashMap<Range,ArrayList<String>>();
     
     for (Entry<String,Map<KeyExtent,List<Range>>> tserverBin : binnedRanges.entrySet()) {
       String location = tserverBin.getKey().split(":", 2)[0];
@@ -663,7 +684,8 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
           } else {
             // don't divide ranges
             ArrayList<String> locations = splitsToAdd.get(r);
-            if (locations == null) locations = new ArrayList<String>(1);
+            if (locations == null)
+              locations = new ArrayList<String>(1);
             locations.add(location);
             splitsToAdd.put(r, locations);
           }
@@ -671,8 +693,9 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
       }
     }
     
-    if (!autoAdjust) for (Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
-      splits.add(new RangeInputSplit(tableName, entry.getKey(), entry.getValue().toArray(new String[0])));
+    if (!autoAdjust)
+      for (Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
+        splits.add(new RangeInputSplit(tableName, entry.getKey(), entry.getValue().toArray(new String[0])));
     return splits;
   }
   
@@ -692,8 +715,10 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
       byte[] bytes = new byte[numBytes + 1];
       bytes[0] = 0;
       for (int i = 0; i < numBytes; i++) {
-        if (i >= seq.length()) bytes[i + 1] = 0;
-        else bytes[i + 1] = seq.byteAt(i);
+        if (i >= seq.length())
+          bytes[i + 1] = 0;
+        else
+          bytes[i + 1] = seq.byteAt(i);
       }
       return bytes;
     }
@@ -707,7 +732,8 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
     }
     
     public float getProgress(Key currentKey) {
-      if (currentKey == null) return 0f;
+      if (currentKey == null)
+        return 0f;
       if (range.getStartKey() != null && range.getEndKey() != null) {
         if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW) != 0) {
           // just look at the row progress
@@ -745,7 +771,8 @@ public class AccumuloInputFormat extends InputFormat<Key,Value> {
         diff <<= Byte.SIZE;
       }
       
-      if (startRow.getLength() != stopRow.getLength()) diff |= 0xff;
+      if (startRow.getLength() != stopRow.getLength())
+        diff |= 0xff;
       
       return diff + 1;
     }

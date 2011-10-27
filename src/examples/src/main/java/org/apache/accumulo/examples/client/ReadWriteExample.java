@@ -88,10 +88,12 @@ public class ReadWriteExample {
     
     // parse command line
     cl = new BasicParser().parse(opts, args);
-    if (cl.getArgs().length != 0) throw new ParseException("unrecognized options " + cl.getArgList());
+    if (cl.getArgs().length != 0)
+      throw new ParseException("unrecognized options " + cl.getArgList());
     
     // optionally enable debugging
-    if (hasOpt(debugOpt)) Logger.getLogger(Constants.CORE_PACKAGE_NAME).setLevel(Level.TRACE);
+    if (hasOpt(debugOpt))
+      Logger.getLogger(Constants.CORE_PACKAGE_NAME).setLevel(Level.TRACE);
     
     Instance inst = new ZooKeeperInstance(getOpt(instanceOpt, DEFAULT_INSTANCE_NAME), getOpt(zooKeepersOpt, DEFAULT_ZOOKEEPERS));
     conn = inst.getConnector(getRequiredOpt(usernameOpt), getRequiredOpt(passwordOpt).getBytes());
@@ -139,10 +141,12 @@ public class ReadWriteExample {
     }
     
     // create entries
-    if (hasOpt(createEntriesOpt)) createEntries(false);
+    if (hasOpt(createEntriesOpt))
+      createEntries(false);
     
     // delete entries
-    if (hasOpt(deleteEntriesOpt)) createEntries(true);
+    if (hasOpt(deleteEntriesOpt))
+      createEntries(true);
     
     // read entries
     if (hasOpt(readEntriesOpt)) {
@@ -156,7 +160,8 @@ public class ReadWriteExample {
     }
     
     // delete table
-    if (hasOpt(deletetableOpt)) conn.tableOperations().delete(getOpt(tableNameOpt, DEFAULT_TABLE_NAME));
+    if (hasOpt(deletetableOpt))
+      conn.tableOperations().delete(getOpt(tableNameOpt, DEFAULT_TABLE_NAME));
   }
   
   private void createEntries(boolean delete) throws AccumuloException, TableNotFoundException, MutationsRejectedException {

@@ -167,9 +167,11 @@ public class Range implements WritableComparable<Range> {
   }
   
   public Range(Key start, Key stop, boolean startKeyInclusive, boolean stopKeyInclusive, boolean infiniteStartKey, boolean infiniteStopKey) {
-    if (infiniteStartKey && start != null) throw new IllegalArgumentException();
+    if (infiniteStartKey && start != null)
+      throw new IllegalArgumentException();
     
-    if (infiniteStopKey && stop != null) throw new IllegalArgumentException();
+    if (infiniteStopKey && stop != null)
+      throw new IllegalArgumentException();
     
     this.start = start;
     this.stop = stop;
@@ -196,7 +198,8 @@ public class Range implements WritableComparable<Range> {
       return false;
     }
     
-    if (startKeyInclusive) return key.compareTo(start) < 0;
+    if (startKeyInclusive)
+      return key.compareTo(start) < 0;
     return key.compareTo(start) <= 0;
   }
   
@@ -208,9 +211,11 @@ public class Range implements WritableComparable<Range> {
   }
   
   public boolean afterEndKey(Key key) {
-    if (infiniteStopKey) return false;
+    if (infiniteStopKey)
+      return false;
     
-    if (stopKeyInclusive) return stop.compareTo(key) < 0;
+    if (stopKeyInclusive)
+      return stop.compareTo(key) < 0;
     return stop.compareTo(key) <= 0;
   }
   
@@ -222,7 +227,8 @@ public class Range implements WritableComparable<Range> {
   }
   
   public boolean equals(Object o) {
-    if (o instanceof Range) return equals((Range) o);
+    if (o instanceof Range)
+      return equals((Range) o);
     return false;
   }
   
@@ -234,24 +240,39 @@ public class Range implements WritableComparable<Range> {
   public int compareTo(Range o) {
     int comp;
     
-    if (infiniteStartKey) if (o.infiniteStartKey) comp = 0;
-    else comp = -1;
-    else if (o.infiniteStartKey) comp = 1;
+    if (infiniteStartKey)
+      if (o.infiniteStartKey)
+        comp = 0;
+      else
+        comp = -1;
+    else if (o.infiniteStartKey)
+      comp = 1;
     else {
       comp = start.compareTo(o.start);
-      if (comp == 0) if (startKeyInclusive && !o.startKeyInclusive) comp = -1;
-      else if (!startKeyInclusive && o.startKeyInclusive) comp = 1;
+      if (comp == 0)
+        if (startKeyInclusive && !o.startKeyInclusive)
+          comp = -1;
+        else if (!startKeyInclusive && o.startKeyInclusive)
+          comp = 1;
       
     }
     
-    if (comp == 0) if (infiniteStopKey) if (o.infiniteStopKey) comp = 0;
-    else comp = 1;
-    else if (o.infiniteStopKey) comp = -1;
-    else {
-      comp = stop.compareTo(o.stop);
-      if (comp == 0) if (stopKeyInclusive && !o.stopKeyInclusive) comp = 1;
-      else if (!stopKeyInclusive && o.stopKeyInclusive) comp = -1;
-    }
+    if (comp == 0)
+      if (infiniteStopKey)
+        if (o.infiniteStopKey)
+          comp = 0;
+        else
+          comp = 1;
+      else if (o.infiniteStopKey)
+        comp = -1;
+      else {
+        comp = stop.compareTo(o.stop);
+        if (comp == 0)
+          if (stopKeyInclusive && !o.stopKeyInclusive)
+            comp = 1;
+          else if (!stopKeyInclusive && o.stopKeyInclusive)
+            comp = -1;
+      }
     
     return comp;
   }
@@ -261,7 +282,8 @@ public class Range implements WritableComparable<Range> {
   }
   
   public static List<Range> mergeOverlapping(Collection<Range> ranges) {
-    if (ranges.size() == 0) return Collections.emptyList();
+    if (ranges.size() == 0)
+      return Collections.emptyList();
     
     List<Range> ral = new ArrayList<Range>(ranges);
     Collections.sort(ral);
@@ -334,7 +356,8 @@ public class Range implements WritableComparable<Range> {
       }
     } else if (afterEndKey(range.getStartKey())
         || (getEndKey() != null && range.getStartKey().equals(getEndKey()) && !(range.isStartKeyInclusive() && isEndKeyInclusive()))) {
-      if (returnNullIfDisjoint) return null;
+      if (returnNullIfDisjoint)
+        return null;
       throw new IllegalArgumentException("Range " + range + " does not overlap " + this);
     } else if (beforeStartKey(range.getStartKey())) {
       sk = getStartKey();
@@ -348,7 +371,8 @@ public class Range implements WritableComparable<Range> {
       }
     } else if (beforeStartKey(range.getEndKey())
         || (getStartKey() != null && range.getEndKey().equals(getStartKey()) && !(range.isEndKeyInclusive() && isStartKeyInclusive()))) {
-      if (returnNullIfDisjoint) return null;
+      if (returnNullIfDisjoint)
+        return null;
       throw new IllegalArgumentException("Range " + range + " does not overlap " + this);
     } else if (afterEndKey(range.getEndKey())) {
       ek = getEndKey();
@@ -375,8 +399,10 @@ public class Range implements WritableComparable<Range> {
       ByteSequence mincf = new ArrayByteSequence(min.columnFamily);
       ByteSequence mincq;
       
-      if (min.columnQualifier != null) mincq = new ArrayByteSequence(min.columnQualifier);
-      else mincq = new ArrayByteSequence(new byte[0]);
+      if (min.columnQualifier != null)
+        mincq = new ArrayByteSequence(min.columnQualifier);
+      else
+        mincq = new ArrayByteSequence(new byte[0]);
       
       int cmp = cf.compareTo(mincf);
       
@@ -397,7 +423,8 @@ public class Range implements WritableComparable<Range> {
       
       ByteSequence maxcf = new ArrayByteSequence(max.columnFamily);
       ByteSequence maxcq = null;
-      if (max.columnQualifier != null) maxcq = new ArrayByteSequence(max.columnQualifier);
+      if (max.columnQualifier != null)
+        maxcq = new ArrayByteSequence(max.columnQualifier);
       
       boolean set = false;
       
@@ -415,8 +442,10 @@ public class Range implements WritableComparable<Range> {
       
       if (set) {
         eki = false;
-        if (maxcq == null) ek = new Key(row.toArray(), maxcf.toArray(), new byte[0], new byte[0], 0, false).followingKey(PartialKey.ROW_COLFAM);
-        else ek = new Key(row.toArray(), maxcf.toArray(), maxcq.toArray(), new byte[0], 0, false).followingKey(PartialKey.ROW_COLFAM_COLQUAL);
+        if (maxcq == null)
+          ek = new Key(row.toArray(), maxcf.toArray(), new byte[0], new byte[0], 0, false).followingKey(PartialKey.ROW_COLFAM);
+        else
+          ek = new Key(row.toArray(), maxcf.toArray(), maxcq.toArray(), new byte[0], 0, false).followingKey(PartialKey.ROW_COLFAM_COLQUAL);
       }
     }
     
@@ -452,8 +481,10 @@ public class Range implements WritableComparable<Range> {
   public void write(DataOutput out) throws IOException {
     out.writeBoolean(infiniteStartKey);
     out.writeBoolean(infiniteStopKey);
-    if (!infiniteStartKey) start.write(out);
-    if (!infiniteStopKey) stop.write(out);
+    if (!infiniteStartKey)
+      start.write(out);
+    if (!infiniteStopKey)
+      stop.write(out);
     out.writeBoolean(startKeyInclusive);
     out.writeBoolean(stopKeyInclusive);
   }

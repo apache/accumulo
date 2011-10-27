@@ -120,12 +120,15 @@ class LogWriter implements MutationLogger.Iface {
         long t1 = System.currentTimeMillis();
         seq.append(key, value);
         long t2 = System.currentTimeMillis();
-        if (metrics.isEnabled()) metrics.add(LogWriterMetrics.logAppend, (t2 - t1));
+        if (metrics.isEnabled())
+          metrics.add(LogWriterMetrics.logAppend, (t2 - t1));
         out.flush();
         long t3 = System.currentTimeMillis();
-        if (metrics.isEnabled()) metrics.add(LogWriterMetrics.logFlush, (t3 - t2));
+        if (metrics.isEnabled())
+          metrics.add(LogWriterMetrics.logFlush, (t3 - t2));
       } catch (IOException ioe) {
-        if (metrics.isEnabled()) metrics.add(LogWriterMetrics.logException, 0);
+        if (metrics.isEnabled())
+          metrics.add(LogWriterMetrics.logException, 0);
         throw ioe;
       }
     }
@@ -206,7 +209,8 @@ class LogWriter implements MutationLogger.Iface {
         if (entry.getValue().equals(id)) {
           file2id.remove(entry.getKey());
           long t2 = System.currentTimeMillis();
-          if (metrics.isEnabled()) metrics.add(LogWriterMetrics.close, (t2 - t1));
+          if (metrics.isEnabled())
+            metrics.add(LogWriterMetrics.close, (t2 - t1));
           return;
         }
       }
@@ -224,14 +228,16 @@ class LogWriter implements MutationLogger.Iface {
     long t1 = System.currentTimeMillis();
     try {
       Long id = file2id.get(localLog);
-      if (id != null) close(info, id);
+      if (id != null)
+        close(info, id);
     } catch (NoSuchLogIDException e) {
       log.error("Unexpected error thrown", e);
       throw new RuntimeException(e);
     }
     File file = new File(root, localLog);
     log.info(file.getAbsoluteFile().toString());
-    if (!file.exists()) throw new RuntimeException("No log " + file + " exists");
+    if (!file.exists())
+      throw new RuntimeException("No log " + file + " exists");
     long result = file.length();
     
     copyThreadPool.execute(new Runnable() {
@@ -277,7 +283,8 @@ class LogWriter implements MutationLogger.Iface {
             final LogFileKey key = new LogFileKey();
             final LogFileValue value = new LogFileValue();
             try {
-              if (!reader.next(key, value)) break;
+              if (!reader.next(key, value))
+                break;
             } catch (EOFException e) {
               log.warn("Unexpected end of file reading write ahead log " + localLog);
               break;
@@ -290,7 +297,8 @@ class LogWriter implements MutationLogger.Iface {
               memorySize = 0;
             }
           }
-          if (!kv.isEmpty()) writeSortedEntries(dest, part++, kv);
+          if (!kv.isEmpty())
+            writeSortedEntries(dest, part++, kv);
           fs.create(new Path(dest, "finished")).close();
         } finally {
           reader.close();
@@ -345,8 +353,10 @@ class LogWriter implements MutationLogger.Iface {
         } catch (IOException ex) {
           log.warn("May have a partial copy of a recovery file: " + localLog, ex);
         } finally {
-          if (reader != null) reader.close();
-          if (writer != null) writer.close();
+          if (reader != null)
+            reader.close();
+          if (writer != null)
+            writer.close();
         }
         // Make file appear in the shared file system as the target name only after it is completely copied
         fs.rename(dest, new Path(fullyQualifiedFileName));
@@ -354,7 +364,8 @@ class LogWriter implements MutationLogger.Iface {
       }
     });
     long t2 = System.currentTimeMillis();
-    if (metrics.isEnabled()) metrics.add(LogWriterMetrics.copy, (t2 - t1));
+    if (metrics.isEnabled())
+      metrics.add(LogWriterMetrics.copy, (t2 - t1));
     return result;
   }
   
@@ -388,7 +399,8 @@ class LogWriter implements MutationLogger.Iface {
       throw new RuntimeException(e);
     }
     long t2 = System.currentTimeMillis();
-    if (metrics.isEnabled()) metrics.add(LogWriterMetrics.create, (t2 - t1));
+    if (metrics.isEnabled())
+      metrics.add(LogWriterMetrics.create, (t2 - t1));
     log.info("Created log " + result.name);
     return result;
   }
@@ -396,7 +408,8 @@ class LogWriter implements MutationLogger.Iface {
   @Override
   public void log(TInfo info, long id, final long seq, final int tid, final TMutation mutation) throws NoSuchLogIDException {
     Logger out = logs.get(id);
-    if (out == null) throw new NoSuchLogIDException();
+    if (out == null)
+      throw new NoSuchLogIDException();
     
     out.key.event = MUTATION;
     out.key.seq = seq;
@@ -418,7 +431,8 @@ class LogWriter implements MutationLogger.Iface {
   
   private void logMany(TInfo info, long id, final long seq, final int tid, Mutation muations[]) throws NoSuchLogIDException {
     Logger out = logs.get(id);
-    if (out == null) throw new NoSuchLogIDException();
+    if (out == null)
+      throw new NoSuchLogIDException();
     out.key.event = MANY_MUTATIONS;
     out.key.seq = seq;
     out.key.tid = tid;
@@ -439,7 +453,8 @@ class LogWriter implements MutationLogger.Iface {
   @Override
   public void minorCompactionFinished(TInfo info, long id, final long seq, final int tid, final String fqfn) throws NoSuchLogIDException {
     Logger out = logs.get(id);
-    if (out == null) throw new NoSuchLogIDException();
+    if (out == null)
+      throw new NoSuchLogIDException();
     out.key.event = COMPACTION_FINISH;
     out.key.seq = seq;
     out.key.tid = tid;
@@ -461,7 +476,8 @@ class LogWriter implements MutationLogger.Iface {
   @Override
   public void minorCompactionStarted(TInfo info, long id, final long seq, final int tid, final String fqfn) throws NoSuchLogIDException {
     Logger out = logs.get(id);
-    if (out == null) throw new NoSuchLogIDException();
+    if (out == null)
+      throw new NoSuchLogIDException();
     out.key.event = COMPACTION_START;
     out.key.seq = seq;
     out.key.tid = tid;
@@ -483,7 +499,8 @@ class LogWriter implements MutationLogger.Iface {
   @Override
   public void defineTablet(TInfo info, long id, final long seq, final int tid, final TKeyExtent tablet) throws NoSuchLogIDException {
     Logger out = logs.get(id);
-    if (out == null) throw new NoSuchLogIDException();
+    if (out == null)
+      throw new NoSuchLogIDException();
     out.key.event = DEFINE_TABLET;
     out.key.seq = seq;
     out.key.tid = tid;
@@ -521,9 +538,11 @@ class LogWriter implements MutationLogger.Iface {
     ArrayList<String> result = new ArrayList<String>();
     for (File file : new File(root).listFiles()) {
       // skip dot-files
-      if (file.getName().indexOf('.') >= 0) continue;
+      if (file.getName().indexOf('.') >= 0)
+        continue;
       // skip open logs
-      if (file2id.containsKey(file.getName())) continue;
+      if (file2id.containsKey(file.getName()))
+        continue;
       try {
         UUID.fromString(file.getName());
         result.add(file.getName());

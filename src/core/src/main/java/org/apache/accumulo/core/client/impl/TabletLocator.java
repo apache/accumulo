@@ -75,7 +75,8 @@ public abstract class TabletLocator {
     }
     
     public boolean equals(Object o) {
-      if (o instanceof LocatorKey) return equals((LocatorKey) o);
+      if (o instanceof LocatorKey)
+        return equals((LocatorKey) o);
       return false;
     }
     

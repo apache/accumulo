@@ -49,10 +49,13 @@ public class TableConfiguration extends AccumuloConfiguration {
   }
   
   private static ZooCache getTablePropCache() {
-    if (instanceId == null) throw new IllegalStateException("Attempt to get per-table properties without an instanceId");
-    if (tablePropCache == null) synchronized (TableConfiguration.class) {
-      if (tablePropCache == null) tablePropCache = new ZooCache(new TableConfWatcher(instanceId));
-    }
+    if (instanceId == null)
+      throw new IllegalStateException("Attempt to get per-table properties without an instanceId");
+    if (tablePropCache == null)
+      synchronized (TableConfiguration.class) {
+        if (tablePropCache == null)
+          tablePropCache = new ZooCache(new TableConfWatcher(instanceId));
+      }
     return tablePropCache;
   }
   
@@ -98,7 +101,8 @@ public class TableConfiguration extends AccumuloConfiguration {
     String value = get(key);
     
     if (value == null || !property.getType().isValidFormat(value)) {
-      if (value != null) log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
+      if (value != null)
+        log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
       value = parent.get(property);
     }
     return value;
@@ -108,12 +112,14 @@ public class TableConfiguration extends AccumuloConfiguration {
     String zPath = ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF + "/" + key;
     byte[] v = getTablePropCache().get(zPath);
     String value = null;
-    if (v != null) value = new String(v);
+    if (v != null)
+      value = new String(v);
     return value;
   }
   
   public static void invalidateCache() {
-    if (tablePropCache != null) tablePropCache.clear();
+    if (tablePropCache != null)
+      tablePropCache.clear();
   }
   
   @Override
@@ -127,7 +133,8 @@ public class TableConfiguration extends AccumuloConfiguration {
     if (children != null) {
       for (String child : children) {
         String value = get(child);
-        if (child != null && value != null) entries.put(child, value);
+        if (child != null && value != null)
+          entries.put(child, value);
       }
     }
     

@@ -67,12 +67,14 @@ public class ColumnToClassMapping<K> {
     }
     
     public boolean equals(Object o) {
-      if (o instanceof ColFamHashKey) return equals((ColFamHashKey) o);
+      if (o instanceof ColFamHashKey)
+        return equals((ColFamHashKey) o);
       return false;
     }
     
     public boolean equals(ColFamHashKey ohk) {
-      if (columnFamily == null) return key.compareColumnFamily(ohk.columnFamily) == 0;
+      if (columnFamily == null)
+        return key.compareColumnFamily(ohk.columnFamily) == 0;
       return ohk.key.compareColumnFamily(columnFamily) == 0;
     }
   }
@@ -106,12 +108,14 @@ public class ColumnToClassMapping<K> {
     }
     
     public boolean equals(Object o) {
-      if (o instanceof ColHashKey) return equals((ColHashKey) o);
+      if (o instanceof ColHashKey)
+        return equals((ColHashKey) o);
       return false;
     }
     
     public boolean equals(ColHashKey ohk) {
-      if (columnFamily == null) return key.compareColumnFamily(ohk.columnFamily) == 0 && key.compareColumnQualifier(ohk.columnQualifier) == 0;
+      if (columnFamily == null)
+        return key.compareColumnFamily(ohk.columnFamily) == 0 && key.compareColumnQualifier(ohk.columnQualifier) == 0;
       return ohk.key.compareColumnFamily(columnFamily) == 0 && ohk.key.compareColumnQualifier(columnQualifier) == 0;
     }
   }

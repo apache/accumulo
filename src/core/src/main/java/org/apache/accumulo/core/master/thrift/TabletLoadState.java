@@ -5,34 +5,30 @@
  */
 package org.apache.accumulo.core.master.thrift;
 
-
 import org.apache.thrift.TEnum;
 
 public enum TabletLoadState implements TEnum {
-  LOADED(0),
-  LOAD_FAILURE(1),
-  UNLOADED(2),
-  UNLOAD_FAILURE_NOT_SERVING(3),
-  UNLOAD_ERROR(4);
-
+  LOADED(0), LOAD_FAILURE(1), UNLOADED(2), UNLOAD_FAILURE_NOT_SERVING(3), UNLOAD_ERROR(4);
+  
   private final int value;
-
+  
   private TabletLoadState(int value) {
     this.value = value;
   }
-
+  
   /**
    * Get the integer value of this enum value, as defined in the Thrift IDL.
    */
   public int getValue() {
     return value;
   }
-
+  
   /**
    * Find a the enum type by its integer value, as defined in the Thrift IDL.
+   * 
    * @return null if the value is not found.
    */
-  public static TabletLoadState findByValue(int value) { 
+  public static TabletLoadState findByValue(int value) {
     switch (value) {
       case 0:
         return LOADED;

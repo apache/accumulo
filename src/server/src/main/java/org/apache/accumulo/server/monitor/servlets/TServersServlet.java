@@ -79,7 +79,8 @@ public class TServersServlet extends BasicServlet {
       doBadTserverList(req, sb);
       
       ArrayList<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
-      if (Monitor.getMmi() != null) tservers.addAll(Monitor.getMmi().tServerInfo);
+      if (Monitor.getMmi() != null)
+        tservers.addAll(Monitor.getMmi().tServerInfo);
       
       Table tServerList = new Table("tservers", "Tablet&nbsp;Servers");
       tServerList.setSubCaption("Click on the <span style='color: #0000ff;'>server address</span> to view detailed performance statistics for that server.");
@@ -168,11 +169,14 @@ public class TServersServlet extends BasicServlet {
     }
     
     // Calculate current averages oldServer adding in historical data
-    if (total.minor.num != 0) currentMinorAvg = (long) (total.minor.elapsed / total.minor.num);
-    if (total.minor.elapsed != 0 && total.minor.num != 0) currentMinorStdDev = (long) stddev(total.minor.elapsed, total.minor.num, total.minor.sumDev);
-    if (total.major.num != 0) currentMajorAvg = total.major.elapsed / total.major.num;
-    if (total.major.elapsed != 0 && total.major.num != 0 && total.major.elapsed > total.major.num) currentMajorStdDev = (long) stddev(total.major.elapsed,
-        total.major.num, total.major.sumDev);
+    if (total.minor.num != 0)
+      currentMinorAvg = (long) (total.minor.elapsed / total.minor.num);
+    if (total.minor.elapsed != 0 && total.minor.num != 0)
+      currentMinorStdDev = (long) stddev(total.minor.elapsed, total.minor.num, total.minor.sumDev);
+    if (total.major.num != 0)
+      currentMajorAvg = total.major.elapsed / total.major.num;
+    if (total.major.elapsed != 0 && total.major.num != 0 && total.major.elapsed > total.major.num)
+      currentMajorStdDev = (long) stddev(total.major.elapsed, total.major.num, total.major.sumDev);
     
     // After these += operations, these variables are now total for current
     // tablets and historical tablets
@@ -238,7 +242,8 @@ public class TServersServlet extends BasicServlet {
   }
   
   private static double stddev(double elapsed, double num, double sumDev) {
-    if (elapsed != 0 && num != 0 && elapsed > num) return Math.sqrt((1 / (elapsed / num)) * (sumDev - (num * Math.pow((elapsed / num), 2))));
+    if (elapsed != 0 && num != 0 && elapsed > num)
+      return Math.sqrt((1 / (elapsed / num)) * (sumDev - (num * Math.pow((elapsed / num), 2))));
     return 0;
   }
   
@@ -288,7 +293,8 @@ public class TServersServlet extends BasicServlet {
         "The Unix one minute load average. The average number of processes in the run queue over a one minute interval.");
     
     for (TabletServerStatus status : tservers) {
-      if (status == null) status = NO_STATUS;
+      if (status == null)
+        status = NO_STATUS;
       TableInfo summary = Monitor.summarizeTableStats(status);
       TableRow row = tServerList.prepareRow();
       row.add(status); // add for server name

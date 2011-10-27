@@ -84,7 +84,8 @@ public class IteratorUtil {
     int max = 0;
     
     for (IterInfo iterInfo : iters) {
-      if (iterInfo.priority > max) max = iterInfo.priority;
+      if (iterInfo.priority > max)
+        max = iterInfo.priority;
     }
     
     return max;
@@ -185,9 +186,12 @@ public class IteratorUtil {
         Map<String,String> options = allOptions.get(iterInfo.iterName);
         Map<String,String> userOptions = ssio.get(iterInfo.iterName);
         
-        if (options == null && userOptions == null) options = Collections.emptyMap();
-        else if (options == null && userOptions != null) options = userOptions;
-        else if (options != null && userOptions != null) options.putAll(userOptions);
+        if (options == null && userOptions == null)
+          options = Collections.emptyMap();
+        else if (options == null && userOptions != null)
+          options = userOptions;
+        else if (options != null && userOptions != null)
+          options.putAll(userOptions);
         
         skvi.init(prev, options, env);
         prev = skvi;

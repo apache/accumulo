@@ -88,11 +88,13 @@ public class TServerUtils {
       
       // Are we going to slide around, looking for an open port?
       int portsToSearch = 1;
-      if (portSearch) portsToSearch = 1000;
+      if (portSearch)
+        portsToSearch = 1000;
       
       for (int i = 0; i < portsToSearch; i++) {
         int port = portHint + i;
-        if (port > 65535) port = 1024 + port % (65535 - 1024);
+        if (port > 65535)
+          port = 1024 + port % (65535 - 1024);
         TServerTransport serverTransport;
         try {
           serverTransport = TServerUtils.openPort(port);
@@ -167,7 +169,8 @@ public class TServerUtils {
   // Boilerplate start-up for a TServer
   public static TServer startTServer(TProcessor processor, TServerTransport serverTransport, String serverName, String threadName, int numThreads) {
     TThreadPoolServer.Options options = new TThreadPoolServer.Options();
-    if (numThreads > 0) options.maxWorkerThreads = numThreads;
+    if (numThreads > 0)
+      options.maxWorkerThreads = numThreads;
     processor = new TServerUtils.TimedProcessor(processor, serverName, threadName);
     final TServer tserver = new TThreadPoolServer(new ClientInfoProcessorFactory(processor), serverTransport, ThriftUtil.transportFactory(),
         ThriftUtil.transportFactory(), ThriftUtil.inputProtocolFactory(), ThriftUtil.outputProtocolFactory(), options);
@@ -188,7 +191,8 @@ public class TServerUtils {
   
   // Existing connections will keep our thread running: reach in with reflection and insist that they shutdown.
   public static void stopTServer(TServer s) {
-    if (s == null) return;
+    if (s == null)
+      return;
     s.stop();
     try {
       Field f = s.getClass().getDeclaredField("executorService_");

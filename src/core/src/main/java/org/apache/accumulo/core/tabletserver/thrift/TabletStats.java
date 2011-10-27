@@ -5,25 +5,23 @@
  */
 package org.apache.accumulo.core.tabletserver.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, java.io.Serializable, Cloneable {
+public class TabletStats implements TBase<TabletStats,TabletStats._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("TabletStats");
-
-  private static final TField EXTENT_FIELD_DESC = new TField("extent", TType.STRUCT, (short)1);
-  private static final TField MAJOR_FIELD_DESC = new TField("major", TType.STRUCT, (short)2);
-  private static final TField MINOR_FIELD_DESC = new TField("minor", TType.STRUCT, (short)3);
-  private static final TField SPLIT_FIELD_DESC = new TField("split", TType.STRUCT, (short)4);
-  private static final TField NUM_ENTRIES_FIELD_DESC = new TField("numEntries", TType.I64, (short)5);
-  private static final TField INGEST_RATE_FIELD_DESC = new TField("ingestRate", TType.DOUBLE, (short)6);
-  private static final TField QUERY_RATE_FIELD_DESC = new TField("queryRate", TType.DOUBLE, (short)7);
-  private static final TField SPLIT_CREATION_TIME_FIELD_DESC = new TField("splitCreationTime", TType.I64, (short)8);
-
+  
+  private static final TField EXTENT_FIELD_DESC = new TField("extent", TType.STRUCT, (short) 1);
+  private static final TField MAJOR_FIELD_DESC = new TField("major", TType.STRUCT, (short) 2);
+  private static final TField MINOR_FIELD_DESC = new TField("minor", TType.STRUCT, (short) 3);
+  private static final TField SPLIT_FIELD_DESC = new TField("split", TType.STRUCT, (short) 4);
+  private static final TField NUM_ENTRIES_FIELD_DESC = new TField("numEntries", TType.I64, (short) 5);
+  private static final TField INGEST_RATE_FIELD_DESC = new TField("ingestRate", TType.DOUBLE, (short) 6);
+  private static final TField QUERY_RATE_FIELD_DESC = new TField("queryRate", TType.DOUBLE, (short) 7);
+  private static final TField SPLIT_CREATION_TIME_FIELD_DESC = new TField("splitCreationTime", TType.I64, (short) 8);
+  
   public org.apache.accumulo.core.data.thrift.TKeyExtent extent;
   public ActionStats major;
   public ActionStats minor;
@@ -32,31 +30,31 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
   public double ingestRate;
   public double queryRate;
   public long splitCreationTime;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    EXTENT((short)1, "extent"),
-    MAJOR((short)2, "major"),
-    MINOR((short)3, "minor"),
-    SPLIT((short)4, "split"),
-    NUM_ENTRIES((short)5, "numEntries"),
-    INGEST_RATE((short)6, "ingestRate"),
-    QUERY_RATE((short)7, "queryRate"),
-    SPLIT_CREATION_TIME((short)8, "splitCreationTime");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    EXTENT((short) 1, "extent"),
+    MAJOR((short) 2, "major"),
+    MINOR((short) 3, "minor"),
+    SPLIT((short) 4, "split"),
+    NUM_ENTRIES((short) 5, "numEntries"),
+    INGEST_RATE((short) 6, "ingestRate"),
+    QUERY_RATE((short) 7, "queryRate"),
+    SPLIT_CREATION_TIME((short) 8, "splitCreationTime");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // EXTENT
           return EXTENT;
         case 2: // MAJOR
@@ -77,84 +75,68 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
   private static final int __NUMENTRIES_ISSET_ID = 0;
   private static final int __INGESTRATE_ISSET_ID = 1;
   private static final int __QUERYRATE_ISSET_ID = 2;
   private static final int __SPLITCREATIONTIME_ISSET_ID = 3;
   private java.util.BitSet __isset_bit_vector = new java.util.BitSet(4);
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.EXTENT, new FieldMetaData("extent", TFieldRequirementType.DEFAULT, 
-        new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
-    tmpMap.put(_Fields.MAJOR, new FieldMetaData("major", TFieldRequirementType.DEFAULT, 
-        new StructMetaData(TType.STRUCT, ActionStats.class)));
-    tmpMap.put(_Fields.MINOR, new FieldMetaData("minor", TFieldRequirementType.DEFAULT, 
-        new StructMetaData(TType.STRUCT, ActionStats.class)));
-    tmpMap.put(_Fields.SPLIT, new FieldMetaData("split", TFieldRequirementType.DEFAULT, 
-        new StructMetaData(TType.STRUCT, ActionStats.class)));
-    tmpMap.put(_Fields.NUM_ENTRIES, new FieldMetaData("numEntries", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I64)));
-    tmpMap.put(_Fields.INGEST_RATE, new FieldMetaData("ingestRate", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    tmpMap.put(_Fields.QUERY_RATE, new FieldMetaData("queryRate", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    tmpMap.put(_Fields.SPLIT_CREATION_TIME, new FieldMetaData("splitCreationTime", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I64)));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.EXTENT, new FieldMetaData("extent", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+        org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
+    tmpMap.put(_Fields.MAJOR, new FieldMetaData("major", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, ActionStats.class)));
+    tmpMap.put(_Fields.MINOR, new FieldMetaData("minor", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, ActionStats.class)));
+    tmpMap.put(_Fields.SPLIT, new FieldMetaData("split", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, ActionStats.class)));
+    tmpMap.put(_Fields.NUM_ENTRIES, new FieldMetaData("numEntries", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64)));
+    tmpMap.put(_Fields.INGEST_RATE, new FieldMetaData("ingestRate", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+    tmpMap.put(_Fields.QUERY_RATE, new FieldMetaData("queryRate", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+    tmpMap.put(_Fields.SPLIT_CREATION_TIME, new FieldMetaData("splitCreationTime", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(TabletStats.class, metaDataMap);
   }
-
-  public TabletStats() {
-  }
-
-  public TabletStats(
-    org.apache.accumulo.core.data.thrift.TKeyExtent extent,
-    ActionStats major,
-    ActionStats minor,
-    ActionStats split,
-    long numEntries,
-    double ingestRate,
-    double queryRate,
-    long splitCreationTime)
-  {
+  
+  public TabletStats() {}
+  
+  public TabletStats(org.apache.accumulo.core.data.thrift.TKeyExtent extent, ActionStats major, ActionStats minor, ActionStats split, long numEntries,
+      double ingestRate, double queryRate, long splitCreationTime) {
     this();
     this.extent = extent;
     this.major = major;
@@ -169,7 +151,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
     this.splitCreationTime = splitCreationTime;
     setSplitCreationTimeIsSet(true);
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -193,351 +175,351 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
     this.queryRate = other.queryRate;
     this.splitCreationTime = other.splitCreationTime;
   }
-
+  
   public TabletStats deepCopy() {
     return new TabletStats(this);
   }
-
+  
   @Deprecated
   public TabletStats clone() {
     return new TabletStats(this);
   }
-
+  
   public org.apache.accumulo.core.data.thrift.TKeyExtent getExtent() {
     return this.extent;
   }
-
+  
   public TabletStats setExtent(org.apache.accumulo.core.data.thrift.TKeyExtent extent) {
     this.extent = extent;
     return this;
   }
-
+  
   public void unsetExtent() {
     this.extent = null;
   }
-
+  
   /** Returns true if field extent is set (has been asigned a value) and false otherwise */
   public boolean isSetExtent() {
     return this.extent != null;
   }
-
+  
   public void setExtentIsSet(boolean value) {
     if (!value) {
       this.extent = null;
     }
   }
-
+  
   public ActionStats getMajor() {
     return this.major;
   }
-
+  
   public TabletStats setMajor(ActionStats major) {
     this.major = major;
     return this;
   }
-
+  
   public void unsetMajor() {
     this.major = null;
   }
-
+  
   /** Returns true if field major is set (has been asigned a value) and false otherwise */
   public boolean isSetMajor() {
     return this.major != null;
   }
-
+  
   public void setMajorIsSet(boolean value) {
     if (!value) {
       this.major = null;
     }
   }
-
+  
   public ActionStats getMinor() {
     return this.minor;
   }
-
+  
   public TabletStats setMinor(ActionStats minor) {
     this.minor = minor;
     return this;
   }
-
+  
   public void unsetMinor() {
     this.minor = null;
   }
-
+  
   /** Returns true if field minor is set (has been asigned a value) and false otherwise */
   public boolean isSetMinor() {
     return this.minor != null;
   }
-
+  
   public void setMinorIsSet(boolean value) {
     if (!value) {
       this.minor = null;
     }
   }
-
+  
   public ActionStats getSplit() {
     return this.split;
   }
-
+  
   public TabletStats setSplit(ActionStats split) {
     this.split = split;
     return this;
   }
-
+  
   public void unsetSplit() {
     this.split = null;
   }
-
+  
   /** Returns true if field split is set (has been asigned a value) and false otherwise */
   public boolean isSetSplit() {
     return this.split != null;
   }
-
+  
   public void setSplitIsSet(boolean value) {
     if (!value) {
       this.split = null;
     }
   }
-
+  
   public long getNumEntries() {
     return this.numEntries;
   }
-
+  
   public TabletStats setNumEntries(long numEntries) {
     this.numEntries = numEntries;
     setNumEntriesIsSet(true);
     return this;
   }
-
+  
   public void unsetNumEntries() {
     __isset_bit_vector.clear(__NUMENTRIES_ISSET_ID);
   }
-
+  
   /** Returns true if field numEntries is set (has been asigned a value) and false otherwise */
   public boolean isSetNumEntries() {
     return __isset_bit_vector.get(__NUMENTRIES_ISSET_ID);
   }
-
+  
   public void setNumEntriesIsSet(boolean value) {
     __isset_bit_vector.set(__NUMENTRIES_ISSET_ID, value);
   }
-
+  
   public double getIngestRate() {
     return this.ingestRate;
   }
-
+  
   public TabletStats setIngestRate(double ingestRate) {
     this.ingestRate = ingestRate;
     setIngestRateIsSet(true);
     return this;
   }
-
+  
   public void unsetIngestRate() {
     __isset_bit_vector.clear(__INGESTRATE_ISSET_ID);
   }
-
+  
   /** Returns true if field ingestRate is set (has been asigned a value) and false otherwise */
   public boolean isSetIngestRate() {
     return __isset_bit_vector.get(__INGESTRATE_ISSET_ID);
   }
-
+  
   public void setIngestRateIsSet(boolean value) {
     __isset_bit_vector.set(__INGESTRATE_ISSET_ID, value);
   }
-
+  
   public double getQueryRate() {
     return this.queryRate;
   }
-
+  
   public TabletStats setQueryRate(double queryRate) {
     this.queryRate = queryRate;
     setQueryRateIsSet(true);
     return this;
   }
-
+  
   public void unsetQueryRate() {
     __isset_bit_vector.clear(__QUERYRATE_ISSET_ID);
   }
-
+  
   /** Returns true if field queryRate is set (has been asigned a value) and false otherwise */
   public boolean isSetQueryRate() {
     return __isset_bit_vector.get(__QUERYRATE_ISSET_ID);
   }
-
+  
   public void setQueryRateIsSet(boolean value) {
     __isset_bit_vector.set(__QUERYRATE_ISSET_ID, value);
   }
-
+  
   public long getSplitCreationTime() {
     return this.splitCreationTime;
   }
-
+  
   public TabletStats setSplitCreationTime(long splitCreationTime) {
     this.splitCreationTime = splitCreationTime;
     setSplitCreationTimeIsSet(true);
     return this;
   }
-
+  
   public void unsetSplitCreationTime() {
     __isset_bit_vector.clear(__SPLITCREATIONTIME_ISSET_ID);
   }
-
+  
   /** Returns true if field splitCreationTime is set (has been asigned a value) and false otherwise */
   public boolean isSetSplitCreationTime() {
     return __isset_bit_vector.get(__SPLITCREATIONTIME_ISSET_ID);
   }
-
+  
   public void setSplitCreationTimeIsSet(boolean value) {
     __isset_bit_vector.set(__SPLITCREATIONTIME_ISSET_ID, value);
   }
-
+  
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case EXTENT:
-      if (value == null) {
-        unsetExtent();
-      } else {
-        setExtent((org.apache.accumulo.core.data.thrift.TKeyExtent)value);
-      }
-      break;
-
-    case MAJOR:
-      if (value == null) {
-        unsetMajor();
-      } else {
-        setMajor((ActionStats)value);
-      }
-      break;
-
-    case MINOR:
-      if (value == null) {
-        unsetMinor();
-      } else {
-        setMinor((ActionStats)value);
-      }
-      break;
-
-    case SPLIT:
-      if (value == null) {
-        unsetSplit();
-      } else {
-        setSplit((ActionStats)value);
-      }
-      break;
-
-    case NUM_ENTRIES:
-      if (value == null) {
-        unsetNumEntries();
-      } else {
-        setNumEntries((Long)value);
-      }
-      break;
-
-    case INGEST_RATE:
-      if (value == null) {
-        unsetIngestRate();
-      } else {
-        setIngestRate((Double)value);
-      }
-      break;
-
-    case QUERY_RATE:
-      if (value == null) {
-        unsetQueryRate();
-      } else {
-        setQueryRate((Double)value);
-      }
-      break;
-
-    case SPLIT_CREATION_TIME:
-      if (value == null) {
-        unsetSplitCreationTime();
-      } else {
-        setSplitCreationTime((Long)value);
-      }
-      break;
-
+      case EXTENT:
+        if (value == null) {
+          unsetExtent();
+        } else {
+          setExtent((org.apache.accumulo.core.data.thrift.TKeyExtent) value);
+        }
+        break;
+      
+      case MAJOR:
+        if (value == null) {
+          unsetMajor();
+        } else {
+          setMajor((ActionStats) value);
+        }
+        break;
+      
+      case MINOR:
+        if (value == null) {
+          unsetMinor();
+        } else {
+          setMinor((ActionStats) value);
+        }
+        break;
+      
+      case SPLIT:
+        if (value == null) {
+          unsetSplit();
+        } else {
+          setSplit((ActionStats) value);
+        }
+        break;
+      
+      case NUM_ENTRIES:
+        if (value == null) {
+          unsetNumEntries();
+        } else {
+          setNumEntries((Long) value);
+        }
+        break;
+      
+      case INGEST_RATE:
+        if (value == null) {
+          unsetIngestRate();
+        } else {
+          setIngestRate((Double) value);
+        }
+        break;
+      
+      case QUERY_RATE:
+        if (value == null) {
+          unsetQueryRate();
+        } else {
+          setQueryRate((Double) value);
+        }
+        break;
+      
+      case SPLIT_CREATION_TIME:
+        if (value == null) {
+          unsetSplitCreationTime();
+        } else {
+          setSplitCreationTime((Long) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case EXTENT:
-      return getExtent();
-
-    case MAJOR:
-      return getMajor();
-
-    case MINOR:
-      return getMinor();
-
-    case SPLIT:
-      return getSplit();
-
-    case NUM_ENTRIES:
-      return new Long(getNumEntries());
-
-    case INGEST_RATE:
-      return new Double(getIngestRate());
-
-    case QUERY_RATE:
-      return new Double(getQueryRate());
-
-    case SPLIT_CREATION_TIME:
-      return new Long(getSplitCreationTime());
-
+      case EXTENT:
+        return getExtent();
+        
+      case MAJOR:
+        return getMajor();
+        
+      case MINOR:
+        return getMinor();
+        
+      case SPLIT:
+        return getSplit();
+        
+      case NUM_ENTRIES:
+        return new Long(getNumEntries());
+        
+      case INGEST_RATE:
+        return new Double(getIngestRate());
+        
+      case QUERY_RATE:
+        return new Double(getQueryRate());
+        
+      case SPLIT_CREATION_TIME:
+        return new Long(getSplitCreationTime());
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case EXTENT:
-      return isSetExtent();
-    case MAJOR:
-      return isSetMajor();
-    case MINOR:
-      return isSetMinor();
-    case SPLIT:
-      return isSetSplit();
-    case NUM_ENTRIES:
-      return isSetNumEntries();
-    case INGEST_RATE:
-      return isSetIngestRate();
-    case QUERY_RATE:
-      return isSetQueryRate();
-    case SPLIT_CREATION_TIME:
-      return isSetSplitCreationTime();
+      case EXTENT:
+        return isSetExtent();
+      case MAJOR:
+        return isSetMajor();
+      case MINOR:
+        return isSetMinor();
+      case SPLIT:
+        return isSetSplit();
+      case NUM_ENTRIES:
+        return isSetNumEntries();
+      case INGEST_RATE:
+        return isSetIngestRate();
+      case QUERY_RATE:
+        return isSetQueryRate();
+      case SPLIT_CREATION_TIME:
+        return isSetSplitCreationTime();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof TabletStats)
-      return this.equals((TabletStats)that);
+      return this.equals((TabletStats) that);
     return false;
   }
-
+  
   public boolean equals(TabletStats that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_extent = true && this.isSetExtent();
     boolean that_present_extent = true && that.isSetExtent();
     if (this_present_extent || that_present_extent) {
@@ -546,7 +528,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
       if (!this.extent.equals(that.extent))
         return false;
     }
-
+    
     boolean this_present_major = true && this.isSetMajor();
     boolean that_present_major = true && that.isSetMajor();
     if (this_present_major || that_present_major) {
@@ -555,7 +537,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
       if (!this.major.equals(that.major))
         return false;
     }
-
+    
     boolean this_present_minor = true && this.isSetMinor();
     boolean that_present_minor = true && that.isSetMinor();
     if (this_present_minor || that_present_minor) {
@@ -564,7 +546,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
       if (!this.minor.equals(that.minor))
         return false;
     }
-
+    
     boolean this_present_split = true && this.isSetSplit();
     boolean that_present_split = true && that.isSetSplit();
     if (this_present_split || that_present_split) {
@@ -573,7 +555,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
       if (!this.split.equals(that.split))
         return false;
     }
-
+    
     boolean this_present_numEntries = true;
     boolean that_present_numEntries = true;
     if (this_present_numEntries || that_present_numEntries) {
@@ -582,7 +564,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
       if (this.numEntries != that.numEntries)
         return false;
     }
-
+    
     boolean this_present_ingestRate = true;
     boolean that_present_ingestRate = true;
     if (this_present_ingestRate || that_present_ingestRate) {
@@ -591,7 +573,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
       if (this.ingestRate != that.ingestRate)
         return false;
     }
-
+    
     boolean this_present_queryRate = true;
     boolean that_present_queryRate = true;
     if (this_present_queryRate || that_present_queryRate) {
@@ -600,7 +582,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
       if (this.queryRate != that.queryRate)
         return false;
     }
-
+    
     boolean this_present_splitCreationTime = true;
     boolean that_present_splitCreationTime = true;
     if (this_present_splitCreationTime || that_present_splitCreationTime) {
@@ -609,28 +591,29 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
       if (this.splitCreationTime != that.splitCreationTime)
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(TabletStats other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    TabletStats typedOther = (TabletStats)other;
-
+    TabletStats typedOther = (TabletStats) other;
+    
     lastComparison = Boolean.valueOf(isSetExtent()).compareTo(typedOther.isSetExtent());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetExtent()) {      lastComparison = TBaseHelper.compareTo(this.extent, typedOther.extent);
+    if (isSetExtent()) {
+      lastComparison = TBaseHelper.compareTo(this.extent, typedOther.extent);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -639,7 +622,8 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetMajor()) {      lastComparison = TBaseHelper.compareTo(this.major, typedOther.major);
+    if (isSetMajor()) {
+      lastComparison = TBaseHelper.compareTo(this.major, typedOther.major);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -648,7 +632,8 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetMinor()) {      lastComparison = TBaseHelper.compareTo(this.minor, typedOther.minor);
+    if (isSetMinor()) {
+      lastComparison = TBaseHelper.compareTo(this.minor, typedOther.minor);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -657,7 +642,8 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetSplit()) {      lastComparison = TBaseHelper.compareTo(this.split, typedOther.split);
+    if (isSetSplit()) {
+      lastComparison = TBaseHelper.compareTo(this.split, typedOther.split);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -666,7 +652,8 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetNumEntries()) {      lastComparison = TBaseHelper.compareTo(this.numEntries, typedOther.numEntries);
+    if (isSetNumEntries()) {
+      lastComparison = TBaseHelper.compareTo(this.numEntries, typedOther.numEntries);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -675,7 +662,8 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetIngestRate()) {      lastComparison = TBaseHelper.compareTo(this.ingestRate, typedOther.ingestRate);
+    if (isSetIngestRate()) {
+      lastComparison = TBaseHelper.compareTo(this.ingestRate, typedOther.ingestRate);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -684,7 +672,8 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetQueryRate()) {      lastComparison = TBaseHelper.compareTo(this.queryRate, typedOther.queryRate);
+    if (isSetQueryRate()) {
+      lastComparison = TBaseHelper.compareTo(this.queryRate, typedOther.queryRate);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -693,21 +682,21 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetSplitCreationTime()) {      lastComparison = TBaseHelper.compareTo(this.splitCreationTime, typedOther.splitCreationTime);
+    if (isSetSplitCreationTime()) {
+      lastComparison = TBaseHelper.compareTo(this.splitCreationTime, typedOther.splitCreationTime);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
@@ -715,7 +704,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
           if (field.type == TType.STRUCT) {
             this.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
             this.extent.read(iprot);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -723,7 +712,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
           if (field.type == TType.STRUCT) {
             this.major = new ActionStats();
             this.major.read(iprot);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -731,7 +720,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
           if (field.type == TType.STRUCT) {
             this.minor = new ActionStats();
             this.minor.read(iprot);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -739,7 +728,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
           if (field.type == TType.STRUCT) {
             this.split = new ActionStats();
             this.split.read(iprot);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -747,7 +736,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
           if (field.type == TType.I64) {
             this.numEntries = iprot.readI64();
             setNumEntriesIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -755,7 +744,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
           if (field.type == TType.DOUBLE) {
             this.ingestRate = iprot.readDouble();
             setIngestRateIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -763,7 +752,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
           if (field.type == TType.DOUBLE) {
             this.queryRate = iprot.readDouble();
             setQueryRateIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -771,7 +760,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
           if (field.type == TType.I64) {
             this.splitCreationTime = iprot.readI64();
             setSplitCreationTimeIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -781,14 +770,14 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.extent != null) {
       oprot.writeFieldBegin(EXTENT_FIELD_DESC);
@@ -825,7 +814,7 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("TabletStats(");
@@ -871,10 +860,9 @@ public class TabletStats implements TBase<TabletStats, TabletStats._Fields>, jav
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

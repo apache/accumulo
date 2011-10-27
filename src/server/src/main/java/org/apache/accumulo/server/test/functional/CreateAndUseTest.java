@@ -104,7 +104,8 @@ public class CreateAndUseTest extends FunctionalTest {
     Scanner scanner2 = getConnector().createScanner("t2", Constants.NO_AUTHS);
     int count = 0;
     for (Entry<Key,Value> entry : scanner2) {
-      if (entry != null) count++;
+      if (entry != null)
+        count++;
     }
     
     if (count != 0) {
@@ -124,7 +125,8 @@ public class CreateAndUseTest extends FunctionalTest {
     bs.setRanges(ranges);
     count = 0;
     for (Entry<Key,Value> entry : bs) {
-      if (entry != null) count++;
+      if (entry != null)
+        count++;
     }
     
     if (count != 0) {

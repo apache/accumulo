@@ -66,7 +66,8 @@ public class CoordinateRecoveryTask implements Runnable {
     
     LogFile(String metadataEntry) {
       String parts[] = metadataEntry.split("/");
-      if (parts.length != 2) throw new RuntimeException("Bad log file name: " + metadataEntry);
+      if (parts.length != 2)
+        throw new RuntimeException("Bad log file name: " + metadataEntry);
       server = parts[0];
       file = parts[1];
     }
@@ -155,7 +156,8 @@ public class CoordinateRecoveryTask implements Runnable {
       
       if (elapsedMillis() > AccumuloConfiguration.getSystemConfiguration().getTimeInMillis(Property.MASTER_RECOVERY_MAXTIME)) {
         log.warn("Recovery taking too long, giving up");
-        if (sortJob != null) sortJob.killJob();
+        if (sortJob != null)
+          sortJob.killJob();
         return true;
       }
       
@@ -185,7 +187,8 @@ public class CoordinateRecoveryTask implements Runnable {
       sortJob = null;
       String failed = logFile.failedFileName();
       try {
-        if (createFailFlag) fs.create(new Path(failed)).close();
+        if (createFailFlag)
+          fs.create(new Path(failed)).close();
       } catch (IOException e) {
         log.warn("Unable to create recovery fail marker" + failed);
       }
@@ -212,7 +215,8 @@ public class CoordinateRecoveryTask implements Runnable {
       try {
         if (useMapReduce) {
           Path unsorted = new Path(logFile.unsortedFileName());
-          if (fs.exists(unsorted)) return fs.getFileStatus(unsorted).getLen();
+          if (fs.exists(unsorted))
+            return fs.getFileStatus(unsorted).getLen();
           return fs.getFileStatus(new Path(logFile.copyTempFileName())).getLen();
         } else {
           ContentSummary contentSummary = fs.getContentSummary(new Path(logFile.recoveryFileName()));
@@ -258,7 +262,8 @@ public class CoordinateRecoveryTask implements Runnable {
           log.info("Error looking for recovery files", ex);
         }
       }
-      if (found) continue;
+      if (found)
+        continue;
       finished = false;
       // Start recovering all the logs we could need
       for (String metadataEntry : set) {

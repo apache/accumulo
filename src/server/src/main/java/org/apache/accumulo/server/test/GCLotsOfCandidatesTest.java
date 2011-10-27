@@ -31,7 +31,8 @@ import org.apache.hadoop.io.Text;
 
 public class GCLotsOfCandidatesTest {
   public static void main(String args[]) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
-    if (args.length != 4) throw new IllegalArgumentException("Expected arguments: <instance name> <zookeeper server> <username> <password>");
+    if (args.length != 4)
+      throw new IllegalArgumentException("Expected arguments: <instance name> <zookeeper server> <username> <password>");
     
     Connector conn = new ZooKeeperInstance(args[0], args[1]).getConnector(args[2], args[3].getBytes());
     generateCandidates(conn);

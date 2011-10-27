@@ -33,7 +33,8 @@ public class PropertyTest {
   public void testProperties() {
     HashSet<String> validPrefixes = new HashSet<String>();
     for (Property prop : Property.values())
-      if (prop.getType().equals(PropertyType.PREFIX)) validPrefixes.add(prop.getKey());
+      if (prop.getType().equals(PropertyType.PREFIX))
+        validPrefixes.add(prop.getKey());
     
     HashSet<String> propertyNames = new HashSet<String>();
     for (Property prop : Property.values()) {

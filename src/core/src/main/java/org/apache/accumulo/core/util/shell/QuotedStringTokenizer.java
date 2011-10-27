@@ -56,20 +56,25 @@ public class QuotedStringTokenizer implements Iterable<String> {
       // if I ended up in an escape sequence, check for valid escapable character, and add it as a literal
       if (inEscapeSequence) {
         inEscapeSequence = false;
-        if (ch == 'x') hexChars = "";
-        else if (ch == ' ' || ch == '\'' || ch == '"' || ch == '\\') sb.append(ch);
-        else throw new BadArgumentException("can only escape single quotes, double quotes, the space character, the backslash, and hex input", input, i);
+        if (ch == 'x')
+          hexChars = "";
+        else if (ch == ' ' || ch == '\'' || ch == '"' || ch == '\\')
+          sb.append(ch);
+        else
+          throw new BadArgumentException("can only escape single quotes, double quotes, the space character, the backslash, and hex input", input, i);
       }
       // in a hex escape sequence
       else if (hexChars != null) {
         int digit = Character.digit(ch, 16);
-        if (digit < 0) throw new BadArgumentException("expected hex character", input, i);
+        if (digit < 0)
+          throw new BadArgumentException("expected hex character", input, i);
         hexChars += ch;
         if (hexChars.length() == 2) {
           byte b;
           try {
             b = (byte) (0xff & Short.parseShort(hexChars, 16));
-            if (!Character.isValidCodePoint(b)) throw new NumberFormatException();
+            if (!Character.isValidCodePoint(b))
+              throw new NumberFormatException();
           } catch (NumberFormatException e) {
             throw new BadArgumentException("unsupported non-ascii character", input, i);
           }
@@ -83,8 +88,10 @@ public class QuotedStringTokenizer implements Iterable<String> {
           inQuote = false;
           tokens.add(sb.toString());
           sb = new StringBuilder();
-        } else if (ch == '\\') inEscapeSequence = true;
-        else sb.append(ch);
+        } else if (ch == '\\')
+          inEscapeSequence = true;
+        else
+          sb.append(ch);
       }
       // not in a quote, either enter a quote, end a token, start escape, or continue a token
       else {
@@ -98,13 +105,18 @@ public class QuotedStringTokenizer implements Iterable<String> {
         } else if (ch == ' ' && sb.length() > 0) {
           tokens.add(sb.toString());
           sb = new StringBuilder();
-        } else if (ch == '\\') inEscapeSequence = true;
-        else if (ch != ' ') sb.append(ch);
+        } else if (ch == '\\')
+          inEscapeSequence = true;
+        else if (ch != ' ')
+          sb.append(ch);
       }
     }
-    if (inQuote) throw new BadArgumentException("missing terminating quote", input, input.length());
-    else if (inEscapeSequence || hexChars != null) throw new BadArgumentException("escape sequence not complete", input, input.length());
-    if (sb.length() > 0) tokens.add(sb.toString());
+    if (inQuote)
+      throw new BadArgumentException("missing terminating quote", input, input.length());
+    else if (inEscapeSequence || hexChars != null)
+      throw new BadArgumentException("escape sequence not complete", input, input.length());
+    if (sb.length() > 0)
+      tokens.add(sb.toString());
   }
   
   @Override

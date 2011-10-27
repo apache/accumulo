@@ -50,7 +50,8 @@ public class InsertWithBatchWriter {
     
     BatchWriter bw = null;
     
-    if (!connector.tableOperations().exists(tableName)) connector.tableOperations().create(tableName);
+    if (!connector.tableOperations().exists(tableName))
+      connector.tableOperations().create(tableName);
     bw = mtbw.getBatchWriter(tableName);
     
     Text colf = new Text("colfam");
@@ -61,7 +62,8 @@ public class InsertWithBatchWriter {
         m.put(colf, new Text(String.format("colqual_%d", j)), new Value((String.format("value_%d_%d", i, j)).getBytes()));
       }
       bw.addMutation(m);
-      if (i % 100 == 0) System.out.println(i);
+      if (i % 100 == 0)
+        System.out.println(i);
     }
     
     mtbw.close();

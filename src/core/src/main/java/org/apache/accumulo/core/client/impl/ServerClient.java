@@ -58,9 +58,9 @@ public class ServerClient {
     // add tservers
     for (String tserver : getZooCache(instance).getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       byte[] data = ZooLock.getLockData(getZooCache(instance), ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver);
-      if (data != null && !new String(data).equals("master")) servers.add(new ThriftTransportKey(new ServerServices(new String(data))
-          .getAddressString(Service.TSERV_CLIENT), instance.getConfiguration().getPort(Property.TSERV_CLIENTPORT), instance.getConfiguration().getTimeInMillis(
-          Property.GENERAL_RPC_TIMEOUT)));
+      if (data != null && !new String(data).equals("master"))
+        servers.add(new ThriftTransportKey(new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT), instance.getConfiguration().getPort(
+            Property.TSERV_CLIENTPORT), instance.getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)));
     }
     
     // add masters
@@ -75,7 +75,8 @@ public class ServerClient {
       opened = true;
       return client;
     } finally {
-      if (!opened) log.warn("Failed to find an available server in the list of servers: " + servers);
+      if (!opened)
+        log.warn("Failed to find an available server in the list of servers: " + servers);
     }
   }
   

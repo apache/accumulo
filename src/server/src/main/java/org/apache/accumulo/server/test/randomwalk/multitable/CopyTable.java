@@ -33,7 +33,8 @@ public class CopyTable extends Test {
     
     @SuppressWarnings("unchecked")
     ArrayList<String> tables = (ArrayList<String>) state.get("tableList");
-    if (tables.isEmpty()) return;
+    if (tables.isEmpty())
+      return;
     
     Random rand = new Random();
     String srcTableName = tables.remove(rand.nextInt(tables.size()));

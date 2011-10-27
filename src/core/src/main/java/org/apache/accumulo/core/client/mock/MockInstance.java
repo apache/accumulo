@@ -43,8 +43,10 @@ public class MockInstance implements Instance {
   
   public MockInstance(String instanceName) {
     synchronized (instances) {
-      if (instances.containsKey(instanceName)) acu = instances.get(instanceName);
-      else instances.put(instanceName, acu = new MockAccumulo());
+      if (instances.containsKey(instanceName))
+        acu = instances.get(instanceName);
+      else
+        instances.put(instanceName, acu = new MockAccumulo());
     }
     this.instanceName = instanceName;
   }
@@ -93,7 +95,8 @@ public class MockInstance implements Instance {
   
   @Override
   public AccumuloConfiguration getConfiguration() {
-    if (conf == null) conf = AccumuloConfiguration.getDefaultConfiguration();
+    if (conf == null)
+      conf = AccumuloConfiguration.getDefaultConfiguration();
     return conf;
   }
   

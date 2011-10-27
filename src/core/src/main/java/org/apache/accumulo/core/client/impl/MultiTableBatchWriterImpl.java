@@ -88,7 +88,8 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   public synchronized BatchWriter getBatchWriter(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ArgumentChecker.notNull(tableName);
     String tableId = Tables.getNameToIdMap(instance).get(tableName);
-    if (tableId == null) throw new TableNotFoundException(tableId, tableName, null);
+    if (tableId == null)
+      throw new TableNotFoundException(tableId, tableName, null);
     BatchWriter tbw = tableWriters.get(tableId);
     if (tbw == null) {
       tbw = new TableBatchWriter(tableId);

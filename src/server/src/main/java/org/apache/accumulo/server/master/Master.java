@@ -199,16 +199,15 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
   static final boolean X = true;
   static final boolean _ = false;
   static final boolean transitionOK[][] = {
-    //                          INITIAL HAVE_LOCK WAIT SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
-    /* INITIAL                  */{X,         X,   _,      _,      _,        _,          _,      X},
-    /* HAVE_LOCK                */{_,         X,   X,      _,      _,        _,          _,      X},
-    /* WAIT_FOR_TSERVERS        */{_,         _,   X,      X,      _,        _,          _,      X},
-    /* SAFE_MODE                */{_,         _,   _,      X,      X,        X,          _,      X},
-    /* NORMAL                   */{_,         _,   _,      X,      X,        X,          _,      X},
-    /* UNLOAD_METADATA_TABLETS  */{_,         _,   _,      X,      X,        X,          X,      X},
-    /* UNLOAD_ROOT_TABLET       */{_,         _,   _,      _,      _,        _,          X,      X},
-    /* STOP                     */{_,         _,   _,      _,      _,        _,          _,      X},};
-
+      // INITIAL HAVE_LOCK WAIT SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
+      /* INITIAL */{X, X, _, _, _, _, _, X},
+      /* HAVE_LOCK */{_, X, X, _, _, _, _, X},
+      /* WAIT_FOR_TSERVERS */{_, _, X, X, _, _, _, X},
+      /* SAFE_MODE */{_, _, _, X, X, X, _, X},
+      /* NORMAL */{_, _, _, X, X, X, _, X},
+      /* UNLOAD_METADATA_TABLETS */{_, _, _, X, X, X, X, X},
+      /* UNLOAD_ROOT_TABLET */{_, _, _, _, _, _, X, X},
+      /* STOP */{_, _, _, _, _, _, _, X},};
   
   synchronized private void setMasterState(MasterState newState) {
     if (!transitionOK[state.ordinal()][newState.ordinal()]) {
@@ -219,7 +218,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
     state = newState;
     nextEvent.somethingInterestingHappened("State changed from %s to %s", oldState, newState);
     // This frees the main thread and will cause the master to exit
-    if (newState == MasterState.STOP) clientService.stop();
+    if (newState == MasterState.STOP)
+      clientService.stop();
     
     if (oldState != newState && newState == MasterState.SAFE_MODE) {
       upgradeSettings();
@@ -239,7 +239,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
             fail = true;
           }
         }
-        if (fail) throw new Exception("Upgrade requires a clean shutdown");
+        if (fail)
+          throw new Exception("Upgrade requires a clean shutdown");
         
         // perform 1.2 -> 1.3 settings
         zset(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
@@ -349,7 +350,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
   }
   
   private void verify(AuthInfo credentials, boolean match) throws ThriftSecurityException {
-    if (!match) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    if (!match)
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     
   }
   
@@ -370,8 +372,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
   }
   
   private void checkTableDoesNotExist(String tableName, TableOperation operation) throws ThriftTableOperationException {
-    if (Tables.getNameToIdMap(instance).containsKey(tableName)) throw new ThriftTableOperationException(null, tableName, operation,
-        TableOperationExceptionType.EXISTS, null);
+    if (Tables.getNameToIdMap(instance).containsKey(tableName))
+      throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.EXISTS, null);
   }
   
   private void waitAround() {
@@ -592,7 +594,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
       for (TServerInstance instance : tserverSet.getCurrentServers()) {
         try {
           final TServerConnection server = tserverSet.getConnection(instance);
-          if (server != null) server.flush(masterLock, tableId);
+          if (server != null)
+            server.flush(masterLock, tableId);
         } catch (TException ex) {
           log.error(ex.toString());
         }
@@ -869,9 +872,11 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
       while (true) {
         boolean waitLonger = false;
         for (TabletGroupWatcher watcher : watchers) {
-          if (watcher.stats.lastScanFinished() < now) waitLonger = true;
+          if (watcher.stats.lastScanFinished() < now)
+            waitLonger = true;
         }
-        if (!waitLonger) break;
+        if (!waitLonger)
+          break;
         waitAround();
       }
       // Now the watchers won't assigning tablets for the deleted table
@@ -893,7 +898,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
         } finally {
           metaDataTableScanner.close();
         }
-        if (!done) waitAround();
+        if (!done)
+          waitAround();
       }
     }
     
@@ -966,10 +972,12 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
       case NORMAL:
         return TabletGoalState.HOSTED;
       case SAFE_MODE:
-        if (extent.getTableId().equals(METADATA_TABLE_ID)) return TabletGoalState.HOSTED;
+        if (extent.getTableId().equals(METADATA_TABLE_ID))
+          return TabletGoalState.HOSTED;
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_METADATA_TABLETS:
-        if (extent.equals(Constants.ROOT_TABLET_EXTENT)) return TabletGoalState.HOSTED;
+        if (extent.equals(Constants.ROOT_TABLET_EXTENT))
+          return TabletGoalState.HOSTED;
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_ROOT_TABLET:
         return TabletGoalState.UNASSIGNED;
@@ -982,7 +990,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
   
   TabletGoalState getTableGoalState(KeyExtent extent) {
     TableState tableState = TableManager.getInstance().getTableState(extent.getTableId().toString());
-    if (tableState == null) return TabletGoalState.DELETED;
+    if (tableState == null)
+      return TabletGoalState.DELETED;
     switch (tableState) {
       case DELETING:
         return TabletGoalState.DELETED;
@@ -1103,7 +1112,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
               }
               switch (state) {
                 case HOSTED:
-                  if (server.equals(migrations.get(tls.extent))) migrations.remove(tls.extent);
+                  if (server.equals(migrations.get(tls.extent)))
+                    migrations.remove(tls.extent);
                   break;
                 case ASSIGNED_TO_DEAD_SERVER:
                   assignedToDeadServers.add(tls);
@@ -1184,7 +1194,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
             log.warn(store.name() + " load balancer assigning tablet that was not nominated for assignment " + assignment.getKey());
           }
         }
-        if (!unassigned.isEmpty() && assignedOut.isEmpty()) log.warn("Load balancer failed to assign any tablets");
+        if (!unassigned.isEmpty() && assignedOut.isEmpty())
+          log.warn("Load balancer failed to assign any tablets");
       }
       
       if (assignments.size() > 0) {
@@ -1256,7 +1267,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
             case NORMAL:
               switch (getMasterState()) {
                 case SAFE_MODE:
-                  if (cycledOnce()) setMasterState(MasterState.NORMAL);
+                  if (cycledOnce())
+                    setMasterState(MasterState.NORMAL);
                 case NORMAL:
                   break;
               }
@@ -1276,7 +1288,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
                 case SAFE_MODE:
                   count = nonMetaDataTabletsAssignedOrHosted();
                   log.debug(String.format("There are %d non-metadata tablets assigned or hosted", count));
-                  if (count == 0) setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
+                  if (count == 0)
+                    setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
                   break;
                 case UNLOAD_METADATA_TABLETS:
                   count = assignedOrHosted(METADATA_TABLE_ID);
@@ -1284,11 +1297,13 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
                   // Assumes last tablet hosted is the root tablet;
                   // it's possible
                   // that's not the case (root tablet is offline?)
-                  if (count == 1) setMasterState(MasterState.UNLOAD_ROOT_TABLET);
+                  if (count == 1)
+                    setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                   break;
                 case UNLOAD_ROOT_TABLET:
                   count = assignedOrHosted(METADATA_TABLE_ID);
-                  if (count > 0) log.debug(String.format("The root tablet is still assigned or hosted"));
+                  if (count > 0)
+                    log.debug(String.format("The root tablet is still assigned or hosted"));
                   Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
                   if (count == 0) {
                     log.debug("stopping " + currentServers.size() + " tablet servers");
@@ -1301,7 +1316,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
                         log.error("Unable to halt server " + server + ": " + e);
                       }
                     }
-                    if (currentServers.size() == 0) setMasterState(MasterState.STOP);
+                    if (currentServers.size() == 0)
+                      setMasterState(MasterState.STOP);
                   }
                   break;
               }
@@ -1345,7 +1361,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
         try {
           log.debug("Telling " + tserver.getInstance() + " to use loggers " + entry.getValue());
           TServerConnection connection = tserverSet.getConnection(tserver.getInstance());
-          if (connection != null) connection.useLoggers(new HashSet<String>(entry.getValue()));
+          if (connection != null)
+            connection.useLoggers(new HashSet<String>(entry.getValue()));
         } catch (Exception ex) {
           log.warn("Unable to talk to " + tserver.getInstance(), ex);
         }
@@ -1376,7 +1393,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
     long start = System.currentTimeMillis();
     SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<TServerInstance,TabletServerStatus>();
     for (TServerInstance server : tserverSet.getCurrentServers()) {
-      if (serversToShutdown.contains(server)) continue;
+      if (serversToShutdown.contains(server))
+        continue;
       try {
         TabletServerStatus status = tserverSet.getConnection(server).getTableMap();
         result.put(server, status);
@@ -1579,7 +1597,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
   public Set<String> onlineTables() {
     Set<String> result = new HashSet<String>();
     if (getMasterState() != MasterState.NORMAL) {
-      if (getMasterState() != MasterState.UNLOAD_METADATA_TABLETS) result.add(Constants.METADATA_TABLE_ID);
+      if (getMasterState() != MasterState.UNLOAD_METADATA_TABLETS)
+        result.add(Constants.METADATA_TABLE_ID);
       return result;
     }
     TableManager manager = TableManager.getInstance();

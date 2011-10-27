@@ -67,7 +67,8 @@ public class SimpleBlockCache implements BlockCache {
   public synchronized byte[] getBlock(String blockName) {
     processQueue(); // clear out some crap.
     Ref ref = cache.get(blockName);
-    if (ref == null) return null;
+    if (ref == null)
+      return null;
     return ref.get();
   }
   

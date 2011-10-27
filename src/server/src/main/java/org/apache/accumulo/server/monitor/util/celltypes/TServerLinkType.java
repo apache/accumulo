@@ -25,13 +25,15 @@ public class TServerLinkType extends CellType<TabletServerStatus> {
   
   @Override
   public String format(Object obj) {
-    if (obj == null) return "-";
+    if (obj == null)
+      return "-";
     TabletServerStatus status = (TabletServerStatus) obj;
     return String.format("<a href='/tservers?s=%s'>%s</a>", status.name, displayName(status));
   }
   
   public static String displayName(TabletServerStatus status) {
-    if (status.name == null) return "--Unknown--";
+    if (status.name == null)
+      return "--Unknown--";
     InetSocketAddress address = AddressUtil.parseAddress(status.name, 0);
     return address.getHostName() + ":" + address.getPort();
   }

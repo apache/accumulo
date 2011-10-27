@@ -68,12 +68,13 @@ public class LogFileTest {
   }
   
   static void assertEqualsMutations(Mutation[] a, Mutation[] b) {
-    if (a.length == b.length) for (int i = 0; i < a.length; i++) {
-      assertEquals(a[i], b[i]);
-      Collection<ColumnUpdate> au = a[i].getUpdates();
-      Collection<ColumnUpdate> bu = a[i].getUpdates();
-      assertEquals(au, bu);
-    }
+    if (a.length == b.length)
+      for (int i = 0; i < a.length; i++) {
+        assertEquals(a[i], b[i]);
+        Collection<ColumnUpdate> au = a[i].getUpdates();
+        Collection<ColumnUpdate> bu = a[i].getUpdates();
+        assertEquals(au, bu);
+      }
   }
   
   @Test

@@ -5,37 +5,30 @@
  */
 package org.apache.accumulo.core.master.thrift;
 
-
 import org.apache.thrift.TEnum;
 
 public enum MasterState implements TEnum {
-  INITIAL(0),
-  HAVE_LOCK(1),
-  WAIT_FOR_TSERVERS(2),
-  SAFE_MODE(3),
-  NORMAL(4),
-  UNLOAD_METADATA_TABLETS(5),
-  UNLOAD_ROOT_TABLET(6),
-  STOP(7);
-
+  INITIAL(0), HAVE_LOCK(1), WAIT_FOR_TSERVERS(2), SAFE_MODE(3), NORMAL(4), UNLOAD_METADATA_TABLETS(5), UNLOAD_ROOT_TABLET(6), STOP(7);
+  
   private final int value;
-
+  
   private MasterState(int value) {
     this.value = value;
   }
-
+  
   /**
    * Get the integer value of this enum value, as defined in the Thrift IDL.
    */
   public int getValue() {
     return value;
   }
-
+  
   /**
    * Find a the enum type by its integer value, as defined in the Thrift IDL.
+   * 
    * @return null if the value is not found.
    */
-  public static MasterState findByValue(int value) { 
+  public static MasterState findByValue(int value) {
     switch (value) {
       case 0:
         return INITIAL;

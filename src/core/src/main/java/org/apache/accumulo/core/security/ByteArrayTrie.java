@@ -97,8 +97,10 @@ public class ByteArrayTrie {
     int entryPosition = objectTree.size();
     // add space for the header
     objectTree.add((byte) numTransitions);
-    if (accept) objectTree.add((byte) 0x1);
-    else objectTree.add((byte) 0x0);
+    if (accept)
+      objectTree.add((byte) 0x1);
+    else
+      objectTree.add((byte) 0x0);
     // add space for the transitions
     for (int i = 0; i < numTransitions * (1 + indexBytes); i++) {
       objectTree.add((byte) 0x0);
@@ -153,7 +155,8 @@ public class ByteArrayTrie {
   }
   
   private void transitionState(byte val, State s) {
-    if (s.failed) return;
+    if (s.failed)
+      return;
     int i = 0;
     int j = s.size - 1;
     while (i <= j) {

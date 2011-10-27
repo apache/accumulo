@@ -58,7 +58,8 @@ public class DefaultLoadBalancerTest {
       for (KeyExtent extent : extents) {
         String table = extent.getTableId().toString();
         TableInfo info = result.tableMap.get(table);
-        if (info == null) result.tableMap.put(table, info = new TableInfo());
+        if (info == null)
+          result.tableMap.put(table, info = new TableInfo());
         info.onlineTablets++;
         info.recs = info.onlineTablets;
         info.ingestRate = 123.;
@@ -191,9 +192,11 @@ public class DefaultLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
       balancer.balance(getAssignments(servers), migrations, migrationsOut);
-      if (migrationsOut.size() == 0) break;
+      if (migrationsOut.size() == 0)
+        break;
       for (TabletMigration migration : migrationsOut) {
-        if (servers.get(migration.oldServer).extents.remove(migration.tablet)) moved++;
+        if (servers.get(migration.oldServer).extents.remove(migration.tablet))
+          moved++;
         servers.get(migration.newServer).extents.add(migration.tablet);
       }
     }
@@ -233,9 +236,11 @@ public class DefaultLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
       balancer.balance(getAssignments(servers), migrations, migrationsOut);
-      if (migrationsOut.size() == 0) break;
+      if (migrationsOut.size() == 0)
+        break;
       for (TabletMigration migration : migrationsOut) {
-        if (servers.get(migration.oldServer).extents.remove(migration.tablet)) moved++;
+        if (servers.get(migration.oldServer).extents.remove(migration.tablet))
+          moved++;
         servers.get(migration.newServer).extents.add(migration.tablet);
       }
     }
@@ -248,15 +253,18 @@ public class DefaultLoadBalancerTest {
     int average = metadataTable.size() / servers.size();
     for (FakeTServer server : servers.values()) {
       int diff = server.extents.size() - average;
-      if (diff < 0) fail("average number of tablets is " + average + " but a server has " + server.extents.size());
-      if (diff > 1) fail("average number of tablets is " + average + " but a server has " + server.extents.size());
+      if (diff < 0)
+        fail("average number of tablets is " + average + " but a server has " + server.extents.size());
+      if (diff > 1)
+        fail("average number of tablets is " + average + " but a server has " + server.extents.size());
     }
     
     for (FakeTServer server : servers.values()) {
       Map<String,Integer> counts = new HashMap<String,Integer>();
       for (KeyExtent extent : server.extents) {
         String t = extent.getTableId().toString();
-        if (counts.get(t) == null) counts.put(t, 0);
+        if (counts.get(t) == null)
+          counts.put(t, 0);
         counts.put(t, counts.get(t) + 1);
       }
       for (Entry<String,Integer> entry : counts.entrySet()) {
@@ -270,7 +278,8 @@ public class DefaultLoadBalancerTest {
   }
   
   private static Text toText(String value) {
-    if (value != null) return new Text(value);
+    if (value != null)
+      return new Text(value);
     return null;
   }
   

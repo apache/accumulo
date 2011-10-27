@@ -76,7 +76,8 @@ public class BadIteratorMincTest extends FunctionalTest {
       count++;
     }
     
-    if (count != 1) throw new Exception("Did not see expected # entries " + count);
+    if (count != 1)
+      throw new Exception("Did not see expected # entries " + count);
     
     // remove the bad iterator
     getConnector().tableOperations().removeProperty("foo", Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.badi");
@@ -92,7 +93,8 @@ public class BadIteratorMincTest extends FunctionalTest {
       count++;
     }
     
-    if (count != 1) throw new Exception("Did not see expected # entries " + count);
+    if (count != 1)
+      throw new Exception("Did not see expected # entries " + count);
   }
   
 }

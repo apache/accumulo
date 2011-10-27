@@ -25,8 +25,10 @@ public class ColumnTest extends TestCase {
     Column[] col = createColumns();
     for (int i = 0; i < col.length; i++) {
       for (int j = 0; j < col.length; j++) {
-        if (i == j || (i == 0 && j == 1) || (i == 1 && j == 0)) assertTrue(col[i].equals(col[j]));
-        else assertFalse(col[i].equals(col[j]));
+        if (i == j || (i == 0 && j == 1) || (i == 1 && j == 0))
+          assertTrue(col[i].equals(col[j]));
+        else
+          assertFalse(col[i].equals(col[j]));
       }
     }
   }
@@ -35,8 +37,10 @@ public class ColumnTest extends TestCase {
     Column[] col = createColumns();
     for (int i = 0; i < col.length; i++) {
       for (int j = 0; j < col.length; j++) {
-        if (i == j || (i == 0 && j == 1) || (i == 1 && j == 0)) assertTrue(col[i].compareTo(col[j]) == 0);
-        else assertFalse(col[i].compareTo(col[j]) == 0);
+        if (i == j || (i == 0 && j == 1) || (i == 1 && j == 0))
+          assertTrue(col[i].compareTo(col[j]) == 0);
+        else
+          assertFalse(col[i].compareTo(col[j]) == 0);
       }
     }
   }

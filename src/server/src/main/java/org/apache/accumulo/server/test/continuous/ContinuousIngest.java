@@ -211,10 +211,12 @@ public class ContinuousIngest {
     int index = ingestInstanceId.length;
     val[index++] = ':';
     int added = FastFormat.toZeroPaddedString(val, index, count, 16, 16, EMPTY_BYTES);
-    if (added != 16) throw new RuntimeException(" " + added);
+    if (added != 16)
+      throw new RuntimeException(" " + added);
     index += 16;
     val[index++] = ':';
-    if (prevRow != null) System.arraycopy(prevRow, 0, val, index, prevRow.length);
+    if (prevRow != null)
+      System.arraycopy(prevRow, 0, val, index, prevRow.length);
     
     return new Value(val);
   }

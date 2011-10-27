@@ -31,13 +31,15 @@ public class TableLinkType extends CellType<String> {
   
   @Override
   public String format(Object obj) {
-    if (obj == null) return "-";
+    if (obj == null)
+      return "-";
     String tableId = (String) obj;
     return String.format("<a href='/tables?t=%s'>%s</a>", tableId, displayName(tableId));
   }
   
   private String displayName(String tableId) {
-    if (tableId == null) return "-";
+    if (tableId == null)
+      return "-";
     return Tables.getPrintableTableNameFromId(tidToNameMap, tableId);
   }
   

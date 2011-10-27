@@ -65,7 +65,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
   private void aggregateRowColumn(Aggregator aggr) throws IOException {
     // this function assumes that first value is not delete
     
-    if (iterator.getTopKey().isDeleted()) return;
+    if (iterator.getTopKey().isDeleted())
+      return;
     
     workKey.set(iterator.getTopKey());
     

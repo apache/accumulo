@@ -56,7 +56,8 @@ public class TableLoadBalancer extends TabletBalancer {
     
     String clazzName = AccumuloConfiguration.getTableConfiguration(HdfsZooInstance.getInstance().getInstanceID(), table).get(Property.TABLE_LOAD_BALANCER);
     
-    if (clazzName == null) clazzName = DefaultLoadBalancer.class.getName();
+    if (clazzName == null)
+      clazzName = DefaultLoadBalancer.class.getName();
     if (balancer != null) {
       if (clazzName.equals(balancer.getClass().getName()) == false) {
         // the balancer class for this table does not match the class specified in the configuration
@@ -112,14 +113,15 @@ public class TableLoadBalancer extends TabletBalancer {
   private TableOperations tops = null;
   
   private TableOperations getTableOperations() {
-    if (tops == null) try {
-      tops = HdfsZooInstance.getInstance().getConnector(SecurityConstants.systemCredentials.user, SecurityConstants.systemCredentials.password)
-          .tableOperations();
-    } catch (AccumuloException e) {
-      log.error("Unable to access table operations from within table balancer", e);
-    } catch (AccumuloSecurityException e) {
-      log.error("Unable to access table operations from within table balancer", e);
-    }
+    if (tops == null)
+      try {
+        tops = HdfsZooInstance.getInstance().getConnector(SecurityConstants.systemCredentials.user, SecurityConstants.systemCredentials.password)
+            .tableOperations();
+      } catch (AccumuloException e) {
+        log.error("Unable to access table operations from within table balancer", e);
+      } catch (AccumuloSecurityException e) {
+        log.error("Unable to access table operations from within table balancer", e);
+      }
     return tops;
   }
   
@@ -128,11 +130,13 @@ public class TableLoadBalancer extends TabletBalancer {
     long minBalanceTime = 5 * 1000;
     // Iterate over the tables and balance each of them
     TableOperations t = getTableOperations();
-    if (t == null) return minBalanceTime;
+    if (t == null)
+      return minBalanceTime;
     for (String s : t.tableIdMap().values()) {
       ArrayList<TabletMigration> newMigrations = new ArrayList<TabletMigration>();
       long tableBalanceTime = getBalancerForTable(s).balance(current, migrations, newMigrations);
-      if (tableBalanceTime < minBalanceTime) minBalanceTime = tableBalanceTime;
+      if (tableBalanceTime < minBalanceTime)
+        minBalanceTime = tableBalanceTime;
       migrationsOut.addAll(newMigrations);
     }
     return minBalanceTime;

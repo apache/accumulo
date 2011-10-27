@@ -69,7 +69,8 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
           servers.add(server.toString());
         mdScanner.setScanIteratorOption("tabletChange", "servers", StringUtil.join(servers, ","));
       }
-      if (onlineTables != null) mdScanner.setScanIteratorOption("tabletChange", "tables", StringUtil.join(onlineTables, ","));
+      if (onlineTables != null)
+        mdScanner.setScanIteratorOption("tabletChange", "tables", StringUtil.join(onlineTables, ","));
       iter = mdScanner.iterator();
     } catch (Exception ex) {
       throw new RuntimeException(ex);
@@ -92,7 +93,8 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   @Override
   public boolean hasNext() {
     boolean result = iter.hasNext();
-    if (!result) mdScanner.close();
+    if (!result)
+      mdScanner.close();
     return result;
   }
   

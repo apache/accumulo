@@ -262,7 +262,8 @@ public class MBinner {
         List<TabletLocation> locs = slo.lookupTablet(null, null, null, null);
         
         for (TabletLocation loc : locs) {
-          if (loc.tablet_extent.getEndRow() != null) trie.add(loc.tablet_extent.getEndRow(), loc);
+          if (loc.tablet_extent.getEndRow() != null)
+            trie.add(loc.tablet_extent.getEndRow(), loc);
         }
         
       } catch (Exception e) {
@@ -285,7 +286,8 @@ public class MBinner {
         /*
          * if(!tl.tablet_extent.contains(row)){ throw new RuntimeException(tl.tablet_extent+" does not contain "+row); }
          */
-        if (tl != null) notNull++;
+        if (tl != null)
+          notNull++;
       }
       
       System.out.println("notNull " + notNull);
@@ -336,7 +338,8 @@ public class MBinner {
         List<TabletLocation> locs = slo.lookupTablet(null, null, null, null);
         
         for (TabletLocation loc : locs) {
-          if (loc.tablet_extent.getEndRow() != null) mc.put(loc.tablet_extent.getEndRow(), loc);
+          if (loc.tablet_extent.getEndRow() != null)
+            mc.put(loc.tablet_extent.getEndRow(), loc);
         }
         
       } catch (Exception e) {
@@ -402,18 +405,24 @@ public class MBinner {
     
     DataGenerator generator;
     
-    if (args[4].equals("binary")) generator = new BinaryGenerator();
-    else if (args[4].equals("hex")) generator = new HexGenerator();
-    else throw new IllegalArgumentException(args[4]);
+    if (args[4].equals("binary"))
+      generator = new BinaryGenerator();
+    else if (args[4].equals("hex"))
+      generator = new HexGenerator();
+    else
+      throw new IllegalArgumentException(args[4]);
     
     TabletLocator tli;
     
-    if (args[5].equals("trie")) tli = new TrieLocator(trieDepth, new SimpleLocationObtainer(numTablets, rowLen, generator));
-    else if (args[5].equals("tree")) tli = new TreeLocator(new SimpleLocationObtainer(numTablets, rowLen, generator));
+    if (args[5].equals("trie"))
+      tli = new TrieLocator(trieDepth, new SimpleLocationObtainer(numTablets, rowLen, generator));
+    else if (args[5].equals("tree"))
+      tli = new TreeLocator(new SimpleLocationObtainer(numTablets, rowLen, generator));
     else if (args[5].equals("system")) {
       TabletLocator parent = new SimpleParent();
       tli = new TabletLocatorImpl(new Text("0"), parent, new SimpleLocationObtainer(numTablets, rowLen, generator));
-    } else throw new IllegalArgumentException(args[5]);
+    } else
+      throw new IllegalArgumentException(args[5]);
     
     for (int i = 0; i < numThreads; i++) {
       new Thread(new BinTask(tli, rowLen, generator)).start();

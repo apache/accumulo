@@ -118,7 +118,8 @@ public class TableOperationsImpl extends TableOperations {
    */
   public boolean exists(String tableName) {
     ArgumentChecker.notNull(tableName);
-    if (tableName.equals(Constants.METADATA_TABLE_NAME)) return true;
+    if (tableName.equals(Constants.METADATA_TABLE_NAME))
+      return true;
     
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Checking if table " + tableName + "exists...");
     boolean exists = Tables.getNameToIdMap(instance).containsKey(tableName);
@@ -250,27 +251,30 @@ public class TableOperationsImpl extends TableOperations {
       
       while (!successful) {
         
-        if (attempt > 0) UtilWaitThread.sleep(100);
+        if (attempt > 0)
+          UtilWaitThread.sleep(100);
         
         attempt++;
         
         TabletLocation tl = tabLocator.locateTablet(split, false, false);
         
-        if (tl == null) continue;
+        if (tl == null)
+          continue;
         
         try {
           TabletClientService.Iface client = ThriftUtil.getTServerClient(tl.tablet_location, instance.getConfiguration());
           try {
             OpTimer opTimer = null;
-            if (log.isTraceEnabled()) opTimer = new OpTimer(log, Level.TRACE).start("Splitting tablet " + tl.tablet_extent + " on " + tl.tablet_location
-                + " at " + split);
+            if (log.isTraceEnabled())
+              opTimer = new OpTimer(log, Level.TRACE).start("Splitting tablet " + tl.tablet_extent + " on " + tl.tablet_location + " at " + split);
             
             client.splitTablet(null, credentials, tl.tablet_extent.toThrift(), TextUtil.getBytes(split));
             
             // just split it, might as well invalidate it in the cache
             tabLocator.invalidateCache(tl.tablet_extent);
             
-            if (opTimer != null) opTimer.stop("Split tablet in %DURATION%");
+            if (opTimer != null)
+              opTimer.stop("Split tablet in %DURATION%");
           } finally {
             ThriftUtil.returnClient((TServiceClient) client);
           }
@@ -326,7 +330,8 @@ public class TableOperationsImpl extends TableOperations {
     ArrayList<Text> endRows = new ArrayList<Text>(tablets.size());
     
     for (KeyExtent ke : tablets)
-      if (ke.getEndRow() != null) endRows.add(ke.getEndRow());
+      if (ke.getEndRow() != null)
+        endRows.add(ke.getEndRow());
     
     return endRows;
   }
@@ -343,7 +348,8 @@ public class TableOperationsImpl extends TableOperations {
   public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException {
     Collection<Text> endRows = getSplits(tableName);
     
-    if (endRows.size() <= maxSplits) return endRows;
+    if (endRows.size() <= maxSplits)
+      return endRows;
     
     double r = (maxSplits + 1) / (double) (endRows.size());
     double pos = 0;
@@ -638,8 +644,10 @@ public class TableOperationsImpl extends TableOperations {
   public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     ArgumentChecker.notNull(tableName, range);
-    if (maxSplits < 1) throw new IllegalArgumentException("maximum splits must be >= 1");
-    if (maxSplits == 1) return Collections.singleton(range);
+    if (maxSplits < 1)
+      throw new IllegalArgumentException("maximum splits must be >= 1");
+    if (maxSplits == 1)
+      return Collections.singleton(range);
     
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     TabletLocator tl = TabletLocator.getInstance(instance, credentials, new Text(Tables.getTableId(instance, tableName)));

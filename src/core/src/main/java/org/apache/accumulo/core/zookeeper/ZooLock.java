@@ -50,8 +50,10 @@ public class ZooLock implements Watcher {
         throw new IllegalArgumentException("Malformed serialized lock id " + serializedLID);
       }
       
-      if (lastSlash == 0) path = root;
-      else path = root + "/" + sa[0].substring(0, lastSlash);
+      if (lastSlash == 0)
+        path = root;
+      else
+        path = root + "/" + sa[0].substring(0, lastSlash);
       node = sa[0].substring(lastSlash + 1);
       eid = Long.parseLong(sa[1]);
     }
@@ -208,7 +210,8 @@ public class ZooLock implements Watcher {
       
     });
     
-    if (stat == null) lockAsync(myLock, lw);
+    if (stat == null)
+      lockAsync(myLock, lw);
   }
   
   public synchronized void lockAsync(final AsyncLockWatcher lw, byte data[]) {
@@ -343,7 +346,8 @@ public class ZooLock implements Watcher {
     Collections.sort(children);
     
     String lockNode = children.get(0);
-    if (!lid.node.equals(lockNode)) return false;
+    if (!lid.node.equals(lockNode))
+      return false;
     
     Stat stat = zk.exists(lid.path + "/" + lid.node, false);
     return stat != null && stat.getEphemeralOwner() == lid.eid;
@@ -361,7 +365,8 @@ public class ZooLock implements Watcher {
     Collections.sort(children);
     
     String lockNode = children.get(0);
-    if (!lid.node.equals(lockNode)) return false;
+    if (!lid.node.equals(lockNode))
+      return false;
     
     Stat stat = new Stat();
     return zc.get(lid.path + "/" + lid.node, stat) != null && stat.getEphemeralOwner() == lid.eid;
@@ -420,7 +425,8 @@ public class ZooLock implements Watcher {
     String lockNode = children.get(0);
     
     Stat stat = new Stat();
-    if (zc.get(path + "/" + lockNode, stat) != null) return stat.getEphemeralOwner();
+    if (zc.get(path + "/" + lockNode, stat) != null)
+      return stat.getEphemeralOwner();
     return 0;
   }
   

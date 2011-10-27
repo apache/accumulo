@@ -23,7 +23,8 @@ public class EventCoordinator {
   private static final Logger log = Logger.getLogger(EventCoordinator.class);
   
   synchronized public void waitForSomethingInterestingToHappen(long millis) {
-    if (millis <= 0) return;
+    if (millis <= 0)
+      return;
     try {
       wait(millis);
     } catch (InterruptedException e) {

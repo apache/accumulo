@@ -156,7 +156,8 @@ public class TabletServerBatchWriter {
         public void run() {
           try {
             synchronized (TabletServerBatchWriter.this) {
-              if ((System.currentTimeMillis() - lastProcessingStartTime) > TabletServerBatchWriter.this.maxLatency) startProcessing();
+              if ((System.currentTimeMillis() - lastProcessingStartTime) > TabletServerBatchWriter.this.maxLatency)
+                startProcessing();
             }
           } catch (Throwable t) {
             updateUnknownErrors("Max latency task failed " + t.getMessage(), t);
@@ -167,7 +168,8 @@ public class TabletServerBatchWriter {
   }
   
   private synchronized void startProcessing() {
-    if (mutations.getMemoryUsed() == 0) return;
+    if (mutations.getMemoryUsed() == 0)
+      return;
     lastProcessingStartTime = System.currentTimeMillis();
     writer.addMutations(mutations);
     mutations = new MutationSet();
@@ -180,8 +182,10 @@ public class TabletServerBatchWriter {
   
   public synchronized void addMutation(String table, Mutation m) throws MutationsRejectedException {
     
-    if (closed) throw new IllegalStateException("Closed");
-    if (m.size() == 0) throw new IllegalArgumentException("Can not add empty mutations");
+    if (closed)
+      throw new IllegalStateException("Closed");
+    if (m.size() == 0)
+      throw new IllegalArgumentException("Can not add empty mutations");
     
     checkForFailures();
     
@@ -190,7 +194,8 @@ public class TabletServerBatchWriter {
     }
     
     // do checks again since things could have changed while waiting and not holding lock
-    if (closed) throw new IllegalStateException("Closed");
+    if (closed)
+      throw new IllegalStateException("Closed");
     checkForFailures();
     
     if (startTime == 0) {
@@ -234,7 +239,8 @@ public class TabletServerBatchWriter {
   
   public synchronized void flush() throws MutationsRejectedException {
     
-    if (closed) throw new IllegalStateException("Closed");
+    if (closed)
+      throw new IllegalStateException("Closed");
     
     Span span = Trace.start("flush");
     
@@ -271,7 +277,8 @@ public class TabletServerBatchWriter {
   
   public synchronized void close() throws MutationsRejectedException {
     
-    if (closed) return;
+    if (closed)
+      return;
     
     Span span = Trace.start("close");
     try {
@@ -490,7 +497,8 @@ public class TabletServerBatchWriter {
         }
         
         if (rf != null) {
-          if (log.isTraceEnabled()) log.trace("requeuing " + rf.size() + " failed mutations");
+          if (log.isTraceEnabled())
+            log.trace("requeuing " + rf.size() + " failed mutations");
           addFailedMutations(rf);
         }
       } catch (Throwable t) {
@@ -585,13 +593,14 @@ public class TabletServerBatchWriter {
           }
         }
         
-        if (log.isTraceEnabled()) for (Entry<KeyExtent,List<Mutation>> entry2 : entry.getValue().getMutations().entrySet())
-          count += entry2.getValue().size();
+        if (log.isTraceEnabled())
+          for (Entry<KeyExtent,List<Mutation>> entry2 : entry.getValue().getMutations().entrySet())
+            count += entry2.getValue().size();
         
       }
       
-      if (count > 0 && log.isTraceEnabled()) log.trace(String.format("Started sending %,d mutations to %,d tablet servers", count, binnedMutations.keySet()
-          .size()));
+      if (count > 0 && log.isTraceEnabled())
+        log.trace(String.format("Started sending %,d mutations to %,d tablet servers", count, binnedMutations.keySet().size()));
       
       // randomize order of servers
       ArrayList<String> servers = new ArrayList<String>(binnedMutations.keySet());
@@ -606,7 +615,8 @@ public class TabletServerBatchWriter {
     
     private synchronized TabletServerMutations getMutationsToSend(String server) {
       TabletServerMutations tsmuts = serversMutations.remove(server);
-      if (tsmuts == null) queued.remove(server);
+      if (tsmuts == null)
+        queued.remove(server);
       
       return tsmuts;
     }
@@ -656,8 +666,9 @@ public class TabletServerBatchWriter {
             long st1 = System.currentTimeMillis();
             failures = sendMutationsToTabletServer(location, mutationBatch);
             long st2 = System.currentTimeMillis();
-            if (log.isTraceEnabled()) log.trace("sent " + String.format("%,d", count) + " mutations to " + location + " in "
-                + String.format("%.2f secs (%,.2f mutations/sec) with %,d failures", (st2 - st1) / 1000.0, count / ((st2 - st1) / 1000.0), failures.size()));
+            if (log.isTraceEnabled())
+              log.trace("sent " + String.format("%,d", count) + " mutations to " + location + " in "
+                  + String.format("%.2f secs (%,.2f mutations/sec) with %,d failures", (st2 - st1) / 1000.0, count / ((st2 - st1) / 1000.0), failures.size()));
             
             long successBytes = 0;
             for (Entry<KeyExtent,List<Mutation>> entry : mutationBatch.entrySet()) {
@@ -678,7 +689,8 @@ public class TabletServerBatchWriter {
             span.stop();
           }
         } catch (IOException e) {
-          if (log.isTraceEnabled()) log.trace("failed to send mutations to " + location + " : " + e.getMessage());
+          if (log.isTraceEnabled())
+            log.trace("failed to send mutations to " + location + " : " + e.getMessage());
           
           HashSet<String> tables = new HashSet<String>();
           for (KeyExtent ke : mutationBatch.keySet())

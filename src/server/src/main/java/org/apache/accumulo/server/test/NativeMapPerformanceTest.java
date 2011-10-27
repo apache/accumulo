@@ -55,10 +55,14 @@ public class NativeMapPerformanceTest {
     SortedMap<Key,Value> tm = null;
     NativeMap nm = null;
     
-    if (mapType.equals("SKIP_LIST")) tm = new ConcurrentSkipListMap<Key,Value>();
-    else if (mapType.equals("TREE_MAP")) tm = Collections.synchronizedSortedMap(new TreeMap<Key,Value>());
-    else if (mapType.equals("NATIVE_MAP")) nm = new NativeMap();
-    else throw new IllegalArgumentException(" map type must be SKIP_LIST, TREE_MAP, or NATIVE_MAP");
+    if (mapType.equals("SKIP_LIST"))
+      tm = new ConcurrentSkipListMap<Key,Value>();
+    else if (mapType.equals("TREE_MAP"))
+      tm = Collections.synchronizedSortedMap(new TreeMap<Key,Value>());
+    else if (mapType.equals("NATIVE_MAP"))
+      nm = new NativeMap();
+    else
+      throw new IllegalArgumentException(" map type must be SKIP_LIST, TREE_MAP, or NATIVE_MAP");
     
     Random rand = new Random(19);
     
@@ -150,11 +154,13 @@ public class NativeMapPerformanceTest {
     // delete
     long tds = System.currentTimeMillis();
     
-    if (nm != null) nm.delete();
+    if (nm != null)
+      nm.delete();
     
     long tde = System.currentTimeMillis();
     
-    if (tm != null) tm.clear();
+    if (tm != null)
+      tm.clear();
     
     System.gc();
     System.gc();

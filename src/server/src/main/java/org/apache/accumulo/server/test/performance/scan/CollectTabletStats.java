@@ -84,12 +84,18 @@ public class CollectTabletStats {
     int index = 0;
     String processedArgs[] = new String[8];
     for (int i = 0; i < args.length; i++) {
-      if (args[i].equals("-i")) iterations = Integer.parseInt(args[++i]);
-      else if (args[i].equals("-t")) numThreads = Integer.parseInt(args[++i]);
-      else if (args[i].equals("-l")) selectLocalTablets = true;
-      else if (args[i].equals("-f")) selectLocalTablets = false;
-      else if (args[i].equals("-c")) columnsTmp = args[++i].split(",");
-      else processedArgs[index++] = args[i];
+      if (args[i].equals("-i"))
+        iterations = Integer.parseInt(args[++i]);
+      else if (args[i].equals("-t"))
+        numThreads = Integer.parseInt(args[++i]);
+      else if (args[i].equals("-l"))
+        selectLocalTablets = true;
+      else if (args[i].equals("-f"))
+        selectLocalTablets = false;
+      else if (args[i].equals("-c"))
+        columnsTmp = args[++i].split(",");
+      else
+        processedArgs[index++] = args[i];
     }
     
     final String columns[] = columnsTmp;
@@ -433,8 +439,9 @@ public class CollectTabletStats {
     
     systemIter = new SystemScanIterator(delIter, authorizations, defaultLabels, columnSet);
     
-    if (useTableIterators) return IteratorUtil.loadIterators(IteratorScope.scan, systemIter, ke,
-        AccumuloConfiguration.getTableConfiguration(HdfsZooInstance.getInstance().getInstanceID(), ke.getTableId().toString()), ssiList, ssio, null);
+    if (useTableIterators)
+      return IteratorUtil.loadIterators(IteratorScope.scan, systemIter, ke,
+          AccumuloConfiguration.getTableConfiguration(HdfsZooInstance.getInstance().getInstanceID(), ke.getTableId().toString()), ssiList, ssio, null);
     return systemIter;
   }
   
@@ -515,7 +522,8 @@ public class CollectTabletStats {
     int count = 0;
     
     for (Entry<Key,Value> entry : scanner) {
-      if (entry != null) count++;
+      if (entry != null)
+        count++;
     }
     
     return count;

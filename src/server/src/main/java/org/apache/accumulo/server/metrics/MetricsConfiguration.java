@@ -93,7 +93,8 @@ public class MetricsConfiguration {
    */
   private class MetricsConfigListener implements ConfigurationListener {
     public void configurationChanged(ConfigurationEvent event) {
-      if (event.getType() == AbstractFileConfiguration.EVENT_RELOAD) needsReloading = true;
+      if (event.getType() == AbstractFileConfiguration.EVENT_RELOAD)
+        needsReloading = true;
     }
   }
   
@@ -106,12 +107,14 @@ public class MetricsConfiguration {
   }
   
   public Configuration getEnvironmentConfiguration() {
-    if (null == envConfig) envConfig = new EnvironmentConfiguration();
+    if (null == envConfig)
+      envConfig = new EnvironmentConfiguration();
     return envConfig;
   }
   
   public Configuration getSystemConfiguration() {
-    if (null == sysConfig) sysConfig = new SystemConfiguration();
+    if (null == sysConfig)
+      sysConfig = new SystemConfiguration();
     return sysConfig;
   }
   
@@ -127,14 +130,15 @@ public class MetricsConfiguration {
         notFoundCount++;
       }
     }
-    if (null == config || needsReloading) synchronized (lock) {
-      if (needsReloading) {
-        loadConfiguration();
-      } else if (null == config) {
-        loadConfiguration();
+    if (null == config || needsReloading)
+      synchronized (lock) {
+        if (needsReloading) {
+          loadConfiguration();
+        } else if (null == config) {
+          loadConfiguration();
+        }
+        needsReloading = false;
       }
-      needsReloading = false;
-    }
     return config;
   }
   
@@ -145,7 +149,8 @@ public class MetricsConfiguration {
       // Try to load the metrics properties file
       File mFile = new File(ACUHOME, metricsFileName);
       if (mFile.exists()) {
-        if (log.isDebugEnabled()) log.debug("Loading config file: " + mFile.getAbsolutePath());
+        if (log.isDebugEnabled())
+          log.debug("Loading config file: " + mFile.getAbsolutePath());
         try {
           xConfig = new XMLConfiguration(mFile);
           xConfig.append(getEnvironmentConfiguration());
@@ -166,13 +171,15 @@ public class MetricsConfiguration {
           return;
         }
       } else {
-        if (!alreadyWarned) log.warn("Unable to find metrics file: " + mFile.getAbsolutePath());
+        if (!alreadyWarned)
+          log.warn("Unable to find metrics file: " + mFile.getAbsolutePath());
         alreadyWarned = true;
         notFound = true;
         return;
       }
     } else {
-      if (!alreadyWarned) log.warn("ACCUMULO_HOME variable not found in environment. Metrics collection will be disabled.");
+      if (!alreadyWarned)
+        log.warn("ACCUMULO_HOME variable not found in environment. Metrics collection will be disabled.");
       alreadyWarned = true;
       notFound = true;
       return;
@@ -181,7 +188,8 @@ public class MetricsConfiguration {
       config = xConfig.interpolatedConfiguration();
       // set the enabled boolean from the configuration
       enabled = config.getBoolean(enabledName);
-      if (log.isDebugEnabled()) log.debug("Metrics collection enabled=" + enabled);
+      if (log.isDebugEnabled())
+        log.debug("Metrics collection enabled=" + enabled);
     } else {
       enabled = false;
     }
@@ -190,7 +198,8 @@ public class MetricsConfiguration {
   
   public boolean isEnabled() {
     // Force reload if necessary
-    if (null == getMetricsConfiguration()) return false;
+    if (null == getMetricsConfiguration())
+      return false;
     return enabled;
   }
   
@@ -201,7 +210,8 @@ public class MetricsConfiguration {
       tsb.append("\n");
       String k = (String) keys.next();
       Object v = config.getString(k);
-      if (null == v) v = config.getList(k);
+      if (null == v)
+        v = config.getList(k);
       tsb.append(k, v.toString());
     }
     return tsb.toString();

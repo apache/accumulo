@@ -131,10 +131,12 @@ public class ContinuousWalk {
           row = null;
         }
         
-        if (sleepTime > 0) Thread.sleep(sleepTime);
+        if (sleepTime > 0)
+          Thread.sleep(sleepTime);
       }
       
-      if (sleepTime > 0) Thread.sleep(sleepTime);
+      if (sleepTime > 0)
+        Thread.sleep(sleepTime);
     }
   }
   
@@ -152,7 +154,8 @@ public class ContinuousWalk {
     for (Entry<Key,Value> entry : scanner) {
       pr = getPrevRow(entry.getValue());
       count++;
-      if (pr != null) break;
+      if (pr != null)
+        break;
     }
     
     long t2 = System.currentTimeMillis();
@@ -163,7 +166,8 @@ public class ContinuousWalk {
   }
   
   static int getPrevRowOffset(byte val[]) {
-    if (val.length == 0) throw new IllegalArgumentException();
+    if (val.length == 0)
+      throw new IllegalArgumentException();
     
     if (val[val.length - 1] != ':' && val[val.length - 17] == ':') {
       return val.length - 16;

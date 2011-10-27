@@ -44,7 +44,8 @@ public class Accumulo {
   private static Integer dataVersion = null;
   
   public static synchronized int getAccumuloPersistentVersion() {
-    if (dataVersion != null) return dataVersion;
+    if (dataVersion != null)
+      return dataVersion;
     
     Configuration conf = CachedConfiguration.getInstance();
     try {
@@ -84,14 +85,18 @@ public class Accumulo {
     // Setup logging.
     System.setProperty("org.apache.accumulo.core.dir.home", System.getenv("ACCUMULO_HOME"));
     
-    if (System.getenv("ACCUMULO_LOG_DIR") != null) System.setProperty("org.apache.accumulo.core.dir.log", System.getenv("ACCUMULO_LOG_DIR"));
-    else System.setProperty("org.apache.accumulo.core.dir.log", System.getenv("ACCUMULO_HOME") + "/logs/");
+    if (System.getenv("ACCUMULO_LOG_DIR") != null)
+      System.setProperty("org.apache.accumulo.core.dir.log", System.getenv("ACCUMULO_LOG_DIR"));
+    else
+      System.setProperty("org.apache.accumulo.core.dir.log", System.getenv("ACCUMULO_HOME") + "/logs/");
     
     String localhost = InetAddress.getLocalHost().getHostName();
     System.setProperty("org.apache.accumulo.core.ip.localhost.hostname", localhost);
     
-    if (System.getenv("ACCUMULO_LOG_HOST") != null) System.setProperty("org.apache.accumulo.core.host.log", System.getenv("ACCUMULO_LOG_HOST"));
-    else System.setProperty("org.apache.accumulo.core.host.log", localhost);
+    if (System.getenv("ACCUMULO_LOG_HOST") != null)
+      System.setProperty("org.apache.accumulo.core.host.log", System.getenv("ACCUMULO_LOG_HOST"));
+    else
+      System.setProperty("org.apache.accumulo.core.host.log", localhost);
     
     // Use a specific log config, if it exists
     String logConfig = String.format("%s/conf/%s_logger.xml", System.getenv("ACCUMULO_HOME"), application);
@@ -131,7 +136,8 @@ public class Accumulo {
     try {
       String directories[] = {Constants.ZCONFIG, Constants.ZTRACERS, Constants.ZDOOMEDSERVERS};
       for (String dir : directories)
-        if (!ZooUtil.exists(dir)) ZooUtil.putPersistentData(ZooUtil.getRoot(instanceId) + dir, new byte[] {}, NodeExistsPolicy.SKIP);
+        if (!ZooUtil.exists(dir))
+          ZooUtil.putPersistentData(ZooUtil.getRoot(instanceId) + dir, new byte[] {}, NodeExistsPolicy.SKIP);
     } catch (Exception ex) {
       log.error("Unable to create config location in zookeeper");
     }

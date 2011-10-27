@@ -68,9 +68,11 @@ public class DefaultServlet extends BasicServlet {
   private void getResource(HttpServletRequest req, HttpServletResponse resp) throws IOException {
     String path = req.getRequestURI();
     
-    if (path.endsWith(".jpg")) resp.setContentType("image/jpeg");
+    if (path.endsWith(".jpg"))
+      resp.setContentType("image/jpeg");
     
-    if (path.endsWith(".html")) resp.setContentType("text/html");
+    if (path.endsWith(".html"))
+      resp.setContentType("text/html");
     
     path = path.substring(1);
     InputStream data = BasicServlet.class.getClassLoader().getResourceAsStream(path);
@@ -85,7 +87,8 @@ public class DefaultServlet extends BasicServlet {
   
   private void getDocResource(HttpServletRequest req, final HttpServletResponse resp) throws IOException {
     final String path = req.getRequestURI();
-    if (path.endsWith(".html")) resp.setContentType("text/html");
+    if (path.endsWith(".html"))
+      resp.setContentType("text/html");
     
     // Allow user to only read any file in docs directory
     final String aHome = System.getenv("ACCUMULO_HOME");
@@ -113,17 +116,24 @@ public class DefaultServlet extends BasicServlet {
       }
     }, acc);
     
-    if (e != null) throw e;
+    if (e != null)
+      throw e;
   }
   
   @Override
   public void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-    if (req.getRequestURI().startsWith("/web")) getResource(req, resp);
-    else if (req.getRequestURI().equals("/docs") || req.getRequestURI().equals("/docs/apidocs")) super.doGet(req, resp);
-    else if (req.getRequestURI().startsWith("/docs")) getDocResource(req, resp);
-    else if (req.getRequestURI().startsWith("/monitor")) resp.sendRedirect("/master");
-    else if (req.getRequestURI().startsWith("/errors")) resp.sendRedirect("/problems");
-    else super.doGet(req, resp);
+    if (req.getRequestURI().startsWith("/web"))
+      getResource(req, resp);
+    else if (req.getRequestURI().equals("/docs") || req.getRequestURI().equals("/docs/apidocs"))
+      super.doGet(req, resp);
+    else if (req.getRequestURI().startsWith("/docs"))
+      getDocResource(req, resp);
+    else if (req.getRequestURI().startsWith("/monitor"))
+      resp.sendRedirect("/master");
+    else if (req.getRequestURI().startsWith("/errors"))
+      resp.sendRedirect("/problems");
+    else
+      super.doGet(req, resp);
   }
   
   public static final int GRAPH_WIDTH = 450;
@@ -144,11 +154,14 @@ public class DefaultServlet extends BasicServlet {
     
     String sep = "";
     for (Pair<Long,? extends Number> point : (List<Pair<Long,? extends Number>>) data) {
-      if (point.getSecond() == null) continue;
+      if (point.getSecond() == null)
+        continue;
       
       String y;
-      if (point.getSecond() instanceof Double) y = String.format("%1.2f", point.getSecond());
-      else y = point.getSecond().toString();
+      if (point.getSecond() instanceof Double)
+        y = String.format("%1.2f", point.getSecond());
+      else
+        y = point.getSecond().toString();
       
       sb.append(sep);
       sep = ",";
@@ -156,7 +169,8 @@ public class DefaultServlet extends BasicServlet {
     }
     
     String opts = "lines: { show: true }";
-    if (points) opts = "points: { show: true, radius: 1 }";
+    if (points)
+      opts = "points: { show: true, radius: 1 }";
     
     sb.append("    ];\n");
     sb.append("    $.plot($(\"#" + id + "\"), [{ data: d1, " + opts

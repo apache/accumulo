@@ -241,7 +241,8 @@ public class Shell {
     CommandLine cl;
     try {
       cl = new BasicParser().parse(opts, args);
-      if (cl.getArgs().length > 0) throw new ParseException("Unrecognized arguments: " + cl.getArgList());
+      if (cl.getArgs().length > 0)
+        throw new ParseException("Unrecognized arguments: " + cl.getArgList());
       
       if (cl.hasOption(helpOpt.getOpt())) {
         configError = true;
@@ -253,8 +254,8 @@ public class Shell {
       authTimeout = Integer.parseInt(cl.getOptionValue(authTimeoutOpt.getLongOpt(), DEFAULT_AUTH_TIMEOUT)) * 60 * 1000;
       disableAuthTimeout = cl.hasOption(disableAuthTimeoutOpt.getLongOpt());
       
-      if (cl.hasOption(zooKeeperInstance.getOpt()) && cl.getOptionValues(zooKeeperInstance.getOpt()).length != 2) throw new MissingArgumentException(
-          zooKeeperInstance);
+      if (cl.hasOption(zooKeeperInstance.getOpt()) && cl.getOptionValues(zooKeeperInstance.getOpt()).length != 2)
+        throw new MissingArgumentException(zooKeeperInstance);
       
     } catch (Exception e) {
       configError = true;
@@ -265,7 +266,8 @@ public class Shell {
     
     // get the options that were parsed
     String sysUser = System.getProperty("user.name");
-    if (sysUser == null) sysUser = "root";
+    if (sysUser == null)
+      sysUser = "root";
     String user = cl.getOptionValue(usernameOption.getOpt(), sysUser);
     
     String passw = cl.getOptionValue(passwOption.getOpt(), null);
@@ -295,7 +297,8 @@ public class Shell {
       
       this.reader = new ConsoleReader();
       
-      if (passw == null) passw = reader.readLine("Enter current password for '" + user + "'@'" + instance.getInstanceName() + "': ", '*');
+      if (passw == null)
+        passw = reader.readLine("Enter current password for '" + user + "'@'" + instance.getInstanceName() + "': ", '*');
       if (passw == null) {
         reader.printNewline();
         configError = true;
@@ -316,7 +319,8 @@ public class Shell {
     if (cl.hasOption(execfileOption.getOpt())) {
       execFile = cl.getOptionValue(execfileOption.getOpt());
       verbose = false;
-    } else if (cl.hasOption(execfileVerboseOption.getOpt())) execFile = cl.getOptionValue(execfileVerboseOption.getOpt());
+    } else if (cl.hasOption(execfileVerboseOption.getOpt()))
+      execFile = cl.getOptionValue(execfileVerboseOption.getOpt());
     
     rootToken = new Token();
     commandFactory = new CommandFactory();
@@ -334,15 +338,18 @@ public class Shell {
   }
   
   public int start() throws IOException {
-    if (configError) return 1;
+    if (configError)
+      return 1;
     
     String input;
-    if (verbose) printInfo();
+    if (verbose)
+      printInfo();
     
     String configDir = System.getenv("HOME") + "/.accumulo";
     String historyPath = configDir + "/shell_history.txt";
     File accumuloDir = new File(configDir);
-    if (!accumuloDir.exists() && !accumuloDir.mkdirs()) log.warn("Unable to make directory for history at " + accumuloDir);
+    if (!accumuloDir.exists() && !accumuloDir.mkdirs())
+      log.warn("Unable to make directory for history at " + accumuloDir);
     try {
       History history = new History();
       history.setHistoryFile(new File(historyPath));
@@ -362,11 +369,13 @@ public class Shell {
     }
     
     while (true) {
-      if (exit) return exitCode;
+      if (exit)
+        return exitCode;
       
       // If tab completion is true we need to reset
       if (tabCompletion) {
-        if (userCompletor != null) reader.removeCompletor(userCompletor);
+        if (userCompletor != null)
+          reader.removeCompletor(userCompletor);
         
         userCompletor = setupCompletion();
         reader.addCompletor(userCompletor);
@@ -392,9 +401,12 @@ public class Shell {
   private void printVerboseInfo() throws IOException {
     StringBuilder sb = new StringBuilder("-\n");
     sb.append("- Current user: ").append(connector.whoami()).append("\n");
-    if (execFile != null) sb.append("- Executing commands from: ").append(execFile).append("\n");
-    if (disableAuthTimeout) sb.append("- Authorization timeout: disabled\n");
-    else sb.append("- Authorization timeout: ").append(String.format("%.2fs\n", authTimeout / 1000.0));
+    if (execFile != null)
+      sb.append("- Executing commands from: ").append(execFile).append("\n");
+    if (disableAuthTimeout)
+      sb.append("- Authorization timeout: disabled\n");
+    else
+      sb.append("- Authorization timeout: ").append(String.format("%.2fs\n", authTimeout / 1000.0));
     sb.append("- Debug: ").append(isDebuggingEnabled() ? "on" : "off").append("\n");
     if (formatterClass != null && formatterClass != DefaultFormatter.class) {
       sb.append("- Active formatter class: ").append(formatterClass.getSimpleName()).append("\n");
@@ -433,7 +445,8 @@ public class Shell {
       ++exitCode;
       return;
     }
-    if (fields.length == 0) return;
+    if (fields.length == 0)
+      return;
     
     String command = fields[0];
     fields = fields.length > 1 ? Arrays.copyOfRange(fields, 1, fields.length) : new String[] {};
@@ -461,7 +474,8 @@ public class Shell {
               printException(e);
             }
             
-            if (authFailed) reader.printString("Invalid password. ");
+            if (authFailed)
+              reader.printString("Invalid password. ");
           } while (authFailed);
           lastUserActivity = System.currentTimeMillis();
         }
@@ -496,7 +510,8 @@ public class Shell {
         printConstraintViolationException(e);
       } catch (TableNotFoundException e) {
         ++exitCode;
-        if (tableName.equals(e.getTableName())) tableName = "";
+        if (tableName.equals(e.getTableName()))
+          tableName = "";
         printException(e);
       } catch (ParseException e) {
         // not really an error if the exception is a missing required
@@ -505,7 +520,8 @@ public class Shell {
           ++exitCode;
           printException(e);
         }
-        if (sc != null) sc.printHelp();
+        if (sc != null)
+          sc.printHelp();
       } catch (Exception e) {
         ++exitCode;
         printException(e);
@@ -672,11 +688,13 @@ public class Shell {
           Command sci = (Command) t;
           attr = new Attributes();
           attr.location = sci.getClass().getName();
-          if (attr.location == null || attr.location.isEmpty()) continue;
+          if (attr.location == null || attr.location.isEmpty())
+            continue;
           attr.codetype = CodeType.JAVA;
           
           // Don't want to add duplicate entries
-          if (!commandTable.containsKey(sci.getName())) commandTable.put(sci.getName(), attr);
+          if (!commandTable.containsKey(sci.getName()))
+            commandTable.put(sci.getName(), attr);
         }
       }
     }
@@ -938,7 +956,8 @@ public class Shell {
         return 0;
       } // user canceled
       
-      if (!password.equals(passwordConfirm)) throw new IllegalArgumentException("Passwords do not match");
+      if (!password.equals(passwordConfirm))
+        throw new IllegalArgumentException("Passwords do not match");
       
       Authorizations authorizations = parseAuthorizations(cl.hasOption(scanOptAuths.getOpt()) ? cl.getOptionValue(scanOptAuths.getOpt()) : "");
       shellState.connector.securityOperations().createUser(user, password.getBytes(), authorizations);
@@ -978,7 +997,8 @@ public class Shell {
     @Override
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException {
       String user = cl.getArgs()[0];
-      if (shellState.connector.whoami().equals(user)) throw new BadArgumentException("You cannot delete yourself", fullCommand, fullCommand.indexOf(user));
+      if (shellState.connector.whoami().equals(user))
+        throw new BadArgumentException("You cannot delete yourself", fullCommand, fullCommand.indexOf(user));
       shellState.connector.securityOperations().dropUser(user);
       log.debug("Deleted user " + user);
       return 0;
@@ -1023,8 +1043,8 @@ public class Shell {
         return 0;
       } // user canceled
       
-      if (!shellState.connector.securityOperations().authenticateUser(currentUser, oldPassword.getBytes())) throw new AccumuloSecurityException(user,
-          SecurityErrorCode.BAD_CREDENTIALS);
+      if (!shellState.connector.securityOperations().authenticateUser(currentUser, oldPassword.getBytes()))
+        throw new AccumuloSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
       
       password = shellState.reader.readLine("Enter new password for '" + user + "': ", '*');
       if (password == null) {
@@ -1037,13 +1057,15 @@ public class Shell {
         return 0;
       } // user canceled
       
-      if (!password.equals(passwordConfirm)) throw new IllegalArgumentException("Passwords do not match");
+      if (!password.equals(passwordConfirm))
+        throw new IllegalArgumentException("Passwords do not match");
       
       byte[] pass = password.getBytes();
       shellState.connector.securityOperations().changeUserPassword(user, pass);
       // update the current credentials if the password changed was for
       // the current user
-      if (shellState.connector.whoami().equals(user)) shellState.credentials = new AuthInfo(user, pass, shellState.connector.getInstance().getInstanceID());
+      if (shellState.connector.whoami().equals(user))
+        shellState.credentials = new AuthInfo(user, pass, shellState.connector.getInstance().getInstanceID());
       log.debug("Changed password for user " + user);
       return 0;
     }
@@ -1416,7 +1438,8 @@ public class Shell {
         ArrayList<String> output = new ArrayList<String>();
         for (String cmd : shellState.commandFactory.getCommandTable().keySet()) {
           Command c = shellState.commandFactory.getCommandByName(cmd);
-          if (!(c instanceof HiddenCommand)) output.add(String.format("%-" + i + "s  -  %s", c.getName(), c.description()));
+          if (!(c instanceof HiddenCommand))
+            output.add(String.format("%-" + i + "s  -  %s", c.getName(), c.description()));
         }
         shellState.printLines(output.iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
       }
@@ -1463,9 +1486,12 @@ public class Shell {
   public static class DebugCommand extends Command {
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws IOException {
       if (cl.getArgs().length == 1) {
-        if (cl.getArgs()[0].equalsIgnoreCase("on")) Shell.setDebugging(true);
-        else if (cl.getArgs()[0].equalsIgnoreCase("off")) Shell.setDebugging(false);
-        else throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+        if (cl.getArgs()[0].equalsIgnoreCase("on"))
+          Shell.setDebugging(true);
+        else if (cl.getArgs()[0].equalsIgnoreCase("off"))
+          Shell.setDebugging(false);
+        else
+          throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
       } else if (cl.getArgs().length == 0) {
         shellState.reader.printString(Shell.isDebuggingEnabled() ? "on\n" : "off\n");
       } else {
@@ -1540,7 +1566,8 @@ public class Shell {
           } else {
             shellState.reader.printString("Not tracing\n");
           }
-        } else throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+        } else
+          throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
       } else if (cl.getArgs().length == 0) {
         shellState.reader.printString(Trace.isTracing() ? "on\n" : "off\n");
       } else {
@@ -1565,18 +1592,24 @@ public class Shell {
     private Option nameOpt;
     
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-      if (!cl.hasOption(tableOpt.getOpt())) shellState.checkTableState();
+      if (!cl.hasOption(tableOpt.getOpt()))
+        shellState.checkTableState();
       
       String tableName = cl.getOptionValue(tableOpt.getOpt(), shellState.tableName);
-      if (tableName != null && !shellState.connector.tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (tableName != null && !shellState.connector.tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
       
       String name = cl.getOptionValue(nameOpt.getOpt());
       
       ArrayList<IteratorScope> scopes = new ArrayList<IteratorScope>(3);
-      if (cl.hasOption(mincScopeOpt.getOpt())) scopes.add(IteratorScope.minc);
-      if (cl.hasOption(majcScopeOpt.getOpt())) scopes.add(IteratorScope.majc);
-      if (cl.hasOption(scanScopeOpt.getOpt())) scopes.add(IteratorScope.scan);
-      if (scopes.isEmpty()) throw new IllegalArgumentException("You must select at least one scope to delete");
+      if (cl.hasOption(mincScopeOpt.getOpt()))
+        scopes.add(IteratorScope.minc);
+      if (cl.hasOption(majcScopeOpt.getOpt()))
+        scopes.add(IteratorScope.majc);
+      if (cl.hasOption(scanScopeOpt.getOpt()))
+        scopes.add(IteratorScope.scan);
+      if (scopes.isEmpty())
+        throw new IllegalArgumentException("You must select at least one scope to delete");
       
       boolean noneDeleted = true;
       String tableId = shellState.connector.tableOperations().tableIdMap().get(tableName);
@@ -1593,7 +1626,8 @@ public class Shell {
           }
         }
       }
-      if (noneDeleted) log.warn("no iterators found that match your criteria");
+      if (noneDeleted)
+        log.warn("no iterators found that match your criteria");
       return 0;
     }
     
@@ -1649,20 +1683,26 @@ public class Shell {
     
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
         IOException {
-      if (!cl.hasOption(tableOpt.getOpt())) shellState.checkTableState();
+      if (!cl.hasOption(tableOpt.getOpt()))
+        shellState.checkTableState();
       
       String tableName = cl.getOptionValue(tableOpt.getOpt(), shellState.tableName);
-      if (tableName != null && !shellState.connector.tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (tableName != null && !shellState.connector.tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
       
       int priority = Integer.parseInt(cl.getOptionValue(priorityOpt.getOpt()));
       
       Map<String,String> options = new HashMap<String,String>();
       boolean filter = false;
       String classname = cl.getOptionValue(classnameTypeOpt.getOpt());
-      if (cl.hasOption(aggTypeOpt.getOpt())) classname = AggregatingIterator.class.getName();
-      else if (cl.hasOption(regexTypeOpt.getOpt())) classname = RegExIterator.class.getName();
-      else if (cl.hasOption(versionTypeOpt.getOpt())) classname = VersioningIterator.class.getName();
-      else if (cl.hasOption(nolabelTypeOpt.getOpt())) classname = NoLabelIterator.class.getName();
+      if (cl.hasOption(aggTypeOpt.getOpt()))
+        classname = AggregatingIterator.class.getName();
+      else if (cl.hasOption(regexTypeOpt.getOpt()))
+        classname = RegExIterator.class.getName();
+      else if (cl.hasOption(versionTypeOpt.getOpt()))
+        classname = VersioningIterator.class.getName();
+      else if (cl.hasOption(nolabelTypeOpt.getOpt()))
+        classname = NoLabelIterator.class.getName();
       else if (cl.hasOption(filterTypeOpt.getOpt()) || classname.equals(FilteringIterator.class.getName())) {
         filter = true;
         classname = FilteringIterator.class.getName();
@@ -1698,10 +1738,14 @@ public class Shell {
     protected void setTableProperties(CommandLine cl, Shell shellState, String tableName, int priority, Map<String,String> options, String classname,
         String name) throws AccumuloException, AccumuloSecurityException {
       ArrayList<IteratorScope> scopes = new ArrayList<IteratorScope>(3);
-      if (cl.hasOption(mincScopeOpt.getOpt())) scopes.add(IteratorScope.minc);
-      if (cl.hasOption(majcScopeOpt.getOpt())) scopes.add(IteratorScope.majc);
-      if (cl.hasOption(scanScopeOpt.getOpt())) scopes.add(IteratorScope.scan);
-      if (scopes.isEmpty()) throw new IllegalArgumentException("You must select at least one scope to configure");
+      if (cl.hasOption(mincScopeOpt.getOpt()))
+        scopes.add(IteratorScope.minc);
+      if (cl.hasOption(majcScopeOpt.getOpt()))
+        scopes.add(IteratorScope.majc);
+      if (cl.hasOption(scanScopeOpt.getOpt()))
+        scopes.add(IteratorScope.scan);
+      if (scopes.isEmpty())
+        throw new IllegalArgumentException("You must select at least one scope to configure");
       
       for (IteratorScope scope : scopes) {
         String stem = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name(), name);
@@ -1731,7 +1775,8 @@ public class Shell {
       }
       
       IteratorOptions itopts = skvi.describeOptions();
-      if (itopts.name == null) throw new IllegalArgumentException(className + " described its default distinguishing name as null");
+      if (itopts.name == null)
+        throw new IllegalArgumentException(className + " described its default distinguishing name as null");
       
       Map<String,String> localOptions = new HashMap<String,String>();
       do {
@@ -1754,7 +1799,8 @@ public class Shell {
               throw new IOException("Input stream closed");
             }
             
-            if (input.length() > 0) localOptions.put(e.getKey(), input);
+            if (input.length() > 0)
+              localOptions.put(e.getKey(), input);
           }
         }
         
@@ -1771,7 +1817,8 @@ public class Shell {
                 throw new IOException("Input stream closed");
               }
               
-              if (input.length() == 0) break;
+              if (input.length() == 0)
+                break;
               
               String[] sa = input.split(" ", 2);
               localOptions.put(sa[0], sa[1]);
@@ -1780,7 +1827,8 @@ public class Shell {
         }
         
         options.putAll(localOptions);
-        if (!skvi.validateOptions(options)) reader.printString("invalid options for " + clazz.getName() + "\n");
+        if (!skvi.validateOptions(options))
+          reader.printString("invalid options for " + clazz.getName() + "\n");
         
       } while (!skvi.validateOptions(options));
       return itopts.name;
@@ -1880,7 +1928,8 @@ public class Shell {
         if (!IteratorScope.majc.name().equals(o.getOpt()) && !IteratorScope.minc.name().equals(o.getOpt()) && !IteratorScope.scan.name().equals(o.getOpt())) {
           modifiedOptions.addOption(o);
           OptionGroup group = parentOptions.getOptionGroup(o);
-          if (group != null) groups.add(group);
+          if (group != null)
+            groups.add(group);
         }
       }
       for (OptionGroup group : groups) {
@@ -1898,22 +1947,28 @@ public class Shell {
     
     @Override
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-      if (!cl.hasOption(tableOpt.getOpt())) shellState.checkTableState();
+      if (!cl.hasOption(tableOpt.getOpt()))
+        shellState.checkTableState();
       
       String tableName = cl.getOptionValue(tableOpt.getOpt(), shellState.tableName);
-      if (tableName != null && !shellState.connector.tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (tableName != null && !shellState.connector.tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
       
       if (cl.hasOption(allOpt.getOpt())) {
         Map<String,Map<String,String>> tableIterators = shellState.scanIteratorOptions.remove(tableName);
-        if (tableIterators == null) log.info("No scan iterators set on table " + tableName);
-        else log.info("Removed the following scan iterators from table " + tableName + ":" + tableIterators.keySet());
+        if (tableIterators == null)
+          log.info("No scan iterators set on table " + tableName);
+        else
+          log.info("Removed the following scan iterators from table " + tableName + ":" + tableIterators.keySet());
       } else if (cl.hasOption(nameOpt.getOpt())) {
         String name = cl.getOptionValue(nameOpt.getOpt());
         Map<String,Map<String,String>> tableIterators = shellState.scanIteratorOptions.get(tableName);
         if (tableIterators != null) {
           Map<String,String> options = tableIterators.remove(name);
-          if (options == null) log.info("No iterator named " + name + " found for table " + tableName);
-          else log.info("Removed scan iterator " + name + " from table " + tableName);
+          if (options == null)
+            log.info("No iterator named " + name + " found for table " + tableName);
+          else
+            log.info("Removed scan iterator " + name + " from table " + tableName);
         } else {
           log.info("No iterator named " + name + " found for table " + tableName);
         }
@@ -1970,43 +2025,48 @@ public class Shell {
       reader = shellState.reader;
       
       String tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (tableName != null && !shellState.connector.tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (tableName != null && !shellState.connector.tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
       
       if (cl.hasOption(deleteOpt.getOpt())) {
         // delete property from table
         String property = cl.getOptionValue(deleteOpt.getOpt());
-        if (property.contains("=")) throw new BadArgumentException("Invalid '=' operator in delete operation.", fullCommand, fullCommand.indexOf('='));
+        if (property.contains("="))
+          throw new BadArgumentException("Invalid '=' operator in delete operation.", fullCommand, fullCommand.indexOf('='));
         if (tableName != null) {
-          if (!Property.isValidTablePropertyKey(property)) log.warn("Invalid per-table property : " + property
-              + ", still removing from zookeeper if its there.");
+          if (!Property.isValidTablePropertyKey(property))
+            log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if its there.");
           shellState.connector.tableOperations().removeProperty(tableName, property);
           log.debug("Successfully deleted table configuration option.");
         } else {
-          if (!Property.isValidZooPropertyKey(property)) log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if its there.");
+          if (!Property.isValidZooPropertyKey(property))
+            log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if its there.");
           shellState.connector.instanceOperations().removeProperty(property);
           log.debug("Successfully deleted system configuration option");
         }
       } else if (cl.hasOption(setOpt.getOpt())) {
         // set property on table
         String property = cl.getOptionValue(setOpt.getOpt()), value = null;
-        if (!property.contains("=")) throw new BadArgumentException("Missing '=' operator in set operation.", fullCommand, fullCommand.indexOf(property));
+        if (!property.contains("="))
+          throw new BadArgumentException("Missing '=' operator in set operation.", fullCommand, fullCommand.indexOf(property));
         
         String pair[] = property.split("=", 2);
         property = pair[0];
         value = pair[1];
         
         if (tableName != null) {
-          if (!Property.isValidTablePropertyKey(property)) throw new BadArgumentException("Invalid per-table property.", fullCommand,
-              fullCommand.indexOf(property));
+          if (!Property.isValidTablePropertyKey(property))
+            throw new BadArgumentException("Invalid per-table property.", fullCommand, fullCommand.indexOf(property));
           
-          if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) new ColumnVisibility(value); // validate that it is a valid
+          if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey()))
+            new ColumnVisibility(value); // validate that it is a valid
           // expression
           
           shellState.connector.tableOperations().setProperty(tableName, property, value);
           log.debug("Successfully set table configuration option.");
         } else {
-          if (!Property.isValidZooPropertyKey(property)) throw new BadArgumentException("Property cannot be modified in zookeepr", fullCommand,
-              fullCommand.indexOf(property));
+          if (!Property.isValidZooPropertyKey(property))
+            throw new BadArgumentException("Property cannot be modified in zookeepr", fullCommand, fullCommand.indexOf(property));
           
           shellState.connector.instanceOperations().setProperty(property, value);
           log.debug("Successfully set system configuration option");
@@ -2026,14 +2086,17 @@ public class Shell {
           defaults.put(defaultEntry.getKey(), defaultEntry.getValue());
         
         Iterable<Entry<String,String>> acuconf = AccumuloConfiguration.getSystemConfiguration();
-        if (tableName != null) acuconf = shellState.connector.tableOperations().getProperties(tableName);
+        if (tableName != null)
+          acuconf = shellState.connector.tableOperations().getProperties(tableName);
         
         for (Entry<String,String> propEntry : acuconf) {
           String key = propEntry.getKey();
           // only show properties with similar names to that
           // specified, or all of them if none specified
-          if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) continue;
-          if (tableName != null && !Property.isValidTablePropertyKey(key)) continue;
+          if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt())))
+            continue;
+          if (tableName != null && !Property.isValidTablePropertyKey(key))
+            continue;
           COL2 = Math.max(COL2, propEntry.getKey().length() + 3);
         }
         
@@ -2045,9 +2108,11 @@ public class Shell {
           
           // only show properties with similar names to that
           // specified, or all of them if none specified
-          if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) continue;
+          if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt())))
+            continue;
           
-          if (tableName != null && !Property.isValidTablePropertyKey(key)) continue;
+          if (tableName != null && !Property.isValidTablePropertyKey(key))
+            continue;
           
           String siteVal = siteConfig.get(key);
           String sysVal = systemConfig.get(key);
@@ -2074,7 +2139,8 @@ public class Shell {
           }
           
           // show per-table value only if it is different (overridden)
-          if (tableName != null && !curVal.equals(sysVal)) printConfLine(output, "table", printed ? "   @override" : key, curVal);
+          if (tableName != null && !curVal.equals(sysVal))
+            printConfLine(output, "table", printed ? "   @override" : key, curVal);
         }
         printConfFooter(output);
         shellState.printLines(output.iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
@@ -2089,7 +2155,8 @@ public class Shell {
     }
     
     private void printConfLine(ArrayList<String> output, String s1, String s2, String s3) {
-      if (s2.length() < COL2) s2 += " " + repeat(".", COL2 - s2.length() - 1);
+      if (s2.length() < COL2)
+        s2 += " " + repeat(".", COL2 - s2.length() - 1);
       output.add(String.format("%-" + COL1 + "s | %-" + COL2 + "s | %s", s1, s2,
           s3.replace("\n", "\n" + repeat(" ", COL1 + 1) + "|" + repeat(" ", COL2 + 2) + "|" + " ")));
     }
@@ -2229,7 +2296,8 @@ public class Shell {
     
     protected void setScanIterators(Shell shellState, Scanner scanner) throws IOException {
       Map<String,Map<String,String>> tableIterators = shellState.scanIteratorOptions.get(shellState.tableName);
-      if (tableIterators == null) return;
+      if (tableIterators == null)
+        return;
       
       for (Entry<String,Map<String,String>> entry : tableIterators.entrySet()) {
         Map<String,String> options = new HashMap<String,String>(entry.getValue());
@@ -2254,8 +2322,10 @@ public class Shell {
       if (cl.hasOption(scanOptColumns.getOpt())) {
         for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
           String sa[] = a.split(":", 2);
-          if (sa.length == 1) scanner.fetchColumnFamily(new Text(a));
-          else scanner.fetchColumn(new Text(sa[0]), new Text(sa[1]));
+          if (sa.length == 1)
+            scanner.fetchColumnFamily(new Text(a));
+          else
+            scanner.fetchColumn(new Text(sa[0]), new Text(sa[1]));
         }
       }
     }
@@ -2359,7 +2429,8 @@ public class Shell {
     private Option numThreadsOpt;
     
     protected void setUpIterator(int prio, String name, String term, BatchScanner scanner) throws IOException {
-      if (prio < 0) throw new IllegalArgumentException("Priority < 0 " + prio);
+      if (prio < 0)
+        throw new IllegalArgumentException("Priority < 0 " + prio);
       
       scanner.setScanIterators(prio, GrepIterator.class.getName(), name);
       scanner.setScanIteratorOption(name, "term", term);
@@ -2369,7 +2440,8 @@ public class Shell {
         IOException, MissingArgumentException {
       shellState.checkTableState();
       
-      if (cl.getArgList().isEmpty()) throw new MissingArgumentException("No terms specified");
+      if (cl.getArgList().isEmpty())
+        throw new MissingArgumentException("No terms specified");
       
       // handle first argument, if present, the authorizations list to
       // scan with
@@ -2423,7 +2495,8 @@ public class Shell {
   public static class EGrepCommand extends GrepCommand {
     @Override
     protected void setUpIterator(int prio, String name, String term, BatchScanner scanner) throws IOException {
-      if (prio < 0) throw new IllegalArgumentException("Priority < 0 " + prio);
+      if (prio < 0)
+        throw new IllegalArgumentException("Priority < 0 " + prio);
       
       scanner.setScanIterators(prio, RegExIterator.class.getName(), name);
       scanner.setScanIteratorOption(name, RegExFilter.ROW_REGEX, term);
@@ -2456,12 +2529,14 @@ public class Shell {
       
       if (cl.hasOption(deleteOptAuths.getOpt())) {
         ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(deleteOptAuths.getOpt()));
-        if (cl.hasOption(timestampOpt.getOpt())) m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le,
-            Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
-        else m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le);
-      } else if (cl.hasOption(timestampOpt.getOpt())) m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]),
-          Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
-      else m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]));
+        if (cl.hasOption(timestampOpt.getOpt()))
+          m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
+        else
+          m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le);
+      } else if (cl.hasOption(timestampOpt.getOpt()))
+        m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
+      else
+        m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]));
       
       BatchWriter bw = shellState.connector.createBatchWriter(shellState.tableName, m.estimatedMemoryUsed() + 0L, 0L, 1);
       bw.addMutation(m);
@@ -2509,16 +2584,19 @@ public class Shell {
       SortedSet<String> tablesToFlush = new TreeSet<String>();
       if (cl.hasOption(optTablePattern.getOpt())) {
         for (String table : shellState.connector.tableOperations().list())
-          if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) tablesToFlush.add(table);
+          if (table.matches(cl.getOptionValue(optTablePattern.getOpt())))
+            tablesToFlush.add(table);
       } else if (cl.hasOption(optTableName.getOpt())) {
         tablesToFlush.add(cl.getOptionValue(optTableName.getOpt()));
       }
       
-      if (tablesToFlush.isEmpty()) log.warn("No tables found that match your criteria");
+      if (tablesToFlush.isEmpty())
+        log.warn("No tables found that match your criteria");
       
       // flush the tables
       for (String tableName : tablesToFlush) {
-        if (!shellState.connector.tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+        if (!shellState.connector.tableOperations().exists(tableName))
+          throw new TableNotFoundException(null, tableName, null);
         flush(shellState, tableName);
       }
       return 0;
@@ -2618,17 +2696,20 @@ public class Shell {
         java.util.Scanner file = new java.util.Scanner(new File(f));
         while (file.hasNextLine()) {
           line = file.nextLine();
-          if (!line.isEmpty()) splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
+          if (!line.isEmpty())
+            splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
         }
       } else {
-        if (cl.getArgList().isEmpty()) throw new MissingArgumentException("No split points specified");
+        if (cl.getArgList().isEmpty())
+          throw new MissingArgumentException("No split points specified");
         
         for (String s : cl.getArgs()) {
           splits.add(new Text(s));
         }
       }
       
-      if (!shellState.connector.tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.connector.tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
       
       shellState.connector.tableOperations().addSplits(tableName, splits);
       
@@ -2778,12 +2859,16 @@ public class Shell {
         ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(insertOptAuths.getOpt()));
         log.debug("Authorization label will be set to: " + le.toString());
         
-        if (cl.hasOption(timestampOpt.getOpt())) m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le,
-            Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())), new Value(cl.getArgs()[3].getBytes()));
-        else m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le, new Value(cl.getArgs()[3].getBytes()));
-      } else if (cl.hasOption(timestampOpt.getOpt())) m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]),
-          Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())), new Value(cl.getArgs()[3].getBytes()));
-      else m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), new Value(cl.getArgs()[3].getBytes()));
+        if (cl.hasOption(timestampOpt.getOpt()))
+          m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())),
+              new Value(cl.getArgs()[3].getBytes()));
+        else
+          m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le, new Value(cl.getArgs()[3].getBytes()));
+      } else if (cl.hasOption(timestampOpt.getOpt()))
+        m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())),
+            new Value(cl.getArgs()[3].getBytes()));
+      else
+        m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), new Value(cl.getArgs()[3].getBytes()));
       
       BatchWriter bw = shellState.connector.createBatchWriter(shellState.tableName, m.estimatedMemoryUsed() + 0L, 0L, 1);
       bw.addMutation(m);
@@ -2791,11 +2876,13 @@ public class Shell {
         bw.close();
       } catch (MutationsRejectedException e) {
         ArrayList<String> lines = new ArrayList<String>();
-        if (e.getAuthorizationFailures().isEmpty() == false) lines.add("	Authorization Failures:");
+        if (e.getAuthorizationFailures().isEmpty() == false)
+          lines.add("	Authorization Failures:");
         for (KeyExtent extent : e.getAuthorizationFailures()) {
           lines.add("		" + extent);
         }
-        if (e.getConstraintViolationSummaries().isEmpty() == false) lines.add("	Constraint Failures:");
+        if (e.getConstraintViolationSummaries().isEmpty() == false)
+          lines.add("	Constraint Failures:");
         for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
           lines.add("		" + cvs.toString());
         }
@@ -2840,7 +2927,8 @@ public class Shell {
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
         IOException {
       String tableName = cl.getArgs()[0];
-      if (shellState.tableName.equals(tableName)) shellState.tableName = "";
+      if (shellState.tableName.equals(tableName))
+        shellState.tableName = "";
       shellState.connector.tableOperations().delete(tableName);
       return 0;
     }
@@ -2888,7 +2976,8 @@ public class Shell {
       }
       
       String tableName = cl.getArgs()[0];
-      if (shellState.connector.tableOperations().exists(tableName)) throw new TableExistsException(null, tableName, null);
+      if (shellState.connector.tableOperations().exists(tableName))
+        throw new TableExistsException(null, tableName, null);
       
       SortedSet<Text> partitions = new TreeSet<Text>();
       List<AggregatorConfiguration> aggregators = new ArrayList<AggregatorConfiguration>();
@@ -2910,10 +2999,11 @@ public class Shell {
           EscapeTokenizer colToks = new EscapeTokenizer(col, ":");
           Iterator<String> tokIter = colToks.iterator();
           Text cf = null, cq = null;
-          if (colToks.count() < 1 || colToks.count() > 2) throw new BadArgumentException("column must be in the format cf[:cq]", fullCommand,
-              fullCommand.indexOf(col));
+          if (colToks.count() < 1 || colToks.count() > 2)
+            throw new BadArgumentException("column must be in the format cf[:cq]", fullCommand, fullCommand.indexOf(col));
           cf = new Text(tokIter.next());
-          if (colToks.count() == 2) cq = new Text(tokIter.next());
+          if (colToks.count() == 2)
+            cq = new Text(tokIter.next());
           
           aggregators.add(new AggregatorConfiguration(cf, cq, className));
         }
@@ -2925,21 +3015,25 @@ public class Shell {
         java.util.Scanner file = new java.util.Scanner(new File(f));
         while (file.hasNextLine()) {
           line = file.nextLine();
-          if (!line.isEmpty()) partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
+          if (!line.isEmpty())
+            partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
         }
       } else if (cl.hasOption(createTableOptCopySplits.getOpt())) {
         String oldTable = cl.getOptionValue(createTableOptCopySplits.getOpt());
-        if (!shellState.connector.tableOperations().exists(oldTable)) throw new TableNotFoundException(null, oldTable, null);
+        if (!shellState.connector.tableOperations().exists(oldTable))
+          throw new TableNotFoundException(null, oldTable, null);
         partitions.addAll(shellState.connector.tableOperations().getSplits(oldTable));
       }
       
       if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
         String oldTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
-        if (!shellState.connector.tableOperations().exists(oldTable)) throw new TableNotFoundException(null, oldTable, null);
+        if (!shellState.connector.tableOperations().exists(oldTable))
+          throw new TableNotFoundException(null, oldTable, null);
       }
       
       TimeType timeType = TimeType.MILLIS;
-      if (cl.hasOption(createTableOptTimeLogical.getOpt())) timeType = TimeType.LOGICAL;
+      if (cl.hasOption(createTableOptTimeLogical.getOpt()))
+        timeType = TimeType.LOGICAL;
       
       shellState.connector.tableOperations().create(tableName, timeType); // create
       // table
@@ -2961,8 +3055,8 @@ public class Shell {
         if (shellState.connector.tableOperations().exists(tableName)) {
           for (Entry<String,String> entry : AccumuloConfiguration.getTableConfiguration(shellState.connector.getInstance().getInstanceID(),
               shellState.connector.tableOperations().tableIdMap().get(cl.getOptionValue(createTableOptCopyConfig.getOpt()))))
-            if (Property.isValidTablePropertyKey(entry.getKey())) shellState.connector.tableOperations().setProperty(tableName, entry.getKey(),
-                entry.getValue());
+            if (Property.isValidTablePropertyKey(entry.getKey()))
+              shellState.connector.tableOperations().setProperty(tableName, entry.getKey(), entry.getValue());
         }
       }
       return 0;
@@ -3029,7 +3123,8 @@ public class Shell {
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
         TableExistsException {
       shellState.connector.tableOperations().rename(cl.getArgs()[0], cl.getArgs()[1]);
-      if (shellState.tableName.equals(cl.getArgs()[0])) shellState.tableName = cl.getArgs()[1];
+      if (shellState.tableName.equals(cl.getArgs()[0]))
+        shellState.tableName = cl.getArgs()[1];
       return 0;
     }
     
@@ -3092,7 +3187,8 @@ public class Shell {
     @Override
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       String tableName = cl.getArgs()[0];
-      if (!shellState.connector.tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.connector.tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
       
       shellState.tableName = tableName;
       return 0;
@@ -3148,7 +3244,8 @@ public class Shell {
     @Override
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws IOException {
       // custom clear screen, so I don't have to redraw the prompt twice
-      if (!shellState.reader.getTerminal().isANSISupported()) throw new IOException("Terminal does not support ANSI commands");
+      if (!shellState.reader.getTerminal().isANSISupported())
+        throw new IOException("Terminal does not support ANSI commands");
       
       // send the ANSI code to clear the screen
       shellState.reader.printString(((char) 27) + "[2J");
@@ -3177,10 +3274,12 @@ public class Shell {
     
     @Override
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-      if (cl.hasOption(resetOption.getOpt())) shellState.formatterClass = DefaultFormatter.class;
-      else if (cl.hasOption(formatterClassOption.getOpt())) shellState.formatterClass = AccumuloClassLoader.loadClass(
-          cl.getOptionValue(formatterClassOption.getOpt()), Formatter.class);
-      else if (cl.hasOption(listClassOption.getOpt())) shellState.reader.printString(shellState.formatterClass.getName() + "\n");
+      if (cl.hasOption(resetOption.getOpt()))
+        shellState.formatterClass = DefaultFormatter.class;
+      else if (cl.hasOption(formatterClassOption.getOpt()))
+        shellState.formatterClass = AccumuloClassLoader.loadClass(cl.getOptionValue(formatterClassOption.getOpt()), Formatter.class);
+      else if (cl.hasOption(listClassOption.getOpt()))
+        shellState.reader.printString(shellState.formatterClass.getName() + "\n");
       return 0;
     }
     
@@ -3304,7 +3403,8 @@ public class Shell {
     @Override
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws IOException {
       shellState.printInfo();
-      if (cl.hasOption(verboseOption.getOpt())) shellState.printVerboseInfo();
+      if (cl.hasOption(verboseOption.getOpt()))
+        shellState.printVerboseInfo();
       return 0;
     }
     
@@ -3343,7 +3443,8 @@ public class Shell {
         shellState.reader.printString("  CC        LL        OO    OO  UU    UU  DD    DD  BB    BB  AA    AA        SS  EE      \n");
         shellState.reader.printString("  CCCCCCCC  LLLLLLLL   OOOOOO    UUUUUU   DDDDDDD   BBBBBBB   AA    AA  SSSSSSSS  EEEEEEEE\n");
         shellState.reader.printNewline();
-      } else throw new ShellCommandException(ErrorCode.UNRECOGNIZED_COMMAND, getName());
+      } else
+        throw new ShellCommandException(ErrorCode.UNRECOGNIZED_COMMAND, getName());
       
       return 0;
     }
@@ -3372,7 +3473,8 @@ public class Shell {
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
       
       String tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.connector.tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.connector.tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
       
       Map<String,Set<Text>> groups = shellState.connector.tableOperations().getLocalityGroups(tableName);
       
@@ -3413,13 +3515,15 @@ public class Shell {
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
       
       String tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.connector.tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.connector.tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
       
       HashMap<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
       
       for (String arg : cl.getArgs()) {
         String sa[] = arg.split("=", 2);
-        if (sa.length < 2) throw new IllegalArgumentException("Missing '='");
+        if (sa.length < 2)
+          throw new IllegalArgumentException("Missing '='");
         String group = sa[0];
         HashSet<Text> colFams = new HashSet<Text>();
         
@@ -3482,7 +3586,8 @@ public class Shell {
       
       AssignmentStats stats = shellState.connector.tableOperations().importDirectory(shellState.tableName, dir, failureDir, numFileThreads, numAssignThreads,
           disableGC);
-      if (cl.hasOption(verboseOption.getOpt())) shellState.reader.printString(stats.toString());
+      if (cl.hasOption(verboseOption.getOpt()))
+        shellState.reader.printString(stats.toString());
       
       return 0;
     }
@@ -3569,7 +3674,8 @@ public class Shell {
     }
     
     private static String encode(boolean encode, Text text) {
-      if (text == null) return null;
+      if (text == null)
+        return null;
       return encode ? new String(Base64.encodeBase64(TextUtil.getBytes(text))) : text.toString();
     }
     
@@ -3681,7 +3787,8 @@ public class Shell {
           scans.add(tserver + " ERROR " + e.getMessage());
         }
         
-        if (scans.size() > 0) break;
+        if (scans.size() > 0)
+          break;
       }
       
       scansIter = scans.iterator();
@@ -3706,7 +3813,8 @@ public class Shell {
     public String next() {
       String next = scansIter.next();
       
-      if (!scansIter.hasNext()) readNext();
+      if (!scansIter.hasNext())
+        readNext();
       
       return next;
     }
@@ -3779,7 +3887,8 @@ public class Shell {
     String peek = null;
     while (lines.hasNext()) {
       String nextLine = lines.next();
-      if (nextLine == null) continue;
+      if (nextLine == null)
+        continue;
       for (String line : nextLine.split("\\n")) {
         if (peek != null) {
           reader.printString(peek);
@@ -3828,12 +3937,14 @@ public class Shell {
   }
   
   private static Authorizations parseAuthorizations(String field) {
-    if (field == null || field.isEmpty()) return Constants.NO_AUTHS;
+    if (field == null || field.isEmpty())
+      return Constants.NO_AUTHS;
     return new Authorizations(field.split(","));
   }
   
   private void checkTableState() {
-    if (tableName.isEmpty()) throw new IllegalStateException("Not in a table context. Please use 'table <tableName>' to switch to a table");
+    if (tableName.isEmpty())
+      throw new IllegalStateException("Not in a table context. Please use 'table <tableName>' to switch to a table");
   }
   
   private final void printConstraintViolationException(ConstraintViolationException cve) {

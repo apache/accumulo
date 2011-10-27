@@ -105,7 +105,8 @@ public class Monitor {
     public boolean add(Pair<Long,T> obj) {
       boolean result = super.add(obj);
       
-      if (obj.getFirst() - get(0).getFirst() > maxDelta) remove(0);
+      if (obj.getFirst() - get(0).getFirst() > maxDelta)
+        remove(0);
       
       return result;
     }
@@ -146,8 +147,10 @@ public class Monitor {
   }
   
   public static void add(TableInfo total, TableInfo more) {
-    if (total.minor == null) total.minor = new Compacting();
-    if (total.major == null) total.major = new Compacting();
+    if (total.minor == null)
+      total.minor = new Compacting();
+    if (total.major == null)
+      total.major = new Compacting();
     if (more.minor != null) {
       total.minor.running += more.minor.running;
       total.minor.queued += more.minor.queued;
@@ -233,10 +236,12 @@ public class Monitor {
     
     // only recalc every so often
     long currentTime = System.currentTimeMillis();
-    if (currentTime - lastRecalc < REFRESH_TIME * 1000) return;
+    if (currentTime - lastRecalc < REFRESH_TIME * 1000)
+      return;
     
     synchronized (Monitor.class) {
-      if (fetching) return;
+      if (fetching)
+        return;
       fetching = true;
     }
     
@@ -253,7 +258,8 @@ public class Monitor {
           log.info("Error fetching stats: " + e);
           UtilWaitThread.sleep(1000);
         } finally {
-          if (client != null) MasterClient.close(client);
+          if (client != null)
+            MasterClient.close(client);
         }
       }
       
@@ -300,7 +306,8 @@ public class Monitor {
       
       double totalLoad = 0.;
       for (TabletServerStatus status : mmi.tServerInfo) {
-        if (status != null) totalLoad += status.osLoad;
+        if (status != null)
+          totalLoad += status.osLoad;
       }
       loadOverTime.add(new Pair<Long,Double>(currentTime, totalLoad));
       

@@ -5,43 +5,39 @@
  */
 package org.apache.accumulo.core.data.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class TColumn implements TBase<TColumn, TColumn._Fields>, java.io.Serializable, Cloneable {
+public class TColumn implements TBase<TColumn,TColumn._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("TColumn");
-
-  private static final TField COLUMN_FAMILY_FIELD_DESC = new TField("columnFamily", TType.STRING, (short)1);
-  private static final TField COLUMN_QUALIFIER_FIELD_DESC = new TField("columnQualifier", TType.STRING, (short)2);
-  private static final TField COLUMN_VISIBILITY_FIELD_DESC = new TField("columnVisibility", TType.STRING, (short)3);
-
+  
+  private static final TField COLUMN_FAMILY_FIELD_DESC = new TField("columnFamily", TType.STRING, (short) 1);
+  private static final TField COLUMN_QUALIFIER_FIELD_DESC = new TField("columnQualifier", TType.STRING, (short) 2);
+  private static final TField COLUMN_VISIBILITY_FIELD_DESC = new TField("columnVisibility", TType.STRING, (short) 3);
+  
   public byte[] columnFamily;
   public byte[] columnQualifier;
   public byte[] columnVisibility;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    COLUMN_FAMILY((short)1, "columnFamily"),
-    COLUMN_QUALIFIER((short)2, "columnQualifier"),
-    COLUMN_VISIBILITY((short)3, "columnVisibility");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    COLUMN_FAMILY((short) 1, "columnFamily"), COLUMN_QUALIFIER((short) 2, "columnQualifier"), COLUMN_VISIBILITY((short) 3, "columnVisibility");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // COLUMN_FAMILY
           return COLUMN_FAMILY;
         case 2: // COLUMN_QUALIFIER
@@ -52,70 +48,62 @@ public class TColumn implements TBase<TColumn, TColumn._Fields>, java.io.Seriali
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.COLUMN_FAMILY, new FieldMetaData("columnFamily", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
-    tmpMap.put(_Fields.COLUMN_QUALIFIER, new FieldMetaData("columnQualifier", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
-    tmpMap.put(_Fields.COLUMN_VISIBILITY, new FieldMetaData("columnVisibility", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.COLUMN_FAMILY, new FieldMetaData("columnFamily", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
+    tmpMap.put(_Fields.COLUMN_QUALIFIER, new FieldMetaData("columnQualifier", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
+    tmpMap.put(_Fields.COLUMN_VISIBILITY, new FieldMetaData("columnVisibility", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(TColumn.class, metaDataMap);
   }
-
-  public TColumn() {
-  }
-
-  public TColumn(
-    byte[] columnFamily,
-    byte[] columnQualifier,
-    byte[] columnVisibility)
-  {
+  
+  public TColumn() {}
+  
+  public TColumn(byte[] columnFamily, byte[] columnQualifier, byte[] columnVisibility) {
     this();
     this.columnFamily = columnFamily;
     this.columnQualifier = columnQualifier;
     this.columnVisibility = columnVisibility;
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -133,170 +121,170 @@ public class TColumn implements TBase<TColumn, TColumn._Fields>, java.io.Seriali
       System.arraycopy(other.columnVisibility, 0, columnVisibility, 0, other.columnVisibility.length);
     }
   }
-
+  
   public TColumn deepCopy() {
     return new TColumn(this);
   }
-
+  
   @Deprecated
   public TColumn clone() {
     return new TColumn(this);
   }
-
+  
   public byte[] getColumnFamily() {
     return this.columnFamily;
   }
-
+  
   public TColumn setColumnFamily(byte[] columnFamily) {
     this.columnFamily = columnFamily;
     return this;
   }
-
+  
   public void unsetColumnFamily() {
     this.columnFamily = null;
   }
-
+  
   /** Returns true if field columnFamily is set (has been asigned a value) and false otherwise */
   public boolean isSetColumnFamily() {
     return this.columnFamily != null;
   }
-
+  
   public void setColumnFamilyIsSet(boolean value) {
     if (!value) {
       this.columnFamily = null;
     }
   }
-
+  
   public byte[] getColumnQualifier() {
     return this.columnQualifier;
   }
-
+  
   public TColumn setColumnQualifier(byte[] columnQualifier) {
     this.columnQualifier = columnQualifier;
     return this;
   }
-
+  
   public void unsetColumnQualifier() {
     this.columnQualifier = null;
   }
-
+  
   /** Returns true if field columnQualifier is set (has been asigned a value) and false otherwise */
   public boolean isSetColumnQualifier() {
     return this.columnQualifier != null;
   }
-
+  
   public void setColumnQualifierIsSet(boolean value) {
     if (!value) {
       this.columnQualifier = null;
     }
   }
-
+  
   public byte[] getColumnVisibility() {
     return this.columnVisibility;
   }
-
+  
   public TColumn setColumnVisibility(byte[] columnVisibility) {
     this.columnVisibility = columnVisibility;
     return this;
   }
-
+  
   public void unsetColumnVisibility() {
     this.columnVisibility = null;
   }
-
+  
   /** Returns true if field columnVisibility is set (has been asigned a value) and false otherwise */
   public boolean isSetColumnVisibility() {
     return this.columnVisibility != null;
   }
-
+  
   public void setColumnVisibilityIsSet(boolean value) {
     if (!value) {
       this.columnVisibility = null;
     }
   }
-
+  
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case COLUMN_FAMILY:
-      if (value == null) {
-        unsetColumnFamily();
-      } else {
-        setColumnFamily((byte[])value);
-      }
-      break;
-
-    case COLUMN_QUALIFIER:
-      if (value == null) {
-        unsetColumnQualifier();
-      } else {
-        setColumnQualifier((byte[])value);
-      }
-      break;
-
-    case COLUMN_VISIBILITY:
-      if (value == null) {
-        unsetColumnVisibility();
-      } else {
-        setColumnVisibility((byte[])value);
-      }
-      break;
-
+      case COLUMN_FAMILY:
+        if (value == null) {
+          unsetColumnFamily();
+        } else {
+          setColumnFamily((byte[]) value);
+        }
+        break;
+      
+      case COLUMN_QUALIFIER:
+        if (value == null) {
+          unsetColumnQualifier();
+        } else {
+          setColumnQualifier((byte[]) value);
+        }
+        break;
+      
+      case COLUMN_VISIBILITY:
+        if (value == null) {
+          unsetColumnVisibility();
+        } else {
+          setColumnVisibility((byte[]) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case COLUMN_FAMILY:
-      return getColumnFamily();
-
-    case COLUMN_QUALIFIER:
-      return getColumnQualifier();
-
-    case COLUMN_VISIBILITY:
-      return getColumnVisibility();
-
+      case COLUMN_FAMILY:
+        return getColumnFamily();
+        
+      case COLUMN_QUALIFIER:
+        return getColumnQualifier();
+        
+      case COLUMN_VISIBILITY:
+        return getColumnVisibility();
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case COLUMN_FAMILY:
-      return isSetColumnFamily();
-    case COLUMN_QUALIFIER:
-      return isSetColumnQualifier();
-    case COLUMN_VISIBILITY:
-      return isSetColumnVisibility();
+      case COLUMN_FAMILY:
+        return isSetColumnFamily();
+      case COLUMN_QUALIFIER:
+        return isSetColumnQualifier();
+      case COLUMN_VISIBILITY:
+        return isSetColumnVisibility();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof TColumn)
-      return this.equals((TColumn)that);
+      return this.equals((TColumn) that);
     return false;
   }
-
+  
   public boolean equals(TColumn that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_columnFamily = true && this.isSetColumnFamily();
     boolean that_present_columnFamily = true && that.isSetColumnFamily();
     if (this_present_columnFamily || that_present_columnFamily) {
@@ -305,7 +293,7 @@ public class TColumn implements TBase<TColumn, TColumn._Fields>, java.io.Seriali
       if (!java.util.Arrays.equals(this.columnFamily, that.columnFamily))
         return false;
     }
-
+    
     boolean this_present_columnQualifier = true && this.isSetColumnQualifier();
     boolean that_present_columnQualifier = true && that.isSetColumnQualifier();
     if (this_present_columnQualifier || that_present_columnQualifier) {
@@ -314,7 +302,7 @@ public class TColumn implements TBase<TColumn, TColumn._Fields>, java.io.Seriali
       if (!java.util.Arrays.equals(this.columnQualifier, that.columnQualifier))
         return false;
     }
-
+    
     boolean this_present_columnVisibility = true && this.isSetColumnVisibility();
     boolean that_present_columnVisibility = true && that.isSetColumnVisibility();
     if (this_present_columnVisibility || that_present_columnVisibility) {
@@ -323,28 +311,29 @@ public class TColumn implements TBase<TColumn, TColumn._Fields>, java.io.Seriali
       if (!java.util.Arrays.equals(this.columnVisibility, that.columnVisibility))
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(TColumn other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    TColumn typedOther = (TColumn)other;
-
+    TColumn typedOther = (TColumn) other;
+    
     lastComparison = Boolean.valueOf(isSetColumnFamily()).compareTo(typedOther.isSetColumnFamily());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetColumnFamily()) {      lastComparison = TBaseHelper.compareTo(this.columnFamily, typedOther.columnFamily);
+    if (isSetColumnFamily()) {
+      lastComparison = TBaseHelper.compareTo(this.columnFamily, typedOther.columnFamily);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -353,7 +342,8 @@ public class TColumn implements TBase<TColumn, TColumn._Fields>, java.io.Seriali
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetColumnQualifier()) {      lastComparison = TBaseHelper.compareTo(this.columnQualifier, typedOther.columnQualifier);
+    if (isSetColumnQualifier()) {
+      lastComparison = TBaseHelper.compareTo(this.columnQualifier, typedOther.columnQualifier);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -362,42 +352,42 @@ public class TColumn implements TBase<TColumn, TColumn._Fields>, java.io.Seriali
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetColumnVisibility()) {      lastComparison = TBaseHelper.compareTo(this.columnVisibility, typedOther.columnVisibility);
+    if (isSetColumnVisibility()) {
+      lastComparison = TBaseHelper.compareTo(this.columnVisibility, typedOther.columnVisibility);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
         case 1: // COLUMN_FAMILY
           if (field.type == TType.STRING) {
             this.columnFamily = iprot.readBinary();
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // COLUMN_QUALIFIER
           if (field.type == TType.STRING) {
             this.columnQualifier = iprot.readBinary();
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 3: // COLUMN_VISIBILITY
           if (field.type == TType.STRING) {
             this.columnVisibility = iprot.readBinary();
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -407,14 +397,14 @@ public class TColumn implements TBase<TColumn, TColumn._Fields>, java.io.Seriali
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.columnFamily != null) {
       oprot.writeFieldBegin(COLUMN_FAMILY_FIELD_DESC);
@@ -434,7 +424,7 @@ public class TColumn implements TBase<TColumn, TColumn._Fields>, java.io.Seriali
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("TColumn(");
@@ -442,44 +432,54 @@ public class TColumn implements TBase<TColumn, TColumn._Fields>, java.io.Seriali
     if (this.columnFamily == null) {
       sb.append("null");
     } else {
-        int __columnFamily_size = Math.min(this.columnFamily.length, 128);
-        for (int i = 0; i < __columnFamily_size; i++) {
-          if (i != 0) sb.append(" ");
-          sb.append(Integer.toHexString(this.columnFamily[i]).length() > 1 ? Integer.toHexString(this.columnFamily[i]).substring(Integer.toHexString(this.columnFamily[i]).length() - 2).toUpperCase() : "0" + Integer.toHexString(this.columnFamily[i]).toUpperCase());
-        }
-        if (this.columnFamily.length > 128) sb.append(" ...");
+      int __columnFamily_size = Math.min(this.columnFamily.length, 128);
+      for (int i = 0; i < __columnFamily_size; i++) {
+        if (i != 0)
+          sb.append(" ");
+        sb.append(Integer.toHexString(this.columnFamily[i]).length() > 1 ? Integer.toHexString(this.columnFamily[i])
+            .substring(Integer.toHexString(this.columnFamily[i]).length() - 2).toUpperCase() : "0" + Integer.toHexString(this.columnFamily[i]).toUpperCase());
+      }
+      if (this.columnFamily.length > 128)
+        sb.append(" ...");
     }
     sb.append(", ");
     sb.append("columnQualifier:");
     if (this.columnQualifier == null) {
       sb.append("null");
     } else {
-        int __columnQualifier_size = Math.min(this.columnQualifier.length, 128);
-        for (int i = 0; i < __columnQualifier_size; i++) {
-          if (i != 0) sb.append(" ");
-          sb.append(Integer.toHexString(this.columnQualifier[i]).length() > 1 ? Integer.toHexString(this.columnQualifier[i]).substring(Integer.toHexString(this.columnQualifier[i]).length() - 2).toUpperCase() : "0" + Integer.toHexString(this.columnQualifier[i]).toUpperCase());
-        }
-        if (this.columnQualifier.length > 128) sb.append(" ...");
+      int __columnQualifier_size = Math.min(this.columnQualifier.length, 128);
+      for (int i = 0; i < __columnQualifier_size; i++) {
+        if (i != 0)
+          sb.append(" ");
+        sb.append(Integer.toHexString(this.columnQualifier[i]).length() > 1 ? Integer.toHexString(this.columnQualifier[i])
+            .substring(Integer.toHexString(this.columnQualifier[i]).length() - 2).toUpperCase() : "0"
+            + Integer.toHexString(this.columnQualifier[i]).toUpperCase());
+      }
+      if (this.columnQualifier.length > 128)
+        sb.append(" ...");
     }
     sb.append(", ");
     sb.append("columnVisibility:");
     if (this.columnVisibility == null) {
       sb.append("null");
     } else {
-        int __columnVisibility_size = Math.min(this.columnVisibility.length, 128);
-        for (int i = 0; i < __columnVisibility_size; i++) {
-          if (i != 0) sb.append(" ");
-          sb.append(Integer.toHexString(this.columnVisibility[i]).length() > 1 ? Integer.toHexString(this.columnVisibility[i]).substring(Integer.toHexString(this.columnVisibility[i]).length() - 2).toUpperCase() : "0" + Integer.toHexString(this.columnVisibility[i]).toUpperCase());
-        }
-        if (this.columnVisibility.length > 128) sb.append(" ...");
+      int __columnVisibility_size = Math.min(this.columnVisibility.length, 128);
+      for (int i = 0; i < __columnVisibility_size; i++) {
+        if (i != 0)
+          sb.append(" ");
+        sb.append(Integer.toHexString(this.columnVisibility[i]).length() > 1 ? Integer.toHexString(this.columnVisibility[i])
+            .substring(Integer.toHexString(this.columnVisibility[i]).length() - 2).toUpperCase() : "0"
+            + Integer.toHexString(this.columnVisibility[i]).toUpperCase());
+      }
+      if (this.columnVisibility.length > 128)
+        sb.append(" ...");
     }
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

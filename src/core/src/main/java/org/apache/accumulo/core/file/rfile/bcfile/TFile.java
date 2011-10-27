@@ -652,8 +652,10 @@ public class TFile {
       int compareTo(int bid, long rid) {
         if (this.blockIndex == bid) {
           long ret = this.recordIndex - rid;
-          if (ret > 0) return 1;
-          if (ret < 0) return -1;
+          if (ret > 0)
+            return 1;
+          if (ret < 0)
+            return -1;
           return 0;
         }
         return this.blockIndex - bid;
@@ -683,12 +685,17 @@ public class TFile {
        */
       @Override
       public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null) return false;
-        if (getClass() != obj.getClass()) return false;
+        if (this == obj)
+          return true;
+        if (obj == null)
+          return false;
+        if (getClass() != obj.getClass())
+          return false;
         Location other = (Location) obj;
-        if (blockIndex != other.blockIndex) return false;
-        if (recordIndex != other.recordIndex) return false;
+        if (blockIndex != other.blockIndex)
+          return false;
+        if (recordIndex != other.recordIndex)
+          return false;
         return true;
       }
     }
@@ -875,7 +882,8 @@ public class TFile {
       }
       checkTFileDataIndex();
       int blkIndex = (greater) ? tfileIndex.upperBound(key) : tfileIndex.lowerBound(key);
-      if (blkIndex < 0) return end;
+      if (blkIndex < 0)
+        return end;
       return new Location(blkIndex, 0);
     }
     
@@ -903,7 +911,8 @@ public class TFile {
      */
     Location getLocationNear(long offset) {
       int blockIndex = readerBCF.getBlockIndexNear(offset);
-      if (blockIndex == -1) return end;
+      if (blockIndex == -1)
+        return end;
       return new Location(blockIndex, 0);
     }
     
@@ -917,7 +926,8 @@ public class TFile {
      */
     public RawComparable getKeyNear(long offset) throws IOException {
       int blockIndex = readerBCF.getBlockIndexNear(offset);
-      if (blockIndex == -1) return null;
+      if (blockIndex == -1)
+        return null;
       checkTFileDataIndex();
       return new ByteArray(tfileIndex.getEntry(blockIndex).key);
     }
@@ -1332,7 +1342,8 @@ public class TFile {
        * check whether we have already successfully obtained the key. It also initializes the valueInputStream.
        */
       void checkKey() throws IOException {
-        if (klen >= 0) return;
+        if (klen >= 0)
+          return;
         if (atEnd()) {
           throw new EOFException("No key-value to read");
         }
@@ -1651,8 +1662,10 @@ public class TFile {
          */
         @Override
         public boolean equals(Object other) {
-          if (this == other) return true;
-          if (!(other instanceof Entry)) return false;
+          if (this == other)
+            return true;
+          if (!(other instanceof Entry))
+            return false;
           return ((Entry) other).compareTo(keyBuffer, 0, getKeyLength()) == 0;
         }
         
@@ -1699,8 +1712,10 @@ public class TFile {
         
         while (currentLocation.getRecordIndex() < entryInBlock) {
           int cmp = compareCursorKeyTo(key);
-          if (cmp > 0) return false;
-          if (cmp == 0 && !greater) return true;
+          if (cmp > 0)
+            return false;
+          if (cmp == 0 && !greater)
+            return true;
           if (!valueBufferInputStream.isClosed()) {
             valueBufferInputStream.close();
           }

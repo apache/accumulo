@@ -30,10 +30,14 @@ class ConfigSanityCheck {
       String key = entry.getKey();
       String value = entry.getValue();
       Property prop = Property.getPropertyByKey(entry.getKey());
-      if (prop == null && Property.isValidTablePropertyKey(key)) continue; // unknown valid per-table property
-      else if (prop == null) log.warn(PREFIX + "unrecognized property key (" + key + ")");
-      else if (prop.getType() == PropertyType.PREFIX) fatal(PREFIX + "incomplete property key (" + key + ")");
-      else if (!prop.getType().isValidFormat(value)) fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType() + ")");
+      if (prop == null && Property.isValidTablePropertyKey(key))
+        continue; // unknown valid per-table property
+      else if (prop == null)
+        log.warn(PREFIX + "unrecognized property key (" + key + ")");
+      else if (prop.getType() == PropertyType.PREFIX)
+        fatal(PREFIX + "incomplete property key (" + key + ")");
+      else if (!prop.getType().isValidFormat(value))
+        fatal(PREFIX + "improperly formatted value for key (" + key + ", type=" + prop.getType() + ")");
     }
     
     compareCounts(acuconf, Property.TSERV_MAJC_MAXOPEN, Property.TSERV_MAJC_MAXCONCURRENT, new FirstGreaterThanEqualToByFactor(2));
@@ -72,7 +76,8 @@ class ConfigSanityCheck {
   
   private static void checkTimeDuration(AccumuloConfiguration acuconf, Property prop, CheckTimeDuration chk) {
     verifyPropertyTypes(PropertyType.TIMEDURATION, prop);
-    if (!chk.check(acuconf.getTimeInMillis(prop))) fatal(PREFIX + chk.getDescription(prop));
+    if (!chk.check(acuconf.getTimeInMillis(prop)))
+      fatal(PREFIX + chk.getDescription(prop));
   }
   
   private static interface CompareTwoCounts {
@@ -121,12 +126,14 @@ class ConfigSanityCheck {
   
   private static void compareCounts(AccumuloConfiguration acuconf, Property prop1, Property prop2, CompareTwoCounts chk) {
     verifyPropertyTypes(PropertyType.COUNT, prop1, prop2);
-    if (!chk.check(acuconf.getCount(prop1), acuconf.getCount(prop2))) fatal(PREFIX + chk.getDescription(prop1, prop2));
+    if (!chk.check(acuconf.getCount(prop1), acuconf.getCount(prop2)))
+      fatal(PREFIX + chk.getDescription(prop1, prop2));
   }
   
   private static void verifyPropertyTypes(PropertyType type, Property... properties) {
     for (Property prop : properties)
-      if (prop.getType() != type) fatal("Unexpected property type (" + prop.getType() + " != " + type + ")");
+      if (prop.getType() != type)
+        fatal("Unexpected property type (" + prop.getType() + " != " + type + ")");
   }
   
   private static void fatal(String msg) {

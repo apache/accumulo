@@ -55,7 +55,8 @@ public class MultiReaderTest {
     writer.close();
     writer = new Writer(conf, fs, "manyMaps/even", IntWritable.class, BytesWritable.class);
     for (int i = 0; i < 1000; i += 2) {
-      if (i == 10) continue;
+      if (i == 10)
+        continue;
       writer.append(new IntWritable(i), value);
     }
     writer.close();
@@ -63,7 +64,8 @@ public class MultiReaderTest {
   
   @After
   public void tearDown() throws Exception {
-    if (fs != null) fs.delete(new Path("manyMaps"), true);
+    if (fs != null)
+      fs.delete(new Path("manyMaps"), true);
   }
   
   private void scan(MultiReader reader, int start) throws IOException {
@@ -71,7 +73,8 @@ public class MultiReaderTest {
     BytesWritable value = new BytesWritable();
     
     for (int i = start + 1; i < 1000; i++) {
-      if (i == 10) continue;
+      if (i == 10)
+        continue;
       assertTrue(reader.next(key, value));
       assertEquals(i, key.get());
     }
@@ -94,7 +97,8 @@ public class MultiReaderTest {
     BytesWritable value = new BytesWritable();
     
     for (int i = 0; i < 1000; i++) {
-      if (i == 10) continue;
+      if (i == 10)
+        continue;
       assertTrue(reader.next(key, value));
       assertEquals(i, key.get());
     }

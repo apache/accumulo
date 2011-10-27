@@ -47,7 +47,8 @@ public class TabletOperations {
       // and creating it
       while (true) {
         try {
-          if (fs.exists(new Path(tableDir))) throw new RuntimeException("Table dir already exist " + tableDir);
+          if (fs.exists(new Path(tableDir)))
+            throw new RuntimeException("Table dir already exist " + tableDir);
           break;
         } catch (IOException ioe) {
           log.warn(ioe);
@@ -109,7 +110,8 @@ public class TabletOperations {
         if (endRow == null) {
           lowDirectory = Constants.DEFAULT_TABLET_LOCATION;
           Path lowDirectoryPath = new Path(tableDir + lowDirectory);
-          if (fs.mkdirs(lowDirectoryPath)) return lowDirectory;
+          if (fs.mkdirs(lowDirectoryPath))
+            return lowDirectory;
           log.warn("Failed to create " + lowDirectoryPath + " for unknown reason");
         } else {
           
@@ -126,7 +128,8 @@ public class TabletOperations {
           if (fs.createNewFile(lockPath)) {
             try {
               if (!fs.exists(lowDirectoryPath)) {
-                if (fs.mkdirs(lowDirectoryPath)) return lowDirectory;
+                if (fs.mkdirs(lowDirectoryPath))
+                  return lowDirectory;
                 log.warn("Failed to create " + lowDirectoryPath + " for unknown reason");
               } else {
                 // name collision

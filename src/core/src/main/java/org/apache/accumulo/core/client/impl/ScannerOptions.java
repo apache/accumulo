@@ -58,10 +58,12 @@ public class ScannerOptions implements ScannerBase {
   
   public synchronized void setScanIterators(int priority, String iteratorClass, String iteratorName) {
     ArgumentChecker.notNull(iteratorClass, iteratorName);
-    if (serverSideIteratorList.size() == 0) serverSideIteratorList = new ArrayList<IterInfo>();
+    if (serverSideIteratorList.size() == 0)
+      serverSideIteratorList = new ArrayList<IterInfo>();
     
     for (IterInfo ii : serverSideIteratorList)
-      if (ii.iterName.equals(iteratorName)) throw new RuntimeException("Iterator name is already in use " + iteratorName);
+      if (ii.iterName.equals(iteratorName))
+        throw new RuntimeException("Iterator name is already in use " + iteratorName);
     
     serverSideIteratorList.add(new IterInfo(priority, iteratorClass, iteratorName));
   }
@@ -73,7 +75,8 @@ public class ScannerOptions implements ScannerBase {
   
   public synchronized void setScanIteratorOption(String iteratorName, String key, String value) {
     ArgumentChecker.notNull(iteratorName, key, value);
-    if (serverSideIteratorOptions.size() == 0) serverSideIteratorOptions = new HashMap<String,Map<String,String>>();
+    if (serverSideIteratorOptions.size() == 0)
+      serverSideIteratorOptions = new HashMap<String,Map<String,String>>();
     
     Map<String,String> opts = serverSideIteratorOptions.get(iteratorName);
     
@@ -92,7 +95,8 @@ public class ScannerOptions implements ScannerBase {
   
   public synchronized void setupRegex(String iteratorName, int iteratorPriority) throws IOException {
     ArgumentChecker.notNull(iteratorName);
-    if (regexIterName != null) throw new RuntimeException("regex already setup");
+    if (regexIterName != null)
+      throw new RuntimeException("regex already setup");
     
     setScanIterators(iteratorPriority, RegExIterator.class.getName(), iteratorName);
     regexIterName = iteratorName;
@@ -113,7 +117,8 @@ public class ScannerOptions implements ScannerBase {
   
   public synchronized void setRowRegex(String regex) {
     ArgumentChecker.notNull(regex);
-    if (regexIterName == null) setupDefaultRegex();
+    if (regexIterName == null)
+      setupDefaultRegex();
     setScanIteratorOption(regexIterName, RegExFilter.ROW_REGEX, regex);
   }
   
@@ -124,7 +129,8 @@ public class ScannerOptions implements ScannerBase {
   
   public synchronized void setColumnFamilyRegex(String regex) {
     ArgumentChecker.notNull(regex);
-    if (regexIterName == null) setupDefaultRegex();
+    if (regexIterName == null)
+      setupDefaultRegex();
     setScanIteratorOption(regexIterName, RegExFilter.COLF_REGEX, regex);
   }
   
@@ -135,7 +141,8 @@ public class ScannerOptions implements ScannerBase {
   
   public synchronized void setColumnQualifierRegex(String regex) {
     ArgumentChecker.notNull(regex);
-    if (regexIterName == null) setupDefaultRegex();
+    if (regexIterName == null)
+      setupDefaultRegex();
     setScanIteratorOption(regexIterName, RegExFilter.COLQ_REGEX, regex);
   }
   
@@ -146,7 +153,8 @@ public class ScannerOptions implements ScannerBase {
   
   public synchronized void setValueRegex(String regex) {
     ArgumentChecker.notNull(regex);
-    if (regexIterName == null) setupDefaultRegex();
+    if (regexIterName == null)
+      setupDefaultRegex();
     setScanIteratorOption(regexIterName, RegExFilter.VALUE_REGEX, regex);
   }
   

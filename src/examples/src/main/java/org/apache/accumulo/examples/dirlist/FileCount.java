@@ -89,15 +89,18 @@ public class FileCount {
   
   private int findMaxDepth(Scanner scanner, int min, int mid, int max) {
     // check to see if the mid point exist
-    if (max < min) return -1;
+    if (max < min)
+      return -1;
     
     scanner.setRange(new Range(String.format("%03d", mid), true, String.format("%03d", mid + 1), false));
     
     if (scanner.iterator().hasNext()) {
       // this depth exist, check to see if a larger depth exist
       int ret = findMaxDepth(scanner, mid + 1, max);
-      if (ret == -1) return mid; // this must the max
-      else return ret;
+      if (ret == -1)
+        return mid; // this must the max
+      else
+        return ret;
     } else {
       // this depth does not exist, look lower
       return findMaxDepth(scanner, min, mid - 1);
@@ -120,14 +123,16 @@ public class FileCount {
     Key key = entry.getKey();
     Text currentRow = key.getRow();
     
-    if (key.compareColumnQualifier(QueryUtil.COUNTS_COLQ) == 0) cv.set(entry.getValue());
+    if (key.compareColumnQualifier(QueryUtil.COUNTS_COLQ) == 0)
+      cv.set(entry.getValue());
     
     while (iterator.hasNext()) {
       entry = iterator.next();
       entriesScanned++;
       key = entry.getKey();
       
-      if (key.compareRow(currentRow) != 0) return entry;
+      if (key.compareRow(currentRow) != 0)
+        return entry;
       
       if (key.compareColumnFamily(QueryUtil.DIR_COLF) == 0 && key.compareColumnQualifier(QueryUtil.COUNTS_COLQ) == 0) {
         cv.set(entry.getValue());
@@ -147,7 +152,8 @@ public class FileCount {
       entriesScanned++;
       key = entry.getKey();
       
-      if (key.compareRow(currentRow) != 0) return entry;
+      if (key.compareRow(currentRow) != 0)
+        return entry;
     }
     
     return null;

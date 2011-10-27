@@ -5,46 +5,41 @@
  */
 package org.apache.accumulo.core.gc.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Serializable, Cloneable {
+public class GCStatus implements TBase<GCStatus,GCStatus._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("GCStatus");
-
-  private static final TField LAST_FIELD_DESC = new TField("last", TType.STRUCT, (short)1);
-  private static final TField LAST_LOG_FIELD_DESC = new TField("lastLog", TType.STRUCT, (short)2);
-  private static final TField CURRENT_FIELD_DESC = new TField("current", TType.STRUCT, (short)3);
-  private static final TField CURRENT_LOG_FIELD_DESC = new TField("currentLog", TType.STRUCT, (short)4);
-
+  
+  private static final TField LAST_FIELD_DESC = new TField("last", TType.STRUCT, (short) 1);
+  private static final TField LAST_LOG_FIELD_DESC = new TField("lastLog", TType.STRUCT, (short) 2);
+  private static final TField CURRENT_FIELD_DESC = new TField("current", TType.STRUCT, (short) 3);
+  private static final TField CURRENT_LOG_FIELD_DESC = new TField("currentLog", TType.STRUCT, (short) 4);
+  
   public GcCycleStats last;
   public GcCycleStats lastLog;
   public GcCycleStats current;
   public GcCycleStats currentLog;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    LAST((short)1, "last"),
-    LAST_LOG((short)2, "lastLog"),
-    CURRENT((short)3, "current"),
-    CURRENT_LOG((short)4, "currentLog");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    LAST((short) 1, "last"), LAST_LOG((short) 2, "lastLog"), CURRENT((short) 3, "current"), CURRENT_LOG((short) 4, "currentLog");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // LAST
           return LAST;
         case 2: // LAST_LOG
@@ -57,74 +52,64 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.LAST, new FieldMetaData("last", TFieldRequirementType.DEFAULT, 
-        new StructMetaData(TType.STRUCT, GcCycleStats.class)));
-    tmpMap.put(_Fields.LAST_LOG, new FieldMetaData("lastLog", TFieldRequirementType.DEFAULT, 
-        new StructMetaData(TType.STRUCT, GcCycleStats.class)));
-    tmpMap.put(_Fields.CURRENT, new FieldMetaData("current", TFieldRequirementType.DEFAULT, 
-        new StructMetaData(TType.STRUCT, GcCycleStats.class)));
-    tmpMap.put(_Fields.CURRENT_LOG, new FieldMetaData("currentLog", TFieldRequirementType.DEFAULT, 
-        new StructMetaData(TType.STRUCT, GcCycleStats.class)));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.LAST, new FieldMetaData("last", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, GcCycleStats.class)));
+    tmpMap.put(_Fields.LAST_LOG, new FieldMetaData("lastLog", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, GcCycleStats.class)));
+    tmpMap.put(_Fields.CURRENT, new FieldMetaData("current", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, GcCycleStats.class)));
+    tmpMap.put(_Fields.CURRENT_LOG, new FieldMetaData("currentLog", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, GcCycleStats.class)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(GCStatus.class, metaDataMap);
   }
-
-  public GCStatus() {
-  }
-
-  public GCStatus(
-    GcCycleStats last,
-    GcCycleStats lastLog,
-    GcCycleStats current,
-    GcCycleStats currentLog)
-  {
+  
+  public GCStatus() {}
+  
+  public GCStatus(GcCycleStats last, GcCycleStats lastLog, GcCycleStats current, GcCycleStats currentLog) {
     this();
     this.last = last;
     this.lastLog = lastLog;
     this.current = current;
     this.currentLog = currentLog;
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -142,207 +127,207 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
       this.currentLog = new GcCycleStats(other.currentLog);
     }
   }
-
+  
   public GCStatus deepCopy() {
     return new GCStatus(this);
   }
-
+  
   @Deprecated
   public GCStatus clone() {
     return new GCStatus(this);
   }
-
+  
   public GcCycleStats getLast() {
     return this.last;
   }
-
+  
   public GCStatus setLast(GcCycleStats last) {
     this.last = last;
     return this;
   }
-
+  
   public void unsetLast() {
     this.last = null;
   }
-
+  
   /** Returns true if field last is set (has been asigned a value) and false otherwise */
   public boolean isSetLast() {
     return this.last != null;
   }
-
+  
   public void setLastIsSet(boolean value) {
     if (!value) {
       this.last = null;
     }
   }
-
+  
   public GcCycleStats getLastLog() {
     return this.lastLog;
   }
-
+  
   public GCStatus setLastLog(GcCycleStats lastLog) {
     this.lastLog = lastLog;
     return this;
   }
-
+  
   public void unsetLastLog() {
     this.lastLog = null;
   }
-
+  
   /** Returns true if field lastLog is set (has been asigned a value) and false otherwise */
   public boolean isSetLastLog() {
     return this.lastLog != null;
   }
-
+  
   public void setLastLogIsSet(boolean value) {
     if (!value) {
       this.lastLog = null;
     }
   }
-
+  
   public GcCycleStats getCurrent() {
     return this.current;
   }
-
+  
   public GCStatus setCurrent(GcCycleStats current) {
     this.current = current;
     return this;
   }
-
+  
   public void unsetCurrent() {
     this.current = null;
   }
-
+  
   /** Returns true if field current is set (has been asigned a value) and false otherwise */
   public boolean isSetCurrent() {
     return this.current != null;
   }
-
+  
   public void setCurrentIsSet(boolean value) {
     if (!value) {
       this.current = null;
     }
   }
-
+  
   public GcCycleStats getCurrentLog() {
     return this.currentLog;
   }
-
+  
   public GCStatus setCurrentLog(GcCycleStats currentLog) {
     this.currentLog = currentLog;
     return this;
   }
-
+  
   public void unsetCurrentLog() {
     this.currentLog = null;
   }
-
+  
   /** Returns true if field currentLog is set (has been asigned a value) and false otherwise */
   public boolean isSetCurrentLog() {
     return this.currentLog != null;
   }
-
+  
   public void setCurrentLogIsSet(boolean value) {
     if (!value) {
       this.currentLog = null;
     }
   }
-
+  
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case LAST:
-      if (value == null) {
-        unsetLast();
-      } else {
-        setLast((GcCycleStats)value);
-      }
-      break;
-
-    case LAST_LOG:
-      if (value == null) {
-        unsetLastLog();
-      } else {
-        setLastLog((GcCycleStats)value);
-      }
-      break;
-
-    case CURRENT:
-      if (value == null) {
-        unsetCurrent();
-      } else {
-        setCurrent((GcCycleStats)value);
-      }
-      break;
-
-    case CURRENT_LOG:
-      if (value == null) {
-        unsetCurrentLog();
-      } else {
-        setCurrentLog((GcCycleStats)value);
-      }
-      break;
-
+      case LAST:
+        if (value == null) {
+          unsetLast();
+        } else {
+          setLast((GcCycleStats) value);
+        }
+        break;
+      
+      case LAST_LOG:
+        if (value == null) {
+          unsetLastLog();
+        } else {
+          setLastLog((GcCycleStats) value);
+        }
+        break;
+      
+      case CURRENT:
+        if (value == null) {
+          unsetCurrent();
+        } else {
+          setCurrent((GcCycleStats) value);
+        }
+        break;
+      
+      case CURRENT_LOG:
+        if (value == null) {
+          unsetCurrentLog();
+        } else {
+          setCurrentLog((GcCycleStats) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case LAST:
-      return getLast();
-
-    case LAST_LOG:
-      return getLastLog();
-
-    case CURRENT:
-      return getCurrent();
-
-    case CURRENT_LOG:
-      return getCurrentLog();
-
+      case LAST:
+        return getLast();
+        
+      case LAST_LOG:
+        return getLastLog();
+        
+      case CURRENT:
+        return getCurrent();
+        
+      case CURRENT_LOG:
+        return getCurrentLog();
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case LAST:
-      return isSetLast();
-    case LAST_LOG:
-      return isSetLastLog();
-    case CURRENT:
-      return isSetCurrent();
-    case CURRENT_LOG:
-      return isSetCurrentLog();
+      case LAST:
+        return isSetLast();
+      case LAST_LOG:
+        return isSetLastLog();
+      case CURRENT:
+        return isSetCurrent();
+      case CURRENT_LOG:
+        return isSetCurrentLog();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof GCStatus)
-      return this.equals((GCStatus)that);
+      return this.equals((GCStatus) that);
     return false;
   }
-
+  
   public boolean equals(GCStatus that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_last = true && this.isSetLast();
     boolean that_present_last = true && that.isSetLast();
     if (this_present_last || that_present_last) {
@@ -351,7 +336,7 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
       if (!this.last.equals(that.last))
         return false;
     }
-
+    
     boolean this_present_lastLog = true && this.isSetLastLog();
     boolean that_present_lastLog = true && that.isSetLastLog();
     if (this_present_lastLog || that_present_lastLog) {
@@ -360,7 +345,7 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
       if (!this.lastLog.equals(that.lastLog))
         return false;
     }
-
+    
     boolean this_present_current = true && this.isSetCurrent();
     boolean that_present_current = true && that.isSetCurrent();
     if (this_present_current || that_present_current) {
@@ -369,7 +354,7 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
       if (!this.current.equals(that.current))
         return false;
     }
-
+    
     boolean this_present_currentLog = true && this.isSetCurrentLog();
     boolean that_present_currentLog = true && that.isSetCurrentLog();
     if (this_present_currentLog || that_present_currentLog) {
@@ -378,28 +363,29 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
       if (!this.currentLog.equals(that.currentLog))
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(GCStatus other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    GCStatus typedOther = (GCStatus)other;
-
+    GCStatus typedOther = (GCStatus) other;
+    
     lastComparison = Boolean.valueOf(isSetLast()).compareTo(typedOther.isSetLast());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetLast()) {      lastComparison = TBaseHelper.compareTo(this.last, typedOther.last);
+    if (isSetLast()) {
+      lastComparison = TBaseHelper.compareTo(this.last, typedOther.last);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -408,7 +394,8 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetLastLog()) {      lastComparison = TBaseHelper.compareTo(this.lastLog, typedOther.lastLog);
+    if (isSetLastLog()) {
+      lastComparison = TBaseHelper.compareTo(this.lastLog, typedOther.lastLog);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -417,7 +404,8 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetCurrent()) {      lastComparison = TBaseHelper.compareTo(this.current, typedOther.current);
+    if (isSetCurrent()) {
+      lastComparison = TBaseHelper.compareTo(this.current, typedOther.current);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -426,21 +414,21 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetCurrentLog()) {      lastComparison = TBaseHelper.compareTo(this.currentLog, typedOther.currentLog);
+    if (isSetCurrentLog()) {
+      lastComparison = TBaseHelper.compareTo(this.currentLog, typedOther.currentLog);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
@@ -448,7 +436,7 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
           if (field.type == TType.STRUCT) {
             this.last = new GcCycleStats();
             this.last.read(iprot);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -456,7 +444,7 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
           if (field.type == TType.STRUCT) {
             this.lastLog = new GcCycleStats();
             this.lastLog.read(iprot);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -464,7 +452,7 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
           if (field.type == TType.STRUCT) {
             this.current = new GcCycleStats();
             this.current.read(iprot);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -472,7 +460,7 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
           if (field.type == TType.STRUCT) {
             this.currentLog = new GcCycleStats();
             this.currentLog.read(iprot);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -482,14 +470,14 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.last != null) {
       oprot.writeFieldBegin(LAST_FIELD_DESC);
@@ -514,7 +502,7 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("GCStatus(");
@@ -548,10 +536,9 @@ public class GCStatus implements TBase<GCStatus, GCStatus._Fields>, java.io.Seri
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

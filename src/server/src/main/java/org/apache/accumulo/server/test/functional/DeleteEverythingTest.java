@@ -77,7 +77,8 @@ public class DeleteEverythingTest extends FunctionalTest {
       count++;
     }
     
-    if (count != 0) throw new Exception("count == " + count);
+    if (count != 0)
+      throw new Exception("count == " + count);
     
     getConnector().tableOperations().flush("de");
     UtilWaitThread.sleep(3000);
@@ -95,6 +96,7 @@ public class DeleteEverythingTest extends FunctionalTest {
       count++;
     }
     
-    if (count != 0) throw new Exception("count == " + count);
+    if (count != 0)
+      throw new Exception("count == " + count);
   }
 }

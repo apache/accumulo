@@ -94,7 +94,8 @@ public class ColumnFQ implements Comparable<ColumnFQ> {
   public int compareTo(ColumnFQ o) {
     int cmp = colf.compareTo(o.colf);
     
-    if (cmp == 0) cmp = colq.compareTo(o.colq);
+    if (cmp == 0)
+      cmp = colq.compareTo(o.colq);
     
     return cmp;
   }

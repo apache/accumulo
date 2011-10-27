@@ -41,8 +41,10 @@ public class Ingest {
     }
     Mutation m = new Mutation(QueryUtil.getRow(path));
     Text colf = null;
-    if (src.isDirectory()) colf = QueryUtil.DIR_COLF;
-    else colf = new Text(LongSummation.longToBytes(Long.MAX_VALUE - src.lastModified()));
+    if (src.isDirectory())
+      colf = QueryUtil.DIR_COLF;
+    else
+      colf = new Text(LongSummation.longToBytes(Long.MAX_VALUE - src.lastModified()));
     m.put(colf, new Text("length"), cv, new Value(Long.toString(src.length()).getBytes()));
     m.put(colf, new Text("hidden"), cv, new Value(Boolean.toString(src.isHidden()).getBytes()));
     m.put(colf, new Text("exec"), cv, new Value(Boolean.toString(src.canExecute()).getBytes()));
@@ -70,7 +72,8 @@ public class Ingest {
     // recurse into subdirectories
     if (src.isDirectory()) {
       File[] files = src.listFiles();
-      if (files == null) return;
+      if (files == null)
+        return;
       for (File child : files) {
         recurse(child, cv, main, index);
       }
@@ -92,8 +95,10 @@ public class Ingest {
     ColumnVisibility colvis = new ColumnVisibility(args[6]);
     
     Connector conn = new ZooKeeperInstance(instance, zooKeepers).getConnector(user, pass.getBytes());
-    if (!conn.tableOperations().exists(table)) conn.tableOperations().create(table);
-    if (!conn.tableOperations().exists(indexTable)) conn.tableOperations().create(indexTable);
+    if (!conn.tableOperations().exists(table))
+      conn.tableOperations().create(table);
+    if (!conn.tableOperations().exists(indexTable))
+      conn.tableOperations().create(indexTable);
     BatchWriter mainBW = conn.createBatchWriter(table, 50000000, 300000l, 4);
     BatchWriter indexBW = conn.createBatchWriter(indexTable, 50000000, 300000l, 4);
     for (int i = 7; i < args.length; i++) {

@@ -51,12 +51,14 @@ public class MilliSpan implements Span {
   }
   
   public synchronized void start() {
-    if (start > 0) throw new IllegalStateException("Span for " + description + " has already been started");
+    if (start > 0)
+      throw new IllegalStateException("Span for " + description + " has already been started");
     start = System.currentTimeMillis();
   }
   
   public synchronized void stop() {
-    if (start == 0) throw new IllegalStateException("Span for " + description + " has not been started");
+    if (start == 0)
+      throw new IllegalStateException("Span for " + description + " has not been started");
     stop = System.currentTimeMillis();
     Tracer.getInstance().pop(this);
   }
@@ -70,8 +72,10 @@ public class MilliSpan implements Span {
   }
   
   public synchronized long accumulatedMillis() {
-    if (start == 0) return 0;
-    if (stop > 0) return stop - start;
+    if (start == 0)
+      return 0;
+    if (stop > 0)
+      return stop - start;
     return currentTimeMillis() - start;
   }
   
@@ -98,7 +102,8 @@ public class MilliSpan implements Span {
   
   @Override
   public long parentId() {
-    if (parent == null) return -1;
+    if (parent == null)
+      return -1;
     return parent.spanId();
   }
   
@@ -119,13 +124,15 @@ public class MilliSpan implements Span {
   
   @Override
   public void data(String key, String value) {
-    if (traceInfo == null) traceInfo = new HashMap<String,String>();
+    if (traceInfo == null)
+      traceInfo = new HashMap<String,String>();
     traceInfo.put(key, value);
   }
   
   @Override
   public Map<String,String> getData() {
-    if (traceInfo == null) return Collections.emptyMap();
+    if (traceInfo == null)
+      return Collections.emptyMap();
     return Collections.unmodifiableMap(traceInfo);
   }
 }

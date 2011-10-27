@@ -22,7 +22,8 @@ public class CachedConfiguration {
   private static Configuration configuration = null;
   
   public synchronized static Configuration getInstance() {
-    if (configuration == null) setInstance(new Configuration());
+    if (configuration == null)
+      setInstance(new Configuration());
     return configuration;
   }
   

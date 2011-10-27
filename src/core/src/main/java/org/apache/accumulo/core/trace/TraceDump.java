@@ -152,7 +152,8 @@ public class TraceDump {
       RemoteSpan span = TraceFormatter.getRemoteSpan(entry);
       tree.addNode(span);
       start = min(start, span.start);
-      if (span.parentId <= 0) count++;
+      if (span.parentId <= 0)
+        count++;
     }
     out.print(String.format("Trace started at %s", TraceFormatter.DATE_FORMAT.format(new Date(start))));
     out.print("Time  Start  Service@Location       Name");

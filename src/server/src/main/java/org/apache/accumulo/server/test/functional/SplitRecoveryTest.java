@@ -163,9 +163,10 @@ public class SplitRecoveryTest extends FunctionalTest {
     m.put(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY, assignment.server.asColumnQualifier(), assignment.server.asMutationValue());
     writer.update(m);
     
-    if (steps >= 1) MetadataTable.addNewTablet(low, "/lowDir", instance, lowDatafileSizes, SecurityConstants.systemCredentials, TabletTime.LOGICAL_TIME_ID
-        + "0", zl);
-    if (steps >= 2) MetadataTable.finishSplit(high, highDatafileSizes, highDatafilesToRemove, SecurityConstants.systemCredentials, zl);
+    if (steps >= 1)
+      MetadataTable.addNewTablet(low, "/lowDir", instance, lowDatafileSizes, SecurityConstants.systemCredentials, TabletTime.LOGICAL_TIME_ID + "0", zl);
+    if (steps >= 2)
+      MetadataTable.finishSplit(high, highDatafileSizes, highDatafilesToRemove, SecurityConstants.systemCredentials, zl);
     
     SortedMap<KeyExtent,Text> vtiRet = TabletServer.verifyTabletInformation(extent, instance, null, "127.0.0.1:0", zl);
     

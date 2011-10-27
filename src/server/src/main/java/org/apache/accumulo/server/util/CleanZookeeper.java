@@ -55,7 +55,8 @@ public class CleanZookeeper {
           for (String instanceName : zk.getChildren(root + Constants.ZINSTANCES, false)) {
             String instanceNamePath = root + Constants.ZINSTANCES + "/" + instanceName;
             byte[] id = zk.getData(instanceNamePath, false, null);
-            if (id != null && !new String(id).equals(HdfsZooInstance.getInstance().getInstanceID())) recursivelyDelete(zk, instanceNamePath);
+            if (id != null && !new String(id).equals(HdfsZooInstance.getInstance().getInstanceID()))
+              recursivelyDelete(zk, instanceNamePath);
           }
         } else if (!child.equals(HdfsZooInstance.getInstance().getInstanceID())) {
           recursivelyDelete(zk, root + "/" + child);

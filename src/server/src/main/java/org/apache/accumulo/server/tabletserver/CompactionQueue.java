@@ -32,7 +32,8 @@ public class CompactionQueue extends AbstractQueue<Runnable> implements Blocking
   
   @Override
   public synchronized Runnable poll() {
-    if (task.size() == 0) return null;
+    if (task.size() == 0)
+      return null;
     
     Comparable min = Collections.min(task);
     task.remove(min);
@@ -41,7 +42,8 @@ public class CompactionQueue extends AbstractQueue<Runnable> implements Blocking
   
   @Override
   public synchronized Runnable peek() {
-    if (task.size() == 0) return null;
+    if (task.size() == 0)
+      return null;
     
     Comparable min = Collections.min(task);
     return (Runnable) min;
@@ -82,7 +84,8 @@ public class CompactionQueue extends AbstractQueue<Runnable> implements Blocking
       wait(unit.toMillis(timeout));
     }
     
-    if (task.size() == 0) return null;
+    if (task.size() == 0)
+      return null;
     
     return poll();
   }

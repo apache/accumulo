@@ -73,12 +73,14 @@ public class RFileTest extends TestCase {
     
     @Override
     public void seek(long pos) throws IOException {
-      if (mark != 0) throw new IllegalStateException();
+      if (mark != 0)
+        throw new IllegalStateException();
       
       reset();
       long skipped = skip(pos);
       
-      if (skipped != pos) throw new IOException();
+      if (skipped != pos)
+        throw new IOException();
     }
     
     @Override
@@ -89,9 +91,12 @@ public class RFileTest extends TestCase {
     @Override
     public int read(long position, byte[] buffer, int offset, int length) throws IOException {
       
-      if (position >= buf.length) throw new IllegalArgumentException();
-      if (position + length > buf.length) throw new IllegalArgumentException();
-      if (length > buffer.length) throw new IllegalArgumentException();
+      if (position >= buf.length)
+        throw new IllegalArgumentException();
+      if (position + length > buf.length)
+        throw new IllegalArgumentException();
+      if (length > buffer.length)
+        throw new IllegalArgumentException();
       
       System.arraycopy(buf, (int) position, buffer, offset, length);
       return length;
@@ -126,7 +131,8 @@ public class RFileTest extends TestCase {
       CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(dos, "gz", conf);
       writer = new RFile.Writer(_cbw, 1000);
       
-      if (startDLG) writer.startDefaultLocalityGroup();
+      if (startDLG)
+        writer.startDefaultLocalityGroup();
     }
     
     public void openWriter() throws IOException {
@@ -928,7 +934,8 @@ public class RFileTest extends TestCase {
     for (int i = 0; i < 1024; i++) {
       
       int m10 = i % 10;
-      if (m10 == 3 || m10 == 5 || m10 == 7) continue;
+      if (m10 == 3 || m10 == 5 || m10 == 7)
+        continue;
       
       trf.writer.append(nk(nf("i", i), m10 + "mod10", "", "", i + 2), nv("" + i));
       
@@ -961,11 +968,14 @@ public class RFileTest extends TestCase {
       
       // test excluding an individual column family
       trf.reader.seek(new Range(new Key(), true, null, true), ncfs(m + "mod10"), false);
-      if (m == 3) assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
-      else assertEquals(3, trf.reader.getNumLocalityGroupsSeeked());
+      if (m == 3)
+        assertEquals(2, trf.reader.getNumLocalityGroupsSeeked());
+      else
+        assertEquals(3, trf.reader.getNumLocalityGroupsSeeked());
       for (int i = 0; i < 1024; i++) {
         
-        if (i % 10 == m) continue;
+        if (i % 10 == m)
+          continue;
         
         assertTrue(trf.reader.hasTop());
         assertEquals(nk(nf("i", i), (i % 10) + "mod10", "", "", i + 2), trf.reader.getTopKey());

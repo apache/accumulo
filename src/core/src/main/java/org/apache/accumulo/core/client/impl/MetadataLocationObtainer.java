@@ -75,8 +75,9 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     
     try {
       OpTimer opTimer = null;
-      if (log.isTraceEnabled()) opTimer = new OpTimer(log, Level.TRACE).start("Looking up in " + src.tablet_extent.getTableId() + " row="
-          + TextUtil.truncate(row) + "  extent=" + src.tablet_extent + " tserver=" + src.tablet_location);
+      if (log.isTraceEnabled())
+        opTimer = new OpTimer(log, Level.TRACE).start("Looking up in " + src.tablet_extent.getTableId() + " row=" + TextUtil.truncate(row) + "  extent="
+            + src.tablet_extent + " tserver=" + src.tablet_location);
       
       Range range = new Range(row, true, stopRow, true);
       
@@ -92,7 +93,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
             Constants.NO_AUTHS, false, instance.getConfiguration());
       }
       
-      if (opTimer != null) opTimer.stop("Got " + results.size() + " results  from " + src.tablet_extent + " in %DURATION%");
+      if (opTimer != null)
+        opTimer.stop("Got " + results.size() + " results  from " + src.tablet_extent + " in %DURATION%");
       
       // System.out.println("results "+results.keySet());
       
@@ -103,13 +105,16 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       }
       
     } catch (AccumuloServerException ase) {
-      if (log.isTraceEnabled()) log.trace(src.tablet_extent.getTableId() + " lookup failed, " + src.tablet_location + " server side exception");
+      if (log.isTraceEnabled())
+        log.trace(src.tablet_extent.getTableId() + " lookup failed, " + src.tablet_location + " server side exception");
       throw ase;
     } catch (NotServingTabletException e) {
-      if (log.isTraceEnabled()) log.trace(src.tablet_extent.getTableId() + " lookup failed, " + src.tablet_location + " not serving " + src.tablet_extent);
+      if (log.isTraceEnabled())
+        log.trace(src.tablet_extent.getTableId() + " lookup failed, " + src.tablet_location + " not serving " + src.tablet_extent);
       parent.invalidateCache(src.tablet_extent);
     } catch (AccumuloException e) {
-      if (log.isTraceEnabled()) log.trace(src.tablet_extent.getTableId() + " lookup failed", e);
+      if (log.isTraceEnabled())
+        log.trace(src.tablet_extent.getTableId() + " lookup failed", e);
       parent.invalidateCache(src.tablet_location);
     }
     
@@ -142,7 +147,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
           instance.getConfiguration());
       if (failures.size() > 0) {
         // invalidate extents in parents cache
-        if (log.isTraceEnabled()) log.trace("lookupTablets failed for " + failures.size() + " extents");
+        if (log.isTraceEnabled())
+          log.trace("lookupTablets failed for " + failures.size() + " extents");
         parent.invalidateCache(failures.keySet());
       }
     } catch (IOException e) {

@@ -66,7 +66,8 @@ public class MockConnectorTest {
     Key key = null;
     int count = 0;
     for (Entry<Key,Value> entry : s) {
-      if (key != null) assertTrue(key.compareTo(entry.getKey()) < 0);
+      if (key != null)
+        assertTrue(key.compareTo(entry.getKey()) < 0);
       assertEquals(entry.getKey().getRow(), new Text(entry.getValue().get()));
       key = entry.getKey();
       count++;

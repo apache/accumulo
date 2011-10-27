@@ -60,7 +60,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   
   protected String checkTableId(String tableName, TableOperation operation) throws ThriftTableOperationException {
     final String tableId = Tables.getNameToIdMap(HdfsZooInstance.getInstance()).get(tableName);
-    if (tableId == null) throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.NOTFOUND, null);
+    if (tableId == null)
+      throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.NOTFOUND, null);
     return tableId;
   }
   
@@ -224,7 +225,8 @@ public class ClientServiceHandler implements ClientService.Iface {
         try {
           Path newBulkDir = new Path(directory, "bulk_" + uuid);
           if (!fs.exists(newBulkDir)) {
-            if (fs.mkdirs(newBulkDir)) return newBulkDir;
+            if (fs.mkdirs(newBulkDir))
+              return newBulkDir;
             log.warn("Failed to create " + newBulkDir + " for unknown reason");
           } else {
             // name collision
@@ -249,8 +251,8 @@ public class ClientServiceHandler implements ClientService.Iface {
       ThriftTableOperationException, TException {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
     try {
-      if (!authenticator.hasTablePermission(credentials, credentials.getUser(), tableId, TablePermission.BULK_IMPORT)) throw new AccumuloSecurityException(
-          credentials.getUser(), SecurityErrorCode.PERMISSION_DENIED);
+      if (!authenticator.hasTablePermission(credentials, credentials.getUser(), tableId, TablePermission.BULK_IMPORT))
+        throw new AccumuloSecurityException(credentials.getUser(), SecurityErrorCode.PERMISSION_DENIED);
       FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
       Path bulkDir = createNewBulkDir(fs, tableId);
       Path procFile = new Path(bulkDir.toString() + "/processing_proc_" + System.currentTimeMillis());
@@ -264,8 +266,8 @@ public class ClientServiceHandler implements ClientService.Iface {
       int errorCount = 0;
       
       for (FileStatus fileStatus : mapFiles) {
-        if ((double) errorCount / (double) mapFiles.length > errPercent) throw new IOException(String.format("More than %6.2f%s of map files failed to move",
-            errPercent * 100.0, "%"));
+        if ((double) errorCount / (double) mapFiles.length > errPercent)
+          throw new IOException(String.format("More than %6.2f%s of map files failed to move", errPercent * 100.0, "%"));
         
         String sa[] = fileStatus.getPath().getName().split("\\.");
         String extension = "";
@@ -323,15 +325,16 @@ public class ClientServiceHandler implements ClientService.Iface {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
     try {
       // make sure the user can still do bulk import
-      if (!authenticator.hasTablePermission(credentials, credentials.getUser(), tableId, TablePermission.BULK_IMPORT)) throw new AccumuloSecurityException(
-          credentials.getUser(), SecurityErrorCode.PERMISSION_DENIED);
+      if (!authenticator.hasTablePermission(credentials, credentials.getUser(), tableId, TablePermission.BULK_IMPORT))
+        throw new AccumuloSecurityException(credentials.getUser(), SecurityErrorCode.PERMISSION_DENIED);
       Path lockPath = new Path(lockFile);
       Path bulkDir = lockPath.getParent();
       // ensure the table matches
-      if (!bulkDir.getParent().getName().equals(tableId)) throw new AccumuloSecurityException(credentials.getUser(), SecurityErrorCode.PERMISSION_DENIED);
+      if (!bulkDir.getParent().getName().equals(tableId))
+        throw new AccumuloSecurityException(credentials.getUser(), SecurityErrorCode.PERMISSION_DENIED);
       // ensure the location is in the table directory
-      if (!bulkDir.getParent().getParent().toString().equals(Constants.getTablesDir())) throw new AccumuloSecurityException(credentials.getUser(),
-          SecurityErrorCode.PERMISSION_DENIED);
+      if (!bulkDir.getParent().getParent().toString().equals(Constants.getTablesDir()))
+        throw new AccumuloSecurityException(credentials.getUser(), SecurityErrorCode.PERMISSION_DENIED);
       FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
       
       if (disableGC) {
@@ -342,7 +345,8 @@ public class ClientServiceHandler implements ClientService.Iface {
         fsOut2.close();
       }
       
-      if (lockPath.getName().startsWith("processing_proc_")) fs.delete(lockPath, false);
+      if (lockPath.getName().startsWith("processing_proc_"))
+        fs.delete(lockPath, false);
       
     } catch (AccumuloSecurityException ex) {
       throw ex.asThriftException();

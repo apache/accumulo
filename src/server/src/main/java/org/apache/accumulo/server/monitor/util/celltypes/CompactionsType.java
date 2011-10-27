@@ -29,11 +29,14 @@ public class CompactionsType extends CellType<TableInfo> {
   
   @Override
   public String format(Object obj) {
-    if (obj == null) return "-";
+    if (obj == null)
+      return "-";
     TableInfo summary = (TableInfo) obj;
     Compacting c = summary.major;
-    if (fieldName.equals("minor")) c = summary.minor;
-    if (c == null) c = new Compacting();
+    if (fieldName.equals("minor"))
+      c = summary.minor;
+    if (c == null)
+      c = new Compacting();
     return String.format("%s&nbsp;(%,d)", NumberType.commas(c.running, c.queued == 0 ? 0 : 1, summary.onlineTablets), c.queued);
   }
   

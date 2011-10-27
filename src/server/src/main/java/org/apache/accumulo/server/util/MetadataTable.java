@@ -114,7 +114,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   public static void update(AuthInfo credentials, ZooLock zooLock, Mutation m) {
     Writer t;
     t = getMetadataTable(credentials);
-    if (zooLock != null) putLockID(zooLock, m);
+    if (zooLock != null)
+      putLockID(zooLock, m);
     while (true) {
       try {
         t.update(m);
@@ -170,7 +171,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
             UtilWaitThread.sleep(1000);
           }
         }
-        if (unusedWalLogs.size() > 0 && !foundEntry) log.warn("WALog entry for root tablet did not exist " + unusedWalLogs);
+        if (unusedWalLogs.size() > 0 && !foundEntry)
+          log.warn("WALog entry for root tablet did not exist " + unusedWalLogs);
       }
       return;
     }
@@ -181,7 +183,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
       m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text(path), new Value(dfv.encode()));
       ColumnFQ.put(m, Constants.METADATA_TIME_COLUMN, new Value(time.getBytes()));
       // erase the old location
-      if (lastLocation != null) lastLocation.clearLastLocation(m);
+      if (lastLocation != null)
+        lastLocation.clearLastLocation(m);
       // stuff in this location
       TServerInstance self = getTServerInstance(address, zooLock);
       self.putLastLocation(m);
@@ -265,9 +268,11 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
       colq = key.getColumnQualifier(colq);
       
       // interpret the row id as a key extent
-      if (Constants.METADATA_DIRECTORY_COLUMN.equals(colf, colq)) datafile = new Text(val.toString());
+      if (Constants.METADATA_DIRECTORY_COLUMN.equals(colf, colq))
+        datafile = new Text(val.toString());
       
-      else if (Constants.METADATA_PREV_ROW_COLUMN.equals(colf, colq)) prevRow = new Value(val);
+      else if (Constants.METADATA_PREV_ROW_COLUMN.equals(colf, colq))
+        prevRow = new Value(val);
       
       if (datafile != null && prevRow != null) {
         ke = new KeyExtent(key.getRow(), prevRow);
@@ -365,7 +370,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     mdScanner.setRange(new Range(new Key(row), endKey));
     for (Entry<Key,Value> entry : mdScanner) {
       
-      if (!entry.getKey().getRow().equals(row)) break;
+      if (!entry.getKey().getRow().equals(row))
+        break;
       DataFileValue dfv = new DataFileValue(entry.getValue().get());
       sizes.put(entry.getKey().getColumnQualifier().toString(), dfv);
     }
@@ -450,10 +456,12 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     for (String scanFile : scanFiles)
       m.put(Constants.METADATA_SCANFILE_COLUMN_FAMILY, new Text(scanFile), new Value("".getBytes()));
     
-    if (size.getNumEntries() > 0) m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text(path), new Value(size.encode()));
+    if (size.getNumEntries() > 0)
+      m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text(path), new Value(size.encode()));
     
     // remove the old location
-    if (lastLocation != null) lastLocation.clearLastLocation(m);
+    if (lastLocation != null)
+      lastLocation.clearLastLocation(m);
     TServerInstance self = getTServerInstance(address, zooLock);
     self.putLastLocation(m);
     
@@ -480,9 +488,9 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   private static KeyExtent fixSplit(Text table, Text metadataEntry, Text metadataPrevEndRow, Value oper, double splitRatio, TServerInstance tserver,
       AuthInfo credentials, String time, ZooLock lock) throws AccumuloException {
     if (metadataPrevEndRow == null)
-    // something is wrong, this should not happen... if a tablet is split, it will always have a
-    // prev end row....
-    throw new AccumuloException("Split tablet does not have prev end row, something is amiss, extent = " + metadataEntry);
+      // something is wrong, this should not happen... if a tablet is split, it will always have a
+      // prev end row....
+      throw new AccumuloException("Split tablet does not have prev end row, something is amiss, extent = " + metadataEntry);
     
     KeyExtent low = null;
     
@@ -620,7 +628,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
       Key key = cell.getKey();
       String rowTable = new String(KeyExtent.tableOfMetadataRow(key.getRow()));
       
-      if (!rowTable.equals(table)) break;
+      if (!rowTable.equals(table))
+        break;
       
       if (m == null) {
         m = new Mutation(key.getRow());
@@ -635,7 +644,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
       m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
     }
     
-    if (m != null) bw.addMutation(m);
+    if (m != null)
+      bw.addMutation(m);
     
     bw.close();
   }
@@ -693,15 +703,16 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   }
   
   public static void addLogEntries(AuthInfo credentials, List<LogEntry> entries, ZooLock zooLock) {
-    if (entries.size() == 0) return;
+    if (entries.size() == 0)
+      return;
     // entries should be a complete log set, so we should only need to write the first entry
     LogEntry entry = entries.get(0);
     if (entry.extent.equals(Constants.ROOT_TABLET_EXTENT)) {
       String root = getZookeeperLogLocation();
       while (true) {
         try {
-          if (ZooLock.isLockHeld(ZooSession.getSession(), zooLock.getLockID())) ZooUtil.putPersistentData(root + "/" + entry.filename, entry.toBytes(),
-              NodeExistsPolicy.OVERWRITE);
+          if (ZooLock.isLockHeld(ZooSession.getSession(), zooLock.getLockID()))
+            ZooUtil.putPersistentData(root + "/" + entry.filename, entry.toBytes(), NodeExistsPolicy.OVERWRITE);
           break;
         } catch (KeeperException e) {
           log.error(e, e);
@@ -800,8 +811,10 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
       @Override
       public int compare(LogEntry o1, LogEntry o2) {
         long diff = o1.timestamp - o2.timestamp;
-        if (diff < 0) return -1;
-        if (diff > 0) return 1;
+        if (diff < 0)
+          return -1;
+        if (diff > 0)
+          return 1;
         return 0;
       }
     });
@@ -876,7 +889,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
         String root = getZookeeperLogLocation();
         while (true) {
           try {
-            if (ZooLock.isLockHeld(ZooSession.getSession(), zooLock.getLockID())) ZooUtil.recursiveDelete(root + "/" + entry.filename, NodeMissingPolicy.SKIP);
+            if (ZooLock.isLockHeld(ZooSession.getSession(), zooLock.getLockID()))
+              ZooUtil.recursiveDelete(root + "/" + entry.filename, NodeMissingPolicy.SKIP);
             break;
           } catch (Exception e) {
             log.error(e, e);

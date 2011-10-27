@@ -109,8 +109,11 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
     // circuit the call to switchSource
     boolean seekNeeded = (!onlySwitchAfterRow && switchSource()) || initialSeek;
     
-    if (seekNeeded) if (initialSeek) iter.seek(range, columnFamilies, inclusive);
-    else iter.seek(new Range(key, false, range.getEndKey(), range.isEndKeyInclusive()), columnFamilies, inclusive);
+    if (seekNeeded)
+      if (initialSeek)
+        iter.seek(range, columnFamilies, inclusive);
+      else
+        iter.seek(new Range(key, false, range.getEndKey(), range.isEndKeyInclusive()), columnFamilies, inclusive);
     else {
       iter.next();
       if (onlySwitchAfterRow && iter.hasTop() && !source.isCurrent() && !key.getRowData().equals(iter.getTopKey().getRowData())) {
@@ -135,7 +138,8 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
     while (!source.isCurrent()) {
       source = source.getNewDataSource();
       iter = source.iterator();
-      if (iflag != null) ((InterruptibleIterator) iter).setInterruptFlag(iflag);
+      if (iflag != null)
+        ((InterruptibleIterator) iter).setInterruptFlag(iflag);
       
       return true;
     }
@@ -151,14 +155,16 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
     
     if (iter == null) {
       iter = source.iterator();
-      if (iflag != null) ((InterruptibleIterator) iter).setInterruptFlag(iflag);
+      if (iflag != null)
+        ((InterruptibleIterator) iter).setInterruptFlag(iflag);
     }
     
     readNext(true);
   }
   
   private synchronized void _switchNow() throws IOException {
-    if (onlySwitchAfterRow) throw new IllegalStateException("Can only switch on row boundries");
+    if (onlySwitchAfterRow)
+      throw new IllegalStateException("Can only switch on row boundries");
     
     if (switchSource()) {
       if (key != null) {
@@ -176,10 +182,12 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
   
   @Override
   public synchronized void setInterruptFlag(AtomicBoolean flag) {
-    if (copies.size() != 1) throw new IllegalStateException("setInterruptFlag() called after deep copies made " + copies.size());
+    if (copies.size() != 1)
+      throw new IllegalStateException("setInterruptFlag() called after deep copies made " + copies.size());
     
     this.iflag = flag;
-    if (iter != null) ((InterruptibleIterator) iter).setInterruptFlag(flag);
+    if (iter != null)
+      ((InterruptibleIterator) iter).setInterruptFlag(flag);
     
   }
   

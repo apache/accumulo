@@ -32,10 +32,12 @@ import org.apache.hadoop.io.Text;
 public class RangeTest extends TestCase {
   private Range nr(String k1, String k2) {
     Key ik1 = null;
-    if (k1 != null) ik1 = new Key(new Text(k1), 0l);
+    if (k1 != null)
+      ik1 = new Key(new Text(k1), 0l);
     
     Key ik2 = null;
-    if (k2 != null) ik2 = new Key(new Text(k2), 0l);
+    if (k2 != null)
+      ik2 = new Key(new Text(k2), 0l);
     
     return new Range(ik1, ik2);
   }
@@ -416,9 +418,11 @@ public class RangeTest extends TestCase {
     Text tr1 = null;
     Text tr2 = null;
     
-    if (r1 != null) tr1 = new Text(r1);
+    if (r1 != null)
+      tr1 = new Text(r1);
     
-    if (r2 != null) tr2 = new Text(r2);
+    if (r2 != null)
+      tr2 = new Text(r2);
     
     return new Range(tr1, r1i, tr2, r2i);
     

@@ -5,52 +5,46 @@
  */
 package org.apache.accumulo.core.master.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fields>, java.io.Serializable, Cloneable {
+public class RecoveryStatus implements TBase<RecoveryStatus,RecoveryStatus._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("RecoveryStatus");
-
-  private static final TField HOST_FIELD_DESC = new TField("host", TType.STRING, (short)1);
-  private static final TField NAME_FIELD_DESC = new TField("name", TType.STRING, (short)2);
-  private static final TField MAP_PROGRESS_FIELD_DESC = new TField("mapProgress", TType.DOUBLE, (short)3);
-  private static final TField REDUCE_PROGRESS_FIELD_DESC = new TField("reduceProgress", TType.DOUBLE, (short)4);
-  private static final TField RUNTIME_FIELD_DESC = new TField("runtime", TType.I32, (short)5);
-  private static final TField COPY_PROGRESS_FIELD_DESC = new TField("copyProgress", TType.DOUBLE, (short)6);
-
+  
+  private static final TField HOST_FIELD_DESC = new TField("host", TType.STRING, (short) 1);
+  private static final TField NAME_FIELD_DESC = new TField("name", TType.STRING, (short) 2);
+  private static final TField MAP_PROGRESS_FIELD_DESC = new TField("mapProgress", TType.DOUBLE, (short) 3);
+  private static final TField REDUCE_PROGRESS_FIELD_DESC = new TField("reduceProgress", TType.DOUBLE, (short) 4);
+  private static final TField RUNTIME_FIELD_DESC = new TField("runtime", TType.I32, (short) 5);
+  private static final TField COPY_PROGRESS_FIELD_DESC = new TField("copyProgress", TType.DOUBLE, (short) 6);
+  
   public String host;
   public String name;
   public double mapProgress;
   public double reduceProgress;
   public int runtime;
   public double copyProgress;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    HOST((short)1, "host"),
-    NAME((short)2, "name"),
-    MAP_PROGRESS((short)3, "mapProgress"),
-    REDUCE_PROGRESS((short)4, "reduceProgress"),
-    RUNTIME((short)5, "runtime"),
-    COPY_PROGRESS((short)6, "copyProgress");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    HOST((short) 1, "host"), NAME((short) 2, "name"), MAP_PROGRESS((short) 3, "mapProgress"), REDUCE_PROGRESS((short) 4, "reduceProgress"), RUNTIME((short) 5,
+        "runtime"), COPY_PROGRESS((short) 6, "copyProgress");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // HOST
           return HOST;
         case 2: // NAME
@@ -67,78 +61,64 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
   private static final int __MAPPROGRESS_ISSET_ID = 0;
   private static final int __REDUCEPROGRESS_ISSET_ID = 1;
   private static final int __RUNTIME_ISSET_ID = 2;
   private static final int __COPYPROGRESS_ISSET_ID = 3;
   private java.util.BitSet __isset_bit_vector = new java.util.BitSet(4);
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.HOST, new FieldMetaData("host", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
-    tmpMap.put(_Fields.NAME, new FieldMetaData("name", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
-    tmpMap.put(_Fields.MAP_PROGRESS, new FieldMetaData("mapProgress", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    tmpMap.put(_Fields.REDUCE_PROGRESS, new FieldMetaData("reduceProgress", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    tmpMap.put(_Fields.RUNTIME, new FieldMetaData("runtime", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    tmpMap.put(_Fields.COPY_PROGRESS, new FieldMetaData("copyProgress", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.HOST, new FieldMetaData("host", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
+    tmpMap.put(_Fields.NAME, new FieldMetaData("name", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
+    tmpMap.put(_Fields.MAP_PROGRESS, new FieldMetaData("mapProgress", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+    tmpMap.put(_Fields.REDUCE_PROGRESS, new FieldMetaData("reduceProgress", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+    tmpMap.put(_Fields.RUNTIME, new FieldMetaData("runtime", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+    tmpMap.put(_Fields.COPY_PROGRESS, new FieldMetaData("copyProgress", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(RecoveryStatus.class, metaDataMap);
   }
-
-  public RecoveryStatus() {
-  }
-
-  public RecoveryStatus(
-    String host,
-    String name,
-    double mapProgress,
-    double reduceProgress,
-    int runtime,
-    double copyProgress)
-  {
+  
+  public RecoveryStatus() {}
+  
+  public RecoveryStatus(String host, String name, double mapProgress, double reduceProgress, int runtime, double copyProgress) {
     this();
     this.host = host;
     this.name = name;
@@ -151,7 +131,7 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
     this.copyProgress = copyProgress;
     setCopyProgressIsSet(true);
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -169,277 +149,277 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
     this.runtime = other.runtime;
     this.copyProgress = other.copyProgress;
   }
-
+  
   public RecoveryStatus deepCopy() {
     return new RecoveryStatus(this);
   }
-
+  
   @Deprecated
   public RecoveryStatus clone() {
     return new RecoveryStatus(this);
   }
-
+  
   public String getHost() {
     return this.host;
   }
-
+  
   public RecoveryStatus setHost(String host) {
     this.host = host;
     return this;
   }
-
+  
   public void unsetHost() {
     this.host = null;
   }
-
+  
   /** Returns true if field host is set (has been asigned a value) and false otherwise */
   public boolean isSetHost() {
     return this.host != null;
   }
-
+  
   public void setHostIsSet(boolean value) {
     if (!value) {
       this.host = null;
     }
   }
-
+  
   public String getName() {
     return this.name;
   }
-
+  
   public RecoveryStatus setName(String name) {
     this.name = name;
     return this;
   }
-
+  
   public void unsetName() {
     this.name = null;
   }
-
+  
   /** Returns true if field name is set (has been asigned a value) and false otherwise */
   public boolean isSetName() {
     return this.name != null;
   }
-
+  
   public void setNameIsSet(boolean value) {
     if (!value) {
       this.name = null;
     }
   }
-
+  
   public double getMapProgress() {
     return this.mapProgress;
   }
-
+  
   public RecoveryStatus setMapProgress(double mapProgress) {
     this.mapProgress = mapProgress;
     setMapProgressIsSet(true);
     return this;
   }
-
+  
   public void unsetMapProgress() {
     __isset_bit_vector.clear(__MAPPROGRESS_ISSET_ID);
   }
-
+  
   /** Returns true if field mapProgress is set (has been asigned a value) and false otherwise */
   public boolean isSetMapProgress() {
     return __isset_bit_vector.get(__MAPPROGRESS_ISSET_ID);
   }
-
+  
   public void setMapProgressIsSet(boolean value) {
     __isset_bit_vector.set(__MAPPROGRESS_ISSET_ID, value);
   }
-
+  
   public double getReduceProgress() {
     return this.reduceProgress;
   }
-
+  
   public RecoveryStatus setReduceProgress(double reduceProgress) {
     this.reduceProgress = reduceProgress;
     setReduceProgressIsSet(true);
     return this;
   }
-
+  
   public void unsetReduceProgress() {
     __isset_bit_vector.clear(__REDUCEPROGRESS_ISSET_ID);
   }
-
+  
   /** Returns true if field reduceProgress is set (has been asigned a value) and false otherwise */
   public boolean isSetReduceProgress() {
     return __isset_bit_vector.get(__REDUCEPROGRESS_ISSET_ID);
   }
-
+  
   public void setReduceProgressIsSet(boolean value) {
     __isset_bit_vector.set(__REDUCEPROGRESS_ISSET_ID, value);
   }
-
+  
   public int getRuntime() {
     return this.runtime;
   }
-
+  
   public RecoveryStatus setRuntime(int runtime) {
     this.runtime = runtime;
     setRuntimeIsSet(true);
     return this;
   }
-
+  
   public void unsetRuntime() {
     __isset_bit_vector.clear(__RUNTIME_ISSET_ID);
   }
-
+  
   /** Returns true if field runtime is set (has been asigned a value) and false otherwise */
   public boolean isSetRuntime() {
     return __isset_bit_vector.get(__RUNTIME_ISSET_ID);
   }
-
+  
   public void setRuntimeIsSet(boolean value) {
     __isset_bit_vector.set(__RUNTIME_ISSET_ID, value);
   }
-
+  
   public double getCopyProgress() {
     return this.copyProgress;
   }
-
+  
   public RecoveryStatus setCopyProgress(double copyProgress) {
     this.copyProgress = copyProgress;
     setCopyProgressIsSet(true);
     return this;
   }
-
+  
   public void unsetCopyProgress() {
     __isset_bit_vector.clear(__COPYPROGRESS_ISSET_ID);
   }
-
+  
   /** Returns true if field copyProgress is set (has been asigned a value) and false otherwise */
   public boolean isSetCopyProgress() {
     return __isset_bit_vector.get(__COPYPROGRESS_ISSET_ID);
   }
-
+  
   public void setCopyProgressIsSet(boolean value) {
     __isset_bit_vector.set(__COPYPROGRESS_ISSET_ID, value);
   }
-
+  
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case HOST:
-      if (value == null) {
-        unsetHost();
-      } else {
-        setHost((String)value);
-      }
-      break;
-
-    case NAME:
-      if (value == null) {
-        unsetName();
-      } else {
-        setName((String)value);
-      }
-      break;
-
-    case MAP_PROGRESS:
-      if (value == null) {
-        unsetMapProgress();
-      } else {
-        setMapProgress((Double)value);
-      }
-      break;
-
-    case REDUCE_PROGRESS:
-      if (value == null) {
-        unsetReduceProgress();
-      } else {
-        setReduceProgress((Double)value);
-      }
-      break;
-
-    case RUNTIME:
-      if (value == null) {
-        unsetRuntime();
-      } else {
-        setRuntime((Integer)value);
-      }
-      break;
-
-    case COPY_PROGRESS:
-      if (value == null) {
-        unsetCopyProgress();
-      } else {
-        setCopyProgress((Double)value);
-      }
-      break;
-
+      case HOST:
+        if (value == null) {
+          unsetHost();
+        } else {
+          setHost((String) value);
+        }
+        break;
+      
+      case NAME:
+        if (value == null) {
+          unsetName();
+        } else {
+          setName((String) value);
+        }
+        break;
+      
+      case MAP_PROGRESS:
+        if (value == null) {
+          unsetMapProgress();
+        } else {
+          setMapProgress((Double) value);
+        }
+        break;
+      
+      case REDUCE_PROGRESS:
+        if (value == null) {
+          unsetReduceProgress();
+        } else {
+          setReduceProgress((Double) value);
+        }
+        break;
+      
+      case RUNTIME:
+        if (value == null) {
+          unsetRuntime();
+        } else {
+          setRuntime((Integer) value);
+        }
+        break;
+      
+      case COPY_PROGRESS:
+        if (value == null) {
+          unsetCopyProgress();
+        } else {
+          setCopyProgress((Double) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case HOST:
-      return getHost();
-
-    case NAME:
-      return getName();
-
-    case MAP_PROGRESS:
-      return new Double(getMapProgress());
-
-    case REDUCE_PROGRESS:
-      return new Double(getReduceProgress());
-
-    case RUNTIME:
-      return new Integer(getRuntime());
-
-    case COPY_PROGRESS:
-      return new Double(getCopyProgress());
-
+      case HOST:
+        return getHost();
+        
+      case NAME:
+        return getName();
+        
+      case MAP_PROGRESS:
+        return new Double(getMapProgress());
+        
+      case REDUCE_PROGRESS:
+        return new Double(getReduceProgress());
+        
+      case RUNTIME:
+        return new Integer(getRuntime());
+        
+      case COPY_PROGRESS:
+        return new Double(getCopyProgress());
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case HOST:
-      return isSetHost();
-    case NAME:
-      return isSetName();
-    case MAP_PROGRESS:
-      return isSetMapProgress();
-    case REDUCE_PROGRESS:
-      return isSetReduceProgress();
-    case RUNTIME:
-      return isSetRuntime();
-    case COPY_PROGRESS:
-      return isSetCopyProgress();
+      case HOST:
+        return isSetHost();
+      case NAME:
+        return isSetName();
+      case MAP_PROGRESS:
+        return isSetMapProgress();
+      case REDUCE_PROGRESS:
+        return isSetReduceProgress();
+      case RUNTIME:
+        return isSetRuntime();
+      case COPY_PROGRESS:
+        return isSetCopyProgress();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof RecoveryStatus)
-      return this.equals((RecoveryStatus)that);
+      return this.equals((RecoveryStatus) that);
     return false;
   }
-
+  
   public boolean equals(RecoveryStatus that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_host = true && this.isSetHost();
     boolean that_present_host = true && that.isSetHost();
     if (this_present_host || that_present_host) {
@@ -448,7 +428,7 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
       if (!this.host.equals(that.host))
         return false;
     }
-
+    
     boolean this_present_name = true && this.isSetName();
     boolean that_present_name = true && that.isSetName();
     if (this_present_name || that_present_name) {
@@ -457,7 +437,7 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
       if (!this.name.equals(that.name))
         return false;
     }
-
+    
     boolean this_present_mapProgress = true;
     boolean that_present_mapProgress = true;
     if (this_present_mapProgress || that_present_mapProgress) {
@@ -466,7 +446,7 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
       if (this.mapProgress != that.mapProgress)
         return false;
     }
-
+    
     boolean this_present_reduceProgress = true;
     boolean that_present_reduceProgress = true;
     if (this_present_reduceProgress || that_present_reduceProgress) {
@@ -475,7 +455,7 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
       if (this.reduceProgress != that.reduceProgress)
         return false;
     }
-
+    
     boolean this_present_runtime = true;
     boolean that_present_runtime = true;
     if (this_present_runtime || that_present_runtime) {
@@ -484,7 +464,7 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
       if (this.runtime != that.runtime)
         return false;
     }
-
+    
     boolean this_present_copyProgress = true;
     boolean that_present_copyProgress = true;
     if (this_present_copyProgress || that_present_copyProgress) {
@@ -493,28 +473,29 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
       if (this.copyProgress != that.copyProgress)
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(RecoveryStatus other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    RecoveryStatus typedOther = (RecoveryStatus)other;
-
+    RecoveryStatus typedOther = (RecoveryStatus) other;
+    
     lastComparison = Boolean.valueOf(isSetHost()).compareTo(typedOther.isSetHost());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetHost()) {      lastComparison = TBaseHelper.compareTo(this.host, typedOther.host);
+    if (isSetHost()) {
+      lastComparison = TBaseHelper.compareTo(this.host, typedOther.host);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -523,7 +504,8 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetName()) {      lastComparison = TBaseHelper.compareTo(this.name, typedOther.name);
+    if (isSetName()) {
+      lastComparison = TBaseHelper.compareTo(this.name, typedOther.name);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -532,7 +514,8 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetMapProgress()) {      lastComparison = TBaseHelper.compareTo(this.mapProgress, typedOther.mapProgress);
+    if (isSetMapProgress()) {
+      lastComparison = TBaseHelper.compareTo(this.mapProgress, typedOther.mapProgress);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -541,7 +524,8 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetReduceProgress()) {      lastComparison = TBaseHelper.compareTo(this.reduceProgress, typedOther.reduceProgress);
+    if (isSetReduceProgress()) {
+      lastComparison = TBaseHelper.compareTo(this.reduceProgress, typedOther.reduceProgress);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -550,7 +534,8 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetRuntime()) {      lastComparison = TBaseHelper.compareTo(this.runtime, typedOther.runtime);
+    if (isSetRuntime()) {
+      lastComparison = TBaseHelper.compareTo(this.runtime, typedOther.runtime);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -559,35 +544,35 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetCopyProgress()) {      lastComparison = TBaseHelper.compareTo(this.copyProgress, typedOther.copyProgress);
+    if (isSetCopyProgress()) {
+      lastComparison = TBaseHelper.compareTo(this.copyProgress, typedOther.copyProgress);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
         case 1: // HOST
           if (field.type == TType.STRING) {
             this.host = iprot.readString();
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // NAME
           if (field.type == TType.STRING) {
             this.name = iprot.readString();
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -595,7 +580,7 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
           if (field.type == TType.DOUBLE) {
             this.mapProgress = iprot.readDouble();
             setMapProgressIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -603,7 +588,7 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
           if (field.type == TType.DOUBLE) {
             this.reduceProgress = iprot.readDouble();
             setReduceProgressIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -611,7 +596,7 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
           if (field.type == TType.I32) {
             this.runtime = iprot.readI32();
             setRuntimeIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -619,7 +604,7 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
           if (field.type == TType.DOUBLE) {
             this.copyProgress = iprot.readDouble();
             setCopyProgressIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -629,14 +614,14 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.host != null) {
       oprot.writeFieldBegin(HOST_FIELD_DESC);
@@ -663,7 +648,7 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("RecoveryStatus(");
@@ -695,10 +680,9 @@ public class RecoveryStatus implements TBase<RecoveryStatus, RecoveryStatus._Fie
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

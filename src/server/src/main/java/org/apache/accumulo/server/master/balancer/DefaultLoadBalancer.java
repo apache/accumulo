@@ -51,7 +51,8 @@ public class DefaultLoadBalancer extends TabletBalancer {
   }
   
   public TServerInstance getAssignment(SortedMap<TServerInstance,TabletServerStatus> locations, KeyExtent extent, TServerInstance last) {
-    if (locations.size() == 0) return null;
+    if (locations.size() == 0)
+      return null;
     
     if (last != null) {
       // Maintain locality
@@ -59,13 +60,15 @@ public class DefaultLoadBalancer extends TabletBalancer {
       Iterator<TServerInstance> find = locations.tailMap(simple).keySet().iterator();
       if (find.hasNext()) {
         TServerInstance current = find.next();
-        if (current.host().equals(last.host())) return current;
+        if (current.host().equals(last.host()))
+          return current;
       }
     }
     
     // The strategy here is to walk through the locations and hand them back, one at a time
     // Grab an iterator off of the set of options; use a new iterator if it hands back something not in the current list.
-    if (assignments == null || !assignments.hasNext()) assignments = locations.keySet().iterator();
+    if (assignments == null || !assignments.hasNext())
+      assignments = locations.keySet().iterator();
     TServerInstance result = assignments.next();
     if (!locations.containsKey(result)) {
       assignments = null;
@@ -87,7 +90,8 @@ public class DefaultLoadBalancer extends TabletBalancer {
     
     public int compareTo(ServerCounts obj) {
       int result = count - obj.count;
-      if (result == 0) return server.compareTo(obj.server);
+      if (result == 0)
+        return server.compareTo(obj.server);
       return result;
     }
   }
@@ -110,7 +114,8 @@ public class DefaultLoadBalancer extends TabletBalancer {
             /**
              * The check below was on entry.getKey(), but that resolves to a tabletserver not a tablename. Believe it should be e.getKey() which is a tablename
              */
-            if (tableToBalance == null || tableToBalance.equals(e.getKey())) serverTotal += e.getValue().onlineTablets;
+            if (tableToBalance == null || tableToBalance.equals(e.getKey()))
+              serverTotal += e.getValue().onlineTablets;
           }
         }
         totals.add(new ServerCounts(serverTotal, entry.getKey(), entry.getValue()));
@@ -151,7 +156,8 @@ public class DefaultLoadBalancer extends TabletBalancer {
           result.addAll(move(tooMany, tooLittle, needToUnload));
           movedAlready += needToUnload;
         }
-        if (needToUnload > needToLoad) moreBalancingNeeded = true;
+        if (needToUnload > needToLoad)
+          moreBalancingNeeded = true;
       }
       
     } finally {
@@ -176,7 +182,8 @@ public class DefaultLoadBalancer extends TabletBalancer {
   List<TabletMigration> move(ServerCounts tooMuch, ServerCounts tooLittle, int count) {
     
     List<TabletMigration> result = new ArrayList<TabletMigration>();
-    if (count == 0) return result;
+    if (count == 0)
+      return result;
     
     Map<String,Map<KeyExtent,TabletStats>> onlineTablets = new HashMap<String,Map<KeyExtent,TabletStats>>();
     // Copy counts so we can update them as we propose migrations
@@ -193,7 +200,8 @@ public class DefaultLoadBalancer extends TabletBalancer {
         String biggestDifferenceTable = null;
         for (Entry<String,Integer> tableEntry : tooMuchMap.entrySet()) {
           String tableID = tableEntry.getKey();
-          if (tooLittleMap.get(tableID) == null) tooLittleMap.put(tableID, 0);
+          if (tooLittleMap.get(tableID) == null)
+            tooLittleMap.put(tableID, 0);
           int diff = tableEntry.getValue() - tooLittleMap.get(tableID);
           if (diff > biggestDifference) {
             biggestDifference = diff;
@@ -223,7 +231,8 @@ public class DefaultLoadBalancer extends TabletBalancer {
       }
       KeyExtent extent = selectTablet(tooMuch.server, onlineTabletsForTable);
       onlineTabletsForTable.remove(extent);
-      if (extent == null) return result;
+      if (extent == null)
+        return result;
       tooMuchMap.put(table, tooMuchMap.get(table) - 1);
       /**
        * If a table grows from 1 tablet then tooLittleMap.get(table) can return a null, since there is only one tabletserver that holds all of the tablets. Here
@@ -252,7 +261,8 @@ public class DefaultLoadBalancer extends TabletBalancer {
   }
   
   static KeyExtent selectTablet(TServerInstance tserver, Map<KeyExtent,TabletStats> extents) {
-    if (extents.size() == 0) return null;
+    if (extents.size() == 0)
+      return null;
     KeyExtent mostRecentlySplit = null;
     long splitTime = 0;
     for (Entry<KeyExtent,TabletStats> entry : extents.entrySet())
@@ -292,7 +302,8 @@ public class DefaultLoadBalancer extends TabletBalancer {
     if (current.size() > 0) {
       // Don't migrate if we have migrations in progress
       if (migrations.size() == 0) {
-        if (getMigrations(current, migrationsOut)) return 1 * 1000;
+        if (getMigrations(current, migrationsOut))
+          return 1 * 1000;
       }
     }
     return 5 * 1000;

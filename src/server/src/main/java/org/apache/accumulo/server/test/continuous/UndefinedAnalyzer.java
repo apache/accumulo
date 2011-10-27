@@ -85,7 +85,8 @@ public class UndefinedAnalyzer {
       TreeMap<Long,Long> tm = null;
       
       while ((line = reader.readLine()) != null) {
-        if (!line.startsWith("UUID")) continue;
+        if (!line.startsWith("UUID"))
+          continue;
         String[] tokens = line.split("\\s");
         String time = tokens[1];
         String uuid = tokens[2];
@@ -110,7 +111,8 @@ public class UndefinedAnalyzer {
       while ((line = reader.readLine()) != null) {
         String[] tokens = line.split("\\s");
         
-        if (!tokens[0].equals("FLUSH")) continue;
+        if (!tokens[0].equals("FLUSH"))
+          continue;
         
         String time = tokens[1];
         String count = tokens[4];
@@ -123,7 +125,8 @@ public class UndefinedAnalyzer {
     Iterator<Long> getTimes(String uuid, long count) {
       TreeMap<Long,Long> tm = flushes.get(uuid);
       
-      if (tm == null) return null;
+      if (tm == null)
+        return null;
       
       return tm.tailMap(count).values().iterator();
     }
@@ -316,8 +319,10 @@ public class UndefinedAnalyzer {
             }
           }
           
-          if (ta == null) System.out.println(undefinedNode.undef + " " + undefinedNode.ref + " " + uuid + " " + t1 + " " + t2);
-          else System.out.println(undefinedNode.undef + " " + undefinedNode.ref + " " + ta.tablet + " " + ta.server + " " + uuid + " " + t1 + " " + t2);
+          if (ta == null)
+            System.out.println(undefinedNode.undef + " " + undefinedNode.ref + " " + uuid + " " + t1 + " " + t2);
+          else
+            System.out.println(undefinedNode.undef + " " + undefinedNode.ref + " " + ta.tablet + " " + ta.server + " " + uuid + " " + t1 + " " + t2);
           
         }
       } else {

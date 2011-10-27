@@ -314,7 +314,8 @@ public class MutationTest extends TestCase {
     assertEquals(cq, new String(cu.getColumnQualifier()));
     assertEquals(cv, new String(cu.getColumnVisibility()));
     assertEquals(timeSet, cu.hasTimestamp());
-    if (timeSet) assertEquals(ts, cu.getTimestamp());
+    if (timeSet)
+      assertEquals(ts, cu.getTimestamp());
     assertEquals(deleted, cu.isDeleted());
     assertEquals(val, new String(cu.getValue()));
   }

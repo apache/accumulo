@@ -74,8 +74,10 @@ public class MultiReader {
         cache();
         o.cache();
         // no more data: always goes to the end
-        if (!cached) return 1;
-        if (!o.cached) return -1;
+        if (!cached)
+          return 1;
+        if (!o.cached)
+          return -1;
         return key.compareTo(o.key);
       } catch (IOException ex) {
         throw new RuntimeException(ex);
@@ -88,14 +90,16 @@ public class MultiReader {
   public MultiReader(FileSystem fs, Configuration conf, String directory) throws IOException {
     boolean foundFinish = false;
     for (FileStatus child : fs.listStatus(new Path(directory))) {
-      if (child.getPath().getName().startsWith("_")) continue;
+      if (child.getPath().getName().startsWith("_"))
+        continue;
       if (child.getPath().getName().equals("finished")) {
         foundFinish = true;
         continue;
       }
       heap.add(new Index(new Reader(fs, child.getPath().toString(), conf)));
     }
-    if (!foundFinish) throw new IOException("Sort \"finished\" flag not found in " + directory);
+    if (!foundFinish)
+      throw new IOException("Sort \"finished\" flag not found in " + directory);
   }
   
   private static void copy(Writable src, Writable dest) throws IOException {
@@ -154,7 +158,8 @@ public class MultiReader {
         problem = ex;
       }
     }
-    if (problem != null) throw problem;
+    if (problem != null)
+      throw problem;
     heap = null;
   }
   

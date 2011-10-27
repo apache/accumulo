@@ -5,100 +5,95 @@
  */
 package org.apache.accumulo.core.tabletserver.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class ConstraintViolationException extends Exception implements TBase<ConstraintViolationException, ConstraintViolationException._Fields>, java.io.Serializable, Cloneable {
+public class ConstraintViolationException extends Exception implements TBase<ConstraintViolationException,ConstraintViolationException._Fields>,
+    java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("ConstraintViolationException");
-
-  private static final TField VIOLATION_SUMMARIES_FIELD_DESC = new TField("violationSummaries", TType.LIST, (short)1);
-
+  
+  private static final TField VIOLATION_SUMMARIES_FIELD_DESC = new TField("violationSummaries", TType.LIST, (short) 1);
+  
   public java.util.List<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary> violationSummaries;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    VIOLATION_SUMMARIES((short)1, "violationSummaries");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    VIOLATION_SUMMARIES((short) 1, "violationSummaries");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // VIOLATION_SUMMARIES
           return VIOLATION_SUMMARIES;
         default:
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.VIOLATION_SUMMARIES, new FieldMetaData("violationSummaries", TFieldRequirementType.DEFAULT, 
-        new ListMetaData(TType.LIST, 
-            new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TConstraintViolationSummary.class))));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.VIOLATION_SUMMARIES, new FieldMetaData("violationSummaries", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST,
+        new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TConstraintViolationSummary.class))));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(ConstraintViolationException.class, metaDataMap);
   }
-
-  public ConstraintViolationException() {
-  }
-
-  public ConstraintViolationException(
-    java.util.List<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary> violationSummaries)
-  {
+  
+  public ConstraintViolationException() {}
+  
+  public ConstraintViolationException(java.util.List<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary> violationSummaries) {
     this();
     this.violationSummaries = violationSummaries;
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -111,112 +106,112 @@ public class ConstraintViolationException extends Exception implements TBase<Con
       this.violationSummaries = __this__violationSummaries;
     }
   }
-
+  
   public ConstraintViolationException deepCopy() {
     return new ConstraintViolationException(this);
   }
-
+  
   @Deprecated
   public ConstraintViolationException clone() {
     return new ConstraintViolationException(this);
   }
-
+  
   public int getViolationSummariesSize() {
     return (this.violationSummaries == null) ? 0 : this.violationSummaries.size();
   }
-
+  
   public java.util.Iterator<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary> getViolationSummariesIterator() {
     return (this.violationSummaries == null) ? null : this.violationSummaries.iterator();
   }
-
+  
   public void addToViolationSummaries(org.apache.accumulo.core.data.thrift.TConstraintViolationSummary elem) {
     if (this.violationSummaries == null) {
       this.violationSummaries = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary>();
     }
     this.violationSummaries.add(elem);
   }
-
+  
   public java.util.List<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary> getViolationSummaries() {
     return this.violationSummaries;
   }
-
+  
   public ConstraintViolationException setViolationSummaries(java.util.List<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary> violationSummaries) {
     this.violationSummaries = violationSummaries;
     return this;
   }
-
+  
   public void unsetViolationSummaries() {
     this.violationSummaries = null;
   }
-
+  
   /** Returns true if field violationSummaries is set (has been asigned a value) and false otherwise */
   public boolean isSetViolationSummaries() {
     return this.violationSummaries != null;
   }
-
+  
   public void setViolationSummariesIsSet(boolean value) {
     if (!value) {
       this.violationSummaries = null;
     }
   }
-
+  
   @SuppressWarnings("unchecked")
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case VIOLATION_SUMMARIES:
-      if (value == null) {
-        unsetViolationSummaries();
-      } else {
-        setViolationSummaries((java.util.List<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary>)value);
-      }
-      break;
-
+      case VIOLATION_SUMMARIES:
+        if (value == null) {
+          unsetViolationSummaries();
+        } else {
+          setViolationSummaries((java.util.List<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary>) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case VIOLATION_SUMMARIES:
-      return getViolationSummaries();
-
+      case VIOLATION_SUMMARIES:
+        return getViolationSummaries();
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case VIOLATION_SUMMARIES:
-      return isSetViolationSummaries();
+      case VIOLATION_SUMMARIES:
+        return isSetViolationSummaries();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof ConstraintViolationException)
-      return this.equals((ConstraintViolationException)that);
+      return this.equals((ConstraintViolationException) that);
     return false;
   }
-
+  
   public boolean equals(ConstraintViolationException that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_violationSummaries = true && this.isSetViolationSummaries();
     boolean that_present_violationSummaries = true && that.isSetViolationSummaries();
     if (this_present_violationSummaries || that_present_violationSummaries) {
@@ -225,42 +220,42 @@ public class ConstraintViolationException extends Exception implements TBase<Con
       if (!this.violationSummaries.equals(that.violationSummaries))
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(ConstraintViolationException other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    ConstraintViolationException typedOther = (ConstraintViolationException)other;
-
+    ConstraintViolationException typedOther = (ConstraintViolationException) other;
+    
     lastComparison = Boolean.valueOf(isSetViolationSummaries()).compareTo(typedOther.isSetViolationSummaries());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetViolationSummaries()) {      lastComparison = TBaseHelper.compareTo(this.violationSummaries, typedOther.violationSummaries);
+    if (isSetViolationSummaries()) {
+      lastComparison = TBaseHelper.compareTo(this.violationSummaries, typedOther.violationSummaries);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
@@ -269,8 +264,7 @@ public class ConstraintViolationException extends Exception implements TBase<Con
             {
               TList _list0 = iprot.readListBegin();
               this.violationSummaries = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TConstraintViolationSummary>(_list0.size);
-              for (int _i1 = 0; _i1 < _list0.size; ++_i1)
-              {
+              for (int _i1 = 0; _i1 < _list0.size; ++_i1) {
                 org.apache.accumulo.core.data.thrift.TConstraintViolationSummary _elem2;
                 _elem2 = new org.apache.accumulo.core.data.thrift.TConstraintViolationSummary();
                 _elem2.read(iprot);
@@ -278,7 +272,7 @@ public class ConstraintViolationException extends Exception implements TBase<Con
               }
               iprot.readListEnd();
             }
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -288,21 +282,20 @@ public class ConstraintViolationException extends Exception implements TBase<Con
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.violationSummaries != null) {
       oprot.writeFieldBegin(VIOLATION_SUMMARIES_FIELD_DESC);
       {
         oprot.writeListBegin(new TList(TType.STRUCT, this.violationSummaries.size()));
-        for (org.apache.accumulo.core.data.thrift.TConstraintViolationSummary _iter3 : this.violationSummaries)
-        {
+        for (org.apache.accumulo.core.data.thrift.TConstraintViolationSummary _iter3 : this.violationSummaries) {
           _iter3.write(oprot);
         }
         oprot.writeListEnd();
@@ -312,7 +305,7 @@ public class ConstraintViolationException extends Exception implements TBase<Con
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("ConstraintViolationException(");
@@ -325,10 +318,9 @@ public class ConstraintViolationException extends Exception implements TBase<Con
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

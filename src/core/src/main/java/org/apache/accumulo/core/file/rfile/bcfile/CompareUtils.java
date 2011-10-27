@@ -72,8 +72,10 @@ class CompareUtils {
     @Override
     public int compare(Scalar o1, Scalar o2) {
       long diff = o1.magnitude() - o2.magnitude();
-      if (diff < 0) return -1;
-      if (diff > 0) return 1;
+      if (diff < 0)
+        return -1;
+      if (diff > 0)
+        return 1;
       return 0;
     }
   }

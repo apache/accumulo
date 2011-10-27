@@ -89,20 +89,26 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
     fieldsSame = 0;
     
     if (prevKey != null) {
-      if (prevKey.getRowData().equals(key.getRowData())) fieldsSame |= ROW_SAME;
+      if (prevKey.getRowData().equals(key.getRowData()))
+        fieldsSame |= ROW_SAME;
       
-      if (prevKey.getColumnFamilyData().equals(key.getColumnFamilyData())) fieldsSame |= CF_SAME;
+      if (prevKey.getColumnFamilyData().equals(key.getColumnFamilyData()))
+        fieldsSame |= CF_SAME;
       
-      if (prevKey.getColumnQualifierData().equals(key.getColumnQualifierData())) fieldsSame |= CQ_SAME;
+      if (prevKey.getColumnQualifierData().equals(key.getColumnQualifierData()))
+        fieldsSame |= CQ_SAME;
       
-      if (prevKey.getColumnVisibilityData().equals(key.getColumnVisibilityData())) fieldsSame |= CV_SAME;
+      if (prevKey.getColumnVisibilityData().equals(key.getColumnVisibilityData()))
+        fieldsSame |= CV_SAME;
       
-      if (prevKey.getTimestamp() == key.getTimestamp()) fieldsSame |= TS_SAME;
+      if (prevKey.getTimestamp() == key.getTimestamp())
+        fieldsSame |= TS_SAME;
       
     }
     
     // stored deleted information in bit vector instead of its own byte
-    if (key.isDeleted()) fieldsSame |= DELETED;
+    if (key.isDeleted())
+      fieldsSame |= DELETED;
   }
   
   @Override
@@ -209,12 +215,15 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
       cqCmp = cq.compareTo(stopCQ);
       
       if (rowCmp >= 0) {
-        if (rowCmp > 0) return 0;
+        if (rowCmp > 0)
+          return 0;
         
         if (cfCmp >= 0) {
-          if (cfCmp > 0) return 0;
+          if (cfCmp > 0)
+            return 0;
           
-          if (cqCmp >= 0) return 0;
+          if (cqCmp >= 0)
+            return 0;
         }
       }
       
@@ -297,12 +306,15 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
       count++;
       
       if (changed && rowCmp >= 0) {
-        if (rowCmp > 0) break;
+        if (rowCmp > 0)
+          break;
         
         if (cfCmp >= 0) {
-          if (cfCmp > 0) break;
+          if (cfCmp > 0)
+            break;
           
-          if (cqCmp >= 0) break;
+          if (cqCmp >= 0)
+            break;
         }
       }
       

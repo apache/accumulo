@@ -368,7 +368,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     synchronized Session reserveSession(long sessionId) {
       Session session = sessions.get(sessionId);
       if (session != null) {
-        if (session.reserved) throw new IllegalStateException();
+        if (session.reserved)
+          throw new IllegalStateException();
         session.reserved = true;
       }
       
@@ -377,19 +378,22 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     }
     
     synchronized void unreserveSession(Session session) {
-      if (!session.reserved) throw new IllegalStateException();
+      if (!session.reserved)
+        throw new IllegalStateException();
       session.reserved = false;
       session.lastAccessTime = System.currentTimeMillis();
     }
     
     synchronized void unreserveSession(long sessionId) {
       Session session = getSession(sessionId);
-      if (session != null) unreserveSession(session);
+      if (session != null)
+        unreserveSession(session);
     }
     
     synchronized Session getSession(long sessionId) {
       Session session = sessions.get(sessionId);
-      if (session != null) session.lastAccessTime = System.currentTimeMillis();
+      if (session != null)
+        session.lastAccessTime = System.currentTimeMillis();
       return session;
     }
     
@@ -400,7 +404,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
       }
       
       // do clean up out side of lock..
-      if (session != null) session.cleanup();
+      if (session != null)
+        session.cleanup();
       
       return session;
     }
@@ -441,7 +446,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
             }
             
             // call clean up outside of lock
-            if (sessionToCleanup != null) sessionToCleanup.cleanup();
+            if (sessionToCleanup != null)
+              sessionToCleanup.cleanup();
           }
         };
         
@@ -521,9 +527,11 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     @Override
     public void cleanup() {
       try {
-        if (nextBatchTask != null) nextBatchTask.cancel(true);
+        if (nextBatchTask != null)
+          nextBatchTask.cancel(true);
       } finally {
-        if (scanner != null) scanner.close();
+        if (scanner != null)
+          scanner.close();
       }
     }
     
@@ -547,7 +555,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     
     @Override
     public void cleanup() {
-      if (lookupTask != null) lookupTask.cancel(true);
+      if (lookupTask != null)
+        lookupTask.cancel(true);
     }
   }
   
@@ -573,13 +582,15 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     }
     
     synchronized void finishWrite(long operationId) {
-      if (operationId == -1) return;
+      if (operationId == -1)
+        return;
       
       boolean removed = false;
       
       for (TabletType ttype : TabletType.values()) {
         removed = inProgressWrites.get(ttype).remove(operationId);
-        if (removed) break;
+        if (removed)
+          break;
       }
       
       if (!removed) {
@@ -601,7 +612,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     }
     
     public long startWrite(Set<Tablet> keySet) {
-      if (keySet.size() == 0) return -1;
+      if (keySet.size() == 0)
+        return -1;
       
       ArrayList<KeyExtent> extents = new ArrayList<KeyExtent>(keySet.size());
       
@@ -642,8 +654,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
       
       for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
         try {
-          if (!authenticator.hasTablePermission(credentials, credentials.user, new String(entry.getKey().getTable()), TablePermission.BULK_IMPORT)) throw new ThriftSecurityException(
-              credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+          if (!authenticator.hasTablePermission(credentials, credentials.user, new String(entry.getKey().getTable()), TablePermission.BULK_IMPORT))
+            throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
         } catch (AccumuloSecurityException e) {
           throw e.asThriftException();
         }
@@ -690,15 +702,19 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
       }
       
       protected void addResult(Object o) {
-        if (state.compareAndSet(INITIAL, ADDED)) resultQueue.add(o);
-        else if (state.get() == ADDED) throw new IllegalStateException("Tried to add more than one result");
+        if (state.compareAndSet(INITIAL, ADDED))
+          resultQueue.add(o);
+        else if (state.get() == ADDED)
+          throw new IllegalStateException("Tried to add more than one result");
       }
       
       @Override
       public boolean cancel(boolean mayInterruptIfRunning) {
-        if (!mayInterruptIfRunning) throw new IllegalArgumentException("Cancel will always attempt to interupt running next batch task");
+        if (!mayInterruptIfRunning)
+          throw new IllegalArgumentException("Cancel will always attempt to interupt running next batch task");
         
-        if (state.get() == CANCELED) return true;
+        if (state.get() == CANCELED)
+          return true;
         
         if (state.compareAndSet(INITIAL, CANCELED)) {
           interruptFlag.set(true);
@@ -720,25 +736,30 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
         
         ArrayBlockingQueue<Object> localRQ = resultQueue;
         
-        if (state.get() == CANCELED) throw new CancellationException();
+        if (state.get() == CANCELED)
+          throw new CancellationException();
         
-        if (localRQ == null && state.get() == ADDED) throw new IllegalStateException("Tried to get result twice");
+        if (localRQ == null && state.get() == ADDED)
+          throw new IllegalStateException("Tried to get result twice");
         
         Object r = localRQ.poll(timeout, unit);
         
         // could have been canceled while waiting
         if (state.get() == CANCELED) {
-          if (r != null) throw new IllegalStateException("Nothing should have been added when in canceled state");
+          if (r != null)
+            throw new IllegalStateException("Nothing should have been added when in canceled state");
           
           throw new CancellationException();
         }
         
-        if (r == null) throw new TimeoutException();
+        if (r == null)
+          throw new TimeoutException();
         
         // make this method stop working now that something is being returned
         resultQueue = null;
         
-        if (r instanceof Throwable) throw new ExecutionException((Throwable) r);
+        if (r instanceof Throwable)
+          throw new ExecutionException((Throwable) r);
         
         return (T) r;
       }
@@ -763,7 +784,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
         this.scanID = scanID;
         this.interruptFlag = interruptFlag;
         
-        if (interruptFlag.get()) cancel(true);
+        if (interruptFlag.get())
+          cancel(true);
       }
       
       @Override
@@ -772,7 +794,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
         ScanSession scanSession = (ScanSession) sessionManager.getSession(scanID);
         
         try {
-          if (isCancelled() || scanSession == null) return;
+          if (isCancelled() || scanSession == null)
+            return;
           
           Tablet tablet = onlineTablets.get(scanSession.extent);
           
@@ -822,7 +845,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
         MultiScanSession session = (MultiScanSession) sessionManager.getSession(scanID);
         
         try {
-          if (isCancelled() || session == null) return;
+          if (isCancelled() || session == null)
+            return;
           
           long maxResultsSize = acuConf.getMemoryInBytes(Property.TABLE_SCAN_MAXMEM);
           long bytesAdded = 0;
@@ -856,7 +880,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
             try {
               
               // do the following check to avoid a race condition between setting false below and the task being canceled
-              if (isCancelled()) interruptFlag.set(true);
+              if (isCancelled())
+                interruptFlag.set(true);
               
               lookupResult = tablet.lookup(entry.getValue(), session.columnSet, session.auths, results, maxResultsSize - bytesAdded, session.ssiList,
                   session.ssio, interruptFlag);
@@ -926,12 +951,13 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
       Authorizations userauths = null;
       
       try {
-        if (!authenticator.hasTablePermission(credentials, credentials.user, new String(textent.getTable()), TablePermission.READ)) throw new ThriftSecurityException(
-            credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+        if (!authenticator.hasTablePermission(credentials, credentials.user, new String(textent.getTable()), TablePermission.READ))
+          throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
         
         userauths = authenticator.getUserAuthorizations(credentials, credentials.user);
         for (byte[] auth : authorizations)
-          if (!userauths.contains(auth)) throw new ThriftSecurityException(credentials.user, SecurityErrorCode.BAD_AUTHORIZATIONS);
+          if (!userauths.contains(auth))
+            throw new ThriftSecurityException(credentials.user, SecurityErrorCode.BAD_AUTHORIZATIONS);
       } catch (AccumuloSecurityException e) {
         throw e.asThriftException();
       }
@@ -950,10 +976,12 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
       // the restarted client may not see the write unless we wait here.
       // this behavior is very important when the client is reading the
       // !METADATA table
-      if (waitForWrites) writeTracker.waitForWrites(TabletType.type(extent));
+      if (waitForWrites)
+        writeTracker.waitForWrites(TabletType.type(extent));
       
       Tablet tablet = onlineTablets.get(extent);
-      if (tablet == null) throw new NotServingTabletException(textent);
+      if (tablet == null)
+        throw new NotServingTabletException(textent);
       
       ScanSession scanSession = new ScanSession();
       scanSession.user = credentials.user;
@@ -1014,15 +1042,19 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
         scanSession.nextBatchTask = null;
       } catch (ExecutionException e) {
         sessionManager.removeSession(scanID);
-        if (e.getCause() instanceof NotServingTabletException) throw (NotServingTabletException) e.getCause();
-        else if (e.getCause() instanceof TooManyFilesException) throw new org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException(
-            scanSession.extent.toThrift());
-        else throw new RuntimeException(e);
+        if (e.getCause() instanceof NotServingTabletException)
+          throw (NotServingTabletException) e.getCause();
+        else if (e.getCause() instanceof TooManyFilesException)
+          throw new org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException(scanSession.extent.toThrift());
+        else
+          throw new RuntimeException(e);
       } catch (CancellationException ce) {
         sessionManager.removeSession(scanID);
         Tablet tablet = onlineTablets.get(scanSession.extent);
-        if (tablet == null || tablet.isClosed()) throw new NotServingTabletException(scanSession.extent.toThrift());
-        else throw new NoSuchScanIDException();
+        if (tablet == null || tablet.isClosed())
+          throw new NotServingTabletException(scanSession.extent.toThrift());
+        else
+          throw new NoSuchScanIDException();
       } catch (TimeoutException e) {
         long timeout = acuConf.getTimeInMillis(Property.TSERV_CLIENT_TIMEOUT);
         List<TKeyValue> param = Collections.emptyList();
@@ -1046,7 +1078,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
         resourceManager.executeReadAhead(scanSession.extent, scanSession.nextBatchTask);
       }
       
-      if (!scanResult.more) closeScan(tinfo, scanID);
+      if (!scanResult.more)
+        closeScan(tinfo, scanID);
       
       return scanResult;
     }
@@ -1079,12 +1112,13 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
       Authorizations userauths = null;
       try {
         for (String table : tables)
-          if (!authenticator.hasTablePermission(credentials, credentials.user, table, TablePermission.READ)) throw new ThriftSecurityException(
-              credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+          if (!authenticator.hasTablePermission(credentials, credentials.user, table, TablePermission.READ))
+            throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
         
         userauths = authenticator.getUserAuthorizations(credentials, credentials.user);
         for (byte[] auth : authorizations)
-          if (!userauths.contains(auth)) throw new ThriftSecurityException(credentials.user, SecurityErrorCode.BAD_AUTHORIZATIONS);
+          if (!userauths.contains(auth))
+            throw new ThriftSecurityException(credentials.user, SecurityErrorCode.BAD_AUTHORIZATIONS);
       } catch (AccumuloSecurityException e) {
         throw e.asThriftException();
       }
@@ -1105,7 +1139,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
         
       }
       
-      if (waitForWrites) writeTracker.waitForWrites(TabletType.type(batch.keySet()));
+      if (waitForWrites)
+        writeTracker.waitForWrites(TabletType.type(batch.keySet()));
       
       MultiScanSession mss = new MultiScanSession();
       mss.user = credentials.user;
@@ -1199,7 +1234,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
       // Make sure user is real
       try {
         if (!authenticator.authenticateUser(credentials, credentials.user, credentials.password)) {
-          if (updateMetrics.isEnabled()) updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
+          if (updateMetrics.isEnabled())
+            updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
           throw new ThriftSecurityException(credentials.user, SecurityErrorCode.BAD_CREDENTIALS);
         }
       } catch (AccumuloSecurityException e) {
@@ -1236,7 +1272,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
             } else {
               // not serving tablet, so report all mutations as failures
               us.failures.put(keyExtent, 0l);
-              if (updateMetrics.isEnabled()) updateMetrics.add(TabletServerUpdateMetrics.unknownTabletErrors, 0);
+              if (updateMetrics.isEnabled())
+                updateMetrics.add(TabletServerUpdateMetrics.unknownTabletErrors, 0);
             }
           } else {
             log.warn("Denying access to table " + keyExtent.getTableId() + " for user " + us.credentials.user);
@@ -1244,7 +1281,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
             us.authTimes.addStat(t2 - t1);
             us.currentTablet = null;
             us.authFailures.add(keyExtent);
-            if (updateMetrics.isEnabled()) updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
+            if (updateMetrics.isEnabled())
+              updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
             return;
           }
         } catch (AccumuloSecurityException e) {
@@ -1253,7 +1291,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
           us.authTimes.addStat(t2 - t1);
           us.currentTablet = null;
           us.authFailures.add(keyExtent);
-          if (updateMetrics.isEnabled()) updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
+          if (updateMetrics.isEnabled())
+            updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
           return;
         } finally {
           sessionManager.unreserveSession(us);
@@ -1275,7 +1314,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
           Mutation mutation = new Mutation(tmutation);
           us.queuedMutations.get(us.currentTablet).add(mutation);
           us.queuedMutationSize += mutation.numBytes();
-          if (us.queuedMutationSize > AccumuloConfiguration.getSystemConfiguration().getMemoryInBytes(Property.TSERV_MUTATION_QUEUE_MAX)) flush(us);
+          if (us.queuedMutationSize > AccumuloConfiguration.getSystemConfiguration().getMemoryInBytes(Property.TSERV_MUTATION_QUEUE_MAX))
+            flush(us);
         }
       } finally {
         sessionManager.unreserveSession(us);
@@ -1292,9 +1332,11 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
       
       boolean containsMetadataTablet = false;
       for (Tablet tablet : us.queuedMutations.keySet())
-        if (tablet.getExtent().getTableId().toString().equals(Constants.METADATA_TABLE_ID)) containsMetadataTablet = true;
+        if (tablet.getExtent().getTableId().toString().equals(Constants.METADATA_TABLE_ID))
+          containsMetadataTablet = true;
       
-      if (!containsMetadataTablet && us.queuedMutations.size() > 0) TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
+      if (!containsMetadataTablet && us.queuedMutations.size() > 0)
+        TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
       
       Span prep = Trace.start("prep");
       for (Entry<Tablet,? extends List<Mutation>> entry : us.queuedMutations.entrySet()) {
@@ -1303,7 +1345,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
         List<Mutation> mutations = entry.getValue();
         if (mutations.size() > 0) {
           try {
-            if (updateMetrics.isEnabled()) updateMetrics.add(TabletServerUpdateMetrics.mutationArraySize, mutations.size());
+            if (updateMetrics.isEnabled())
+              updateMetrics.add(TabletServerUpdateMetrics.mutationArraySize, mutations.size());
             
             CommitSession commitSession = tablet.prepareMutationsForCommit(mutations);
             if (commitSession == null) {
@@ -1318,7 +1361,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
             
           } catch (TConstraintViolationException e) {
             us.violations.add(e.getViolations());
-            if (updateMetrics.isEnabled()) updateMetrics.add(TabletServerUpdateMetrics.constraintViolations, 0);
+            if (updateMetrics.isEnabled())
+              updateMetrics.add(TabletServerUpdateMetrics.constraintViolations, 0);
             
             if (e.getNonViolators().size() > 0) {
               // only log and commit mutations if there were some that did not
@@ -1346,7 +1390,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
       long pt2 = System.currentTimeMillis();
       long avgPrepareTime = (long) ((pt2 - pt1) / (double) us.queuedMutations.size());
       us.prepareTimes.addStat(pt2 - pt1);
-      if (updateMetrics.isEnabled()) updateMetrics.add(TabletServerUpdateMetrics.commitPrep, (avgPrepareTime));
+      if (updateMetrics.isEnabled())
+        updateMetrics.add(TabletServerUpdateMetrics.commitPrep, (avgPrepareTime));
       
       if (error != null) {
         for (Entry<CommitSession,List<Mutation>> e : sendables.entrySet()) {
@@ -1363,7 +1408,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
             
             long t2 = System.currentTimeMillis();
             us.walogTimes.addStat(t2 - t1);
-            if (updateMetrics.isEnabled()) updateMetrics.add(TabletServerUpdateMetrics.waLogWriteTime, (t2 - t1));
+            if (updateMetrics.isEnabled())
+              updateMetrics.add(TabletServerUpdateMetrics.waLogWriteTime, (t2 - t1));
             
             break;
           } catch (IOException ex) {
@@ -1400,7 +1446,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
         us.flushTime += (t2 - pt1);
         us.commitTimes.addStat(t2 - t1);
         
-        if (updateMetrics.isEnabled()) updateMetrics.add(TabletServerUpdateMetrics.commitTime, avgCommitTime);
+        if (updateMetrics.isEnabled())
+          updateMetrics.add(TabletServerUpdateMetrics.commitTime, avgCommitTime);
         commit.stop();
       } finally {
         us.queuedMutations.clear();
@@ -1455,8 +1502,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     public void update(TInfo tinfo, AuthInfo credentials, TKeyExtent tkeyExtent, TMutation tmutation) throws NotServingTabletException,
         ConstraintViolationException, ThriftSecurityException {
       try {
-        if (!authenticator.hasTablePermission(credentials, credentials.user, new String(tkeyExtent.getTable()), TablePermission.WRITE)) throw new ThriftSecurityException(
-            credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+        if (!authenticator.hasTablePermission(credentials, credentials.user, new String(tkeyExtent.getTable()), TablePermission.WRITE))
+          throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
       } catch (AccumuloSecurityException e) {
         throw e.asThriftException();
       }
@@ -1467,7 +1514,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
         throw new NotServingTabletException(tkeyExtent);
       }
       
-      if (!keyExtent.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
+      if (!keyExtent.getTableId().toString().equals(Constants.METADATA_TABLE_ID))
+        TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
       
       long opid = writeTracker.startWrite(TabletType.type(keyExtent));
       
@@ -1510,8 +1558,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
       try {
         if (!authenticator.hasSystemPermission(credentials, credentials.user, SystemPermission.ALTER_TABLE)
             && !authenticator.hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM)
-            && !authenticator.hasTablePermission(credentials, credentials.user, tableId, TablePermission.ALTER_TABLE)) throw new ThriftSecurityException(
-            credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+            && !authenticator.hasTablePermission(credentials, credentials.user, tableId, TablePermission.ALTER_TABLE))
+          throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
       } catch (AccumuloSecurityException e) {
         throw e.asThriftException();
       }
@@ -1753,8 +1801,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     public List<ActiveScan> getActiveScans(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException, TException {
       
       try {
-        if (!authenticator.hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM)) throw new ThriftSecurityException(credentials.user,
-            SecurityErrorCode.PERMISSION_DENIED);
+        if (!authenticator.hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM))
+          throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
       } catch (AccumuloSecurityException e) {
         throw e.asThriftException();
       }
@@ -2143,7 +2191,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
           successful = true;
         } catch (Throwable e) {
           log.warn("exception trying to assign tablet " + extentToOpen + " " + locationToOpen, e);
-          if (e.getMessage() != null) log.warn(e.getMessage());
+          if (e.getMessage() != null)
+            log.warn(e.getMessage());
           String table = extent.getTableId().toString();
           ProblemReports.getInstance().report(new ProblemReport(table, TABLET_LOAD, extentToOpen.getUUID().toString(), getClientAddressString(), e));
         }
@@ -2235,9 +2284,11 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     Set<String> result = loggerStrategy.getLoggers(Collections.unmodifiableSet(allLoggers));
     Set<String> bogus = new HashSet<String>(result);
     bogus.removeAll(allLoggers);
-    if (!bogus.isEmpty()) log.warn("logger strategy is returning loggers that are not candidates");
+    if (!bogus.isEmpty())
+      log.warn("logger strategy is returning loggers that are not candidates");
     result.removeAll(bogus);
-    if (result.isEmpty()) log.warn("strategy returned no useful loggers");
+    if (result.isEmpty())
+      log.warn("strategy returned no useful loggers");
     return result;
   }
   
@@ -2272,7 +2323,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
   private String getMasterAddress() {
     try {
       List<String> locations = HdfsZooInstance.getInstance().getMasterLocations();
-      if (locations.size() == 0) return null;
+      if (locations.size() == 0)
+        return null;
       return locations.get(0);
     } catch (Exception e) {
       log.warn("Failed to obtain master host " + e);
@@ -2512,7 +2564,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
         Text metadataEntry = extent.getMetadataEntry();
         for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
           Key key = entry.getKey();
-          if (!metadataEntry.equals(key.getRow())) continue;
+          if (!metadataEntry.equals(key.getRow()))
+            continue;
           Text cf = key.getColumnFamily();
           if (cf.equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) {
             future = new TServerInstance(entry.getValue(), key.getColumnQualifier());
@@ -2609,13 +2662,15 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
   }
   
   public String getClientAddressString() {
-    if (clientAddress == null) return null;
+    if (clientAddress == null)
+      return null;
     return AddressUtil.toString(clientAddress);
   }
   
   TServerInstance getTabletSession() {
     String address = getClientAddressString();
-    if (address == null) return null;
+    if (address == null)
+      return null;
     
     try {
       return new TServerInstance(address, tabletServerLock.getSessionId());
@@ -2634,7 +2689,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
       Accumulo.init("tserver");
       log.info("Tablet server starting on " + local.getHostAddress());
       
-      if (args.length > 0) conf.set("tabletserver.hostname", args[0]);
+      if (args.length > 0)
+        conf.set("tabletserver.hostname", args[0]);
       Accumulo.enableTracing(local.getHostAddress(), "tserver");
     } catch (IOException e) {
       log.fatal("couldn't get a reference to the filesystem. quitting");
@@ -2647,8 +2703,10 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
       try {
         System.load(path);
         log.info("Trying to lock memory pages to RAM");
-        if (MLock.lockMemoryPages() < 0) log.error("Failed to lock memory pages to RAM");
-        else log.info("Memory pages are now locked into RAM");
+        if (MLock.lockMemoryPages() < 0)
+          log.error("Failed to lock memory pages to RAM");
+        else
+          log.info("Memory pages are now locked into RAM");
       } catch (Throwable t) {
         log.error("Failed to load native library for locking pages to RAM " + path + " (" + t + ")", t);
       }
@@ -2732,10 +2790,14 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
       table.ingestByteRate += tablet.ingestByteRate();
       long recsInMemory = tablet.getNumEntriesInMemory();
       table.recsInMemory += recsInMemory;
-      if (tablet.minorCompactionRunning()) table.minor.running++;
-      if (tablet.minorCompactionQueued()) table.minor.queued++;
-      if (tablet.majorCompactionRunning()) table.major.running++;
-      if (tablet.majorCompactionQueued()) table.major.queued++;
+      if (tablet.minorCompactionRunning())
+        table.minor.running++;
+      if (tablet.minorCompactionQueued())
+        table.minor.queued++;
+      if (tablet.majorCompactionRunning())
+        table.major.running++;
+      if (tablet.majorCompactionQueued())
+        table.major.queued++;
     }
     ArrayList<KeyExtent> offlineTabletsCopy = new ArrayList<KeyExtent>();
     synchronized (this.unopenedTablets) {
@@ -2806,7 +2868,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
           break;
         }
       }
-      if (recovery == null) throw new IOException("Unable to find recovery files for extent " + tablet.getExtent() + " logEntry: " + entry);
+      if (recovery == null)
+        throw new IOException("Unable to find recovery files for extent " + tablet.getExtent() + " logEntry: " + entry);
       recoveryLogs.add(recovery);
     }
     logger.recover(tablet, recoveryLogs, tabletFiles, mutationReceiver);
@@ -2866,7 +2929,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     if (this.isEnabled()) {
       int result = 0;
       for (Tablet tablet : Collections.unmodifiableCollection(onlineTablets.values())) {
-        if (tablet.majorCompactionRunning()) result++;
+        if (tablet.majorCompactionRunning())
+          result++;
       }
       return result;
     }
@@ -2878,7 +2942,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     if (this.isEnabled()) {
       int result = 0;
       for (Tablet tablet : Collections.unmodifiableCollection(onlineTablets.values())) {
-        if (tablet.majorCompactionQueued()) result++;
+        if (tablet.majorCompactionQueued())
+          result++;
       }
       return result;
     }
@@ -2890,7 +2955,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     if (this.isEnabled()) {
       int result = 0;
       for (Tablet tablet : Collections.unmodifiableCollection(onlineTablets.values())) {
-        if (tablet.minorCompactionRunning()) result++;
+        if (tablet.minorCompactionRunning())
+          result++;
       }
       return result;
     }
@@ -2902,7 +2968,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
     if (this.isEnabled()) {
       int result = 0;
       for (Tablet tablet : Collections.unmodifiableCollection(onlineTablets.values())) {
-        if (tablet.minorCompactionQueued()) result++;
+        if (tablet.minorCompactionQueued())
+          result++;
       }
       return result;
     }
@@ -2911,13 +2978,15 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
   
   @Override
   public int getOnlineCount() {
-    if (this.isEnabled()) return onlineTablets.size();
+    if (this.isEnabled())
+      return onlineTablets.size();
     return 0;
   }
   
   @Override
   public int getOpeningCount() {
-    if (this.isEnabled()) return openingTablets.size();
+    if (this.isEnabled())
+      return openingTablets.size();
     return 0;
   }
   
@@ -2935,25 +3004,29 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
   
   @Override
   public int getUnopenedCount() {
-    if (this.isEnabled()) return unopenedTablets.size();
+    if (this.isEnabled())
+      return unopenedTablets.size();
     return 0;
   }
   
   @Override
   public String getName() {
-    if (this.isEnabled()) return getClientAddressString();
+    if (this.isEnabled())
+      return getClientAddressString();
     return "";
   }
   
   @Override
   public long getTotalMinorCompactions() {
-    if (this.isEnabled()) return totalMinorCompactions;
+    if (this.isEnabled())
+      return totalMinorCompactions;
     return 0;
   }
   
   @Override
   public double getHoldTime() {
-    if (this.isEnabled()) return this.resourceManager.holdTime() / 1000.;
+    if (this.isEnabled())
+      return this.resourceManager.holdTime() / 1000.;
     return 0;
   }
   
@@ -2966,7 +3039,8 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
         result += tablet.getDatafiles().size();
         count++;
       }
-      if (count == 0) return 0;
+      if (count == 0)
+        return 0;
       return result / (double) count;
     }
     return 0;

@@ -113,10 +113,13 @@ final class Chunk {
      *           on I/O errors.
      */
     private boolean checkEOF() throws IOException {
-      if (isClosed()) return true;
+      if (isClosed())
+        return true;
       while (true) {
-        if (remain > 0) return false;
-        if (lastChunk) return true;
+        if (remain > 0)
+          return false;
+        if (lastChunk)
+          return true;
         readLength();
       }
     }
@@ -131,9 +134,11 @@ final class Chunk {
     
     @Override
     public int read() throws IOException {
-      if (checkEOF()) return -1;
+      if (checkEOF())
+        return -1;
       int ret = in.read();
-      if (ret < 0) throw new IOException("Corrupted chunk encoding stream");
+      if (ret < 0)
+        throw new IOException("Corrupted chunk encoding stream");
       --remain;
       return ret;
     }
@@ -152,7 +157,8 @@ final class Chunk {
       if (!checkEOF()) {
         int n = Math.min(remain, len);
         int ret = in.read(b, off, n);
-        if (ret < 0) throw new IOException("Corrupted chunk encoding stream");
+        if (ret < 0)
+          throw new IOException("Corrupted chunk encoding stream");
         remain -= ret;
         return ret;
       }

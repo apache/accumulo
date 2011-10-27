@@ -66,7 +66,8 @@ public class Initialize {
   private static ConsoleReader reader = null;
   
   private static ConsoleReader getConsoleReader() throws IOException {
-    if (reader == null) reader = new ConsoleReader();
+    if (reader == null)
+      reader = new ConsoleReader();
     return reader;
   }
   
@@ -288,7 +289,8 @@ public class Initialize {
     ZooUtil.putPersistentData(Constants.ZROOT + Constants.ZINSTANCES, new byte[0], NodeExistsPolicy.SKIP);
     
     // setup instance name
-    if (clearInstanceName) ZooUtil.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
+    if (clearInstanceName)
+      ZooUtil.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
     ZooUtil.putPersistentData(instanceNamePath, uuid.getBytes(), NodeExistsPolicy.FAIL);
     
     // setup the instance
@@ -316,16 +318,19 @@ public class Initialize {
     boolean exists = true;
     do {
       instanceName = getConsoleReader().readLine("Instance name : ");
-      if (instanceName == null) System.exit(0);
+      if (instanceName == null)
+        System.exit(0);
       instanceName = instanceName.trim();
-      if (instanceName.length() == 0) continue;
+      if (instanceName.length() == 0)
+        continue;
       instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
       if (clearInstanceName) {
         exists = false;
         break;
       } else if ((boolean) (exists = ZooUtil.exists(instanceNamePath))) {
         String decision = getConsoleReader().readLine("Instance name \"" + instanceName + "\" exists. Delete existing entry from zookeeper? [Y/N] : ");
-        if (decision == null) System.exit(0);
+        if (decision == null)
+          System.exit(0);
         if (decision.length() == 1 && decision.toLowerCase(Locale.ENGLISH).charAt(0) == 'y') {
           clearInstanceName = true;
           exists = false;
@@ -340,10 +345,13 @@ public class Initialize {
     String confirmpass;
     do {
       rootpass = getConsoleReader().readLine("Enter initial password for " + ROOT_USER + ": ", '*');
-      if (rootpass == null) System.exit(0);
+      if (rootpass == null)
+        System.exit(0);
       confirmpass = getConsoleReader().readLine("Confirm initial password for " + ROOT_USER + ": ", '*');
-      if (confirmpass == null) System.exit(0);
-      if (!rootpass.equals(confirmpass)) log.error("Passwords do not match");
+      if (confirmpass == null)
+        System.exit(0);
+      if (!rootpass.equals(confirmpass))
+        log.error("Passwords do not match");
     } while (!rootpass.equals(confirmpass));
     return rootpass.getBytes();
   }
@@ -355,8 +363,8 @@ public class Initialize {
   protected static void initMetadataConfig() throws IOException {
     try {
       for (Entry<String,String> entry : initialMetadataConf.entrySet())
-        if (!TablePropUtil.setTableProperty(Constants.METADATA_TABLE_ID, entry.getKey(), entry.getValue())) throw new IOException(
-            "Cannot create per-table property " + entry.getKey());
+        if (!TablePropUtil.setTableProperty(Constants.METADATA_TABLE_ID, entry.getKey(), entry.getValue()))
+          throw new IOException("Cannot create per-table property " + entry.getKey());
     } catch (Exception e) {
       log.fatal("error talking to zookeeper", e);
       throw new IOException(e);
@@ -387,9 +395,12 @@ public class Initialize {
       FileSystem fs;
       fs = FileSystem.get(conf);
       if (justSecurity) {
-        if (isInitialized(fs)) initSecurity(HdfsZooInstance.getInstance().getInstanceID(), getRootPassword());
-        else log.fatal("Attempted to reset security on accumulo before it was initialized");
-      } else if (!doInit(conf, fs)) System.exit(-1);
+        if (isInitialized(fs))
+          initSecurity(HdfsZooInstance.getInstance().getInstanceID(), getRootPassword());
+        else
+          log.fatal("Attempted to reset security on accumulo before it was initialized");
+      } else if (!doInit(conf, fs))
+        System.exit(-1);
     } catch (Exception e) {
       log.fatal(e, e);
       throw new RuntimeException(e);

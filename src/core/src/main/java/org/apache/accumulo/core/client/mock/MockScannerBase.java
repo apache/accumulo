@@ -63,7 +63,8 @@ public class MockScannerBase implements ScannerBase {
   
   public void setScanIteratorOption(String iteratorName, String key, String value) {
     Map<String,String> kv = ssio.get(iteratorName);
-    if (kv == null) ssio.put(iteratorName, kv = new HashMap<String,String>());
+    if (kv == null)
+      ssio.put(iteratorName, kv = new HashMap<String,String>());
     kv.put(key, value);
   }
   

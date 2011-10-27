@@ -68,7 +68,8 @@ public class QueryUtil {
   
   public static Text getForwardIndex(String path) {
     String part = path.substring(path.lastIndexOf("/") + 1);
-    if (part.length() == 0) return null;
+    if (part.length() == 0)
+      return null;
     Text row = new Text(FORWARD_PREFIX);
     row.append(part.getBytes(), 0, part.length());
     return row;
@@ -76,7 +77,8 @@ public class QueryUtil {
   
   public static Text getReverseIndex(String path) {
     String part = path.substring(path.lastIndexOf("/") + 1);
-    if (part.length() == 0) return null;
+    if (part.length() == 0)
+      return null;
     byte[] rev = new byte[part.length()];
     int i = part.length() - 1;
     for (byte b : part.getBytes())
@@ -87,7 +89,8 @@ public class QueryUtil {
   }
   
   public static String getType(Text colf) {
-    if (colf.equals(DIR_COLF)) return colf.toString() + ":";
+    if (colf.equals(DIR_COLF))
+      return colf.toString() + ":";
     try {
       return Long.toString(LongSummation.bytesToLong(colf.getBytes())) + ":";
     } catch (IOException e) {
@@ -96,7 +99,8 @@ public class QueryUtil {
   }
   
   public Map<String,String> getData(String path) throws TableNotFoundException {
-    if (path.endsWith("/")) path = path.substring(0, path.length() - 1);
+    if (path.endsWith("/"))
+      path = path.substring(0, path.length() - 1);
     Scanner scanner = conn.createScanner(tableName, auths);
     scanner.setRange(new Range(getRow(path)));
     Map<String,String> data = new TreeMap<String,String>();
@@ -110,7 +114,8 @@ public class QueryUtil {
   }
   
   public Map<String,Map<String,String>> getDirList(String path) throws TableNotFoundException {
-    if (!path.endsWith("/")) path = path + "/";
+    if (!path.endsWith("/"))
+      path = path + "/";
     Map<String,Map<String,String>> fim = new TreeMap<String,Map<String,String>>();
     Scanner scanner = conn.createScanner(tableName, auths);
     scanner.setRange(prefix(getRow(path)));
@@ -137,7 +142,8 @@ public class QueryUtil {
   }
   
   public Iterable<Entry<Key,Value>> singleRestrictedWildCardSearch(String exp) throws Exception {
-    if (exp.indexOf("/") >= 0) throw new Exception("this method only works with unqualified names");
+    if (exp.indexOf("/") >= 0)
+      throw new Exception("this method only works with unqualified names");
     
     Scanner scanner = conn.createScanner(tableName, auths);
     if (exp.startsWith("*")) {
@@ -158,7 +164,8 @@ public class QueryUtil {
   
   public Iterable<Entry<Key,Value>> singleWildCardSearch(String exp) throws Exception {
     int starIndex = exp.indexOf("*");
-    if (exp.indexOf("*", starIndex + 1) >= 0) throw new Exception("only one wild card for search");
+    if (exp.indexOf("*", starIndex + 1) >= 0)
+      throw new Exception("only one wild card for search");
     
     if (starIndex < 0) {
       return exactTermSearch(exp);
@@ -190,7 +197,8 @@ public class QueryUtil {
     int changeIndex = prefix.getLength() - 1;
     while (changeIndex >= 0 && prefixBytes[changeIndex] == (byte) 0xff)
       changeIndex--;
-    if (changeIndex < 0) return null;
+    if (changeIndex < 0)
+      return null;
     
     // copy prefix bytes into new array
     byte[] newBytes = new byte[changeIndex + 1];

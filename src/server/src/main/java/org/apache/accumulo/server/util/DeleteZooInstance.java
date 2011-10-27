@@ -53,7 +53,8 @@ public class DeleteZooInstance {
         for (String instance : instances) {
           String path = Constants.ZROOT + Constants.ZINSTANCES + "/" + instance;
           byte[] data = zk.getData(path, null, null);
-          if (name.equals(new String(data))) zk.delete(path, -1);
+          if (name.equals(new String(data)))
+            zk.delete(path, -1);
         }
         CleanZookeeper.recursivelyDelete(zk, Constants.ZROOT + "/" + name);
       }

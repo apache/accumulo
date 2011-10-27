@@ -96,7 +96,8 @@ public abstract class TabletTime {
     
     @Override
     void useMaxTimeFromWALog(long time) {
-      if (time < lastTime) throw new IllegalStateException("Existing time " + this.lastTime + " > " + time);
+      if (time < lastTime)
+        throw new IllegalStateException("Existing time " + this.lastTime + " > " + time);
       
       lastTime = time;
     }
@@ -107,7 +108,8 @@ public abstract class TabletTime {
       long currTime = RelativeTime.currentTimeMillis();
       
       synchronized (this) {
-        if (mutations.size() == 0) return lastTime;
+        if (mutations.size() == 0)
+          return lastTime;
         
         if (currTime < lastTime) {
           if (currTime - lastUpdateTime > 0) {
@@ -167,7 +169,8 @@ public abstract class TabletTime {
     
     @Override
     long setUpdateTimes(List<Mutation> mutations) {
-      if (mutations.size() == 0) return getTime();
+      if (mutations.size() == 0)
+        return getTime();
       
       long time = nextTime.getAndAdd(mutations.size());
       for (Mutation mutation : mutations)

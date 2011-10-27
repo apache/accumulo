@@ -180,7 +180,8 @@ public class RowOperations {
     // iterate through the keys
     for (Entry<Key,Value> entry : scanner) {
       // create a mutation for the row
-      if (deleter == null) deleter = new Mutation(entry.getKey().getRow());
+      if (deleter == null)
+        deleter = new Mutation(entry.getKey().getRow());
       // the remove function adds the key with the delete flag set to true
       deleter.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
     }

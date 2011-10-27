@@ -61,7 +61,8 @@ public class AcquireNewTable {
     log.info("scanning filesystem for tables ...");
     for (FileStatus table : tables) {
       log.info("found " + table.getPath().getName());
-      if (table.getPath().getName().equals(Constants.METADATA_TABLE_ID)) continue;
+      if (table.getPath().getName().equals(Constants.METADATA_TABLE_ID))
+        continue;
       FileStatus[] tablets = fs.globStatus(new Path(table.getPath().toString() + "/*"));
       
       for (FileStatus tablet : tablets) {
@@ -127,8 +128,10 @@ public class AcquireNewTable {
           Constants.METADATA_DIRECTORY_COLUMN.getColumnQualifier());
       mfw.append(key, entry.getValue());
       
-      if (endRow == null) prevEndRow = null;
-      else prevEndRow = new Text(endRow);
+      if (endRow == null)
+        prevEndRow = null;
+      else
+        prevEndRow = new Text(endRow);
     }
     
     mfw.close();

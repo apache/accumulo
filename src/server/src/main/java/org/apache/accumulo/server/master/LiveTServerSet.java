@@ -108,7 +108,8 @@ public class LiveTServerSet implements Watcher {
     }
     
     synchronized public void halt(ZooLock lock) throws TException, ThriftSecurityException {
-      if (client != null) client.halt(null, SecurityConstants.systemCredentials, lockString(lock));
+      if (client != null)
+        client.halt(null, SecurityConstants.systemCredentials, lockString(lock));
     }
     
     synchronized public void flush(ZooLock lock, String tableName) throws TException {
@@ -149,7 +150,8 @@ public class LiveTServerSet implements Watcher {
   }
   
   public synchronized ZooCache getZooCache() {
-    if (zooCache == null) zooCache = new ZooCache(this);
+    if (zooCache == null)
+      zooCache = new ZooCache(this);
     return zooCache;
   }
   
@@ -216,7 +218,8 @@ public class LiveTServerSet implements Watcher {
         }
       }
       // log.debug("Current: " + current.keySet());
-      if (doomed.size() + updates.size() > 0) this.cback.update(this, doomed, updates);
+      if (doomed.size() + updates.size() > 0)
+        this.cback.update(this, doomed, updates);
     } catch (Exception ex) {
       log.error(ex, ex);
     }
@@ -230,12 +233,15 @@ public class LiveTServerSet implements Watcher {
   public synchronized TServerConnection getConnection(TServerInstance server) throws TException {
     TServerConnection result;
     synchronized (this) {
-      if (server == null) return null;
+      if (server == null)
+        return null;
       TServerInfo serverInfo = current.get(server.hostPort());
       // lock was lost?
-      if (serverInfo == null) return null;
+      if (serverInfo == null)
+        return null;
       // instance changed?
-      if (!serverInfo.instance.equals(server)) return null;
+      if (!serverInfo.instance.equals(server))
+        return null;
       result = serverInfo.connection;
     }
     result.connectIfNeeded();

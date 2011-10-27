@@ -45,7 +45,8 @@ public class Test extends TestCase {
   public void setUp() {
     
     String aHome = System.getenv("ACCUMULO_HOME");
-    if (aHome == null) fail("ACCUMULO_HOME must be set");
+    if (aHome == null)
+      fail("ACCUMULO_HOME must be set");
     tmpDir = new File(aHome + "/lib/ext");
     if (!tmpDir.exists())
       tmpDir.mkdir();
@@ -111,7 +112,8 @@ public class Test extends TestCase {
     Logger.getRootLogger().setLevel(Level.ERROR);
     
     // Copy JarA to the dir
-    if (log.isDebugEnabled()) log.debug("Test with Jar A");
+    if (log.isDebugEnabled())
+      log.debug("Test with Jar A");
     copyJar(jarA);
     // Load the TestObject class from the new classloader.
     test.Test a = create();
@@ -119,7 +121,8 @@ public class Test extends TestCase {
     assertTrue(a.add() == 1);
     assertTrue(a.add() == 2);
     // Copy jarB and wait to reload
-    if (log.isDebugEnabled()) log.debug("Test with Jar B");
+    if (log.isDebugEnabled())
+      log.debug("Test with Jar B");
     copyJar(jarB);
     test.Test b = create();
     assertEquals(a.hello(), "Hello from testA");
@@ -128,7 +131,8 @@ public class Test extends TestCase {
     assertTrue(b.add() == 2);
     assertTrue(a.add() == 3);
     assertTrue(a.add() == 4);
-    if (log.isDebugEnabled()) log.debug("Test with Jar C");
+    if (log.isDebugEnabled())
+      log.debug("Test with Jar C");
     copyJar(jarC);
     test.Test c = create();
     assertEquals(a.hello(), "Hello from testA");
@@ -141,7 +145,8 @@ public class Test extends TestCase {
     assertTrue(a.add() == 5);
     assertTrue(a.add() == 6);
     
-    if (log.isDebugEnabled()) log.debug("Deleting jar");
+    if (log.isDebugEnabled())
+      log.debug("Deleting jar");
     assertTrue(destJar.delete());
     // give the class loader time to remove the classes from the deleted jar
     Thread.sleep(1500);
@@ -151,7 +156,8 @@ public class Test extends TestCase {
     } catch (ClassNotFoundException cnfe) {}
     
     // uncomment this block when #2987 is fixed
-    if (log.isDebugEnabled()) log.debug("Test with Jar C");
+    if (log.isDebugEnabled())
+      log.debug("Test with Jar C");
     copyJar(jarC);
     test.Test e = create();
     assertEquals(e.hello(), "Hello from testC");

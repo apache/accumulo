@@ -219,7 +219,8 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
       while (currentPosition < keys.size() && range.beforeStartKey(keys.get(currentPosition)))
         currentPosition++;
       
-      if (currentPosition == keys.size()) readNextRow();
+      if (currentPosition == keys.size())
+        readNextRow();
       
     } else {
       source.seek(range, columnFamilies, inclusive);

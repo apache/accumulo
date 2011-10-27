@@ -5,40 +5,37 @@
  */
 package org.apache.accumulo.core.master.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class TabletSplit implements TBase<TabletSplit, TabletSplit._Fields>, java.io.Serializable, Cloneable {
+public class TabletSplit implements TBase<TabletSplit,TabletSplit._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("TabletSplit");
-
-  private static final TField OLD_TABLET_FIELD_DESC = new TField("oldTablet", TType.STRUCT, (short)1);
-  private static final TField NEW_TABLETS_FIELD_DESC = new TField("newTablets", TType.LIST, (short)2);
-
+  
+  private static final TField OLD_TABLET_FIELD_DESC = new TField("oldTablet", TType.STRUCT, (short) 1);
+  private static final TField NEW_TABLETS_FIELD_DESC = new TField("newTablets", TType.LIST, (short) 2);
+  
   public org.apache.accumulo.core.data.thrift.TKeyExtent oldTablet;
   public java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> newTablets;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    OLD_TABLET((short)1, "oldTablet"),
-    NEW_TABLETS((short)2, "newTablets");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    OLD_TABLET((short) 1, "oldTablet"), NEW_TABLETS((short) 2, "newTablets");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // OLD_TABLET
           return OLD_TABLET;
         case 2: // NEW_TABLETS
@@ -47,67 +44,62 @@ public class TabletSplit implements TBase<TabletSplit, TabletSplit._Fields>, jav
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.OLD_TABLET, new FieldMetaData("oldTablet", TFieldRequirementType.DEFAULT, 
-        new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
-    tmpMap.put(_Fields.NEW_TABLETS, new FieldMetaData("newTablets", TFieldRequirementType.DEFAULT, 
-        new ListMetaData(TType.LIST, 
-            new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class))));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.OLD_TABLET, new FieldMetaData("oldTablet", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+        org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
+    tmpMap.put(_Fields.NEW_TABLETS, new FieldMetaData("newTablets", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST, new StructMetaData(
+        TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class))));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(TabletSplit.class, metaDataMap);
   }
-
-  public TabletSplit() {
-  }
-
-  public TabletSplit(
-    org.apache.accumulo.core.data.thrift.TKeyExtent oldTablet,
-    java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> newTablets)
-  {
+  
+  public TabletSplit() {}
+  
+  public TabletSplit(org.apache.accumulo.core.data.thrift.TKeyExtent oldTablet, java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> newTablets) {
     this();
     this.oldTablet = oldTablet;
     this.newTablets = newTablets;
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -123,149 +115,149 @@ public class TabletSplit implements TBase<TabletSplit, TabletSplit._Fields>, jav
       this.newTablets = __this__newTablets;
     }
   }
-
+  
   public TabletSplit deepCopy() {
     return new TabletSplit(this);
   }
-
+  
   @Deprecated
   public TabletSplit clone() {
     return new TabletSplit(this);
   }
-
+  
   public org.apache.accumulo.core.data.thrift.TKeyExtent getOldTablet() {
     return this.oldTablet;
   }
-
+  
   public TabletSplit setOldTablet(org.apache.accumulo.core.data.thrift.TKeyExtent oldTablet) {
     this.oldTablet = oldTablet;
     return this;
   }
-
+  
   public void unsetOldTablet() {
     this.oldTablet = null;
   }
-
+  
   /** Returns true if field oldTablet is set (has been asigned a value) and false otherwise */
   public boolean isSetOldTablet() {
     return this.oldTablet != null;
   }
-
+  
   public void setOldTabletIsSet(boolean value) {
     if (!value) {
       this.oldTablet = null;
     }
   }
-
+  
   public int getNewTabletsSize() {
     return (this.newTablets == null) ? 0 : this.newTablets.size();
   }
-
+  
   public java.util.Iterator<org.apache.accumulo.core.data.thrift.TKeyExtent> getNewTabletsIterator() {
     return (this.newTablets == null) ? null : this.newTablets.iterator();
   }
-
+  
   public void addToNewTablets(org.apache.accumulo.core.data.thrift.TKeyExtent elem) {
     if (this.newTablets == null) {
       this.newTablets = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>();
     }
     this.newTablets.add(elem);
   }
-
+  
   public java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> getNewTablets() {
     return this.newTablets;
   }
-
+  
   public TabletSplit setNewTablets(java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> newTablets) {
     this.newTablets = newTablets;
     return this;
   }
-
+  
   public void unsetNewTablets() {
     this.newTablets = null;
   }
-
+  
   /** Returns true if field newTablets is set (has been asigned a value) and false otherwise */
   public boolean isSetNewTablets() {
     return this.newTablets != null;
   }
-
+  
   public void setNewTabletsIsSet(boolean value) {
     if (!value) {
       this.newTablets = null;
     }
   }
-
+  
   @SuppressWarnings("unchecked")
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case OLD_TABLET:
-      if (value == null) {
-        unsetOldTablet();
-      } else {
-        setOldTablet((org.apache.accumulo.core.data.thrift.TKeyExtent)value);
-      }
-      break;
-
-    case NEW_TABLETS:
-      if (value == null) {
-        unsetNewTablets();
-      } else {
-        setNewTablets((java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent>)value);
-      }
-      break;
-
+      case OLD_TABLET:
+        if (value == null) {
+          unsetOldTablet();
+        } else {
+          setOldTablet((org.apache.accumulo.core.data.thrift.TKeyExtent) value);
+        }
+        break;
+      
+      case NEW_TABLETS:
+        if (value == null) {
+          unsetNewTablets();
+        } else {
+          setNewTablets((java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent>) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case OLD_TABLET:
-      return getOldTablet();
-
-    case NEW_TABLETS:
-      return getNewTablets();
-
+      case OLD_TABLET:
+        return getOldTablet();
+        
+      case NEW_TABLETS:
+        return getNewTablets();
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case OLD_TABLET:
-      return isSetOldTablet();
-    case NEW_TABLETS:
-      return isSetNewTablets();
+      case OLD_TABLET:
+        return isSetOldTablet();
+      case NEW_TABLETS:
+        return isSetNewTablets();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof TabletSplit)
-      return this.equals((TabletSplit)that);
+      return this.equals((TabletSplit) that);
     return false;
   }
-
+  
   public boolean equals(TabletSplit that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_oldTablet = true && this.isSetOldTablet();
     boolean that_present_oldTablet = true && that.isSetOldTablet();
     if (this_present_oldTablet || that_present_oldTablet) {
@@ -274,7 +266,7 @@ public class TabletSplit implements TBase<TabletSplit, TabletSplit._Fields>, jav
       if (!this.oldTablet.equals(that.oldTablet))
         return false;
     }
-
+    
     boolean this_present_newTablets = true && this.isSetNewTablets();
     boolean that_present_newTablets = true && that.isSetNewTablets();
     if (this_present_newTablets || that_present_newTablets) {
@@ -283,28 +275,29 @@ public class TabletSplit implements TBase<TabletSplit, TabletSplit._Fields>, jav
       if (!this.newTablets.equals(that.newTablets))
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(TabletSplit other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    TabletSplit typedOther = (TabletSplit)other;
-
+    TabletSplit typedOther = (TabletSplit) other;
+    
     lastComparison = Boolean.valueOf(isSetOldTablet()).compareTo(typedOther.isSetOldTablet());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetOldTablet()) {      lastComparison = TBaseHelper.compareTo(this.oldTablet, typedOther.oldTablet);
+    if (isSetOldTablet()) {
+      lastComparison = TBaseHelper.compareTo(this.oldTablet, typedOther.oldTablet);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -313,21 +306,21 @@ public class TabletSplit implements TBase<TabletSplit, TabletSplit._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetNewTablets()) {      lastComparison = TBaseHelper.compareTo(this.newTablets, typedOther.newTablets);
+    if (isSetNewTablets()) {
+      lastComparison = TBaseHelper.compareTo(this.newTablets, typedOther.newTablets);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
@@ -335,7 +328,7 @@ public class TabletSplit implements TBase<TabletSplit, TabletSplit._Fields>, jav
           if (field.type == TType.STRUCT) {
             this.oldTablet = new org.apache.accumulo.core.data.thrift.TKeyExtent();
             this.oldTablet.read(iprot);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -344,8 +337,7 @@ public class TabletSplit implements TBase<TabletSplit, TabletSplit._Fields>, jav
             {
               TList _list35 = iprot.readListBegin();
               this.newTablets = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>(_list35.size);
-              for (int _i36 = 0; _i36 < _list35.size; ++_i36)
-              {
+              for (int _i36 = 0; _i36 < _list35.size; ++_i36) {
                 org.apache.accumulo.core.data.thrift.TKeyExtent _elem37;
                 _elem37 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
                 _elem37.read(iprot);
@@ -353,7 +345,7 @@ public class TabletSplit implements TBase<TabletSplit, TabletSplit._Fields>, jav
               }
               iprot.readListEnd();
             }
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -363,14 +355,14 @@ public class TabletSplit implements TBase<TabletSplit, TabletSplit._Fields>, jav
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.oldTablet != null) {
       oprot.writeFieldBegin(OLD_TABLET_FIELD_DESC);
@@ -381,8 +373,7 @@ public class TabletSplit implements TBase<TabletSplit, TabletSplit._Fields>, jav
       oprot.writeFieldBegin(NEW_TABLETS_FIELD_DESC);
       {
         oprot.writeListBegin(new TList(TType.STRUCT, this.newTablets.size()));
-        for (org.apache.accumulo.core.data.thrift.TKeyExtent _iter38 : this.newTablets)
-        {
+        for (org.apache.accumulo.core.data.thrift.TKeyExtent _iter38 : this.newTablets) {
           _iter38.write(oprot);
         }
         oprot.writeListEnd();
@@ -392,7 +383,7 @@ public class TabletSplit implements TBase<TabletSplit, TabletSplit._Fields>, jav
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("TabletSplit(");
@@ -412,10 +403,9 @@ public class TabletSplit implements TBase<TabletSplit, TabletSplit._Fields>, jav
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

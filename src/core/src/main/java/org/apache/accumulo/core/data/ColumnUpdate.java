@@ -48,7 +48,8 @@ public class ColumnUpdate {
   }
   
   public void setSystemTimestamp(long v) {
-    if (hasTimestamp) throw new IllegalStateException("Cannot set system timestamp when user set a timestamp");
+    if (hasTimestamp)
+      throw new IllegalStateException("Cannot set system timestamp when user set a timestamp");
     
     int tso = this.tsOffset;
     data[tso++] = (byte) (v >>> 56);

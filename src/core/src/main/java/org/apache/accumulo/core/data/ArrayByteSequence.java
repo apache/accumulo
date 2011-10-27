@@ -90,7 +90,8 @@ public class ArrayByteSequence extends ByteSequence {
   
   @Override
   public byte[] toArray() {
-    if (offset == 0 && length == data.length) return data;
+    if (offset == 0 && length == data.length)
+      return data;
     
     byte[] copy = new byte[length];
     System.arraycopy(data, offset, copy, 0, length);

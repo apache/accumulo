@@ -51,8 +51,10 @@ public class DefaultFormatter implements Formatter {
   }
   
   static void checkState(Iterator<Entry<Key,Value>> si, boolean expectInitialized) {
-    if (expectInitialized && si == null) throw new IllegalStateException("Not initialized");
-    if (!expectInitialized && si != null) throw new IllegalStateException("Already initialized");
+    if (expectInitialized && si == null)
+      throw new IllegalStateException("Not initialized");
+    if (!expectInitialized && si != null)
+      throw new IllegalStateException("Already initialized");
   }
   
   // this should be replaced with something like Record.toString();
@@ -72,7 +74,8 @@ public class DefaultFormatter implements Formatter {
     sb.append(new ColumnVisibility(entry.getKey().getColumnVisibility()));
     
     // append timestamp
-    if (showTimestamps) sb.append(" ").append(entry.getKey().getTimestamp());
+    if (showTimestamps)
+      sb.append(" ").append(entry.getKey().getTimestamp());
     
     // append value
     if (entry.getValue() != null && entry.getValue().getSize() > 0) {
@@ -94,9 +97,12 @@ public class DefaultFormatter implements Formatter {
   static StringBuilder appendBytes(StringBuilder sb, byte ba[], int offset, int len) {
     for (int i = 0; i < len; i++) {
       int c = 0xff & ba[offset + i];
-      if (c == '\\') sb.append("\\\\");
-      else if (c >= 32 && c <= 126) sb.append((char) c);
-      else sb.append("\\x").append(String.format("%02X", c));
+      if (c == '\\')
+        sb.append("\\\\");
+      else if (c >= 32 && c <= 126)
+        sb.append((char) c);
+      else
+        sb.append("\\x").append(String.format("%02X", c));
     }
     return sb;
   }

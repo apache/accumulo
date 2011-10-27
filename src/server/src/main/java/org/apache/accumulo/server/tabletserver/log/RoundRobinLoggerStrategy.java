@@ -38,7 +38,8 @@ public class RoundRobinLoggerStrategy extends LoggerStrategy {
   
   @Override
   public Set<String> getLoggers(Set<String> allLoggers) {
-    if (allLoggers.size() == 0) return allLoggers;
+    if (allLoggers.size() == 0)
+      return allLoggers;
     int numberOfLoggersToUse = getNumberOfLoggersToUse();
     Set<String> result = new HashSet<String>();
     
@@ -46,7 +47,8 @@ public class RoundRobinLoggerStrategy extends LoggerStrategy {
     if (!preferences.isEmpty()) {
       for (int i = 0; result.size() < numberOfLoggersToUse && i < preferences.size(); i++) {
         String preferred = preferences.get(i);
-        if (allLoggers.contains(preferred)) result.add(preferred);
+        if (allLoggers.contains(preferred))
+          result.add(preferred);
       }
     }
     
@@ -54,7 +56,8 @@ public class RoundRobinLoggerStrategy extends LoggerStrategy {
     List<String> loggers = new ArrayList<String>(allLoggers);
     Collections.sort(loggers);
     int pos = Collections.binarySearch(loggers, myHostName);
-    if (pos < 0) pos = -pos - 1;
+    if (pos < 0)
+      pos = -pos - 1;
     for (int i = 0; result.size() < numberOfLoggersToUse && i < loggers.size(); i++) {
       String selection = loggers.get((pos + i) % loggers.size());
       log.debug("Choosing logger " + selection);

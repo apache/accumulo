@@ -245,7 +245,8 @@ public final class Utils {
    */
   public static String readString(DataInput in) throws IOException {
     int length = readVInt(in);
-    if (length == -1) return null;
+    if (length == -1)
+      return null;
     byte[] buffer = new byte[length];
     in.readFully(buffer);
     return Text.decode(buffer);
@@ -357,8 +358,10 @@ public final class Utils {
     
     @Override
     public boolean equals(Object other) {
-      if (this == other) return true;
-      if (!(other instanceof Version)) return false;
+      if (this == other)
+        return true;
+      if (!(other instanceof Version))
+        return false;
       return compareTo((Version) other) == 0;
     }
     
@@ -389,8 +392,10 @@ public final class Utils {
       int mid = (low + high) >>> 1;
       T midVal = list.get(mid);
       int ret = cmp.compare(midVal, key);
-      if (ret < 0) low = mid + 1;
-      else high = mid;
+      if (ret < 0)
+        low = mid + 1;
+      else
+        high = mid;
     }
     return low;
   }
@@ -416,8 +421,10 @@ public final class Utils {
       int mid = (low + high) >>> 1;
       T midVal = list.get(mid);
       int ret = cmp.compare(midVal, key);
-      if (ret <= 0) low = mid + 1;
-      else high = mid;
+      if (ret <= 0)
+        low = mid + 1;
+      else
+        high = mid;
     }
     return low;
   }
@@ -441,8 +448,10 @@ public final class Utils {
       int mid = (low + high) >>> 1;
       Comparable<? super T> midVal = list.get(mid);
       int ret = midVal.compareTo(key);
-      if (ret < 0) low = mid + 1;
-      else high = mid;
+      if (ret < 0)
+        low = mid + 1;
+      else
+        high = mid;
     }
     return low;
   }
@@ -466,8 +475,10 @@ public final class Utils {
       int mid = (low + high) >>> 1;
       Comparable<? super T> midVal = list.get(mid);
       int ret = midVal.compareTo(key);
-      if (ret <= 0) low = mid + 1;
-      else high = mid;
+      if (ret <= 0)
+        low = mid + 1;
+      else
+        high = mid;
     }
     return low;
   }

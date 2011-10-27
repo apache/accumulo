@@ -5,43 +5,39 @@
  */
 package org.apache.accumulo.core.security.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class AuthInfo implements TBase<AuthInfo, AuthInfo._Fields>, java.io.Serializable, Cloneable {
+public class AuthInfo implements TBase<AuthInfo,AuthInfo._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("AuthInfo");
-
-  private static final TField USER_FIELD_DESC = new TField("user", TType.STRING, (short)1);
-  private static final TField PASSWORD_FIELD_DESC = new TField("password", TType.STRING, (short)2);
-  private static final TField INSTANCE_ID_FIELD_DESC = new TField("instanceId", TType.STRING, (short)3);
-
+  
+  private static final TField USER_FIELD_DESC = new TField("user", TType.STRING, (short) 1);
+  private static final TField PASSWORD_FIELD_DESC = new TField("password", TType.STRING, (short) 2);
+  private static final TField INSTANCE_ID_FIELD_DESC = new TField("instanceId", TType.STRING, (short) 3);
+  
   public String user;
   public byte[] password;
   public String instanceId;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    USER((short)1, "user"),
-    PASSWORD((short)2, "password"),
-    INSTANCE_ID((short)3, "instanceId");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    USER((short) 1, "user"), PASSWORD((short) 2, "password"), INSTANCE_ID((short) 3, "instanceId");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // USER
           return USER;
         case 2: // PASSWORD
@@ -52,70 +48,62 @@ public class AuthInfo implements TBase<AuthInfo, AuthInfo._Fields>, java.io.Seri
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.USER, new FieldMetaData("user", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
-    tmpMap.put(_Fields.PASSWORD, new FieldMetaData("password", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
-    tmpMap.put(_Fields.INSTANCE_ID, new FieldMetaData("instanceId", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.USER, new FieldMetaData("user", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
+    tmpMap.put(_Fields.PASSWORD, new FieldMetaData("password", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
+    tmpMap.put(_Fields.INSTANCE_ID, new FieldMetaData("instanceId", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(AuthInfo.class, metaDataMap);
   }
-
-  public AuthInfo() {
-  }
-
-  public AuthInfo(
-    String user,
-    byte[] password,
-    String instanceId)
-  {
+  
+  public AuthInfo() {}
+  
+  public AuthInfo(String user, byte[] password, String instanceId) {
     this();
     this.user = user;
     this.password = password;
     this.instanceId = instanceId;
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -131,170 +119,170 @@ public class AuthInfo implements TBase<AuthInfo, AuthInfo._Fields>, java.io.Seri
       this.instanceId = other.instanceId;
     }
   }
-
+  
   public AuthInfo deepCopy() {
     return new AuthInfo(this);
   }
-
+  
   @Deprecated
   public AuthInfo clone() {
     return new AuthInfo(this);
   }
-
+  
   public String getUser() {
     return this.user;
   }
-
+  
   public AuthInfo setUser(String user) {
     this.user = user;
     return this;
   }
-
+  
   public void unsetUser() {
     this.user = null;
   }
-
+  
   /** Returns true if field user is set (has been asigned a value) and false otherwise */
   public boolean isSetUser() {
     return this.user != null;
   }
-
+  
   public void setUserIsSet(boolean value) {
     if (!value) {
       this.user = null;
     }
   }
-
+  
   public byte[] getPassword() {
     return this.password;
   }
-
+  
   public AuthInfo setPassword(byte[] password) {
     this.password = password;
     return this;
   }
-
+  
   public void unsetPassword() {
     this.password = null;
   }
-
+  
   /** Returns true if field password is set (has been asigned a value) and false otherwise */
   public boolean isSetPassword() {
     return this.password != null;
   }
-
+  
   public void setPasswordIsSet(boolean value) {
     if (!value) {
       this.password = null;
     }
   }
-
+  
   public String getInstanceId() {
     return this.instanceId;
   }
-
+  
   public AuthInfo setInstanceId(String instanceId) {
     this.instanceId = instanceId;
     return this;
   }
-
+  
   public void unsetInstanceId() {
     this.instanceId = null;
   }
-
+  
   /** Returns true if field instanceId is set (has been asigned a value) and false otherwise */
   public boolean isSetInstanceId() {
     return this.instanceId != null;
   }
-
+  
   public void setInstanceIdIsSet(boolean value) {
     if (!value) {
       this.instanceId = null;
     }
   }
-
+  
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case USER:
-      if (value == null) {
-        unsetUser();
-      } else {
-        setUser((String)value);
-      }
-      break;
-
-    case PASSWORD:
-      if (value == null) {
-        unsetPassword();
-      } else {
-        setPassword((byte[])value);
-      }
-      break;
-
-    case INSTANCE_ID:
-      if (value == null) {
-        unsetInstanceId();
-      } else {
-        setInstanceId((String)value);
-      }
-      break;
-
+      case USER:
+        if (value == null) {
+          unsetUser();
+        } else {
+          setUser((String) value);
+        }
+        break;
+      
+      case PASSWORD:
+        if (value == null) {
+          unsetPassword();
+        } else {
+          setPassword((byte[]) value);
+        }
+        break;
+      
+      case INSTANCE_ID:
+        if (value == null) {
+          unsetInstanceId();
+        } else {
+          setInstanceId((String) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case USER:
-      return getUser();
-
-    case PASSWORD:
-      return getPassword();
-
-    case INSTANCE_ID:
-      return getInstanceId();
-
+      case USER:
+        return getUser();
+        
+      case PASSWORD:
+        return getPassword();
+        
+      case INSTANCE_ID:
+        return getInstanceId();
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case USER:
-      return isSetUser();
-    case PASSWORD:
-      return isSetPassword();
-    case INSTANCE_ID:
-      return isSetInstanceId();
+      case USER:
+        return isSetUser();
+      case PASSWORD:
+        return isSetPassword();
+      case INSTANCE_ID:
+        return isSetInstanceId();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof AuthInfo)
-      return this.equals((AuthInfo)that);
+      return this.equals((AuthInfo) that);
     return false;
   }
-
+  
   public boolean equals(AuthInfo that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_user = true && this.isSetUser();
     boolean that_present_user = true && that.isSetUser();
     if (this_present_user || that_present_user) {
@@ -303,7 +291,7 @@ public class AuthInfo implements TBase<AuthInfo, AuthInfo._Fields>, java.io.Seri
       if (!this.user.equals(that.user))
         return false;
     }
-
+    
     boolean this_present_password = true && this.isSetPassword();
     boolean that_present_password = true && that.isSetPassword();
     if (this_present_password || that_present_password) {
@@ -312,7 +300,7 @@ public class AuthInfo implements TBase<AuthInfo, AuthInfo._Fields>, java.io.Seri
       if (!java.util.Arrays.equals(this.password, that.password))
         return false;
     }
-
+    
     boolean this_present_instanceId = true && this.isSetInstanceId();
     boolean that_present_instanceId = true && that.isSetInstanceId();
     if (this_present_instanceId || that_present_instanceId) {
@@ -321,28 +309,29 @@ public class AuthInfo implements TBase<AuthInfo, AuthInfo._Fields>, java.io.Seri
       if (!this.instanceId.equals(that.instanceId))
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(AuthInfo other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    AuthInfo typedOther = (AuthInfo)other;
-
+    AuthInfo typedOther = (AuthInfo) other;
+    
     lastComparison = Boolean.valueOf(isSetUser()).compareTo(typedOther.isSetUser());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetUser()) {      lastComparison = TBaseHelper.compareTo(this.user, typedOther.user);
+    if (isSetUser()) {
+      lastComparison = TBaseHelper.compareTo(this.user, typedOther.user);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -351,7 +340,8 @@ public class AuthInfo implements TBase<AuthInfo, AuthInfo._Fields>, java.io.Seri
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetPassword()) {      lastComparison = TBaseHelper.compareTo(this.password, typedOther.password);
+    if (isSetPassword()) {
+      lastComparison = TBaseHelper.compareTo(this.password, typedOther.password);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -360,42 +350,42 @@ public class AuthInfo implements TBase<AuthInfo, AuthInfo._Fields>, java.io.Seri
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetInstanceId()) {      lastComparison = TBaseHelper.compareTo(this.instanceId, typedOther.instanceId);
+    if (isSetInstanceId()) {
+      lastComparison = TBaseHelper.compareTo(this.instanceId, typedOther.instanceId);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
         case 1: // USER
           if (field.type == TType.STRING) {
             this.user = iprot.readString();
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 2: // PASSWORD
           if (field.type == TType.STRING) {
             this.password = iprot.readBinary();
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 3: // INSTANCE_ID
           if (field.type == TType.STRING) {
             this.instanceId = iprot.readString();
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -405,14 +395,14 @@ public class AuthInfo implements TBase<AuthInfo, AuthInfo._Fields>, java.io.Seri
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.user != null) {
       oprot.writeFieldBegin(USER_FIELD_DESC);
@@ -432,7 +422,7 @@ public class AuthInfo implements TBase<AuthInfo, AuthInfo._Fields>, java.io.Seri
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("AuthInfo(");
@@ -447,12 +437,15 @@ public class AuthInfo implements TBase<AuthInfo, AuthInfo._Fields>, java.io.Seri
     if (this.password == null) {
       sb.append("null");
     } else {
-        int __password_size = Math.min(this.password.length, 128);
-        for (int i = 0; i < __password_size; i++) {
-          if (i != 0) sb.append(" ");
-          sb.append(Integer.toHexString(this.password[i]).length() > 1 ? Integer.toHexString(this.password[i]).substring(Integer.toHexString(this.password[i]).length() - 2).toUpperCase() : "0" + Integer.toHexString(this.password[i]).toUpperCase());
-        }
-        if (this.password.length > 128) sb.append(" ...");
+      int __password_size = Math.min(this.password.length, 128);
+      for (int i = 0; i < __password_size; i++) {
+        if (i != 0)
+          sb.append(" ");
+        sb.append(Integer.toHexString(this.password[i]).length() > 1 ? Integer.toHexString(this.password[i])
+            .substring(Integer.toHexString(this.password[i]).length() - 2).toUpperCase() : "0" + Integer.toHexString(this.password[i]).toUpperCase());
+      }
+      if (this.password.length > 128)
+        sb.append(" ...");
     }
     sb.append(", ");
     sb.append("instanceId:");
@@ -464,10 +457,9 @@ public class AuthInfo implements TBase<AuthInfo, AuthInfo._Fields>, java.io.Seri
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

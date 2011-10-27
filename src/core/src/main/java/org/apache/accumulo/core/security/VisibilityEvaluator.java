@@ -46,15 +46,19 @@ public class VisibilityEvaluator {
           trie.transition(expression[i]);
         return trie.check();
       case AND:
-        if (root.children == null || root.children.length < 2) throw new VisibilityParseException("AND has less than 2 children", expression, root.start);
+        if (root.children == null || root.children.length < 2)
+          throw new VisibilityParseException("AND has less than 2 children", expression, root.start);
         for (Node child : root.children) {
-          if (!evaluate(expression, child)) return false;
+          if (!evaluate(expression, child))
+            return false;
         }
         return true;
       case OR:
-        if (root.children == null || root.children.length < 2) throw new VisibilityParseException("OR has less than 2 children", expression, root.start);
+        if (root.children == null || root.children.length < 2)
+          throw new VisibilityParseException("OR has less than 2 children", expression, root.start);
         for (Node child : root.children) {
-          if (evaluate(expression, child)) return true;
+          if (evaluate(expression, child))
+            return true;
         }
         return false;
       default:

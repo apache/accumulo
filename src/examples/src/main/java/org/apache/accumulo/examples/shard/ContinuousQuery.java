@@ -98,7 +98,8 @@ public class ContinuousQuery {
     for (Entry<Key,Value> entry : scanner) {
       Key key = entry.getKey();
       
-      if (currentRow == null) currentRow = key.getRow();
+      if (currentRow == null)
+        currentRow = key.getRow();
       
       if (!currentRow.equals(key.getRow())) {
         selectRandomWords(words, ret, rand, numTerms);

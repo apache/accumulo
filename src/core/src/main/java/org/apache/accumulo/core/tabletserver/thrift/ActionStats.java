@@ -5,25 +5,23 @@
  */
 package org.apache.accumulo.core.tabletserver.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, java.io.Serializable, Cloneable {
+public class ActionStats implements TBase<ActionStats,ActionStats._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("ActionStats");
-
-  private static final TField STATUS_FIELD_DESC = new TField("status", TType.I32, (short)1);
-  private static final TField ELAPSED_FIELD_DESC = new TField("elapsed", TType.DOUBLE, (short)2);
-  private static final TField NUM_FIELD_DESC = new TField("num", TType.I32, (short)3);
-  private static final TField COUNT_FIELD_DESC = new TField("count", TType.I64, (short)4);
-  private static final TField SUM_DEV_FIELD_DESC = new TField("sumDev", TType.DOUBLE, (short)5);
-  private static final TField FAIL_FIELD_DESC = new TField("fail", TType.I32, (short)6);
-  private static final TField QUEUE_TIME_FIELD_DESC = new TField("queueTime", TType.DOUBLE, (short)7);
-  private static final TField QUEUE_SUM_DEV_FIELD_DESC = new TField("queueSumDev", TType.DOUBLE, (short)8);
-
+  
+  private static final TField STATUS_FIELD_DESC = new TField("status", TType.I32, (short) 1);
+  private static final TField ELAPSED_FIELD_DESC = new TField("elapsed", TType.DOUBLE, (short) 2);
+  private static final TField NUM_FIELD_DESC = new TField("num", TType.I32, (short) 3);
+  private static final TField COUNT_FIELD_DESC = new TField("count", TType.I64, (short) 4);
+  private static final TField SUM_DEV_FIELD_DESC = new TField("sumDev", TType.DOUBLE, (short) 5);
+  private static final TField FAIL_FIELD_DESC = new TField("fail", TType.I32, (short) 6);
+  private static final TField QUEUE_TIME_FIELD_DESC = new TField("queueTime", TType.DOUBLE, (short) 7);
+  private static final TField QUEUE_SUM_DEV_FIELD_DESC = new TField("queueSumDev", TType.DOUBLE, (short) 8);
+  
   public int status;
   public double elapsed;
   public int num;
@@ -32,31 +30,25 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
   public int fail;
   public double queueTime;
   public double queueSumDev;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    STATUS((short)1, "status"),
-    ELAPSED((short)2, "elapsed"),
-    NUM((short)3, "num"),
-    COUNT((short)4, "count"),
-    SUM_DEV((short)5, "sumDev"),
-    FAIL((short)6, "fail"),
-    QUEUE_TIME((short)7, "queueTime"),
-    QUEUE_SUM_DEV((short)8, "queueSumDev");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    STATUS((short) 1, "status"), ELAPSED((short) 2, "elapsed"), NUM((short) 3, "num"), COUNT((short) 4, "count"), SUM_DEV((short) 5, "sumDev"), FAIL((short) 6,
+        "fail"), QUEUE_TIME((short) 7, "queueTime"), QUEUE_SUM_DEV((short) 8, "queueSumDev");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // STATUS
           return STATUS;
         case 2: // ELAPSED
@@ -77,41 +69,41 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
   private static final int __STATUS_ISSET_ID = 0;
   private static final int __ELAPSED_ISSET_ID = 1;
@@ -122,43 +114,25 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
   private static final int __QUEUETIME_ISSET_ID = 6;
   private static final int __QUEUESUMDEV_ISSET_ID = 7;
   private java.util.BitSet __isset_bit_vector = new java.util.BitSet(8);
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.STATUS, new FieldMetaData("status", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    tmpMap.put(_Fields.ELAPSED, new FieldMetaData("elapsed", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    tmpMap.put(_Fields.NUM, new FieldMetaData("num", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    tmpMap.put(_Fields.COUNT, new FieldMetaData("count", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I64)));
-    tmpMap.put(_Fields.SUM_DEV, new FieldMetaData("sumDev", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    tmpMap.put(_Fields.FAIL, new FieldMetaData("fail", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    tmpMap.put(_Fields.QUEUE_TIME, new FieldMetaData("queueTime", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    tmpMap.put(_Fields.QUEUE_SUM_DEV, new FieldMetaData("queueSumDev", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.STATUS, new FieldMetaData("status", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+    tmpMap.put(_Fields.ELAPSED, new FieldMetaData("elapsed", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+    tmpMap.put(_Fields.NUM, new FieldMetaData("num", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+    tmpMap.put(_Fields.COUNT, new FieldMetaData("count", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64)));
+    tmpMap.put(_Fields.SUM_DEV, new FieldMetaData("sumDev", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+    tmpMap.put(_Fields.FAIL, new FieldMetaData("fail", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+    tmpMap.put(_Fields.QUEUE_TIME, new FieldMetaData("queueTime", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+    tmpMap.put(_Fields.QUEUE_SUM_DEV, new FieldMetaData("queueSumDev", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(ActionStats.class, metaDataMap);
   }
-
-  public ActionStats() {
-  }
-
-  public ActionStats(
-    int status,
-    double elapsed,
-    int num,
-    long count,
-    double sumDev,
-    int fail,
-    double queueTime,
-    double queueSumDev)
-  {
+  
+  public ActionStats() {}
+  
+  public ActionStats(int status, double elapsed, int num, long count, double sumDev, int fail, double queueTime, double queueSumDev) {
     this();
     this.status = status;
     setStatusIsSet(true);
@@ -177,7 +151,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
     this.queueSumDev = queueSumDev;
     setQueueSumDevIsSet(true);
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -193,347 +167,347 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
     this.queueTime = other.queueTime;
     this.queueSumDev = other.queueSumDev;
   }
-
+  
   public ActionStats deepCopy() {
     return new ActionStats(this);
   }
-
+  
   @Deprecated
   public ActionStats clone() {
     return new ActionStats(this);
   }
-
+  
   public int getStatus() {
     return this.status;
   }
-
+  
   public ActionStats setStatus(int status) {
     this.status = status;
     setStatusIsSet(true);
     return this;
   }
-
+  
   public void unsetStatus() {
     __isset_bit_vector.clear(__STATUS_ISSET_ID);
   }
-
+  
   /** Returns true if field status is set (has been asigned a value) and false otherwise */
   public boolean isSetStatus() {
     return __isset_bit_vector.get(__STATUS_ISSET_ID);
   }
-
+  
   public void setStatusIsSet(boolean value) {
     __isset_bit_vector.set(__STATUS_ISSET_ID, value);
   }
-
+  
   public double getElapsed() {
     return this.elapsed;
   }
-
+  
   public ActionStats setElapsed(double elapsed) {
     this.elapsed = elapsed;
     setElapsedIsSet(true);
     return this;
   }
-
+  
   public void unsetElapsed() {
     __isset_bit_vector.clear(__ELAPSED_ISSET_ID);
   }
-
+  
   /** Returns true if field elapsed is set (has been asigned a value) and false otherwise */
   public boolean isSetElapsed() {
     return __isset_bit_vector.get(__ELAPSED_ISSET_ID);
   }
-
+  
   public void setElapsedIsSet(boolean value) {
     __isset_bit_vector.set(__ELAPSED_ISSET_ID, value);
   }
-
+  
   public int getNum() {
     return this.num;
   }
-
+  
   public ActionStats setNum(int num) {
     this.num = num;
     setNumIsSet(true);
     return this;
   }
-
+  
   public void unsetNum() {
     __isset_bit_vector.clear(__NUM_ISSET_ID);
   }
-
+  
   /** Returns true if field num is set (has been asigned a value) and false otherwise */
   public boolean isSetNum() {
     return __isset_bit_vector.get(__NUM_ISSET_ID);
   }
-
+  
   public void setNumIsSet(boolean value) {
     __isset_bit_vector.set(__NUM_ISSET_ID, value);
   }
-
+  
   public long getCount() {
     return this.count;
   }
-
+  
   public ActionStats setCount(long count) {
     this.count = count;
     setCountIsSet(true);
     return this;
   }
-
+  
   public void unsetCount() {
     __isset_bit_vector.clear(__COUNT_ISSET_ID);
   }
-
+  
   /** Returns true if field count is set (has been asigned a value) and false otherwise */
   public boolean isSetCount() {
     return __isset_bit_vector.get(__COUNT_ISSET_ID);
   }
-
+  
   public void setCountIsSet(boolean value) {
     __isset_bit_vector.set(__COUNT_ISSET_ID, value);
   }
-
+  
   public double getSumDev() {
     return this.sumDev;
   }
-
+  
   public ActionStats setSumDev(double sumDev) {
     this.sumDev = sumDev;
     setSumDevIsSet(true);
     return this;
   }
-
+  
   public void unsetSumDev() {
     __isset_bit_vector.clear(__SUMDEV_ISSET_ID);
   }
-
+  
   /** Returns true if field sumDev is set (has been asigned a value) and false otherwise */
   public boolean isSetSumDev() {
     return __isset_bit_vector.get(__SUMDEV_ISSET_ID);
   }
-
+  
   public void setSumDevIsSet(boolean value) {
     __isset_bit_vector.set(__SUMDEV_ISSET_ID, value);
   }
-
+  
   public int getFail() {
     return this.fail;
   }
-
+  
   public ActionStats setFail(int fail) {
     this.fail = fail;
     setFailIsSet(true);
     return this;
   }
-
+  
   public void unsetFail() {
     __isset_bit_vector.clear(__FAIL_ISSET_ID);
   }
-
+  
   /** Returns true if field fail is set (has been asigned a value) and false otherwise */
   public boolean isSetFail() {
     return __isset_bit_vector.get(__FAIL_ISSET_ID);
   }
-
+  
   public void setFailIsSet(boolean value) {
     __isset_bit_vector.set(__FAIL_ISSET_ID, value);
   }
-
+  
   public double getQueueTime() {
     return this.queueTime;
   }
-
+  
   public ActionStats setQueueTime(double queueTime) {
     this.queueTime = queueTime;
     setQueueTimeIsSet(true);
     return this;
   }
-
+  
   public void unsetQueueTime() {
     __isset_bit_vector.clear(__QUEUETIME_ISSET_ID);
   }
-
+  
   /** Returns true if field queueTime is set (has been asigned a value) and false otherwise */
   public boolean isSetQueueTime() {
     return __isset_bit_vector.get(__QUEUETIME_ISSET_ID);
   }
-
+  
   public void setQueueTimeIsSet(boolean value) {
     __isset_bit_vector.set(__QUEUETIME_ISSET_ID, value);
   }
-
+  
   public double getQueueSumDev() {
     return this.queueSumDev;
   }
-
+  
   public ActionStats setQueueSumDev(double queueSumDev) {
     this.queueSumDev = queueSumDev;
     setQueueSumDevIsSet(true);
     return this;
   }
-
+  
   public void unsetQueueSumDev() {
     __isset_bit_vector.clear(__QUEUESUMDEV_ISSET_ID);
   }
-
+  
   /** Returns true if field queueSumDev is set (has been asigned a value) and false otherwise */
   public boolean isSetQueueSumDev() {
     return __isset_bit_vector.get(__QUEUESUMDEV_ISSET_ID);
   }
-
+  
   public void setQueueSumDevIsSet(boolean value) {
     __isset_bit_vector.set(__QUEUESUMDEV_ISSET_ID, value);
   }
-
+  
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case STATUS:
-      if (value == null) {
-        unsetStatus();
-      } else {
-        setStatus((Integer)value);
-      }
-      break;
-
-    case ELAPSED:
-      if (value == null) {
-        unsetElapsed();
-      } else {
-        setElapsed((Double)value);
-      }
-      break;
-
-    case NUM:
-      if (value == null) {
-        unsetNum();
-      } else {
-        setNum((Integer)value);
-      }
-      break;
-
-    case COUNT:
-      if (value == null) {
-        unsetCount();
-      } else {
-        setCount((Long)value);
-      }
-      break;
-
-    case SUM_DEV:
-      if (value == null) {
-        unsetSumDev();
-      } else {
-        setSumDev((Double)value);
-      }
-      break;
-
-    case FAIL:
-      if (value == null) {
-        unsetFail();
-      } else {
-        setFail((Integer)value);
-      }
-      break;
-
-    case QUEUE_TIME:
-      if (value == null) {
-        unsetQueueTime();
-      } else {
-        setQueueTime((Double)value);
-      }
-      break;
-
-    case QUEUE_SUM_DEV:
-      if (value == null) {
-        unsetQueueSumDev();
-      } else {
-        setQueueSumDev((Double)value);
-      }
-      break;
-
+      case STATUS:
+        if (value == null) {
+          unsetStatus();
+        } else {
+          setStatus((Integer) value);
+        }
+        break;
+      
+      case ELAPSED:
+        if (value == null) {
+          unsetElapsed();
+        } else {
+          setElapsed((Double) value);
+        }
+        break;
+      
+      case NUM:
+        if (value == null) {
+          unsetNum();
+        } else {
+          setNum((Integer) value);
+        }
+        break;
+      
+      case COUNT:
+        if (value == null) {
+          unsetCount();
+        } else {
+          setCount((Long) value);
+        }
+        break;
+      
+      case SUM_DEV:
+        if (value == null) {
+          unsetSumDev();
+        } else {
+          setSumDev((Double) value);
+        }
+        break;
+      
+      case FAIL:
+        if (value == null) {
+          unsetFail();
+        } else {
+          setFail((Integer) value);
+        }
+        break;
+      
+      case QUEUE_TIME:
+        if (value == null) {
+          unsetQueueTime();
+        } else {
+          setQueueTime((Double) value);
+        }
+        break;
+      
+      case QUEUE_SUM_DEV:
+        if (value == null) {
+          unsetQueueSumDev();
+        } else {
+          setQueueSumDev((Double) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case STATUS:
-      return new Integer(getStatus());
-
-    case ELAPSED:
-      return new Double(getElapsed());
-
-    case NUM:
-      return new Integer(getNum());
-
-    case COUNT:
-      return new Long(getCount());
-
-    case SUM_DEV:
-      return new Double(getSumDev());
-
-    case FAIL:
-      return new Integer(getFail());
-
-    case QUEUE_TIME:
-      return new Double(getQueueTime());
-
-    case QUEUE_SUM_DEV:
-      return new Double(getQueueSumDev());
-
+      case STATUS:
+        return new Integer(getStatus());
+        
+      case ELAPSED:
+        return new Double(getElapsed());
+        
+      case NUM:
+        return new Integer(getNum());
+        
+      case COUNT:
+        return new Long(getCount());
+        
+      case SUM_DEV:
+        return new Double(getSumDev());
+        
+      case FAIL:
+        return new Integer(getFail());
+        
+      case QUEUE_TIME:
+        return new Double(getQueueTime());
+        
+      case QUEUE_SUM_DEV:
+        return new Double(getQueueSumDev());
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case STATUS:
-      return isSetStatus();
-    case ELAPSED:
-      return isSetElapsed();
-    case NUM:
-      return isSetNum();
-    case COUNT:
-      return isSetCount();
-    case SUM_DEV:
-      return isSetSumDev();
-    case FAIL:
-      return isSetFail();
-    case QUEUE_TIME:
-      return isSetQueueTime();
-    case QUEUE_SUM_DEV:
-      return isSetQueueSumDev();
+      case STATUS:
+        return isSetStatus();
+      case ELAPSED:
+        return isSetElapsed();
+      case NUM:
+        return isSetNum();
+      case COUNT:
+        return isSetCount();
+      case SUM_DEV:
+        return isSetSumDev();
+      case FAIL:
+        return isSetFail();
+      case QUEUE_TIME:
+        return isSetQueueTime();
+      case QUEUE_SUM_DEV:
+        return isSetQueueSumDev();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof ActionStats)
-      return this.equals((ActionStats)that);
+      return this.equals((ActionStats) that);
     return false;
   }
-
+  
   public boolean equals(ActionStats that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_status = true;
     boolean that_present_status = true;
     if (this_present_status || that_present_status) {
@@ -542,7 +516,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
       if (this.status != that.status)
         return false;
     }
-
+    
     boolean this_present_elapsed = true;
     boolean that_present_elapsed = true;
     if (this_present_elapsed || that_present_elapsed) {
@@ -551,7 +525,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
       if (this.elapsed != that.elapsed)
         return false;
     }
-
+    
     boolean this_present_num = true;
     boolean that_present_num = true;
     if (this_present_num || that_present_num) {
@@ -560,7 +534,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
       if (this.num != that.num)
         return false;
     }
-
+    
     boolean this_present_count = true;
     boolean that_present_count = true;
     if (this_present_count || that_present_count) {
@@ -569,7 +543,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
       if (this.count != that.count)
         return false;
     }
-
+    
     boolean this_present_sumDev = true;
     boolean that_present_sumDev = true;
     if (this_present_sumDev || that_present_sumDev) {
@@ -578,7 +552,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
       if (this.sumDev != that.sumDev)
         return false;
     }
-
+    
     boolean this_present_fail = true;
     boolean that_present_fail = true;
     if (this_present_fail || that_present_fail) {
@@ -587,7 +561,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
       if (this.fail != that.fail)
         return false;
     }
-
+    
     boolean this_present_queueTime = true;
     boolean that_present_queueTime = true;
     if (this_present_queueTime || that_present_queueTime) {
@@ -596,7 +570,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
       if (this.queueTime != that.queueTime)
         return false;
     }
-
+    
     boolean this_present_queueSumDev = true;
     boolean that_present_queueSumDev = true;
     if (this_present_queueSumDev || that_present_queueSumDev) {
@@ -605,28 +579,29 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
       if (this.queueSumDev != that.queueSumDev)
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(ActionStats other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    ActionStats typedOther = (ActionStats)other;
-
+    ActionStats typedOther = (ActionStats) other;
+    
     lastComparison = Boolean.valueOf(isSetStatus()).compareTo(typedOther.isSetStatus());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetStatus()) {      lastComparison = TBaseHelper.compareTo(this.status, typedOther.status);
+    if (isSetStatus()) {
+      lastComparison = TBaseHelper.compareTo(this.status, typedOther.status);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -635,7 +610,8 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetElapsed()) {      lastComparison = TBaseHelper.compareTo(this.elapsed, typedOther.elapsed);
+    if (isSetElapsed()) {
+      lastComparison = TBaseHelper.compareTo(this.elapsed, typedOther.elapsed);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -644,7 +620,8 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetNum()) {      lastComparison = TBaseHelper.compareTo(this.num, typedOther.num);
+    if (isSetNum()) {
+      lastComparison = TBaseHelper.compareTo(this.num, typedOther.num);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -653,7 +630,8 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetCount()) {      lastComparison = TBaseHelper.compareTo(this.count, typedOther.count);
+    if (isSetCount()) {
+      lastComparison = TBaseHelper.compareTo(this.count, typedOther.count);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -662,7 +640,8 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetSumDev()) {      lastComparison = TBaseHelper.compareTo(this.sumDev, typedOther.sumDev);
+    if (isSetSumDev()) {
+      lastComparison = TBaseHelper.compareTo(this.sumDev, typedOther.sumDev);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -671,7 +650,8 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetFail()) {      lastComparison = TBaseHelper.compareTo(this.fail, typedOther.fail);
+    if (isSetFail()) {
+      lastComparison = TBaseHelper.compareTo(this.fail, typedOther.fail);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -680,7 +660,8 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetQueueTime()) {      lastComparison = TBaseHelper.compareTo(this.queueTime, typedOther.queueTime);
+    if (isSetQueueTime()) {
+      lastComparison = TBaseHelper.compareTo(this.queueTime, typedOther.queueTime);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -689,21 +670,21 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetQueueSumDev()) {      lastComparison = TBaseHelper.compareTo(this.queueSumDev, typedOther.queueSumDev);
+    if (isSetQueueSumDev()) {
+      lastComparison = TBaseHelper.compareTo(this.queueSumDev, typedOther.queueSumDev);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
@@ -711,7 +692,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
           if (field.type == TType.I32) {
             this.status = iprot.readI32();
             setStatusIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -719,7 +700,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
           if (field.type == TType.DOUBLE) {
             this.elapsed = iprot.readDouble();
             setElapsedIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -727,7 +708,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
           if (field.type == TType.I32) {
             this.num = iprot.readI32();
             setNumIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -735,7 +716,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
           if (field.type == TType.I64) {
             this.count = iprot.readI64();
             setCountIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -743,7 +724,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
           if (field.type == TType.DOUBLE) {
             this.sumDev = iprot.readDouble();
             setSumDevIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -751,7 +732,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
           if (field.type == TType.I32) {
             this.fail = iprot.readI32();
             setFailIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -759,7 +740,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
           if (field.type == TType.DOUBLE) {
             this.queueTime = iprot.readDouble();
             setQueueTimeIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -767,7 +748,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
           if (field.type == TType.DOUBLE) {
             this.queueSumDev = iprot.readDouble();
             setQueueSumDevIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -777,14 +758,14 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     oprot.writeFieldBegin(STATUS_FIELD_DESC);
     oprot.writeI32(this.status);
@@ -813,7 +794,7 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("ActionStats(");
@@ -843,10 +824,9 @@ public class ActionStats implements TBase<ActionStats, ActionStats._Fields>, jav
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

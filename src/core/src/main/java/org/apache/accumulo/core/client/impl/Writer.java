@@ -79,7 +79,8 @@ public class Writer {
   public void update(Mutation m) throws AccumuloException, AccumuloSecurityException, ConstraintViolationException, TableNotFoundException {
     ArgumentChecker.notNull(m);
     
-    if (m.size() == 0) throw new IllegalArgumentException("Can not add empty mutations");
+    if (m.size() == 0)
+      throw new IllegalArgumentException("Can not add empty mutations");
     
     while (true) {
       TabletLocation tabLoc = TabletLocator.getInstance(instance, credentials, table).locateTablet(new Text(m.getRow()), false, true);

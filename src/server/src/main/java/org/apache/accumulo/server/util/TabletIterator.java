@@ -147,7 +147,8 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
   @Override
   public Map<Key,Value> next() {
     
-    if (currentTabletKeys == null || currentTabletKeys.size() == 0) throw new NoSuchElementException();
+    if (currentTabletKeys == null || currentTabletKeys.size() == 0)
+      throw new NoSuchElementException();
     
     Map<Key,Value> tmp = currentTabletKeys;
     currentTabletKeys = null;

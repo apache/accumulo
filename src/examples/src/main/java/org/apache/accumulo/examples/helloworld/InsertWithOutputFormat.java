@@ -63,7 +63,8 @@ public class InsertWithOutputFormat extends Configured implements Tool {
         m.put(colf, new Text(String.format("colqual_%d", j)), new Value((String.format("value_%d_%d", i, j)).getBytes()));
       }
       rw.write(tableName, m); // repeat until done
-      if (i % 100 == 0) System.out.println(i);
+      if (i % 100 == 0)
+        System.out.println(i);
     }
     
     rw.close(context); // close when done

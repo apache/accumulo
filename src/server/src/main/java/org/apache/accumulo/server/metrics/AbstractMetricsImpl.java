@@ -61,17 +61,20 @@ public abstract class AbstractMetricsImpl {
     }
     
     public void addAvg(long a) {
-      if (a < 0) return;
+      if (a < 0)
+        return;
       avg = (long) ((avg * .8) + (a * .2));
     }
     
     public void addMin(long a) {
-      if (a < 0) return;
+      if (a < 0)
+        return;
       min = Math.min(min, a);
     }
     
     public void addMax(long a) {
-      if (a < 0) return;
+      if (a < 0)
+        return;
       max = Math.max(max, a);
     }
     
@@ -117,7 +120,8 @@ public abstract class AbstractMetricsImpl {
   public void register(StandardMBean mbean) throws Exception {
     // Register this object with the MBeanServer
     MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-    if (null == getObjectName()) throw new IllegalArgumentException("MBean object name must be set.");
+    if (null == getObjectName())
+      throw new IllegalArgumentException("MBean object name must be set.");
     mbs.registerMBean(mbean, getObjectName());
     
     setupLogging();
@@ -131,7 +135,8 @@ public abstract class AbstractMetricsImpl {
   public void register() throws Exception {
     // Register this object with the MBeanServer
     MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-    if (null == getObjectName()) throw new IllegalArgumentException("MBean object name must be set.");
+    if (null == getObjectName())
+      throw new IllegalArgumentException("MBean object name must be set.");
     mbs.registerMBean(this, getObjectName());
     
     setupLogging();
@@ -162,14 +167,16 @@ public abstract class AbstractMetricsImpl {
   }
   
   private void setupLogging() throws IOException {
-    if (null == config.getMetricsConfiguration()) return;
+    if (null == config.getMetricsConfiguration())
+      return;
     // If we are already logging, then return
     if (!currentlyLogging && config.getMetricsConfiguration().getBoolean(metricsPrefix + ".logging", false)) {
       // Check to see if directory exists, else make it
       String mDir = config.getMetricsConfiguration().getString("logging.dir");
       if (null != mDir) {
         File dir = new File(mDir);
-        if (!dir.isDirectory()) dir.mkdir();
+        if (!dir.isDirectory())
+          dir.mkdir();
         logDir = dir;
         // Create new log file
         startNewLog();
@@ -195,7 +202,8 @@ public abstract class AbstractMetricsImpl {
   }
   
   private void writeToLog(String name) throws IOException {
-    if (null == logWriter) return;
+    if (null == logWriter)
+      return;
     // Increment the date if we have to
     Date now = new Date();
     if (!DateUtils.isSameDay(today, now)) {

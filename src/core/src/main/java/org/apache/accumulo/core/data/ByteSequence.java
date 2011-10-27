@@ -63,9 +63,11 @@ public abstract class ByteSequence implements Comparable<ByteSequence> {
     if (o instanceof ByteSequence) {
       ByteSequence obs = (ByteSequence) o;
       
-      if (this == o) return true;
+      if (this == o)
+        return true;
       
-      if (length() != obs.length()) return false;
+      if (length() != obs.length())
+        return false;
       
       return compareTo(obs) == 0;
     }

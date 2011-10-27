@@ -57,7 +57,8 @@ public class TableManager {
   }
   
   public synchronized static TableManager getInstance() {
-    if (tableManager == null) tableManager = new TableManager();
+    if (tableManager == null)
+      tableManager = new TableManager();
     return tableManager;
   }
   
@@ -90,7 +91,8 @@ public class TableManager {
       
       ZooUtil.putPersistentData(statePath, newState.name().getBytes(), stat.getVersion(), NodeExistsPolicy.OVERWRITE);
     } catch (KeeperException e) {
-      if (e.code().equals(Code.BADVERSION)) throw new IllegalStateException("Cannot transition table " + tableId + " from " + oldState + " to " + newState);
+      if (e.code().equals(Code.BADVERSION))
+        throw new IllegalStateException("Cannot transition table " + tableId + " from " + oldState + " to " + newState);
     } catch (Exception e) {
       log.fatal("Failed to transition table to state " + newState);
       throw new RuntimeException(e);
@@ -100,7 +102,8 @@ public class TableManager {
   private void updateTableStateCache() {
     synchronized (tableStateCache) {
       for (String tableId : zooStateCache.getChildren(ZooUtil.getRoot(instance) + Constants.ZTABLES))
-        if (zooStateCache.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE) != null) updateTableStateCache(tableId);
+        if (zooStateCache.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE) != null)
+          updateTableStateCache(tableId);
     }
   }
   
@@ -150,7 +153,8 @@ public class TableManager {
   private class TableStateWatcher implements Watcher {
     @Override
     public void process(WatchedEvent event) {
-      if (log.isTraceEnabled()) log.trace(event);
+      if (log.isTraceEnabled())
+        log.trace(event);
       
       final String zPath = event.getPath();
       final EventType zType = event.getType();
@@ -162,7 +166,8 @@ public class TableManager {
         String suffix = zPath.substring(tablesPrefix.length() + 1);
         if (suffix.contains("/")) {
           String[] sa = suffix.split("/", 2);
-          if (Constants.ZTABLE_STATE.equals("/" + sa[1])) tableId = sa[0];
+          if (Constants.ZTABLE_STATE.equals("/" + sa[1]))
+            tableId = sa[0];
         }
         if (tableId == null) {
           log.warn("Unknown path in " + event);
@@ -192,12 +197,14 @@ public class TableManager {
           if (zPath != null
               && tableId != null
               && (zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_STATE) || zPath.equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_CONF) || zPath
-                  .equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_NAME))) tableStateCache.remove(tableId);
+                  .equals(tablesPrefix + "/" + tableId + Constants.ZTABLE_NAME)))
+            tableStateCache.remove(tableId);
           break;
         case None:
           switch (event.getState()) {
             case Expired:
-              if (log.isTraceEnabled()) log.trace("Session expired " + event);
+              if (log.isTraceEnabled())
+                log.trace("Session expired " + event);
               synchronized (observers) {
                 for (TableObserver to : observers)
                   to.sessionExpired();
@@ -205,7 +212,8 @@ public class TableManager {
               break;
             case SyncConnected:
             default:
-              if (log.isTraceEnabled()) log.trace("Ignored " + event);
+              if (log.isTraceEnabled())
+                log.trace("Ignored " + event);
           }
           break;
         default:

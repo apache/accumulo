@@ -75,8 +75,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       case 's':
         multiplier *= 1000;
         if (timeString.length() > 1 && timeString.endsWith("ms")) // millis
-        // case
-        return Long.parseLong(timeString.substring(0, timeString.length() - 2));
+          // case
+          return Long.parseLong(timeString.substring(0, timeString.length() - 2));
         return Long.parseLong(timeString.substring(0, timeString.length() - 1)) * multiplier;
       default:
         return Long.parseLong(timeString) * 1000;
@@ -92,7 +92,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     checkType(property, PropertyType.FRACTION);
     
     String fractionString = get(property);
-    if (fractionString.charAt(fractionString.length() - 1) == '%') return Double.parseDouble(fractionString.substring(0, fractionString.length() - 1)) / 100.0;
+    if (fractionString.charAt(fractionString.length() - 1) == '%')
+      return Double.parseDouble(fractionString.substring(0, fractionString.length() - 1)) / 100.0;
     return Double.parseDouble(fractionString);
   }
   

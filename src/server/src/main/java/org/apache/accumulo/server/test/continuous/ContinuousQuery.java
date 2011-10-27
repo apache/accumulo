@@ -69,7 +69,8 @@ public class ContinuousQuery {
       
       System.out.printf("SRQ %d %s %d %d\n", t1, new String(row), (t2 - t1), count);
       
-      if (sleepTime > 0) Thread.sleep(sleepTime);
+      if (sleepTime > 0)
+        Thread.sleep(sleepTime);
       
     }
     

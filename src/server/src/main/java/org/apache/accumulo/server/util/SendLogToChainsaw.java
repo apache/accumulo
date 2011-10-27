@@ -93,7 +93,8 @@ public class SendLogToChainsaw extends XMLLayout {
     
     // Create Date Filter
     if (null != start) {
-      if (end == null) end = new Date(System.currentTimeMillis());
+      if (end == null)
+        end = new Date(System.currentTimeMillis());
       dateFilter = new LongRange(start.getTime(), end.getTime());
     }
     
@@ -119,8 +120,10 @@ public class SendLogToChainsaw extends XMLLayout {
         try {
           out = convertLine(line, threadName);
           if (null != out) {
-            if (socket != null && socket.isConnected()) socket.getOutputStream().write(out.getBytes());
-            else System.err.println("Unable to send data to transport");
+            if (socket != null && socket.isConnected())
+              socket.getOutputStream().write(out.getBytes());
+            else
+              System.err.println("Unable to send data to transport");
           }
         } catch (Exception e) {
           System.out.println("Error processing line: " + line + ". Output was " + out);
@@ -131,7 +134,8 @@ public class SendLogToChainsaw extends XMLLayout {
       reader.close();
       fReader.close();
     }
-    if (socket != null && socket.isConnected()) socket.close();
+    if (socket != null && socket.isConnected())
+      socket.close();
   }
   
   private String convertLine(String line, String threadName) throws Exception {
@@ -152,7 +156,8 @@ public class SendLogToChainsaw extends XMLLayout {
       // Apply the regex filter if supplied
       if (null != lineFilter) {
         Matcher match = lineFilter.matcher(message);
-        if (!match.matches()) return null;
+        if (!match.matches())
+          return null;
       }
       // URL encode the message
       message = URLEncoder.encode(message, "UTF-8");
@@ -169,7 +174,8 @@ public class SendLogToChainsaw extends XMLLayout {
       }
       long ts = cal.getTimeInMillis();
       // If this event is not between the start and end dates, then skip it.
-      if (null != dateFilter && !dateFilter.containsLong(ts)) return null;
+      if (null != dateFilter && !dateFilter.containsLong(ts))
+        return null;
       Category c = Logger.getLogger(clazz);
       Level l = Level.toLevel(level);
       LoggingEvent event = new LoggingEvent(clazz, c, ts, l, message, threadName, (ThrowableInformation) null, (String) null, (LocationInfo) null,
@@ -246,7 +252,8 @@ public class SendLogToChainsaw extends XMLLayout {
     
     String logDir = cl.getOptionValue(o.getOption("d").getOpt());
     String fileNameFilter = null;
-    if (cl.hasOption(o.getOption("f").getOpt())) fileNameFilter = cl.getOptionValue(o.getOption("f").getOpt());
+    if (cl.hasOption(o.getOption("f").getOpt()))
+      fileNameFilter = cl.getOptionValue(o.getOption("f").getOpt());
     String chainsawHost = cl.getOptionValue(o.getOption("h").getOpt());
     int chainsawPort = 0;
     try {
@@ -265,9 +272,11 @@ public class SendLogToChainsaw extends XMLLayout {
       endDate = formatter.parse(cl.getOptionValue(o.getOption("e").getOpt()));
     }
     String msgFilter = null;
-    if (cl.hasOption(o.getOption("m").getOpt())) msgFilter = cl.getOptionValue(o.getOption("m").getOpt());
+    if (cl.hasOption(o.getOption("m").getOpt()))
+      msgFilter = cl.getOptionValue(o.getOption("m").getOpt());
     String levelFilter = null;
-    if (cl.hasOption(o.getOption("l").getOpt())) levelFilter = cl.getOptionValue(o.getOption("l").getOpt());
+    if (cl.hasOption(o.getOption("l").getOpt()))
+      levelFilter = cl.getOptionValue(o.getOption("l").getOpt());
     
     SendLogToChainsaw c = new SendLogToChainsaw(logDir, fileNameFilter, chainsawHost, chainsawPort, startDate, endDate, msgFilter, levelFilter);
     c.processLogFiles();

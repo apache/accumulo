@@ -57,10 +57,12 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
     Configuration conf = job.getConfiguration();
     
     String extension = conf.get(FILE_TYPE);
-    if (extension == null || extension.isEmpty()) extension = RFile.EXTENSION;
+    if (extension == null || extension.isEmpty())
+      extension = RFile.EXTENSION;
     
     AccumuloConfiguration acuConf = AccumuloConfiguration.getDefaultConfiguration();
-    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) acuConf = getInstance(job).getConfiguration();
+    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
+      acuConf = getInstance(job).getConfiguration();
     conf.setInt("io.seqfile.compress.blocksize", (int) acuConf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
     Path file = this.getDefaultWorkFile(job, "." + extension);
     
@@ -87,7 +89,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   
   public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
     Configuration conf = job.getConfiguration();
-    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) throw new IllegalStateException("Instance info can only be set once per job");
+    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
+      throw new IllegalStateException("Instance info can only be set once per job");
     conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
     
     ArgumentChecker.notNull(instanceName, zooKeepers);

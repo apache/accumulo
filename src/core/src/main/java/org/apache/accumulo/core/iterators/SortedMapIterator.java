@@ -53,8 +53,10 @@ public class SortedMapIterator implements InterruptibleIterator {
     this.map = map;
     iter = map.entrySet().iterator();
     this.range = new Range();
-    if (iter.hasNext()) entry = iter.next();
-    else entry = null;
+    if (iter.hasNext())
+      entry = iter.next();
+    else
+      entry = null;
     
     this.interruptFlag = interruptFlag;
   }
@@ -81,16 +83,19 @@ public class SortedMapIterator implements InterruptibleIterator {
   @Override
   public void next() throws IOException {
     
-    if (entry == null) throw new IllegalStateException();
+    if (entry == null)
+      throw new IllegalStateException();
     
-    if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get()) throw new IterationInterruptedException();
+    if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get())
+      throw new IterationInterruptedException();
     
     if (iter.hasNext()) {
       entry = iter.next();
       if (range.afterEndKey((Key) entry.getKey())) {
         entry = null;
       }
-    } else entry = null;
+    } else
+      entry = null;
     
   }
   
@@ -101,7 +106,8 @@ public class SortedMapIterator implements InterruptibleIterator {
       throw new IllegalArgumentException("I do not know how to filter column families");
     }
     
-    if (interruptFlag != null && interruptFlag.get()) throw new IterationInterruptedException();
+    if (interruptFlag != null && interruptFlag.get())
+      throw new IterationInterruptedException();
     
     this.range = range;
     
@@ -116,7 +122,8 @@ public class SortedMapIterator implements InterruptibleIterator {
       if (range.afterEndKey(entry.getKey())) {
         entry = null;
       }
-    } else entry = null;
+    } else
+      entry = null;
     
     while (hasTop() && range.beforeStartKey(getTopKey())) {
       next();

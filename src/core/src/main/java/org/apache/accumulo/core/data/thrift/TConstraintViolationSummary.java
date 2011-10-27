@@ -5,46 +5,44 @@
  */
 package org.apache.accumulo.core.data.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class TConstraintViolationSummary implements TBase<TConstraintViolationSummary, TConstraintViolationSummary._Fields>, java.io.Serializable, Cloneable {
+public class TConstraintViolationSummary implements TBase<TConstraintViolationSummary,TConstraintViolationSummary._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("TConstraintViolationSummary");
-
-  private static final TField CONSTRAIN_CLASS_FIELD_DESC = new TField("constrainClass", TType.STRING, (short)1);
-  private static final TField VIOLATION_CODE_FIELD_DESC = new TField("violationCode", TType.I16, (short)2);
-  private static final TField VIOLATION_DESCRIPTION_FIELD_DESC = new TField("violationDescription", TType.STRING, (short)3);
-  private static final TField NUMBER_OF_VIOLATING_MUTATIONS_FIELD_DESC = new TField("numberOfViolatingMutations", TType.I64, (short)4);
-
+  
+  private static final TField CONSTRAIN_CLASS_FIELD_DESC = new TField("constrainClass", TType.STRING, (short) 1);
+  private static final TField VIOLATION_CODE_FIELD_DESC = new TField("violationCode", TType.I16, (short) 2);
+  private static final TField VIOLATION_DESCRIPTION_FIELD_DESC = new TField("violationDescription", TType.STRING, (short) 3);
+  private static final TField NUMBER_OF_VIOLATING_MUTATIONS_FIELD_DESC = new TField("numberOfViolatingMutations", TType.I64, (short) 4);
+  
   public String constrainClass;
   public short violationCode;
   public String violationDescription;
   public long numberOfViolatingMutations;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    CONSTRAIN_CLASS((short)1, "constrainClass"),
-    VIOLATION_CODE((short)2, "violationCode"),
-    VIOLATION_DESCRIPTION((short)3, "violationDescription"),
-    NUMBER_OF_VIOLATING_MUTATIONS((short)4, "numberOfViolatingMutations");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    CONSTRAIN_CLASS((short) 1, "constrainClass"),
+    VIOLATION_CODE((short) 2, "violationCode"),
+    VIOLATION_DESCRIPTION((short) 3, "violationDescription"),
+    NUMBER_OF_VIOLATING_MUTATIONS((short) 4, "numberOfViolatingMutations");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // CONSTRAIN_CLASS
           return CONSTRAIN_CLASS;
         case 2: // VIOLATION_CODE
@@ -57,70 +55,61 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
   private static final int __VIOLATIONCODE_ISSET_ID = 0;
   private static final int __NUMBEROFVIOLATINGMUTATIONS_ISSET_ID = 1;
   private java.util.BitSet __isset_bit_vector = new java.util.BitSet(2);
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.CONSTRAIN_CLASS, new FieldMetaData("constrainClass", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
-    tmpMap.put(_Fields.VIOLATION_CODE, new FieldMetaData("violationCode", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I16)));
-    tmpMap.put(_Fields.VIOLATION_DESCRIPTION, new FieldMetaData("violationDescription", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
-    tmpMap.put(_Fields.NUMBER_OF_VIOLATING_MUTATIONS, new FieldMetaData("numberOfViolatingMutations", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I64)));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.CONSTRAIN_CLASS, new FieldMetaData("constrainClass", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
+    tmpMap.put(_Fields.VIOLATION_CODE, new FieldMetaData("violationCode", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I16)));
+    tmpMap.put(_Fields.VIOLATION_DESCRIPTION, new FieldMetaData("violationDescription", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
+    tmpMap.put(_Fields.NUMBER_OF_VIOLATING_MUTATIONS, new FieldMetaData("numberOfViolatingMutations", TFieldRequirementType.DEFAULT, new FieldValueMetaData(
+        TType.I64)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(TConstraintViolationSummary.class, metaDataMap);
   }
-
-  public TConstraintViolationSummary() {
-  }
-
-  public TConstraintViolationSummary(
-    String constrainClass,
-    short violationCode,
-    String violationDescription,
-    long numberOfViolatingMutations)
-  {
+  
+  public TConstraintViolationSummary() {}
+  
+  public TConstraintViolationSummary(String constrainClass, short violationCode, String violationDescription, long numberOfViolatingMutations) {
     this();
     this.constrainClass = constrainClass;
     this.violationCode = violationCode;
@@ -129,7 +118,7 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
     this.numberOfViolatingMutations = numberOfViolatingMutations;
     setNumberOfViolatingMutationsIsSet(true);
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -145,205 +134,205 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
     }
     this.numberOfViolatingMutations = other.numberOfViolatingMutations;
   }
-
+  
   public TConstraintViolationSummary deepCopy() {
     return new TConstraintViolationSummary(this);
   }
-
+  
   @Deprecated
   public TConstraintViolationSummary clone() {
     return new TConstraintViolationSummary(this);
   }
-
+  
   public String getConstrainClass() {
     return this.constrainClass;
   }
-
+  
   public TConstraintViolationSummary setConstrainClass(String constrainClass) {
     this.constrainClass = constrainClass;
     return this;
   }
-
+  
   public void unsetConstrainClass() {
     this.constrainClass = null;
   }
-
+  
   /** Returns true if field constrainClass is set (has been asigned a value) and false otherwise */
   public boolean isSetConstrainClass() {
     return this.constrainClass != null;
   }
-
+  
   public void setConstrainClassIsSet(boolean value) {
     if (!value) {
       this.constrainClass = null;
     }
   }
-
+  
   public short getViolationCode() {
     return this.violationCode;
   }
-
+  
   public TConstraintViolationSummary setViolationCode(short violationCode) {
     this.violationCode = violationCode;
     setViolationCodeIsSet(true);
     return this;
   }
-
+  
   public void unsetViolationCode() {
     __isset_bit_vector.clear(__VIOLATIONCODE_ISSET_ID);
   }
-
+  
   /** Returns true if field violationCode is set (has been asigned a value) and false otherwise */
   public boolean isSetViolationCode() {
     return __isset_bit_vector.get(__VIOLATIONCODE_ISSET_ID);
   }
-
+  
   public void setViolationCodeIsSet(boolean value) {
     __isset_bit_vector.set(__VIOLATIONCODE_ISSET_ID, value);
   }
-
+  
   public String getViolationDescription() {
     return this.violationDescription;
   }
-
+  
   public TConstraintViolationSummary setViolationDescription(String violationDescription) {
     this.violationDescription = violationDescription;
     return this;
   }
-
+  
   public void unsetViolationDescription() {
     this.violationDescription = null;
   }
-
+  
   /** Returns true if field violationDescription is set (has been asigned a value) and false otherwise */
   public boolean isSetViolationDescription() {
     return this.violationDescription != null;
   }
-
+  
   public void setViolationDescriptionIsSet(boolean value) {
     if (!value) {
       this.violationDescription = null;
     }
   }
-
+  
   public long getNumberOfViolatingMutations() {
     return this.numberOfViolatingMutations;
   }
-
+  
   public TConstraintViolationSummary setNumberOfViolatingMutations(long numberOfViolatingMutations) {
     this.numberOfViolatingMutations = numberOfViolatingMutations;
     setNumberOfViolatingMutationsIsSet(true);
     return this;
   }
-
+  
   public void unsetNumberOfViolatingMutations() {
     __isset_bit_vector.clear(__NUMBEROFVIOLATINGMUTATIONS_ISSET_ID);
   }
-
+  
   /** Returns true if field numberOfViolatingMutations is set (has been asigned a value) and false otherwise */
   public boolean isSetNumberOfViolatingMutations() {
     return __isset_bit_vector.get(__NUMBEROFVIOLATINGMUTATIONS_ISSET_ID);
   }
-
+  
   public void setNumberOfViolatingMutationsIsSet(boolean value) {
     __isset_bit_vector.set(__NUMBEROFVIOLATINGMUTATIONS_ISSET_ID, value);
   }
-
+  
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case CONSTRAIN_CLASS:
-      if (value == null) {
-        unsetConstrainClass();
-      } else {
-        setConstrainClass((String)value);
-      }
-      break;
-
-    case VIOLATION_CODE:
-      if (value == null) {
-        unsetViolationCode();
-      } else {
-        setViolationCode((Short)value);
-      }
-      break;
-
-    case VIOLATION_DESCRIPTION:
-      if (value == null) {
-        unsetViolationDescription();
-      } else {
-        setViolationDescription((String)value);
-      }
-      break;
-
-    case NUMBER_OF_VIOLATING_MUTATIONS:
-      if (value == null) {
-        unsetNumberOfViolatingMutations();
-      } else {
-        setNumberOfViolatingMutations((Long)value);
-      }
-      break;
-
+      case CONSTRAIN_CLASS:
+        if (value == null) {
+          unsetConstrainClass();
+        } else {
+          setConstrainClass((String) value);
+        }
+        break;
+      
+      case VIOLATION_CODE:
+        if (value == null) {
+          unsetViolationCode();
+        } else {
+          setViolationCode((Short) value);
+        }
+        break;
+      
+      case VIOLATION_DESCRIPTION:
+        if (value == null) {
+          unsetViolationDescription();
+        } else {
+          setViolationDescription((String) value);
+        }
+        break;
+      
+      case NUMBER_OF_VIOLATING_MUTATIONS:
+        if (value == null) {
+          unsetNumberOfViolatingMutations();
+        } else {
+          setNumberOfViolatingMutations((Long) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case CONSTRAIN_CLASS:
-      return getConstrainClass();
-
-    case VIOLATION_CODE:
-      return new Short(getViolationCode());
-
-    case VIOLATION_DESCRIPTION:
-      return getViolationDescription();
-
-    case NUMBER_OF_VIOLATING_MUTATIONS:
-      return new Long(getNumberOfViolatingMutations());
-
+      case CONSTRAIN_CLASS:
+        return getConstrainClass();
+        
+      case VIOLATION_CODE:
+        return new Short(getViolationCode());
+        
+      case VIOLATION_DESCRIPTION:
+        return getViolationDescription();
+        
+      case NUMBER_OF_VIOLATING_MUTATIONS:
+        return new Long(getNumberOfViolatingMutations());
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case CONSTRAIN_CLASS:
-      return isSetConstrainClass();
-    case VIOLATION_CODE:
-      return isSetViolationCode();
-    case VIOLATION_DESCRIPTION:
-      return isSetViolationDescription();
-    case NUMBER_OF_VIOLATING_MUTATIONS:
-      return isSetNumberOfViolatingMutations();
+      case CONSTRAIN_CLASS:
+        return isSetConstrainClass();
+      case VIOLATION_CODE:
+        return isSetViolationCode();
+      case VIOLATION_DESCRIPTION:
+        return isSetViolationDescription();
+      case NUMBER_OF_VIOLATING_MUTATIONS:
+        return isSetNumberOfViolatingMutations();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof TConstraintViolationSummary)
-      return this.equals((TConstraintViolationSummary)that);
+      return this.equals((TConstraintViolationSummary) that);
     return false;
   }
-
+  
   public boolean equals(TConstraintViolationSummary that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_constrainClass = true && this.isSetConstrainClass();
     boolean that_present_constrainClass = true && that.isSetConstrainClass();
     if (this_present_constrainClass || that_present_constrainClass) {
@@ -352,7 +341,7 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
       if (!this.constrainClass.equals(that.constrainClass))
         return false;
     }
-
+    
     boolean this_present_violationCode = true;
     boolean that_present_violationCode = true;
     if (this_present_violationCode || that_present_violationCode) {
@@ -361,7 +350,7 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
       if (this.violationCode != that.violationCode)
         return false;
     }
-
+    
     boolean this_present_violationDescription = true && this.isSetViolationDescription();
     boolean that_present_violationDescription = true && that.isSetViolationDescription();
     if (this_present_violationDescription || that_present_violationDescription) {
@@ -370,7 +359,7 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
       if (!this.violationDescription.equals(that.violationDescription))
         return false;
     }
-
+    
     boolean this_present_numberOfViolatingMutations = true;
     boolean that_present_numberOfViolatingMutations = true;
     if (this_present_numberOfViolatingMutations || that_present_numberOfViolatingMutations) {
@@ -379,28 +368,29 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
       if (this.numberOfViolatingMutations != that.numberOfViolatingMutations)
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(TConstraintViolationSummary other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    TConstraintViolationSummary typedOther = (TConstraintViolationSummary)other;
-
+    TConstraintViolationSummary typedOther = (TConstraintViolationSummary) other;
+    
     lastComparison = Boolean.valueOf(isSetConstrainClass()).compareTo(typedOther.isSetConstrainClass());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetConstrainClass()) {      lastComparison = TBaseHelper.compareTo(this.constrainClass, typedOther.constrainClass);
+    if (isSetConstrainClass()) {
+      lastComparison = TBaseHelper.compareTo(this.constrainClass, typedOther.constrainClass);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -409,7 +399,8 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetViolationCode()) {      lastComparison = TBaseHelper.compareTo(this.violationCode, typedOther.violationCode);
+    if (isSetViolationCode()) {
+      lastComparison = TBaseHelper.compareTo(this.violationCode, typedOther.violationCode);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -418,7 +409,8 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetViolationDescription()) {      lastComparison = TBaseHelper.compareTo(this.violationDescription, typedOther.violationDescription);
+    if (isSetViolationDescription()) {
+      lastComparison = TBaseHelper.compareTo(this.violationDescription, typedOther.violationDescription);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -427,28 +419,28 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetNumberOfViolatingMutations()) {      lastComparison = TBaseHelper.compareTo(this.numberOfViolatingMutations, typedOther.numberOfViolatingMutations);
+    if (isSetNumberOfViolatingMutations()) {
+      lastComparison = TBaseHelper.compareTo(this.numberOfViolatingMutations, typedOther.numberOfViolatingMutations);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
         case 1: // CONSTRAIN_CLASS
           if (field.type == TType.STRING) {
             this.constrainClass = iprot.readString();
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -456,14 +448,14 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
           if (field.type == TType.I16) {
             this.violationCode = iprot.readI16();
             setViolationCodeIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 3: // VIOLATION_DESCRIPTION
           if (field.type == TType.STRING) {
             this.violationDescription = iprot.readString();
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -471,7 +463,7 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
           if (field.type == TType.I64) {
             this.numberOfViolatingMutations = iprot.readI64();
             setNumberOfViolatingMutationsIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -481,14 +473,14 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.constrainClass != null) {
       oprot.writeFieldBegin(CONSTRAIN_CLASS_FIELD_DESC);
@@ -509,7 +501,7 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("TConstraintViolationSummary(");
@@ -535,10 +527,9 @@ public class TConstraintViolationSummary implements TBase<TConstraintViolationSu
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

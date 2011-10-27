@@ -381,7 +381,8 @@ public class TabletServerResourceManager {
       synchronized (commitHold) {
         while (holdCommits) {
           try {
-            if (System.currentTimeMillis() > timeout) throw new HoldTimeoutException("Commits are held");
+            if (System.currentTimeMillis() > timeout)
+              throw new HoldTimeoutException("Commits are held");
             commitHold.wait(1000);
           } catch (InterruptedException e) {}
         }
@@ -390,7 +391,8 @@ public class TabletServerResourceManager {
   }
   
   public long holdTime() {
-    if (!holdCommits) return 0;
+    if (!holdCommits)
+      return 0;
     synchronized (commitHold) {
       return System.currentTimeMillis() - holdStartTime;
     }
@@ -404,7 +406,8 @@ public class TabletServerResourceManager {
     for (Entry<String,ExecutorService> entry : threadPools.entrySet()) {
       while (true) {
         try {
-          if (entry.getValue().awaitTermination(60, TimeUnit.SECONDS)) break;
+          if (entry.getValue().awaitTermination(60, TimeUnit.SECONDS))
+            break;
           log.info("Waiting for thread pool " + entry.getKey() + " to shutdown");
         } catch (InterruptedException e) {
           log.warn(e);
@@ -490,8 +493,10 @@ public class TabletServerResourceManager {
     }
     
     synchronized void addMapFile(String name, long size) throws IOException {
-      if (closed) throw new IOException("closed");
-      if (openFilesReserved) throw new IOException("tried to add map file while open files reserved");
+      if (closed)
+        throw new IOException("closed");
+      if (openFilesReserved)
+        throw new IOException("tried to add map file while open files reserved");
       
       if (mapFiles.keySet().contains(name)) {
         log.error("Adding map files that is already in set " + name);
@@ -501,8 +506,10 @@ public class TabletServerResourceManager {
     }
     
     synchronized void removeMapFiles(Set<String> filesCompacted) throws IOException {
-      if (closed) throw new IOException("closed");
-      if (openFilesReserved) throw new IOException("tried to remove map files while open files reserved");
+      if (closed)
+        throw new IOException("closed");
+      if (openFilesReserved)
+        throw new IOException("tried to remove map files while open files reserved");
       
       for (String file : filesCompacted) {
         if (!mapFiles.keySet().contains(file)) {
@@ -514,17 +521,20 @@ public class TabletServerResourceManager {
     }
     
     synchronized SortedSet<String> getCopyOfMapFilePaths() throws IOException {
-      if (closed) throw new IOException("closed");
+      if (closed)
+        throw new IOException("closed");
       return new TreeSet<String>(mapFiles.keySet());
     }
     
     synchronized boolean containsAllMapFiles(TreeSet<String> filesToCompact) throws IOException {
-      if (closed) throw new IOException("closed");
+      if (closed)
+        throw new IOException("closed");
       return mapFiles.keySet().containsAll(filesToCompact);
     }
     
     synchronized ScanFileManager newScanFileManager() {
-      if (closed) throw new IllegalStateException("closed");
+      if (closed)
+        throw new IllegalStateException("closed");
       return fileManager.newScanFileManager(tablet.getExtent());
     }
     
@@ -558,11 +568,13 @@ public class TabletServerResourceManager {
       
       long currentTime = System.currentTimeMillis();
       if ((delta > 32000 || delta < 0 || (currentTime - lastReportedCommitTime > 1000)) && lastReportedSize.compareAndSet(lrs, totalSize)) {
-        if (delta > 0) lastReportedCommitTime = currentTime;
+        if (delta > 0)
+          lastReportedCommitTime = currentTime;
         report = true;
       }
       
-      if (report) memMgmt.updateMemoryUsageStats(tablet, size, lastReportedCommitTime, mincSize);
+      if (report)
+        memMgmt.updateMemoryUsageStats(tablet, size, lastReportedCommitTime, mincSize);
     }
     
     // END methods that Tablets call to manage memory
@@ -623,13 +635,17 @@ public class TabletServerResourceManager {
         return files;
       }
       
-      if (mapFiles.size() <= 1) return null;
+      if (mapFiles.size() <= 1)
+        return null;
       TreeSet<MapFileInfo> candidateFiles = new TreeSet<MapFileInfo>(new Comparator<MapFileInfo>() {
         @Override
         public int compare(MapFileInfo o1, MapFileInfo o2) {
-          if (o1 == o2) return 0;
-          if (o1.size < o2.size) return -1;
-          if (o1.size > o2.size) return 1;
+          if (o1 == o2)
+            return 0;
+          if (o1.size < o2.size)
+            return -1;
+          if (o1.size > o2.size)
+            return 1;
           return o1.path.compareTo(o2.path);
         }
       });
@@ -663,7 +679,8 @@ public class TabletServerResourceManager {
               @Override
               public int compare(Entry<String,Long> e1, Entry<String,Long> e2) {
                 int cmp = e1.getValue().compareTo(e2.getValue());
-                if (cmp == 0) cmp = e1.getKey().compareTo(e2.getKey());
+                if (cmp == 0)
+                  cmp = e1.getKey().compareTo(e2.getKey());
                 return cmp;
               }
             });
@@ -683,8 +700,9 @@ public class TabletServerResourceManager {
     }
     
     synchronized boolean needsMajorCompaction(boolean idleCompaction) {
-      if (closed) return false;// throw new IOException("closed");
-      
+      if (closed)
+        return false;// throw new IOException("closed");
+        
       // int threshold;
       
       if (idleCompaction) {
@@ -721,8 +739,10 @@ public class TabletServerResourceManager {
       // always obtain locks in same order to avoid deadlock
       synchronized (TabletServerResourceManager.this) {
         synchronized (this) {
-          if (closed) throw new IOException("closed");
-          if (openFilesReserved) throw new IOException("tired to close files while open files reserved");
+          if (closed)
+            throw new IOException("closed");
+          if (openFilesReserved)
+            throw new IOException("tired to close files while open files reserved");
           
           mapFiles.clear();
           

@@ -85,8 +85,10 @@ public class ZooSession {
         zooKeeper = new ZooKeeper(host, timeout, watcher);
         // it may take some time to get connected to zookeeper if some of the servers are down
         for (int i = 0; i < TOTAL_CONNECT_TIME_WAIT_MS / TIME_BETWEEN_CONNECT_CHECKS_MS && tryAgain; i++) {
-          if (zooKeeper.getState().equals(States.CONNECTED)) tryAgain = false;
-          else UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
+          if (zooKeeper.getState().equals(States.CONNECTED))
+            tryAgain = false;
+          else
+            UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
         }
       } catch (UnknownHostException uhe) {
         // do not expect to recover from this
@@ -98,7 +100,8 @@ public class ZooSession {
       
       if (tryAgain) {
         UtilWaitThread.sleep(sleepTime);
-        if (sleepTime < 10000) sleepTime = (int) (sleepTime + sleepTime * Math.random());
+        if (sleepTime < 10000)
+          sleepTime = (int) (sleepTime + sleepTime * Math.random());
       }
     }
     

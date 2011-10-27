@@ -86,7 +86,8 @@ public class TestScanCache2 {
           System.out.println("end of cache reached with key=" + startKey + " and j=" + j);
           break;
         }
-        if (j == 0) System.out.println("first key: " + sc.getTopKey() + "  value: " + sc.getTopValue());
+        if (j == 0)
+          System.out.println("first key: " + sc.getTopKey() + "  value: " + sc.getTopValue());
         try {
           sc.next();
         } catch (IOException e) {

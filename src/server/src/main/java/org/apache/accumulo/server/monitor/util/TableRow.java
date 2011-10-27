@@ -29,7 +29,8 @@ public class TableRow {
   }
   
   public boolean add(Object obj) {
-    if (row.size() == size) throw new IllegalStateException("Row is full.");
+    if (row.size() == size)
+      throw new IllegalStateException("Row is full.");
     return row.add(obj);
   }
   

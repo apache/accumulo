@@ -121,7 +121,8 @@ public final class AccumuloFilesystemAlterationMonitor implements Runnable {
         observer.checkAndNotify();
       }
       
-      if (!running) break;
+      if (!running)
+        break;
       try {
         Thread.sleep(delay);
       } catch (final InterruptedException e) {}

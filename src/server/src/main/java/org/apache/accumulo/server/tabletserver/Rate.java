@@ -32,7 +32,8 @@ public class Rate {
    *          the rate at which each update influences the curve; must be (0., 1.0)
    */
   public Rate(double ratio) {
-    if (ratio <= 0. || ratio >= 1.0) throw new IllegalArgumentException("ratio must be > 0. and < 1.0");
+    if (ratio <= 0. || ratio >= 1.0)
+      throw new IllegalArgumentException("ratio must be > 0. and < 1.0");
     this.ratio = ratio;
   }
   

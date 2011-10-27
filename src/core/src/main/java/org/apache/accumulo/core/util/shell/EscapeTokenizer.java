@@ -54,16 +54,20 @@ public class EscapeTokenizer implements Iterable<String> {
         inEscape = false;
       } else {
         inEscape = current.endsWith("\\");
-        if (inEscape) prev = current.substring(0, current.length() - 1);
+        if (inEscape)
+          prev = current.substring(0, current.length() - 1);
         else {
           if (current.length() == 1 && delimeters.contains(current)) {
-            if (!prev.isEmpty()) toks.add(prev);
-          } else toks.add(prev + current);
+            if (!prev.isEmpty())
+              toks.add(prev);
+          } else
+            toks.add(prev + current);
           prev = "";
         }
       }
     }
-    if (!prev.isEmpty()) toks.add(prev);
+    if (!prev.isEmpty())
+      toks.add(prev);
     this.tokens = toks;
   }
   

@@ -64,11 +64,13 @@ public class ConstraintViolationSummary {
       sb.append(this.constrainClass);
     }
     first = false;
-    if (!first) sb.append(", ");
+    if (!first)
+      sb.append(", ");
     sb.append("violationCode:");
     sb.append(this.violationCode);
     first = false;
-    if (!first) sb.append(", ");
+    if (!first)
+      sb.append(", ");
     sb.append("violationDescription:");
     if (this.violationDescription == null) {
       sb.append("null");
@@ -76,7 +78,8 @@ public class ConstraintViolationSummary {
       sb.append(this.violationDescription);
     }
     first = false;
-    if (!first) sb.append(", ");
+    if (!first)
+      sb.append(", ");
     sb.append("numberOfViolatingMutations:");
     sb.append(this.numberOfViolatingMutations);
     first = false;

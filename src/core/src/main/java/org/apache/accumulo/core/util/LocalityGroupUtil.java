@@ -60,7 +60,8 @@ public class LocalityGroupUtil {
     Map<String,Set<ByteSequence>> result = new HashMap<String,Set<ByteSequence>>();
     String[] groups = acuconf.get(Property.TABLE_LOCALITY_GROUPS).split(",");
     for (String group : groups) {
-      if (group.length() > 0) result.put(group, new HashSet<ByteSequence>());
+      if (group.length() > 0)
+        result.put(group, new HashSet<ByteSequence>());
     }
     HashSet<ByteSequence> all = new HashSet<ByteSequence>();
     for (Entry<String,String> entry : acuconf) {
@@ -163,9 +164,12 @@ public class LocalityGroupUtil {
     
     for (int i = 0; i < len; i++) {
       int c = 0xff & ba[i];
-      if (c == '\\') sb.append("\\\\");
-      else if (c >= 32 && c <= 126 && c != ',') sb.append((char) c);
-      else sb.append("\\x").append(String.format("%02X", c));
+      if (c == '\\')
+        sb.append("\\\\");
+      else if (c >= 32 && c <= 126 && c != ',')
+        sb.append((char) c);
+      else
+        sb.append("\\x").append(String.format("%02X", c));
     }
     
     String ecf = sb.toString();

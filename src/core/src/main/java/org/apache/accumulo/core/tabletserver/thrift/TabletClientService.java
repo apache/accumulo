@@ -5,91 +5,125 @@
  */
 package org.apache.accumulo.core.tabletserver.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 public class TabletClientService {
-
+  
   public interface Iface extends org.apache.accumulo.core.client.impl.thrift.ClientService.Iface {
-
-    public org.apache.accumulo.core.data.thrift.InitialScan startScan(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, java.util.Map<String,java.util.Map<String,String>> ssio, java.util.List<byte[]> authorizations, boolean waitForWrites, boolean isolated) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, TooManyFilesException, TException;
-
-    public org.apache.accumulo.core.data.thrift.ScanResult continueScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException, NotServingTabletException, TooManyFilesException, TException;
-
+    
+    public org.apache.accumulo.core.data.thrift.InitialScan startScan(cloudtrace.thrift.TInfo tinfo,
+        org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent,
+        org.apache.accumulo.core.data.thrift.TRange range, java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize,
+        java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, java.util.Map<String,java.util.Map<String,String>> ssio,
+        java.util.List<byte[]> authorizations, boolean waitForWrites, boolean isolated)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, TooManyFilesException, TException;
+    
+    public org.apache.accumulo.core.data.thrift.ScanResult continueScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException,
+        NotServingTabletException, TooManyFilesException, TException;
+    
     public void closeScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws TException;
-
-    public org.apache.accumulo.core.data.thrift.InitialMultiScan startMultiScan(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, java.util.Map<String,java.util.Map<String,String>> ssio, java.util.List<byte[]> authorizations, boolean waitForWrites) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
-
-    public org.apache.accumulo.core.data.thrift.MultiScanResult continueMultiScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException, TException;
-
+    
+    public org.apache.accumulo.core.data.thrift.InitialMultiScan startMultiScan(cloudtrace.thrift.TInfo tinfo,
+        org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>> batch,
+        java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList,
+        java.util.Map<String,java.util.Map<String,String>> ssio, java.util.List<byte[]> authorizations, boolean waitForWrites)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
+    
+    public org.apache.accumulo.core.data.thrift.MultiScanResult continueMultiScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException,
+        TException;
+    
     public void closeMultiScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException, TException;
-
-    public long startUpdate(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
-
+    
+    public long startUpdate(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
+    
     public void setUpdateTablet(cloudtrace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent) throws TException;
-
+    
     public void applyUpdate(cloudtrace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TMutation mutation) throws TException;
-
+    
     public org.apache.accumulo.core.data.thrift.UpdateErrors closeUpdate(cloudtrace.thrift.TInfo tinfo, long updateID) throws NoSuchScanIDException, TException;
-
-    public void update(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, ConstraintViolationException, TException;
-
-    public java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> bulkImport(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
-
-    public void splitTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, byte[] splitPoint) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, TException;
-
-    public void loadTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent) throws TException;
-
-    public void unloadTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, boolean save) throws TException;
-
-    public void flush(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock, java.util.Set<String> tables) throws TException;
-
-    public void useLoggers(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, java.util.Set<String> loggers) throws TException;
-
-    public org.apache.accumulo.core.master.thrift.TabletServerStatus getTabletServerStatus(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
-
-    public java.util.List<TabletStats> getTabletStats(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String tableId) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
-
-    public TabletStats getHistoricalStats(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
-
-    public void halt(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
-
-    public java.util.List<ActiveScan> getActiveScans(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
-
+    
+    public void update(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, ConstraintViolationException, TException;
+    
+    public java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> bulkImport(cloudtrace.thrift.TInfo tinfo,
+        org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
+    
+    public void splitTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent, byte[] splitPoint) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException,
+        NotServingTabletException, TException;
+    
+    public void loadTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent) throws TException;
+    
+    public void unloadTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent, boolean save) throws TException;
+    
+    public void flush(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock, java.util.Set<String> tables)
+        throws TException;
+    
+    public void useLoggers(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, java.util.Set<String> loggers)
+        throws TException;
+    
+    public org.apache.accumulo.core.master.thrift.TabletServerStatus getTabletServerStatus(cloudtrace.thrift.TInfo tinfo,
+        org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
+    
+    public java.util.List<TabletStats> getTabletStats(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        String tableId) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
+    
+    public TabletStats getHistoricalStats(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
+    
+    public void halt(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
+    
+    public java.util.List<ActiveScan> getActiveScans(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException;
+    
   }
-
+  
   public static class Client extends org.apache.accumulo.core.client.impl.thrift.ClientService.Client implements TServiceClient, Iface {
     public static class Factory implements TServiceClientFactory<Client> {
       public Factory() {}
+      
       public Client getClient(TProtocol prot) {
         return new Client(prot);
       }
+      
       public Client getClient(TProtocol iprot, TProtocol oprot) {
         return new Client(iprot, oprot);
       }
     }
-
-    public Client(TProtocol prot)
-    {
+    
+    public Client(TProtocol prot) {
       this(prot, prot);
     }
-
-    public Client(TProtocol iprot, TProtocol oprot)
-    {
+    
+    public Client(TProtocol iprot, TProtocol oprot) {
       super(iprot, oprot);
     }
-
-    public org.apache.accumulo.core.data.thrift.InitialScan startScan(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, java.util.Map<String,java.util.Map<String,String>> ssio, java.util.List<byte[]> authorizations, boolean waitForWrites, boolean isolated) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, TooManyFilesException, TException
-    {
+    
+    public org.apache.accumulo.core.data.thrift.InitialScan startScan(cloudtrace.thrift.TInfo tinfo,
+        org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent,
+        org.apache.accumulo.core.data.thrift.TRange range, java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize,
+        java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, java.util.Map<String,java.util.Map<String,String>> ssio,
+        java.util.List<byte[]> authorizations, boolean waitForWrites, boolean isolated)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, TooManyFilesException, TException {
       send_startScan(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio, authorizations, waitForWrites, isolated);
       return recv_startScan();
     }
-
-    public void send_startScan(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range, java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize, java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, java.util.Map<String,java.util.Map<String,String>> ssio, java.util.List<byte[]> authorizations, boolean waitForWrites, boolean isolated) throws TException
-    {
+    
+    public void send_startScan(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range,
+        java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize,
+        java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, java.util.Map<String,java.util.Map<String,String>> ssio,
+        java.util.List<byte[]> authorizations, boolean waitForWrites, boolean isolated) throws TException {
       oprot_.writeMessageBegin(new TMessage("startScan", TMessageType.CALL, ++seqid_));
       startScan_args args = new startScan_args();
       args.setTinfo(tinfo);
@@ -107,9 +141,9 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public org.apache.accumulo.core.data.thrift.InitialScan recv_startScan() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, TooManyFilesException, TException
-    {
+    
+    public org.apache.accumulo.core.data.thrift.InitialScan recv_startScan() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException,
+        NotServingTabletException, TooManyFilesException, TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -136,15 +170,14 @@ public class TabletClientService {
       }
       throw new TApplicationException(TApplicationException.MISSING_RESULT, "startScan failed: unknown result");
     }
-
-    public org.apache.accumulo.core.data.thrift.ScanResult continueScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException, NotServingTabletException, TooManyFilesException, TException
-    {
+    
+    public org.apache.accumulo.core.data.thrift.ScanResult continueScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException,
+        NotServingTabletException, TooManyFilesException, TException {
       send_continueScan(tinfo, scanID);
       return recv_continueScan();
     }
-
-    public void send_continueScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws TException
-    {
+    
+    public void send_continueScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws TException {
       oprot_.writeMessageBegin(new TMessage("continueScan", TMessageType.CALL, ++seqid_));
       continueScan_args args = new continueScan_args();
       args.setTinfo(tinfo);
@@ -153,9 +186,9 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public org.apache.accumulo.core.data.thrift.ScanResult recv_continueScan() throws NoSuchScanIDException, NotServingTabletException, TooManyFilesException, TException
-    {
+    
+    public org.apache.accumulo.core.data.thrift.ScanResult recv_continueScan() throws NoSuchScanIDException, NotServingTabletException, TooManyFilesException,
+        TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -182,14 +215,12 @@ public class TabletClientService {
       }
       throw new TApplicationException(TApplicationException.MISSING_RESULT, "continueScan failed: unknown result");
     }
-
-    public void closeScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws TException
-    {
+    
+    public void closeScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws TException {
       send_closeScan(tinfo, scanID);
     }
-
-    public void send_closeScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws TException
-    {
+    
+    public void send_closeScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws TException {
       oprot_.writeMessageBegin(new TMessage("closeScan", TMessageType.CALL, ++seqid_));
       closeScan_args args = new closeScan_args();
       args.setTinfo(tinfo);
@@ -198,15 +229,21 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public org.apache.accumulo.core.data.thrift.InitialMultiScan startMultiScan(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, java.util.Map<String,java.util.Map<String,String>> ssio, java.util.List<byte[]> authorizations, boolean waitForWrites) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public org.apache.accumulo.core.data.thrift.InitialMultiScan startMultiScan(cloudtrace.thrift.TInfo tinfo,
+        org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>> batch,
+        java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList,
+        java.util.Map<String,java.util.Map<String,String>> ssio, java.util.List<byte[]> authorizations, boolean waitForWrites)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       send_startMultiScan(tinfo, credentials, batch, columns, ssiList, ssio, authorizations, waitForWrites);
       return recv_startMultiScan();
     }
-
-    public void send_startMultiScan(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>> batch, java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, java.util.Map<String,java.util.Map<String,String>> ssio, java.util.List<byte[]> authorizations, boolean waitForWrites) throws TException
-    {
+    
+    public void send_startMultiScan(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>> batch,
+        java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList,
+        java.util.Map<String,java.util.Map<String,String>> ssio, java.util.List<byte[]> authorizations, boolean waitForWrites) throws TException {
       oprot_.writeMessageBegin(new TMessage("startMultiScan", TMessageType.CALL, ++seqid_));
       startMultiScan_args args = new startMultiScan_args();
       args.setTinfo(tinfo);
@@ -221,9 +258,9 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public org.apache.accumulo.core.data.thrift.InitialMultiScan recv_startMultiScan() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public org.apache.accumulo.core.data.thrift.InitialMultiScan recv_startMultiScan() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException,
+        TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -244,15 +281,14 @@ public class TabletClientService {
       }
       throw new TApplicationException(TApplicationException.MISSING_RESULT, "startMultiScan failed: unknown result");
     }
-
-    public org.apache.accumulo.core.data.thrift.MultiScanResult continueMultiScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException, TException
-    {
+    
+    public org.apache.accumulo.core.data.thrift.MultiScanResult continueMultiScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException,
+        TException {
       send_continueMultiScan(tinfo, scanID);
       return recv_continueMultiScan();
     }
-
-    public void send_continueMultiScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws TException
-    {
+    
+    public void send_continueMultiScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws TException {
       oprot_.writeMessageBegin(new TMessage("continueMultiScan", TMessageType.CALL, ++seqid_));
       continueMultiScan_args args = new continueMultiScan_args();
       args.setTinfo(tinfo);
@@ -261,9 +297,8 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public org.apache.accumulo.core.data.thrift.MultiScanResult recv_continueMultiScan() throws NoSuchScanIDException, TException
-    {
+    
+    public org.apache.accumulo.core.data.thrift.MultiScanResult recv_continueMultiScan() throws NoSuchScanIDException, TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -284,15 +319,13 @@ public class TabletClientService {
       }
       throw new TApplicationException(TApplicationException.MISSING_RESULT, "continueMultiScan failed: unknown result");
     }
-
-    public void closeMultiScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException, TException
-    {
+    
+    public void closeMultiScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {
       send_closeMultiScan(tinfo, scanID);
       recv_closeMultiScan();
     }
-
-    public void send_closeMultiScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws TException
-    {
+    
+    public void send_closeMultiScan(cloudtrace.thrift.TInfo tinfo, long scanID) throws TException {
       oprot_.writeMessageBegin(new TMessage("closeMultiScan", TMessageType.CALL, ++seqid_));
       closeMultiScan_args args = new closeMultiScan_args();
       args.setTinfo(tinfo);
@@ -301,9 +334,8 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public void recv_closeMultiScan() throws NoSuchScanIDException, TException
-    {
+    
+    public void recv_closeMultiScan() throws NoSuchScanIDException, TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -321,15 +353,14 @@ public class TabletClientService {
       }
       return;
     }
-
-    public long startUpdate(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public long startUpdate(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       send_startUpdate(tinfo, credentials);
       return recv_startUpdate();
     }
-
-    public void send_startUpdate(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws TException
-    {
+    
+    public void send_startUpdate(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws TException {
       oprot_.writeMessageBegin(new TMessage("startUpdate", TMessageType.CALL, ++seqid_));
       startUpdate_args args = new startUpdate_args();
       args.setTinfo(tinfo);
@@ -338,9 +369,8 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public long recv_startUpdate() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public long recv_startUpdate() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -361,14 +391,12 @@ public class TabletClientService {
       }
       throw new TApplicationException(TApplicationException.MISSING_RESULT, "startUpdate failed: unknown result");
     }
-
-    public void setUpdateTablet(cloudtrace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent) throws TException
-    {
+    
+    public void setUpdateTablet(cloudtrace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent) throws TException {
       send_setUpdateTablet(tinfo, updateID, keyExtent);
     }
-
-    public void send_setUpdateTablet(cloudtrace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent) throws TException
-    {
+    
+    public void send_setUpdateTablet(cloudtrace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent) throws TException {
       oprot_.writeMessageBegin(new TMessage("setUpdateTablet", TMessageType.CALL, ++seqid_));
       setUpdateTablet_args args = new setUpdateTablet_args();
       args.setTinfo(tinfo);
@@ -378,14 +406,12 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public void applyUpdate(cloudtrace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TMutation mutation) throws TException
-    {
+    
+    public void applyUpdate(cloudtrace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TMutation mutation) throws TException {
       send_applyUpdate(tinfo, updateID, mutation);
     }
-
-    public void send_applyUpdate(cloudtrace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TMutation mutation) throws TException
-    {
+    
+    public void send_applyUpdate(cloudtrace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TMutation mutation) throws TException {
       oprot_.writeMessageBegin(new TMessage("applyUpdate", TMessageType.CALL, ++seqid_));
       applyUpdate_args args = new applyUpdate_args();
       args.setTinfo(tinfo);
@@ -395,15 +421,13 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public org.apache.accumulo.core.data.thrift.UpdateErrors closeUpdate(cloudtrace.thrift.TInfo tinfo, long updateID) throws NoSuchScanIDException, TException
-    {
+    
+    public org.apache.accumulo.core.data.thrift.UpdateErrors closeUpdate(cloudtrace.thrift.TInfo tinfo, long updateID) throws NoSuchScanIDException, TException {
       send_closeUpdate(tinfo, updateID);
       return recv_closeUpdate();
     }
-
-    public void send_closeUpdate(cloudtrace.thrift.TInfo tinfo, long updateID) throws TException
-    {
+    
+    public void send_closeUpdate(cloudtrace.thrift.TInfo tinfo, long updateID) throws TException {
       oprot_.writeMessageBegin(new TMessage("closeUpdate", TMessageType.CALL, ++seqid_));
       closeUpdate_args args = new closeUpdate_args();
       args.setTinfo(tinfo);
@@ -412,9 +436,8 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public org.apache.accumulo.core.data.thrift.UpdateErrors recv_closeUpdate() throws NoSuchScanIDException, TException
-    {
+    
+    public org.apache.accumulo.core.data.thrift.UpdateErrors recv_closeUpdate() throws NoSuchScanIDException, TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -435,15 +458,16 @@ public class TabletClientService {
       }
       throw new TApplicationException(TApplicationException.MISSING_RESULT, "closeUpdate failed: unknown result");
     }
-
-    public void update(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, ConstraintViolationException, TException
-    {
+    
+    public void update(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, ConstraintViolationException, TException {
       send_update(tinfo, credentials, keyExtent, mutation);
       recv_update();
     }
-
-    public void send_update(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation) throws TException
-    {
+    
+    public void send_update(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation) throws TException {
       oprot_.writeMessageBegin(new TMessage("update", TMessageType.CALL, ++seqid_));
       update_args args = new update_args();
       args.setTinfo(tinfo);
@@ -454,9 +478,9 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public void recv_update() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, ConstraintViolationException, TException
-    {
+    
+    public void recv_update() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, ConstraintViolationException,
+        TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -480,15 +504,18 @@ public class TabletClientService {
       }
       return;
     }
-
-    public java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> bulkImport(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> bulkImport(cloudtrace.thrift.TInfo tinfo,
+        org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       send_bulkImport(tinfo, credentials, files);
       return recv_bulkImport();
     }
-
-    public void send_bulkImport(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files) throws TException
-    {
+    
+    public void send_bulkImport(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files)
+        throws TException {
       oprot_.writeMessageBegin(new TMessage("bulkImport", TMessageType.CALL, ++seqid_));
       bulkImport_args args = new bulkImport_args();
       args.setTinfo(tinfo);
@@ -498,9 +525,9 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> recv_bulkImport() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> recv_bulkImport()
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -521,15 +548,16 @@ public class TabletClientService {
       }
       throw new TApplicationException(TApplicationException.MISSING_RESULT, "bulkImport failed: unknown result");
     }
-
-    public void splitTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, byte[] splitPoint) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, TException
-    {
+    
+    public void splitTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent, byte[] splitPoint) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException,
+        NotServingTabletException, TException {
       send_splitTablet(tinfo, credentials, extent, splitPoint);
       recv_splitTablet();
     }
-
-    public void send_splitTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.accumulo.core.data.thrift.TKeyExtent extent, byte[] splitPoint) throws TException
-    {
+    
+    public void send_splitTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent, byte[] splitPoint) throws TException {
       oprot_.writeMessageBegin(new TMessage("splitTablet", TMessageType.CALL, ++seqid_));
       splitTablet_args args = new splitTablet_args();
       args.setTinfo(tinfo);
@@ -540,9 +568,8 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public void recv_splitTablet() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, TException
-    {
+    
+    public void recv_splitTablet() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, NotServingTabletException, TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -563,14 +590,14 @@ public class TabletClientService {
       }
       return;
     }
-
-    public void loadTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent) throws TException
-    {
+    
+    public void loadTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent) throws TException {
       send_loadTablet(tinfo, credentials, lock, extent);
     }
-
-    public void send_loadTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent) throws TException
-    {
+    
+    public void send_loadTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent) throws TException {
       oprot_.writeMessageBegin(new TMessage("loadTablet", TMessageType.CALL, ++seqid_));
       loadTablet_args args = new loadTablet_args();
       args.setTinfo(tinfo);
@@ -581,14 +608,14 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public void unloadTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, boolean save) throws TException
-    {
+    
+    public void unloadTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent, boolean save) throws TException {
       send_unloadTablet(tinfo, credentials, lock, extent, save);
     }
-
-    public void send_unloadTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock, org.apache.accumulo.core.data.thrift.TKeyExtent extent, boolean save) throws TException
-    {
+    
+    public void send_unloadTablet(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent, boolean save) throws TException {
       oprot_.writeMessageBegin(new TMessage("unloadTablet", TMessageType.CALL, ++seqid_));
       unloadTablet_args args = new unloadTablet_args();
       args.setTinfo(tinfo);
@@ -600,14 +627,14 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public void flush(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock, java.util.Set<String> tables) throws TException
-    {
+    
+    public void flush(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock, java.util.Set<String> tables)
+        throws TException {
       send_flush(tinfo, credentials, lock, tables);
     }
-
-    public void send_flush(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock, java.util.Set<String> tables) throws TException
-    {
+    
+    public void send_flush(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock,
+        java.util.Set<String> tables) throws TException {
       oprot_.writeMessageBegin(new TMessage("flush", TMessageType.CALL, ++seqid_));
       flush_args args = new flush_args();
       args.setTinfo(tinfo);
@@ -618,14 +645,14 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public void useLoggers(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, java.util.Set<String> loggers) throws TException
-    {
+    
+    public void useLoggers(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, java.util.Set<String> loggers)
+        throws TException {
       send_useLoggers(tinfo, credentials, loggers);
     }
-
-    public void send_useLoggers(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, java.util.Set<String> loggers) throws TException
-    {
+    
+    public void send_useLoggers(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, java.util.Set<String> loggers)
+        throws TException {
       oprot_.writeMessageBegin(new TMessage("useLoggers", TMessageType.CALL, ++seqid_));
       useLoggers_args args = new useLoggers_args();
       args.setTinfo(tinfo);
@@ -635,15 +662,14 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public org.apache.accumulo.core.master.thrift.TabletServerStatus getTabletServerStatus(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public org.apache.accumulo.core.master.thrift.TabletServerStatus getTabletServerStatus(cloudtrace.thrift.TInfo tinfo,
+        org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       send_getTabletServerStatus(tinfo, credentials);
       return recv_getTabletServerStatus();
     }
-
-    public void send_getTabletServerStatus(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws TException
-    {
+    
+    public void send_getTabletServerStatus(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws TException {
       oprot_.writeMessageBegin(new TMessage("getTabletServerStatus", TMessageType.CALL, ++seqid_));
       getTabletServerStatus_args args = new getTabletServerStatus_args();
       args.setTinfo(tinfo);
@@ -652,9 +678,9 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public org.apache.accumulo.core.master.thrift.TabletServerStatus recv_getTabletServerStatus() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public org.apache.accumulo.core.master.thrift.TabletServerStatus recv_getTabletServerStatus()
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -675,15 +701,15 @@ public class TabletClientService {
       }
       throw new TApplicationException(TApplicationException.MISSING_RESULT, "getTabletServerStatus failed: unknown result");
     }
-
-    public java.util.List<TabletStats> getTabletStats(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String tableId) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public java.util.List<TabletStats> getTabletStats(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        String tableId) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       send_getTabletStats(tinfo, credentials, tableId);
       return recv_getTabletStats();
     }
-
-    public void send_getTabletStats(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String tableId) throws TException
-    {
+    
+    public void send_getTabletStats(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String tableId)
+        throws TException {
       oprot_.writeMessageBegin(new TMessage("getTabletStats", TMessageType.CALL, ++seqid_));
       getTabletStats_args args = new getTabletStats_args();
       args.setTinfo(tinfo);
@@ -693,9 +719,8 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public java.util.List<TabletStats> recv_getTabletStats() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public java.util.List<TabletStats> recv_getTabletStats() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -716,15 +741,14 @@ public class TabletClientService {
       }
       throw new TApplicationException(TApplicationException.MISSING_RESULT, "getTabletStats failed: unknown result");
     }
-
-    public TabletStats getHistoricalStats(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public TabletStats getHistoricalStats(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       send_getHistoricalStats(tinfo, credentials);
       return recv_getHistoricalStats();
     }
-
-    public void send_getHistoricalStats(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws TException
-    {
+    
+    public void send_getHistoricalStats(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws TException {
       oprot_.writeMessageBegin(new TMessage("getHistoricalStats", TMessageType.CALL, ++seqid_));
       getHistoricalStats_args args = new getHistoricalStats_args();
       args.setTinfo(tinfo);
@@ -733,9 +757,8 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public TabletStats recv_getHistoricalStats() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public TabletStats recv_getHistoricalStats() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -756,15 +779,14 @@ public class TabletClientService {
       }
       throw new TApplicationException(TApplicationException.MISSING_RESULT, "getHistoricalStats failed: unknown result");
     }
-
-    public void halt(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public void halt(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       send_halt(tinfo, credentials, lock);
       recv_halt();
     }
-
-    public void send_halt(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock) throws TException
-    {
+    
+    public void send_halt(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock) throws TException {
       oprot_.writeMessageBegin(new TMessage("halt", TMessageType.CALL, ++seqid_));
       halt_args args = new halt_args();
       args.setTinfo(tinfo);
@@ -774,9 +796,8 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public void recv_halt() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public void recv_halt() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -794,15 +815,14 @@ public class TabletClientService {
       }
       return;
     }
-
-    public java.util.List<ActiveScan> getActiveScans(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public java.util.List<ActiveScan> getActiveScans(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials)
+        throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       send_getActiveScans(tinfo, credentials);
       return recv_getActiveScans();
     }
-
-    public void send_getActiveScans(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws TException
-    {
+    
+    public void send_getActiveScans(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws TException {
       oprot_.writeMessageBegin(new TMessage("getActiveScans", TMessageType.CALL, ++seqid_));
       getActiveScans_args args = new getActiveScans_args();
       args.setTinfo(tinfo);
@@ -811,9 +831,8 @@ public class TabletClientService {
       oprot_.writeMessageEnd();
       oprot_.getTransport().flush();
     }
-
-    public java.util.List<ActiveScan> recv_getActiveScans() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException
-    {
+    
+    public java.util.List<ActiveScan> recv_getActiveScans() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, TException {
       TMessage msg = iprot_.readMessageBegin();
       if (msg.type == TMessageType.EXCEPTION) {
         TApplicationException x = TApplicationException.read(iprot_);
@@ -834,12 +853,13 @@ public class TabletClientService {
       }
       throw new TApplicationException(TApplicationException.MISSING_RESULT, "getActiveScans failed: unknown result");
     }
-
+    
   }
+  
   public static class Processor extends org.apache.accumulo.core.client.impl.thrift.ClientService.Processor implements TProcessor {
     private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(Processor.class.getName());
-    public Processor(Iface iface)
-    {
+    
+    public Processor(Iface iface) {
       super(iface);
       iface_ = iface;
       processMap_.put("startScan", new startScan());
@@ -865,17 +885,16 @@ public class TabletClientService {
       processMap_.put("halt", new halt());
       processMap_.put("getActiveScans", new getActiveScans());
     }
-
+    
     private Iface iface_;
-
-    public boolean process(TProtocol iprot, TProtocol oprot) throws TException
-    {
+    
+    public boolean process(TProtocol iprot, TProtocol oprot) throws TException {
       TMessage msg = iprot.readMessageBegin();
       ProcessFunction fn = processMap_.get(msg.name);
       if (fn == null) {
         TProtocolUtil.skip(iprot, TType.STRUCT);
         iprot.readMessageEnd();
-        TApplicationException x = new TApplicationException(TApplicationException.UNKNOWN_METHOD, "Invalid method name: '"+msg.name+"'");
+        TApplicationException x = new TApplicationException(TApplicationException.UNKNOWN_METHOD, "Invalid method name: '" + msg.name + "'");
         oprot.writeMessageBegin(new TMessage(msg.name, TMessageType.EXCEPTION, msg.seqid));
         x.write(oprot);
         oprot.writeMessageEnd();
@@ -885,10 +904,9 @@ public class TabletClientService {
       fn.process(msg.seqid, iprot, oprot);
       return true;
     }
-
+    
     private class startScan implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         startScan_args args = new startScan_args();
         try {
           args.read(iprot);
@@ -904,7 +922,8 @@ public class TabletClientService {
         iprot.readMessageEnd();
         startScan_result result = new startScan_result();
         try {
-          result.success = iface_.startScan(args.tinfo, args.credentials, args.extent, args.range, args.columns, args.batchSize, args.ssiList, args.ssio, args.authorizations, args.waitForWrites, args.isolated);
+          result.success = iface_.startScan(args.tinfo, args.credentials, args.extent, args.range, args.columns, args.batchSize, args.ssiList, args.ssio,
+              args.authorizations, args.waitForWrites, args.isolated);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (NotServingTabletException nste) {
@@ -925,12 +944,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class continueScan implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         continueScan_args args = new continueScan_args();
         try {
           args.read(iprot);
@@ -967,12 +985,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class closeScan implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         closeScan_args args = new closeScan_args();
         try {
           args.read(iprot);
@@ -990,10 +1007,9 @@ public class TabletClientService {
         return;
       }
     }
-
+    
     private class startMultiScan implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         startMultiScan_args args = new startMultiScan_args();
         try {
           args.read(iprot);
@@ -1009,7 +1025,8 @@ public class TabletClientService {
         iprot.readMessageEnd();
         startMultiScan_result result = new startMultiScan_result();
         try {
-          result.success = iface_.startMultiScan(args.tinfo, args.credentials, args.batch, args.columns, args.ssiList, args.ssio, args.authorizations, args.waitForWrites);
+          result.success = iface_.startMultiScan(args.tinfo, args.credentials, args.batch, args.columns, args.ssiList, args.ssio, args.authorizations,
+              args.waitForWrites);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (Throwable th) {
@@ -1026,12 +1043,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class continueMultiScan implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         continueMultiScan_args args = new continueMultiScan_args();
         try {
           args.read(iprot);
@@ -1064,12 +1080,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class closeMultiScan implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         closeMultiScan_args args = new closeMultiScan_args();
         try {
           args.read(iprot);
@@ -1102,12 +1117,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class startUpdate implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         startUpdate_args args = new startUpdate_args();
         try {
           args.read(iprot);
@@ -1141,12 +1155,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class setUpdateTablet implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         setUpdateTablet_args args = new setUpdateTablet_args();
         try {
           args.read(iprot);
@@ -1164,10 +1177,9 @@ public class TabletClientService {
         return;
       }
     }
-
+    
     private class applyUpdate implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         applyUpdate_args args = new applyUpdate_args();
         try {
           args.read(iprot);
@@ -1185,10 +1197,9 @@ public class TabletClientService {
         return;
       }
     }
-
+    
     private class closeUpdate implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         closeUpdate_args args = new closeUpdate_args();
         try {
           args.read(iprot);
@@ -1221,12 +1232,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class update implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         update_args args = new update_args();
         try {
           args.read(iprot);
@@ -1263,12 +1273,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class bulkImport implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         bulkImport_args args = new bulkImport_args();
         try {
           args.read(iprot);
@@ -1301,12 +1310,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class splitTablet implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         splitTablet_args args = new splitTablet_args();
         try {
           args.read(iprot);
@@ -1341,12 +1349,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class loadTablet implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         loadTablet_args args = new loadTablet_args();
         try {
           args.read(iprot);
@@ -1364,10 +1371,9 @@ public class TabletClientService {
         return;
       }
     }
-
+    
     private class unloadTablet implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         unloadTablet_args args = new unloadTablet_args();
         try {
           args.read(iprot);
@@ -1385,10 +1391,9 @@ public class TabletClientService {
         return;
       }
     }
-
+    
     private class flush implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         flush_args args = new flush_args();
         try {
           args.read(iprot);
@@ -1406,10 +1411,9 @@ public class TabletClientService {
         return;
       }
     }
-
+    
     private class useLoggers implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         useLoggers_args args = new useLoggers_args();
         try {
           args.read(iprot);
@@ -1427,10 +1431,9 @@ public class TabletClientService {
         return;
       }
     }
-
+    
     private class getTabletServerStatus implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         getTabletServerStatus_args args = new getTabletServerStatus_args();
         try {
           args.read(iprot);
@@ -1463,12 +1466,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class getTabletStats implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         getTabletStats_args args = new getTabletStats_args();
         try {
           args.read(iprot);
@@ -1501,12 +1503,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class getHistoricalStats implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         getHistoricalStats_args args = new getHistoricalStats_args();
         try {
           args.read(iprot);
@@ -1539,12 +1540,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class halt implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         halt_args args = new halt_args();
         try {
           args.read(iprot);
@@ -1577,12 +1577,11 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
     private class getActiveScans implements ProcessFunction {
-      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException
-      {
+      public void process(int seqid, TProtocol iprot, TProtocol oprot) throws TException {
         getActiveScans_args args = new getActiveScans_args();
         try {
           args.read(iprot);
@@ -1615,27 +1614,27 @@ public class TabletClientService {
         oprot.writeMessageEnd();
         oprot.getTransport().flush();
       }
-
+      
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class startScan_args implements TBase<startScan_args, startScan_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class startScan_args implements TBase<startScan_args,startScan_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("startScan_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)11);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-    private static final TField EXTENT_FIELD_DESC = new TField("extent", TType.STRUCT, (short)2);
-    private static final TField RANGE_FIELD_DESC = new TField("range", TType.STRUCT, (short)3);
-    private static final TField COLUMNS_FIELD_DESC = new TField("columns", TType.LIST, (short)4);
-    private static final TField BATCH_SIZE_FIELD_DESC = new TField("batchSize", TType.I32, (short)5);
-    private static final TField SSI_LIST_FIELD_DESC = new TField("ssiList", TType.LIST, (short)6);
-    private static final TField SSIO_FIELD_DESC = new TField("ssio", TType.MAP, (short)7);
-    private static final TField AUTHORIZATIONS_FIELD_DESC = new TField("authorizations", TType.LIST, (short)8);
-    private static final TField WAIT_FOR_WRITES_FIELD_DESC = new TField("waitForWrites", TType.BOOL, (short)9);
-    private static final TField ISOLATED_FIELD_DESC = new TField("isolated", TType.BOOL, (short)10);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 11);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    private static final TField EXTENT_FIELD_DESC = new TField("extent", TType.STRUCT, (short) 2);
+    private static final TField RANGE_FIELD_DESC = new TField("range", TType.STRUCT, (short) 3);
+    private static final TField COLUMNS_FIELD_DESC = new TField("columns", TType.LIST, (short) 4);
+    private static final TField BATCH_SIZE_FIELD_DESC = new TField("batchSize", TType.I32, (short) 5);
+    private static final TField SSI_LIST_FIELD_DESC = new TField("ssiList", TType.LIST, (short) 6);
+    private static final TField SSIO_FIELD_DESC = new TField("ssio", TType.MAP, (short) 7);
+    private static final TField AUTHORIZATIONS_FIELD_DESC = new TField("authorizations", TType.LIST, (short) 8);
+    private static final TField WAIT_FOR_WRITES_FIELD_DESC = new TField("waitForWrites", TType.BOOL, (short) 9);
+    private static final TField ISOLATED_FIELD_DESC = new TField("isolated", TType.BOOL, (short) 10);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
     public org.apache.accumulo.core.data.thrift.TKeyExtent extent;
@@ -1647,34 +1646,34 @@ public class TabletClientService {
     public java.util.List<byte[]> authorizations;
     public boolean waitForWrites;
     public boolean isolated;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)11, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      EXTENT((short)2, "extent"),
-      RANGE((short)3, "range"),
-      COLUMNS((short)4, "columns"),
-      BATCH_SIZE((short)5, "batchSize"),
-      SSI_LIST((short)6, "ssiList"),
-      SSIO((short)7, "ssio"),
-      AUTHORIZATIONS((short)8, "authorizations"),
-      WAIT_FOR_WRITES((short)9, "waitForWrites"),
-      ISOLATED((short)10, "isolated");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 11, "tinfo"),
+      CREDENTIALS((short) 1, "credentials"),
+      EXTENT((short) 2, "extent"),
+      RANGE((short) 3, "range"),
+      COLUMNS((short) 4, "columns"),
+      BATCH_SIZE((short) 5, "batchSize"),
+      SSI_LIST((short) 6, "ssiList"),
+      SSIO((short) 7, "ssio"),
+      AUTHORIZATIONS((short) 8, "authorizations"),
+      WAIT_FOR_WRITES((short) 9, "waitForWrites"),
+      ISOLATED((short) 10, "isolated");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 11: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -1701,99 +1700,79 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
     private static final int __BATCHSIZE_ISSET_ID = 0;
     private static final int __WAITFORWRITES_ISSET_ID = 1;
     private static final int __ISOLATED_ISSET_ID = 2;
     private java.util.BitSet __isset_bit_vector = new java.util.BitSet(3);
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.EXTENT, new FieldMetaData("extent", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
-      tmpMap.put(_Fields.RANGE, new FieldMetaData("range", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TRange.class)));
-      tmpMap.put(_Fields.COLUMNS, new FieldMetaData("columns", TFieldRequirementType.DEFAULT, 
-          new ListMetaData(TType.LIST, 
-              new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TColumn.class))));
-      tmpMap.put(_Fields.BATCH_SIZE, new FieldMetaData("batchSize", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.I32)));
-      tmpMap.put(_Fields.SSI_LIST, new FieldMetaData("ssiList", TFieldRequirementType.DEFAULT, 
-          new ListMetaData(TType.LIST, 
-              new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.IterInfo.class))));
-      tmpMap.put(_Fields.SSIO, new FieldMetaData("ssio", TFieldRequirementType.DEFAULT, 
-          new MapMetaData(TType.MAP, 
-              new FieldValueMetaData(TType.STRING), 
-              new MapMetaData(TType.MAP, 
-                  new FieldValueMetaData(TType.STRING), 
-                  new FieldValueMetaData(TType.STRING)))));
-      tmpMap.put(_Fields.AUTHORIZATIONS, new FieldMetaData("authorizations", TFieldRequirementType.DEFAULT, 
-          new ListMetaData(TType.LIST, 
-              new FieldValueMetaData(TType.STRING))));
-      tmpMap.put(_Fields.WAIT_FOR_WRITES, new FieldMetaData("waitForWrites", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.BOOL)));
-      tmpMap.put(_Fields.ISOLATED, new FieldMetaData("isolated", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.BOOL)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      tmpMap.put(_Fields.EXTENT, new FieldMetaData("extent", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
+      tmpMap.put(_Fields.RANGE, new FieldMetaData("range", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.TRange.class)));
+      tmpMap.put(_Fields.COLUMNS, new FieldMetaData("columns", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.TColumn.class))));
+      tmpMap.put(_Fields.BATCH_SIZE, new FieldMetaData("batchSize", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+      tmpMap.put(_Fields.SSI_LIST, new FieldMetaData("ssiList", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.IterInfo.class))));
+      tmpMap.put(_Fields.SSIO, new FieldMetaData("ssio", TFieldRequirementType.DEFAULT, new MapMetaData(TType.MAP, new FieldValueMetaData(TType.STRING),
+          new MapMetaData(TType.MAP, new FieldValueMetaData(TType.STRING), new FieldValueMetaData(TType.STRING)))));
+      tmpMap.put(_Fields.AUTHORIZATIONS, new FieldMetaData("authorizations", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST,
+          new FieldValueMetaData(TType.STRING))));
+      tmpMap.put(_Fields.WAIT_FOR_WRITES, new FieldMetaData("waitForWrites", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.BOOL)));
+      tmpMap.put(_Fields.ISOLATED, new FieldMetaData("isolated", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.BOOL)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(startScan_args.class, metaDataMap);
     }
-
-    public startScan_args() {
-    }
-
-    public startScan_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      org.apache.accumulo.core.data.thrift.TKeyExtent extent,
-      org.apache.accumulo.core.data.thrift.TRange range,
-      java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns,
-      int batchSize,
-      java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList,
-      java.util.Map<String,java.util.Map<String,String>> ssio,
-      java.util.List<byte[]> authorizations,
-      boolean waitForWrites,
-      boolean isolated)
-    {
+    
+    public startScan_args() {}
+    
+    public startScan_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent, org.apache.accumulo.core.data.thrift.TRange range,
+        java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, int batchSize,
+        java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList, java.util.Map<String,java.util.Map<String,String>> ssio,
+        java.util.List<byte[]> authorizations, boolean waitForWrites, boolean isolated) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
@@ -1810,7 +1789,7 @@ public class TabletClientService {
       this.isolated = isolated;
       setIsolatedIsSet(true);
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -1846,26 +1825,26 @@ public class TabletClientService {
       }
       if (other.isSetSsio()) {
         java.util.Map<String,java.util.Map<String,String>> __this__ssio = new java.util.HashMap<String,java.util.Map<String,String>>();
-        for (java.util.Map.Entry<String, java.util.Map<String,String>> other_element : other.ssio.entrySet()) {
-
+        for (java.util.Map.Entry<String,java.util.Map<String,String>> other_element : other.ssio.entrySet()) {
+          
           String other_element_key = other_element.getKey();
           java.util.Map<String,String> other_element_value = other_element.getValue();
-
+          
           String __this__ssio_copy_key = other_element_key;
-
+          
           java.util.Map<String,String> __this__ssio_copy_value = new java.util.HashMap<String,String>();
-          for (java.util.Map.Entry<String, String> other_element_value_element : other_element_value.entrySet()) {
-
+          for (java.util.Map.Entry<String,String> other_element_value_element : other_element_value.entrySet()) {
+            
             String other_element_value_element_key = other_element_value_element.getKey();
             String other_element_value_element_value = other_element_value_element.getValue();
-
+            
             String __this__ssio_copy_value_copy_key = other_element_value_element_key;
-
+            
             String __this__ssio_copy_value_copy_value = other_element_value_element_value;
-
+            
             __this__ssio_copy_value.put(__this__ssio_copy_value_copy_key, __this__ssio_copy_value_copy_value);
           }
-
+          
           __this__ssio.put(__this__ssio_copy_key, __this__ssio_copy_value);
         }
         this.ssio = __this__ssio;
@@ -1882,520 +1861,520 @@ public class TabletClientService {
       this.waitForWrites = other.waitForWrites;
       this.isolated = other.isolated;
     }
-
+    
     public startScan_args deepCopy() {
       return new startScan_args(this);
     }
-
+    
     @Deprecated
     public startScan_args clone() {
       return new startScan_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public startScan_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public startScan_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public org.apache.accumulo.core.data.thrift.TKeyExtent getExtent() {
       return this.extent;
     }
-
+    
     public startScan_args setExtent(org.apache.accumulo.core.data.thrift.TKeyExtent extent) {
       this.extent = extent;
       return this;
     }
-
+    
     public void unsetExtent() {
       this.extent = null;
     }
-
+    
     /** Returns true if field extent is set (has been asigned a value) and false otherwise */
     public boolean isSetExtent() {
       return this.extent != null;
     }
-
+    
     public void setExtentIsSet(boolean value) {
       if (!value) {
         this.extent = null;
       }
     }
-
+    
     public org.apache.accumulo.core.data.thrift.TRange getRange() {
       return this.range;
     }
-
+    
     public startScan_args setRange(org.apache.accumulo.core.data.thrift.TRange range) {
       this.range = range;
       return this;
     }
-
+    
     public void unsetRange() {
       this.range = null;
     }
-
+    
     /** Returns true if field range is set (has been asigned a value) and false otherwise */
     public boolean isSetRange() {
       return this.range != null;
     }
-
+    
     public void setRangeIsSet(boolean value) {
       if (!value) {
         this.range = null;
       }
     }
-
+    
     public int getColumnsSize() {
       return (this.columns == null) ? 0 : this.columns.size();
     }
-
+    
     public java.util.Iterator<org.apache.accumulo.core.data.thrift.TColumn> getColumnsIterator() {
       return (this.columns == null) ? null : this.columns.iterator();
     }
-
+    
     public void addToColumns(org.apache.accumulo.core.data.thrift.TColumn elem) {
       if (this.columns == null) {
         this.columns = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TColumn>();
       }
       this.columns.add(elem);
     }
-
+    
     public java.util.List<org.apache.accumulo.core.data.thrift.TColumn> getColumns() {
       return this.columns;
     }
-
+    
     public startScan_args setColumns(java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns) {
       this.columns = columns;
       return this;
     }
-
+    
     public void unsetColumns() {
       this.columns = null;
     }
-
+    
     /** Returns true if field columns is set (has been asigned a value) and false otherwise */
     public boolean isSetColumns() {
       return this.columns != null;
     }
-
+    
     public void setColumnsIsSet(boolean value) {
       if (!value) {
         this.columns = null;
       }
     }
-
+    
     public int getBatchSize() {
       return this.batchSize;
     }
-
+    
     public startScan_args setBatchSize(int batchSize) {
       this.batchSize = batchSize;
       setBatchSizeIsSet(true);
       return this;
     }
-
+    
     public void unsetBatchSize() {
       __isset_bit_vector.clear(__BATCHSIZE_ISSET_ID);
     }
-
+    
     /** Returns true if field batchSize is set (has been asigned a value) and false otherwise */
     public boolean isSetBatchSize() {
       return __isset_bit_vector.get(__BATCHSIZE_ISSET_ID);
     }
-
+    
     public void setBatchSizeIsSet(boolean value) {
       __isset_bit_vector.set(__BATCHSIZE_ISSET_ID, value);
     }
-
+    
     public int getSsiListSize() {
       return (this.ssiList == null) ? 0 : this.ssiList.size();
     }
-
+    
     public java.util.Iterator<org.apache.accumulo.core.data.thrift.IterInfo> getSsiListIterator() {
       return (this.ssiList == null) ? null : this.ssiList.iterator();
     }
-
+    
     public void addToSsiList(org.apache.accumulo.core.data.thrift.IterInfo elem) {
       if (this.ssiList == null) {
         this.ssiList = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>();
       }
       this.ssiList.add(elem);
     }
-
+    
     public java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> getSsiList() {
       return this.ssiList;
     }
-
+    
     public startScan_args setSsiList(java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList) {
       this.ssiList = ssiList;
       return this;
     }
-
+    
     public void unsetSsiList() {
       this.ssiList = null;
     }
-
+    
     /** Returns true if field ssiList is set (has been asigned a value) and false otherwise */
     public boolean isSetSsiList() {
       return this.ssiList != null;
     }
-
+    
     public void setSsiListIsSet(boolean value) {
       if (!value) {
         this.ssiList = null;
       }
     }
-
+    
     public int getSsioSize() {
       return (this.ssio == null) ? 0 : this.ssio.size();
     }
-
+    
     public void putToSsio(String key, java.util.Map<String,String> val) {
       if (this.ssio == null) {
         this.ssio = new java.util.HashMap<String,java.util.Map<String,String>>();
       }
       this.ssio.put(key, val);
     }
-
+    
     public java.util.Map<String,java.util.Map<String,String>> getSsio() {
       return this.ssio;
     }
-
+    
     public startScan_args setSsio(java.util.Map<String,java.util.Map<String,String>> ssio) {
       this.ssio = ssio;
       return this;
     }
-
+    
     public void unsetSsio() {
       this.ssio = null;
     }
-
+    
     /** Returns true if field ssio is set (has been asigned a value) and false otherwise */
     public boolean isSetSsio() {
       return this.ssio != null;
     }
-
+    
     public void setSsioIsSet(boolean value) {
       if (!value) {
         this.ssio = null;
       }
     }
-
+    
     public int getAuthorizationsSize() {
       return (this.authorizations == null) ? 0 : this.authorizations.size();
     }
-
+    
     public java.util.Iterator<byte[]> getAuthorizationsIterator() {
       return (this.authorizations == null) ? null : this.authorizations.iterator();
     }
-
+    
     public void addToAuthorizations(byte[] elem) {
       if (this.authorizations == null) {
         this.authorizations = new java.util.ArrayList<byte[]>();
       }
       this.authorizations.add(elem);
     }
-
+    
     public java.util.List<byte[]> getAuthorizations() {
       return this.authorizations;
     }
-
+    
     public startScan_args setAuthorizations(java.util.List<byte[]> authorizations) {
       this.authorizations = authorizations;
       return this;
     }
-
+    
     public void unsetAuthorizations() {
       this.authorizations = null;
     }
-
+    
     /** Returns true if field authorizations is set (has been asigned a value) and false otherwise */
     public boolean isSetAuthorizations() {
       return this.authorizations != null;
     }
-
+    
     public void setAuthorizationsIsSet(boolean value) {
       if (!value) {
         this.authorizations = null;
       }
     }
-
+    
     public boolean isWaitForWrites() {
       return this.waitForWrites;
     }
-
+    
     public startScan_args setWaitForWrites(boolean waitForWrites) {
       this.waitForWrites = waitForWrites;
       setWaitForWritesIsSet(true);
       return this;
     }
-
+    
     public void unsetWaitForWrites() {
       __isset_bit_vector.clear(__WAITFORWRITES_ISSET_ID);
     }
-
+    
     /** Returns true if field waitForWrites is set (has been asigned a value) and false otherwise */
     public boolean isSetWaitForWrites() {
       return __isset_bit_vector.get(__WAITFORWRITES_ISSET_ID);
     }
-
+    
     public void setWaitForWritesIsSet(boolean value) {
       __isset_bit_vector.set(__WAITFORWRITES_ISSET_ID, value);
     }
-
+    
     public boolean isIsolated() {
       return this.isolated;
     }
-
+    
     public startScan_args setIsolated(boolean isolated) {
       this.isolated = isolated;
       setIsolatedIsSet(true);
       return this;
     }
-
+    
     public void unsetIsolated() {
       __isset_bit_vector.clear(__ISOLATED_ISSET_ID);
     }
-
+    
     /** Returns true if field isolated is set (has been asigned a value) and false otherwise */
     public boolean isSetIsolated() {
       return __isset_bit_vector.get(__ISOLATED_ISSET_ID);
     }
-
+    
     public void setIsolatedIsSet(boolean value) {
       __isset_bit_vector.set(__ISOLATED_ISSET_ID, value);
     }
-
+    
     @SuppressWarnings("unchecked")
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
-      case EXTENT:
-        if (value == null) {
-          unsetExtent();
-        } else {
-          setExtent((org.apache.accumulo.core.data.thrift.TKeyExtent)value);
-        }
-        break;
-
-      case RANGE:
-        if (value == null) {
-          unsetRange();
-        } else {
-          setRange((org.apache.accumulo.core.data.thrift.TRange)value);
-        }
-        break;
-
-      case COLUMNS:
-        if (value == null) {
-          unsetColumns();
-        } else {
-          setColumns((java.util.List<org.apache.accumulo.core.data.thrift.TColumn>)value);
-        }
-        break;
-
-      case BATCH_SIZE:
-        if (value == null) {
-          unsetBatchSize();
-        } else {
-          setBatchSize((Integer)value);
-        }
-        break;
-
-      case SSI_LIST:
-        if (value == null) {
-          unsetSsiList();
-        } else {
-          setSsiList((java.util.List<org.apache.accumulo.core.data.thrift.IterInfo>)value);
-        }
-        break;
-
-      case SSIO:
-        if (value == null) {
-          unsetSsio();
-        } else {
-          setSsio((java.util.Map<String,java.util.Map<String,String>>)value);
-        }
-        break;
-
-      case AUTHORIZATIONS:
-        if (value == null) {
-          unsetAuthorizations();
-        } else {
-          setAuthorizations((java.util.List<byte[]>)value);
-        }
-        break;
-
-      case WAIT_FOR_WRITES:
-        if (value == null) {
-          unsetWaitForWrites();
-        } else {
-          setWaitForWrites((Boolean)value);
-        }
-        break;
-
-      case ISOLATED:
-        if (value == null) {
-          unsetIsolated();
-        } else {
-          setIsolated((Boolean)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+        
+        case EXTENT:
+          if (value == null) {
+            unsetExtent();
+          } else {
+            setExtent((org.apache.accumulo.core.data.thrift.TKeyExtent) value);
+          }
+          break;
+        
+        case RANGE:
+          if (value == null) {
+            unsetRange();
+          } else {
+            setRange((org.apache.accumulo.core.data.thrift.TRange) value);
+          }
+          break;
+        
+        case COLUMNS:
+          if (value == null) {
+            unsetColumns();
+          } else {
+            setColumns((java.util.List<org.apache.accumulo.core.data.thrift.TColumn>) value);
+          }
+          break;
+        
+        case BATCH_SIZE:
+          if (value == null) {
+            unsetBatchSize();
+          } else {
+            setBatchSize((Integer) value);
+          }
+          break;
+        
+        case SSI_LIST:
+          if (value == null) {
+            unsetSsiList();
+          } else {
+            setSsiList((java.util.List<org.apache.accumulo.core.data.thrift.IterInfo>) value);
+          }
+          break;
+        
+        case SSIO:
+          if (value == null) {
+            unsetSsio();
+          } else {
+            setSsio((java.util.Map<String,java.util.Map<String,String>>) value);
+          }
+          break;
+        
+        case AUTHORIZATIONS:
+          if (value == null) {
+            unsetAuthorizations();
+          } else {
+            setAuthorizations((java.util.List<byte[]>) value);
+          }
+          break;
+        
+        case WAIT_FOR_WRITES:
+          if (value == null) {
+            unsetWaitForWrites();
+          } else {
+            setWaitForWrites((Boolean) value);
+          }
+          break;
+        
+        case ISOLATED:
+          if (value == null) {
+            unsetIsolated();
+          } else {
+            setIsolated((Boolean) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case EXTENT:
-        return getExtent();
-
-      case RANGE:
-        return getRange();
-
-      case COLUMNS:
-        return getColumns();
-
-      case BATCH_SIZE:
-        return new Integer(getBatchSize());
-
-      case SSI_LIST:
-        return getSsiList();
-
-      case SSIO:
-        return getSsio();
-
-      case AUTHORIZATIONS:
-        return getAuthorizations();
-
-      case WAIT_FOR_WRITES:
-        return new Boolean(isWaitForWrites());
-
-      case ISOLATED:
-        return new Boolean(isIsolated());
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
+        case EXTENT:
+          return getExtent();
+          
+        case RANGE:
+          return getRange();
+          
+        case COLUMNS:
+          return getColumns();
+          
+        case BATCH_SIZE:
+          return new Integer(getBatchSize());
+          
+        case SSI_LIST:
+          return getSsiList();
+          
+        case SSIO:
+          return getSsio();
+          
+        case AUTHORIZATIONS:
+          return getAuthorizations();
+          
+        case WAIT_FOR_WRITES:
+          return new Boolean(isWaitForWrites());
+          
+        case ISOLATED:
+          return new Boolean(isIsolated());
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case EXTENT:
-        return isSetExtent();
-      case RANGE:
-        return isSetRange();
-      case COLUMNS:
-        return isSetColumns();
-      case BATCH_SIZE:
-        return isSetBatchSize();
-      case SSI_LIST:
-        return isSetSsiList();
-      case SSIO:
-        return isSetSsio();
-      case AUTHORIZATIONS:
-        return isSetAuthorizations();
-      case WAIT_FOR_WRITES:
-        return isSetWaitForWrites();
-      case ISOLATED:
-        return isSetIsolated();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
+        case EXTENT:
+          return isSetExtent();
+        case RANGE:
+          return isSetRange();
+        case COLUMNS:
+          return isSetColumns();
+        case BATCH_SIZE:
+          return isSetBatchSize();
+        case SSI_LIST:
+          return isSetSsiList();
+        case SSIO:
+          return isSetSsio();
+        case AUTHORIZATIONS:
+          return isSetAuthorizations();
+        case WAIT_FOR_WRITES:
+          return isSetWaitForWrites();
+        case ISOLATED:
+          return isSetIsolated();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof startScan_args)
-        return this.equals((startScan_args)that);
+        return this.equals((startScan_args) that);
       return false;
     }
-
+    
     public boolean equals(startScan_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -2404,7 +2383,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -2413,7 +2392,7 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       boolean this_present_extent = true && this.isSetExtent();
       boolean that_present_extent = true && that.isSetExtent();
       if (this_present_extent || that_present_extent) {
@@ -2422,7 +2401,7 @@ public class TabletClientService {
         if (!this.extent.equals(that.extent))
           return false;
       }
-
+      
       boolean this_present_range = true && this.isSetRange();
       boolean that_present_range = true && that.isSetRange();
       if (this_present_range || that_present_range) {
@@ -2431,7 +2410,7 @@ public class TabletClientService {
         if (!this.range.equals(that.range))
           return false;
       }
-
+      
       boolean this_present_columns = true && this.isSetColumns();
       boolean that_present_columns = true && that.isSetColumns();
       if (this_present_columns || that_present_columns) {
@@ -2440,7 +2419,7 @@ public class TabletClientService {
         if (!this.columns.equals(that.columns))
           return false;
       }
-
+      
       boolean this_present_batchSize = true;
       boolean that_present_batchSize = true;
       if (this_present_batchSize || that_present_batchSize) {
@@ -2449,7 +2428,7 @@ public class TabletClientService {
         if (this.batchSize != that.batchSize)
           return false;
       }
-
+      
       boolean this_present_ssiList = true && this.isSetSsiList();
       boolean that_present_ssiList = true && that.isSetSsiList();
       if (this_present_ssiList || that_present_ssiList) {
@@ -2458,7 +2437,7 @@ public class TabletClientService {
         if (!this.ssiList.equals(that.ssiList))
           return false;
       }
-
+      
       boolean this_present_ssio = true && this.isSetSsio();
       boolean that_present_ssio = true && that.isSetSsio();
       if (this_present_ssio || that_present_ssio) {
@@ -2467,7 +2446,7 @@ public class TabletClientService {
         if (!this.ssio.equals(that.ssio))
           return false;
       }
-
+      
       boolean this_present_authorizations = true && this.isSetAuthorizations();
       boolean that_present_authorizations = true && that.isSetAuthorizations();
       if (this_present_authorizations || that_present_authorizations) {
@@ -2476,7 +2455,7 @@ public class TabletClientService {
         if (!this.authorizations.equals(that.authorizations))
           return false;
       }
-
+      
       boolean this_present_waitForWrites = true;
       boolean that_present_waitForWrites = true;
       if (this_present_waitForWrites || that_present_waitForWrites) {
@@ -2485,7 +2464,7 @@ public class TabletClientService {
         if (this.waitForWrites != that.waitForWrites)
           return false;
       }
-
+      
       boolean this_present_isolated = true;
       boolean that_present_isolated = true;
       if (this_present_isolated || that_present_isolated) {
@@ -2494,28 +2473,29 @@ public class TabletClientService {
         if (this.isolated != that.isolated)
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(startScan_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      startScan_args typedOther = (startScan_args)other;
-
+      startScan_args typedOther = (startScan_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2524,7 +2504,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2533,7 +2514,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetExtent()) {        lastComparison = TBaseHelper.compareTo(this.extent, typedOther.extent);
+      if (isSetExtent()) {
+        lastComparison = TBaseHelper.compareTo(this.extent, typedOther.extent);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2542,7 +2524,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetRange()) {        lastComparison = TBaseHelper.compareTo(this.range, typedOther.range);
+      if (isSetRange()) {
+        lastComparison = TBaseHelper.compareTo(this.range, typedOther.range);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2551,7 +2534,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetColumns()) {        lastComparison = TBaseHelper.compareTo(this.columns, typedOther.columns);
+      if (isSetColumns()) {
+        lastComparison = TBaseHelper.compareTo(this.columns, typedOther.columns);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2560,7 +2544,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetBatchSize()) {        lastComparison = TBaseHelper.compareTo(this.batchSize, typedOther.batchSize);
+      if (isSetBatchSize()) {
+        lastComparison = TBaseHelper.compareTo(this.batchSize, typedOther.batchSize);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2569,7 +2554,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSsiList()) {        lastComparison = TBaseHelper.compareTo(this.ssiList, typedOther.ssiList);
+      if (isSetSsiList()) {
+        lastComparison = TBaseHelper.compareTo(this.ssiList, typedOther.ssiList);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2578,7 +2564,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSsio()) {        lastComparison = TBaseHelper.compareTo(this.ssio, typedOther.ssio);
+      if (isSetSsio()) {
+        lastComparison = TBaseHelper.compareTo(this.ssio, typedOther.ssio);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2587,7 +2574,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetAuthorizations()) {        lastComparison = TBaseHelper.compareTo(this.authorizations, typedOther.authorizations);
+      if (isSetAuthorizations()) {
+        lastComparison = TBaseHelper.compareTo(this.authorizations, typedOther.authorizations);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2596,7 +2584,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetWaitForWrites()) {        lastComparison = TBaseHelper.compareTo(this.waitForWrites, typedOther.waitForWrites);
+      if (isSetWaitForWrites()) {
+        lastComparison = TBaseHelper.compareTo(this.waitForWrites, typedOther.waitForWrites);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2605,21 +2594,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetIsolated()) {        lastComparison = TBaseHelper.compareTo(this.isolated, typedOther.isolated);
+      if (isSetIsolated()) {
+        lastComparison = TBaseHelper.compareTo(this.isolated, typedOther.isolated);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -2627,7 +2616,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -2635,7 +2624,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -2643,7 +2632,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
               this.extent.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -2651,7 +2640,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.range = new org.apache.accumulo.core.data.thrift.TRange();
               this.range.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -2660,8 +2649,7 @@ public class TabletClientService {
               {
                 TList _list26 = iprot.readListBegin();
                 this.columns = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TColumn>(_list26.size);
-                for (int _i27 = 0; _i27 < _list26.size; ++_i27)
-                {
+                for (int _i27 = 0; _i27 < _list26.size; ++_i27) {
                   org.apache.accumulo.core.data.thrift.TColumn _elem28;
                   _elem28 = new org.apache.accumulo.core.data.thrift.TColumn();
                   _elem28.read(iprot);
@@ -2669,7 +2657,7 @@ public class TabletClientService {
                 }
                 iprot.readListEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -2677,7 +2665,7 @@ public class TabletClientService {
             if (field.type == TType.I32) {
               this.batchSize = iprot.readI32();
               setBatchSizeIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -2686,8 +2674,7 @@ public class TabletClientService {
               {
                 TList _list29 = iprot.readListBegin();
                 this.ssiList = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>(_list29.size);
-                for (int _i30 = 0; _i30 < _list29.size; ++_i30)
-                {
+                for (int _i30 = 0; _i30 < _list29.size; ++_i30) {
                   org.apache.accumulo.core.data.thrift.IterInfo _elem31;
                   _elem31 = new org.apache.accumulo.core.data.thrift.IterInfo();
                   _elem31.read(iprot);
@@ -2695,7 +2682,7 @@ public class TabletClientService {
                 }
                 iprot.readListEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -2703,17 +2690,15 @@ public class TabletClientService {
             if (field.type == TType.MAP) {
               {
                 TMap _map32 = iprot.readMapBegin();
-                this.ssio = new java.util.HashMap<String,java.util.Map<String,String>>(2*_map32.size);
-                for (int _i33 = 0; _i33 < _map32.size; ++_i33)
-                {
+                this.ssio = new java.util.HashMap<String,java.util.Map<String,String>>(2 * _map32.size);
+                for (int _i33 = 0; _i33 < _map32.size; ++_i33) {
                   String _key34;
                   java.util.Map<String,String> _val35;
                   _key34 = iprot.readString();
                   {
                     TMap _map36 = iprot.readMapBegin();
-                    _val35 = new java.util.HashMap<String,String>(2*_map36.size);
-                    for (int _i37 = 0; _i37 < _map36.size; ++_i37)
-                    {
+                    _val35 = new java.util.HashMap<String,String>(2 * _map36.size);
+                    for (int _i37 = 0; _i37 < _map36.size; ++_i37) {
                       String _key38;
                       String _val39;
                       _key38 = iprot.readString();
@@ -2726,7 +2711,7 @@ public class TabletClientService {
                 }
                 iprot.readMapEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -2735,15 +2720,14 @@ public class TabletClientService {
               {
                 TList _list40 = iprot.readListBegin();
                 this.authorizations = new java.util.ArrayList<byte[]>(_list40.size);
-                for (int _i41 = 0; _i41 < _list40.size; ++_i41)
-                {
+                for (int _i41 = 0; _i41 < _list40.size; ++_i41) {
                   byte[] _elem42;
                   _elem42 = iprot.readBinary();
                   this.authorizations.add(_elem42);
                 }
                 iprot.readListEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -2751,7 +2735,7 @@ public class TabletClientService {
             if (field.type == TType.BOOL) {
               this.waitForWrites = iprot.readBool();
               setWaitForWritesIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -2759,7 +2743,7 @@ public class TabletClientService {
             if (field.type == TType.BOOL) {
               this.isolated = iprot.readBool();
               setIsolatedIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -2769,14 +2753,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -2797,8 +2781,7 @@ public class TabletClientService {
         oprot.writeFieldBegin(COLUMNS_FIELD_DESC);
         {
           oprot.writeListBegin(new TList(TType.STRUCT, this.columns.size()));
-          for (org.apache.accumulo.core.data.thrift.TColumn _iter43 : this.columns)
-          {
+          for (org.apache.accumulo.core.data.thrift.TColumn _iter43 : this.columns) {
             _iter43.write(oprot);
           }
           oprot.writeListEnd();
@@ -2812,8 +2795,7 @@ public class TabletClientService {
         oprot.writeFieldBegin(SSI_LIST_FIELD_DESC);
         {
           oprot.writeListBegin(new TList(TType.STRUCT, this.ssiList.size()));
-          for (org.apache.accumulo.core.data.thrift.IterInfo _iter44 : this.ssiList)
-          {
+          for (org.apache.accumulo.core.data.thrift.IterInfo _iter44 : this.ssiList) {
             _iter44.write(oprot);
           }
           oprot.writeListEnd();
@@ -2824,13 +2806,11 @@ public class TabletClientService {
         oprot.writeFieldBegin(SSIO_FIELD_DESC);
         {
           oprot.writeMapBegin(new TMap(TType.STRING, TType.MAP, this.ssio.size()));
-          for (java.util.Map.Entry<String, java.util.Map<String,String>> _iter45 : this.ssio.entrySet())
-          {
+          for (java.util.Map.Entry<String,java.util.Map<String,String>> _iter45 : this.ssio.entrySet()) {
             oprot.writeString(_iter45.getKey());
             {
               oprot.writeMapBegin(new TMap(TType.STRING, TType.STRING, _iter45.getValue().size()));
-              for (java.util.Map.Entry<String, String> _iter46 : _iter45.getValue().entrySet())
-              {
+              for (java.util.Map.Entry<String,String> _iter46 : _iter45.getValue().entrySet()) {
                 oprot.writeString(_iter46.getKey());
                 oprot.writeString(_iter46.getValue());
               }
@@ -2845,8 +2825,7 @@ public class TabletClientService {
         oprot.writeFieldBegin(AUTHORIZATIONS_FIELD_DESC);
         {
           oprot.writeListBegin(new TList(TType.STRING, this.authorizations.size()));
-          for (byte[] _iter47 : this.authorizations)
-          {
+          for (byte[] _iter47 : this.authorizations) {
             oprot.writeBinary(_iter47);
           }
           oprot.writeListEnd();
@@ -2867,7 +2846,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("startScan_args(");
@@ -2938,47 +2917,44 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class startScan_result implements TBase<startScan_result, startScan_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class startScan_result implements TBase<startScan_result,startScan_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("startScan_result");
-
-    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short)0);
-    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short)1);
-    private static final TField NSTE_FIELD_DESC = new TField("nste", TType.STRUCT, (short)2);
-    private static final TField TMFE_FIELD_DESC = new TField("tmfe", TType.STRUCT, (short)3);
-
+    
+    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short) 0);
+    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short) 1);
+    private static final TField NSTE_FIELD_DESC = new TField("nste", TType.STRUCT, (short) 2);
+    private static final TField TMFE_FIELD_DESC = new TField("tmfe", TType.STRUCT, (short) 3);
+    
     public org.apache.accumulo.core.data.thrift.InitialScan success;
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec;
     public NotServingTabletException nste;
     public TooManyFilesException tmfe;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      SEC((short)1, "sec"),
-      NSTE((short)2, "nste"),
-      TMFE((short)3, "tmfe");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SUCCESS((short) 0, "success"), SEC((short) 1, "sec"), NSTE((short) 2, "nste"), TMFE((short) 3, "tmfe");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
           case 1: // SEC
@@ -2991,74 +2967,66 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.InitialScan.class)));
-      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
-      tmpMap.put(_Fields.NSTE, new FieldMetaData("nste", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
-      tmpMap.put(_Fields.TMFE, new FieldMetaData("tmfe", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.InitialScan.class)));
+      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
+      tmpMap.put(_Fields.NSTE, new FieldMetaData("nste", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
+      tmpMap.put(_Fields.TMFE, new FieldMetaData("tmfe", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(startScan_result.class, metaDataMap);
     }
-
-    public startScan_result() {
-    }
-
-    public startScan_result(
-      org.apache.accumulo.core.data.thrift.InitialScan success,
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec,
-      NotServingTabletException nste,
-      TooManyFilesException tmfe)
-    {
+    
+    public startScan_result() {}
+    
+    public startScan_result(org.apache.accumulo.core.data.thrift.InitialScan success, org.apache.accumulo.core.security.thrift.ThriftSecurityException sec,
+        NotServingTabletException nste, TooManyFilesException tmfe) {
       this();
       this.success = success;
       this.sec = sec;
       this.nste = nste;
       this.tmfe = tmfe;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -3076,207 +3044,207 @@ public class TabletClientService {
         this.tmfe = new TooManyFilesException(other.tmfe);
       }
     }
-
+    
     public startScan_result deepCopy() {
       return new startScan_result(this);
     }
-
+    
     @Deprecated
     public startScan_result clone() {
       return new startScan_result(this);
     }
-
+    
     public org.apache.accumulo.core.data.thrift.InitialScan getSuccess() {
       return this.success;
     }
-
+    
     public startScan_result setSuccess(org.apache.accumulo.core.data.thrift.InitialScan success) {
       this.success = success;
       return this;
     }
-
+    
     public void unsetSuccess() {
       this.success = null;
     }
-
+    
     /** Returns true if field success is set (has been asigned a value) and false otherwise */
     public boolean isSetSuccess() {
       return this.success != null;
     }
-
+    
     public void setSuccessIsSet(boolean value) {
       if (!value) {
         this.success = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
       return this.sec;
     }
-
+    
     public startScan_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
-
+    
     public void unsetSec() {
       this.sec = null;
     }
-
+    
     /** Returns true if field sec is set (has been asigned a value) and false otherwise */
     public boolean isSetSec() {
       return this.sec != null;
     }
-
+    
     public void setSecIsSet(boolean value) {
       if (!value) {
         this.sec = null;
       }
     }
-
+    
     public NotServingTabletException getNste() {
       return this.nste;
     }
-
+    
     public startScan_result setNste(NotServingTabletException nste) {
       this.nste = nste;
       return this;
     }
-
+    
     public void unsetNste() {
       this.nste = null;
     }
-
+    
     /** Returns true if field nste is set (has been asigned a value) and false otherwise */
     public boolean isSetNste() {
       return this.nste != null;
     }
-
+    
     public void setNsteIsSet(boolean value) {
       if (!value) {
         this.nste = null;
       }
     }
-
+    
     public TooManyFilesException getTmfe() {
       return this.tmfe;
     }
-
+    
     public startScan_result setTmfe(TooManyFilesException tmfe) {
       this.tmfe = tmfe;
       return this;
     }
-
+    
     public void unsetTmfe() {
       this.tmfe = null;
     }
-
+    
     /** Returns true if field tmfe is set (has been asigned a value) and false otherwise */
     public boolean isSetTmfe() {
       return this.tmfe != null;
     }
-
+    
     public void setTmfeIsSet(boolean value) {
       if (!value) {
         this.tmfe = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((org.apache.accumulo.core.data.thrift.InitialScan)value);
-        }
-        break;
-
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      case NSTE:
-        if (value == null) {
-          unsetNste();
-        } else {
-          setNste((NotServingTabletException)value);
-        }
-        break;
-
-      case TMFE:
-        if (value == null) {
-          unsetTmfe();
-        } else {
-          setTmfe((TooManyFilesException)value);
-        }
-        break;
-
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((org.apache.accumulo.core.data.thrift.InitialScan) value);
+          }
+          break;
+        
+        case SEC:
+          if (value == null) {
+            unsetSec();
+          } else {
+            setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException) value);
+          }
+          break;
+        
+        case NSTE:
+          if (value == null) {
+            unsetNste();
+          } else {
+            setNste((NotServingTabletException) value);
+          }
+          break;
+        
+        case TMFE:
+          if (value == null) {
+            unsetTmfe();
+          } else {
+            setTmfe((TooManyFilesException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
-
-      case SEC:
-        return getSec();
-
-      case NSTE:
-        return getNste();
-
-      case TMFE:
-        return getTmfe();
-
+        case SUCCESS:
+          return getSuccess();
+          
+        case SEC:
+          return getSec();
+          
+        case NSTE:
+          return getNste();
+          
+        case TMFE:
+          return getTmfe();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case SEC:
-        return isSetSec();
-      case NSTE:
-        return isSetNste();
-      case TMFE:
-        return isSetTmfe();
+        case SUCCESS:
+          return isSetSuccess();
+        case SEC:
+          return isSetSec();
+        case NSTE:
+          return isSetNste();
+        case TMFE:
+          return isSetTmfe();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof startScan_result)
-        return this.equals((startScan_result)that);
+        return this.equals((startScan_result) that);
       return false;
     }
-
+    
     public boolean equals(startScan_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_success = true && this.isSetSuccess();
       boolean that_present_success = true && that.isSetSuccess();
       if (this_present_success || that_present_success) {
@@ -3285,7 +3253,7 @@ public class TabletClientService {
         if (!this.success.equals(that.success))
           return false;
       }
-
+      
       boolean this_present_sec = true && this.isSetSec();
       boolean that_present_sec = true && that.isSetSec();
       if (this_present_sec || that_present_sec) {
@@ -3294,7 +3262,7 @@ public class TabletClientService {
         if (!this.sec.equals(that.sec))
           return false;
       }
-
+      
       boolean this_present_nste = true && this.isSetNste();
       boolean that_present_nste = true && that.isSetNste();
       if (this_present_nste || that_present_nste) {
@@ -3303,7 +3271,7 @@ public class TabletClientService {
         if (!this.nste.equals(that.nste))
           return false;
       }
-
+      
       boolean this_present_tmfe = true && this.isSetTmfe();
       boolean that_present_tmfe = true && that.isSetTmfe();
       if (this_present_tmfe || that_present_tmfe) {
@@ -3312,28 +3280,29 @@ public class TabletClientService {
         if (!this.tmfe.equals(that.tmfe))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(startScan_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      startScan_result typedOther = (startScan_result)other;
-
+      startScan_result typedOther = (startScan_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSuccess()) {        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
+      if (isSetSuccess()) {
+        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -3342,7 +3311,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSec()) {        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
+      if (isSetSec()) {
+        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -3351,7 +3321,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetNste()) {        lastComparison = TBaseHelper.compareTo(this.nste, typedOther.nste);
+      if (isSetNste()) {
+        lastComparison = TBaseHelper.compareTo(this.nste, typedOther.nste);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -3360,21 +3331,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTmfe()) {        lastComparison = TBaseHelper.compareTo(this.tmfe, typedOther.tmfe);
+      if (isSetTmfe()) {
+        lastComparison = TBaseHelper.compareTo(this.tmfe, typedOther.tmfe);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -3382,7 +3353,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.success = new org.apache.accumulo.core.data.thrift.InitialScan();
               this.success.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -3390,7 +3361,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
               this.sec.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -3398,7 +3369,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.nste = new NotServingTabletException();
               this.nste.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -3406,7 +3377,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tmfe = new TooManyFilesException();
               this.tmfe.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -3416,14 +3387,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSuccess()) {
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         this.success.write(oprot);
@@ -3444,7 +3415,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("startScan_result(");
@@ -3478,41 +3449,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class continueScan_args implements TBase<continueScan_args, continueScan_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class continueScan_args implements TBase<continueScan_args,continueScan_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("continueScan_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)2);
-    private static final TField SCAN_ID_FIELD_DESC = new TField("scanID", TType.I64, (short)1);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 2);
+    private static final TField SCAN_ID_FIELD_DESC = new TField("scanID", TType.I64, (short) 1);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public long scanID;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)2, "tinfo"),
-      SCAN_ID((short)1, "scanID");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 2, "tinfo"), SCAN_ID((short) 1, "scanID");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 2: // TINFO
             return TINFO;
           case 1: // SCAN_ID
@@ -3521,69 +3491,63 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
     private static final int __SCANID_ISSET_ID = 0;
     private java.util.BitSet __isset_bit_vector = new java.util.BitSet(1);
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.SCAN_ID, new FieldMetaData("scanID", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.I64          , "ScanID")));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.SCAN_ID, new FieldMetaData("scanID", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64, "ScanID")));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(continueScan_args.class, metaDataMap);
     }
-
-    public continueScan_args() {
-    }
-
-    public continueScan_args(
-      cloudtrace.thrift.TInfo tinfo,
-      long scanID)
-    {
+    
+    public continueScan_args() {}
+    
+    public continueScan_args(cloudtrace.thrift.TInfo tinfo, long scanID) {
       this();
       this.tinfo = tinfo;
       this.scanID = scanID;
       setScanIDIsSet(true);
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -3595,132 +3559,132 @@ public class TabletClientService {
       }
       this.scanID = other.scanID;
     }
-
+    
     public continueScan_args deepCopy() {
       return new continueScan_args(this);
     }
-
+    
     @Deprecated
     public continueScan_args clone() {
       return new continueScan_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public continueScan_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public long getScanID() {
       return this.scanID;
     }
-
+    
     public continueScan_args setScanID(long scanID) {
       this.scanID = scanID;
       setScanIDIsSet(true);
       return this;
     }
-
+    
     public void unsetScanID() {
       __isset_bit_vector.clear(__SCANID_ISSET_ID);
     }
-
+    
     /** Returns true if field scanID is set (has been asigned a value) and false otherwise */
     public boolean isSetScanID() {
       return __isset_bit_vector.get(__SCANID_ISSET_ID);
     }
-
+    
     public void setScanIDIsSet(boolean value) {
       __isset_bit_vector.set(__SCANID_ISSET_ID, value);
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case SCAN_ID:
-        if (value == null) {
-          unsetScanID();
-        } else {
-          setScanID((Long)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case SCAN_ID:
+          if (value == null) {
+            unsetScanID();
+          } else {
+            setScanID((Long) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case SCAN_ID:
-        return new Long(getScanID());
-
+        case TINFO:
+          return getTinfo();
+          
+        case SCAN_ID:
+          return new Long(getScanID());
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case SCAN_ID:
-        return isSetScanID();
+        case TINFO:
+          return isSetTinfo();
+        case SCAN_ID:
+          return isSetScanID();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof continueScan_args)
-        return this.equals((continueScan_args)that);
+        return this.equals((continueScan_args) that);
       return false;
     }
-
+    
     public boolean equals(continueScan_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -3729,7 +3693,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_scanID = true;
       boolean that_present_scanID = true;
       if (this_present_scanID || that_present_scanID) {
@@ -3738,28 +3702,29 @@ public class TabletClientService {
         if (this.scanID != that.scanID)
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(continueScan_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      continueScan_args typedOther = (continueScan_args)other;
-
+      continueScan_args typedOther = (continueScan_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -3768,21 +3733,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetScanID()) {        lastComparison = TBaseHelper.compareTo(this.scanID, typedOther.scanID);
+      if (isSetScanID()) {
+        lastComparison = TBaseHelper.compareTo(this.scanID, typedOther.scanID);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -3790,7 +3755,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -3798,7 +3763,7 @@ public class TabletClientService {
             if (field.type == TType.I64) {
               this.scanID = iprot.readI64();
               setScanIDIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -3808,14 +3773,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       oprot.writeFieldBegin(SCAN_ID_FIELD_DESC);
       oprot.writeI64(this.scanID);
@@ -3828,7 +3793,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("continueScan_args(");
@@ -3844,47 +3809,44 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class continueScan_result implements TBase<continueScan_result, continueScan_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class continueScan_result implements TBase<continueScan_result,continueScan_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("continueScan_result");
-
-    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short)0);
-    private static final TField NSSI_FIELD_DESC = new TField("nssi", TType.STRUCT, (short)1);
-    private static final TField NSTE_FIELD_DESC = new TField("nste", TType.STRUCT, (short)2);
-    private static final TField TMFE_FIELD_DESC = new TField("tmfe", TType.STRUCT, (short)3);
-
+    
+    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short) 0);
+    private static final TField NSSI_FIELD_DESC = new TField("nssi", TType.STRUCT, (short) 1);
+    private static final TField NSTE_FIELD_DESC = new TField("nste", TType.STRUCT, (short) 2);
+    private static final TField TMFE_FIELD_DESC = new TField("tmfe", TType.STRUCT, (short) 3);
+    
     public org.apache.accumulo.core.data.thrift.ScanResult success;
     public NoSuchScanIDException nssi;
     public NotServingTabletException nste;
     public TooManyFilesException tmfe;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      NSSI((short)1, "nssi"),
-      NSTE((short)2, "nste"),
-      TMFE((short)3, "tmfe");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SUCCESS((short) 0, "success"), NSSI((short) 1, "nssi"), NSTE((short) 2, "nste"), TMFE((short) 3, "tmfe");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
           case 1: // NSSI
@@ -3897,74 +3859,66 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.ScanResult.class)));
-      tmpMap.put(_Fields.NSSI, new FieldMetaData("nssi", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
-      tmpMap.put(_Fields.NSTE, new FieldMetaData("nste", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
-      tmpMap.put(_Fields.TMFE, new FieldMetaData("tmfe", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.ScanResult.class)));
+      tmpMap.put(_Fields.NSSI, new FieldMetaData("nssi", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
+      tmpMap.put(_Fields.NSTE, new FieldMetaData("nste", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
+      tmpMap.put(_Fields.TMFE, new FieldMetaData("tmfe", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(continueScan_result.class, metaDataMap);
     }
-
-    public continueScan_result() {
-    }
-
-    public continueScan_result(
-      org.apache.accumulo.core.data.thrift.ScanResult success,
-      NoSuchScanIDException nssi,
-      NotServingTabletException nste,
-      TooManyFilesException tmfe)
-    {
+    
+    public continueScan_result() {}
+    
+    public continueScan_result(org.apache.accumulo.core.data.thrift.ScanResult success, NoSuchScanIDException nssi, NotServingTabletException nste,
+        TooManyFilesException tmfe) {
       this();
       this.success = success;
       this.nssi = nssi;
       this.nste = nste;
       this.tmfe = tmfe;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -3982,207 +3936,207 @@ public class TabletClientService {
         this.tmfe = new TooManyFilesException(other.tmfe);
       }
     }
-
+    
     public continueScan_result deepCopy() {
       return new continueScan_result(this);
     }
-
+    
     @Deprecated
     public continueScan_result clone() {
       return new continueScan_result(this);
     }
-
+    
     public org.apache.accumulo.core.data.thrift.ScanResult getSuccess() {
       return this.success;
     }
-
+    
     public continueScan_result setSuccess(org.apache.accumulo.core.data.thrift.ScanResult success) {
       this.success = success;
       return this;
     }
-
+    
     public void unsetSuccess() {
       this.success = null;
     }
-
+    
     /** Returns true if field success is set (has been asigned a value) and false otherwise */
     public boolean isSetSuccess() {
       return this.success != null;
     }
-
+    
     public void setSuccessIsSet(boolean value) {
       if (!value) {
         this.success = null;
       }
     }
-
+    
     public NoSuchScanIDException getNssi() {
       return this.nssi;
     }
-
+    
     public continueScan_result setNssi(NoSuchScanIDException nssi) {
       this.nssi = nssi;
       return this;
     }
-
+    
     public void unsetNssi() {
       this.nssi = null;
     }
-
+    
     /** Returns true if field nssi is set (has been asigned a value) and false otherwise */
     public boolean isSetNssi() {
       return this.nssi != null;
     }
-
+    
     public void setNssiIsSet(boolean value) {
       if (!value) {
         this.nssi = null;
       }
     }
-
+    
     public NotServingTabletException getNste() {
       return this.nste;
     }
-
+    
     public continueScan_result setNste(NotServingTabletException nste) {
       this.nste = nste;
       return this;
     }
-
+    
     public void unsetNste() {
       this.nste = null;
     }
-
+    
     /** Returns true if field nste is set (has been asigned a value) and false otherwise */
     public boolean isSetNste() {
       return this.nste != null;
     }
-
+    
     public void setNsteIsSet(boolean value) {
       if (!value) {
         this.nste = null;
       }
     }
-
+    
     public TooManyFilesException getTmfe() {
       return this.tmfe;
     }
-
+    
     public continueScan_result setTmfe(TooManyFilesException tmfe) {
       this.tmfe = tmfe;
       return this;
     }
-
+    
     public void unsetTmfe() {
       this.tmfe = null;
     }
-
+    
     /** Returns true if field tmfe is set (has been asigned a value) and false otherwise */
     public boolean isSetTmfe() {
       return this.tmfe != null;
     }
-
+    
     public void setTmfeIsSet(boolean value) {
       if (!value) {
         this.tmfe = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((org.apache.accumulo.core.data.thrift.ScanResult)value);
-        }
-        break;
-
-      case NSSI:
-        if (value == null) {
-          unsetNssi();
-        } else {
-          setNssi((NoSuchScanIDException)value);
-        }
-        break;
-
-      case NSTE:
-        if (value == null) {
-          unsetNste();
-        } else {
-          setNste((NotServingTabletException)value);
-        }
-        break;
-
-      case TMFE:
-        if (value == null) {
-          unsetTmfe();
-        } else {
-          setTmfe((TooManyFilesException)value);
-        }
-        break;
-
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((org.apache.accumulo.core.data.thrift.ScanResult) value);
+          }
+          break;
+        
+        case NSSI:
+          if (value == null) {
+            unsetNssi();
+          } else {
+            setNssi((NoSuchScanIDException) value);
+          }
+          break;
+        
+        case NSTE:
+          if (value == null) {
+            unsetNste();
+          } else {
+            setNste((NotServingTabletException) value);
+          }
+          break;
+        
+        case TMFE:
+          if (value == null) {
+            unsetTmfe();
+          } else {
+            setTmfe((TooManyFilesException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
-
-      case NSSI:
-        return getNssi();
-
-      case NSTE:
-        return getNste();
-
-      case TMFE:
-        return getTmfe();
-
+        case SUCCESS:
+          return getSuccess();
+          
+        case NSSI:
+          return getNssi();
+          
+        case NSTE:
+          return getNste();
+          
+        case TMFE:
+          return getTmfe();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case NSSI:
-        return isSetNssi();
-      case NSTE:
-        return isSetNste();
-      case TMFE:
-        return isSetTmfe();
+        case SUCCESS:
+          return isSetSuccess();
+        case NSSI:
+          return isSetNssi();
+        case NSTE:
+          return isSetNste();
+        case TMFE:
+          return isSetTmfe();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof continueScan_result)
-        return this.equals((continueScan_result)that);
+        return this.equals((continueScan_result) that);
       return false;
     }
-
+    
     public boolean equals(continueScan_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_success = true && this.isSetSuccess();
       boolean that_present_success = true && that.isSetSuccess();
       if (this_present_success || that_present_success) {
@@ -4191,7 +4145,7 @@ public class TabletClientService {
         if (!this.success.equals(that.success))
           return false;
       }
-
+      
       boolean this_present_nssi = true && this.isSetNssi();
       boolean that_present_nssi = true && that.isSetNssi();
       if (this_present_nssi || that_present_nssi) {
@@ -4200,7 +4154,7 @@ public class TabletClientService {
         if (!this.nssi.equals(that.nssi))
           return false;
       }
-
+      
       boolean this_present_nste = true && this.isSetNste();
       boolean that_present_nste = true && that.isSetNste();
       if (this_present_nste || that_present_nste) {
@@ -4209,7 +4163,7 @@ public class TabletClientService {
         if (!this.nste.equals(that.nste))
           return false;
       }
-
+      
       boolean this_present_tmfe = true && this.isSetTmfe();
       boolean that_present_tmfe = true && that.isSetTmfe();
       if (this_present_tmfe || that_present_tmfe) {
@@ -4218,28 +4172,29 @@ public class TabletClientService {
         if (!this.tmfe.equals(that.tmfe))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(continueScan_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      continueScan_result typedOther = (continueScan_result)other;
-
+      continueScan_result typedOther = (continueScan_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSuccess()) {        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
+      if (isSetSuccess()) {
+        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -4248,7 +4203,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetNssi()) {        lastComparison = TBaseHelper.compareTo(this.nssi, typedOther.nssi);
+      if (isSetNssi()) {
+        lastComparison = TBaseHelper.compareTo(this.nssi, typedOther.nssi);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -4257,7 +4213,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetNste()) {        lastComparison = TBaseHelper.compareTo(this.nste, typedOther.nste);
+      if (isSetNste()) {
+        lastComparison = TBaseHelper.compareTo(this.nste, typedOther.nste);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -4266,21 +4223,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTmfe()) {        lastComparison = TBaseHelper.compareTo(this.tmfe, typedOther.tmfe);
+      if (isSetTmfe()) {
+        lastComparison = TBaseHelper.compareTo(this.tmfe, typedOther.tmfe);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -4288,7 +4245,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.success = new org.apache.accumulo.core.data.thrift.ScanResult();
               this.success.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -4296,7 +4253,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.nssi = new NoSuchScanIDException();
               this.nssi.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -4304,7 +4261,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.nste = new NotServingTabletException();
               this.nste.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -4312,7 +4269,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tmfe = new TooManyFilesException();
               this.tmfe.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -4322,14 +4279,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSuccess()) {
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         this.success.write(oprot);
@@ -4350,7 +4307,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("continueScan_result(");
@@ -4384,41 +4341,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class closeScan_args implements TBase<closeScan_args, closeScan_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class closeScan_args implements TBase<closeScan_args,closeScan_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("closeScan_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)2);
-    private static final TField SCAN_ID_FIELD_DESC = new TField("scanID", TType.I64, (short)1);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 2);
+    private static final TField SCAN_ID_FIELD_DESC = new TField("scanID", TType.I64, (short) 1);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public long scanID;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)2, "tinfo"),
-      SCAN_ID((short)1, "scanID");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 2, "tinfo"), SCAN_ID((short) 1, "scanID");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 2: // TINFO
             return TINFO;
           case 1: // SCAN_ID
@@ -4427,69 +4383,63 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
     private static final int __SCANID_ISSET_ID = 0;
     private java.util.BitSet __isset_bit_vector = new java.util.BitSet(1);
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.SCAN_ID, new FieldMetaData("scanID", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.I64          , "ScanID")));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.SCAN_ID, new FieldMetaData("scanID", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64, "ScanID")));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(closeScan_args.class, metaDataMap);
     }
-
-    public closeScan_args() {
-    }
-
-    public closeScan_args(
-      cloudtrace.thrift.TInfo tinfo,
-      long scanID)
-    {
+    
+    public closeScan_args() {}
+    
+    public closeScan_args(cloudtrace.thrift.TInfo tinfo, long scanID) {
       this();
       this.tinfo = tinfo;
       this.scanID = scanID;
       setScanIDIsSet(true);
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -4501,132 +4451,132 @@ public class TabletClientService {
       }
       this.scanID = other.scanID;
     }
-
+    
     public closeScan_args deepCopy() {
       return new closeScan_args(this);
     }
-
+    
     @Deprecated
     public closeScan_args clone() {
       return new closeScan_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public closeScan_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public long getScanID() {
       return this.scanID;
     }
-
+    
     public closeScan_args setScanID(long scanID) {
       this.scanID = scanID;
       setScanIDIsSet(true);
       return this;
     }
-
+    
     public void unsetScanID() {
       __isset_bit_vector.clear(__SCANID_ISSET_ID);
     }
-
+    
     /** Returns true if field scanID is set (has been asigned a value) and false otherwise */
     public boolean isSetScanID() {
       return __isset_bit_vector.get(__SCANID_ISSET_ID);
     }
-
+    
     public void setScanIDIsSet(boolean value) {
       __isset_bit_vector.set(__SCANID_ISSET_ID, value);
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case SCAN_ID:
-        if (value == null) {
-          unsetScanID();
-        } else {
-          setScanID((Long)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case SCAN_ID:
+          if (value == null) {
+            unsetScanID();
+          } else {
+            setScanID((Long) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case SCAN_ID:
-        return new Long(getScanID());
-
+        case TINFO:
+          return getTinfo();
+          
+        case SCAN_ID:
+          return new Long(getScanID());
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case SCAN_ID:
-        return isSetScanID();
+        case TINFO:
+          return isSetTinfo();
+        case SCAN_ID:
+          return isSetScanID();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof closeScan_args)
-        return this.equals((closeScan_args)that);
+        return this.equals((closeScan_args) that);
       return false;
     }
-
+    
     public boolean equals(closeScan_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -4635,7 +4585,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_scanID = true;
       boolean that_present_scanID = true;
       if (this_present_scanID || that_present_scanID) {
@@ -4644,28 +4594,29 @@ public class TabletClientService {
         if (this.scanID != that.scanID)
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(closeScan_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      closeScan_args typedOther = (closeScan_args)other;
-
+      closeScan_args typedOther = (closeScan_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -4674,21 +4625,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetScanID()) {        lastComparison = TBaseHelper.compareTo(this.scanID, typedOther.scanID);
+      if (isSetScanID()) {
+        lastComparison = TBaseHelper.compareTo(this.scanID, typedOther.scanID);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -4696,7 +4647,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -4704,7 +4655,7 @@ public class TabletClientService {
             if (field.type == TType.I64) {
               this.scanID = iprot.readI64();
               setScanIDIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -4714,14 +4665,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       oprot.writeFieldBegin(SCAN_ID_FIELD_DESC);
       oprot.writeI64(this.scanID);
@@ -4734,7 +4685,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("closeScan_args(");
@@ -4750,26 +4701,26 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class startMultiScan_args implements TBase<startMultiScan_args, startMultiScan_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class startMultiScan_args implements TBase<startMultiScan_args,startMultiScan_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("startMultiScan_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)8);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-    private static final TField BATCH_FIELD_DESC = new TField("batch", TType.MAP, (short)2);
-    private static final TField COLUMNS_FIELD_DESC = new TField("columns", TType.LIST, (short)3);
-    private static final TField SSI_LIST_FIELD_DESC = new TField("ssiList", TType.LIST, (short)4);
-    private static final TField SSIO_FIELD_DESC = new TField("ssio", TType.MAP, (short)5);
-    private static final TField AUTHORIZATIONS_FIELD_DESC = new TField("authorizations", TType.LIST, (short)6);
-    private static final TField WAIT_FOR_WRITES_FIELD_DESC = new TField("waitForWrites", TType.BOOL, (short)7);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 8);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    private static final TField BATCH_FIELD_DESC = new TField("batch", TType.MAP, (short) 2);
+    private static final TField COLUMNS_FIELD_DESC = new TField("columns", TType.LIST, (short) 3);
+    private static final TField SSI_LIST_FIELD_DESC = new TField("ssiList", TType.LIST, (short) 4);
+    private static final TField SSIO_FIELD_DESC = new TField("ssio", TType.MAP, (short) 5);
+    private static final TField AUTHORIZATIONS_FIELD_DESC = new TField("authorizations", TType.LIST, (short) 6);
+    private static final TField WAIT_FOR_WRITES_FIELD_DESC = new TField("waitForWrites", TType.BOOL, (short) 7);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
     public java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>> batch;
@@ -4778,31 +4729,31 @@ public class TabletClientService {
     public java.util.Map<String,java.util.Map<String,String>> ssio;
     public java.util.List<byte[]> authorizations;
     public boolean waitForWrites;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)8, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      BATCH((short)2, "batch"),
-      COLUMNS((short)3, "columns"),
-      SSI_LIST((short)4, "ssiList"),
-      SSIO((short)5, "ssio"),
-      AUTHORIZATIONS((short)6, "authorizations"),
-      WAIT_FOR_WRITES((short)7, "waitForWrites");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 8, "tinfo"),
+      CREDENTIALS((short) 1, "credentials"),
+      BATCH((short) 2, "batch"),
+      COLUMNS((short) 3, "columns"),
+      SSI_LIST((short) 4, "ssiList"),
+      SSIO((short) 5, "ssio"),
+      AUTHORIZATIONS((short) 6, "authorizations"),
+      WAIT_FOR_WRITES((short) 7, "waitForWrites");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 8: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -4823,88 +4774,71 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
     private static final int __WAITFORWRITES_ISSET_ID = 0;
     private java.util.BitSet __isset_bit_vector = new java.util.BitSet(1);
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.BATCH, new FieldMetaData("batch", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.MAP          , "ScanBatch")));
-      tmpMap.put(_Fields.COLUMNS, new FieldMetaData("columns", TFieldRequirementType.DEFAULT, 
-          new ListMetaData(TType.LIST, 
-              new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TColumn.class))));
-      tmpMap.put(_Fields.SSI_LIST, new FieldMetaData("ssiList", TFieldRequirementType.DEFAULT, 
-          new ListMetaData(TType.LIST, 
-              new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.IterInfo.class))));
-      tmpMap.put(_Fields.SSIO, new FieldMetaData("ssio", TFieldRequirementType.DEFAULT, 
-          new MapMetaData(TType.MAP, 
-              new FieldValueMetaData(TType.STRING), 
-              new MapMetaData(TType.MAP, 
-                  new FieldValueMetaData(TType.STRING), 
-                  new FieldValueMetaData(TType.STRING)))));
-      tmpMap.put(_Fields.AUTHORIZATIONS, new FieldMetaData("authorizations", TFieldRequirementType.DEFAULT, 
-          new ListMetaData(TType.LIST, 
-              new FieldValueMetaData(TType.STRING))));
-      tmpMap.put(_Fields.WAIT_FOR_WRITES, new FieldMetaData("waitForWrites", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.BOOL)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      tmpMap.put(_Fields.BATCH, new FieldMetaData("batch", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.MAP, "ScanBatch")));
+      tmpMap.put(_Fields.COLUMNS, new FieldMetaData("columns", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.TColumn.class))));
+      tmpMap.put(_Fields.SSI_LIST, new FieldMetaData("ssiList", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.IterInfo.class))));
+      tmpMap.put(_Fields.SSIO, new FieldMetaData("ssio", TFieldRequirementType.DEFAULT, new MapMetaData(TType.MAP, new FieldValueMetaData(TType.STRING),
+          new MapMetaData(TType.MAP, new FieldValueMetaData(TType.STRING), new FieldValueMetaData(TType.STRING)))));
+      tmpMap.put(_Fields.AUTHORIZATIONS, new FieldMetaData("authorizations", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST,
+          new FieldValueMetaData(TType.STRING))));
+      tmpMap.put(_Fields.WAIT_FOR_WRITES, new FieldMetaData("waitForWrites", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.BOOL)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(startMultiScan_args.class, metaDataMap);
     }
-
-    public startMultiScan_args() {
-    }
-
-    public startMultiScan_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>> batch,
-      java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns,
-      java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList,
-      java.util.Map<String,java.util.Map<String,String>> ssio,
-      java.util.List<byte[]> authorizations,
-      boolean waitForWrites)
-    {
+    
+    public startMultiScan_args() {}
+    
+    public startMultiScan_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>> batch,
+        java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns, java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList,
+        java.util.Map<String,java.util.Map<String,String>> ssio, java.util.List<byte[]> authorizations, boolean waitForWrites) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
@@ -4916,7 +4850,7 @@ public class TabletClientService {
       this.waitForWrites = waitForWrites;
       setWaitForWritesIsSet(true);
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -4948,26 +4882,26 @@ public class TabletClientService {
       }
       if (other.isSetSsio()) {
         java.util.Map<String,java.util.Map<String,String>> __this__ssio = new java.util.HashMap<String,java.util.Map<String,String>>();
-        for (java.util.Map.Entry<String, java.util.Map<String,String>> other_element : other.ssio.entrySet()) {
-
+        for (java.util.Map.Entry<String,java.util.Map<String,String>> other_element : other.ssio.entrySet()) {
+          
           String other_element_key = other_element.getKey();
           java.util.Map<String,String> other_element_value = other_element.getValue();
-
+          
           String __this__ssio_copy_key = other_element_key;
-
+          
           java.util.Map<String,String> __this__ssio_copy_value = new java.util.HashMap<String,String>();
-          for (java.util.Map.Entry<String, String> other_element_value_element : other_element_value.entrySet()) {
-
+          for (java.util.Map.Entry<String,String> other_element_value_element : other_element_value.entrySet()) {
+            
             String other_element_value_element_key = other_element_value_element.getKey();
             String other_element_value_element_value = other_element_value_element.getValue();
-
+            
             String __this__ssio_copy_value_copy_key = other_element_value_element_key;
-
+            
             String __this__ssio_copy_value_copy_value = other_element_value_element_value;
-
+            
             __this__ssio_copy_value.put(__this__ssio_copy_value_copy_key, __this__ssio_copy_value_copy_value);
           }
-
+          
           __this__ssio.put(__this__ssio_copy_key, __this__ssio_copy_value);
         }
         this.ssio = __this__ssio;
@@ -4983,422 +4917,423 @@ public class TabletClientService {
       }
       this.waitForWrites = other.waitForWrites;
     }
-
+    
     public startMultiScan_args deepCopy() {
       return new startMultiScan_args(this);
     }
-
+    
     @Deprecated
     public startMultiScan_args clone() {
       return new startMultiScan_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public startMultiScan_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public startMultiScan_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public int getBatchSize() {
       return (this.batch == null) ? 0 : this.batch.size();
     }
-
+    
     public void putToBatch(org.apache.accumulo.core.data.thrift.TKeyExtent key, java.util.List<org.apache.accumulo.core.data.thrift.TRange> val) {
       if (this.batch == null) {
         this.batch = new java.util.HashMap<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>>();
       }
       this.batch.put(key, val);
     }
-
+    
     public java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>> getBatch() {
       return this.batch;
     }
-
-    public startMultiScan_args setBatch(java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>> batch) {
+    
+    public startMultiScan_args setBatch(
+        java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>> batch) {
       this.batch = batch;
       return this;
     }
-
+    
     public void unsetBatch() {
       this.batch = null;
     }
-
+    
     /** Returns true if field batch is set (has been asigned a value) and false otherwise */
     public boolean isSetBatch() {
       return this.batch != null;
     }
-
+    
     public void setBatchIsSet(boolean value) {
       if (!value) {
         this.batch = null;
       }
     }
-
+    
     public int getColumnsSize() {
       return (this.columns == null) ? 0 : this.columns.size();
     }
-
+    
     public java.util.Iterator<org.apache.accumulo.core.data.thrift.TColumn> getColumnsIterator() {
       return (this.columns == null) ? null : this.columns.iterator();
     }
-
+    
     public void addToColumns(org.apache.accumulo.core.data.thrift.TColumn elem) {
       if (this.columns == null) {
         this.columns = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TColumn>();
       }
       this.columns.add(elem);
     }
-
+    
     public java.util.List<org.apache.accumulo.core.data.thrift.TColumn> getColumns() {
       return this.columns;
     }
-
+    
     public startMultiScan_args setColumns(java.util.List<org.apache.accumulo.core.data.thrift.TColumn> columns) {
       this.columns = columns;
       return this;
     }
-
+    
     public void unsetColumns() {
       this.columns = null;
     }
-
+    
     /** Returns true if field columns is set (has been asigned a value) and false otherwise */
     public boolean isSetColumns() {
       return this.columns != null;
     }
-
+    
     public void setColumnsIsSet(boolean value) {
       if (!value) {
         this.columns = null;
       }
     }
-
+    
     public int getSsiListSize() {
       return (this.ssiList == null) ? 0 : this.ssiList.size();
     }
-
+    
     public java.util.Iterator<org.apache.accumulo.core.data.thrift.IterInfo> getSsiListIterator() {
       return (this.ssiList == null) ? null : this.ssiList.iterator();
     }
-
+    
     public void addToSsiList(org.apache.accumulo.core.data.thrift.IterInfo elem) {
       if (this.ssiList == null) {
         this.ssiList = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>();
       }
       this.ssiList.add(elem);
     }
-
+    
     public java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> getSsiList() {
       return this.ssiList;
     }
-
+    
     public startMultiScan_args setSsiList(java.util.List<org.apache.accumulo.core.data.thrift.IterInfo> ssiList) {
       this.ssiList = ssiList;
       return this;
     }
-
+    
     public void unsetSsiList() {
       this.ssiList = null;
     }
-
+    
     /** Returns true if field ssiList is set (has been asigned a value) and false otherwise */
     public boolean isSetSsiList() {
       return this.ssiList != null;
     }
-
+    
     public void setSsiListIsSet(boolean value) {
       if (!value) {
         this.ssiList = null;
       }
     }
-
+    
     public int getSsioSize() {
       return (this.ssio == null) ? 0 : this.ssio.size();
     }
-
+    
     public void putToSsio(String key, java.util.Map<String,String> val) {
       if (this.ssio == null) {
         this.ssio = new java.util.HashMap<String,java.util.Map<String,String>>();
       }
       this.ssio.put(key, val);
     }
-
+    
     public java.util.Map<String,java.util.Map<String,String>> getSsio() {
       return this.ssio;
     }
-
+    
     public startMultiScan_args setSsio(java.util.Map<String,java.util.Map<String,String>> ssio) {
       this.ssio = ssio;
       return this;
     }
-
+    
     public void unsetSsio() {
       this.ssio = null;
     }
-
+    
     /** Returns true if field ssio is set (has been asigned a value) and false otherwise */
     public boolean isSetSsio() {
       return this.ssio != null;
     }
-
+    
     public void setSsioIsSet(boolean value) {
       if (!value) {
         this.ssio = null;
       }
     }
-
+    
     public int getAuthorizationsSize() {
       return (this.authorizations == null) ? 0 : this.authorizations.size();
     }
-
+    
     public java.util.Iterator<byte[]> getAuthorizationsIterator() {
       return (this.authorizations == null) ? null : this.authorizations.iterator();
     }
-
+    
     public void addToAuthorizations(byte[] elem) {
       if (this.authorizations == null) {
         this.authorizations = new java.util.ArrayList<byte[]>();
       }
       this.authorizations.add(elem);
     }
-
+    
     public java.util.List<byte[]> getAuthorizations() {
       return this.authorizations;
     }
-
+    
     public startMultiScan_args setAuthorizations(java.util.List<byte[]> authorizations) {
       this.authorizations = authorizations;
       return this;
     }
-
+    
     public void unsetAuthorizations() {
       this.authorizations = null;
     }
-
+    
     /** Returns true if field authorizations is set (has been asigned a value) and false otherwise */
     public boolean isSetAuthorizations() {
       return this.authorizations != null;
     }
-
+    
     public void setAuthorizationsIsSet(boolean value) {
       if (!value) {
         this.authorizations = null;
       }
     }
-
+    
     public boolean isWaitForWrites() {
       return this.waitForWrites;
     }
-
+    
     public startMultiScan_args setWaitForWrites(boolean waitForWrites) {
       this.waitForWrites = waitForWrites;
       setWaitForWritesIsSet(true);
       return this;
     }
-
+    
     public void unsetWaitForWrites() {
       __isset_bit_vector.clear(__WAITFORWRITES_ISSET_ID);
     }
-
+    
     /** Returns true if field waitForWrites is set (has been asigned a value) and false otherwise */
     public boolean isSetWaitForWrites() {
       return __isset_bit_vector.get(__WAITFORWRITES_ISSET_ID);
     }
-
+    
     public void setWaitForWritesIsSet(boolean value) {
       __isset_bit_vector.set(__WAITFORWRITES_ISSET_ID, value);
     }
-
+    
     @SuppressWarnings("unchecked")
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
-      case BATCH:
-        if (value == null) {
-          unsetBatch();
-        } else {
-          setBatch((java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>>)value);
-        }
-        break;
-
-      case COLUMNS:
-        if (value == null) {
-          unsetColumns();
-        } else {
-          setColumns((java.util.List<org.apache.accumulo.core.data.thrift.TColumn>)value);
-        }
-        break;
-
-      case SSI_LIST:
-        if (value == null) {
-          unsetSsiList();
-        } else {
-          setSsiList((java.util.List<org.apache.accumulo.core.data.thrift.IterInfo>)value);
-        }
-        break;
-
-      case SSIO:
-        if (value == null) {
-          unsetSsio();
-        } else {
-          setSsio((java.util.Map<String,java.util.Map<String,String>>)value);
-        }
-        break;
-
-      case AUTHORIZATIONS:
-        if (value == null) {
-          unsetAuthorizations();
-        } else {
-          setAuthorizations((java.util.List<byte[]>)value);
-        }
-        break;
-
-      case WAIT_FOR_WRITES:
-        if (value == null) {
-          unsetWaitForWrites();
-        } else {
-          setWaitForWrites((Boolean)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+        
+        case BATCH:
+          if (value == null) {
+            unsetBatch();
+          } else {
+            setBatch((java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>>) value);
+          }
+          break;
+        
+        case COLUMNS:
+          if (value == null) {
+            unsetColumns();
+          } else {
+            setColumns((java.util.List<org.apache.accumulo.core.data.thrift.TColumn>) value);
+          }
+          break;
+        
+        case SSI_LIST:
+          if (value == null) {
+            unsetSsiList();
+          } else {
+            setSsiList((java.util.List<org.apache.accumulo.core.data.thrift.IterInfo>) value);
+          }
+          break;
+        
+        case SSIO:
+          if (value == null) {
+            unsetSsio();
+          } else {
+            setSsio((java.util.Map<String,java.util.Map<String,String>>) value);
+          }
+          break;
+        
+        case AUTHORIZATIONS:
+          if (value == null) {
+            unsetAuthorizations();
+          } else {
+            setAuthorizations((java.util.List<byte[]>) value);
+          }
+          break;
+        
+        case WAIT_FOR_WRITES:
+          if (value == null) {
+            unsetWaitForWrites();
+          } else {
+            setWaitForWrites((Boolean) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case BATCH:
-        return getBatch();
-
-      case COLUMNS:
-        return getColumns();
-
-      case SSI_LIST:
-        return getSsiList();
-
-      case SSIO:
-        return getSsio();
-
-      case AUTHORIZATIONS:
-        return getAuthorizations();
-
-      case WAIT_FOR_WRITES:
-        return new Boolean(isWaitForWrites());
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
+        case BATCH:
+          return getBatch();
+          
+        case COLUMNS:
+          return getColumns();
+          
+        case SSI_LIST:
+          return getSsiList();
+          
+        case SSIO:
+          return getSsio();
+          
+        case AUTHORIZATIONS:
+          return getAuthorizations();
+          
+        case WAIT_FOR_WRITES:
+          return new Boolean(isWaitForWrites());
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case BATCH:
-        return isSetBatch();
-      case COLUMNS:
-        return isSetColumns();
-      case SSI_LIST:
-        return isSetSsiList();
-      case SSIO:
-        return isSetSsio();
-      case AUTHORIZATIONS:
-        return isSetAuthorizations();
-      case WAIT_FOR_WRITES:
-        return isSetWaitForWrites();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
+        case BATCH:
+          return isSetBatch();
+        case COLUMNS:
+          return isSetColumns();
+        case SSI_LIST:
+          return isSetSsiList();
+        case SSIO:
+          return isSetSsio();
+        case AUTHORIZATIONS:
+          return isSetAuthorizations();
+        case WAIT_FOR_WRITES:
+          return isSetWaitForWrites();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof startMultiScan_args)
-        return this.equals((startMultiScan_args)that);
+        return this.equals((startMultiScan_args) that);
       return false;
     }
-
+    
     public boolean equals(startMultiScan_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -5407,7 +5342,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -5416,7 +5351,7 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       boolean this_present_batch = true && this.isSetBatch();
       boolean that_present_batch = true && that.isSetBatch();
       if (this_present_batch || that_present_batch) {
@@ -5425,7 +5360,7 @@ public class TabletClientService {
         if (!this.batch.equals(that.batch))
           return false;
       }
-
+      
       boolean this_present_columns = true && this.isSetColumns();
       boolean that_present_columns = true && that.isSetColumns();
       if (this_present_columns || that_present_columns) {
@@ -5434,7 +5369,7 @@ public class TabletClientService {
         if (!this.columns.equals(that.columns))
           return false;
       }
-
+      
       boolean this_present_ssiList = true && this.isSetSsiList();
       boolean that_present_ssiList = true && that.isSetSsiList();
       if (this_present_ssiList || that_present_ssiList) {
@@ -5443,7 +5378,7 @@ public class TabletClientService {
         if (!this.ssiList.equals(that.ssiList))
           return false;
       }
-
+      
       boolean this_present_ssio = true && this.isSetSsio();
       boolean that_present_ssio = true && that.isSetSsio();
       if (this_present_ssio || that_present_ssio) {
@@ -5452,7 +5387,7 @@ public class TabletClientService {
         if (!this.ssio.equals(that.ssio))
           return false;
       }
-
+      
       boolean this_present_authorizations = true && this.isSetAuthorizations();
       boolean that_present_authorizations = true && that.isSetAuthorizations();
       if (this_present_authorizations || that_present_authorizations) {
@@ -5461,7 +5396,7 @@ public class TabletClientService {
         if (!this.authorizations.equals(that.authorizations))
           return false;
       }
-
+      
       boolean this_present_waitForWrites = true;
       boolean that_present_waitForWrites = true;
       if (this_present_waitForWrites || that_present_waitForWrites) {
@@ -5470,28 +5405,29 @@ public class TabletClientService {
         if (this.waitForWrites != that.waitForWrites)
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(startMultiScan_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      startMultiScan_args typedOther = (startMultiScan_args)other;
-
+      startMultiScan_args typedOther = (startMultiScan_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -5500,7 +5436,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -5509,7 +5446,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetBatch()) {        lastComparison = TBaseHelper.compareTo(this.batch, typedOther.batch);
+      if (isSetBatch()) {
+        lastComparison = TBaseHelper.compareTo(this.batch, typedOther.batch);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -5518,7 +5456,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetColumns()) {        lastComparison = TBaseHelper.compareTo(this.columns, typedOther.columns);
+      if (isSetColumns()) {
+        lastComparison = TBaseHelper.compareTo(this.columns, typedOther.columns);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -5527,7 +5466,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSsiList()) {        lastComparison = TBaseHelper.compareTo(this.ssiList, typedOther.ssiList);
+      if (isSetSsiList()) {
+        lastComparison = TBaseHelper.compareTo(this.ssiList, typedOther.ssiList);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -5536,7 +5476,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSsio()) {        lastComparison = TBaseHelper.compareTo(this.ssio, typedOther.ssio);
+      if (isSetSsio()) {
+        lastComparison = TBaseHelper.compareTo(this.ssio, typedOther.ssio);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -5545,7 +5486,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetAuthorizations()) {        lastComparison = TBaseHelper.compareTo(this.authorizations, typedOther.authorizations);
+      if (isSetAuthorizations()) {
+        lastComparison = TBaseHelper.compareTo(this.authorizations, typedOther.authorizations);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -5554,21 +5496,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetWaitForWrites()) {        lastComparison = TBaseHelper.compareTo(this.waitForWrites, typedOther.waitForWrites);
+      if (isSetWaitForWrites()) {
+        lastComparison = TBaseHelper.compareTo(this.waitForWrites, typedOther.waitForWrites);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -5576,7 +5518,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -5584,7 +5526,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -5592,9 +5534,9 @@ public class TabletClientService {
             if (field.type == TType.MAP) {
               {
                 TMap _map48 = iprot.readMapBegin();
-                this.batch = new java.util.HashMap<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>>(2*_map48.size);
-                for (int _i49 = 0; _i49 < _map48.size; ++_i49)
-                {
+                this.batch = new java.util.HashMap<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>>(
+                    2 * _map48.size);
+                for (int _i49 = 0; _i49 < _map48.size; ++_i49) {
                   org.apache.accumulo.core.data.thrift.TKeyExtent _key50;
                   java.util.List<org.apache.accumulo.core.data.thrift.TRange> _val51;
                   _key50 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
@@ -5602,8 +5544,7 @@ public class TabletClientService {
                   {
                     TList _list52 = iprot.readListBegin();
                     _val51 = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TRange>(_list52.size);
-                    for (int _i53 = 0; _i53 < _list52.size; ++_i53)
-                    {
+                    for (int _i53 = 0; _i53 < _list52.size; ++_i53) {
                       org.apache.accumulo.core.data.thrift.TRange _elem54;
                       _elem54 = new org.apache.accumulo.core.data.thrift.TRange();
                       _elem54.read(iprot);
@@ -5615,7 +5556,7 @@ public class TabletClientService {
                 }
                 iprot.readMapEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -5624,8 +5565,7 @@ public class TabletClientService {
               {
                 TList _list55 = iprot.readListBegin();
                 this.columns = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TColumn>(_list55.size);
-                for (int _i56 = 0; _i56 < _list55.size; ++_i56)
-                {
+                for (int _i56 = 0; _i56 < _list55.size; ++_i56) {
                   org.apache.accumulo.core.data.thrift.TColumn _elem57;
                   _elem57 = new org.apache.accumulo.core.data.thrift.TColumn();
                   _elem57.read(iprot);
@@ -5633,7 +5573,7 @@ public class TabletClientService {
                 }
                 iprot.readListEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -5642,8 +5582,7 @@ public class TabletClientService {
               {
                 TList _list58 = iprot.readListBegin();
                 this.ssiList = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>(_list58.size);
-                for (int _i59 = 0; _i59 < _list58.size; ++_i59)
-                {
+                for (int _i59 = 0; _i59 < _list58.size; ++_i59) {
                   org.apache.accumulo.core.data.thrift.IterInfo _elem60;
                   _elem60 = new org.apache.accumulo.core.data.thrift.IterInfo();
                   _elem60.read(iprot);
@@ -5651,7 +5590,7 @@ public class TabletClientService {
                 }
                 iprot.readListEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -5659,17 +5598,15 @@ public class TabletClientService {
             if (field.type == TType.MAP) {
               {
                 TMap _map61 = iprot.readMapBegin();
-                this.ssio = new java.util.HashMap<String,java.util.Map<String,String>>(2*_map61.size);
-                for (int _i62 = 0; _i62 < _map61.size; ++_i62)
-                {
+                this.ssio = new java.util.HashMap<String,java.util.Map<String,String>>(2 * _map61.size);
+                for (int _i62 = 0; _i62 < _map61.size; ++_i62) {
                   String _key63;
                   java.util.Map<String,String> _val64;
                   _key63 = iprot.readString();
                   {
                     TMap _map65 = iprot.readMapBegin();
-                    _val64 = new java.util.HashMap<String,String>(2*_map65.size);
-                    for (int _i66 = 0; _i66 < _map65.size; ++_i66)
-                    {
+                    _val64 = new java.util.HashMap<String,String>(2 * _map65.size);
+                    for (int _i66 = 0; _i66 < _map65.size; ++_i66) {
                       String _key67;
                       String _val68;
                       _key67 = iprot.readString();
@@ -5682,7 +5619,7 @@ public class TabletClientService {
                 }
                 iprot.readMapEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -5691,15 +5628,14 @@ public class TabletClientService {
               {
                 TList _list69 = iprot.readListBegin();
                 this.authorizations = new java.util.ArrayList<byte[]>(_list69.size);
-                for (int _i70 = 0; _i70 < _list69.size; ++_i70)
-                {
+                for (int _i70 = 0; _i70 < _list69.size; ++_i70) {
                   byte[] _elem71;
                   _elem71 = iprot.readBinary();
                   this.authorizations.add(_elem71);
                 }
                 iprot.readListEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -5707,7 +5643,7 @@ public class TabletClientService {
             if (field.type == TType.BOOL) {
               this.waitForWrites = iprot.readBool();
               setWaitForWritesIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -5717,14 +5653,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -5735,13 +5671,12 @@ public class TabletClientService {
         oprot.writeFieldBegin(BATCH_FIELD_DESC);
         {
           oprot.writeMapBegin(new TMap(TType.STRUCT, TType.LIST, this.batch.size()));
-          for (java.util.Map.Entry<org.apache.accumulo.core.data.thrift.TKeyExtent, java.util.List<org.apache.accumulo.core.data.thrift.TRange>> _iter72 : this.batch.entrySet())
-          {
+          for (java.util.Map.Entry<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.List<org.apache.accumulo.core.data.thrift.TRange>> _iter72 : this.batch
+              .entrySet()) {
             _iter72.getKey().write(oprot);
             {
               oprot.writeListBegin(new TList(TType.STRUCT, _iter72.getValue().size()));
-              for (org.apache.accumulo.core.data.thrift.TRange _iter73 : _iter72.getValue())
-              {
+              for (org.apache.accumulo.core.data.thrift.TRange _iter73 : _iter72.getValue()) {
                 _iter73.write(oprot);
               }
               oprot.writeListEnd();
@@ -5755,8 +5690,7 @@ public class TabletClientService {
         oprot.writeFieldBegin(COLUMNS_FIELD_DESC);
         {
           oprot.writeListBegin(new TList(TType.STRUCT, this.columns.size()));
-          for (org.apache.accumulo.core.data.thrift.TColumn _iter74 : this.columns)
-          {
+          for (org.apache.accumulo.core.data.thrift.TColumn _iter74 : this.columns) {
             _iter74.write(oprot);
           }
           oprot.writeListEnd();
@@ -5767,8 +5701,7 @@ public class TabletClientService {
         oprot.writeFieldBegin(SSI_LIST_FIELD_DESC);
         {
           oprot.writeListBegin(new TList(TType.STRUCT, this.ssiList.size()));
-          for (org.apache.accumulo.core.data.thrift.IterInfo _iter75 : this.ssiList)
-          {
+          for (org.apache.accumulo.core.data.thrift.IterInfo _iter75 : this.ssiList) {
             _iter75.write(oprot);
           }
           oprot.writeListEnd();
@@ -5779,13 +5712,11 @@ public class TabletClientService {
         oprot.writeFieldBegin(SSIO_FIELD_DESC);
         {
           oprot.writeMapBegin(new TMap(TType.STRING, TType.MAP, this.ssio.size()));
-          for (java.util.Map.Entry<String, java.util.Map<String,String>> _iter76 : this.ssio.entrySet())
-          {
+          for (java.util.Map.Entry<String,java.util.Map<String,String>> _iter76 : this.ssio.entrySet()) {
             oprot.writeString(_iter76.getKey());
             {
               oprot.writeMapBegin(new TMap(TType.STRING, TType.STRING, _iter76.getValue().size()));
-              for (java.util.Map.Entry<String, String> _iter77 : _iter76.getValue().entrySet())
-              {
+              for (java.util.Map.Entry<String,String> _iter77 : _iter76.getValue().entrySet()) {
                 oprot.writeString(_iter77.getKey());
                 oprot.writeString(_iter77.getValue());
               }
@@ -5800,8 +5731,7 @@ public class TabletClientService {
         oprot.writeFieldBegin(AUTHORIZATIONS_FIELD_DESC);
         {
           oprot.writeListBegin(new TList(TType.STRING, this.authorizations.size()));
-          for (byte[] _iter78 : this.authorizations)
-          {
+          for (byte[] _iter78 : this.authorizations) {
             oprot.writeBinary(_iter78);
           }
           oprot.writeListEnd();
@@ -5819,7 +5749,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("startMultiScan_args(");
@@ -5877,41 +5807,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class startMultiScan_result implements TBase<startMultiScan_result, startMultiScan_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class startMultiScan_result implements TBase<startMultiScan_result,startMultiScan_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("startMultiScan_result");
-
-    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short)0);
-    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short)1);
-
+    
+    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short) 0);
+    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short) 1);
+    
     public org.apache.accumulo.core.data.thrift.InitialMultiScan success;
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      SEC((short)1, "sec");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SUCCESS((short) 0, "success"), SEC((short) 1, "sec");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
           case 1: // SEC
@@ -5920,66 +5849,62 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.InitialMultiScan.class)));
-      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.InitialMultiScan.class)));
+      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(startMultiScan_result.class, metaDataMap);
     }
-
-    public startMultiScan_result() {
-    }
-
-    public startMultiScan_result(
-      org.apache.accumulo.core.data.thrift.InitialMultiScan success,
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
-    {
+    
+    public startMultiScan_result() {}
+    
+    public startMultiScan_result(org.apache.accumulo.core.data.thrift.InitialMultiScan success,
+        org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this();
       this.success = success;
       this.sec = sec;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -5991,133 +5916,133 @@ public class TabletClientService {
         this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
       }
     }
-
+    
     public startMultiScan_result deepCopy() {
       return new startMultiScan_result(this);
     }
-
+    
     @Deprecated
     public startMultiScan_result clone() {
       return new startMultiScan_result(this);
     }
-
+    
     public org.apache.accumulo.core.data.thrift.InitialMultiScan getSuccess() {
       return this.success;
     }
-
+    
     public startMultiScan_result setSuccess(org.apache.accumulo.core.data.thrift.InitialMultiScan success) {
       this.success = success;
       return this;
     }
-
+    
     public void unsetSuccess() {
       this.success = null;
     }
-
+    
     /** Returns true if field success is set (has been asigned a value) and false otherwise */
     public boolean isSetSuccess() {
       return this.success != null;
     }
-
+    
     public void setSuccessIsSet(boolean value) {
       if (!value) {
         this.success = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
       return this.sec;
     }
-
+    
     public startMultiScan_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
-
+    
     public void unsetSec() {
       this.sec = null;
     }
-
+    
     /** Returns true if field sec is set (has been asigned a value) and false otherwise */
     public boolean isSetSec() {
       return this.sec != null;
     }
-
+    
     public void setSecIsSet(boolean value) {
       if (!value) {
         this.sec = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((org.apache.accumulo.core.data.thrift.InitialMultiScan)value);
-        }
-        break;
-
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((org.apache.accumulo.core.data.thrift.InitialMultiScan) value);
+          }
+          break;
+        
+        case SEC:
+          if (value == null) {
+            unsetSec();
+          } else {
+            setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
-
-      case SEC:
-        return getSec();
-
+        case SUCCESS:
+          return getSuccess();
+          
+        case SEC:
+          return getSec();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case SEC:
-        return isSetSec();
+        case SUCCESS:
+          return isSetSuccess();
+        case SEC:
+          return isSetSec();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof startMultiScan_result)
-        return this.equals((startMultiScan_result)that);
+        return this.equals((startMultiScan_result) that);
       return false;
     }
-
+    
     public boolean equals(startMultiScan_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_success = true && this.isSetSuccess();
       boolean that_present_success = true && that.isSetSuccess();
       if (this_present_success || that_present_success) {
@@ -6126,7 +6051,7 @@ public class TabletClientService {
         if (!this.success.equals(that.success))
           return false;
       }
-
+      
       boolean this_present_sec = true && this.isSetSec();
       boolean that_present_sec = true && that.isSetSec();
       if (this_present_sec || that_present_sec) {
@@ -6135,28 +6060,29 @@ public class TabletClientService {
         if (!this.sec.equals(that.sec))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(startMultiScan_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      startMultiScan_result typedOther = (startMultiScan_result)other;
-
+      startMultiScan_result typedOther = (startMultiScan_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSuccess()) {        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
+      if (isSetSuccess()) {
+        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -6165,21 +6091,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSec()) {        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
+      if (isSetSec()) {
+        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -6187,7 +6113,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.success = new org.apache.accumulo.core.data.thrift.InitialMultiScan();
               this.success.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -6195,7 +6121,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
               this.sec.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -6205,14 +6131,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSuccess()) {
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         this.success.write(oprot);
@@ -6225,7 +6151,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("startMultiScan_result(");
@@ -6245,41 +6171,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class continueMultiScan_args implements TBase<continueMultiScan_args, continueMultiScan_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class continueMultiScan_args implements TBase<continueMultiScan_args,continueMultiScan_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("continueMultiScan_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)2);
-    private static final TField SCAN_ID_FIELD_DESC = new TField("scanID", TType.I64, (short)1);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 2);
+    private static final TField SCAN_ID_FIELD_DESC = new TField("scanID", TType.I64, (short) 1);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public long scanID;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)2, "tinfo"),
-      SCAN_ID((short)1, "scanID");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 2, "tinfo"), SCAN_ID((short) 1, "scanID");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 2: // TINFO
             return TINFO;
           case 1: // SCAN_ID
@@ -6288,69 +6213,63 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
     private static final int __SCANID_ISSET_ID = 0;
     private java.util.BitSet __isset_bit_vector = new java.util.BitSet(1);
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.SCAN_ID, new FieldMetaData("scanID", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.I64          , "ScanID")));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.SCAN_ID, new FieldMetaData("scanID", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64, "ScanID")));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(continueMultiScan_args.class, metaDataMap);
     }
-
-    public continueMultiScan_args() {
-    }
-
-    public continueMultiScan_args(
-      cloudtrace.thrift.TInfo tinfo,
-      long scanID)
-    {
+    
+    public continueMultiScan_args() {}
+    
+    public continueMultiScan_args(cloudtrace.thrift.TInfo tinfo, long scanID) {
       this();
       this.tinfo = tinfo;
       this.scanID = scanID;
       setScanIDIsSet(true);
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -6362,132 +6281,132 @@ public class TabletClientService {
       }
       this.scanID = other.scanID;
     }
-
+    
     public continueMultiScan_args deepCopy() {
       return new continueMultiScan_args(this);
     }
-
+    
     @Deprecated
     public continueMultiScan_args clone() {
       return new continueMultiScan_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public continueMultiScan_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public long getScanID() {
       return this.scanID;
     }
-
+    
     public continueMultiScan_args setScanID(long scanID) {
       this.scanID = scanID;
       setScanIDIsSet(true);
       return this;
     }
-
+    
     public void unsetScanID() {
       __isset_bit_vector.clear(__SCANID_ISSET_ID);
     }
-
+    
     /** Returns true if field scanID is set (has been asigned a value) and false otherwise */
     public boolean isSetScanID() {
       return __isset_bit_vector.get(__SCANID_ISSET_ID);
     }
-
+    
     public void setScanIDIsSet(boolean value) {
       __isset_bit_vector.set(__SCANID_ISSET_ID, value);
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case SCAN_ID:
-        if (value == null) {
-          unsetScanID();
-        } else {
-          setScanID((Long)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case SCAN_ID:
+          if (value == null) {
+            unsetScanID();
+          } else {
+            setScanID((Long) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case SCAN_ID:
-        return new Long(getScanID());
-
+        case TINFO:
+          return getTinfo();
+          
+        case SCAN_ID:
+          return new Long(getScanID());
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case SCAN_ID:
-        return isSetScanID();
+        case TINFO:
+          return isSetTinfo();
+        case SCAN_ID:
+          return isSetScanID();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof continueMultiScan_args)
-        return this.equals((continueMultiScan_args)that);
+        return this.equals((continueMultiScan_args) that);
       return false;
     }
-
+    
     public boolean equals(continueMultiScan_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -6496,7 +6415,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_scanID = true;
       boolean that_present_scanID = true;
       if (this_present_scanID || that_present_scanID) {
@@ -6505,28 +6424,29 @@ public class TabletClientService {
         if (this.scanID != that.scanID)
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(continueMultiScan_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      continueMultiScan_args typedOther = (continueMultiScan_args)other;
-
+      continueMultiScan_args typedOther = (continueMultiScan_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -6535,21 +6455,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetScanID()) {        lastComparison = TBaseHelper.compareTo(this.scanID, typedOther.scanID);
+      if (isSetScanID()) {
+        lastComparison = TBaseHelper.compareTo(this.scanID, typedOther.scanID);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -6557,7 +6477,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -6565,7 +6485,7 @@ public class TabletClientService {
             if (field.type == TType.I64) {
               this.scanID = iprot.readI64();
               setScanIDIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -6575,14 +6495,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       oprot.writeFieldBegin(SCAN_ID_FIELD_DESC);
       oprot.writeI64(this.scanID);
@@ -6595,7 +6515,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("continueMultiScan_args(");
@@ -6611,41 +6531,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class continueMultiScan_result implements TBase<continueMultiScan_result, continueMultiScan_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class continueMultiScan_result implements TBase<continueMultiScan_result,continueMultiScan_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("continueMultiScan_result");
-
-    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short)0);
-    private static final TField NSSI_FIELD_DESC = new TField("nssi", TType.STRUCT, (short)1);
-
+    
+    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short) 0);
+    private static final TField NSSI_FIELD_DESC = new TField("nssi", TType.STRUCT, (short) 1);
+    
     public org.apache.accumulo.core.data.thrift.MultiScanResult success;
     public NoSuchScanIDException nssi;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      NSSI((short)1, "nssi");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SUCCESS((short) 0, "success"), NSSI((short) 1, "nssi");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
           case 1: // NSSI
@@ -6654,66 +6573,61 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.MultiScanResult.class)));
-      tmpMap.put(_Fields.NSSI, new FieldMetaData("nssi", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.MultiScanResult.class)));
+      tmpMap.put(_Fields.NSSI, new FieldMetaData("nssi", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(continueMultiScan_result.class, metaDataMap);
     }
-
-    public continueMultiScan_result() {
-    }
-
-    public continueMultiScan_result(
-      org.apache.accumulo.core.data.thrift.MultiScanResult success,
-      NoSuchScanIDException nssi)
-    {
+    
+    public continueMultiScan_result() {}
+    
+    public continueMultiScan_result(org.apache.accumulo.core.data.thrift.MultiScanResult success, NoSuchScanIDException nssi) {
       this();
       this.success = success;
       this.nssi = nssi;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -6725,133 +6639,133 @@ public class TabletClientService {
         this.nssi = new NoSuchScanIDException(other.nssi);
       }
     }
-
+    
     public continueMultiScan_result deepCopy() {
       return new continueMultiScan_result(this);
     }
-
+    
     @Deprecated
     public continueMultiScan_result clone() {
       return new continueMultiScan_result(this);
     }
-
+    
     public org.apache.accumulo.core.data.thrift.MultiScanResult getSuccess() {
       return this.success;
     }
-
+    
     public continueMultiScan_result setSuccess(org.apache.accumulo.core.data.thrift.MultiScanResult success) {
       this.success = success;
       return this;
     }
-
+    
     public void unsetSuccess() {
       this.success = null;
     }
-
+    
     /** Returns true if field success is set (has been asigned a value) and false otherwise */
     public boolean isSetSuccess() {
       return this.success != null;
     }
-
+    
     public void setSuccessIsSet(boolean value) {
       if (!value) {
         this.success = null;
       }
     }
-
+    
     public NoSuchScanIDException getNssi() {
       return this.nssi;
     }
-
+    
     public continueMultiScan_result setNssi(NoSuchScanIDException nssi) {
       this.nssi = nssi;
       return this;
     }
-
+    
     public void unsetNssi() {
       this.nssi = null;
     }
-
+    
     /** Returns true if field nssi is set (has been asigned a value) and false otherwise */
     public boolean isSetNssi() {
       return this.nssi != null;
     }
-
+    
     public void setNssiIsSet(boolean value) {
       if (!value) {
         this.nssi = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((org.apache.accumulo.core.data.thrift.MultiScanResult)value);
-        }
-        break;
-
-      case NSSI:
-        if (value == null) {
-          unsetNssi();
-        } else {
-          setNssi((NoSuchScanIDException)value);
-        }
-        break;
-
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((org.apache.accumulo.core.data.thrift.MultiScanResult) value);
+          }
+          break;
+        
+        case NSSI:
+          if (value == null) {
+            unsetNssi();
+          } else {
+            setNssi((NoSuchScanIDException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
-
-      case NSSI:
-        return getNssi();
-
+        case SUCCESS:
+          return getSuccess();
+          
+        case NSSI:
+          return getNssi();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case NSSI:
-        return isSetNssi();
+        case SUCCESS:
+          return isSetSuccess();
+        case NSSI:
+          return isSetNssi();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof continueMultiScan_result)
-        return this.equals((continueMultiScan_result)that);
+        return this.equals((continueMultiScan_result) that);
       return false;
     }
-
+    
     public boolean equals(continueMultiScan_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_success = true && this.isSetSuccess();
       boolean that_present_success = true && that.isSetSuccess();
       if (this_present_success || that_present_success) {
@@ -6860,7 +6774,7 @@ public class TabletClientService {
         if (!this.success.equals(that.success))
           return false;
       }
-
+      
       boolean this_present_nssi = true && this.isSetNssi();
       boolean that_present_nssi = true && that.isSetNssi();
       if (this_present_nssi || that_present_nssi) {
@@ -6869,28 +6783,29 @@ public class TabletClientService {
         if (!this.nssi.equals(that.nssi))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(continueMultiScan_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      continueMultiScan_result typedOther = (continueMultiScan_result)other;
-
+      continueMultiScan_result typedOther = (continueMultiScan_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSuccess()) {        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
+      if (isSetSuccess()) {
+        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -6899,21 +6814,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetNssi()) {        lastComparison = TBaseHelper.compareTo(this.nssi, typedOther.nssi);
+      if (isSetNssi()) {
+        lastComparison = TBaseHelper.compareTo(this.nssi, typedOther.nssi);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -6921,7 +6836,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.success = new org.apache.accumulo.core.data.thrift.MultiScanResult();
               this.success.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -6929,7 +6844,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.nssi = new NoSuchScanIDException();
               this.nssi.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -6939,14 +6854,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSuccess()) {
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         this.success.write(oprot);
@@ -6959,7 +6874,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("continueMultiScan_result(");
@@ -6979,41 +6894,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class closeMultiScan_args implements TBase<closeMultiScan_args, closeMultiScan_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class closeMultiScan_args implements TBase<closeMultiScan_args,closeMultiScan_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("closeMultiScan_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)2);
-    private static final TField SCAN_ID_FIELD_DESC = new TField("scanID", TType.I64, (short)1);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 2);
+    private static final TField SCAN_ID_FIELD_DESC = new TField("scanID", TType.I64, (short) 1);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public long scanID;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)2, "tinfo"),
-      SCAN_ID((short)1, "scanID");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 2, "tinfo"), SCAN_ID((short) 1, "scanID");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 2: // TINFO
             return TINFO;
           case 1: // SCAN_ID
@@ -7022,69 +6936,63 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
     private static final int __SCANID_ISSET_ID = 0;
     private java.util.BitSet __isset_bit_vector = new java.util.BitSet(1);
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.SCAN_ID, new FieldMetaData("scanID", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.I64          , "ScanID")));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.SCAN_ID, new FieldMetaData("scanID", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64, "ScanID")));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(closeMultiScan_args.class, metaDataMap);
     }
-
-    public closeMultiScan_args() {
-    }
-
-    public closeMultiScan_args(
-      cloudtrace.thrift.TInfo tinfo,
-      long scanID)
-    {
+    
+    public closeMultiScan_args() {}
+    
+    public closeMultiScan_args(cloudtrace.thrift.TInfo tinfo, long scanID) {
       this();
       this.tinfo = tinfo;
       this.scanID = scanID;
       setScanIDIsSet(true);
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -7096,132 +7004,132 @@ public class TabletClientService {
       }
       this.scanID = other.scanID;
     }
-
+    
     public closeMultiScan_args deepCopy() {
       return new closeMultiScan_args(this);
     }
-
+    
     @Deprecated
     public closeMultiScan_args clone() {
       return new closeMultiScan_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public closeMultiScan_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public long getScanID() {
       return this.scanID;
     }
-
+    
     public closeMultiScan_args setScanID(long scanID) {
       this.scanID = scanID;
       setScanIDIsSet(true);
       return this;
     }
-
+    
     public void unsetScanID() {
       __isset_bit_vector.clear(__SCANID_ISSET_ID);
     }
-
+    
     /** Returns true if field scanID is set (has been asigned a value) and false otherwise */
     public boolean isSetScanID() {
       return __isset_bit_vector.get(__SCANID_ISSET_ID);
     }
-
+    
     public void setScanIDIsSet(boolean value) {
       __isset_bit_vector.set(__SCANID_ISSET_ID, value);
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case SCAN_ID:
-        if (value == null) {
-          unsetScanID();
-        } else {
-          setScanID((Long)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case SCAN_ID:
+          if (value == null) {
+            unsetScanID();
+          } else {
+            setScanID((Long) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case SCAN_ID:
-        return new Long(getScanID());
-
+        case TINFO:
+          return getTinfo();
+          
+        case SCAN_ID:
+          return new Long(getScanID());
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case SCAN_ID:
-        return isSetScanID();
+        case TINFO:
+          return isSetTinfo();
+        case SCAN_ID:
+          return isSetScanID();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof closeMultiScan_args)
-        return this.equals((closeMultiScan_args)that);
+        return this.equals((closeMultiScan_args) that);
       return false;
     }
-
+    
     public boolean equals(closeMultiScan_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -7230,7 +7138,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_scanID = true;
       boolean that_present_scanID = true;
       if (this_present_scanID || that_present_scanID) {
@@ -7239,28 +7147,29 @@ public class TabletClientService {
         if (this.scanID != that.scanID)
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(closeMultiScan_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      closeMultiScan_args typedOther = (closeMultiScan_args)other;
-
+      closeMultiScan_args typedOther = (closeMultiScan_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -7269,21 +7178,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetScanID()) {        lastComparison = TBaseHelper.compareTo(this.scanID, typedOther.scanID);
+      if (isSetScanID()) {
+        lastComparison = TBaseHelper.compareTo(this.scanID, typedOther.scanID);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -7291,7 +7200,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -7299,7 +7208,7 @@ public class TabletClientService {
             if (field.type == TType.I64) {
               this.scanID = iprot.readI64();
               setScanIDIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -7309,14 +7218,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       oprot.writeFieldBegin(SCAN_ID_FIELD_DESC);
       oprot.writeI64(this.scanID);
@@ -7329,7 +7238,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("closeMultiScan_args(");
@@ -7345,100 +7254,96 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class closeMultiScan_result implements TBase<closeMultiScan_result, closeMultiScan_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class closeMultiScan_result implements TBase<closeMultiScan_result,closeMultiScan_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("closeMultiScan_result");
-
-    private static final TField NSSI_FIELD_DESC = new TField("nssi", TType.STRUCT, (short)1);
-
+    
+    private static final TField NSSI_FIELD_DESC = new TField("nssi", TType.STRUCT, (short) 1);
+    
     public NoSuchScanIDException nssi;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      NSSI((short)1, "nssi");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      NSSI((short) 1, "nssi");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 1: // NSSI
             return NSSI;
           default:
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.NSSI, new FieldMetaData("nssi", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.NSSI, new FieldMetaData("nssi", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(closeMultiScan_result.class, metaDataMap);
     }
-
-    public closeMultiScan_result() {
-    }
-
-    public closeMultiScan_result(
-      NoSuchScanIDException nssi)
-    {
+    
+    public closeMultiScan_result() {}
+    
+    public closeMultiScan_result(NoSuchScanIDException nssi) {
       this();
       this.nssi = nssi;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -7447,96 +7352,96 @@ public class TabletClientService {
         this.nssi = new NoSuchScanIDException(other.nssi);
       }
     }
-
+    
     public closeMultiScan_result deepCopy() {
       return new closeMultiScan_result(this);
     }
-
+    
     @Deprecated
     public closeMultiScan_result clone() {
       return new closeMultiScan_result(this);
     }
-
+    
     public NoSuchScanIDException getNssi() {
       return this.nssi;
     }
-
+    
     public closeMultiScan_result setNssi(NoSuchScanIDException nssi) {
       this.nssi = nssi;
       return this;
     }
-
+    
     public void unsetNssi() {
       this.nssi = null;
     }
-
+    
     /** Returns true if field nssi is set (has been asigned a value) and false otherwise */
     public boolean isSetNssi() {
       return this.nssi != null;
     }
-
+    
     public void setNssiIsSet(boolean value) {
       if (!value) {
         this.nssi = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case NSSI:
-        if (value == null) {
-          unsetNssi();
-        } else {
-          setNssi((NoSuchScanIDException)value);
-        }
-        break;
-
+        case NSSI:
+          if (value == null) {
+            unsetNssi();
+          } else {
+            setNssi((NoSuchScanIDException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case NSSI:
-        return getNssi();
-
+        case NSSI:
+          return getNssi();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case NSSI:
-        return isSetNssi();
+        case NSSI:
+          return isSetNssi();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof closeMultiScan_result)
-        return this.equals((closeMultiScan_result)that);
+        return this.equals((closeMultiScan_result) that);
       return false;
     }
-
+    
     public boolean equals(closeMultiScan_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_nssi = true && this.isSetNssi();
       boolean that_present_nssi = true && that.isSetNssi();
       if (this_present_nssi || that_present_nssi) {
@@ -7545,42 +7450,42 @@ public class TabletClientService {
         if (!this.nssi.equals(that.nssi))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(closeMultiScan_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      closeMultiScan_result typedOther = (closeMultiScan_result)other;
-
+      closeMultiScan_result typedOther = (closeMultiScan_result) other;
+      
       lastComparison = Boolean.valueOf(isSetNssi()).compareTo(typedOther.isSetNssi());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetNssi()) {        lastComparison = TBaseHelper.compareTo(this.nssi, typedOther.nssi);
+      if (isSetNssi()) {
+        lastComparison = TBaseHelper.compareTo(this.nssi, typedOther.nssi);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -7588,7 +7493,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.nssi = new NoSuchScanIDException();
               this.nssi.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -7598,14 +7503,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetNssi()) {
         oprot.writeFieldBegin(NSSI_FIELD_DESC);
         this.nssi.write(oprot);
@@ -7614,7 +7519,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("closeMultiScan_result(");
@@ -7627,41 +7532,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class startUpdate_args implements TBase<startUpdate_args, startUpdate_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class startUpdate_args implements TBase<startUpdate_args,startUpdate_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("startUpdate_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)2);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 2);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)2, "tinfo"),
-      CREDENTIALS((short)1, "credentials");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 2, "tinfo"), CREDENTIALS((short) 1, "credentials");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 2: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -7670,66 +7574,61 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(startUpdate_args.class, metaDataMap);
     }
-
-    public startUpdate_args() {
-    }
-
-    public startUpdate_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials)
-    {
+    
+    public startUpdate_args() {}
+    
+    public startUpdate_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -7741,133 +7640,133 @@ public class TabletClientService {
         this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
       }
     }
-
+    
     public startUpdate_args deepCopy() {
       return new startUpdate_args(this);
     }
-
+    
     @Deprecated
     public startUpdate_args clone() {
       return new startUpdate_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public startUpdate_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public startUpdate_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof startUpdate_args)
-        return this.equals((startUpdate_args)that);
+        return this.equals((startUpdate_args) that);
       return false;
     }
-
+    
     public boolean equals(startUpdate_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -7876,7 +7775,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -7885,28 +7784,29 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(startUpdate_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      startUpdate_args typedOther = (startUpdate_args)other;
-
+      startUpdate_args typedOther = (startUpdate_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -7915,21 +7815,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -7937,7 +7837,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -7945,7 +7845,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -7955,14 +7855,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -7977,7 +7877,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("startUpdate_args(");
@@ -7997,41 +7897,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class startUpdate_result implements TBase<startUpdate_result, startUpdate_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class startUpdate_result implements TBase<startUpdate_result,startUpdate_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("startUpdate_result");
-
-    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.I64, (short)0);
-    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short)1);
-
+    
+    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.I64, (short) 0);
+    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short) 1);
+    
     public long success;
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      SEC((short)1, "sec");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SUCCESS((short) 0, "success"), SEC((short) 1, "sec");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
           case 1: // SEC
@@ -8040,69 +7939,63 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
     private static final int __SUCCESS_ISSET_ID = 0;
     private java.util.BitSet __isset_bit_vector = new java.util.BitSet(1);
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.I64          , "UpdateID")));
-      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64, "UpdateID")));
+      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(startUpdate_result.class, metaDataMap);
     }
-
-    public startUpdate_result() {
-    }
-
-    public startUpdate_result(
-      long success,
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
-    {
+    
+    public startUpdate_result() {}
+    
+    public startUpdate_result(long success, org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this();
       this.success = success;
       setSuccessIsSet(true);
       this.sec = sec;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -8114,132 +8007,132 @@ public class TabletClientService {
         this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
       }
     }
-
+    
     public startUpdate_result deepCopy() {
       return new startUpdate_result(this);
     }
-
+    
     @Deprecated
     public startUpdate_result clone() {
       return new startUpdate_result(this);
     }
-
+    
     public long getSuccess() {
       return this.success;
     }
-
+    
     public startUpdate_result setSuccess(long success) {
       this.success = success;
       setSuccessIsSet(true);
       return this;
     }
-
+    
     public void unsetSuccess() {
       __isset_bit_vector.clear(__SUCCESS_ISSET_ID);
     }
-
+    
     /** Returns true if field success is set (has been asigned a value) and false otherwise */
     public boolean isSetSuccess() {
       return __isset_bit_vector.get(__SUCCESS_ISSET_ID);
     }
-
+    
     public void setSuccessIsSet(boolean value) {
       __isset_bit_vector.set(__SUCCESS_ISSET_ID, value);
     }
-
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
       return this.sec;
     }
-
+    
     public startUpdate_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
-
+    
     public void unsetSec() {
       this.sec = null;
     }
-
+    
     /** Returns true if field sec is set (has been asigned a value) and false otherwise */
     public boolean isSetSec() {
       return this.sec != null;
     }
-
+    
     public void setSecIsSet(boolean value) {
       if (!value) {
         this.sec = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((Long)value);
-        }
-        break;
-
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((Long) value);
+          }
+          break;
+        
+        case SEC:
+          if (value == null) {
+            unsetSec();
+          } else {
+            setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return new Long(getSuccess());
-
-      case SEC:
-        return getSec();
-
+        case SUCCESS:
+          return new Long(getSuccess());
+          
+        case SEC:
+          return getSec();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case SEC:
-        return isSetSec();
+        case SUCCESS:
+          return isSetSuccess();
+        case SEC:
+          return isSetSec();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof startUpdate_result)
-        return this.equals((startUpdate_result)that);
+        return this.equals((startUpdate_result) that);
       return false;
     }
-
+    
     public boolean equals(startUpdate_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_success = true;
       boolean that_present_success = true;
       if (this_present_success || that_present_success) {
@@ -8248,7 +8141,7 @@ public class TabletClientService {
         if (this.success != that.success)
           return false;
       }
-
+      
       boolean this_present_sec = true && this.isSetSec();
       boolean that_present_sec = true && that.isSetSec();
       if (this_present_sec || that_present_sec) {
@@ -8257,28 +8150,29 @@ public class TabletClientService {
         if (!this.sec.equals(that.sec))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(startUpdate_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      startUpdate_result typedOther = (startUpdate_result)other;
-
+      startUpdate_result typedOther = (startUpdate_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSuccess()) {        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
+      if (isSetSuccess()) {
+        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -8287,21 +8181,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSec()) {        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
+      if (isSetSec()) {
+        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -8309,7 +8203,7 @@ public class TabletClientService {
             if (field.type == TType.I64) {
               this.success = iprot.readI64();
               setSuccessIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -8317,7 +8211,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
               this.sec.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -8327,14 +8221,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSuccess()) {
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         oprot.writeI64(this.success);
@@ -8347,7 +8241,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("startUpdate_result(");
@@ -8363,44 +8257,42 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class setUpdateTablet_args implements TBase<setUpdateTablet_args, setUpdateTablet_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class setUpdateTablet_args implements TBase<setUpdateTablet_args,setUpdateTablet_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("setUpdateTablet_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)3);
-    private static final TField UPDATE_ID_FIELD_DESC = new TField("updateID", TType.I64, (short)1);
-    private static final TField KEY_EXTENT_FIELD_DESC = new TField("keyExtent", TType.STRUCT, (short)2);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 3);
+    private static final TField UPDATE_ID_FIELD_DESC = new TField("updateID", TType.I64, (short) 1);
+    private static final TField KEY_EXTENT_FIELD_DESC = new TField("keyExtent", TType.STRUCT, (short) 2);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public long updateID;
     public org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      UPDATE_ID((short)1, "updateID"),
-      KEY_EXTENT((short)2, "keyExtent");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 3, "tinfo"), UPDATE_ID((short) 1, "updateID"), KEY_EXTENT((short) 2, "keyExtent");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 3: // TINFO
             return TINFO;
           case 1: // UPDATE_ID
@@ -8411,73 +8303,66 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
     private static final int __UPDATEID_ISSET_ID = 0;
     private java.util.BitSet __isset_bit_vector = new java.util.BitSet(1);
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.UPDATE_ID, new FieldMetaData("updateID", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.I64          , "UpdateID")));
-      tmpMap.put(_Fields.KEY_EXTENT, new FieldMetaData("keyExtent", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.UPDATE_ID, new FieldMetaData("updateID", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64, "UpdateID")));
+      tmpMap.put(_Fields.KEY_EXTENT, new FieldMetaData("keyExtent", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(setUpdateTablet_args.class, metaDataMap);
     }
-
-    public setUpdateTablet_args() {
-    }
-
-    public setUpdateTablet_args(
-      cloudtrace.thrift.TInfo tinfo,
-      long updateID,
-      org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent)
-    {
+    
+    public setUpdateTablet_args() {}
+    
+    public setUpdateTablet_args(cloudtrace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent) {
       this();
       this.tinfo = tinfo;
       this.updateID = updateID;
       setUpdateIDIsSet(true);
       this.keyExtent = keyExtent;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -8492,169 +8377,169 @@ public class TabletClientService {
         this.keyExtent = new org.apache.accumulo.core.data.thrift.TKeyExtent(other.keyExtent);
       }
     }
-
+    
     public setUpdateTablet_args deepCopy() {
       return new setUpdateTablet_args(this);
     }
-
+    
     @Deprecated
     public setUpdateTablet_args clone() {
       return new setUpdateTablet_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public setUpdateTablet_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public long getUpdateID() {
       return this.updateID;
     }
-
+    
     public setUpdateTablet_args setUpdateID(long updateID) {
       this.updateID = updateID;
       setUpdateIDIsSet(true);
       return this;
     }
-
+    
     public void unsetUpdateID() {
       __isset_bit_vector.clear(__UPDATEID_ISSET_ID);
     }
-
+    
     /** Returns true if field updateID is set (has been asigned a value) and false otherwise */
     public boolean isSetUpdateID() {
       return __isset_bit_vector.get(__UPDATEID_ISSET_ID);
     }
-
+    
     public void setUpdateIDIsSet(boolean value) {
       __isset_bit_vector.set(__UPDATEID_ISSET_ID, value);
     }
-
+    
     public org.apache.accumulo.core.data.thrift.TKeyExtent getKeyExtent() {
       return this.keyExtent;
     }
-
+    
     public setUpdateTablet_args setKeyExtent(org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent) {
       this.keyExtent = keyExtent;
       return this;
     }
-
+    
     public void unsetKeyExtent() {
       this.keyExtent = null;
     }
-
+    
     /** Returns true if field keyExtent is set (has been asigned a value) and false otherwise */
     public boolean isSetKeyExtent() {
       return this.keyExtent != null;
     }
-
+    
     public void setKeyExtentIsSet(boolean value) {
       if (!value) {
         this.keyExtent = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case UPDATE_ID:
-        if (value == null) {
-          unsetUpdateID();
-        } else {
-          setUpdateID((Long)value);
-        }
-        break;
-
-      case KEY_EXTENT:
-        if (value == null) {
-          unsetKeyExtent();
-        } else {
-          setKeyExtent((org.apache.accumulo.core.data.thrift.TKeyExtent)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case UPDATE_ID:
+          if (value == null) {
+            unsetUpdateID();
+          } else {
+            setUpdateID((Long) value);
+          }
+          break;
+        
+        case KEY_EXTENT:
+          if (value == null) {
+            unsetKeyExtent();
+          } else {
+            setKeyExtent((org.apache.accumulo.core.data.thrift.TKeyExtent) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case UPDATE_ID:
-        return new Long(getUpdateID());
-
-      case KEY_EXTENT:
-        return getKeyExtent();
-
+        case TINFO:
+          return getTinfo();
+          
+        case UPDATE_ID:
+          return new Long(getUpdateID());
+          
+        case KEY_EXTENT:
+          return getKeyExtent();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case UPDATE_ID:
-        return isSetUpdateID();
-      case KEY_EXTENT:
-        return isSetKeyExtent();
+        case TINFO:
+          return isSetTinfo();
+        case UPDATE_ID:
+          return isSetUpdateID();
+        case KEY_EXTENT:
+          return isSetKeyExtent();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof setUpdateTablet_args)
-        return this.equals((setUpdateTablet_args)that);
+        return this.equals((setUpdateTablet_args) that);
       return false;
     }
-
+    
     public boolean equals(setUpdateTablet_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -8663,7 +8548,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_updateID = true;
       boolean that_present_updateID = true;
       if (this_present_updateID || that_present_updateID) {
@@ -8672,7 +8557,7 @@ public class TabletClientService {
         if (this.updateID != that.updateID)
           return false;
       }
-
+      
       boolean this_present_keyExtent = true && this.isSetKeyExtent();
       boolean that_present_keyExtent = true && that.isSetKeyExtent();
       if (this_present_keyExtent || that_present_keyExtent) {
@@ -8681,28 +8566,29 @@ public class TabletClientService {
         if (!this.keyExtent.equals(that.keyExtent))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(setUpdateTablet_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      setUpdateTablet_args typedOther = (setUpdateTablet_args)other;
-
+      setUpdateTablet_args typedOther = (setUpdateTablet_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -8711,7 +8597,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetUpdateID()) {        lastComparison = TBaseHelper.compareTo(this.updateID, typedOther.updateID);
+      if (isSetUpdateID()) {
+        lastComparison = TBaseHelper.compareTo(this.updateID, typedOther.updateID);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -8720,21 +8607,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetKeyExtent()) {        lastComparison = TBaseHelper.compareTo(this.keyExtent, typedOther.keyExtent);
+      if (isSetKeyExtent()) {
+        lastComparison = TBaseHelper.compareTo(this.keyExtent, typedOther.keyExtent);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -8742,7 +8629,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -8750,7 +8637,7 @@ public class TabletClientService {
             if (field.type == TType.I64) {
               this.updateID = iprot.readI64();
               setUpdateIDIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -8758,7 +8645,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.keyExtent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
               this.keyExtent.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -8768,14 +8655,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       oprot.writeFieldBegin(UPDATE_ID_FIELD_DESC);
       oprot.writeI64(this.updateID);
@@ -8793,7 +8680,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("setUpdateTablet_args(");
@@ -8816,44 +8703,42 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class applyUpdate_args implements TBase<applyUpdate_args, applyUpdate_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class applyUpdate_args implements TBase<applyUpdate_args,applyUpdate_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("applyUpdate_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)3);
-    private static final TField UPDATE_ID_FIELD_DESC = new TField("updateID", TType.I64, (short)1);
-    private static final TField MUTATION_FIELD_DESC = new TField("mutation", TType.STRUCT, (short)2);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 3);
+    private static final TField UPDATE_ID_FIELD_DESC = new TField("updateID", TType.I64, (short) 1);
+    private static final TField MUTATION_FIELD_DESC = new TField("mutation", TType.STRUCT, (short) 2);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public long updateID;
     public org.apache.accumulo.core.data.thrift.TMutation mutation;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      UPDATE_ID((short)1, "updateID"),
-      MUTATION((short)2, "mutation");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 3, "tinfo"), UPDATE_ID((short) 1, "updateID"), MUTATION((short) 2, "mutation");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 3: // TINFO
             return TINFO;
           case 1: // UPDATE_ID
@@ -8864,73 +8749,66 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
     private static final int __UPDATEID_ISSET_ID = 0;
     private java.util.BitSet __isset_bit_vector = new java.util.BitSet(1);
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.UPDATE_ID, new FieldMetaData("updateID", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.I64          , "UpdateID")));
-      tmpMap.put(_Fields.MUTATION, new FieldMetaData("mutation", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TMutation.class)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.UPDATE_ID, new FieldMetaData("updateID", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64, "UpdateID")));
+      tmpMap.put(_Fields.MUTATION, new FieldMetaData("mutation", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.TMutation.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(applyUpdate_args.class, metaDataMap);
     }
-
-    public applyUpdate_args() {
-    }
-
-    public applyUpdate_args(
-      cloudtrace.thrift.TInfo tinfo,
-      long updateID,
-      org.apache.accumulo.core.data.thrift.TMutation mutation)
-    {
+    
+    public applyUpdate_args() {}
+    
+    public applyUpdate_args(cloudtrace.thrift.TInfo tinfo, long updateID, org.apache.accumulo.core.data.thrift.TMutation mutation) {
       this();
       this.tinfo = tinfo;
       this.updateID = updateID;
       setUpdateIDIsSet(true);
       this.mutation = mutation;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -8945,169 +8823,169 @@ public class TabletClientService {
         this.mutation = new org.apache.accumulo.core.data.thrift.TMutation(other.mutation);
       }
     }
-
+    
     public applyUpdate_args deepCopy() {
       return new applyUpdate_args(this);
     }
-
+    
     @Deprecated
     public applyUpdate_args clone() {
       return new applyUpdate_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public applyUpdate_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public long getUpdateID() {
       return this.updateID;
     }
-
+    
     public applyUpdate_args setUpdateID(long updateID) {
       this.updateID = updateID;
       setUpdateIDIsSet(true);
       return this;
     }
-
+    
     public void unsetUpdateID() {
       __isset_bit_vector.clear(__UPDATEID_ISSET_ID);
     }
-
+    
     /** Returns true if field updateID is set (has been asigned a value) and false otherwise */
     public boolean isSetUpdateID() {
       return __isset_bit_vector.get(__UPDATEID_ISSET_ID);
     }
-
+    
     public void setUpdateIDIsSet(boolean value) {
       __isset_bit_vector.set(__UPDATEID_ISSET_ID, value);
     }
-
+    
     public org.apache.accumulo.core.data.thrift.TMutation getMutation() {
       return this.mutation;
     }
-
+    
     public applyUpdate_args setMutation(org.apache.accumulo.core.data.thrift.TMutation mutation) {
       this.mutation = mutation;
       return this;
     }
-
+    
     public void unsetMutation() {
       this.mutation = null;
     }
-
+    
     /** Returns true if field mutation is set (has been asigned a value) and false otherwise */
     public boolean isSetMutation() {
       return this.mutation != null;
     }
-
+    
     public void setMutationIsSet(boolean value) {
       if (!value) {
         this.mutation = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case UPDATE_ID:
-        if (value == null) {
-          unsetUpdateID();
-        } else {
-          setUpdateID((Long)value);
-        }
-        break;
-
-      case MUTATION:
-        if (value == null) {
-          unsetMutation();
-        } else {
-          setMutation((org.apache.accumulo.core.data.thrift.TMutation)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case UPDATE_ID:
+          if (value == null) {
+            unsetUpdateID();
+          } else {
+            setUpdateID((Long) value);
+          }
+          break;
+        
+        case MUTATION:
+          if (value == null) {
+            unsetMutation();
+          } else {
+            setMutation((org.apache.accumulo.core.data.thrift.TMutation) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case UPDATE_ID:
-        return new Long(getUpdateID());
-
-      case MUTATION:
-        return getMutation();
-
+        case TINFO:
+          return getTinfo();
+          
+        case UPDATE_ID:
+          return new Long(getUpdateID());
+          
+        case MUTATION:
+          return getMutation();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case UPDATE_ID:
-        return isSetUpdateID();
-      case MUTATION:
-        return isSetMutation();
+        case TINFO:
+          return isSetTinfo();
+        case UPDATE_ID:
+          return isSetUpdateID();
+        case MUTATION:
+          return isSetMutation();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof applyUpdate_args)
-        return this.equals((applyUpdate_args)that);
+        return this.equals((applyUpdate_args) that);
       return false;
     }
-
+    
     public boolean equals(applyUpdate_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -9116,7 +8994,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_updateID = true;
       boolean that_present_updateID = true;
       if (this_present_updateID || that_present_updateID) {
@@ -9125,7 +9003,7 @@ public class TabletClientService {
         if (this.updateID != that.updateID)
           return false;
       }
-
+      
       boolean this_present_mutation = true && this.isSetMutation();
       boolean that_present_mutation = true && that.isSetMutation();
       if (this_present_mutation || that_present_mutation) {
@@ -9134,28 +9012,29 @@ public class TabletClientService {
         if (!this.mutation.equals(that.mutation))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(applyUpdate_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      applyUpdate_args typedOther = (applyUpdate_args)other;
-
+      applyUpdate_args typedOther = (applyUpdate_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -9164,7 +9043,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetUpdateID()) {        lastComparison = TBaseHelper.compareTo(this.updateID, typedOther.updateID);
+      if (isSetUpdateID()) {
+        lastComparison = TBaseHelper.compareTo(this.updateID, typedOther.updateID);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -9173,21 +9053,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetMutation()) {        lastComparison = TBaseHelper.compareTo(this.mutation, typedOther.mutation);
+      if (isSetMutation()) {
+        lastComparison = TBaseHelper.compareTo(this.mutation, typedOther.mutation);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -9195,7 +9075,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -9203,7 +9083,7 @@ public class TabletClientService {
             if (field.type == TType.I64) {
               this.updateID = iprot.readI64();
               setUpdateIDIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -9211,7 +9091,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.mutation = new org.apache.accumulo.core.data.thrift.TMutation();
               this.mutation.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -9221,14 +9101,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       oprot.writeFieldBegin(UPDATE_ID_FIELD_DESC);
       oprot.writeI64(this.updateID);
@@ -9246,7 +9126,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("applyUpdate_args(");
@@ -9269,41 +9149,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class closeUpdate_args implements TBase<closeUpdate_args, closeUpdate_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class closeUpdate_args implements TBase<closeUpdate_args,closeUpdate_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("closeUpdate_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)2);
-    private static final TField UPDATE_ID_FIELD_DESC = new TField("updateID", TType.I64, (short)1);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 2);
+    private static final TField UPDATE_ID_FIELD_DESC = new TField("updateID", TType.I64, (short) 1);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public long updateID;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)2, "tinfo"),
-      UPDATE_ID((short)1, "updateID");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 2, "tinfo"), UPDATE_ID((short) 1, "updateID");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 2: // TINFO
             return TINFO;
           case 1: // UPDATE_ID
@@ -9312,69 +9191,63 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
     private static final int __UPDATEID_ISSET_ID = 0;
     private java.util.BitSet __isset_bit_vector = new java.util.BitSet(1);
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.UPDATE_ID, new FieldMetaData("updateID", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.I64          , "UpdateID")));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.UPDATE_ID, new FieldMetaData("updateID", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64, "UpdateID")));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(closeUpdate_args.class, metaDataMap);
     }
-
-    public closeUpdate_args() {
-    }
-
-    public closeUpdate_args(
-      cloudtrace.thrift.TInfo tinfo,
-      long updateID)
-    {
+    
+    public closeUpdate_args() {}
+    
+    public closeUpdate_args(cloudtrace.thrift.TInfo tinfo, long updateID) {
       this();
       this.tinfo = tinfo;
       this.updateID = updateID;
       setUpdateIDIsSet(true);
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -9386,132 +9259,132 @@ public class TabletClientService {
       }
       this.updateID = other.updateID;
     }
-
+    
     public closeUpdate_args deepCopy() {
       return new closeUpdate_args(this);
     }
-
+    
     @Deprecated
     public closeUpdate_args clone() {
       return new closeUpdate_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public closeUpdate_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public long getUpdateID() {
       return this.updateID;
     }
-
+    
     public closeUpdate_args setUpdateID(long updateID) {
       this.updateID = updateID;
       setUpdateIDIsSet(true);
       return this;
     }
-
+    
     public void unsetUpdateID() {
       __isset_bit_vector.clear(__UPDATEID_ISSET_ID);
     }
-
+    
     /** Returns true if field updateID is set (has been asigned a value) and false otherwise */
     public boolean isSetUpdateID() {
       return __isset_bit_vector.get(__UPDATEID_ISSET_ID);
     }
-
+    
     public void setUpdateIDIsSet(boolean value) {
       __isset_bit_vector.set(__UPDATEID_ISSET_ID, value);
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case UPDATE_ID:
-        if (value == null) {
-          unsetUpdateID();
-        } else {
-          setUpdateID((Long)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case UPDATE_ID:
+          if (value == null) {
+            unsetUpdateID();
+          } else {
+            setUpdateID((Long) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case UPDATE_ID:
-        return new Long(getUpdateID());
-
+        case TINFO:
+          return getTinfo();
+          
+        case UPDATE_ID:
+          return new Long(getUpdateID());
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case UPDATE_ID:
-        return isSetUpdateID();
+        case TINFO:
+          return isSetTinfo();
+        case UPDATE_ID:
+          return isSetUpdateID();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof closeUpdate_args)
-        return this.equals((closeUpdate_args)that);
+        return this.equals((closeUpdate_args) that);
       return false;
     }
-
+    
     public boolean equals(closeUpdate_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -9520,7 +9393,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_updateID = true;
       boolean that_present_updateID = true;
       if (this_present_updateID || that_present_updateID) {
@@ -9529,28 +9402,29 @@ public class TabletClientService {
         if (this.updateID != that.updateID)
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(closeUpdate_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      closeUpdate_args typedOther = (closeUpdate_args)other;
-
+      closeUpdate_args typedOther = (closeUpdate_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -9559,21 +9433,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetUpdateID()) {        lastComparison = TBaseHelper.compareTo(this.updateID, typedOther.updateID);
+      if (isSetUpdateID()) {
+        lastComparison = TBaseHelper.compareTo(this.updateID, typedOther.updateID);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -9581,7 +9455,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -9589,7 +9463,7 @@ public class TabletClientService {
             if (field.type == TType.I64) {
               this.updateID = iprot.readI64();
               setUpdateIDIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -9599,14 +9473,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       oprot.writeFieldBegin(UPDATE_ID_FIELD_DESC);
       oprot.writeI64(this.updateID);
@@ -9619,7 +9493,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("closeUpdate_args(");
@@ -9635,41 +9509,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class closeUpdate_result implements TBase<closeUpdate_result, closeUpdate_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class closeUpdate_result implements TBase<closeUpdate_result,closeUpdate_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("closeUpdate_result");
-
-    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short)0);
-    private static final TField NSSI_FIELD_DESC = new TField("nssi", TType.STRUCT, (short)1);
-
+    
+    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short) 0);
+    private static final TField NSSI_FIELD_DESC = new TField("nssi", TType.STRUCT, (short) 1);
+    
     public org.apache.accumulo.core.data.thrift.UpdateErrors success;
     public NoSuchScanIDException nssi;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      NSSI((short)1, "nssi");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SUCCESS((short) 0, "success"), NSSI((short) 1, "nssi");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
           case 1: // NSSI
@@ -9678,66 +9551,61 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.UpdateErrors.class)));
-      tmpMap.put(_Fields.NSSI, new FieldMetaData("nssi", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.UpdateErrors.class)));
+      tmpMap.put(_Fields.NSSI, new FieldMetaData("nssi", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(closeUpdate_result.class, metaDataMap);
     }
-
-    public closeUpdate_result() {
-    }
-
-    public closeUpdate_result(
-      org.apache.accumulo.core.data.thrift.UpdateErrors success,
-      NoSuchScanIDException nssi)
-    {
+    
+    public closeUpdate_result() {}
+    
+    public closeUpdate_result(org.apache.accumulo.core.data.thrift.UpdateErrors success, NoSuchScanIDException nssi) {
       this();
       this.success = success;
       this.nssi = nssi;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -9749,133 +9617,133 @@ public class TabletClientService {
         this.nssi = new NoSuchScanIDException(other.nssi);
       }
     }
-
+    
     public closeUpdate_result deepCopy() {
       return new closeUpdate_result(this);
     }
-
+    
     @Deprecated
     public closeUpdate_result clone() {
       return new closeUpdate_result(this);
     }
-
+    
     public org.apache.accumulo.core.data.thrift.UpdateErrors getSuccess() {
       return this.success;
     }
-
+    
     public closeUpdate_result setSuccess(org.apache.accumulo.core.data.thrift.UpdateErrors success) {
       this.success = success;
       return this;
     }
-
+    
     public void unsetSuccess() {
       this.success = null;
     }
-
+    
     /** Returns true if field success is set (has been asigned a value) and false otherwise */
     public boolean isSetSuccess() {
       return this.success != null;
     }
-
+    
     public void setSuccessIsSet(boolean value) {
       if (!value) {
         this.success = null;
       }
     }
-
+    
     public NoSuchScanIDException getNssi() {
       return this.nssi;
     }
-
+    
     public closeUpdate_result setNssi(NoSuchScanIDException nssi) {
       this.nssi = nssi;
       return this;
     }
-
+    
     public void unsetNssi() {
       this.nssi = null;
     }
-
+    
     /** Returns true if field nssi is set (has been asigned a value) and false otherwise */
     public boolean isSetNssi() {
       return this.nssi != null;
     }
-
+    
     public void setNssiIsSet(boolean value) {
       if (!value) {
         this.nssi = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((org.apache.accumulo.core.data.thrift.UpdateErrors)value);
-        }
-        break;
-
-      case NSSI:
-        if (value == null) {
-          unsetNssi();
-        } else {
-          setNssi((NoSuchScanIDException)value);
-        }
-        break;
-
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((org.apache.accumulo.core.data.thrift.UpdateErrors) value);
+          }
+          break;
+        
+        case NSSI:
+          if (value == null) {
+            unsetNssi();
+          } else {
+            setNssi((NoSuchScanIDException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
-
-      case NSSI:
-        return getNssi();
-
+        case SUCCESS:
+          return getSuccess();
+          
+        case NSSI:
+          return getNssi();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case NSSI:
-        return isSetNssi();
+        case SUCCESS:
+          return isSetSuccess();
+        case NSSI:
+          return isSetNssi();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof closeUpdate_result)
-        return this.equals((closeUpdate_result)that);
+        return this.equals((closeUpdate_result) that);
       return false;
     }
-
+    
     public boolean equals(closeUpdate_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_success = true && this.isSetSuccess();
       boolean that_present_success = true && that.isSetSuccess();
       if (this_present_success || that_present_success) {
@@ -9884,7 +9752,7 @@ public class TabletClientService {
         if (!this.success.equals(that.success))
           return false;
       }
-
+      
       boolean this_present_nssi = true && this.isSetNssi();
       boolean that_present_nssi = true && that.isSetNssi();
       if (this_present_nssi || that_present_nssi) {
@@ -9893,28 +9761,29 @@ public class TabletClientService {
         if (!this.nssi.equals(that.nssi))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(closeUpdate_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      closeUpdate_result typedOther = (closeUpdate_result)other;
-
+      closeUpdate_result typedOther = (closeUpdate_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSuccess()) {        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
+      if (isSetSuccess()) {
+        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -9923,21 +9792,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetNssi()) {        lastComparison = TBaseHelper.compareTo(this.nssi, typedOther.nssi);
+      if (isSetNssi()) {
+        lastComparison = TBaseHelper.compareTo(this.nssi, typedOther.nssi);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -9945,7 +9814,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.success = new org.apache.accumulo.core.data.thrift.UpdateErrors();
               this.success.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -9953,7 +9822,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.nssi = new NoSuchScanIDException();
               this.nssi.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -9963,14 +9832,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSuccess()) {
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         this.success.write(oprot);
@@ -9983,7 +9852,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("closeUpdate_result(");
@@ -10003,47 +9872,44 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class update_args implements TBase<update_args, update_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class update_args implements TBase<update_args,update_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("update_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)4);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-    private static final TField KEY_EXTENT_FIELD_DESC = new TField("keyExtent", TType.STRUCT, (short)2);
-    private static final TField MUTATION_FIELD_DESC = new TField("mutation", TType.STRUCT, (short)3);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 4);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    private static final TField KEY_EXTENT_FIELD_DESC = new TField("keyExtent", TType.STRUCT, (short) 2);
+    private static final TField MUTATION_FIELD_DESC = new TField("mutation", TType.STRUCT, (short) 3);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
     public org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent;
     public org.apache.accumulo.core.data.thrift.TMutation mutation;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)4, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      KEY_EXTENT((short)2, "keyExtent"),
-      MUTATION((short)3, "mutation");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 4, "tinfo"), CREDENTIALS((short) 1, "credentials"), KEY_EXTENT((short) 2, "keyExtent"), MUTATION((short) 3, "mutation");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 4: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -10056,74 +9922,68 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.KEY_EXTENT, new FieldMetaData("keyExtent", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
-      tmpMap.put(_Fields.MUTATION, new FieldMetaData("mutation", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TMutation.class)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      tmpMap.put(_Fields.KEY_EXTENT, new FieldMetaData("keyExtent", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
+      tmpMap.put(_Fields.MUTATION, new FieldMetaData("mutation", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.TMutation.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(update_args.class, metaDataMap);
     }
-
-    public update_args() {
-    }
-
-    public update_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent,
-      org.apache.accumulo.core.data.thrift.TMutation mutation)
-    {
+    
+    public update_args() {}
+    
+    public update_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.data.thrift.TMutation mutation) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.keyExtent = keyExtent;
       this.mutation = mutation;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -10141,207 +10001,207 @@ public class TabletClientService {
         this.mutation = new org.apache.accumulo.core.data.thrift.TMutation(other.mutation);
       }
     }
-
+    
     public update_args deepCopy() {
       return new update_args(this);
     }
-
+    
     @Deprecated
     public update_args clone() {
       return new update_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public update_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public update_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public org.apache.accumulo.core.data.thrift.TKeyExtent getKeyExtent() {
       return this.keyExtent;
     }
-
+    
     public update_args setKeyExtent(org.apache.accumulo.core.data.thrift.TKeyExtent keyExtent) {
       this.keyExtent = keyExtent;
       return this;
     }
-
+    
     public void unsetKeyExtent() {
       this.keyExtent = null;
     }
-
+    
     /** Returns true if field keyExtent is set (has been asigned a value) and false otherwise */
     public boolean isSetKeyExtent() {
       return this.keyExtent != null;
     }
-
+    
     public void setKeyExtentIsSet(boolean value) {
       if (!value) {
         this.keyExtent = null;
       }
     }
-
+    
     public org.apache.accumulo.core.data.thrift.TMutation getMutation() {
       return this.mutation;
     }
-
+    
     public update_args setMutation(org.apache.accumulo.core.data.thrift.TMutation mutation) {
       this.mutation = mutation;
       return this;
     }
-
+    
     public void unsetMutation() {
       this.mutation = null;
     }
-
+    
     /** Returns true if field mutation is set (has been asigned a value) and false otherwise */
     public boolean isSetMutation() {
       return this.mutation != null;
     }
-
+    
     public void setMutationIsSet(boolean value) {
       if (!value) {
         this.mutation = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
-      case KEY_EXTENT:
-        if (value == null) {
-          unsetKeyExtent();
-        } else {
-          setKeyExtent((org.apache.accumulo.core.data.thrift.TKeyExtent)value);
-        }
-        break;
-
-      case MUTATION:
-        if (value == null) {
-          unsetMutation();
-        } else {
-          setMutation((org.apache.accumulo.core.data.thrift.TMutation)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+        
+        case KEY_EXTENT:
+          if (value == null) {
+            unsetKeyExtent();
+          } else {
+            setKeyExtent((org.apache.accumulo.core.data.thrift.TKeyExtent) value);
+          }
+          break;
+        
+        case MUTATION:
+          if (value == null) {
+            unsetMutation();
+          } else {
+            setMutation((org.apache.accumulo.core.data.thrift.TMutation) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case KEY_EXTENT:
-        return getKeyExtent();
-
-      case MUTATION:
-        return getMutation();
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
+        case KEY_EXTENT:
+          return getKeyExtent();
+          
+        case MUTATION:
+          return getMutation();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case KEY_EXTENT:
-        return isSetKeyExtent();
-      case MUTATION:
-        return isSetMutation();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
+        case KEY_EXTENT:
+          return isSetKeyExtent();
+        case MUTATION:
+          return isSetMutation();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof update_args)
-        return this.equals((update_args)that);
+        return this.equals((update_args) that);
       return false;
     }
-
+    
     public boolean equals(update_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -10350,7 +10210,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -10359,7 +10219,7 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       boolean this_present_keyExtent = true && this.isSetKeyExtent();
       boolean that_present_keyExtent = true && that.isSetKeyExtent();
       if (this_present_keyExtent || that_present_keyExtent) {
@@ -10368,7 +10228,7 @@ public class TabletClientService {
         if (!this.keyExtent.equals(that.keyExtent))
           return false;
       }
-
+      
       boolean this_present_mutation = true && this.isSetMutation();
       boolean that_present_mutation = true && that.isSetMutation();
       if (this_present_mutation || that_present_mutation) {
@@ -10377,28 +10237,29 @@ public class TabletClientService {
         if (!this.mutation.equals(that.mutation))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(update_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      update_args typedOther = (update_args)other;
-
+      update_args typedOther = (update_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -10407,7 +10268,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -10416,7 +10278,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetKeyExtent()) {        lastComparison = TBaseHelper.compareTo(this.keyExtent, typedOther.keyExtent);
+      if (isSetKeyExtent()) {
+        lastComparison = TBaseHelper.compareTo(this.keyExtent, typedOther.keyExtent);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -10425,21 +10288,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetMutation()) {        lastComparison = TBaseHelper.compareTo(this.mutation, typedOther.mutation);
+      if (isSetMutation()) {
+        lastComparison = TBaseHelper.compareTo(this.mutation, typedOther.mutation);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -10447,7 +10310,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -10455,7 +10318,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -10463,7 +10326,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.keyExtent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
               this.keyExtent.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -10471,7 +10334,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.mutation = new org.apache.accumulo.core.data.thrift.TMutation();
               this.mutation.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -10481,14 +10344,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -10513,7 +10376,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("update_args(");
@@ -10547,44 +10410,42 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class update_result implements TBase<update_result, update_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class update_result implements TBase<update_result,update_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("update_result");
-
-    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short)1);
-    private static final TField NSTE_FIELD_DESC = new TField("nste", TType.STRUCT, (short)2);
-    private static final TField CVE_FIELD_DESC = new TField("cve", TType.STRUCT, (short)3);
-
+    
+    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short) 1);
+    private static final TField NSTE_FIELD_DESC = new TField("nste", TType.STRUCT, (short) 2);
+    private static final TField CVE_FIELD_DESC = new TField("cve", TType.STRUCT, (short) 3);
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec;
     public NotServingTabletException nste;
     public ConstraintViolationException cve;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SEC((short)1, "sec"),
-      NSTE((short)2, "nste"),
-      CVE((short)3, "cve");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SEC((short) 1, "sec"), NSTE((short) 2, "nste"), CVE((short) 3, "cve");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 1: // SEC
             return SEC;
           case 2: // NSTE
@@ -10595,70 +10456,62 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
-      tmpMap.put(_Fields.NSTE, new FieldMetaData("nste", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
-      tmpMap.put(_Fields.CVE, new FieldMetaData("cve", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
+      tmpMap.put(_Fields.NSTE, new FieldMetaData("nste", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
+      tmpMap.put(_Fields.CVE, new FieldMetaData("cve", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(update_result.class, metaDataMap);
     }
-
-    public update_result() {
-    }
-
-    public update_result(
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec,
-      NotServingTabletException nste,
-      ConstraintViolationException cve)
-    {
+    
+    public update_result() {}
+    
+    public update_result(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec, NotServingTabletException nste, ConstraintViolationException cve) {
       this();
       this.sec = sec;
       this.nste = nste;
       this.cve = cve;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -10673,170 +10526,170 @@ public class TabletClientService {
         this.cve = new ConstraintViolationException(other.cve);
       }
     }
-
+    
     public update_result deepCopy() {
       return new update_result(this);
     }
-
+    
     @Deprecated
     public update_result clone() {
       return new update_result(this);
     }
-
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
       return this.sec;
     }
-
+    
     public update_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
-
+    
     public void unsetSec() {
       this.sec = null;
     }
-
+    
     /** Returns true if field sec is set (has been asigned a value) and false otherwise */
     public boolean isSetSec() {
       return this.sec != null;
     }
-
+    
     public void setSecIsSet(boolean value) {
       if (!value) {
         this.sec = null;
       }
     }
-
+    
     public NotServingTabletException getNste() {
       return this.nste;
     }
-
+    
     public update_result setNste(NotServingTabletException nste) {
       this.nste = nste;
       return this;
     }
-
+    
     public void unsetNste() {
       this.nste = null;
     }
-
+    
     /** Returns true if field nste is set (has been asigned a value) and false otherwise */
     public boolean isSetNste() {
       return this.nste != null;
     }
-
+    
     public void setNsteIsSet(boolean value) {
       if (!value) {
         this.nste = null;
       }
     }
-
+    
     public ConstraintViolationException getCve() {
       return this.cve;
     }
-
+    
     public update_result setCve(ConstraintViolationException cve) {
       this.cve = cve;
       return this;
     }
-
+    
     public void unsetCve() {
       this.cve = null;
     }
-
+    
     /** Returns true if field cve is set (has been asigned a value) and false otherwise */
     public boolean isSetCve() {
       return this.cve != null;
     }
-
+    
     public void setCveIsSet(boolean value) {
       if (!value) {
         this.cve = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      case NSTE:
-        if (value == null) {
-          unsetNste();
-        } else {
-          setNste((NotServingTabletException)value);
-        }
-        break;
-
-      case CVE:
-        if (value == null) {
-          unsetCve();
-        } else {
-          setCve((ConstraintViolationException)value);
-        }
-        break;
-
+        case SEC:
+          if (value == null) {
+            unsetSec();
+          } else {
+            setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException) value);
+          }
+          break;
+        
+        case NSTE:
+          if (value == null) {
+            unsetNste();
+          } else {
+            setNste((NotServingTabletException) value);
+          }
+          break;
+        
+        case CVE:
+          if (value == null) {
+            unsetCve();
+          } else {
+            setCve((ConstraintViolationException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SEC:
-        return getSec();
-
-      case NSTE:
-        return getNste();
-
-      case CVE:
-        return getCve();
-
+        case SEC:
+          return getSec();
+          
+        case NSTE:
+          return getNste();
+          
+        case CVE:
+          return getCve();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SEC:
-        return isSetSec();
-      case NSTE:
-        return isSetNste();
-      case CVE:
-        return isSetCve();
+        case SEC:
+          return isSetSec();
+        case NSTE:
+          return isSetNste();
+        case CVE:
+          return isSetCve();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof update_result)
-        return this.equals((update_result)that);
+        return this.equals((update_result) that);
       return false;
     }
-
+    
     public boolean equals(update_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_sec = true && this.isSetSec();
       boolean that_present_sec = true && that.isSetSec();
       if (this_present_sec || that_present_sec) {
@@ -10845,7 +10698,7 @@ public class TabletClientService {
         if (!this.sec.equals(that.sec))
           return false;
       }
-
+      
       boolean this_present_nste = true && this.isSetNste();
       boolean that_present_nste = true && that.isSetNste();
       if (this_present_nste || that_present_nste) {
@@ -10854,7 +10707,7 @@ public class TabletClientService {
         if (!this.nste.equals(that.nste))
           return false;
       }
-
+      
       boolean this_present_cve = true && this.isSetCve();
       boolean that_present_cve = true && that.isSetCve();
       if (this_present_cve || that_present_cve) {
@@ -10863,28 +10716,29 @@ public class TabletClientService {
         if (!this.cve.equals(that.cve))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(update_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      update_result typedOther = (update_result)other;
-
+      update_result typedOther = (update_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSec()) {        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
+      if (isSetSec()) {
+        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -10893,7 +10747,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetNste()) {        lastComparison = TBaseHelper.compareTo(this.nste, typedOther.nste);
+      if (isSetNste()) {
+        lastComparison = TBaseHelper.compareTo(this.nste, typedOther.nste);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -10902,21 +10757,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCve()) {        lastComparison = TBaseHelper.compareTo(this.cve, typedOther.cve);
+      if (isSetCve()) {
+        lastComparison = TBaseHelper.compareTo(this.cve, typedOther.cve);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -10924,7 +10779,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
               this.sec.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -10932,7 +10787,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.nste = new NotServingTabletException();
               this.nste.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -10940,7 +10795,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.cve = new ConstraintViolationException();
               this.cve.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -10950,14 +10805,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSec()) {
         oprot.writeFieldBegin(SEC_FIELD_DESC);
         this.sec.write(oprot);
@@ -10974,7 +10829,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("update_result(");
@@ -11001,44 +10856,42 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class bulkImport_args implements TBase<bulkImport_args, bulkImport_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class bulkImport_args implements TBase<bulkImport_args,bulkImport_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("bulkImport_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)3);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-    private static final TField FILES_FIELD_DESC = new TField("files", TType.MAP, (short)2);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 3);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    private static final TField FILES_FIELD_DESC = new TField("files", TType.MAP, (short) 2);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
     public java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      FILES((short)2, "files");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 3, "tinfo"), CREDENTIALS((short) 1, "credentials"), FILES((short) 2, "files");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 3: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -11049,70 +10902,64 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.FILES, new FieldMetaData("files", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.MAP          , "TabletFiles")));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      tmpMap.put(_Fields.FILES, new FieldMetaData("files", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.MAP, "TabletFiles")));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(bulkImport_args.class, metaDataMap);
     }
-
-    public bulkImport_args() {
-    }
-
-    public bulkImport_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files)
-    {
+    
+    public bulkImport_args() {}
+    
+    public bulkImport_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.files = files;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -11127,182 +10974,183 @@ public class TabletClientService {
         this.files = other.files;
       }
     }
-
+    
     public bulkImport_args deepCopy() {
       return new bulkImport_args(this);
     }
-
+    
     @Deprecated
     public bulkImport_args clone() {
       return new bulkImport_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public bulkImport_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public bulkImport_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public int getFilesSize() {
       return (this.files == null) ? 0 : this.files.size();
     }
-
+    
     public void putToFiles(org.apache.accumulo.core.data.thrift.TKeyExtent key, java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo> val) {
       if (this.files == null) {
         this.files = new java.util.HashMap<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>>();
       }
       this.files.put(key, val);
     }
-
+    
     public java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> getFiles() {
       return this.files;
     }
-
-    public bulkImport_args setFiles(java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files) {
+    
+    public bulkImport_args setFiles(
+        java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files) {
       this.files = files;
       return this;
     }
-
+    
     public void unsetFiles() {
       this.files = null;
     }
-
+    
     /** Returns true if field files is set (has been asigned a value) and false otherwise */
     public boolean isSetFiles() {
       return this.files != null;
     }
-
+    
     public void setFilesIsSet(boolean value) {
       if (!value) {
         this.files = null;
       }
     }
-
+    
     @SuppressWarnings("unchecked")
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
-      case FILES:
-        if (value == null) {
-          unsetFiles();
-        } else {
-          setFiles((java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>>)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+        
+        case FILES:
+          if (value == null) {
+            unsetFiles();
+          } else {
+            setFiles((java.util.Map<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>>) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case FILES:
-        return getFiles();
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
+        case FILES:
+          return getFiles();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case FILES:
-        return isSetFiles();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
+        case FILES:
+          return isSetFiles();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof bulkImport_args)
-        return this.equals((bulkImport_args)that);
+        return this.equals((bulkImport_args) that);
       return false;
     }
-
+    
     public boolean equals(bulkImport_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -11311,7 +11159,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -11320,7 +11168,7 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       boolean this_present_files = true && this.isSetFiles();
       boolean that_present_files = true && that.isSetFiles();
       if (this_present_files || that_present_files) {
@@ -11329,28 +11177,29 @@ public class TabletClientService {
         if (!this.files.equals(that.files))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(bulkImport_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      bulkImport_args typedOther = (bulkImport_args)other;
-
+      bulkImport_args typedOther = (bulkImport_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -11359,7 +11208,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -11368,21 +11218,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetFiles()) {        lastComparison = TBaseHelper.compareTo(this.files, typedOther.files);
+      if (isSetFiles()) {
+        lastComparison = TBaseHelper.compareTo(this.files, typedOther.files);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -11390,7 +11240,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -11398,7 +11248,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -11406,18 +11256,17 @@ public class TabletClientService {
             if (field.type == TType.MAP) {
               {
                 TMap _map79 = iprot.readMapBegin();
-                this.files = new java.util.HashMap<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>>(2*_map79.size);
-                for (int _i80 = 0; _i80 < _map79.size; ++_i80)
-                {
+                this.files = new java.util.HashMap<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>>(
+                    2 * _map79.size);
+                for (int _i80 = 0; _i80 < _map79.size; ++_i80) {
                   org.apache.accumulo.core.data.thrift.TKeyExtent _key81;
                   java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo> _val82;
                   _key81 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
                   _key81.read(iprot);
                   {
                     TMap _map83 = iprot.readMapBegin();
-                    _val82 = new java.util.HashMap<String,org.apache.accumulo.core.data.thrift.MapFileInfo>(2*_map83.size);
-                    for (int _i84 = 0; _i84 < _map83.size; ++_i84)
-                    {
+                    _val82 = new java.util.HashMap<String,org.apache.accumulo.core.data.thrift.MapFileInfo>(2 * _map83.size);
+                    for (int _i84 = 0; _i84 < _map83.size; ++_i84) {
                       String _key85;
                       org.apache.accumulo.core.data.thrift.MapFileInfo _val86;
                       _key85 = iprot.readString();
@@ -11431,7 +11280,7 @@ public class TabletClientService {
                 }
                 iprot.readMapEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -11441,14 +11290,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -11459,13 +11308,12 @@ public class TabletClientService {
         oprot.writeFieldBegin(FILES_FIELD_DESC);
         {
           oprot.writeMapBegin(new TMap(TType.STRUCT, TType.MAP, this.files.size()));
-          for (java.util.Map.Entry<org.apache.accumulo.core.data.thrift.TKeyExtent, java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> _iter87 : this.files.entrySet())
-          {
+          for (java.util.Map.Entry<org.apache.accumulo.core.data.thrift.TKeyExtent,java.util.Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> _iter87 : this.files
+              .entrySet()) {
             _iter87.getKey().write(oprot);
             {
               oprot.writeMapBegin(new TMap(TType.STRING, TType.STRUCT, _iter87.getValue().size()));
-              for (java.util.Map.Entry<String, org.apache.accumulo.core.data.thrift.MapFileInfo> _iter88 : _iter87.getValue().entrySet())
-              {
+              for (java.util.Map.Entry<String,org.apache.accumulo.core.data.thrift.MapFileInfo> _iter88 : _iter87.getValue().entrySet()) {
                 oprot.writeString(_iter88.getKey());
                 _iter88.getValue().write(oprot);
               }
@@ -11484,7 +11332,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("bulkImport_args(");
@@ -11511,41 +11359,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class bulkImport_result implements TBase<bulkImport_result, bulkImport_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class bulkImport_result implements TBase<bulkImport_result,bulkImport_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("bulkImport_result");
-
-    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.LIST, (short)0);
-    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short)1);
-
+    
+    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.LIST, (short) 0);
+    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short) 1);
+    
     public java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> success;
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      SEC((short)1, "sec");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SUCCESS((short) 0, "success"), SEC((short) 1, "sec");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
           case 1: // SEC
@@ -11554,67 +11401,62 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, 
-          new ListMetaData(TType.LIST, 
-              new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class))));
-      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.TKeyExtent.class))));
+      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(bulkImport_result.class, metaDataMap);
     }
-
-    public bulkImport_result() {
-    }
-
-    public bulkImport_result(
-      java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> success,
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
-    {
+    
+    public bulkImport_result() {}
+    
+    public bulkImport_result(java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> success,
+        org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this();
       this.success = success;
       this.sec = sec;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -11630,149 +11472,149 @@ public class TabletClientService {
         this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
       }
     }
-
+    
     public bulkImport_result deepCopy() {
       return new bulkImport_result(this);
     }
-
+    
     @Deprecated
     public bulkImport_result clone() {
       return new bulkImport_result(this);
     }
-
+    
     public int getSuccessSize() {
       return (this.success == null) ? 0 : this.success.size();
     }
-
+    
     public java.util.Iterator<org.apache.accumulo.core.data.thrift.TKeyExtent> getSuccessIterator() {
       return (this.success == null) ? null : this.success.iterator();
     }
-
+    
     public void addToSuccess(org.apache.accumulo.core.data.thrift.TKeyExtent elem) {
       if (this.success == null) {
         this.success = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>();
       }
       this.success.add(elem);
     }
-
+    
     public java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> getSuccess() {
       return this.success;
     }
-
+    
     public bulkImport_result setSuccess(java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent> success) {
       this.success = success;
       return this;
     }
-
+    
     public void unsetSuccess() {
       this.success = null;
     }
-
+    
     /** Returns true if field success is set (has been asigned a value) and false otherwise */
     public boolean isSetSuccess() {
       return this.success != null;
     }
-
+    
     public void setSuccessIsSet(boolean value) {
       if (!value) {
         this.success = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
       return this.sec;
     }
-
+    
     public bulkImport_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
-
+    
     public void unsetSec() {
       this.sec = null;
     }
-
+    
     /** Returns true if field sec is set (has been asigned a value) and false otherwise */
     public boolean isSetSec() {
       return this.sec != null;
     }
-
+    
     public void setSecIsSet(boolean value) {
       if (!value) {
         this.sec = null;
       }
     }
-
+    
     @SuppressWarnings("unchecked")
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent>)value);
-        }
-        break;
-
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((java.util.List<org.apache.accumulo.core.data.thrift.TKeyExtent>) value);
+          }
+          break;
+        
+        case SEC:
+          if (value == null) {
+            unsetSec();
+          } else {
+            setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
-
-      case SEC:
-        return getSec();
-
+        case SUCCESS:
+          return getSuccess();
+          
+        case SEC:
+          return getSec();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case SEC:
-        return isSetSec();
+        case SUCCESS:
+          return isSetSuccess();
+        case SEC:
+          return isSetSec();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof bulkImport_result)
-        return this.equals((bulkImport_result)that);
+        return this.equals((bulkImport_result) that);
       return false;
     }
-
+    
     public boolean equals(bulkImport_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_success = true && this.isSetSuccess();
       boolean that_present_success = true && that.isSetSuccess();
       if (this_present_success || that_present_success) {
@@ -11781,7 +11623,7 @@ public class TabletClientService {
         if (!this.success.equals(that.success))
           return false;
       }
-
+      
       boolean this_present_sec = true && this.isSetSec();
       boolean that_present_sec = true && that.isSetSec();
       if (this_present_sec || that_present_sec) {
@@ -11790,28 +11632,29 @@ public class TabletClientService {
         if (!this.sec.equals(that.sec))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(bulkImport_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      bulkImport_result typedOther = (bulkImport_result)other;
-
+      bulkImport_result typedOther = (bulkImport_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSuccess()) {        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
+      if (isSetSuccess()) {
+        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -11820,21 +11663,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSec()) {        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
+      if (isSetSec()) {
+        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -11843,8 +11686,7 @@ public class TabletClientService {
               {
                 TList _list89 = iprot.readListBegin();
                 this.success = new java.util.ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>(_list89.size);
-                for (int _i90 = 0; _i90 < _list89.size; ++_i90)
-                {
+                for (int _i90 = 0; _i90 < _list89.size; ++_i90) {
                   org.apache.accumulo.core.data.thrift.TKeyExtent _elem91;
                   _elem91 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
                   _elem91.read(iprot);
@@ -11852,7 +11694,7 @@ public class TabletClientService {
                 }
                 iprot.readListEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -11860,7 +11702,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
               this.sec.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -11870,20 +11712,19 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSuccess()) {
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         {
           oprot.writeListBegin(new TList(TType.STRUCT, this.success.size()));
-          for (org.apache.accumulo.core.data.thrift.TKeyExtent _iter92 : this.success)
-          {
+          for (org.apache.accumulo.core.data.thrift.TKeyExtent _iter92 : this.success) {
             _iter92.write(oprot);
           }
           oprot.writeListEnd();
@@ -11897,7 +11738,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("bulkImport_result(");
@@ -11917,47 +11758,44 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class splitTablet_args implements TBase<splitTablet_args, splitTablet_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class splitTablet_args implements TBase<splitTablet_args,splitTablet_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("splitTablet_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)4);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-    private static final TField EXTENT_FIELD_DESC = new TField("extent", TType.STRUCT, (short)2);
-    private static final TField SPLIT_POINT_FIELD_DESC = new TField("splitPoint", TType.STRING, (short)3);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 4);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    private static final TField EXTENT_FIELD_DESC = new TField("extent", TType.STRUCT, (short) 2);
+    private static final TField SPLIT_POINT_FIELD_DESC = new TField("splitPoint", TType.STRING, (short) 3);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
     public org.apache.accumulo.core.data.thrift.TKeyExtent extent;
     public byte[] splitPoint;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)4, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      EXTENT((short)2, "extent"),
-      SPLIT_POINT((short)3, "splitPoint");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 4, "tinfo"), CREDENTIALS((short) 1, "credentials"), EXTENT((short) 2, "extent"), SPLIT_POINT((short) 3, "splitPoint");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 4: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -11970,74 +11808,67 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.EXTENT, new FieldMetaData("extent", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
-      tmpMap.put(_Fields.SPLIT_POINT, new FieldMetaData("splitPoint", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRING)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      tmpMap.put(_Fields.EXTENT, new FieldMetaData("extent", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
+      tmpMap.put(_Fields.SPLIT_POINT, new FieldMetaData("splitPoint", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(splitTablet_args.class, metaDataMap);
     }
-
-    public splitTablet_args() {
-    }
-
-    public splitTablet_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      org.apache.accumulo.core.data.thrift.TKeyExtent extent,
-      byte[] splitPoint)
-    {
+    
+    public splitTablet_args() {}
+    
+    public splitTablet_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent, byte[] splitPoint) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.extent = extent;
       this.splitPoint = splitPoint;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -12056,207 +11887,207 @@ public class TabletClientService {
         System.arraycopy(other.splitPoint, 0, splitPoint, 0, other.splitPoint.length);
       }
     }
-
+    
     public splitTablet_args deepCopy() {
       return new splitTablet_args(this);
     }
-
+    
     @Deprecated
     public splitTablet_args clone() {
       return new splitTablet_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public splitTablet_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public splitTablet_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public org.apache.accumulo.core.data.thrift.TKeyExtent getExtent() {
       return this.extent;
     }
-
+    
     public splitTablet_args setExtent(org.apache.accumulo.core.data.thrift.TKeyExtent extent) {
       this.extent = extent;
       return this;
     }
-
+    
     public void unsetExtent() {
       this.extent = null;
     }
-
+    
     /** Returns true if field extent is set (has been asigned a value) and false otherwise */
     public boolean isSetExtent() {
       return this.extent != null;
     }
-
+    
     public void setExtentIsSet(boolean value) {
       if (!value) {
         this.extent = null;
       }
     }
-
+    
     public byte[] getSplitPoint() {
       return this.splitPoint;
     }
-
+    
     public splitTablet_args setSplitPoint(byte[] splitPoint) {
       this.splitPoint = splitPoint;
       return this;
     }
-
+    
     public void unsetSplitPoint() {
       this.splitPoint = null;
     }
-
+    
     /** Returns true if field splitPoint is set (has been asigned a value) and false otherwise */
     public boolean isSetSplitPoint() {
       return this.splitPoint != null;
     }
-
+    
     public void setSplitPointIsSet(boolean value) {
       if (!value) {
         this.splitPoint = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
-      case EXTENT:
-        if (value == null) {
-          unsetExtent();
-        } else {
-          setExtent((org.apache.accumulo.core.data.thrift.TKeyExtent)value);
-        }
-        break;
-
-      case SPLIT_POINT:
-        if (value == null) {
-          unsetSplitPoint();
-        } else {
-          setSplitPoint((byte[])value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+        
+        case EXTENT:
+          if (value == null) {
+            unsetExtent();
+          } else {
+            setExtent((org.apache.accumulo.core.data.thrift.TKeyExtent) value);
+          }
+          break;
+        
+        case SPLIT_POINT:
+          if (value == null) {
+            unsetSplitPoint();
+          } else {
+            setSplitPoint((byte[]) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case EXTENT:
-        return getExtent();
-
-      case SPLIT_POINT:
-        return getSplitPoint();
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
+        case EXTENT:
+          return getExtent();
+          
+        case SPLIT_POINT:
+          return getSplitPoint();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case EXTENT:
-        return isSetExtent();
-      case SPLIT_POINT:
-        return isSetSplitPoint();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
+        case EXTENT:
+          return isSetExtent();
+        case SPLIT_POINT:
+          return isSetSplitPoint();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof splitTablet_args)
-        return this.equals((splitTablet_args)that);
+        return this.equals((splitTablet_args) that);
       return false;
     }
-
+    
     public boolean equals(splitTablet_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -12265,7 +12096,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -12274,7 +12105,7 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       boolean this_present_extent = true && this.isSetExtent();
       boolean that_present_extent = true && that.isSetExtent();
       if (this_present_extent || that_present_extent) {
@@ -12283,7 +12114,7 @@ public class TabletClientService {
         if (!this.extent.equals(that.extent))
           return false;
       }
-
+      
       boolean this_present_splitPoint = true && this.isSetSplitPoint();
       boolean that_present_splitPoint = true && that.isSetSplitPoint();
       if (this_present_splitPoint || that_present_splitPoint) {
@@ -12292,28 +12123,29 @@ public class TabletClientService {
         if (!java.util.Arrays.equals(this.splitPoint, that.splitPoint))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(splitTablet_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      splitTablet_args typedOther = (splitTablet_args)other;
-
+      splitTablet_args typedOther = (splitTablet_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -12322,7 +12154,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -12331,7 +12164,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetExtent()) {        lastComparison = TBaseHelper.compareTo(this.extent, typedOther.extent);
+      if (isSetExtent()) {
+        lastComparison = TBaseHelper.compareTo(this.extent, typedOther.extent);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -12340,21 +12174,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSplitPoint()) {        lastComparison = TBaseHelper.compareTo(this.splitPoint, typedOther.splitPoint);
+      if (isSetSplitPoint()) {
+        lastComparison = TBaseHelper.compareTo(this.splitPoint, typedOther.splitPoint);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -12362,7 +12196,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -12370,7 +12204,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -12378,14 +12212,14 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
               this.extent.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
           case 3: // SPLIT_POINT
             if (field.type == TType.STRING) {
               this.splitPoint = iprot.readBinary();
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -12395,14 +12229,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -12427,7 +12261,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("splitTablet_args(");
@@ -12456,51 +12290,53 @@ public class TabletClientService {
       if (this.splitPoint == null) {
         sb.append("null");
       } else {
-          int __splitPoint_size = Math.min(this.splitPoint.length, 128);
-          for (int i = 0; i < __splitPoint_size; i++) {
-            if (i != 0) sb.append(" ");
-            sb.append(Integer.toHexString(this.splitPoint[i]).length() > 1 ? Integer.toHexString(this.splitPoint[i]).substring(Integer.toHexString(this.splitPoint[i]).length() - 2).toUpperCase() : "0" + Integer.toHexString(this.splitPoint[i]).toUpperCase());
-          }
-          if (this.splitPoint.length > 128) sb.append(" ...");
+        int __splitPoint_size = Math.min(this.splitPoint.length, 128);
+        for (int i = 0; i < __splitPoint_size; i++) {
+          if (i != 0)
+            sb.append(" ");
+          sb.append(Integer.toHexString(this.splitPoint[i]).length() > 1 ? Integer.toHexString(this.splitPoint[i])
+              .substring(Integer.toHexString(this.splitPoint[i]).length() - 2).toUpperCase() : "0" + Integer.toHexString(this.splitPoint[i]).toUpperCase());
+        }
+        if (this.splitPoint.length > 128)
+          sb.append(" ...");
       }
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class splitTablet_result implements TBase<splitTablet_result, splitTablet_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class splitTablet_result implements TBase<splitTablet_result,splitTablet_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("splitTablet_result");
-
-    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short)1);
-    private static final TField NSTE_FIELD_DESC = new TField("nste", TType.STRUCT, (short)2);
-
+    
+    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short) 1);
+    private static final TField NSTE_FIELD_DESC = new TField("nste", TType.STRUCT, (short) 2);
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec;
     public NotServingTabletException nste;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SEC((short)1, "sec"),
-      NSTE((short)2, "nste");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SEC((short) 1, "sec"), NSTE((short) 2, "nste");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 1: // SEC
             return SEC;
           case 2: // NSTE
@@ -12509,66 +12345,60 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
-      tmpMap.put(_Fields.NSTE, new FieldMetaData("nste", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
+      tmpMap.put(_Fields.NSTE, new FieldMetaData("nste", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(splitTablet_result.class, metaDataMap);
     }
-
-    public splitTablet_result() {
-    }
-
-    public splitTablet_result(
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec,
-      NotServingTabletException nste)
-    {
+    
+    public splitTablet_result() {}
+    
+    public splitTablet_result(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec, NotServingTabletException nste) {
       this();
       this.sec = sec;
       this.nste = nste;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -12580,133 +12410,133 @@ public class TabletClientService {
         this.nste = new NotServingTabletException(other.nste);
       }
     }
-
+    
     public splitTablet_result deepCopy() {
       return new splitTablet_result(this);
     }
-
+    
     @Deprecated
     public splitTablet_result clone() {
       return new splitTablet_result(this);
     }
-
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
       return this.sec;
     }
-
+    
     public splitTablet_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
-
+    
     public void unsetSec() {
       this.sec = null;
     }
-
+    
     /** Returns true if field sec is set (has been asigned a value) and false otherwise */
     public boolean isSetSec() {
       return this.sec != null;
     }
-
+    
     public void setSecIsSet(boolean value) {
       if (!value) {
         this.sec = null;
       }
     }
-
+    
     public NotServingTabletException getNste() {
       return this.nste;
     }
-
+    
     public splitTablet_result setNste(NotServingTabletException nste) {
       this.nste = nste;
       return this;
     }
-
+    
     public void unsetNste() {
       this.nste = null;
     }
-
+    
     /** Returns true if field nste is set (has been asigned a value) and false otherwise */
     public boolean isSetNste() {
       return this.nste != null;
     }
-
+    
     public void setNsteIsSet(boolean value) {
       if (!value) {
         this.nste = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      case NSTE:
-        if (value == null) {
-          unsetNste();
-        } else {
-          setNste((NotServingTabletException)value);
-        }
-        break;
-
+        case SEC:
+          if (value == null) {
+            unsetSec();
+          } else {
+            setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException) value);
+          }
+          break;
+        
+        case NSTE:
+          if (value == null) {
+            unsetNste();
+          } else {
+            setNste((NotServingTabletException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SEC:
-        return getSec();
-
-      case NSTE:
-        return getNste();
-
+        case SEC:
+          return getSec();
+          
+        case NSTE:
+          return getNste();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SEC:
-        return isSetSec();
-      case NSTE:
-        return isSetNste();
+        case SEC:
+          return isSetSec();
+        case NSTE:
+          return isSetNste();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof splitTablet_result)
-        return this.equals((splitTablet_result)that);
+        return this.equals((splitTablet_result) that);
       return false;
     }
-
+    
     public boolean equals(splitTablet_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_sec = true && this.isSetSec();
       boolean that_present_sec = true && that.isSetSec();
       if (this_present_sec || that_present_sec) {
@@ -12715,7 +12545,7 @@ public class TabletClientService {
         if (!this.sec.equals(that.sec))
           return false;
       }
-
+      
       boolean this_present_nste = true && this.isSetNste();
       boolean that_present_nste = true && that.isSetNste();
       if (this_present_nste || that_present_nste) {
@@ -12724,28 +12554,29 @@ public class TabletClientService {
         if (!this.nste.equals(that.nste))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(splitTablet_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      splitTablet_result typedOther = (splitTablet_result)other;
-
+      splitTablet_result typedOther = (splitTablet_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSec()) {        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
+      if (isSetSec()) {
+        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -12754,21 +12585,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetNste()) {        lastComparison = TBaseHelper.compareTo(this.nste, typedOther.nste);
+      if (isSetNste()) {
+        lastComparison = TBaseHelper.compareTo(this.nste, typedOther.nste);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -12776,7 +12607,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
               this.sec.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -12784,7 +12615,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.nste = new NotServingTabletException();
               this.nste.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -12794,14 +12625,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSec()) {
         oprot.writeFieldBegin(SEC_FIELD_DESC);
         this.sec.write(oprot);
@@ -12814,7 +12645,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("splitTablet_result(");
@@ -12834,47 +12665,44 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class loadTablet_args implements TBase<loadTablet_args, loadTablet_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class loadTablet_args implements TBase<loadTablet_args,loadTablet_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("loadTablet_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)5);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-    private static final TField LOCK_FIELD_DESC = new TField("lock", TType.STRING, (short)4);
-    private static final TField EXTENT_FIELD_DESC = new TField("extent", TType.STRUCT, (short)2);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 5);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    private static final TField LOCK_FIELD_DESC = new TField("lock", TType.STRING, (short) 4);
+    private static final TField EXTENT_FIELD_DESC = new TField("extent", TType.STRUCT, (short) 2);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
     public String lock;
     public org.apache.accumulo.core.data.thrift.TKeyExtent extent;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)5, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      LOCK((short)4, "lock"),
-      EXTENT((short)2, "extent");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 5, "tinfo"), CREDENTIALS((short) 1, "credentials"), LOCK((short) 4, "lock"), EXTENT((short) 2, "extent");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 5: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -12887,74 +12715,67 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.LOCK, new FieldMetaData("lock", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRING)));
-      tmpMap.put(_Fields.EXTENT, new FieldMetaData("extent", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      tmpMap.put(_Fields.LOCK, new FieldMetaData("lock", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
+      tmpMap.put(_Fields.EXTENT, new FieldMetaData("extent", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(loadTablet_args.class, metaDataMap);
     }
-
-    public loadTablet_args() {
-    }
-
-    public loadTablet_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      String lock,
-      org.apache.accumulo.core.data.thrift.TKeyExtent extent)
-    {
+    
+    public loadTablet_args() {}
+    
+    public loadTablet_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.lock = lock;
       this.extent = extent;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -12972,207 +12793,207 @@ public class TabletClientService {
         this.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent(other.extent);
       }
     }
-
+    
     public loadTablet_args deepCopy() {
       return new loadTablet_args(this);
     }
-
+    
     @Deprecated
     public loadTablet_args clone() {
       return new loadTablet_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public loadTablet_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public loadTablet_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public String getLock() {
       return this.lock;
     }
-
+    
     public loadTablet_args setLock(String lock) {
       this.lock = lock;
       return this;
     }
-
+    
     public void unsetLock() {
       this.lock = null;
     }
-
+    
     /** Returns true if field lock is set (has been asigned a value) and false otherwise */
     public boolean isSetLock() {
       return this.lock != null;
     }
-
+    
     public void setLockIsSet(boolean value) {
       if (!value) {
         this.lock = null;
       }
     }
-
+    
     public org.apache.accumulo.core.data.thrift.TKeyExtent getExtent() {
       return this.extent;
     }
-
+    
     public loadTablet_args setExtent(org.apache.accumulo.core.data.thrift.TKeyExtent extent) {
       this.extent = extent;
       return this;
     }
-
+    
     public void unsetExtent() {
       this.extent = null;
     }
-
+    
     /** Returns true if field extent is set (has been asigned a value) and false otherwise */
     public boolean isSetExtent() {
       return this.extent != null;
     }
-
+    
     public void setExtentIsSet(boolean value) {
       if (!value) {
         this.extent = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
-      case LOCK:
-        if (value == null) {
-          unsetLock();
-        } else {
-          setLock((String)value);
-        }
-        break;
-
-      case EXTENT:
-        if (value == null) {
-          unsetExtent();
-        } else {
-          setExtent((org.apache.accumulo.core.data.thrift.TKeyExtent)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+        
+        case LOCK:
+          if (value == null) {
+            unsetLock();
+          } else {
+            setLock((String) value);
+          }
+          break;
+        
+        case EXTENT:
+          if (value == null) {
+            unsetExtent();
+          } else {
+            setExtent((org.apache.accumulo.core.data.thrift.TKeyExtent) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case LOCK:
-        return getLock();
-
-      case EXTENT:
-        return getExtent();
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
+        case LOCK:
+          return getLock();
+          
+        case EXTENT:
+          return getExtent();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case LOCK:
-        return isSetLock();
-      case EXTENT:
-        return isSetExtent();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
+        case LOCK:
+          return isSetLock();
+        case EXTENT:
+          return isSetExtent();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof loadTablet_args)
-        return this.equals((loadTablet_args)that);
+        return this.equals((loadTablet_args) that);
       return false;
     }
-
+    
     public boolean equals(loadTablet_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -13181,7 +13002,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -13190,7 +13011,7 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       boolean this_present_lock = true && this.isSetLock();
       boolean that_present_lock = true && that.isSetLock();
       if (this_present_lock || that_present_lock) {
@@ -13199,7 +13020,7 @@ public class TabletClientService {
         if (!this.lock.equals(that.lock))
           return false;
       }
-
+      
       boolean this_present_extent = true && this.isSetExtent();
       boolean that_present_extent = true && that.isSetExtent();
       if (this_present_extent || that_present_extent) {
@@ -13208,28 +13029,29 @@ public class TabletClientService {
         if (!this.extent.equals(that.extent))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(loadTablet_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      loadTablet_args typedOther = (loadTablet_args)other;
-
+      loadTablet_args typedOther = (loadTablet_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -13238,7 +13060,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -13247,7 +13070,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetLock()) {        lastComparison = TBaseHelper.compareTo(this.lock, typedOther.lock);
+      if (isSetLock()) {
+        lastComparison = TBaseHelper.compareTo(this.lock, typedOther.lock);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -13256,21 +13080,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetExtent()) {        lastComparison = TBaseHelper.compareTo(this.extent, typedOther.extent);
+      if (isSetExtent()) {
+        lastComparison = TBaseHelper.compareTo(this.extent, typedOther.extent);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -13278,7 +13102,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -13286,14 +13110,14 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
           case 4: // LOCK
             if (field.type == TType.STRING) {
               this.lock = iprot.readString();
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -13301,7 +13125,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
               this.extent.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -13311,14 +13135,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -13343,7 +13167,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("loadTablet_args(");
@@ -13377,50 +13201,46 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class unloadTablet_args implements TBase<unloadTablet_args, unloadTablet_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class unloadTablet_args implements TBase<unloadTablet_args,unloadTablet_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("unloadTablet_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)5);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-    private static final TField LOCK_FIELD_DESC = new TField("lock", TType.STRING, (short)4);
-    private static final TField EXTENT_FIELD_DESC = new TField("extent", TType.STRUCT, (short)2);
-    private static final TField SAVE_FIELD_DESC = new TField("save", TType.BOOL, (short)3);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 5);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    private static final TField LOCK_FIELD_DESC = new TField("lock", TType.STRING, (short) 4);
+    private static final TField EXTENT_FIELD_DESC = new TField("extent", TType.STRUCT, (short) 2);
+    private static final TField SAVE_FIELD_DESC = new TField("save", TType.BOOL, (short) 3);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
     public String lock;
     public org.apache.accumulo.core.data.thrift.TKeyExtent extent;
     public boolean save;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)5, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      LOCK((short)4, "lock"),
-      EXTENT((short)2, "extent"),
-      SAVE((short)3, "save");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 5, "tinfo"), CREDENTIALS((short) 1, "credentials"), LOCK((short) 4, "lock"), EXTENT((short) 2, "extent"), SAVE((short) 3, "save");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 5: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -13435,72 +13255,63 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
     private static final int __SAVE_ISSET_ID = 0;
     private java.util.BitSet __isset_bit_vector = new java.util.BitSet(1);
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.LOCK, new FieldMetaData("lock", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRING)));
-      tmpMap.put(_Fields.EXTENT, new FieldMetaData("extent", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
-      tmpMap.put(_Fields.SAVE, new FieldMetaData("save", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.BOOL)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      tmpMap.put(_Fields.LOCK, new FieldMetaData("lock", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
+      tmpMap.put(_Fields.EXTENT, new FieldMetaData("extent", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
+      tmpMap.put(_Fields.SAVE, new FieldMetaData("save", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.BOOL)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(unloadTablet_args.class, metaDataMap);
     }
-
-    public unloadTablet_args() {
-    }
-
-    public unloadTablet_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      String lock,
-      org.apache.accumulo.core.data.thrift.TKeyExtent extent,
-      boolean save)
-    {
+    
+    public unloadTablet_args() {}
+    
+    public unloadTablet_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock,
+        org.apache.accumulo.core.data.thrift.TKeyExtent extent, boolean save) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
@@ -13509,7 +13320,7 @@ public class TabletClientService {
       this.save = save;
       setSaveIsSet(true);
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -13530,243 +13341,243 @@ public class TabletClientService {
       }
       this.save = other.save;
     }
-
+    
     public unloadTablet_args deepCopy() {
       return new unloadTablet_args(this);
     }
-
+    
     @Deprecated
     public unloadTablet_args clone() {
       return new unloadTablet_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public unloadTablet_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public unloadTablet_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public String getLock() {
       return this.lock;
     }
-
+    
     public unloadTablet_args setLock(String lock) {
       this.lock = lock;
       return this;
     }
-
+    
     public void unsetLock() {
       this.lock = null;
     }
-
+    
     /** Returns true if field lock is set (has been asigned a value) and false otherwise */
     public boolean isSetLock() {
       return this.lock != null;
     }
-
+    
     public void setLockIsSet(boolean value) {
       if (!value) {
         this.lock = null;
       }
     }
-
+    
     public org.apache.accumulo.core.data.thrift.TKeyExtent getExtent() {
       return this.extent;
     }
-
+    
     public unloadTablet_args setExtent(org.apache.accumulo.core.data.thrift.TKeyExtent extent) {
       this.extent = extent;
       return this;
     }
-
+    
     public void unsetExtent() {
       this.extent = null;
     }
-
+    
     /** Returns true if field extent is set (has been asigned a value) and false otherwise */
     public boolean isSetExtent() {
       return this.extent != null;
     }
-
+    
     public void setExtentIsSet(boolean value) {
       if (!value) {
         this.extent = null;
       }
     }
-
+    
     public boolean isSave() {
       return this.save;
     }
-
+    
     public unloadTablet_args setSave(boolean save) {
       this.save = save;
       setSaveIsSet(true);
       return this;
     }
-
+    
     public void unsetSave() {
       __isset_bit_vector.clear(__SAVE_ISSET_ID);
     }
-
+    
     /** Returns true if field save is set (has been asigned a value) and false otherwise */
     public boolean isSetSave() {
       return __isset_bit_vector.get(__SAVE_ISSET_ID);
     }
-
+    
     public void setSaveIsSet(boolean value) {
       __isset_bit_vector.set(__SAVE_ISSET_ID, value);
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
-      case LOCK:
-        if (value == null) {
-          unsetLock();
-        } else {
-          setLock((String)value);
-        }
-        break;
-
-      case EXTENT:
-        if (value == null) {
-          unsetExtent();
-        } else {
-          setExtent((org.apache.accumulo.core.data.thrift.TKeyExtent)value);
-        }
-        break;
-
-      case SAVE:
-        if (value == null) {
-          unsetSave();
-        } else {
-          setSave((Boolean)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+        
+        case LOCK:
+          if (value == null) {
+            unsetLock();
+          } else {
+            setLock((String) value);
+          }
+          break;
+        
+        case EXTENT:
+          if (value == null) {
+            unsetExtent();
+          } else {
+            setExtent((org.apache.accumulo.core.data.thrift.TKeyExtent) value);
+          }
+          break;
+        
+        case SAVE:
+          if (value == null) {
+            unsetSave();
+          } else {
+            setSave((Boolean) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case LOCK:
-        return getLock();
-
-      case EXTENT:
-        return getExtent();
-
-      case SAVE:
-        return new Boolean(isSave());
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
+        case LOCK:
+          return getLock();
+          
+        case EXTENT:
+          return getExtent();
+          
+        case SAVE:
+          return new Boolean(isSave());
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case LOCK:
-        return isSetLock();
-      case EXTENT:
-        return isSetExtent();
-      case SAVE:
-        return isSetSave();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
+        case LOCK:
+          return isSetLock();
+        case EXTENT:
+          return isSetExtent();
+        case SAVE:
+          return isSetSave();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof unloadTablet_args)
-        return this.equals((unloadTablet_args)that);
+        return this.equals((unloadTablet_args) that);
       return false;
     }
-
+    
     public boolean equals(unloadTablet_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -13775,7 +13586,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -13784,7 +13595,7 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       boolean this_present_lock = true && this.isSetLock();
       boolean that_present_lock = true && that.isSetLock();
       if (this_present_lock || that_present_lock) {
@@ -13793,7 +13604,7 @@ public class TabletClientService {
         if (!this.lock.equals(that.lock))
           return false;
       }
-
+      
       boolean this_present_extent = true && this.isSetExtent();
       boolean that_present_extent = true && that.isSetExtent();
       if (this_present_extent || that_present_extent) {
@@ -13802,7 +13613,7 @@ public class TabletClientService {
         if (!this.extent.equals(that.extent))
           return false;
       }
-
+      
       boolean this_present_save = true;
       boolean that_present_save = true;
       if (this_present_save || that_present_save) {
@@ -13811,28 +13622,29 @@ public class TabletClientService {
         if (this.save != that.save)
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(unloadTablet_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      unloadTablet_args typedOther = (unloadTablet_args)other;
-
+      unloadTablet_args typedOther = (unloadTablet_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -13841,7 +13653,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -13850,7 +13663,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetLock()) {        lastComparison = TBaseHelper.compareTo(this.lock, typedOther.lock);
+      if (isSetLock()) {
+        lastComparison = TBaseHelper.compareTo(this.lock, typedOther.lock);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -13859,7 +13673,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetExtent()) {        lastComparison = TBaseHelper.compareTo(this.extent, typedOther.extent);
+      if (isSetExtent()) {
+        lastComparison = TBaseHelper.compareTo(this.extent, typedOther.extent);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -13868,21 +13683,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSave()) {        lastComparison = TBaseHelper.compareTo(this.save, typedOther.save);
+      if (isSetSave()) {
+        lastComparison = TBaseHelper.compareTo(this.save, typedOther.save);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -13890,7 +13705,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -13898,14 +13713,14 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
           case 4: // LOCK
             if (field.type == TType.STRING) {
               this.lock = iprot.readString();
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -13913,7 +13728,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent();
               this.extent.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -13921,7 +13736,7 @@ public class TabletClientService {
             if (field.type == TType.BOOL) {
               this.save = iprot.readBool();
               setSaveIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -13931,14 +13746,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -13966,7 +13781,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("unloadTablet_args(");
@@ -14003,47 +13818,44 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class flush_args implements TBase<flush_args, flush_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class flush_args implements TBase<flush_args,flush_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("flush_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)4);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-    private static final TField LOCK_FIELD_DESC = new TField("lock", TType.STRING, (short)3);
-    private static final TField TABLES_FIELD_DESC = new TField("tables", TType.SET, (short)2);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 4);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    private static final TField LOCK_FIELD_DESC = new TField("lock", TType.STRING, (short) 3);
+    private static final TField TABLES_FIELD_DESC = new TField("tables", TType.SET, (short) 2);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
     public String lock;
     public java.util.Set<String> tables;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)4, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      LOCK((short)3, "lock"),
-      TABLES((short)2, "tables");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 4, "tinfo"), CREDENTIALS((short) 1, "credentials"), LOCK((short) 3, "lock"), TABLES((short) 2, "tables");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 4: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -14056,75 +13868,65 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.LOCK, new FieldMetaData("lock", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRING)));
-      tmpMap.put(_Fields.TABLES, new FieldMetaData("tables", TFieldRequirementType.DEFAULT, 
-          new SetMetaData(TType.SET, 
-              new FieldValueMetaData(TType.STRING))));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      tmpMap.put(_Fields.LOCK, new FieldMetaData("lock", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
+      tmpMap.put(_Fields.TABLES, new FieldMetaData("tables", TFieldRequirementType.DEFAULT, new SetMetaData(TType.SET, new FieldValueMetaData(TType.STRING))));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(flush_args.class, metaDataMap);
     }
-
-    public flush_args() {
-    }
-
-    public flush_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      String lock,
-      java.util.Set<String> tables)
-    {
+    
+    public flush_args() {}
+    
+    public flush_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock, java.util.Set<String> tables) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.lock = lock;
       this.tables = tables;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -14146,223 +13948,223 @@ public class TabletClientService {
         this.tables = __this__tables;
       }
     }
-
+    
     public flush_args deepCopy() {
       return new flush_args(this);
     }
-
+    
     @Deprecated
     public flush_args clone() {
       return new flush_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public flush_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public flush_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public String getLock() {
       return this.lock;
     }
-
+    
     public flush_args setLock(String lock) {
       this.lock = lock;
       return this;
     }
-
+    
     public void unsetLock() {
       this.lock = null;
     }
-
+    
     /** Returns true if field lock is set (has been asigned a value) and false otherwise */
     public boolean isSetLock() {
       return this.lock != null;
     }
-
+    
     public void setLockIsSet(boolean value) {
       if (!value) {
         this.lock = null;
       }
     }
-
+    
     public int getTablesSize() {
       return (this.tables == null) ? 0 : this.tables.size();
     }
-
+    
     public java.util.Iterator<String> getTablesIterator() {
       return (this.tables == null) ? null : this.tables.iterator();
     }
-
+    
     public void addToTables(String elem) {
       if (this.tables == null) {
         this.tables = new java.util.HashSet<String>();
       }
       this.tables.add(elem);
     }
-
+    
     public java.util.Set<String> getTables() {
       return this.tables;
     }
-
+    
     public flush_args setTables(java.util.Set<String> tables) {
       this.tables = tables;
       return this;
     }
-
+    
     public void unsetTables() {
       this.tables = null;
     }
-
+    
     /** Returns true if field tables is set (has been asigned a value) and false otherwise */
     public boolean isSetTables() {
       return this.tables != null;
     }
-
+    
     public void setTablesIsSet(boolean value) {
       if (!value) {
         this.tables = null;
       }
     }
-
+    
     @SuppressWarnings("unchecked")
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
-      case LOCK:
-        if (value == null) {
-          unsetLock();
-        } else {
-          setLock((String)value);
-        }
-        break;
-
-      case TABLES:
-        if (value == null) {
-          unsetTables();
-        } else {
-          setTables((java.util.Set<String>)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+        
+        case LOCK:
+          if (value == null) {
+            unsetLock();
+          } else {
+            setLock((String) value);
+          }
+          break;
+        
+        case TABLES:
+          if (value == null) {
+            unsetTables();
+          } else {
+            setTables((java.util.Set<String>) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case LOCK:
-        return getLock();
-
-      case TABLES:
-        return getTables();
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
+        case LOCK:
+          return getLock();
+          
+        case TABLES:
+          return getTables();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case LOCK:
-        return isSetLock();
-      case TABLES:
-        return isSetTables();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
+        case LOCK:
+          return isSetLock();
+        case TABLES:
+          return isSetTables();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof flush_args)
-        return this.equals((flush_args)that);
+        return this.equals((flush_args) that);
       return false;
     }
-
+    
     public boolean equals(flush_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -14371,7 +14173,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -14380,7 +14182,7 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       boolean this_present_lock = true && this.isSetLock();
       boolean that_present_lock = true && that.isSetLock();
       if (this_present_lock || that_present_lock) {
@@ -14389,7 +14191,7 @@ public class TabletClientService {
         if (!this.lock.equals(that.lock))
           return false;
       }
-
+      
       boolean this_present_tables = true && this.isSetTables();
       boolean that_present_tables = true && that.isSetTables();
       if (this_present_tables || that_present_tables) {
@@ -14398,28 +14200,29 @@ public class TabletClientService {
         if (!this.tables.equals(that.tables))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(flush_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      flush_args typedOther = (flush_args)other;
-
+      flush_args typedOther = (flush_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -14428,7 +14231,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -14437,7 +14241,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetLock()) {        lastComparison = TBaseHelper.compareTo(this.lock, typedOther.lock);
+      if (isSetLock()) {
+        lastComparison = TBaseHelper.compareTo(this.lock, typedOther.lock);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -14446,21 +14251,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTables()) {        lastComparison = TBaseHelper.compareTo(this.tables, typedOther.tables);
+      if (isSetTables()) {
+        lastComparison = TBaseHelper.compareTo(this.tables, typedOther.tables);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -14468,7 +14273,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -14476,14 +14281,14 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
           case 3: // LOCK
             if (field.type == TType.STRING) {
               this.lock = iprot.readString();
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -14491,16 +14296,15 @@ public class TabletClientService {
             if (field.type == TType.SET) {
               {
                 TSet _set93 = iprot.readSetBegin();
-                this.tables = new java.util.HashSet<String>(2*_set93.size);
-                for (int _i94 = 0; _i94 < _set93.size; ++_i94)
-                {
+                this.tables = new java.util.HashSet<String>(2 * _set93.size);
+                for (int _i94 = 0; _i94 < _set93.size; ++_i94) {
                   String _elem95;
                   _elem95 = iprot.readString();
                   this.tables.add(_elem95);
                 }
                 iprot.readSetEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -14510,14 +14314,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -14528,8 +14332,7 @@ public class TabletClientService {
         oprot.writeFieldBegin(TABLES_FIELD_DESC);
         {
           oprot.writeSetBegin(new TSet(TType.STRING, this.tables.size()));
-          for (String _iter96 : this.tables)
-          {
+          for (String _iter96 : this.tables) {
             oprot.writeString(_iter96);
           }
           oprot.writeSetEnd();
@@ -14549,7 +14352,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("flush_args(");
@@ -14583,44 +14386,42 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class useLoggers_args implements TBase<useLoggers_args, useLoggers_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class useLoggers_args implements TBase<useLoggers_args,useLoggers_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("useLoggers_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)3);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-    private static final TField LOGGERS_FIELD_DESC = new TField("loggers", TType.SET, (short)2);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 3);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    private static final TField LOGGERS_FIELD_DESC = new TField("loggers", TType.SET, (short) 2);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
     public java.util.Set<String> loggers;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      LOGGERS((short)2, "loggers");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 3, "tinfo"), CREDENTIALS((short) 1, "credentials"), LOGGERS((short) 2, "loggers");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 3: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -14631,71 +14432,64 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.LOGGERS, new FieldMetaData("loggers", TFieldRequirementType.DEFAULT, 
-          new SetMetaData(TType.SET, 
-              new FieldValueMetaData(TType.STRING))));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      tmpMap
+          .put(_Fields.LOGGERS, new FieldMetaData("loggers", TFieldRequirementType.DEFAULT, new SetMetaData(TType.SET, new FieldValueMetaData(TType.STRING))));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(useLoggers_args.class, metaDataMap);
     }
-
-    public useLoggers_args() {
-    }
-
-    public useLoggers_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      java.util.Set<String> loggers)
-    {
+    
+    public useLoggers_args() {}
+    
+    public useLoggers_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, java.util.Set<String> loggers) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.loggers = loggers;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -14714,186 +14508,186 @@ public class TabletClientService {
         this.loggers = __this__loggers;
       }
     }
-
+    
     public useLoggers_args deepCopy() {
       return new useLoggers_args(this);
     }
-
+    
     @Deprecated
     public useLoggers_args clone() {
       return new useLoggers_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public useLoggers_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public useLoggers_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public int getLoggersSize() {
       return (this.loggers == null) ? 0 : this.loggers.size();
     }
-
+    
     public java.util.Iterator<String> getLoggersIterator() {
       return (this.loggers == null) ? null : this.loggers.iterator();
     }
-
+    
     public void addToLoggers(String elem) {
       if (this.loggers == null) {
         this.loggers = new java.util.HashSet<String>();
       }
       this.loggers.add(elem);
     }
-
+    
     public java.util.Set<String> getLoggers() {
       return this.loggers;
     }
-
+    
     public useLoggers_args setLoggers(java.util.Set<String> loggers) {
       this.loggers = loggers;
       return this;
     }
-
+    
     public void unsetLoggers() {
       this.loggers = null;
     }
-
+    
     /** Returns true if field loggers is set (has been asigned a value) and false otherwise */
     public boolean isSetLoggers() {
       return this.loggers != null;
     }
-
+    
     public void setLoggersIsSet(boolean value) {
       if (!value) {
         this.loggers = null;
       }
     }
-
+    
     @SuppressWarnings("unchecked")
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
-      case LOGGERS:
-        if (value == null) {
-          unsetLoggers();
-        } else {
-          setLoggers((java.util.Set<String>)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+        
+        case LOGGERS:
+          if (value == null) {
+            unsetLoggers();
+          } else {
+            setLoggers((java.util.Set<String>) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case LOGGERS:
-        return getLoggers();
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
+        case LOGGERS:
+          return getLoggers();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case LOGGERS:
-        return isSetLoggers();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
+        case LOGGERS:
+          return isSetLoggers();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof useLoggers_args)
-        return this.equals((useLoggers_args)that);
+        return this.equals((useLoggers_args) that);
       return false;
     }
-
+    
     public boolean equals(useLoggers_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -14902,7 +14696,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -14911,7 +14705,7 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       boolean this_present_loggers = true && this.isSetLoggers();
       boolean that_present_loggers = true && that.isSetLoggers();
       if (this_present_loggers || that_present_loggers) {
@@ -14920,28 +14714,29 @@ public class TabletClientService {
         if (!this.loggers.equals(that.loggers))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(useLoggers_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      useLoggers_args typedOther = (useLoggers_args)other;
-
+      useLoggers_args typedOther = (useLoggers_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -14950,7 +14745,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -14959,21 +14755,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetLoggers()) {        lastComparison = TBaseHelper.compareTo(this.loggers, typedOther.loggers);
+      if (isSetLoggers()) {
+        lastComparison = TBaseHelper.compareTo(this.loggers, typedOther.loggers);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -14981,7 +14777,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -14989,7 +14785,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -14997,16 +14793,15 @@ public class TabletClientService {
             if (field.type == TType.SET) {
               {
                 TSet _set97 = iprot.readSetBegin();
-                this.loggers = new java.util.HashSet<String>(2*_set97.size);
-                for (int _i98 = 0; _i98 < _set97.size; ++_i98)
-                {
+                this.loggers = new java.util.HashSet<String>(2 * _set97.size);
+                for (int _i98 = 0; _i98 < _set97.size; ++_i98) {
                   String _elem99;
                   _elem99 = iprot.readString();
                   this.loggers.add(_elem99);
                 }
                 iprot.readSetEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -15016,14 +14811,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -15034,8 +14829,7 @@ public class TabletClientService {
         oprot.writeFieldBegin(LOGGERS_FIELD_DESC);
         {
           oprot.writeSetBegin(new TSet(TType.STRING, this.loggers.size()));
-          for (String _iter100 : this.loggers)
-          {
+          for (String _iter100 : this.loggers) {
             oprot.writeString(_iter100);
           }
           oprot.writeSetEnd();
@@ -15050,7 +14844,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("useLoggers_args(");
@@ -15077,41 +14871,41 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class getTabletServerStatus_args implements TBase<getTabletServerStatus_args, getTabletServerStatus_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class getTabletServerStatus_args implements TBase<getTabletServerStatus_args,getTabletServerStatus_args._Fields>, java.io.Serializable,
+      Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("getTabletServerStatus_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)3);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 3);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIALS((short)1, "credentials");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 3, "tinfo"), CREDENTIALS((short) 1, "credentials");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 3: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -15120,66 +14914,61 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(getTabletServerStatus_args.class, metaDataMap);
     }
-
-    public getTabletServerStatus_args() {
-    }
-
-    public getTabletServerStatus_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials)
-    {
+    
+    public getTabletServerStatus_args() {}
+    
+    public getTabletServerStatus_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -15191,133 +14980,133 @@ public class TabletClientService {
         this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
       }
     }
-
+    
     public getTabletServerStatus_args deepCopy() {
       return new getTabletServerStatus_args(this);
     }
-
+    
     @Deprecated
     public getTabletServerStatus_args clone() {
       return new getTabletServerStatus_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public getTabletServerStatus_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public getTabletServerStatus_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof getTabletServerStatus_args)
-        return this.equals((getTabletServerStatus_args)that);
+        return this.equals((getTabletServerStatus_args) that);
       return false;
     }
-
+    
     public boolean equals(getTabletServerStatus_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -15326,7 +15115,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -15335,28 +15124,29 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(getTabletServerStatus_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      getTabletServerStatus_args typedOther = (getTabletServerStatus_args)other;
-
+      getTabletServerStatus_args typedOther = (getTabletServerStatus_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -15365,21 +15155,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -15387,7 +15177,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -15395,7 +15185,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -15405,14 +15195,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -15427,7 +15217,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("getTabletServerStatus_args(");
@@ -15447,41 +15237,41 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class getTabletServerStatus_result implements TBase<getTabletServerStatus_result, getTabletServerStatus_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class getTabletServerStatus_result implements TBase<getTabletServerStatus_result,getTabletServerStatus_result._Fields>, java.io.Serializable,
+      Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("getTabletServerStatus_result");
-
-    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short)0);
-    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short)1);
-
+    
+    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short) 0);
+    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short) 1);
+    
     public org.apache.accumulo.core.master.thrift.TabletServerStatus success;
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      SEC((short)1, "sec");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SUCCESS((short) 0, "success"), SEC((short) 1, "sec");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
           case 1: // SEC
@@ -15490,66 +15280,62 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.master.thrift.TabletServerStatus.class)));
-      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.master.thrift.TabletServerStatus.class)));
+      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(getTabletServerStatus_result.class, metaDataMap);
     }
-
-    public getTabletServerStatus_result() {
-    }
-
-    public getTabletServerStatus_result(
-      org.apache.accumulo.core.master.thrift.TabletServerStatus success,
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
-    {
+    
+    public getTabletServerStatus_result() {}
+    
+    public getTabletServerStatus_result(org.apache.accumulo.core.master.thrift.TabletServerStatus success,
+        org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this();
       this.success = success;
       this.sec = sec;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -15561,133 +15347,133 @@ public class TabletClientService {
         this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
       }
     }
-
+    
     public getTabletServerStatus_result deepCopy() {
       return new getTabletServerStatus_result(this);
     }
-
+    
     @Deprecated
     public getTabletServerStatus_result clone() {
       return new getTabletServerStatus_result(this);
     }
-
+    
     public org.apache.accumulo.core.master.thrift.TabletServerStatus getSuccess() {
       return this.success;
     }
-
+    
     public getTabletServerStatus_result setSuccess(org.apache.accumulo.core.master.thrift.TabletServerStatus success) {
       this.success = success;
       return this;
     }
-
+    
     public void unsetSuccess() {
       this.success = null;
     }
-
+    
     /** Returns true if field success is set (has been asigned a value) and false otherwise */
     public boolean isSetSuccess() {
       return this.success != null;
     }
-
+    
     public void setSuccessIsSet(boolean value) {
       if (!value) {
         this.success = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
       return this.sec;
     }
-
+    
     public getTabletServerStatus_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
-
+    
     public void unsetSec() {
       this.sec = null;
     }
-
+    
     /** Returns true if field sec is set (has been asigned a value) and false otherwise */
     public boolean isSetSec() {
       return this.sec != null;
     }
-
+    
     public void setSecIsSet(boolean value) {
       if (!value) {
         this.sec = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((org.apache.accumulo.core.master.thrift.TabletServerStatus)value);
-        }
-        break;
-
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((org.apache.accumulo.core.master.thrift.TabletServerStatus) value);
+          }
+          break;
+        
+        case SEC:
+          if (value == null) {
+            unsetSec();
+          } else {
+            setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
-
-      case SEC:
-        return getSec();
-
+        case SUCCESS:
+          return getSuccess();
+          
+        case SEC:
+          return getSec();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case SEC:
-        return isSetSec();
+        case SUCCESS:
+          return isSetSuccess();
+        case SEC:
+          return isSetSec();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof getTabletServerStatus_result)
-        return this.equals((getTabletServerStatus_result)that);
+        return this.equals((getTabletServerStatus_result) that);
       return false;
     }
-
+    
     public boolean equals(getTabletServerStatus_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_success = true && this.isSetSuccess();
       boolean that_present_success = true && that.isSetSuccess();
       if (this_present_success || that_present_success) {
@@ -15696,7 +15482,7 @@ public class TabletClientService {
         if (!this.success.equals(that.success))
           return false;
       }
-
+      
       boolean this_present_sec = true && this.isSetSec();
       boolean that_present_sec = true && that.isSetSec();
       if (this_present_sec || that_present_sec) {
@@ -15705,28 +15491,29 @@ public class TabletClientService {
         if (!this.sec.equals(that.sec))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(getTabletServerStatus_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      getTabletServerStatus_result typedOther = (getTabletServerStatus_result)other;
-
+      getTabletServerStatus_result typedOther = (getTabletServerStatus_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSuccess()) {        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
+      if (isSetSuccess()) {
+        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -15735,21 +15522,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSec()) {        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
+      if (isSetSec()) {
+        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -15757,7 +15544,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.success = new org.apache.accumulo.core.master.thrift.TabletServerStatus();
               this.success.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -15765,7 +15552,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
               this.sec.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -15775,14 +15562,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSuccess()) {
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         this.success.write(oprot);
@@ -15795,7 +15582,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("getTabletServerStatus_result(");
@@ -15815,44 +15602,42 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class getTabletStats_args implements TBase<getTabletStats_args, getTabletStats_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class getTabletStats_args implements TBase<getTabletStats_args,getTabletStats_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("getTabletStats_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)3);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-    private static final TField TABLE_ID_FIELD_DESC = new TField("tableId", TType.STRING, (short)2);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 3);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    private static final TField TABLE_ID_FIELD_DESC = new TField("tableId", TType.STRING, (short) 2);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
     public String tableId;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      TABLE_ID((short)2, "tableId");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 3, "tinfo"), CREDENTIALS((short) 1, "credentials"), TABLE_ID((short) 2, "tableId");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 3: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -15863,70 +15648,63 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.TABLE_ID, new FieldMetaData("tableId", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRING)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      tmpMap.put(_Fields.TABLE_ID, new FieldMetaData("tableId", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(getTabletStats_args.class, metaDataMap);
     }
-
-    public getTabletStats_args() {
-    }
-
-    public getTabletStats_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      String tableId)
-    {
+    
+    public getTabletStats_args() {}
+    
+    public getTabletStats_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String tableId) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.tableId = tableId;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -15941,170 +15719,170 @@ public class TabletClientService {
         this.tableId = other.tableId;
       }
     }
-
+    
     public getTabletStats_args deepCopy() {
       return new getTabletStats_args(this);
     }
-
+    
     @Deprecated
     public getTabletStats_args clone() {
       return new getTabletStats_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public getTabletStats_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public getTabletStats_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public String getTableId() {
       return this.tableId;
     }
-
+    
     public getTabletStats_args setTableId(String tableId) {
       this.tableId = tableId;
       return this;
     }
-
+    
     public void unsetTableId() {
       this.tableId = null;
     }
-
+    
     /** Returns true if field tableId is set (has been asigned a value) and false otherwise */
     public boolean isSetTableId() {
       return this.tableId != null;
     }
-
+    
     public void setTableIdIsSet(boolean value) {
       if (!value) {
         this.tableId = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
-      case TABLE_ID:
-        if (value == null) {
-          unsetTableId();
-        } else {
-          setTableId((String)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+        
+        case TABLE_ID:
+          if (value == null) {
+            unsetTableId();
+          } else {
+            setTableId((String) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case TABLE_ID:
-        return getTableId();
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
+        case TABLE_ID:
+          return getTableId();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case TABLE_ID:
-        return isSetTableId();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
+        case TABLE_ID:
+          return isSetTableId();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof getTabletStats_args)
-        return this.equals((getTabletStats_args)that);
+        return this.equals((getTabletStats_args) that);
       return false;
     }
-
+    
     public boolean equals(getTabletStats_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -16113,7 +15891,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -16122,7 +15900,7 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       boolean this_present_tableId = true && this.isSetTableId();
       boolean that_present_tableId = true && that.isSetTableId();
       if (this_present_tableId || that_present_tableId) {
@@ -16131,28 +15909,29 @@ public class TabletClientService {
         if (!this.tableId.equals(that.tableId))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(getTabletStats_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      getTabletStats_args typedOther = (getTabletStats_args)other;
-
+      getTabletStats_args typedOther = (getTabletStats_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -16161,7 +15940,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -16170,21 +15950,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTableId()) {        lastComparison = TBaseHelper.compareTo(this.tableId, typedOther.tableId);
+      if (isSetTableId()) {
+        lastComparison = TBaseHelper.compareTo(this.tableId, typedOther.tableId);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -16192,7 +15972,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -16200,14 +15980,14 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
           case 2: // TABLE_ID
             if (field.type == TType.STRING) {
               this.tableId = iprot.readString();
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -16217,14 +15997,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -16244,7 +16024,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("getTabletStats_args(");
@@ -16271,41 +16051,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class getTabletStats_result implements TBase<getTabletStats_result, getTabletStats_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class getTabletStats_result implements TBase<getTabletStats_result,getTabletStats_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("getTabletStats_result");
-
-    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.LIST, (short)0);
-    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short)1);
-
+    
+    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.LIST, (short) 0);
+    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short) 1);
+    
     public java.util.List<TabletStats> success;
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      SEC((short)1, "sec");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SUCCESS((short) 0, "success"), SEC((short) 1, "sec");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
           case 1: // SEC
@@ -16314,67 +16093,61 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, 
-          new ListMetaData(TType.LIST, 
-              new StructMetaData(TType.STRUCT, TabletStats.class))));
-      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST, new StructMetaData(TType.STRUCT,
+          TabletStats.class))));
+      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(getTabletStats_result.class, metaDataMap);
     }
-
-    public getTabletStats_result() {
-    }
-
-    public getTabletStats_result(
-      java.util.List<TabletStats> success,
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
-    {
+    
+    public getTabletStats_result() {}
+    
+    public getTabletStats_result(java.util.List<TabletStats> success, org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this();
       this.success = success;
       this.sec = sec;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -16390,149 +16163,149 @@ public class TabletClientService {
         this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
       }
     }
-
+    
     public getTabletStats_result deepCopy() {
       return new getTabletStats_result(this);
     }
-
+    
     @Deprecated
     public getTabletStats_result clone() {
       return new getTabletStats_result(this);
     }
-
+    
     public int getSuccessSize() {
       return (this.success == null) ? 0 : this.success.size();
     }
-
+    
     public java.util.Iterator<TabletStats> getSuccessIterator() {
       return (this.success == null) ? null : this.success.iterator();
     }
-
+    
     public void addToSuccess(TabletStats elem) {
       if (this.success == null) {
         this.success = new java.util.ArrayList<TabletStats>();
       }
       this.success.add(elem);
     }
-
+    
     public java.util.List<TabletStats> getSuccess() {
       return this.success;
     }
-
+    
     public getTabletStats_result setSuccess(java.util.List<TabletStats> success) {
       this.success = success;
       return this;
     }
-
+    
     public void unsetSuccess() {
       this.success = null;
     }
-
+    
     /** Returns true if field success is set (has been asigned a value) and false otherwise */
     public boolean isSetSuccess() {
       return this.success != null;
     }
-
+    
     public void setSuccessIsSet(boolean value) {
       if (!value) {
         this.success = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
       return this.sec;
     }
-
+    
     public getTabletStats_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
-
+    
     public void unsetSec() {
       this.sec = null;
     }
-
+    
     /** Returns true if field sec is set (has been asigned a value) and false otherwise */
     public boolean isSetSec() {
       return this.sec != null;
     }
-
+    
     public void setSecIsSet(boolean value) {
       if (!value) {
         this.sec = null;
       }
     }
-
+    
     @SuppressWarnings("unchecked")
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((java.util.List<TabletStats>)value);
-        }
-        break;
-
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((java.util.List<TabletStats>) value);
+          }
+          break;
+        
+        case SEC:
+          if (value == null) {
+            unsetSec();
+          } else {
+            setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
-
-      case SEC:
-        return getSec();
-
+        case SUCCESS:
+          return getSuccess();
+          
+        case SEC:
+          return getSec();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case SEC:
-        return isSetSec();
+        case SUCCESS:
+          return isSetSuccess();
+        case SEC:
+          return isSetSec();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof getTabletStats_result)
-        return this.equals((getTabletStats_result)that);
+        return this.equals((getTabletStats_result) that);
       return false;
     }
-
+    
     public boolean equals(getTabletStats_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_success = true && this.isSetSuccess();
       boolean that_present_success = true && that.isSetSuccess();
       if (this_present_success || that_present_success) {
@@ -16541,7 +16314,7 @@ public class TabletClientService {
         if (!this.success.equals(that.success))
           return false;
       }
-
+      
       boolean this_present_sec = true && this.isSetSec();
       boolean that_present_sec = true && that.isSetSec();
       if (this_present_sec || that_present_sec) {
@@ -16550,28 +16323,29 @@ public class TabletClientService {
         if (!this.sec.equals(that.sec))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(getTabletStats_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      getTabletStats_result typedOther = (getTabletStats_result)other;
-
+      getTabletStats_result typedOther = (getTabletStats_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSuccess()) {        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
+      if (isSetSuccess()) {
+        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -16580,21 +16354,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSec()) {        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
+      if (isSetSec()) {
+        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -16603,8 +16377,7 @@ public class TabletClientService {
               {
                 TList _list101 = iprot.readListBegin();
                 this.success = new java.util.ArrayList<TabletStats>(_list101.size);
-                for (int _i102 = 0; _i102 < _list101.size; ++_i102)
-                {
+                for (int _i102 = 0; _i102 < _list101.size; ++_i102) {
                   TabletStats _elem103;
                   _elem103 = new TabletStats();
                   _elem103.read(iprot);
@@ -16612,7 +16385,7 @@ public class TabletClientService {
                 }
                 iprot.readListEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -16620,7 +16393,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
               this.sec.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -16630,20 +16403,19 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSuccess()) {
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         {
           oprot.writeListBegin(new TList(TType.STRUCT, this.success.size()));
-          for (TabletStats _iter104 : this.success)
-          {
+          for (TabletStats _iter104 : this.success) {
             _iter104.write(oprot);
           }
           oprot.writeListEnd();
@@ -16657,7 +16429,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("getTabletStats_result(");
@@ -16677,41 +16449,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class getHistoricalStats_args implements TBase<getHistoricalStats_args, getHistoricalStats_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class getHistoricalStats_args implements TBase<getHistoricalStats_args,getHistoricalStats_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("getHistoricalStats_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)2);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 2);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)2, "tinfo"),
-      CREDENTIALS((short)1, "credentials");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 2, "tinfo"), CREDENTIALS((short) 1, "credentials");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 2: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -16720,66 +16491,61 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(getHistoricalStats_args.class, metaDataMap);
     }
-
-    public getHistoricalStats_args() {
-    }
-
-    public getHistoricalStats_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials)
-    {
+    
+    public getHistoricalStats_args() {}
+    
+    public getHistoricalStats_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -16791,133 +16557,133 @@ public class TabletClientService {
         this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
       }
     }
-
+    
     public getHistoricalStats_args deepCopy() {
       return new getHistoricalStats_args(this);
     }
-
+    
     @Deprecated
     public getHistoricalStats_args clone() {
       return new getHistoricalStats_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public getHistoricalStats_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public getHistoricalStats_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof getHistoricalStats_args)
-        return this.equals((getHistoricalStats_args)that);
+        return this.equals((getHistoricalStats_args) that);
       return false;
     }
-
+    
     public boolean equals(getHistoricalStats_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -16926,7 +16692,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -16935,28 +16701,29 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(getHistoricalStats_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      getHistoricalStats_args typedOther = (getHistoricalStats_args)other;
-
+      getHistoricalStats_args typedOther = (getHistoricalStats_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -16965,21 +16732,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -16987,7 +16754,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -16995,7 +16762,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -17005,14 +16772,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -17027,7 +16794,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("getHistoricalStats_args(");
@@ -17047,41 +16814,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class getHistoricalStats_result implements TBase<getHistoricalStats_result, getHistoricalStats_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class getHistoricalStats_result implements TBase<getHistoricalStats_result,getHistoricalStats_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("getHistoricalStats_result");
-
-    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short)0);
-    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short)1);
-
+    
+    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.STRUCT, (short) 0);
+    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short) 1);
+    
     public TabletStats success;
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      SEC((short)1, "sec");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SUCCESS((short) 0, "success"), SEC((short) 1, "sec");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
           case 1: // SEC
@@ -17090,66 +16856,60 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, TabletStats.class)));
-      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, TabletStats.class)));
+      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(getHistoricalStats_result.class, metaDataMap);
     }
-
-    public getHistoricalStats_result() {
-    }
-
-    public getHistoricalStats_result(
-      TabletStats success,
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
-    {
+    
+    public getHistoricalStats_result() {}
+    
+    public getHistoricalStats_result(TabletStats success, org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this();
       this.success = success;
       this.sec = sec;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -17161,133 +16921,133 @@ public class TabletClientService {
         this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
       }
     }
-
+    
     public getHistoricalStats_result deepCopy() {
       return new getHistoricalStats_result(this);
     }
-
+    
     @Deprecated
     public getHistoricalStats_result clone() {
       return new getHistoricalStats_result(this);
     }
-
+    
     public TabletStats getSuccess() {
       return this.success;
     }
-
+    
     public getHistoricalStats_result setSuccess(TabletStats success) {
       this.success = success;
       return this;
     }
-
+    
     public void unsetSuccess() {
       this.success = null;
     }
-
+    
     /** Returns true if field success is set (has been asigned a value) and false otherwise */
     public boolean isSetSuccess() {
       return this.success != null;
     }
-
+    
     public void setSuccessIsSet(boolean value) {
       if (!value) {
         this.success = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
       return this.sec;
     }
-
+    
     public getHistoricalStats_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
-
+    
     public void unsetSec() {
       this.sec = null;
     }
-
+    
     /** Returns true if field sec is set (has been asigned a value) and false otherwise */
     public boolean isSetSec() {
       return this.sec != null;
     }
-
+    
     public void setSecIsSet(boolean value) {
       if (!value) {
         this.sec = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((TabletStats)value);
-        }
-        break;
-
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((TabletStats) value);
+          }
+          break;
+        
+        case SEC:
+          if (value == null) {
+            unsetSec();
+          } else {
+            setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
-
-      case SEC:
-        return getSec();
-
+        case SUCCESS:
+          return getSuccess();
+          
+        case SEC:
+          return getSec();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case SEC:
-        return isSetSec();
+        case SUCCESS:
+          return isSetSuccess();
+        case SEC:
+          return isSetSec();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof getHistoricalStats_result)
-        return this.equals((getHistoricalStats_result)that);
+        return this.equals((getHistoricalStats_result) that);
       return false;
     }
-
+    
     public boolean equals(getHistoricalStats_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_success = true && this.isSetSuccess();
       boolean that_present_success = true && that.isSetSuccess();
       if (this_present_success || that_present_success) {
@@ -17296,7 +17056,7 @@ public class TabletClientService {
         if (!this.success.equals(that.success))
           return false;
       }
-
+      
       boolean this_present_sec = true && this.isSetSec();
       boolean that_present_sec = true && that.isSetSec();
       if (this_present_sec || that_present_sec) {
@@ -17305,28 +17065,29 @@ public class TabletClientService {
         if (!this.sec.equals(that.sec))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(getHistoricalStats_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      getHistoricalStats_result typedOther = (getHistoricalStats_result)other;
-
+      getHistoricalStats_result typedOther = (getHistoricalStats_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSuccess()) {        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
+      if (isSetSuccess()) {
+        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -17335,21 +17096,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSec()) {        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
+      if (isSetSec()) {
+        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -17357,7 +17118,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.success = new TabletStats();
               this.success.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -17365,7 +17126,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
               this.sec.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -17375,14 +17136,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSuccess()) {
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         this.success.write(oprot);
@@ -17395,7 +17156,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("getHistoricalStats_result(");
@@ -17415,44 +17176,42 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class halt_args implements TBase<halt_args, halt_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class halt_args implements TBase<halt_args,halt_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("halt_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)3);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-    private static final TField LOCK_FIELD_DESC = new TField("lock", TType.STRING, (short)2);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 3);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    private static final TField LOCK_FIELD_DESC = new TField("lock", TType.STRING, (short) 2);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
     public String lock;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)3, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      LOCK((short)2, "lock");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 3, "tinfo"), CREDENTIALS((short) 1, "credentials"), LOCK((short) 2, "lock");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 3: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -17463,70 +17222,63 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
-      tmpMap.put(_Fields.LOCK, new FieldMetaData("lock", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRING)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      tmpMap.put(_Fields.LOCK, new FieldMetaData("lock", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(halt_args.class, metaDataMap);
     }
-
-    public halt_args() {
-    }
-
-    public halt_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials,
-      String lock)
-    {
+    
+    public halt_args() {}
+    
+    public halt_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String lock) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.lock = lock;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -17541,170 +17293,170 @@ public class TabletClientService {
         this.lock = other.lock;
       }
     }
-
+    
     public halt_args deepCopy() {
       return new halt_args(this);
     }
-
+    
     @Deprecated
     public halt_args clone() {
       return new halt_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public halt_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public halt_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public String getLock() {
       return this.lock;
     }
-
+    
     public halt_args setLock(String lock) {
       this.lock = lock;
       return this;
     }
-
+    
     public void unsetLock() {
       this.lock = null;
     }
-
+    
     /** Returns true if field lock is set (has been asigned a value) and false otherwise */
     public boolean isSetLock() {
       return this.lock != null;
     }
-
+    
     public void setLockIsSet(boolean value) {
       if (!value) {
         this.lock = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
-      case LOCK:
-        if (value == null) {
-          unsetLock();
-        } else {
-          setLock((String)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+        
+        case LOCK:
+          if (value == null) {
+            unsetLock();
+          } else {
+            setLock((String) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case LOCK:
-        return getLock();
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
+        case LOCK:
+          return getLock();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case LOCK:
-        return isSetLock();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
+        case LOCK:
+          return isSetLock();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof halt_args)
-        return this.equals((halt_args)that);
+        return this.equals((halt_args) that);
       return false;
     }
-
+    
     public boolean equals(halt_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -17713,7 +17465,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -17722,7 +17474,7 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       boolean this_present_lock = true && this.isSetLock();
       boolean that_present_lock = true && that.isSetLock();
       if (this_present_lock || that_present_lock) {
@@ -17731,28 +17483,29 @@ public class TabletClientService {
         if (!this.lock.equals(that.lock))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(halt_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      halt_args typedOther = (halt_args)other;
-
+      halt_args typedOther = (halt_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -17761,7 +17514,8 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -17770,21 +17524,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetLock()) {        lastComparison = TBaseHelper.compareTo(this.lock, typedOther.lock);
+      if (isSetLock()) {
+        lastComparison = TBaseHelper.compareTo(this.lock, typedOther.lock);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -17792,7 +17546,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -17800,14 +17554,14 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
           case 2: // LOCK
             if (field.type == TType.STRING) {
               this.lock = iprot.readString();
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -17817,14 +17571,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -17844,7 +17598,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("halt_args(");
@@ -17871,100 +17625,96 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class halt_result implements TBase<halt_result, halt_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class halt_result implements TBase<halt_result,halt_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("halt_result");
-
-    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short)1);
-
+    
+    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short) 1);
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SEC((short)1, "sec");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SEC((short) 1, "sec");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 1: // SEC
             return SEC;
           default:
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(halt_result.class, metaDataMap);
     }
-
-    public halt_result() {
-    }
-
-    public halt_result(
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
-    {
+    
+    public halt_result() {}
+    
+    public halt_result(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this();
       this.sec = sec;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -17973,96 +17723,96 @@ public class TabletClientService {
         this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
       }
     }
-
+    
     public halt_result deepCopy() {
       return new halt_result(this);
     }
-
+    
     @Deprecated
     public halt_result clone() {
       return new halt_result(this);
     }
-
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
       return this.sec;
     }
-
+    
     public halt_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
-
+    
     public void unsetSec() {
       this.sec = null;
     }
-
+    
     /** Returns true if field sec is set (has been asigned a value) and false otherwise */
     public boolean isSetSec() {
       return this.sec != null;
     }
-
+    
     public void setSecIsSet(boolean value) {
       if (!value) {
         this.sec = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
+        case SEC:
+          if (value == null) {
+            unsetSec();
+          } else {
+            setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SEC:
-        return getSec();
-
+        case SEC:
+          return getSec();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SEC:
-        return isSetSec();
+        case SEC:
+          return isSetSec();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof halt_result)
-        return this.equals((halt_result)that);
+        return this.equals((halt_result) that);
       return false;
     }
-
+    
     public boolean equals(halt_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_sec = true && this.isSetSec();
       boolean that_present_sec = true && that.isSetSec();
       if (this_present_sec || that_present_sec) {
@@ -18071,42 +17821,42 @@ public class TabletClientService {
         if (!this.sec.equals(that.sec))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(halt_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      halt_result typedOther = (halt_result)other;
-
+      halt_result typedOther = (halt_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSec()).compareTo(typedOther.isSetSec());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSec()) {        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
+      if (isSetSec()) {
+        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -18114,7 +17864,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
               this.sec.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -18124,14 +17874,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSec()) {
         oprot.writeFieldBegin(SEC_FIELD_DESC);
         this.sec.write(oprot);
@@ -18140,7 +17890,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("halt_result(");
@@ -18153,41 +17903,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class getActiveScans_args implements TBase<getActiveScans_args, getActiveScans_args._Fields>, java.io.Serializable, Cloneable   {
+  public static class getActiveScans_args implements TBase<getActiveScans_args,getActiveScans_args._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("getActiveScans_args");
-
-    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short)2);
-    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short)1);
-
+    
+    private static final TField TINFO_FIELD_DESC = new TField("tinfo", TType.STRUCT, (short) 2);
+    private static final TField CREDENTIALS_FIELD_DESC = new TField("credentials", TType.STRUCT, (short) 1);
+    
     public cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      TINFO((short)2, "tinfo"),
-      CREDENTIALS((short)1, "credentials");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      TINFO((short) 2, "tinfo"), CREDENTIALS((short) 1, "credentials");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 2: // TINFO
             return TINFO;
           case 1: // CREDENTIALS
@@ -18196,66 +17945,61 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, 
-          new StructMetaData(TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new FieldMetaData("tinfo", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new FieldMetaData("credentials", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT,
+          org.apache.accumulo.core.security.thrift.AuthInfo.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(getActiveScans_args.class, metaDataMap);
     }
-
-    public getActiveScans_args() {
-    }
-
-    public getActiveScans_args(
-      cloudtrace.thrift.TInfo tinfo,
-      org.apache.accumulo.core.security.thrift.AuthInfo credentials)
-    {
+    
+    public getActiveScans_args() {}
+    
+    public getActiveScans_args(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -18267,133 +18011,133 @@ public class TabletClientService {
         this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
       }
     }
-
+    
     public getActiveScans_args deepCopy() {
       return new getActiveScans_args(this);
     }
-
+    
     @Deprecated
     public getActiveScans_args clone() {
       return new getActiveScans_args(this);
     }
-
+    
     public cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
-
+    
     public getActiveScans_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
-
+    
     public void unsetTinfo() {
       this.tinfo = null;
     }
-
+    
     /** Returns true if field tinfo is set (has been asigned a value) and false otherwise */
     public boolean isSetTinfo() {
       return this.tinfo != null;
     }
-
+    
     public void setTinfoIsSet(boolean value) {
       if (!value) {
         this.tinfo = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.AuthInfo getCredentials() {
       return this.credentials;
     }
-
+    
     public getActiveScans_args setCredentials(org.apache.accumulo.core.security.thrift.AuthInfo credentials) {
       this.credentials = credentials;
       return this;
     }
-
+    
     public void unsetCredentials() {
       this.credentials = null;
     }
-
+    
     /** Returns true if field credentials is set (has been asigned a value) and false otherwise */
     public boolean isSetCredentials() {
       return this.credentials != null;
     }
-
+    
     public void setCredentialsIsSet(boolean value) {
       if (!value) {
         this.credentials = null;
       }
     }
-
+    
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo)value);
-        }
-        break;
-
+        case TINFO:
+          if (value == null) {
+            unsetTinfo();
+          } else {
+            setTinfo((cloudtrace.thrift.TInfo) value);
+          }
+          break;
+        
+        case CREDENTIALS:
+          if (value == null) {
+            unsetCredentials();
+          } else {
+            setCredentials((org.apache.accumulo.core.security.thrift.AuthInfo) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
+        case TINFO:
+          return getTinfo();
+          
+        case CREDENTIALS:
+          return getCredentials();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
+        case TINFO:
+          return isSetTinfo();
+        case CREDENTIALS:
+          return isSetCredentials();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof getActiveScans_args)
-        return this.equals((getActiveScans_args)that);
+        return this.equals((getActiveScans_args) that);
       return false;
     }
-
+    
     public boolean equals(getActiveScans_args that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_tinfo = true && this.isSetTinfo();
       boolean that_present_tinfo = true && that.isSetTinfo();
       if (this_present_tinfo || that_present_tinfo) {
@@ -18402,7 +18146,7 @@ public class TabletClientService {
         if (!this.tinfo.equals(that.tinfo))
           return false;
       }
-
+      
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
       if (this_present_credentials || that_present_credentials) {
@@ -18411,28 +18155,29 @@ public class TabletClientService {
         if (!this.credentials.equals(that.credentials))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(getActiveScans_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      getActiveScans_args typedOther = (getActiveScans_args)other;
-
+      getActiveScans_args typedOther = (getActiveScans_args) other;
+      
       lastComparison = Boolean.valueOf(isSetTinfo()).compareTo(typedOther.isSetTinfo());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetTinfo()) {        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
+      if (isSetTinfo()) {
+        lastComparison = TBaseHelper.compareTo(this.tinfo, typedOther.tinfo);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -18441,21 +18186,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
+      if (isSetCredentials()) {
+        lastComparison = TBaseHelper.compareTo(this.credentials, typedOther.credentials);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -18463,7 +18208,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.tinfo = new cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -18471,7 +18216,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo();
               this.credentials.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -18481,14 +18226,14 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       validate();
-
+      
       oprot.writeStructBegin(STRUCT_DESC);
       if (this.credentials != null) {
         oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
@@ -18503,7 +18248,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("getActiveScans_args(");
@@ -18523,41 +18268,40 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
   @SuppressWarnings("serial")
-  public static class getActiveScans_result implements TBase<getActiveScans_result, getActiveScans_result._Fields>, java.io.Serializable, Cloneable   {
+  public static class getActiveScans_result implements TBase<getActiveScans_result,getActiveScans_result._Fields>, java.io.Serializable, Cloneable {
     private static final TStruct STRUCT_DESC = new TStruct("getActiveScans_result");
-
-    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.LIST, (short)0);
-    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short)1);
-
+    
+    private static final TField SUCCESS_FIELD_DESC = new TField("success", TType.LIST, (short) 0);
+    private static final TField SEC_FIELD_DESC = new TField("sec", TType.STRUCT, (short) 1);
+    
     public java.util.List<ActiveScan> success;
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec;
-
+    
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements TFieldIdEnum {
-      SUCCESS((short)0, "success"),
-      SEC((short)1, "sec");
-
-      private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+      SUCCESS((short) 0, "success"), SEC((short) 1, "sec");
+      
+      private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+      
       static {
         for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
           byName.put(field.getFieldName(), field);
         }
       }
-
+      
       /**
        * Find the _Fields constant that matches fieldId, or null if its not found.
        */
       public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
+        switch (fieldId) {
           case 0: // SUCCESS
             return SUCCESS;
           case 1: // SEC
@@ -18566,67 +18310,61 @@ public class TabletClientService {
             return null;
         }
       }
-
+      
       /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
+       * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
        */
       public static _Fields findByThriftIdOrThrow(int fieldId) {
         _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        if (fields == null)
+          throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
         return fields;
       }
-
+      
       /**
        * Find the _Fields constant that matches name, or null if its not found.
        */
       public static _Fields findByName(String name) {
         return byName.get(name);
       }
-
+      
       private final short _thriftId;
       private final String _fieldName;
-
+      
       _Fields(short thriftId, String fieldName) {
         _thriftId = thriftId;
         _fieldName = fieldName;
       }
-
+      
       public short getThriftFieldId() {
         return _thriftId;
       }
-
+      
       public String getFieldName() {
         return _fieldName;
       }
     }
-
+    
     // isset id assignments
-
-    public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+    
+    public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
     static {
-      java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, 
-          new ListMetaData(TType.LIST, 
-              new StructMetaData(TType.STRUCT, ActiveScan.class))));
-      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, 
-          new FieldValueMetaData(TType.STRUCT)));
+      java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new FieldMetaData("success", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST, new StructMetaData(TType.STRUCT,
+          ActiveScan.class))));
+      tmpMap.put(_Fields.SEC, new FieldMetaData("sec", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRUCT)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       FieldMetaData.addStructMetaDataMap(getActiveScans_result.class, metaDataMap);
     }
-
-    public getActiveScans_result() {
-    }
-
-    public getActiveScans_result(
-      java.util.List<ActiveScan> success,
-      org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
-    {
+    
+    public getActiveScans_result() {}
+    
+    public getActiveScans_result(java.util.List<ActiveScan> success, org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this();
       this.success = success;
       this.sec = sec;
     }
-
+    
     /**
      * Performs a deep copy on <i>other</i>.
      */
@@ -18642,149 +18380,149 @@ public class TabletClientService {
         this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
       }
     }
-
+    
     public getActiveScans_result deepCopy() {
       return new getActiveScans_result(this);
     }
-
+    
     @Deprecated
     public getActiveScans_result clone() {
       return new getActiveScans_result(this);
     }
-
+    
     public int getSuccessSize() {
       return (this.success == null) ? 0 : this.success.size();
     }
-
+    
     public java.util.Iterator<ActiveScan> getSuccessIterator() {
       return (this.success == null) ? null : this.success.iterator();
     }
-
+    
     public void addToSuccess(ActiveScan elem) {
       if (this.success == null) {
         this.success = new java.util.ArrayList<ActiveScan>();
       }
       this.success.add(elem);
     }
-
+    
     public java.util.List<ActiveScan> getSuccess() {
       return this.success;
     }
-
+    
     public getActiveScans_result setSuccess(java.util.List<ActiveScan> success) {
       this.success = success;
       return this;
     }
-
+    
     public void unsetSuccess() {
       this.success = null;
     }
-
+    
     /** Returns true if field success is set (has been asigned a value) and false otherwise */
     public boolean isSetSuccess() {
       return this.success != null;
     }
-
+    
     public void setSuccessIsSet(boolean value) {
       if (!value) {
         this.success = null;
       }
     }
-
+    
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
       return this.sec;
     }
-
+    
     public getActiveScans_result setSec(org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
       this.sec = sec;
       return this;
     }
-
+    
     public void unsetSec() {
       this.sec = null;
     }
-
+    
     /** Returns true if field sec is set (has been asigned a value) and false otherwise */
     public boolean isSetSec() {
       return this.sec != null;
     }
-
+    
     public void setSecIsSet(boolean value) {
       if (!value) {
         this.sec = null;
       }
     }
-
+    
     @SuppressWarnings("unchecked")
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
-      case SUCCESS:
-        if (value == null) {
-          unsetSuccess();
-        } else {
-          setSuccess((java.util.List<ActiveScan>)value);
-        }
-        break;
-
-      case SEC:
-        if (value == null) {
-          unsetSec();
-        } else {
-          setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException)value);
-        }
-        break;
-
+        case SUCCESS:
+          if (value == null) {
+            unsetSuccess();
+          } else {
+            setSuccess((java.util.List<ActiveScan>) value);
+          }
+          break;
+        
+        case SEC:
+          if (value == null) {
+            unsetSec();
+          } else {
+            setSec((org.apache.accumulo.core.security.thrift.ThriftSecurityException) value);
+          }
+          break;
+      
       }
     }
-
+    
     public void setFieldValue(int fieldID, Object value) {
       setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
     }
-
+    
     public Object getFieldValue(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return getSuccess();
-
-      case SEC:
-        return getSec();
-
+        case SUCCESS:
+          return getSuccess();
+          
+        case SEC:
+          return getSec();
+          
       }
       throw new IllegalStateException();
     }
-
+    
     public Object getFieldValue(int fieldId) {
       return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
     }
-
+    
     /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
     public boolean isSet(_Fields field) {
       switch (field) {
-      case SUCCESS:
-        return isSetSuccess();
-      case SEC:
-        return isSetSec();
+        case SUCCESS:
+          return isSetSuccess();
+        case SEC:
+          return isSetSec();
       }
       throw new IllegalStateException();
     }
-
+    
     public boolean isSet(int fieldID) {
       return isSet(_Fields.findByThriftIdOrThrow(fieldID));
     }
-
+    
     @Override
     public boolean equals(Object that) {
       if (that == null)
         return false;
       if (that instanceof getActiveScans_result)
-        return this.equals((getActiveScans_result)that);
+        return this.equals((getActiveScans_result) that);
       return false;
     }
-
+    
     public boolean equals(getActiveScans_result that) {
       if (that == null)
         return false;
-
+      
       boolean this_present_success = true && this.isSetSuccess();
       boolean that_present_success = true && that.isSetSuccess();
       if (this_present_success || that_present_success) {
@@ -18793,7 +18531,7 @@ public class TabletClientService {
         if (!this.success.equals(that.success))
           return false;
       }
-
+      
       boolean this_present_sec = true && this.isSetSec();
       boolean that_present_sec = true && that.isSetSec();
       if (this_present_sec || that_present_sec) {
@@ -18802,28 +18540,29 @@ public class TabletClientService {
         if (!this.sec.equals(that.sec))
           return false;
       }
-
+      
       return true;
     }
-
+    
     @Override
     public int hashCode() {
       return 0;
     }
-
+    
     public int compareTo(getActiveScans_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
-
+      
       int lastComparison = 0;
-      getActiveScans_result typedOther = (getActiveScans_result)other;
-
+      getActiveScans_result typedOther = (getActiveScans_result) other;
+      
       lastComparison = Boolean.valueOf(isSetSuccess()).compareTo(typedOther.isSetSuccess());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSuccess()) {        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
+      if (isSetSuccess()) {
+        lastComparison = TBaseHelper.compareTo(this.success, typedOther.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -18832,21 +18571,21 @@ public class TabletClientService {
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSec()) {        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
+      if (isSetSec()) {
+        lastComparison = TBaseHelper.compareTo(this.sec, typedOther.sec);
         if (lastComparison != 0) {
           return lastComparison;
         }
       }
       return 0;
     }
-
+    
     public void read(TProtocol iprot) throws TException {
       TField field;
       iprot.readStructBegin();
-      while (true)
-      {
+      while (true) {
         field = iprot.readFieldBegin();
-        if (field.type == TType.STOP) { 
+        if (field.type == TType.STOP) {
           break;
         }
         switch (field.id) {
@@ -18855,8 +18594,7 @@ public class TabletClientService {
               {
                 TList _list105 = iprot.readListBegin();
                 this.success = new java.util.ArrayList<ActiveScan>(_list105.size);
-                for (int _i106 = 0; _i106 < _list105.size; ++_i106)
-                {
+                for (int _i106 = 0; _i106 < _list105.size; ++_i106) {
                   ActiveScan _elem107;
                   _elem107 = new ActiveScan();
                   _elem107.read(iprot);
@@ -18864,7 +18602,7 @@ public class TabletClientService {
                 }
                 iprot.readListEnd();
               }
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -18872,7 +18610,7 @@ public class TabletClientService {
             if (field.type == TType.STRUCT) {
               this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException();
               this.sec.read(iprot);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -18882,20 +18620,19 @@ public class TabletClientService {
         iprot.readFieldEnd();
       }
       iprot.readStructEnd();
-
+      
       // check for required fields of primitive type, which can't be checked in the validate method
       validate();
     }
-
+    
     public void write(TProtocol oprot) throws TException {
       oprot.writeStructBegin(STRUCT_DESC);
-
+      
       if (this.isSetSuccess()) {
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         {
           oprot.writeListBegin(new TList(TType.STRUCT, this.success.size()));
-          for (ActiveScan _iter108 : this.success)
-          {
+          for (ActiveScan _iter108 : this.success) {
             _iter108.write(oprot);
           }
           oprot.writeListEnd();
@@ -18909,7 +18646,7 @@ public class TabletClientService {
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
-
+    
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder("getActiveScans_result(");
@@ -18929,11 +18666,11 @@ public class TabletClientService {
       sb.append(")");
       return sb.toString();
     }
-
+    
     public void validate() throws TException {
       // check for required fields
     }
-
+    
   }
-
+  
 }

@@ -49,7 +49,8 @@ public class StringArraySummation implements Aggregator {
   }
   
   public static byte[] longArrayToStringBytes(Long[] l) {
-    if (l.length == 0) return new byte[] {};
+    if (l.length == 0)
+      return new byte[] {};
     StringBuilder sb = new StringBuilder(Long.toString(l[0]));
     for (int i = 1; i < l.length; i++) {
       sb.append(",");

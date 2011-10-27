@@ -99,8 +99,10 @@ public class Trie<VT> {
       int index = 0xff & key.byteAt(depth);
       
       if (children[index] == null) {
-        if (depth + 1 < maxDepth) children[index] = new InnerNode<V>(depth + 1);
-        else children[index] = new LeafNode<V>(depth + 1);
+        if (depth + 1 < maxDepth)
+          children[index] = new InnerNode<V>(depth + 1);
+        else
+          children[index] = new LeafNode<V>(depth + 1);
         
         if (minIndex == 256) {
           next[index] = children[index];
@@ -117,7 +119,8 @@ public class Trie<VT> {
           
           next[index] = children[index];
         } else {
-          if (next[index] == null) throw new IllegalStateException("next[" + index + "] == null");
+          if (next[index] == null)
+            throw new IllegalStateException("next[" + index + "] == null");
           
           int bindex = index - 1;
           while (children[bindex] == null)
@@ -149,7 +152,8 @@ public class Trie<VT> {
       if (children[index] != null) {
         V ret = children[index].remove(key);
         if (children[index].isEmpty()) {
-          if (next[index] != children[index]) throw new IllegalStateException("next[" + index + "] != children[" + index + "]");
+          if (next[index] != children[index])
+            throw new IllegalStateException("next[" + index + "] != children[" + index + "]");
           
           if (index == minIndex && index == maxIndex) {
             minIndex = 256;
@@ -195,17 +199,21 @@ public class Trie<VT> {
       if (depth < text.length()) {
         int index = 0xff & text.byteAt(depth);
         
-        if (index > maxIndex) return pnext.findMin();
+        if (index > maxIndex)
+          return pnext.findMin();
         
-        if (index < minIndex) return children[minIndex].findMin();
+        if (index < minIndex)
+          return children[minIndex].findMin();
         
         TrieNode<V> child = children[index];
         
-        if (index == maxIndex) return child.ceilingEntry(text, pnext);
+        if (index == maxIndex)
+          return child.ceilingEntry(text, pnext);
         
         TrieNode<V> nextChild = next[index + 1];
         
-        if (child != null) return child.ceilingEntry(text, nextChild);
+        if (child != null)
+          return child.ceilingEntry(text, nextChild);
         
         return nextChild.findMin();
         
@@ -218,9 +226,11 @@ public class Trie<VT> {
     
     @Override
     Entry<ByteSequence,V> findMin() {
-      if (entry != null) return entry;
+      if (entry != null)
+        return entry;
       
-      if (minIndex == 256) return null;
+      if (minIndex == 256)
+        return null;
       
       return children[minIndex].findMin();
     }
@@ -261,14 +271,16 @@ public class Trie<VT> {
     @Override
     Entry<ByteSequence,V> ceilingEntry(ByteSequence text, TrieNode<V> pnext) {
       Entry<ByteSequence,V> entry = map.ceilingEntry(text);
-      if (entry != null) return entry;
+      if (entry != null)
+        return entry;
       return pnext.findMin();
     }
     
     @Override
     Entry<ByteSequence,V> findMin() {
       Entry<ByteSequence,V> entry = map.firstEntry();
-      if (entry != null) return entry;
+      if (entry != null)
+        return entry;
       
       return null;
     }
@@ -332,7 +344,8 @@ public class Trie<VT> {
   }
   
   public void add(Text key, VT value) {
-    if (value == null) throw new IllegalArgumentException();
+    if (value == null)
+      throw new IllegalArgumentException();
     rootNode.add(new ArrayByteSequence(key.getBytes(), 0, key.getLength()), value);
   }
   
@@ -342,7 +355,8 @@ public class Trie<VT> {
   
   public VT ceiling(ByteSequence key) {
     Entry<ByteSequence,VT> entry = rootNode.ceilingEntry(key, searchNode);
-    if (entry == null) return null;
+    if (entry == null)
+      return null;
     return entry.getValue();
   }
   

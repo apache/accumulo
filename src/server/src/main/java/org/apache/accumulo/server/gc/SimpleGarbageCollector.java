@@ -135,7 +135,8 @@ public class SimpleGarbageCollector implements Iface {
     try {
       fs = FileSystem.get(CachedConfiguration.getInstance());
       commandLine = new BasicParser().parse(opts, args);
-      if (commandLine.getArgs().length != 0) throw new ParseException("Extraneous arguments");
+      if (commandLine.getArgs().length != 0)
+        throw new ParseException("Extraneous arguments");
       
       safemode = commandLine.hasOption(optSafeMode.getOpt());
       offline = commandLine.hasOption(optOffline.getOpt());
@@ -192,7 +193,8 @@ public class SimpleGarbageCollector implements Iface {
     Sampler sampler = new CountSampler(100);
     
     while (true) {
-      if (sampler.next()) Trace.on("gc");
+      if (sampler.next())
+        Trace.on("gc");
       
       Span gcSpan = Trace.start("loop");
       tStart = System.currentTimeMillis();
@@ -218,11 +220,12 @@ public class SimpleGarbageCollector implements Iface {
         
         // STEP 3: delete files
         if (safemode) {
-          if (verbose) System.out.println("SAFEMODE: There are " + candidates.size() + " data file candidates marked for deletion.\n"
-              + "          Examine the log files to identify them.\n" + "          They can be removed by executing: bin/accumulo gc --offline\n"
-              + "WARNING:  Do not run the garbage collector in offline mode unless you are positive\n"
-              + "          that the accumulo METADATA table is in a clean state, or that accumulo\n"
-              + "          has not yet been run, in the case of an upgrade.");
+          if (verbose)
+            System.out.println("SAFEMODE: There are " + candidates.size() + " data file candidates marked for deletion.\n"
+                + "          Examine the log files to identify them.\n" + "          They can be removed by executing: bin/accumulo gc --offline\n"
+                + "WARNING:  Do not run the garbage collector in offline mode unless you are positive\n"
+                + "          that the accumulo METADATA table is in a clean state, or that accumulo\n"
+                + "          has not yet been run, in the case of an upgrade.");
           log.info("SAFEMODE: Listing all data file candidates for deletion");
           for (String s : candidates)
             log.info("SAFEMODE: " + s);
@@ -250,7 +253,8 @@ public class SimpleGarbageCollector implements Iface {
       tStop = System.currentTimeMillis();
       log.info(String.format("Collect cycle took %.2f seconds", ((tStop - tStart) / 1000.0)));
       
-      if (offline) break;
+      if (offline)
+        break;
       
       if (candidateMemExceeded) {
         log.info("Gathering of candidates was interrupted due to memory shortage. Bypassing cycle delay to collect the remaining candidates.");
@@ -383,7 +387,8 @@ public class SimpleGarbageCollector implements Iface {
       log.debug("Checking for bulk processing files");
       HashSet<String> bulks = new HashSet<String>();
       for (String candidate : candidates) {
-        if (candidate.contains("/bulk_")) bulks.add(candidate.substring(0, candidate.lastIndexOf('/')));
+        if (candidate.contains("/bulk_"))
+          bulks.add(candidate.substring(0, candidate.lastIndexOf('/')));
       }
       log.debug("... looking at " + bulks.size() + " bulk directories");
       TreeSet<String> processing = new TreeSet<String>();
@@ -448,8 +453,10 @@ public class SimpleGarbageCollector implements Iface {
           
           // WARNING: This line is EXTREMELY IMPORTANT.
           // You MUST REMOVE candidates that are still in use
-          if (candidates.remove(delete)) log.debug("Candidate was still in use in the METADATA table: " + delete);
-        } else throw new AccumuloException("Scanner over metadata table returned unexpected column : " + entry.getKey());
+          if (candidates.remove(delete))
+            log.debug("Candidate was still in use in the METADATA table: " + delete);
+        } else
+          throw new AccumuloException("Scanner over metadata table returned unexpected column : " + entry.getKey());
       }
     }
   }
@@ -513,7 +520,8 @@ public class SimpleGarbageCollector implements Iface {
                 String tableId = parts[1];
                 TableManager.getInstance().updateTableStateCache(tableId);
                 TableState tableState = TableManager.getInstance().getTableState(tableId);
-                if (tableState != null && tableState != TableState.DELETING) log.warn("File doesn't exist: " + p);
+                if (tableState != null && tableState != TableState.DELETING)
+                  log.warn("File doesn't exist: " + p);
               } else {
                 log.warn("Very strange path name: " + file);
               }

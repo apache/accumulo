@@ -5,27 +5,25 @@
  */
 package org.apache.accumulo.core.master.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.Serializable, Cloneable {
+public class TableInfo implements TBase<TableInfo,TableInfo._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("TableInfo");
-
-  private static final TField RECS_FIELD_DESC = new TField("recs", TType.I64, (short)1);
-  private static final TField RECS_IN_MEMORY_FIELD_DESC = new TField("recsInMemory", TType.I64, (short)2);
-  private static final TField TABLETS_FIELD_DESC = new TField("tablets", TType.I32, (short)3);
-  private static final TField ONLINE_TABLETS_FIELD_DESC = new TField("onlineTablets", TType.I32, (short)4);
-  private static final TField INGEST_RATE_FIELD_DESC = new TField("ingestRate", TType.DOUBLE, (short)5);
-  private static final TField INGEST_BYTE_RATE_FIELD_DESC = new TField("ingestByteRate", TType.DOUBLE, (short)6);
-  private static final TField QUERY_RATE_FIELD_DESC = new TField("queryRate", TType.DOUBLE, (short)7);
-  private static final TField QUERY_BYTE_RATE_FIELD_DESC = new TField("queryByteRate", TType.DOUBLE, (short)8);
-  private static final TField MINOR_FIELD_DESC = new TField("minor", TType.STRUCT, (short)9);
-  private static final TField MAJOR_FIELD_DESC = new TField("major", TType.STRUCT, (short)10);
-
+  
+  private static final TField RECS_FIELD_DESC = new TField("recs", TType.I64, (short) 1);
+  private static final TField RECS_IN_MEMORY_FIELD_DESC = new TField("recsInMemory", TType.I64, (short) 2);
+  private static final TField TABLETS_FIELD_DESC = new TField("tablets", TType.I32, (short) 3);
+  private static final TField ONLINE_TABLETS_FIELD_DESC = new TField("onlineTablets", TType.I32, (short) 4);
+  private static final TField INGEST_RATE_FIELD_DESC = new TField("ingestRate", TType.DOUBLE, (short) 5);
+  private static final TField INGEST_BYTE_RATE_FIELD_DESC = new TField("ingestByteRate", TType.DOUBLE, (short) 6);
+  private static final TField QUERY_RATE_FIELD_DESC = new TField("queryRate", TType.DOUBLE, (short) 7);
+  private static final TField QUERY_BYTE_RATE_FIELD_DESC = new TField("queryByteRate", TType.DOUBLE, (short) 8);
+  private static final TField MINOR_FIELD_DESC = new TField("minor", TType.STRUCT, (short) 9);
+  private static final TField MAJOR_FIELD_DESC = new TField("major", TType.STRUCT, (short) 10);
+  
   public long recs;
   public long recsInMemory;
   public int tablets;
@@ -36,33 +34,33 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
   public double queryByteRate;
   public Compacting minor;
   public Compacting major;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    RECS((short)1, "recs"),
-    RECS_IN_MEMORY((short)2, "recsInMemory"),
-    TABLETS((short)3, "tablets"),
-    ONLINE_TABLETS((short)4, "onlineTablets"),
-    INGEST_RATE((short)5, "ingestRate"),
-    INGEST_BYTE_RATE((short)6, "ingestByteRate"),
-    QUERY_RATE((short)7, "queryRate"),
-    QUERY_BYTE_RATE((short)8, "queryByteRate"),
-    MINOR((short)9, "minor"),
-    MAJOR((short)10, "major");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    RECS((short) 1, "recs"),
+    RECS_IN_MEMORY((short) 2, "recsInMemory"),
+    TABLETS((short) 3, "tablets"),
+    ONLINE_TABLETS((short) 4, "onlineTablets"),
+    INGEST_RATE((short) 5, "ingestRate"),
+    INGEST_BYTE_RATE((short) 6, "ingestByteRate"),
+    QUERY_RATE((short) 7, "queryRate"),
+    QUERY_BYTE_RATE((short) 8, "queryByteRate"),
+    MINOR((short) 9, "minor"),
+    MAJOR((short) 10, "major");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // RECS
           return RECS;
         case 2: // RECS_IN_MEMORY
@@ -87,41 +85,41 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
   private static final int __RECS_ISSET_ID = 0;
   private static final int __RECSINMEMORY_ISSET_ID = 1;
@@ -132,49 +130,28 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
   private static final int __QUERYRATE_ISSET_ID = 6;
   private static final int __QUERYBYTERATE_ISSET_ID = 7;
   private java.util.BitSet __isset_bit_vector = new java.util.BitSet(8);
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.RECS, new FieldMetaData("recs", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I64)));
-    tmpMap.put(_Fields.RECS_IN_MEMORY, new FieldMetaData("recsInMemory", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I64)));
-    tmpMap.put(_Fields.TABLETS, new FieldMetaData("tablets", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    tmpMap.put(_Fields.ONLINE_TABLETS, new FieldMetaData("onlineTablets", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    tmpMap.put(_Fields.INGEST_RATE, new FieldMetaData("ingestRate", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    tmpMap.put(_Fields.INGEST_BYTE_RATE, new FieldMetaData("ingestByteRate", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    tmpMap.put(_Fields.QUERY_RATE, new FieldMetaData("queryRate", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    tmpMap.put(_Fields.QUERY_BYTE_RATE, new FieldMetaData("queryByteRate", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    tmpMap.put(_Fields.MINOR, new FieldMetaData("minor", TFieldRequirementType.DEFAULT, 
-        new StructMetaData(TType.STRUCT, Compacting.class)));
-    tmpMap.put(_Fields.MAJOR, new FieldMetaData("major", TFieldRequirementType.DEFAULT, 
-        new StructMetaData(TType.STRUCT, Compacting.class)));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.RECS, new FieldMetaData("recs", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64)));
+    tmpMap.put(_Fields.RECS_IN_MEMORY, new FieldMetaData("recsInMemory", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64)));
+    tmpMap.put(_Fields.TABLETS, new FieldMetaData("tablets", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+    tmpMap.put(_Fields.ONLINE_TABLETS, new FieldMetaData("onlineTablets", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+    tmpMap.put(_Fields.INGEST_RATE, new FieldMetaData("ingestRate", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+    tmpMap.put(_Fields.INGEST_BYTE_RATE, new FieldMetaData("ingestByteRate", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+    tmpMap.put(_Fields.QUERY_RATE, new FieldMetaData("queryRate", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+    tmpMap.put(_Fields.QUERY_BYTE_RATE, new FieldMetaData("queryByteRate", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+    tmpMap.put(_Fields.MINOR, new FieldMetaData("minor", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, Compacting.class)));
+    tmpMap.put(_Fields.MAJOR, new FieldMetaData("major", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, Compacting.class)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(TableInfo.class, metaDataMap);
   }
-
-  public TableInfo() {
-  }
-
-  public TableInfo(
-    long recs,
-    long recsInMemory,
-    int tablets,
-    int onlineTablets,
-    double ingestRate,
-    double ingestByteRate,
-    double queryRate,
-    double queryByteRate,
-    Compacting minor,
-    Compacting major)
-  {
+  
+  public TableInfo() {}
+  
+  public TableInfo(long recs, long recsInMemory, int tablets, int onlineTablets, double ingestRate, double ingestByteRate, double queryRate,
+      double queryByteRate, Compacting minor, Compacting major) {
     this();
     this.recs = recs;
     setRecsIsSet(true);
@@ -195,7 +172,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
     this.minor = minor;
     this.major = major;
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -217,421 +194,421 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
       this.major = new Compacting(other.major);
     }
   }
-
+  
   public TableInfo deepCopy() {
     return new TableInfo(this);
   }
-
+  
   @Deprecated
   public TableInfo clone() {
     return new TableInfo(this);
   }
-
+  
   public long getRecs() {
     return this.recs;
   }
-
+  
   public TableInfo setRecs(long recs) {
     this.recs = recs;
     setRecsIsSet(true);
     return this;
   }
-
+  
   public void unsetRecs() {
     __isset_bit_vector.clear(__RECS_ISSET_ID);
   }
-
+  
   /** Returns true if field recs is set (has been asigned a value) and false otherwise */
   public boolean isSetRecs() {
     return __isset_bit_vector.get(__RECS_ISSET_ID);
   }
-
+  
   public void setRecsIsSet(boolean value) {
     __isset_bit_vector.set(__RECS_ISSET_ID, value);
   }
-
+  
   public long getRecsInMemory() {
     return this.recsInMemory;
   }
-
+  
   public TableInfo setRecsInMemory(long recsInMemory) {
     this.recsInMemory = recsInMemory;
     setRecsInMemoryIsSet(true);
     return this;
   }
-
+  
   public void unsetRecsInMemory() {
     __isset_bit_vector.clear(__RECSINMEMORY_ISSET_ID);
   }
-
+  
   /** Returns true if field recsInMemory is set (has been asigned a value) and false otherwise */
   public boolean isSetRecsInMemory() {
     return __isset_bit_vector.get(__RECSINMEMORY_ISSET_ID);
   }
-
+  
   public void setRecsInMemoryIsSet(boolean value) {
     __isset_bit_vector.set(__RECSINMEMORY_ISSET_ID, value);
   }
-
+  
   public int getTablets() {
     return this.tablets;
   }
-
+  
   public TableInfo setTablets(int tablets) {
     this.tablets = tablets;
     setTabletsIsSet(true);
     return this;
   }
-
+  
   public void unsetTablets() {
     __isset_bit_vector.clear(__TABLETS_ISSET_ID);
   }
-
+  
   /** Returns true if field tablets is set (has been asigned a value) and false otherwise */
   public boolean isSetTablets() {
     return __isset_bit_vector.get(__TABLETS_ISSET_ID);
   }
-
+  
   public void setTabletsIsSet(boolean value) {
     __isset_bit_vector.set(__TABLETS_ISSET_ID, value);
   }
-
+  
   public int getOnlineTablets() {
     return this.onlineTablets;
   }
-
+  
   public TableInfo setOnlineTablets(int onlineTablets) {
     this.onlineTablets = onlineTablets;
     setOnlineTabletsIsSet(true);
     return this;
   }
-
+  
   public void unsetOnlineTablets() {
     __isset_bit_vector.clear(__ONLINETABLETS_ISSET_ID);
   }
-
+  
   /** Returns true if field onlineTablets is set (has been asigned a value) and false otherwise */
   public boolean isSetOnlineTablets() {
     return __isset_bit_vector.get(__ONLINETABLETS_ISSET_ID);
   }
-
+  
   public void setOnlineTabletsIsSet(boolean value) {
     __isset_bit_vector.set(__ONLINETABLETS_ISSET_ID, value);
   }
-
+  
   public double getIngestRate() {
     return this.ingestRate;
   }
-
+  
   public TableInfo setIngestRate(double ingestRate) {
     this.ingestRate = ingestRate;
     setIngestRateIsSet(true);
     return this;
   }
-
+  
   public void unsetIngestRate() {
     __isset_bit_vector.clear(__INGESTRATE_ISSET_ID);
   }
-
+  
   /** Returns true if field ingestRate is set (has been asigned a value) and false otherwise */
   public boolean isSetIngestRate() {
     return __isset_bit_vector.get(__INGESTRATE_ISSET_ID);
   }
-
+  
   public void setIngestRateIsSet(boolean value) {
     __isset_bit_vector.set(__INGESTRATE_ISSET_ID, value);
   }
-
+  
   public double getIngestByteRate() {
     return this.ingestByteRate;
   }
-
+  
   public TableInfo setIngestByteRate(double ingestByteRate) {
     this.ingestByteRate = ingestByteRate;
     setIngestByteRateIsSet(true);
     return this;
   }
-
+  
   public void unsetIngestByteRate() {
     __isset_bit_vector.clear(__INGESTBYTERATE_ISSET_ID);
   }
-
+  
   /** Returns true if field ingestByteRate is set (has been asigned a value) and false otherwise */
   public boolean isSetIngestByteRate() {
     return __isset_bit_vector.get(__INGESTBYTERATE_ISSET_ID);
   }
-
+  
   public void setIngestByteRateIsSet(boolean value) {
     __isset_bit_vector.set(__INGESTBYTERATE_ISSET_ID, value);
   }
-
+  
   public double getQueryRate() {
     return this.queryRate;
   }
-
+  
   public TableInfo setQueryRate(double queryRate) {
     this.queryRate = queryRate;
     setQueryRateIsSet(true);
     return this;
   }
-
+  
   public void unsetQueryRate() {
     __isset_bit_vector.clear(__QUERYRATE_ISSET_ID);
   }
-
+  
   /** Returns true if field queryRate is set (has been asigned a value) and false otherwise */
   public boolean isSetQueryRate() {
     return __isset_bit_vector.get(__QUERYRATE_ISSET_ID);
   }
-
+  
   public void setQueryRateIsSet(boolean value) {
     __isset_bit_vector.set(__QUERYRATE_ISSET_ID, value);
   }
-
+  
   public double getQueryByteRate() {
     return this.queryByteRate;
   }
-
+  
   public TableInfo setQueryByteRate(double queryByteRate) {
     this.queryByteRate = queryByteRate;
     setQueryByteRateIsSet(true);
     return this;
   }
-
+  
   public void unsetQueryByteRate() {
     __isset_bit_vector.clear(__QUERYBYTERATE_ISSET_ID);
   }
-
+  
   /** Returns true if field queryByteRate is set (has been asigned a value) and false otherwise */
   public boolean isSetQueryByteRate() {
     return __isset_bit_vector.get(__QUERYBYTERATE_ISSET_ID);
   }
-
+  
   public void setQueryByteRateIsSet(boolean value) {
     __isset_bit_vector.set(__QUERYBYTERATE_ISSET_ID, value);
   }
-
+  
   public Compacting getMinor() {
     return this.minor;
   }
-
+  
   public TableInfo setMinor(Compacting minor) {
     this.minor = minor;
     return this;
   }
-
+  
   public void unsetMinor() {
     this.minor = null;
   }
-
+  
   /** Returns true if field minor is set (has been asigned a value) and false otherwise */
   public boolean isSetMinor() {
     return this.minor != null;
   }
-
+  
   public void setMinorIsSet(boolean value) {
     if (!value) {
       this.minor = null;
     }
   }
-
+  
   public Compacting getMajor() {
     return this.major;
   }
-
+  
   public TableInfo setMajor(Compacting major) {
     this.major = major;
     return this;
   }
-
+  
   public void unsetMajor() {
     this.major = null;
   }
-
+  
   /** Returns true if field major is set (has been asigned a value) and false otherwise */
   public boolean isSetMajor() {
     return this.major != null;
   }
-
+  
   public void setMajorIsSet(boolean value) {
     if (!value) {
       this.major = null;
     }
   }
-
+  
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case RECS:
-      if (value == null) {
-        unsetRecs();
-      } else {
-        setRecs((Long)value);
-      }
-      break;
-
-    case RECS_IN_MEMORY:
-      if (value == null) {
-        unsetRecsInMemory();
-      } else {
-        setRecsInMemory((Long)value);
-      }
-      break;
-
-    case TABLETS:
-      if (value == null) {
-        unsetTablets();
-      } else {
-        setTablets((Integer)value);
-      }
-      break;
-
-    case ONLINE_TABLETS:
-      if (value == null) {
-        unsetOnlineTablets();
-      } else {
-        setOnlineTablets((Integer)value);
-      }
-      break;
-
-    case INGEST_RATE:
-      if (value == null) {
-        unsetIngestRate();
-      } else {
-        setIngestRate((Double)value);
-      }
-      break;
-
-    case INGEST_BYTE_RATE:
-      if (value == null) {
-        unsetIngestByteRate();
-      } else {
-        setIngestByteRate((Double)value);
-      }
-      break;
-
-    case QUERY_RATE:
-      if (value == null) {
-        unsetQueryRate();
-      } else {
-        setQueryRate((Double)value);
-      }
-      break;
-
-    case QUERY_BYTE_RATE:
-      if (value == null) {
-        unsetQueryByteRate();
-      } else {
-        setQueryByteRate((Double)value);
-      }
-      break;
-
-    case MINOR:
-      if (value == null) {
-        unsetMinor();
-      } else {
-        setMinor((Compacting)value);
-      }
-      break;
-
-    case MAJOR:
-      if (value == null) {
-        unsetMajor();
-      } else {
-        setMajor((Compacting)value);
-      }
-      break;
-
+      case RECS:
+        if (value == null) {
+          unsetRecs();
+        } else {
+          setRecs((Long) value);
+        }
+        break;
+      
+      case RECS_IN_MEMORY:
+        if (value == null) {
+          unsetRecsInMemory();
+        } else {
+          setRecsInMemory((Long) value);
+        }
+        break;
+      
+      case TABLETS:
+        if (value == null) {
+          unsetTablets();
+        } else {
+          setTablets((Integer) value);
+        }
+        break;
+      
+      case ONLINE_TABLETS:
+        if (value == null) {
+          unsetOnlineTablets();
+        } else {
+          setOnlineTablets((Integer) value);
+        }
+        break;
+      
+      case INGEST_RATE:
+        if (value == null) {
+          unsetIngestRate();
+        } else {
+          setIngestRate((Double) value);
+        }
+        break;
+      
+      case INGEST_BYTE_RATE:
+        if (value == null) {
+          unsetIngestByteRate();
+        } else {
+          setIngestByteRate((Double) value);
+        }
+        break;
+      
+      case QUERY_RATE:
+        if (value == null) {
+          unsetQueryRate();
+        } else {
+          setQueryRate((Double) value);
+        }
+        break;
+      
+      case QUERY_BYTE_RATE:
+        if (value == null) {
+          unsetQueryByteRate();
+        } else {
+          setQueryByteRate((Double) value);
+        }
+        break;
+      
+      case MINOR:
+        if (value == null) {
+          unsetMinor();
+        } else {
+          setMinor((Compacting) value);
+        }
+        break;
+      
+      case MAJOR:
+        if (value == null) {
+          unsetMajor();
+        } else {
+          setMajor((Compacting) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case RECS:
-      return new Long(getRecs());
-
-    case RECS_IN_MEMORY:
-      return new Long(getRecsInMemory());
-
-    case TABLETS:
-      return new Integer(getTablets());
-
-    case ONLINE_TABLETS:
-      return new Integer(getOnlineTablets());
-
-    case INGEST_RATE:
-      return new Double(getIngestRate());
-
-    case INGEST_BYTE_RATE:
-      return new Double(getIngestByteRate());
-
-    case QUERY_RATE:
-      return new Double(getQueryRate());
-
-    case QUERY_BYTE_RATE:
-      return new Double(getQueryByteRate());
-
-    case MINOR:
-      return getMinor();
-
-    case MAJOR:
-      return getMajor();
-
+      case RECS:
+        return new Long(getRecs());
+        
+      case RECS_IN_MEMORY:
+        return new Long(getRecsInMemory());
+        
+      case TABLETS:
+        return new Integer(getTablets());
+        
+      case ONLINE_TABLETS:
+        return new Integer(getOnlineTablets());
+        
+      case INGEST_RATE:
+        return new Double(getIngestRate());
+        
+      case INGEST_BYTE_RATE:
+        return new Double(getIngestByteRate());
+        
+      case QUERY_RATE:
+        return new Double(getQueryRate());
+        
+      case QUERY_BYTE_RATE:
+        return new Double(getQueryByteRate());
+        
+      case MINOR:
+        return getMinor();
+        
+      case MAJOR:
+        return getMajor();
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case RECS:
-      return isSetRecs();
-    case RECS_IN_MEMORY:
-      return isSetRecsInMemory();
-    case TABLETS:
-      return isSetTablets();
-    case ONLINE_TABLETS:
-      return isSetOnlineTablets();
-    case INGEST_RATE:
-      return isSetIngestRate();
-    case INGEST_BYTE_RATE:
-      return isSetIngestByteRate();
-    case QUERY_RATE:
-      return isSetQueryRate();
-    case QUERY_BYTE_RATE:
-      return isSetQueryByteRate();
-    case MINOR:
-      return isSetMinor();
-    case MAJOR:
-      return isSetMajor();
+      case RECS:
+        return isSetRecs();
+      case RECS_IN_MEMORY:
+        return isSetRecsInMemory();
+      case TABLETS:
+        return isSetTablets();
+      case ONLINE_TABLETS:
+        return isSetOnlineTablets();
+      case INGEST_RATE:
+        return isSetIngestRate();
+      case INGEST_BYTE_RATE:
+        return isSetIngestByteRate();
+      case QUERY_RATE:
+        return isSetQueryRate();
+      case QUERY_BYTE_RATE:
+        return isSetQueryByteRate();
+      case MINOR:
+        return isSetMinor();
+      case MAJOR:
+        return isSetMajor();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof TableInfo)
-      return this.equals((TableInfo)that);
+      return this.equals((TableInfo) that);
     return false;
   }
-
+  
   public boolean equals(TableInfo that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_recs = true;
     boolean that_present_recs = true;
     if (this_present_recs || that_present_recs) {
@@ -640,7 +617,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
       if (this.recs != that.recs)
         return false;
     }
-
+    
     boolean this_present_recsInMemory = true;
     boolean that_present_recsInMemory = true;
     if (this_present_recsInMemory || that_present_recsInMemory) {
@@ -649,7 +626,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
       if (this.recsInMemory != that.recsInMemory)
         return false;
     }
-
+    
     boolean this_present_tablets = true;
     boolean that_present_tablets = true;
     if (this_present_tablets || that_present_tablets) {
@@ -658,7 +635,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
       if (this.tablets != that.tablets)
         return false;
     }
-
+    
     boolean this_present_onlineTablets = true;
     boolean that_present_onlineTablets = true;
     if (this_present_onlineTablets || that_present_onlineTablets) {
@@ -667,7 +644,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
       if (this.onlineTablets != that.onlineTablets)
         return false;
     }
-
+    
     boolean this_present_ingestRate = true;
     boolean that_present_ingestRate = true;
     if (this_present_ingestRate || that_present_ingestRate) {
@@ -676,7 +653,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
       if (this.ingestRate != that.ingestRate)
         return false;
     }
-
+    
     boolean this_present_ingestByteRate = true;
     boolean that_present_ingestByteRate = true;
     if (this_present_ingestByteRate || that_present_ingestByteRate) {
@@ -685,7 +662,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
       if (this.ingestByteRate != that.ingestByteRate)
         return false;
     }
-
+    
     boolean this_present_queryRate = true;
     boolean that_present_queryRate = true;
     if (this_present_queryRate || that_present_queryRate) {
@@ -694,7 +671,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
       if (this.queryRate != that.queryRate)
         return false;
     }
-
+    
     boolean this_present_queryByteRate = true;
     boolean that_present_queryByteRate = true;
     if (this_present_queryByteRate || that_present_queryByteRate) {
@@ -703,7 +680,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
       if (this.queryByteRate != that.queryByteRate)
         return false;
     }
-
+    
     boolean this_present_minor = true && this.isSetMinor();
     boolean that_present_minor = true && that.isSetMinor();
     if (this_present_minor || that_present_minor) {
@@ -712,7 +689,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
       if (!this.minor.equals(that.minor))
         return false;
     }
-
+    
     boolean this_present_major = true && this.isSetMajor();
     boolean that_present_major = true && that.isSetMajor();
     if (this_present_major || that_present_major) {
@@ -721,28 +698,29 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
       if (!this.major.equals(that.major))
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(TableInfo other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    TableInfo typedOther = (TableInfo)other;
-
+    TableInfo typedOther = (TableInfo) other;
+    
     lastComparison = Boolean.valueOf(isSetRecs()).compareTo(typedOther.isSetRecs());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetRecs()) {      lastComparison = TBaseHelper.compareTo(this.recs, typedOther.recs);
+    if (isSetRecs()) {
+      lastComparison = TBaseHelper.compareTo(this.recs, typedOther.recs);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -751,7 +729,8 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetRecsInMemory()) {      lastComparison = TBaseHelper.compareTo(this.recsInMemory, typedOther.recsInMemory);
+    if (isSetRecsInMemory()) {
+      lastComparison = TBaseHelper.compareTo(this.recsInMemory, typedOther.recsInMemory);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -760,7 +739,8 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetTablets()) {      lastComparison = TBaseHelper.compareTo(this.tablets, typedOther.tablets);
+    if (isSetTablets()) {
+      lastComparison = TBaseHelper.compareTo(this.tablets, typedOther.tablets);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -769,7 +749,8 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetOnlineTablets()) {      lastComparison = TBaseHelper.compareTo(this.onlineTablets, typedOther.onlineTablets);
+    if (isSetOnlineTablets()) {
+      lastComparison = TBaseHelper.compareTo(this.onlineTablets, typedOther.onlineTablets);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -778,7 +759,8 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetIngestRate()) {      lastComparison = TBaseHelper.compareTo(this.ingestRate, typedOther.ingestRate);
+    if (isSetIngestRate()) {
+      lastComparison = TBaseHelper.compareTo(this.ingestRate, typedOther.ingestRate);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -787,7 +769,8 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetIngestByteRate()) {      lastComparison = TBaseHelper.compareTo(this.ingestByteRate, typedOther.ingestByteRate);
+    if (isSetIngestByteRate()) {
+      lastComparison = TBaseHelper.compareTo(this.ingestByteRate, typedOther.ingestByteRate);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -796,7 +779,8 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetQueryRate()) {      lastComparison = TBaseHelper.compareTo(this.queryRate, typedOther.queryRate);
+    if (isSetQueryRate()) {
+      lastComparison = TBaseHelper.compareTo(this.queryRate, typedOther.queryRate);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -805,7 +789,8 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetQueryByteRate()) {      lastComparison = TBaseHelper.compareTo(this.queryByteRate, typedOther.queryByteRate);
+    if (isSetQueryByteRate()) {
+      lastComparison = TBaseHelper.compareTo(this.queryByteRate, typedOther.queryByteRate);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -814,7 +799,8 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetMinor()) {      lastComparison = TBaseHelper.compareTo(this.minor, typedOther.minor);
+    if (isSetMinor()) {
+      lastComparison = TBaseHelper.compareTo(this.minor, typedOther.minor);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -823,21 +809,21 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetMajor()) {      lastComparison = TBaseHelper.compareTo(this.major, typedOther.major);
+    if (isSetMajor()) {
+      lastComparison = TBaseHelper.compareTo(this.major, typedOther.major);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
@@ -845,7 +831,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
           if (field.type == TType.I64) {
             this.recs = iprot.readI64();
             setRecsIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -853,7 +839,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
           if (field.type == TType.I64) {
             this.recsInMemory = iprot.readI64();
             setRecsInMemoryIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -861,7 +847,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
           if (field.type == TType.I32) {
             this.tablets = iprot.readI32();
             setTabletsIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -869,7 +855,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
           if (field.type == TType.I32) {
             this.onlineTablets = iprot.readI32();
             setOnlineTabletsIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -877,7 +863,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
           if (field.type == TType.DOUBLE) {
             this.ingestRate = iprot.readDouble();
             setIngestRateIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -885,7 +871,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
           if (field.type == TType.DOUBLE) {
             this.ingestByteRate = iprot.readDouble();
             setIngestByteRateIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -893,7 +879,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
           if (field.type == TType.DOUBLE) {
             this.queryRate = iprot.readDouble();
             setQueryRateIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -901,7 +887,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
           if (field.type == TType.DOUBLE) {
             this.queryByteRate = iprot.readDouble();
             setQueryByteRateIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -909,7 +895,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
           if (field.type == TType.STRUCT) {
             this.minor = new Compacting();
             this.minor.read(iprot);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -917,7 +903,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
           if (field.type == TType.STRUCT) {
             this.major = new Compacting();
             this.major.read(iprot);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -927,14 +913,14 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     oprot.writeFieldBegin(RECS_FIELD_DESC);
     oprot.writeI64(this.recs);
@@ -973,7 +959,7 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("TableInfo(");
@@ -1017,10 +1003,9 @@ public class TableInfo implements TBase<TableInfo, TableInfo._Fields>, java.io.S
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

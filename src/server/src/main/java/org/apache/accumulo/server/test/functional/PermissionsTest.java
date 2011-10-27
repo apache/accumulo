@@ -116,7 +116,8 @@ public class PermissionsTest {
             test_user_conn.tableOperations().create(tableName);
             throw new IllegalStateException("Should NOT be able to create a table");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || root_conn.tableOperations().list().contains(tableName)) throw e;
+            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || root_conn.tableOperations().list().contains(tableName))
+              throw e;
           }
           break;
         case DROP_TABLE:
@@ -126,7 +127,8 @@ public class PermissionsTest {
             test_user_conn.tableOperations().delete(tableName);
             throw new IllegalStateException("Should NOT be able to delete a table");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.tableOperations().list().contains(tableName)) throw e;
+            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.tableOperations().list().contains(tableName))
+              throw e;
           }
           break;
         case ALTER_TABLE:
@@ -139,7 +141,8 @@ public class PermissionsTest {
           } catch (AccumuloSecurityException e) {
             if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED
                 || AccumuloConfiguration.getTableConfiguration(HdfsZooInstance.getInstance().getInstanceID(), tableId).get(Property.TABLE_BLOOM_ERRORRATE)
-                    .equals("003.14159%")) throw e;
+                    .equals("003.14159%"))
+              throw e;
           }
           root_conn.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
           try {
@@ -148,7 +151,8 @@ public class PermissionsTest {
           } catch (AccumuloSecurityException e) {
             if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED
                 || !AccumuloConfiguration.getTableConfiguration(HdfsZooInstance.getInstance().getInstanceID(), tableId).get(Property.TABLE_BLOOM_ERRORRATE)
-                    .equals("003.14159%")) throw e;
+                    .equals("003.14159%"))
+              throw e;
           }
           String table2 = tableName + "2";
           try {
@@ -156,7 +160,8 @@ public class PermissionsTest {
             throw new IllegalStateException("Should NOT be able to rename a table");
           } catch (AccumuloSecurityException e) {
             if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.tableOperations().list().contains(tableName)
-                || root_conn.tableOperations().list().contains(table2)) throw e;
+                || root_conn.tableOperations().list().contains(table2))
+              throw e;
           }
           break;
         case CREATE_USER:
@@ -165,7 +170,8 @@ public class PermissionsTest {
             test_user_conn.securityOperations().createUser(user, password.getBytes(), Constants.NO_AUTHS);
             throw new IllegalStateException("Should NOT be able to create a user");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || root_conn.securityOperations().authenticateUser(user, password.getBytes())) throw e;
+            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || root_conn.securityOperations().authenticateUser(user, password.getBytes()))
+              throw e;
           }
           break;
         case DROP_USER:
@@ -175,7 +181,8 @@ public class PermissionsTest {
             test_user_conn.securityOperations().dropUser(user);
             throw new IllegalStateException("Should NOT be able to delete a user");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.securityOperations().authenticateUser(user, password.getBytes())) throw e;
+            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.securityOperations().authenticateUser(user, password.getBytes()))
+              throw e;
           }
           break;
         case ALTER_USER:
@@ -185,7 +192,8 @@ public class PermissionsTest {
             test_user_conn.securityOperations().changeUserAuthorizations(user, new Authorizations("A", "B"));
             throw new IllegalStateException("Should NOT be able to alter a user");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.securityOperations().getUserAuthorizations(user).isEmpty()) throw e;
+            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || !root_conn.securityOperations().getUserAuthorizations(user).isEmpty())
+              throw e;
           }
           break;
         case SYSTEM:
@@ -206,13 +214,15 @@ public class PermissionsTest {
         case CREATE_TABLE:
           tableName = "__CREATE_TABLE_WITH_PERM_TEST__";
           test_user_conn.tableOperations().create(tableName);
-          if (!root_conn.tableOperations().list().contains(tableName)) throw new IllegalStateException("Should be able to create a table");
+          if (!root_conn.tableOperations().list().contains(tableName))
+            throw new IllegalStateException("Should be able to create a table");
           break;
         case DROP_TABLE:
           tableName = "__DROP_TABLE_WITH_PERM_TEST__";
           root_conn.tableOperations().create(tableName);
           test_user_conn.tableOperations().delete(tableName);
-          if (root_conn.tableOperations().list().contains(tableName)) throw new IllegalStateException("Should be able to delete a table");
+          if (root_conn.tableOperations().list().contains(tableName))
+            throw new IllegalStateException("Should be able to delete a table");
           break;
         case ALTER_TABLE:
           tableName = "__ALTER_TABLE_WITH_PERM_TEST__";
@@ -221,30 +231,35 @@ public class PermissionsTest {
           tableId = Tables.getNameToIdMap(root_conn.getInstance()).get(tableName);
           test_user_conn.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
           if (!AccumuloConfiguration.getTableConfiguration(HdfsZooInstance.getInstance().getInstanceID(), tableId).get(Property.TABLE_BLOOM_ERRORRATE)
-              .equals("003.14159%")) throw new IllegalStateException("Should be able to set a table property");
+              .equals("003.14159%"))
+            throw new IllegalStateException("Should be able to set a table property");
           test_user_conn.tableOperations().removeProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey());
           if (AccumuloConfiguration.getTableConfiguration(HdfsZooInstance.getInstance().getInstanceID(), tableId).get(Property.TABLE_BLOOM_ERRORRATE)
-              .equals("003.14159%")) throw new IllegalStateException("Should be able to remove a table property");
+              .equals("003.14159%"))
+            throw new IllegalStateException("Should be able to remove a table property");
           test_user_conn.tableOperations().rename(tableName, table2);
-          if (root_conn.tableOperations().list().contains(tableName) || !root_conn.tableOperations().list().contains(table2)) throw new IllegalStateException(
-              "Should be able to rename a table");
+          if (root_conn.tableOperations().list().contains(tableName) || !root_conn.tableOperations().list().contains(table2))
+            throw new IllegalStateException("Should be able to rename a table");
           break;
         case CREATE_USER:
           user = "__CREATE_USER_WITH_PERM_TEST__";
           test_user_conn.securityOperations().createUser(user, password.getBytes(), Constants.NO_AUTHS);
-          if (!root_conn.securityOperations().authenticateUser(user, password.getBytes())) throw new IllegalStateException("Should be able to create a user");
+          if (!root_conn.securityOperations().authenticateUser(user, password.getBytes()))
+            throw new IllegalStateException("Should be able to create a user");
           break;
         case DROP_USER:
           user = "__DROP_USER_WITH_PERM_TEST__";
           root_conn.securityOperations().createUser(user, password.getBytes(), Constants.NO_AUTHS);
           test_user_conn.securityOperations().dropUser(user);
-          if (root_conn.securityOperations().authenticateUser(user, password.getBytes())) throw new IllegalStateException("Should be able to delete a user");
+          if (root_conn.securityOperations().authenticateUser(user, password.getBytes()))
+            throw new IllegalStateException("Should be able to delete a user");
           break;
         case ALTER_USER:
           user = "__ALTER_USER_WITH_PERM_TEST__";
           root_conn.securityOperations().createUser(user, password.getBytes(), Constants.NO_AUTHS);
           test_user_conn.securityOperations().changeUserAuthorizations(user, new Authorizations("A", "B"));
-          if (root_conn.securityOperations().getUserAuthorizations(user).isEmpty()) throw new IllegalStateException("Should be able to alter a user");
+          if (root_conn.securityOperations().getUserAuthorizations(user).isEmpty())
+            throw new IllegalStateException("Should be able to alter a user");
           break;
         case SYSTEM:
           // test for system permission would go here
@@ -260,10 +275,12 @@ public class PermissionsTest {
       for (SystemPermission p : SystemPermission.values()) {
         if (permList.contains(p)) {
           // should have these
-          if (!root_conn.securityOperations().hasSystemPermission(user, p)) throw new IllegalStateException(user + " SHOULD have system permission " + p);
+          if (!root_conn.securityOperations().hasSystemPermission(user, p))
+            throw new IllegalStateException(user + " SHOULD have system permission " + p);
         } else {
           // should not have these
-          if (root_conn.securityOperations().hasSystemPermission(user, p)) throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
+          if (root_conn.securityOperations().hasSystemPermission(user, p))
+            throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
         }
       }
     }
@@ -271,7 +288,8 @@ public class PermissionsTest {
     private static void verifyHasNoSystemPermissions(Connector root_conn, String user, SystemPermission... perms) throws AccumuloException,
         AccumuloSecurityException {
       for (SystemPermission p : perms)
-        if (root_conn.securityOperations().hasSystemPermission(user, p)) throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
+        if (root_conn.securityOperations().hasSystemPermission(user, p))
+          throw new IllegalStateException(user + " SHOULD NOT have system permission " + p);
     }
   }
   
@@ -354,10 +372,12 @@ public class PermissionsTest {
             int i = 0;
             for (Entry<Key,Value> entry : scanner)
               i += 1 + entry.getKey().getRowData().length();
-            if (i != 0) throw new IllegalStateException("Should NOT be able to read from the table");
+            if (i != 0)
+              throw new IllegalStateException("Should NOT be able to read from the table");
           } catch (RuntimeException e) {
             AccumuloSecurityException se = (AccumuloSecurityException) e.getCause();
-            if (se.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED) throw se;
+            if (se.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+              throw se;
           }
           break;
         case WRITE:
@@ -369,12 +389,13 @@ public class PermissionsTest {
             try {
               writer.close();
             } catch (MutationsRejectedException e1) {
-              if (e1.getAuthorizationFailures().size() > 0) throw new AccumuloSecurityException(test_user_conn.whoami(), SecurityErrorCode.PERMISSION_DENIED,
-                  e1);
+              if (e1.getAuthorizationFailures().size() > 0)
+                throw new AccumuloSecurityException(test_user_conn.whoami(), SecurityErrorCode.PERMISSION_DENIED, e1);
             }
             throw new IllegalStateException("Should NOT be able to write to a table");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED) throw e;
+            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+              throw e;
           }
           break;
         case BULK_IMPORT:
@@ -387,7 +408,8 @@ public class PermissionsTest {
             test_user_conn.tableOperations().setLocalityGroups(TEST_TABLE, groups);
             throw new IllegalStateException("User should not be able to set locality groups");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED) throw e;
+            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+              throw e;
           }
           break;
         case DROP_TABLE:
@@ -395,7 +417,8 @@ public class PermissionsTest {
             test_user_conn.tableOperations().delete(TEST_TABLE);
             throw new IllegalStateException("User should not be able delete the table");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED) throw e;
+            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+              throw e;
           }
           break;
         case GRANT:
@@ -403,7 +426,8 @@ public class PermissionsTest {
             test_user_conn.securityOperations().grantTablePermission("root", TEST_TABLE, TablePermission.GRANT);
             throw new IllegalStateException("User should not be able grant permissions");
           } catch (AccumuloSecurityException e) {
-            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED) throw e;
+            if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED)
+              throw e;
           }
           break;
         default:
@@ -457,12 +481,12 @@ public class PermissionsTest {
       for (TablePermission p : TablePermission.values()) {
         if (permList.contains(p)) {
           // should have these
-          if (!root_conn.securityOperations().hasTablePermission(user, table, p)) throw new IllegalStateException(user + " SHOULD have table permission " + p
-              + " for table " + table);
+          if (!root_conn.securityOperations().hasTablePermission(user, table, p))
+            throw new IllegalStateException(user + " SHOULD have table permission " + p + " for table " + table);
         } else {
           // should not have these
-          if (root_conn.securityOperations().hasTablePermission(user, table, p)) throw new IllegalStateException(user + " SHOULD NOT have table permission "
-              + p + " for table " + table);
+          if (root_conn.securityOperations().hasTablePermission(user, table, p))
+            throw new IllegalStateException(user + " SHOULD NOT have table permission " + p + " for table " + table);
         }
       }
     }
@@ -470,8 +494,8 @@ public class PermissionsTest {
     private static void verifyHasNoTablePermissions(Connector root_conn, String user, String table, TablePermission... perms) throws AccumuloException,
         AccumuloSecurityException {
       for (TablePermission p : perms)
-        if (root_conn.securityOperations().hasTablePermission(user, table, p)) throw new IllegalStateException(user + " SHOULD NOT have table permission " + p
-            + " for table " + table);
+        if (root_conn.securityOperations().hasTablePermission(user, table, p))
+          throw new IllegalStateException(user + " SHOULD NOT have table permission " + p + " for table " + table);
     }
   }
 }

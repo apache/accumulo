@@ -63,10 +63,15 @@ public class TabletLocatorImpl extends TabletLocator {
       
       int ret;
       
-      if (o1 == MAX_TEXT) if (o2 == MAX_TEXT) ret = 0;
-      else ret = 1;
-      else if (o2 == MAX_TEXT) ret = -1;
-      else ret = o1.compareTo(o2);
+      if (o1 == MAX_TEXT)
+        if (o2 == MAX_TEXT)
+          ret = 0;
+        else
+          ret = 1;
+      else if (o2 == MAX_TEXT)
+        ret = -1;
+      else
+        ret = o1.compareTo(o2);
       
       return ret;
     }
@@ -107,7 +112,8 @@ public class TabletLocatorImpl extends TabletLocator {
       AccumuloSecurityException, TableNotFoundException {
     
     OpTimer opTimer = null;
-    if (log.isTraceEnabled()) opTimer = new OpTimer(log, Level.TRACE).start("Binning " + mutations.size() + " mutations for table " + tableId);
+    if (log.isTraceEnabled())
+      opTimer = new OpTimer(log, Level.TRACE).start("Binning " + mutations.size() + " mutations for table " + tableId);
     
     ArrayList<Mutation> notInCache = new ArrayList<Mutation>();
     Text row = new Text();
@@ -125,8 +131,10 @@ public class TabletLocatorImpl extends TabletLocator {
       for (Mutation mutation : mutations) {
         row.set(mutation.getRow());
         TabletLocation tl = locateTabletInCache(row);
-        if (tl == null) notInCache.add(mutation);
-        else addMutation(binnedMutations, mutation, tl);
+        if (tl == null)
+          notInCache.add(mutation);
+        else
+          addMutation(binnedMutations, mutation, tl);
         
       }
     } finally {
@@ -167,8 +175,8 @@ public class TabletLocatorImpl extends TabletLocator {
       }
     }
     
-    if (opTimer != null) opTimer.stop("Binned " + mutations.size() + " mutations for table " + tableId + " to " + binnedMutations.size()
-        + " tservers in %DURATION%");
+    if (opTimer != null)
+      opTimer.stop("Binned " + mutations.size() + " mutations for table " + tableId + " to " + binnedMutations.size() + " tservers in %DURATION%");
   }
   
   private void addMutation(Map<String,TabletServerMutations> binnedMutations, Mutation mutation, TabletLocation tl) {
@@ -196,16 +204,20 @@ public class TabletLocatorImpl extends TabletLocator {
       
       if (range.getStartKey() != null) {
         startRow = range.getStartKey().getRow();
-      } else startRow = new Text();
+      } else
+        startRow = new Text();
       
       TabletLocation tl = null;
       
-      if (useCache) tl = locateTabletInCache(startRow);
-      else if (!lookupFailed) tl = _locateTablet(startRow, false, false, false);
+      if (useCache)
+        tl = locateTabletInCache(startRow);
+      else if (!lookupFailed)
+        tl = _locateTablet(startRow, false, false, false);
       
       if (tl == null) {
         failures.add(range);
-        if (!useCache) lookupFailed = true;
+        if (!useCache)
+          lookupFailed = true;
         continue;
       }
       
@@ -222,7 +234,8 @@ public class TabletLocatorImpl extends TabletLocator {
         
         if (tl == null) {
           failures.add(range);
-          if (!useCache) lookupFailed = true;
+          if (!useCache)
+            lookupFailed = true;
           continue l1;
         }
         tabletLocations.add(tl);
@@ -247,7 +260,8 @@ public class TabletLocatorImpl extends TabletLocator {
      */
     
     OpTimer opTimer = null;
-    if (log.isTraceEnabled()) opTimer = new OpTimer(log, Level.TRACE).start("Binning " + ranges.size() + " ranges for table " + tableId);
+    if (log.isTraceEnabled())
+      opTimer = new OpTimer(log, Level.TRACE).start("Binning " + ranges.size() + " ranges for table " + tableId);
     
     List<Range> failures;
     rLock.lock();
@@ -277,7 +291,8 @@ public class TabletLocatorImpl extends TabletLocator {
       }
     }
     
-    if (opTimer != null) opTimer.stop("Binned " + ranges.size() + " ranges for table " + tableId + " to " + binnedRanges.size() + " tservers in %DURATION%");
+    if (opTimer != null)
+      opTimer.stop("Binned " + ranges.size() + " ranges for table " + tableId + " to " + binnedRanges.size() + " tservers in %DURATION%");
     
     return failures;
   }
@@ -290,7 +305,8 @@ public class TabletLocatorImpl extends TabletLocator {
     } finally {
       wLock.unlock();
     }
-    if (log.isTraceEnabled()) log.trace("Invalidated extent=" + failedExtent);
+    if (log.isTraceEnabled())
+      log.trace("Invalidated extent=" + failedExtent);
   }
   
   @Override
@@ -301,7 +317,8 @@ public class TabletLocatorImpl extends TabletLocator {
     } finally {
       wLock.unlock();
     }
-    if (log.isTraceEnabled()) log.trace("Invalidated " + keySet.size() + " cache entries for table " + tableId);
+    if (log.isTraceEnabled())
+      log.trace("Invalidated " + keySet.size() + " cache entries for table " + tableId);
   }
   
   @Override
@@ -319,7 +336,8 @@ public class TabletLocatorImpl extends TabletLocator {
       wLock.unlock();
     }
     
-    if (log.isTraceEnabled()) log.trace("invalidated " + invalidatedCount + " cache entries  table=" + tableId + " server=" + server);
+    if (log.isTraceEnabled())
+      log.trace("invalidated " + invalidatedCount + " cache entries  table=" + tableId + " server=" + server);
     
   }
   
@@ -333,15 +351,17 @@ public class TabletLocatorImpl extends TabletLocator {
     } finally {
       wLock.unlock();
     }
-    if (log.isTraceEnabled()) log.trace("invalidated all " + invalidatedCount + " cache entries for table=" + tableId);
+    if (log.isTraceEnabled())
+      log.trace("invalidated all " + invalidatedCount + " cache entries for table=" + tableId);
   }
   
   @Override
   public TabletLocation locateTablet(Text row, boolean skipRow, boolean retry) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
     OpTimer opTimer = null;
-    if (log.isTraceEnabled()) opTimer = new OpTimer(log, Level.TRACE).start("Locating tablet  table=" + tableId + " row=" + TextUtil.truncate(row)
-        + "  skipRow=" + skipRow + " retry=" + retry);
+    if (log.isTraceEnabled())
+      opTimer = new OpTimer(log, Level.TRACE).start("Locating tablet  table=" + tableId + " row=" + TextUtil.truncate(row) + "  skipRow=" + skipRow + " retry="
+          + retry);
     
     while (true) {
       
@@ -351,12 +371,13 @@ public class TabletLocatorImpl extends TabletLocator {
       
       if (retry && tl == null) {
         UtilWaitThread.sleep(100);
-        if (log.isTraceEnabled()) log.trace("Failed to locate tablet containing row " + TextUtil.truncate(row) + " in table " + tableId + ", will retry...");
+        if (log.isTraceEnabled())
+          log.trace("Failed to locate tablet containing row " + TextUtil.truncate(row) + " in table " + tableId + ", will retry...");
         continue;
       }
       
-      if (opTimer != null) opTimer.stop("Located tablet " + (tl == null ? null : tl.tablet_extent) + " at " + (tl == null ? null : tl.tablet_location)
-          + " in %DURATION%");
+      if (opTimer != null)
+        opTimer.stop("Located tablet " + (tl == null ? null : tl.tablet_extent) + " at " + (tl == null ? null : tl.tablet_location) + " in %DURATION%");
       
       return tl;
     }
@@ -376,7 +397,8 @@ public class TabletLocatorImpl extends TabletLocator {
         if (er != null && er.compareTo(lastTabletRow) < 0) {
           // System.out.println("er "+er+"  ltr "+lastTabletRow);
           ptl = parent.locateTablet(er, true, retry);
-          if (ptl != null) locations = locationObtainer.lookupTablet(ptl, metadataRow, lastTabletRow, parent);
+          if (ptl != null)
+            locations = locationObtainer.lookupTablet(ptl, metadataRow, lastTabletRow, parent);
         }
       }
       
@@ -426,10 +448,12 @@ public class TabletLocatorImpl extends TabletLocator {
     
     // add it to cache
     Text er = tabletLocation.tablet_extent.getEndRow();
-    if (er == null) er = MAX_TEXT;
+    if (er == null)
+      er = MAX_TEXT;
     metaCache.put(er, tabletLocation);
     
-    if (badExtents.size() > 0) removeOverlapping(badExtents, tabletLocation.tablet_extent);
+    if (badExtents.size() > 0)
+      removeOverlapping(badExtents, tabletLocation.tablet_extent);
   }
   
   static void removeOverlapping(TreeMap<Text,TabletLocation> metaCache, KeyExtent nke) {
@@ -478,7 +502,8 @@ public class TabletLocatorImpl extends TabletLocator {
     
     if (entry != null) {
       KeyExtent ke = entry.getValue().tablet_extent;
-      if (ke.getPrevEndRow() == null || ke.getPrevEndRow().compareTo(row) < 0) return entry.getValue();
+      if (ke.getPrevEndRow() == null || ke.getPrevEndRow().compareTo(row) < 0)
+        return entry.getValue();
     }
     return null;
   }
@@ -493,23 +518,27 @@ public class TabletLocatorImpl extends TabletLocator {
     
     TabletLocation tl;
     
-    if (lock) rLock.lock();
+    if (lock)
+      rLock.lock();
     try {
       processInvalidated();
       tl = locateTabletInCache(row);
     } finally {
-      if (lock) rLock.unlock();
+      if (lock)
+        rLock.unlock();
     }
     
     if (tl == null) {
-      if (lock) wLock.lock();
+      if (lock)
+        wLock.lock();
       try {
         // not in cache, so obtain info
         lookupTabletLocation(row, retry);
         
         tl = locateTabletInCache(row);
       } finally {
-        if (lock) wLock.unlock();
+        if (lock)
+          wLock.unlock();
       }
     }
     
@@ -518,14 +547,16 @@ public class TabletLocatorImpl extends TabletLocator {
   
   private void processInvalidated() throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     
-    if (badExtents.size() == 0) return;
+    if (badExtents.size() == 0)
+      return;
     
     boolean writeLockHeld = rwLock.isWriteLockedByCurrentThread();
     try {
       if (!writeLockHeld) {
         rLock.unlock();
         wLock.lock();
-        if (badExtents.size() == 0) return;
+        if (badExtents.size() == 0)
+          return;
       }
       
       List<Range> lookups = new ArrayList<Range>(badExtents.size());

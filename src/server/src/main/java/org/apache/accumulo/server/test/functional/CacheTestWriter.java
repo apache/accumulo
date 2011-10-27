@@ -146,7 +146,8 @@ public class CacheTestWriter {
             }
           }
           
-          if (ok) break;
+          if (ok)
+            break;
         }
         
         UtilWaitThread.sleep(5);

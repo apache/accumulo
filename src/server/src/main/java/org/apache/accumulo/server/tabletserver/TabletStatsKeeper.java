@@ -59,7 +59,8 @@ public class TabletStatsKeeper {
         data.queueTime += t;
         data.sumDev += t * t;
         data.queueSumDev += q * q;
-        if (data.elapsed < 0 || data.sumDev < 0 || data.queueSumDev < 0 || data.queueTime < 0) resetTimes();
+        if (data.elapsed < 0 || data.sumDev < 0 || data.queueSumDev < 0 || data.queueTime < 0)
+          resetTimes();
       }
     } catch (Exception E) {
       resetTimes();
@@ -81,7 +82,8 @@ public class TabletStatsKeeper {
         data.elapsed += t;
         data.sumDev += t * t;
         
-        if (data.elapsed < 0 || data.sumDev < 0 || data.queueSumDev < 0 || data.queueTime < 0) resetTimes();
+        if (data.elapsed < 0 || data.sumDev < 0 || data.queueSumDev < 0 || data.queueTime < 0)
+          resetTimes();
       }
     } catch (Exception E) {
       resetTimes();

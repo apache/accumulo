@@ -154,7 +154,8 @@ public class ScanCache implements SortedKeyValueIterator<Key,Value> {
       // assert(outOfEntries == topCacheEntry.getValue().exitPoint);
       if (topCacheEntry.getValue().exitPoint == true) {
         // log.debug("Adding " + topKey + " to noLongerExitPoints");
-        if (currentScanOversize == false) noLongerExitPoints.add(topKey);
+        if (currentScanOversize == false)
+          noLongerExitPoints.add(topKey);
         // get the next cache entry
         if (cacheIterator.hasNext() == false) {
           topCacheEntry = null;
@@ -216,8 +217,10 @@ public class ScanCache implements SortedKeyValueIterator<Key,Value> {
     
     // grab the first entry from the cache that is greater than or equal to the given key k
     cacheIterator = cacheEntries.tailMap(k).entrySet().iterator();
-    if (cacheIterator.hasNext()) topCacheEntry = cacheIterator.next();
-    else topCacheEntry = null;
+    if (cacheIterator.hasNext())
+      topCacheEntry = cacheIterator.next();
+    else
+      topCacheEntry = null;
     // if we're skipping the given key, we should be past it at this point
     
     // if there is something in the cache then we should try to use it
@@ -409,7 +412,8 @@ public class ScanCache implements SortedKeyValueIterator<Key,Value> {
       // update the time of the entry point
       if (latestEntryPoint != null) {
         // only add the true entry points to the timesOfEntryPoints map
-        if (cacheEntries.get(latestEntryPoint).entryPoint) timesOfEntryPoints.put(currentScanTime, latestEntryPoint);
+        if (cacheEntries.get(latestEntryPoint).entryPoint)
+          timesOfEntryPoints.put(currentScanTime, latestEntryPoint);
       }
       
       // free some space if necessary
@@ -444,7 +448,8 @@ public class ScanCache implements SortedKeyValueIterator<Key,Value> {
       Entry<Long,Key> firstTimeEntryPoint = entryTimeIter.next();
       entryTimeIter.remove();
       makeRoomSecondTimeEntryPoint = null;
-      if (entryTimeIter.hasNext()) makeRoomSecondTimeEntryPoint = entryTimeIter.next();
+      if (entryTimeIter.hasNext())
+        makeRoomSecondTimeEntryPoint = entryTimeIter.next();
       
       makeRoomCacheIter = cacheEntries.tailMap(firstTimeEntryPoint.getValue()).entrySet().iterator();
     }
@@ -454,7 +459,8 @@ public class ScanCache implements SortedKeyValueIterator<Key,Value> {
   // prefer to remove very small segments
   // prefer to remove portions from one end of a large segment
   private void makeRoom() {
-    if (currentSize <= maxSize) return;
+    if (currentSize <= maxSize)
+      return;
     
     // only remove from the beginning of a contiguous section to preserve contiguous sections
     // support removing the tail of a contiguous section as well to prevent bad cases with backwards sequential reads

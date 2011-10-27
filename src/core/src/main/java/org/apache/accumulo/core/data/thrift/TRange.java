@@ -5,52 +5,50 @@
  */
 package org.apache.accumulo.core.data.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializable, Cloneable {
+public class TRange implements TBase<TRange,TRange._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("TRange");
-
-  private static final TField START_FIELD_DESC = new TField("start", TType.STRUCT, (short)1);
-  private static final TField STOP_FIELD_DESC = new TField("stop", TType.STRUCT, (short)2);
-  private static final TField START_KEY_INCLUSIVE_FIELD_DESC = new TField("startKeyInclusive", TType.BOOL, (short)3);
-  private static final TField STOP_KEY_INCLUSIVE_FIELD_DESC = new TField("stopKeyInclusive", TType.BOOL, (short)4);
-  private static final TField INFINITE_START_KEY_FIELD_DESC = new TField("infiniteStartKey", TType.BOOL, (short)5);
-  private static final TField INFINITE_STOP_KEY_FIELD_DESC = new TField("infiniteStopKey", TType.BOOL, (short)6);
-
+  
+  private static final TField START_FIELD_DESC = new TField("start", TType.STRUCT, (short) 1);
+  private static final TField STOP_FIELD_DESC = new TField("stop", TType.STRUCT, (short) 2);
+  private static final TField START_KEY_INCLUSIVE_FIELD_DESC = new TField("startKeyInclusive", TType.BOOL, (short) 3);
+  private static final TField STOP_KEY_INCLUSIVE_FIELD_DESC = new TField("stopKeyInclusive", TType.BOOL, (short) 4);
+  private static final TField INFINITE_START_KEY_FIELD_DESC = new TField("infiniteStartKey", TType.BOOL, (short) 5);
+  private static final TField INFINITE_STOP_KEY_FIELD_DESC = new TField("infiniteStopKey", TType.BOOL, (short) 6);
+  
   public TKey start;
   public TKey stop;
   public boolean startKeyInclusive;
   public boolean stopKeyInclusive;
   public boolean infiniteStartKey;
   public boolean infiniteStopKey;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    START((short)1, "start"),
-    STOP((short)2, "stop"),
-    START_KEY_INCLUSIVE((short)3, "startKeyInclusive"),
-    STOP_KEY_INCLUSIVE((short)4, "stopKeyInclusive"),
-    INFINITE_START_KEY((short)5, "infiniteStartKey"),
-    INFINITE_STOP_KEY((short)6, "infiniteStopKey");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    START((short) 1, "start"),
+    STOP((short) 2, "stop"),
+    START_KEY_INCLUSIVE((short) 3, "startKeyInclusive"),
+    STOP_KEY_INCLUSIVE((short) 4, "stopKeyInclusive"),
+    INFINITE_START_KEY((short) 5, "infiniteStartKey"),
+    INFINITE_STOP_KEY((short) 6, "infiniteStopKey");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // START
           return START;
         case 2: // STOP
@@ -67,78 +65,64 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
   private static final int __STARTKEYINCLUSIVE_ISSET_ID = 0;
   private static final int __STOPKEYINCLUSIVE_ISSET_ID = 1;
   private static final int __INFINITESTARTKEY_ISSET_ID = 2;
   private static final int __INFINITESTOPKEY_ISSET_ID = 3;
   private java.util.BitSet __isset_bit_vector = new java.util.BitSet(4);
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.START, new FieldMetaData("start", TFieldRequirementType.DEFAULT, 
-        new StructMetaData(TType.STRUCT, TKey.class)));
-    tmpMap.put(_Fields.STOP, new FieldMetaData("stop", TFieldRequirementType.DEFAULT, 
-        new StructMetaData(TType.STRUCT, TKey.class)));
-    tmpMap.put(_Fields.START_KEY_INCLUSIVE, new FieldMetaData("startKeyInclusive", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.BOOL)));
-    tmpMap.put(_Fields.STOP_KEY_INCLUSIVE, new FieldMetaData("stopKeyInclusive", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.BOOL)));
-    tmpMap.put(_Fields.INFINITE_START_KEY, new FieldMetaData("infiniteStartKey", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.BOOL)));
-    tmpMap.put(_Fields.INFINITE_STOP_KEY, new FieldMetaData("infiniteStopKey", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.BOOL)));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.START, new FieldMetaData("start", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, TKey.class)));
+    tmpMap.put(_Fields.STOP, new FieldMetaData("stop", TFieldRequirementType.DEFAULT, new StructMetaData(TType.STRUCT, TKey.class)));
+    tmpMap.put(_Fields.START_KEY_INCLUSIVE, new FieldMetaData("startKeyInclusive", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.BOOL)));
+    tmpMap.put(_Fields.STOP_KEY_INCLUSIVE, new FieldMetaData("stopKeyInclusive", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.BOOL)));
+    tmpMap.put(_Fields.INFINITE_START_KEY, new FieldMetaData("infiniteStartKey", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.BOOL)));
+    tmpMap.put(_Fields.INFINITE_STOP_KEY, new FieldMetaData("infiniteStopKey", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.BOOL)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(TRange.class, metaDataMap);
   }
-
-  public TRange() {
-  }
-
-  public TRange(
-    TKey start,
-    TKey stop,
-    boolean startKeyInclusive,
-    boolean stopKeyInclusive,
-    boolean infiniteStartKey,
-    boolean infiniteStopKey)
-  {
+  
+  public TRange() {}
+  
+  public TRange(TKey start, TKey stop, boolean startKeyInclusive, boolean stopKeyInclusive, boolean infiniteStartKey, boolean infiniteStopKey) {
     this();
     this.start = start;
     this.stop = stop;
@@ -151,7 +135,7 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
     this.infiniteStopKey = infiniteStopKey;
     setInfiniteStopKeyIsSet(true);
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -169,277 +153,277 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
     this.infiniteStartKey = other.infiniteStartKey;
     this.infiniteStopKey = other.infiniteStopKey;
   }
-
+  
   public TRange deepCopy() {
     return new TRange(this);
   }
-
+  
   @Deprecated
   public TRange clone() {
     return new TRange(this);
   }
-
+  
   public TKey getStart() {
     return this.start;
   }
-
+  
   public TRange setStart(TKey start) {
     this.start = start;
     return this;
   }
-
+  
   public void unsetStart() {
     this.start = null;
   }
-
+  
   /** Returns true if field start is set (has been asigned a value) and false otherwise */
   public boolean isSetStart() {
     return this.start != null;
   }
-
+  
   public void setStartIsSet(boolean value) {
     if (!value) {
       this.start = null;
     }
   }
-
+  
   public TKey getStop() {
     return this.stop;
   }
-
+  
   public TRange setStop(TKey stop) {
     this.stop = stop;
     return this;
   }
-
+  
   public void unsetStop() {
     this.stop = null;
   }
-
+  
   /** Returns true if field stop is set (has been asigned a value) and false otherwise */
   public boolean isSetStop() {
     return this.stop != null;
   }
-
+  
   public void setStopIsSet(boolean value) {
     if (!value) {
       this.stop = null;
     }
   }
-
+  
   public boolean isStartKeyInclusive() {
     return this.startKeyInclusive;
   }
-
+  
   public TRange setStartKeyInclusive(boolean startKeyInclusive) {
     this.startKeyInclusive = startKeyInclusive;
     setStartKeyInclusiveIsSet(true);
     return this;
   }
-
+  
   public void unsetStartKeyInclusive() {
     __isset_bit_vector.clear(__STARTKEYINCLUSIVE_ISSET_ID);
   }
-
+  
   /** Returns true if field startKeyInclusive is set (has been asigned a value) and false otherwise */
   public boolean isSetStartKeyInclusive() {
     return __isset_bit_vector.get(__STARTKEYINCLUSIVE_ISSET_ID);
   }
-
+  
   public void setStartKeyInclusiveIsSet(boolean value) {
     __isset_bit_vector.set(__STARTKEYINCLUSIVE_ISSET_ID, value);
   }
-
+  
   public boolean isStopKeyInclusive() {
     return this.stopKeyInclusive;
   }
-
+  
   public TRange setStopKeyInclusive(boolean stopKeyInclusive) {
     this.stopKeyInclusive = stopKeyInclusive;
     setStopKeyInclusiveIsSet(true);
     return this;
   }
-
+  
   public void unsetStopKeyInclusive() {
     __isset_bit_vector.clear(__STOPKEYINCLUSIVE_ISSET_ID);
   }
-
+  
   /** Returns true if field stopKeyInclusive is set (has been asigned a value) and false otherwise */
   public boolean isSetStopKeyInclusive() {
     return __isset_bit_vector.get(__STOPKEYINCLUSIVE_ISSET_ID);
   }
-
+  
   public void setStopKeyInclusiveIsSet(boolean value) {
     __isset_bit_vector.set(__STOPKEYINCLUSIVE_ISSET_ID, value);
   }
-
+  
   public boolean isInfiniteStartKey() {
     return this.infiniteStartKey;
   }
-
+  
   public TRange setInfiniteStartKey(boolean infiniteStartKey) {
     this.infiniteStartKey = infiniteStartKey;
     setInfiniteStartKeyIsSet(true);
     return this;
   }
-
+  
   public void unsetInfiniteStartKey() {
     __isset_bit_vector.clear(__INFINITESTARTKEY_ISSET_ID);
   }
-
+  
   /** Returns true if field infiniteStartKey is set (has been asigned a value) and false otherwise */
   public boolean isSetInfiniteStartKey() {
     return __isset_bit_vector.get(__INFINITESTARTKEY_ISSET_ID);
   }
-
+  
   public void setInfiniteStartKeyIsSet(boolean value) {
     __isset_bit_vector.set(__INFINITESTARTKEY_ISSET_ID, value);
   }
-
+  
   public boolean isInfiniteStopKey() {
     return this.infiniteStopKey;
   }
-
+  
   public TRange setInfiniteStopKey(boolean infiniteStopKey) {
     this.infiniteStopKey = infiniteStopKey;
     setInfiniteStopKeyIsSet(true);
     return this;
   }
-
+  
   public void unsetInfiniteStopKey() {
     __isset_bit_vector.clear(__INFINITESTOPKEY_ISSET_ID);
   }
-
+  
   /** Returns true if field infiniteStopKey is set (has been asigned a value) and false otherwise */
   public boolean isSetInfiniteStopKey() {
     return __isset_bit_vector.get(__INFINITESTOPKEY_ISSET_ID);
   }
-
+  
   public void setInfiniteStopKeyIsSet(boolean value) {
     __isset_bit_vector.set(__INFINITESTOPKEY_ISSET_ID, value);
   }
-
+  
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case START:
-      if (value == null) {
-        unsetStart();
-      } else {
-        setStart((TKey)value);
-      }
-      break;
-
-    case STOP:
-      if (value == null) {
-        unsetStop();
-      } else {
-        setStop((TKey)value);
-      }
-      break;
-
-    case START_KEY_INCLUSIVE:
-      if (value == null) {
-        unsetStartKeyInclusive();
-      } else {
-        setStartKeyInclusive((Boolean)value);
-      }
-      break;
-
-    case STOP_KEY_INCLUSIVE:
-      if (value == null) {
-        unsetStopKeyInclusive();
-      } else {
-        setStopKeyInclusive((Boolean)value);
-      }
-      break;
-
-    case INFINITE_START_KEY:
-      if (value == null) {
-        unsetInfiniteStartKey();
-      } else {
-        setInfiniteStartKey((Boolean)value);
-      }
-      break;
-
-    case INFINITE_STOP_KEY:
-      if (value == null) {
-        unsetInfiniteStopKey();
-      } else {
-        setInfiniteStopKey((Boolean)value);
-      }
-      break;
-
+      case START:
+        if (value == null) {
+          unsetStart();
+        } else {
+          setStart((TKey) value);
+        }
+        break;
+      
+      case STOP:
+        if (value == null) {
+          unsetStop();
+        } else {
+          setStop((TKey) value);
+        }
+        break;
+      
+      case START_KEY_INCLUSIVE:
+        if (value == null) {
+          unsetStartKeyInclusive();
+        } else {
+          setStartKeyInclusive((Boolean) value);
+        }
+        break;
+      
+      case STOP_KEY_INCLUSIVE:
+        if (value == null) {
+          unsetStopKeyInclusive();
+        } else {
+          setStopKeyInclusive((Boolean) value);
+        }
+        break;
+      
+      case INFINITE_START_KEY:
+        if (value == null) {
+          unsetInfiniteStartKey();
+        } else {
+          setInfiniteStartKey((Boolean) value);
+        }
+        break;
+      
+      case INFINITE_STOP_KEY:
+        if (value == null) {
+          unsetInfiniteStopKey();
+        } else {
+          setInfiniteStopKey((Boolean) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case START:
-      return getStart();
-
-    case STOP:
-      return getStop();
-
-    case START_KEY_INCLUSIVE:
-      return new Boolean(isStartKeyInclusive());
-
-    case STOP_KEY_INCLUSIVE:
-      return new Boolean(isStopKeyInclusive());
-
-    case INFINITE_START_KEY:
-      return new Boolean(isInfiniteStartKey());
-
-    case INFINITE_STOP_KEY:
-      return new Boolean(isInfiniteStopKey());
-
+      case START:
+        return getStart();
+        
+      case STOP:
+        return getStop();
+        
+      case START_KEY_INCLUSIVE:
+        return new Boolean(isStartKeyInclusive());
+        
+      case STOP_KEY_INCLUSIVE:
+        return new Boolean(isStopKeyInclusive());
+        
+      case INFINITE_START_KEY:
+        return new Boolean(isInfiniteStartKey());
+        
+      case INFINITE_STOP_KEY:
+        return new Boolean(isInfiniteStopKey());
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case START:
-      return isSetStart();
-    case STOP:
-      return isSetStop();
-    case START_KEY_INCLUSIVE:
-      return isSetStartKeyInclusive();
-    case STOP_KEY_INCLUSIVE:
-      return isSetStopKeyInclusive();
-    case INFINITE_START_KEY:
-      return isSetInfiniteStartKey();
-    case INFINITE_STOP_KEY:
-      return isSetInfiniteStopKey();
+      case START:
+        return isSetStart();
+      case STOP:
+        return isSetStop();
+      case START_KEY_INCLUSIVE:
+        return isSetStartKeyInclusive();
+      case STOP_KEY_INCLUSIVE:
+        return isSetStopKeyInclusive();
+      case INFINITE_START_KEY:
+        return isSetInfiniteStartKey();
+      case INFINITE_STOP_KEY:
+        return isSetInfiniteStopKey();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof TRange)
-      return this.equals((TRange)that);
+      return this.equals((TRange) that);
     return false;
   }
-
+  
   public boolean equals(TRange that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_start = true && this.isSetStart();
     boolean that_present_start = true && that.isSetStart();
     if (this_present_start || that_present_start) {
@@ -448,7 +432,7 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
       if (!this.start.equals(that.start))
         return false;
     }
-
+    
     boolean this_present_stop = true && this.isSetStop();
     boolean that_present_stop = true && that.isSetStop();
     if (this_present_stop || that_present_stop) {
@@ -457,7 +441,7 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
       if (!this.stop.equals(that.stop))
         return false;
     }
-
+    
     boolean this_present_startKeyInclusive = true;
     boolean that_present_startKeyInclusive = true;
     if (this_present_startKeyInclusive || that_present_startKeyInclusive) {
@@ -466,7 +450,7 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
       if (this.startKeyInclusive != that.startKeyInclusive)
         return false;
     }
-
+    
     boolean this_present_stopKeyInclusive = true;
     boolean that_present_stopKeyInclusive = true;
     if (this_present_stopKeyInclusive || that_present_stopKeyInclusive) {
@@ -475,7 +459,7 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
       if (this.stopKeyInclusive != that.stopKeyInclusive)
         return false;
     }
-
+    
     boolean this_present_infiniteStartKey = true;
     boolean that_present_infiniteStartKey = true;
     if (this_present_infiniteStartKey || that_present_infiniteStartKey) {
@@ -484,7 +468,7 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
       if (this.infiniteStartKey != that.infiniteStartKey)
         return false;
     }
-
+    
     boolean this_present_infiniteStopKey = true;
     boolean that_present_infiniteStopKey = true;
     if (this_present_infiniteStopKey || that_present_infiniteStopKey) {
@@ -493,28 +477,29 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
       if (this.infiniteStopKey != that.infiniteStopKey)
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(TRange other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    TRange typedOther = (TRange)other;
-
+    TRange typedOther = (TRange) other;
+    
     lastComparison = Boolean.valueOf(isSetStart()).compareTo(typedOther.isSetStart());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetStart()) {      lastComparison = TBaseHelper.compareTo(this.start, typedOther.start);
+    if (isSetStart()) {
+      lastComparison = TBaseHelper.compareTo(this.start, typedOther.start);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -523,7 +508,8 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetStop()) {      lastComparison = TBaseHelper.compareTo(this.stop, typedOther.stop);
+    if (isSetStop()) {
+      lastComparison = TBaseHelper.compareTo(this.stop, typedOther.stop);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -532,7 +518,8 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetStartKeyInclusive()) {      lastComparison = TBaseHelper.compareTo(this.startKeyInclusive, typedOther.startKeyInclusive);
+    if (isSetStartKeyInclusive()) {
+      lastComparison = TBaseHelper.compareTo(this.startKeyInclusive, typedOther.startKeyInclusive);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -541,7 +528,8 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetStopKeyInclusive()) {      lastComparison = TBaseHelper.compareTo(this.stopKeyInclusive, typedOther.stopKeyInclusive);
+    if (isSetStopKeyInclusive()) {
+      lastComparison = TBaseHelper.compareTo(this.stopKeyInclusive, typedOther.stopKeyInclusive);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -550,7 +538,8 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetInfiniteStartKey()) {      lastComparison = TBaseHelper.compareTo(this.infiniteStartKey, typedOther.infiniteStartKey);
+    if (isSetInfiniteStartKey()) {
+      lastComparison = TBaseHelper.compareTo(this.infiniteStartKey, typedOther.infiniteStartKey);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -559,21 +548,21 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetInfiniteStopKey()) {      lastComparison = TBaseHelper.compareTo(this.infiniteStopKey, typedOther.infiniteStopKey);
+    if (isSetInfiniteStopKey()) {
+      lastComparison = TBaseHelper.compareTo(this.infiniteStopKey, typedOther.infiniteStopKey);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
@@ -581,7 +570,7 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
           if (field.type == TType.STRUCT) {
             this.start = new TKey();
             this.start.read(iprot);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -589,7 +578,7 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
           if (field.type == TType.STRUCT) {
             this.stop = new TKey();
             this.stop.read(iprot);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -597,7 +586,7 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
           if (field.type == TType.BOOL) {
             this.startKeyInclusive = iprot.readBool();
             setStartKeyInclusiveIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -605,7 +594,7 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
           if (field.type == TType.BOOL) {
             this.stopKeyInclusive = iprot.readBool();
             setStopKeyInclusiveIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -613,7 +602,7 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
           if (field.type == TType.BOOL) {
             this.infiniteStartKey = iprot.readBool();
             setInfiniteStartKeyIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -621,7 +610,7 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
           if (field.type == TType.BOOL) {
             this.infiniteStopKey = iprot.readBool();
             setInfiniteStopKeyIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -631,14 +620,14 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.start != null) {
       oprot.writeFieldBegin(START_FIELD_DESC);
@@ -665,7 +654,7 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("TRange(");
@@ -697,10 +686,9 @@ public class TRange implements TBase<TRange, TRange._Fields>, java.io.Serializab
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

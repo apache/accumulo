@@ -58,7 +58,8 @@ public class MMFITest {
     } catch (IOException e) {
       for (MyMapFile.Reader r : mapfiles)
         try {
-          if (r != null) r.close();
+          if (r != null)
+            r.close();
         } catch (IOException e1) {
           // close the rest anyway
         }
@@ -105,7 +106,8 @@ public class MMFITest {
     } finally {
       for (MyMapFile.Reader r : mapfiles)
         try {
-          if (r != null) r.close();
+          if (r != null)
+            r.close();
         } catch (IOException e) {
           // close the rest anyway
         }

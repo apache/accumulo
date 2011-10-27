@@ -101,17 +101,20 @@ public class ColumnVisibility {
     @Override
     public int compare(Node a, Node b) {
       int diff = a.type.ordinal() - b.type.ordinal();
-      if (diff != 0) return diff;
+      if (diff != 0)
+        return diff;
       switch (a.type) {
         case TERM:
           return WritableComparator.compareBytes(text, a.start, a.end - a.start, text, b.start, b.end - b.start);
         case OR:
         case AND:
           diff = a.children.length - b.children.length;
-          if (diff != 0) return diff;
+          if (diff != 0)
+            return diff;
           for (int i = 0; i < a.children.length; i++) {
             diff = compare(a.children[i], b.children[i]);
-            if (diff != 0) return diff;
+            if (diff != 0)
+              return diff;
           }
       }
       return 0;
@@ -119,16 +122,19 @@ public class ColumnVisibility {
   }
   
   static private void flatten(Node root, byte[] expression, StringBuilder out) {
-    if (root.type == NodeType.TERM) out.append(new String(expression, root.start, root.end - root.start));
+    if (root.type == NodeType.TERM)
+      out.append(new String(expression, root.start, root.end - root.start));
     else {
       String sep = "";
       Arrays.sort(root.children, new NodeComparator(expression));
       for (Node c : root.children) {
         out.append(sep);
         boolean parens = (c.type != NodeType.TERM && root.type != c.type);
-        if (parens) out.append("(");
+        if (parens)
+          out.append("(");
         flatten(c, expression, out);
-        if (parens) out.append(")");
+        if (parens)
+          out.append(")");
         sep = root.type == NodeType.AND ? "&" : "|";
       }
     }
@@ -162,10 +168,12 @@ public class ColumnVisibility {
     
     Node processTerm(int start, int end, Node expr, byte[] expression) {
       if (start != end) {
-        if (expr != null) throw new BadArgumentException("expression needs | or &", new String(expression), start);
+        if (expr != null)
+          throw new BadArgumentException("expression needs | or &", new String(expression), start);
         return new Node(start, end);
       }
-      if (expr == null) throw new BadArgumentException("empty term", new String(expression), start);
+      if (expr == null)
+        throw new BadArgumentException("empty term", new String(expression), start);
       return expr;
     }
     
@@ -178,7 +186,8 @@ public class ColumnVisibility {
           case '&': {
             expr = processTerm(termStart, index - 1, expr, expression);
             if (result != null) {
-              if (!result.type.equals(NodeType.AND)) throw new BadArgumentException("cannot mix & and |", new String(expression), index - 1);
+              if (!result.type.equals(NodeType.AND))
+                throw new BadArgumentException("cannot mix & and |", new String(expression), index - 1);
             } else {
               result = new Node(NodeType.AND);
             }
@@ -190,7 +199,8 @@ public class ColumnVisibility {
           case '|': {
             expr = processTerm(termStart, index - 1, expr, expression);
             if (result != null) {
-              if (!result.type.equals(NodeType.OR)) throw new BadArgumentException("cannot mix | and &", new String(expression), index - 1);
+              if (!result.type.equals(NodeType.OR))
+                throw new BadArgumentException("cannot mix | and &", new String(expression), index - 1);
             } else {
               result = new Node(NodeType.OR);
             }
@@ -201,7 +211,8 @@ public class ColumnVisibility {
           }
           case '(': {
             parens++;
-            if (termStart != index - 1 || expr != null) throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
+            if (termStart != index - 1 || expr != null)
+              throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
             expr = parse_(expression);
             termStart = index;
             break;
@@ -209,24 +220,33 @@ public class ColumnVisibility {
           case ')': {
             parens--;
             Node child = processTerm(termStart, index - 1, expr, expression);
-            if (child == null && result == null) throw new BadArgumentException("empty expression not allowed", new String(expression), index);
-            if (result == null) return child;
-            if (result.type == child.type) for (Node c : child.children)
-              result.add(c);
-            else result.add(child);
+            if (child == null && result == null)
+              throw new BadArgumentException("empty expression not allowed", new String(expression), index);
+            if (result == null)
+              return child;
+            if (result.type == child.type)
+              for (Node c : child.children)
+                result.add(c);
+            else
+              result.add(child);
             result.end = index - 1;
             return result;
           }
           default: {
             byte c = expression[index - 1];
-            if (!Authorizations.isValidAuthChar(c)) throw new BadArgumentException("bad character (" + c + ")", new String(expression), index - 1);
+            if (!Authorizations.isValidAuthChar(c))
+              throw new BadArgumentException("bad character (" + c + ")", new String(expression), index - 1);
           }
         }
       }
       Node child = processTerm(termStart, index, expr, expression);
-      if (result != null) result.add(child);
-      else result = child;
-      if (result.type != NodeType.TERM) if (result.children.length < 2) throw new BadArgumentException("missing term", new String(expression), index);
+      if (result != null)
+        result.add(child);
+      else
+        result = child;
+      if (result.type != NodeType.TERM)
+        if (result.children.length < 2)
+          throw new BadArgumentException("missing term", new String(expression), index);
       return result;
     }
   }
@@ -301,7 +321,8 @@ public class ColumnVisibility {
    */
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof ColumnVisibility) return equals((ColumnVisibility) obj);
+    if (obj instanceof ColumnVisibility)
+      return equals((ColumnVisibility) obj);
     return false;
   }
   

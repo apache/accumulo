@@ -59,12 +59,14 @@ public class Token {
    */
   public static Token findCommand(Token start, int find_id) {
     if (start != null) {
-      if (start.getID() == find_id) return start;
+      if (start.getID() == find_id)
+        return start;
       
       if (start.getSubcommandList() != null) {
         for (Token t : start.getSubcommandList()) {
           Token f = findCommand(t, find_id);
-          if (f != null) return f;
+          if (f != null)
+            return f;
         }
       }
     }
@@ -105,7 +107,8 @@ public class Token {
     Iterator<Token> iter = subcommands.iterator();
     while (iter.hasNext()) {
       Token t = iter.next();
-      if (t.containsCommand(name)) return t;
+      if (t.containsCommand(name))
+        return t;
     }
     return null;
   }
@@ -143,9 +146,11 @@ public class Token {
     while (iter.hasNext()) {
       String t = iter.next();
       if (caseSensitive) {
-        if (t.equals(match)) return true;
+        if (t.equals(match))
+          return true;
       } else {
-        if (t.equalsIgnoreCase(match)) return true;
+        if (t.equalsIgnoreCase(match))
+          return true;
       }
     }
     return false;

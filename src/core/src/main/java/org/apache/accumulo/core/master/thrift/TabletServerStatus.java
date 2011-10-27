@@ -5,24 +5,22 @@
  */
 package org.apache.accumulo.core.master.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class TabletServerStatus implements TBase<TabletServerStatus, TabletServerStatus._Fields>, java.io.Serializable, Cloneable {
+public class TabletServerStatus implements TBase<TabletServerStatus,TabletServerStatus._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("TabletServerStatus");
-
-  private static final TField TABLE_MAP_FIELD_DESC = new TField("tableMap", TType.MAP, (short)1);
-  private static final TField LAST_CONTACT_FIELD_DESC = new TField("lastContact", TType.I64, (short)2);
-  private static final TField NAME_FIELD_DESC = new TField("name", TType.STRING, (short)3);
-  private static final TField OS_LOAD_FIELD_DESC = new TField("osLoad", TType.DOUBLE, (short)5);
-  private static final TField HOLD_TIME_FIELD_DESC = new TField("holdTime", TType.I64, (short)7);
-  private static final TField LOOKUPS_FIELD_DESC = new TField("lookups", TType.I64, (short)8);
-  private static final TField LOGGERS_FIELD_DESC = new TField("loggers", TType.SET, (short)9);
-
+  
+  private static final TField TABLE_MAP_FIELD_DESC = new TField("tableMap", TType.MAP, (short) 1);
+  private static final TField LAST_CONTACT_FIELD_DESC = new TField("lastContact", TType.I64, (short) 2);
+  private static final TField NAME_FIELD_DESC = new TField("name", TType.STRING, (short) 3);
+  private static final TField OS_LOAD_FIELD_DESC = new TField("osLoad", TType.DOUBLE, (short) 5);
+  private static final TField HOLD_TIME_FIELD_DESC = new TField("holdTime", TType.I64, (short) 7);
+  private static final TField LOOKUPS_FIELD_DESC = new TField("lookups", TType.I64, (short) 8);
+  private static final TField LOGGERS_FIELD_DESC = new TField("loggers", TType.SET, (short) 9);
+  
   public java.util.Map<String,TableInfo> tableMap;
   public long lastContact;
   public String name;
@@ -30,30 +28,25 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
   public long holdTime;
   public long lookups;
   public java.util.Set<String> loggers;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    TABLE_MAP((short)1, "tableMap"),
-    LAST_CONTACT((short)2, "lastContact"),
-    NAME((short)3, "name"),
-    OS_LOAD((short)5, "osLoad"),
-    HOLD_TIME((short)7, "holdTime"),
-    LOOKUPS((short)8, "lookups"),
-    LOGGERS((short)9, "loggers");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    TABLE_MAP((short) 1, "tableMap"), LAST_CONTACT((short) 2, "lastContact"), NAME((short) 3, "name"), OS_LOAD((short) 5, "osLoad"), HOLD_TIME((short) 7,
+        "holdTime"), LOOKUPS((short) 8, "lookups"), LOGGERS((short) 9, "loggers");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // TABLE_MAP
           return TABLE_MAP;
         case 2: // LAST_CONTACT
@@ -72,84 +65,67 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
   private static final int __LASTCONTACT_ISSET_ID = 0;
   private static final int __OSLOAD_ISSET_ID = 1;
   private static final int __HOLDTIME_ISSET_ID = 2;
   private static final int __LOOKUPS_ISSET_ID = 3;
   private java.util.BitSet __isset_bit_vector = new java.util.BitSet(4);
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.TABLE_MAP, new FieldMetaData("tableMap", TFieldRequirementType.DEFAULT, 
-        new MapMetaData(TType.MAP, 
-            new FieldValueMetaData(TType.STRING), 
-            new StructMetaData(TType.STRUCT, TableInfo.class))));
-    tmpMap.put(_Fields.LAST_CONTACT, new FieldMetaData("lastContact", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I64)));
-    tmpMap.put(_Fields.NAME, new FieldMetaData("name", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
-    tmpMap.put(_Fields.OS_LOAD, new FieldMetaData("osLoad", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    tmpMap.put(_Fields.HOLD_TIME, new FieldMetaData("holdTime", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I64)));
-    tmpMap.put(_Fields.LOOKUPS, new FieldMetaData("lookups", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I64)));
-    tmpMap.put(_Fields.LOGGERS, new FieldMetaData("loggers", TFieldRequirementType.DEFAULT, 
-        new SetMetaData(TType.SET, 
-            new FieldValueMetaData(TType.STRING))));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.TABLE_MAP, new FieldMetaData("tableMap", TFieldRequirementType.DEFAULT, new MapMetaData(TType.MAP, new FieldValueMetaData(TType.STRING),
+        new StructMetaData(TType.STRUCT, TableInfo.class))));
+    tmpMap.put(_Fields.LAST_CONTACT, new FieldMetaData("lastContact", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64)));
+    tmpMap.put(_Fields.NAME, new FieldMetaData("name", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
+    tmpMap.put(_Fields.OS_LOAD, new FieldMetaData("osLoad", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+    tmpMap.put(_Fields.HOLD_TIME, new FieldMetaData("holdTime", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64)));
+    tmpMap.put(_Fields.LOOKUPS, new FieldMetaData("lookups", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64)));
+    tmpMap.put(_Fields.LOGGERS, new FieldMetaData("loggers", TFieldRequirementType.DEFAULT, new SetMetaData(TType.SET, new FieldValueMetaData(TType.STRING))));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(TabletServerStatus.class, metaDataMap);
   }
-
-  public TabletServerStatus() {
-  }
-
-  public TabletServerStatus(
-    java.util.Map<String,TableInfo> tableMap,
-    long lastContact,
-    String name,
-    double osLoad,
-    long holdTime,
-    long lookups,
-    java.util.Set<String> loggers)
-  {
+  
+  public TabletServerStatus() {}
+  
+  public TabletServerStatus(java.util.Map<String,TableInfo> tableMap, long lastContact, String name, double osLoad, long holdTime, long lookups,
+      java.util.Set<String> loggers) {
     this();
     this.tableMap = tableMap;
     this.lastContact = lastContact;
@@ -163,7 +139,7 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
     setLookupsIsSet(true);
     this.loggers = loggers;
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -172,15 +148,15 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
     __isset_bit_vector.or(other.__isset_bit_vector);
     if (other.isSetTableMap()) {
       java.util.Map<String,TableInfo> __this__tableMap = new java.util.HashMap<String,TableInfo>();
-      for (java.util.Map.Entry<String, TableInfo> other_element : other.tableMap.entrySet()) {
-
+      for (java.util.Map.Entry<String,TableInfo> other_element : other.tableMap.entrySet()) {
+        
         String other_element_key = other_element.getKey();
         TableInfo other_element_value = other_element.getValue();
-
+        
         String __this__tableMap_copy_key = other_element_key;
-
+        
         TableInfo __this__tableMap_copy_value = new TableInfo(other_element_value);
-
+        
         __this__tableMap.put(__this__tableMap_copy_key, __this__tableMap_copy_value);
       }
       this.tableMap = __this__tableMap;
@@ -200,341 +176,341 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
       this.loggers = __this__loggers;
     }
   }
-
+  
   public TabletServerStatus deepCopy() {
     return new TabletServerStatus(this);
   }
-
+  
   @Deprecated
   public TabletServerStatus clone() {
     return new TabletServerStatus(this);
   }
-
+  
   public int getTableMapSize() {
     return (this.tableMap == null) ? 0 : this.tableMap.size();
   }
-
+  
   public void putToTableMap(String key, TableInfo val) {
     if (this.tableMap == null) {
       this.tableMap = new java.util.HashMap<String,TableInfo>();
     }
     this.tableMap.put(key, val);
   }
-
+  
   public java.util.Map<String,TableInfo> getTableMap() {
     return this.tableMap;
   }
-
+  
   public TabletServerStatus setTableMap(java.util.Map<String,TableInfo> tableMap) {
     this.tableMap = tableMap;
     return this;
   }
-
+  
   public void unsetTableMap() {
     this.tableMap = null;
   }
-
+  
   /** Returns true if field tableMap is set (has been asigned a value) and false otherwise */
   public boolean isSetTableMap() {
     return this.tableMap != null;
   }
-
+  
   public void setTableMapIsSet(boolean value) {
     if (!value) {
       this.tableMap = null;
     }
   }
-
+  
   public long getLastContact() {
     return this.lastContact;
   }
-
+  
   public TabletServerStatus setLastContact(long lastContact) {
     this.lastContact = lastContact;
     setLastContactIsSet(true);
     return this;
   }
-
+  
   public void unsetLastContact() {
     __isset_bit_vector.clear(__LASTCONTACT_ISSET_ID);
   }
-
+  
   /** Returns true if field lastContact is set (has been asigned a value) and false otherwise */
   public boolean isSetLastContact() {
     return __isset_bit_vector.get(__LASTCONTACT_ISSET_ID);
   }
-
+  
   public void setLastContactIsSet(boolean value) {
     __isset_bit_vector.set(__LASTCONTACT_ISSET_ID, value);
   }
-
+  
   public String getName() {
     return this.name;
   }
-
+  
   public TabletServerStatus setName(String name) {
     this.name = name;
     return this;
   }
-
+  
   public void unsetName() {
     this.name = null;
   }
-
+  
   /** Returns true if field name is set (has been asigned a value) and false otherwise */
   public boolean isSetName() {
     return this.name != null;
   }
-
+  
   public void setNameIsSet(boolean value) {
     if (!value) {
       this.name = null;
     }
   }
-
+  
   public double getOsLoad() {
     return this.osLoad;
   }
-
+  
   public TabletServerStatus setOsLoad(double osLoad) {
     this.osLoad = osLoad;
     setOsLoadIsSet(true);
     return this;
   }
-
+  
   public void unsetOsLoad() {
     __isset_bit_vector.clear(__OSLOAD_ISSET_ID);
   }
-
+  
   /** Returns true if field osLoad is set (has been asigned a value) and false otherwise */
   public boolean isSetOsLoad() {
     return __isset_bit_vector.get(__OSLOAD_ISSET_ID);
   }
-
+  
   public void setOsLoadIsSet(boolean value) {
     __isset_bit_vector.set(__OSLOAD_ISSET_ID, value);
   }
-
+  
   public long getHoldTime() {
     return this.holdTime;
   }
-
+  
   public TabletServerStatus setHoldTime(long holdTime) {
     this.holdTime = holdTime;
     setHoldTimeIsSet(true);
     return this;
   }
-
+  
   public void unsetHoldTime() {
     __isset_bit_vector.clear(__HOLDTIME_ISSET_ID);
   }
-
+  
   /** Returns true if field holdTime is set (has been asigned a value) and false otherwise */
   public boolean isSetHoldTime() {
     return __isset_bit_vector.get(__HOLDTIME_ISSET_ID);
   }
-
+  
   public void setHoldTimeIsSet(boolean value) {
     __isset_bit_vector.set(__HOLDTIME_ISSET_ID, value);
   }
-
+  
   public long getLookups() {
     return this.lookups;
   }
-
+  
   public TabletServerStatus setLookups(long lookups) {
     this.lookups = lookups;
     setLookupsIsSet(true);
     return this;
   }
-
+  
   public void unsetLookups() {
     __isset_bit_vector.clear(__LOOKUPS_ISSET_ID);
   }
-
+  
   /** Returns true if field lookups is set (has been asigned a value) and false otherwise */
   public boolean isSetLookups() {
     return __isset_bit_vector.get(__LOOKUPS_ISSET_ID);
   }
-
+  
   public void setLookupsIsSet(boolean value) {
     __isset_bit_vector.set(__LOOKUPS_ISSET_ID, value);
   }
-
+  
   public int getLoggersSize() {
     return (this.loggers == null) ? 0 : this.loggers.size();
   }
-
+  
   public java.util.Iterator<String> getLoggersIterator() {
     return (this.loggers == null) ? null : this.loggers.iterator();
   }
-
+  
   public void addToLoggers(String elem) {
     if (this.loggers == null) {
       this.loggers = new java.util.HashSet<String>();
     }
     this.loggers.add(elem);
   }
-
+  
   public java.util.Set<String> getLoggers() {
     return this.loggers;
   }
-
+  
   public TabletServerStatus setLoggers(java.util.Set<String> loggers) {
     this.loggers = loggers;
     return this;
   }
-
+  
   public void unsetLoggers() {
     this.loggers = null;
   }
-
+  
   /** Returns true if field loggers is set (has been asigned a value) and false otherwise */
   public boolean isSetLoggers() {
     return this.loggers != null;
   }
-
+  
   public void setLoggersIsSet(boolean value) {
     if (!value) {
       this.loggers = null;
     }
   }
-
+  
   @SuppressWarnings("unchecked")
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case TABLE_MAP:
-      if (value == null) {
-        unsetTableMap();
-      } else {
-        setTableMap((java.util.Map<String,TableInfo>)value);
-      }
-      break;
-
-    case LAST_CONTACT:
-      if (value == null) {
-        unsetLastContact();
-      } else {
-        setLastContact((Long)value);
-      }
-      break;
-
-    case NAME:
-      if (value == null) {
-        unsetName();
-      } else {
-        setName((String)value);
-      }
-      break;
-
-    case OS_LOAD:
-      if (value == null) {
-        unsetOsLoad();
-      } else {
-        setOsLoad((Double)value);
-      }
-      break;
-
-    case HOLD_TIME:
-      if (value == null) {
-        unsetHoldTime();
-      } else {
-        setHoldTime((Long)value);
-      }
-      break;
-
-    case LOOKUPS:
-      if (value == null) {
-        unsetLookups();
-      } else {
-        setLookups((Long)value);
-      }
-      break;
-
-    case LOGGERS:
-      if (value == null) {
-        unsetLoggers();
-      } else {
-        setLoggers((java.util.Set<String>)value);
-      }
-      break;
-
+      case TABLE_MAP:
+        if (value == null) {
+          unsetTableMap();
+        } else {
+          setTableMap((java.util.Map<String,TableInfo>) value);
+        }
+        break;
+      
+      case LAST_CONTACT:
+        if (value == null) {
+          unsetLastContact();
+        } else {
+          setLastContact((Long) value);
+        }
+        break;
+      
+      case NAME:
+        if (value == null) {
+          unsetName();
+        } else {
+          setName((String) value);
+        }
+        break;
+      
+      case OS_LOAD:
+        if (value == null) {
+          unsetOsLoad();
+        } else {
+          setOsLoad((Double) value);
+        }
+        break;
+      
+      case HOLD_TIME:
+        if (value == null) {
+          unsetHoldTime();
+        } else {
+          setHoldTime((Long) value);
+        }
+        break;
+      
+      case LOOKUPS:
+        if (value == null) {
+          unsetLookups();
+        } else {
+          setLookups((Long) value);
+        }
+        break;
+      
+      case LOGGERS:
+        if (value == null) {
+          unsetLoggers();
+        } else {
+          setLoggers((java.util.Set<String>) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case TABLE_MAP:
-      return getTableMap();
-
-    case LAST_CONTACT:
-      return new Long(getLastContact());
-
-    case NAME:
-      return getName();
-
-    case OS_LOAD:
-      return new Double(getOsLoad());
-
-    case HOLD_TIME:
-      return new Long(getHoldTime());
-
-    case LOOKUPS:
-      return new Long(getLookups());
-
-    case LOGGERS:
-      return getLoggers();
-
+      case TABLE_MAP:
+        return getTableMap();
+        
+      case LAST_CONTACT:
+        return new Long(getLastContact());
+        
+      case NAME:
+        return getName();
+        
+      case OS_LOAD:
+        return new Double(getOsLoad());
+        
+      case HOLD_TIME:
+        return new Long(getHoldTime());
+        
+      case LOOKUPS:
+        return new Long(getLookups());
+        
+      case LOGGERS:
+        return getLoggers();
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case TABLE_MAP:
-      return isSetTableMap();
-    case LAST_CONTACT:
-      return isSetLastContact();
-    case NAME:
-      return isSetName();
-    case OS_LOAD:
-      return isSetOsLoad();
-    case HOLD_TIME:
-      return isSetHoldTime();
-    case LOOKUPS:
-      return isSetLookups();
-    case LOGGERS:
-      return isSetLoggers();
+      case TABLE_MAP:
+        return isSetTableMap();
+      case LAST_CONTACT:
+        return isSetLastContact();
+      case NAME:
+        return isSetName();
+      case OS_LOAD:
+        return isSetOsLoad();
+      case HOLD_TIME:
+        return isSetHoldTime();
+      case LOOKUPS:
+        return isSetLookups();
+      case LOGGERS:
+        return isSetLoggers();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof TabletServerStatus)
-      return this.equals((TabletServerStatus)that);
+      return this.equals((TabletServerStatus) that);
     return false;
   }
-
+  
   public boolean equals(TabletServerStatus that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_tableMap = true && this.isSetTableMap();
     boolean that_present_tableMap = true && that.isSetTableMap();
     if (this_present_tableMap || that_present_tableMap) {
@@ -543,7 +519,7 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
       if (!this.tableMap.equals(that.tableMap))
         return false;
     }
-
+    
     boolean this_present_lastContact = true;
     boolean that_present_lastContact = true;
     if (this_present_lastContact || that_present_lastContact) {
@@ -552,7 +528,7 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
       if (this.lastContact != that.lastContact)
         return false;
     }
-
+    
     boolean this_present_name = true && this.isSetName();
     boolean that_present_name = true && that.isSetName();
     if (this_present_name || that_present_name) {
@@ -561,7 +537,7 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
       if (!this.name.equals(that.name))
         return false;
     }
-
+    
     boolean this_present_osLoad = true;
     boolean that_present_osLoad = true;
     if (this_present_osLoad || that_present_osLoad) {
@@ -570,7 +546,7 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
       if (this.osLoad != that.osLoad)
         return false;
     }
-
+    
     boolean this_present_holdTime = true;
     boolean that_present_holdTime = true;
     if (this_present_holdTime || that_present_holdTime) {
@@ -579,7 +555,7 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
       if (this.holdTime != that.holdTime)
         return false;
     }
-
+    
     boolean this_present_lookups = true;
     boolean that_present_lookups = true;
     if (this_present_lookups || that_present_lookups) {
@@ -588,7 +564,7 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
       if (this.lookups != that.lookups)
         return false;
     }
-
+    
     boolean this_present_loggers = true && this.isSetLoggers();
     boolean that_present_loggers = true && that.isSetLoggers();
     if (this_present_loggers || that_present_loggers) {
@@ -597,28 +573,29 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
       if (!this.loggers.equals(that.loggers))
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(TabletServerStatus other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    TabletServerStatus typedOther = (TabletServerStatus)other;
-
+    TabletServerStatus typedOther = (TabletServerStatus) other;
+    
     lastComparison = Boolean.valueOf(isSetTableMap()).compareTo(typedOther.isSetTableMap());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetTableMap()) {      lastComparison = TBaseHelper.compareTo(this.tableMap, typedOther.tableMap);
+    if (isSetTableMap()) {
+      lastComparison = TBaseHelper.compareTo(this.tableMap, typedOther.tableMap);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -627,7 +604,8 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetLastContact()) {      lastComparison = TBaseHelper.compareTo(this.lastContact, typedOther.lastContact);
+    if (isSetLastContact()) {
+      lastComparison = TBaseHelper.compareTo(this.lastContact, typedOther.lastContact);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -636,7 +614,8 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetName()) {      lastComparison = TBaseHelper.compareTo(this.name, typedOther.name);
+    if (isSetName()) {
+      lastComparison = TBaseHelper.compareTo(this.name, typedOther.name);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -645,7 +624,8 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetOsLoad()) {      lastComparison = TBaseHelper.compareTo(this.osLoad, typedOther.osLoad);
+    if (isSetOsLoad()) {
+      lastComparison = TBaseHelper.compareTo(this.osLoad, typedOther.osLoad);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -654,7 +634,8 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetHoldTime()) {      lastComparison = TBaseHelper.compareTo(this.holdTime, typedOther.holdTime);
+    if (isSetHoldTime()) {
+      lastComparison = TBaseHelper.compareTo(this.holdTime, typedOther.holdTime);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -663,7 +644,8 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetLookups()) {      lastComparison = TBaseHelper.compareTo(this.lookups, typedOther.lookups);
+    if (isSetLookups()) {
+      lastComparison = TBaseHelper.compareTo(this.lookups, typedOther.lookups);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -672,21 +654,21 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetLoggers()) {      lastComparison = TBaseHelper.compareTo(this.loggers, typedOther.loggers);
+    if (isSetLoggers()) {
+      lastComparison = TBaseHelper.compareTo(this.loggers, typedOther.loggers);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
@@ -694,9 +676,8 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
           if (field.type == TType.MAP) {
             {
               TMap _map0 = iprot.readMapBegin();
-              this.tableMap = new java.util.HashMap<String,TableInfo>(2*_map0.size);
-              for (int _i1 = 0; _i1 < _map0.size; ++_i1)
-              {
+              this.tableMap = new java.util.HashMap<String,TableInfo>(2 * _map0.size);
+              for (int _i1 = 0; _i1 < _map0.size; ++_i1) {
                 String _key2;
                 TableInfo _val3;
                 _key2 = iprot.readString();
@@ -706,7 +687,7 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
               }
               iprot.readMapEnd();
             }
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -714,14 +695,14 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
           if (field.type == TType.I64) {
             this.lastContact = iprot.readI64();
             setLastContactIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 3: // NAME
           if (field.type == TType.STRING) {
             this.name = iprot.readString();
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -729,7 +710,7 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
           if (field.type == TType.DOUBLE) {
             this.osLoad = iprot.readDouble();
             setOsLoadIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -737,7 +718,7 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
           if (field.type == TType.I64) {
             this.holdTime = iprot.readI64();
             setHoldTimeIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -745,7 +726,7 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
           if (field.type == TType.I64) {
             this.lookups = iprot.readI64();
             setLookupsIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -753,16 +734,15 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
           if (field.type == TType.SET) {
             {
               TSet _set4 = iprot.readSetBegin();
-              this.loggers = new java.util.HashSet<String>(2*_set4.size);
-              for (int _i5 = 0; _i5 < _set4.size; ++_i5)
-              {
+              this.loggers = new java.util.HashSet<String>(2 * _set4.size);
+              for (int _i5 = 0; _i5 < _set4.size; ++_i5) {
                 String _elem6;
                 _elem6 = iprot.readString();
                 this.loggers.add(_elem6);
               }
               iprot.readSetEnd();
             }
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -772,21 +752,20 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.tableMap != null) {
       oprot.writeFieldBegin(TABLE_MAP_FIELD_DESC);
       {
         oprot.writeMapBegin(new TMap(TType.STRING, TType.STRUCT, this.tableMap.size()));
-        for (java.util.Map.Entry<String, TableInfo> _iter7 : this.tableMap.entrySet())
-        {
+        for (java.util.Map.Entry<String,TableInfo> _iter7 : this.tableMap.entrySet()) {
           oprot.writeString(_iter7.getKey());
           _iter7.getValue().write(oprot);
         }
@@ -815,8 +794,7 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
       oprot.writeFieldBegin(LOGGERS_FIELD_DESC);
       {
         oprot.writeSetBegin(new TSet(TType.STRING, this.loggers.size()));
-        for (String _iter8 : this.loggers)
-        {
+        for (String _iter8 : this.loggers) {
           oprot.writeString(_iter8);
         }
         oprot.writeSetEnd();
@@ -826,7 +804,7 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("TabletServerStatus(");
@@ -865,10 +843,9 @@ public class TabletServerStatus implements TBase<TabletServerStatus, TabletServe
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

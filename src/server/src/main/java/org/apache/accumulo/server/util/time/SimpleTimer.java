@@ -30,7 +30,8 @@ public class SimpleTimer {
   private Timer timer;
   
   public static synchronized SimpleTimer getInstance() {
-    if (instance == null) instance = new SimpleTimer();
+    if (instance == null)
+      instance = new SimpleTimer();
     return instance;
   }
   

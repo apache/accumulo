@@ -86,8 +86,10 @@ public class DumpTable {
         }
         
         while (mfr.next(key, value)) {
-          if (!summarize) log.info(key.getRow());
-          else count++;
+          if (!summarize)
+            log.info(key.getRow());
+          else
+            count++;
         }
         
         if (summarize) {

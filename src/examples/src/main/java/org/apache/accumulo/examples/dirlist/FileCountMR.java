@@ -44,8 +44,10 @@ public class FileCountMR extends Configured implements Tool {
     String prefix;
     
     private void incrementCounts(Key k) {
-      if (k.getColumnFamily().equals(QueryUtil.DIR_COLF)) dirCount++;
-      else fileCount++;
+      if (k.getColumnFamily().equals(QueryUtil.DIR_COLF))
+        dirCount++;
+      else
+        fileCount++;
     }
     
     // store last row found and its prefix, reset counts, and increment
@@ -53,7 +55,8 @@ public class FileCountMR extends Configured implements Tool {
       lastRowFound = k.getRow();
       prefix = lastRowFound.toString();
       int slashIndex = prefix.lastIndexOf("/");
-      if (slashIndex >= 0) prefix = prefix.substring(0, slashIndex + 1);
+      if (slashIndex >= 0)
+        prefix = prefix.substring(0, slashIndex + 1);
       dirCount = 0;
       fileCount = 0;
       incrementCounts(k);
@@ -83,7 +86,8 @@ public class FileCountMR extends Configured implements Tool {
     
     @Override
     protected void cleanup(Context context) throws IOException, InterruptedException {
-      if (lastRowFound == null) return;
+      if (lastRowFound == null)
+        return;
       String lrf = lastRowFound.toString().substring(3);
       int slashIndex;
       int parentCount = 0;

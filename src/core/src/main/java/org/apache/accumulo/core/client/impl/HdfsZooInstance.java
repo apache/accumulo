@@ -59,7 +59,8 @@ public class HdfsZooInstance implements Instance {
   private static HdfsZooInstance cachedHdfsZooInstance = null;
   
   public static Instance getInstance() {
-    if (cachedHdfsZooInstance == null) cachedHdfsZooInstance = new HdfsZooInstance();
+    if (cachedHdfsZooInstance == null)
+      cachedHdfsZooInstance = new HdfsZooInstance();
     return cachedHdfsZooInstance;
   }
   
@@ -118,7 +119,8 @@ public class HdfsZooInstance implements Instance {
   
   @Override
   public String getInstanceID() {
-    if (instanceId == null) _getInstanceID();
+    if (instanceId == null)
+      _getInstanceID();
     return instanceId;
   }
   
@@ -173,7 +175,8 @@ public class HdfsZooInstance implements Instance {
   
   @Override
   public AccumuloConfiguration getConfiguration() {
-    if (conf == null) conf = AccumuloConfiguration.getSystemConfiguration();
+    if (conf == null)
+      conf = AccumuloConfiguration.getSystemConfiguration();
     return conf;
   }
   

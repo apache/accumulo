@@ -144,8 +144,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         try {
           resultsQueue.put(new MyEntry(key, value));
         } catch (InterruptedException e) {
-          if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown()) log.debug("Failed to add Batch Scan result for key " + key, e);
-          else log.warn("Failed to add Batch Scan result for key " + key, e);
+          if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown())
+            log.debug("Failed to add Batch Scan result for key " + key, e);
+          else
+            log.warn("Failed to add Batch Scan result for key " + key, e);
           fatalException = e;
           throw new RuntimeException(e);
           
@@ -165,14 +167,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   public boolean hasNext() {
     synchronized (nextLock) {
       // check if one was cached
-      if (nextEntry != null) return true;
+      if (nextEntry != null)
+        return true;
       
       // don't have one cached, try to cache one and return success
       try {
         while (nextEntry == null && fatalException == null)
           nextEntry = resultsQueue.poll(1, TimeUnit.SECONDS);
         
-        if (fatalException != null) throw new RuntimeException(fatalException);
+        if (fatalException != null)
+          throw new RuntimeException(fatalException);
         
         return nextEntry.getKey() != null && nextEntry.getValue() != null;
       } catch (InterruptedException e) {
@@ -220,7 +224,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       List<Range> failures = tabletLocator.binRanges(ranges, binnedRanges);
       
       if (failures.size() > 0) {
-        if (log.isTraceEnabled()) log.trace("Failed to bin " + failures.size() + " ranges, tablet locations were null, retrying in 100ms");
+        if (log.isTraceEnabled())
+          log.trace("Failed to bin " + failures.size() + " ranges, tablet locations were null, retrying in 100ms");
         try {
           Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -235,7 +240,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   
   private void processFailures(Map<KeyExtent,List<Range>> failures, ResultReceiver receiver, List<Column> columns) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
-    if (log.isTraceEnabled()) log.trace("Failed to execute multiscans against " + failures.size() + " tablets, retrying...");
+    if (log.isTraceEnabled())
+      log.trace("Failed to execute multiscans against " + failures.size() + " tablets, retrying...");
     
     UtilWaitThread.sleep(failSleepTime);
     failSleepTime = Math.min(5000, failSleepTime * 2);
@@ -278,7 +284,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           
         }
         
-        if (map.size() == 0) iter.remove();
+        if (map.size() == 0)
+          iter.remove();
       }
       
       // merge
@@ -351,8 +358,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         log.debug(e.getMessage(), e);
         fatalException = e;
       } catch (Throwable t) {
-        if (queryThreadPool.isShutdown()) log.debug(t.getMessage(), t);
-        else log.warn(t.getMessage(), t);
+        if (queryThreadPool.isShutdown())
+          log.debug(t.getMessage(), t);
+        else
+          log.warn(t.getMessage(), t);
         fatalException = t;
       } finally {
         semaphore.release();
@@ -529,7 +538,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             Translator.RT));
         InitialMultiScan imsr = client.startMultiScan(null, credentials, thriftTabletRanges, Translator.translate(columns, Translator.CT),
             options.serverSideIteratorList, options.serverSideIteratorOptions, authorizations.getAuthorizations(), waitForWrites);
-        if (waitForWrites) ThriftScanner.serversWaitedForWrites.get(ttype).add(server);
+        if (waitForWrites)
+          ThriftScanner.serversWaitedForWrites.get(ttype).add(server);
         
         MultiScanResult scanResult = imsr.result;
         

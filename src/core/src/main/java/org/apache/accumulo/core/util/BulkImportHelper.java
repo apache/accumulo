@@ -195,8 +195,10 @@ public class BulkImportHelper {
         ArrayList<KeyExtent> tabletsToAssignMapFileTo = findOverlappingTablets(tableId, tablets, mapFile.getValue().getFirstRow(), mapFile.getValue()
             .getLastRow());
         
-        if (tabletsToAssignMapFileTo.size() == 0) completeFailures.put(mapFile.getKey(), tabletsToAssignMapFileTo);
-        else assignments.put(mapFile.getKey(), tabletsToAssignMapFileTo);
+        if (tabletsToAssignMapFileTo.size() == 0)
+          completeFailures.put(mapFile.getKey(), tabletsToAssignMapFileTo);
+        else
+          assignments.put(mapFile.getKey(), tabletsToAssignMapFileTo);
       }
       
       assignmentStats.attemptingAssignments(assignments);
@@ -279,10 +281,12 @@ public class BulkImportHelper {
                 tabletsToAssignMapFileTo.addAll(findOverlappingTablets(tableId, children, mapFileRange.getFirstRow(), mapFileRange.getLastRow()));
                 keListIter.remove();
               }
-            } else log.warn("will retry tablet " + ke + " later it does not have contiguous children " + children);
+            } else
+              log.warn("will retry tablet " + ke + " later it does not have contiguous children " + children);
           }
           
-          if (tabletsToAssignMapFileTo.size() > 0) assignments.put(entry.getKey(), tabletsToAssignMapFileTo);
+          if (tabletsToAssignMapFileTo.size() > 0)
+            assignments.put(entry.getKey(), tabletsToAssignMapFileTo);
         }
         
         assignmentStats.attemptingAssignments(assignments);
@@ -295,7 +299,8 @@ public class BulkImportHelper {
           assignmentFailures.get(entry.getKey()).addAll(entry.getValue());
           
           Integer fc = failureCount.get(entry.getKey());
-          if (fc == null) fc = 0;
+          if (fc == null)
+            fc = 0;
           
           failureCount.put(entry.getKey(), fc + 1);
         }
@@ -304,7 +309,8 @@ public class BulkImportHelper {
         Iterator<Entry<Path,List<KeyExtent>>> afIter = assignmentFailures.entrySet().iterator();
         while (afIter.hasNext()) {
           Entry<Path,List<KeyExtent>> entry = afIter.next();
-          if (entry.getValue().size() == 0) afIter.remove();
+          if (entry.getValue().size() == 0)
+            afIter.remove();
         }
         
         Set<Entry<Path,Integer>> failureIter = failureCount.entrySet();
@@ -332,14 +338,16 @@ public class BulkImportHelper {
       printReport();
       return assignmentStats;
     } finally {
-      if (client != null) ServerClient.close(client);
+      if (client != null)
+        ServerClient.close(client);
     }
   }
   
   private void printReport() {
     long totalTime = 0;
     for (Timers t : Timers.values()) {
-      if (t == Timers.TOTAL) continue;
+      if (t == Timers.TOTAL)
+        continue;
       
       totalTime += timer.get(t);
     }
@@ -366,7 +374,8 @@ public class BulkImportHelper {
     
     Set<Entry<Path,List<KeyExtent>>> es = completeFailures.entrySet();
     
-    if (completeFailures.size() == 0) return Collections.emptySet();
+    if (completeFailures.size() == 0)
+      return Collections.emptySet();
     
     log.error("The following map files failed completely, saving this info to : " + new Path(failureDir, "failures.seq"));
     
@@ -431,7 +440,8 @@ public class BulkImportHelper {
     
     try {
       for (FileStatus fileStatus : fs.globStatus(new Path(bulkDir.toString() + "/[0-9]*")))
-        if (!fileStatus.getPath().getName().endsWith("." + MyMapFile.EXTENSION)) mapFileSizes.put(fileStatus.getPath(), fileStatus.getLen());
+        if (!fileStatus.getPath().getName().endsWith("." + MyMapFile.EXTENSION))
+          mapFileSizes.put(fileStatus.getPath(), fileStatus.getLen());
       
       for (FileStatus fileStatus : fs.globStatus(new Path(bulkDir.toString() + "/[0-9]*." + MyMapFile.EXTENSION + "/" + MyMapFile.DATA_FILE_NAME)))
         mapFileSizes.put(fileStatus.getPath().getParent(), fileStatus.getLen());
@@ -716,7 +726,8 @@ public class BulkImportHelper {
       
       Text tabletPrevEndRow = ke.getPrevEndRow();
       
-      if (tabletPrevEndRow != null && tabletPrevEndRow.compareTo(mapFileLastRow) >= 0) break;
+      if (tabletPrevEndRow != null && tabletPrevEndRow.compareTo(mapFileLastRow) >= 0)
+        break;
       
       tabletsToAssignMapFileTo.add(ke);
     }
@@ -795,11 +806,14 @@ public class BulkImportHelper {
       
       for (Entry<KeyExtent,Integer> entry : counts.entrySet()) {
         totalAssignments += entry.getValue();
-        if (entry.getValue() > 0) tabletsImportedTo++;
+        if (entry.getValue() > 0)
+          tabletsImportedTo++;
         
-        if (entry.getValue() < min) min = entry.getValue();
+        if (entry.getValue() < min)
+          min = entry.getValue();
         
-        if (entry.getValue() > max) max = entry.getValue();
+        if (entry.getValue() > max)
+          max = entry.getValue();
       }
       
       double stddev = 0;
@@ -865,22 +879,24 @@ public class BulkImportHelper {
               successful = false;
               failures++;
               log.warn("Failed to read map file " + file.getPath() + " [" + ioe.getMessage() + "] failures = " + failures);
-              if (failures < 3) try {
-                Thread.sleep(500);
-              } catch (InterruptedException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-              }
+              if (failures < 3)
+                try {
+                  Thread.sleep(500);
+                } catch (InterruptedException e) {
+                  e.printStackTrace();
+                  throw new RuntimeException(e);
+                }
             } catch (Throwable t) {
               successful = false;
               failures = 3;
               log.warn("Failed to read map file " + file.getPath(), t);
             } finally {
-              if (reader != null) try {
-                reader.close();
-              } catch (IOException e) {
-                e.printStackTrace();
-              }
+              if (reader != null)
+                try {
+                  reader.close();
+                } catch (IOException e) {
+                  e.printStackTrace();
+                }
             }
           } while (!successful && failures < 3);
           

@@ -59,7 +59,8 @@ public enum TablePermission {
   
   public static TablePermission getPermissionById(byte id) {
     TablePermission result = mapping[id];
-    if (result != null) return result;
+    if (result != null)
+      return result;
     throw new IndexOutOfBoundsException("No such permission");
   }
   

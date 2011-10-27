@@ -105,7 +105,8 @@ public class MasterServlet extends BasicServlet {
           gcStatus = label + " " + DateFormat.getInstance().format(new Date(start));
           gcStatus = gcStatus.replace(" ", "&nbsp;");
           long normalDelay = AccumuloConfiguration.getSystemConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
-          if (diff > normalDelay * 2) gcStatus = "<span class='warning'>" + gcStatus + "</span>";
+          if (diff > normalDelay * 2)
+            gcStatus = "<span class='warning'>" + gcStatus + "</span>";
         }
       } else {
         gcStatus = "<span class='error'>Down</span>";
@@ -151,7 +152,8 @@ public class MasterServlet extends BasicServlet {
       masterStatus.addRow(row);
       masterStatus.generate(req, sb);
       
-    } else banner(sb, "error", "Master Server Not Running");
+    } else
+      banner(sb, "error", "Master Server Not Running");
     
   }
   

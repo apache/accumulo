@@ -5,39 +5,37 @@
  */
 package org.apache.accumulo.core.master.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.io.Serializable, Cloneable, Comparable<TabletInfo> {
+public class TabletInfo implements TBase<TabletInfo,TabletInfo._Fields>, java.io.Serializable, Cloneable, Comparable<TabletInfo> {
   private static final TStruct STRUCT_DESC = new TStruct("TabletInfo");
-
-  private static final TField STATUS_MAJOR_FIELD_DESC = new TField("statusMajor", TType.I32, (short)1);
-  private static final TField MAJOR_ELAPSED_FIELD_DESC = new TField("majorElapsed", TType.DOUBLE, (short)2);
-  private static final TField MAJOR_NUM_FIELD_DESC = new TField("majorNum", TType.I32, (short)3);
-  private static final TField MAJOR_COUNT_FIELD_DESC = new TField("majorCount", TType.I64, (short)4);
-  private static final TField MAJOR_SUM_DEV_FIELD_DESC = new TField("majorSumDev", TType.DOUBLE, (short)5);
-  private static final TField MAJOR_QUEUE_TIME_FIELD_DESC = new TField("majorQueueTime", TType.DOUBLE, (short)6);
-  private static final TField MAJOR_QUEUE_SUM_DEV_FIELD_DESC = new TField("majorQueueSumDev", TType.DOUBLE, (short)7);
-  private static final TField MAJOR_FAIL_FIELD_DESC = new TField("majorFail", TType.I32, (short)8);
-  private static final TField STATUS_SPLIT_FIELD_DESC = new TField("statusSplit", TType.I32, (short)9);
-  private static final TField SPLIT_ELAPSED_FIELD_DESC = new TField("splitElapsed", TType.DOUBLE, (short)10);
-  private static final TField SPLIT_NUM_FIELD_DESC = new TField("splitNum", TType.I32, (short)11);
-  private static final TField SPLIT_SUM_DEV_FIELD_DESC = new TField("splitSumDev", TType.DOUBLE, (short)12);
-  private static final TField SPLIT_FAIL_FIELD_DESC = new TField("splitFail", TType.I32, (short)13);
-  private static final TField STATUS_MINOR_FIELD_DESC = new TField("statusMinor", TType.I32, (short)14);
-  private static final TField MINOR_ELAPSED_FIELD_DESC = new TField("minorElapsed", TType.DOUBLE, (short)15);
-  private static final TField MINOR_NUM_FIELD_DESC = new TField("minorNum", TType.I32, (short)16);
-  private static final TField MINOR_COUNT_FIELD_DESC = new TField("minorCount", TType.I64, (short)17);
-  private static final TField MINOR_SUM_DEV_FIELD_DESC = new TField("minorSumDev", TType.DOUBLE, (short)18);
-  private static final TField MINOR_QUEUE_TIME_FIELD_DESC = new TField("minorQueueTime", TType.DOUBLE, (short)19);
-  private static final TField MINOR_QUEUE_SUM_DEV_FIELD_DESC = new TField("minorQueueSumDev", TType.DOUBLE, (short)20);
-  private static final TField MINOR_FAIL_FIELD_DESC = new TField("minorFail", TType.I32, (short)21);
-  private static final TField NUM_ENTRIES_FIELD_DESC = new TField("numEntries", TType.I64, (short)22);
-
+  
+  private static final TField STATUS_MAJOR_FIELD_DESC = new TField("statusMajor", TType.I32, (short) 1);
+  private static final TField MAJOR_ELAPSED_FIELD_DESC = new TField("majorElapsed", TType.DOUBLE, (short) 2);
+  private static final TField MAJOR_NUM_FIELD_DESC = new TField("majorNum", TType.I32, (short) 3);
+  private static final TField MAJOR_COUNT_FIELD_DESC = new TField("majorCount", TType.I64, (short) 4);
+  private static final TField MAJOR_SUM_DEV_FIELD_DESC = new TField("majorSumDev", TType.DOUBLE, (short) 5);
+  private static final TField MAJOR_QUEUE_TIME_FIELD_DESC = new TField("majorQueueTime", TType.DOUBLE, (short) 6);
+  private static final TField MAJOR_QUEUE_SUM_DEV_FIELD_DESC = new TField("majorQueueSumDev", TType.DOUBLE, (short) 7);
+  private static final TField MAJOR_FAIL_FIELD_DESC = new TField("majorFail", TType.I32, (short) 8);
+  private static final TField STATUS_SPLIT_FIELD_DESC = new TField("statusSplit", TType.I32, (short) 9);
+  private static final TField SPLIT_ELAPSED_FIELD_DESC = new TField("splitElapsed", TType.DOUBLE, (short) 10);
+  private static final TField SPLIT_NUM_FIELD_DESC = new TField("splitNum", TType.I32, (short) 11);
+  private static final TField SPLIT_SUM_DEV_FIELD_DESC = new TField("splitSumDev", TType.DOUBLE, (short) 12);
+  private static final TField SPLIT_FAIL_FIELD_DESC = new TField("splitFail", TType.I32, (short) 13);
+  private static final TField STATUS_MINOR_FIELD_DESC = new TField("statusMinor", TType.I32, (short) 14);
+  private static final TField MINOR_ELAPSED_FIELD_DESC = new TField("minorElapsed", TType.DOUBLE, (short) 15);
+  private static final TField MINOR_NUM_FIELD_DESC = new TField("minorNum", TType.I32, (short) 16);
+  private static final TField MINOR_COUNT_FIELD_DESC = new TField("minorCount", TType.I64, (short) 17);
+  private static final TField MINOR_SUM_DEV_FIELD_DESC = new TField("minorSumDev", TType.DOUBLE, (short) 18);
+  private static final TField MINOR_QUEUE_TIME_FIELD_DESC = new TField("minorQueueTime", TType.DOUBLE, (short) 19);
+  private static final TField MINOR_QUEUE_SUM_DEV_FIELD_DESC = new TField("minorQueueSumDev", TType.DOUBLE, (short) 20);
+  private static final TField MINOR_FAIL_FIELD_DESC = new TField("minorFail", TType.I32, (short) 21);
+  private static final TField NUM_ENTRIES_FIELD_DESC = new TField("numEntries", TType.I64, (short) 22);
+  
   public int statusMajor;
   public double majorElapsed;
   public int majorNum;
@@ -60,83 +58,83 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
   public double minorQueueSumDev;
   public int minorFail;
   public long numEntries;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    STATUS_MAJOR((short)1, "statusMajor"),
-    MAJOR_ELAPSED((short)2, "majorElapsed"),
-    MAJOR_NUM((short)3, "majorNum"),
-    MAJOR_COUNT((short)4, "majorCount"),
-    MAJOR_SUM_DEV((short)5, "majorSumDev"),
-    MAJOR_QUEUE_TIME((short)6, "majorQueueTime"),
-    MAJOR_QUEUE_SUM_DEV((short)7, "majorQueueSumDev"),
-    MAJOR_FAIL((short)8, "majorFail"),
-    STATUS_SPLIT((short)9, "statusSplit"),
-    SPLIT_ELAPSED((short)10, "splitElapsed"),
-    SPLIT_NUM((short)11, "splitNum"),
-    SPLIT_SUM_DEV((short)12, "splitSumDev"),
-    SPLIT_FAIL((short)13, "splitFail"),
-    STATUS_MINOR((short)14, "statusMinor"),
-    MINOR_ELAPSED((short)15, "minorElapsed"),
-    MINOR_NUM((short)16, "minorNum"),
-    MINOR_COUNT((short)17, "minorCount"),
-    MINOR_SUM_DEV((short)18, "minorSumDev"),
-    MINOR_QUEUE_TIME((short)19, "minorQueueTime"),
-    MINOR_QUEUE_SUM_DEV((short)20, "minorQueueSumDev"),
-    MINOR_FAIL((short)21, "minorFail"),
-    NUM_ENTRIES((short)22, "numEntries");
-
-    private static final java.util.Map<Integer, _Fields> byId = new java.util.HashMap<Integer, _Fields>();
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    STATUS_MAJOR((short) 1, "statusMajor"),
+    MAJOR_ELAPSED((short) 2, "majorElapsed"),
+    MAJOR_NUM((short) 3, "majorNum"),
+    MAJOR_COUNT((short) 4, "majorCount"),
+    MAJOR_SUM_DEV((short) 5, "majorSumDev"),
+    MAJOR_QUEUE_TIME((short) 6, "majorQueueTime"),
+    MAJOR_QUEUE_SUM_DEV((short) 7, "majorQueueSumDev"),
+    MAJOR_FAIL((short) 8, "majorFail"),
+    STATUS_SPLIT((short) 9, "statusSplit"),
+    SPLIT_ELAPSED((short) 10, "splitElapsed"),
+    SPLIT_NUM((short) 11, "splitNum"),
+    SPLIT_SUM_DEV((short) 12, "splitSumDev"),
+    SPLIT_FAIL((short) 13, "splitFail"),
+    STATUS_MINOR((short) 14, "statusMinor"),
+    MINOR_ELAPSED((short) 15, "minorElapsed"),
+    MINOR_NUM((short) 16, "minorNum"),
+    MINOR_COUNT((short) 17, "minorCount"),
+    MINOR_SUM_DEV((short) 18, "minorSumDev"),
+    MINOR_QUEUE_TIME((short) 19, "minorQueueTime"),
+    MINOR_QUEUE_SUM_DEV((short) 20, "minorQueueSumDev"),
+    MINOR_FAIL((short) 21, "minorFail"),
+    NUM_ENTRIES((short) 22, "numEntries");
+    
+    private static final java.util.Map<Integer,_Fields> byId = new java.util.HashMap<Integer,_Fields>();
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
-        byId.put((int)field._thriftId, field);
+        byId.put((int) field._thriftId, field);
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
       return byId.get(fieldId);
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
   private static final int __STATUSMAJOR_ISSET_ID = 0;
   private static final int __MAJORELAPSED_ISSET_ID = 1;
@@ -161,85 +159,44 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
   private static final int __MINORFAIL_ISSET_ID = 20;
   private static final int __NUMENTRIES_ISSET_ID = 21;
   private java.util.BitSet __isset_bit_vector = new java.util.BitSet(22);
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap = java.util.Collections.unmodifiableMap(new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class) {{
-    put(_Fields.STATUS_MAJOR, new FieldMetaData("statusMajor", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    put(_Fields.MAJOR_ELAPSED, new FieldMetaData("majorElapsed", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    put(_Fields.MAJOR_NUM, new FieldMetaData("majorNum", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    put(_Fields.MAJOR_COUNT, new FieldMetaData("majorCount", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I64)));
-    put(_Fields.MAJOR_SUM_DEV, new FieldMetaData("majorSumDev", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    put(_Fields.MAJOR_QUEUE_TIME, new FieldMetaData("majorQueueTime", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    put(_Fields.MAJOR_QUEUE_SUM_DEV, new FieldMetaData("majorQueueSumDev", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    put(_Fields.MAJOR_FAIL, new FieldMetaData("majorFail", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    put(_Fields.STATUS_SPLIT, new FieldMetaData("statusSplit", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    put(_Fields.SPLIT_ELAPSED, new FieldMetaData("splitElapsed", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    put(_Fields.SPLIT_NUM, new FieldMetaData("splitNum", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    put(_Fields.SPLIT_SUM_DEV, new FieldMetaData("splitSumDev", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    put(_Fields.SPLIT_FAIL, new FieldMetaData("splitFail", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    put(_Fields.STATUS_MINOR, new FieldMetaData("statusMinor", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    put(_Fields.MINOR_ELAPSED, new FieldMetaData("minorElapsed", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    put(_Fields.MINOR_NUM, new FieldMetaData("minorNum", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    put(_Fields.MINOR_COUNT, new FieldMetaData("minorCount", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I64)));
-    put(_Fields.MINOR_SUM_DEV, new FieldMetaData("minorSumDev", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    put(_Fields.MINOR_QUEUE_TIME, new FieldMetaData("minorQueueTime", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    put(_Fields.MINOR_QUEUE_SUM_DEV, new FieldMetaData("minorQueueSumDev", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.DOUBLE)));
-    put(_Fields.MINOR_FAIL, new FieldMetaData("minorFail", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    put(_Fields.NUM_ENTRIES, new FieldMetaData("numEntries", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I64)));
-  }});
-
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap = java.util.Collections.unmodifiableMap(new java.util.EnumMap<_Fields,FieldMetaData>(
+      _Fields.class) {
+    {
+      put(_Fields.STATUS_MAJOR, new FieldMetaData("statusMajor", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+      put(_Fields.MAJOR_ELAPSED, new FieldMetaData("majorElapsed", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+      put(_Fields.MAJOR_NUM, new FieldMetaData("majorNum", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+      put(_Fields.MAJOR_COUNT, new FieldMetaData("majorCount", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64)));
+      put(_Fields.MAJOR_SUM_DEV, new FieldMetaData("majorSumDev", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+      put(_Fields.MAJOR_QUEUE_TIME, new FieldMetaData("majorQueueTime", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+      put(_Fields.MAJOR_QUEUE_SUM_DEV, new FieldMetaData("majorQueueSumDev", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+      put(_Fields.MAJOR_FAIL, new FieldMetaData("majorFail", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+      put(_Fields.STATUS_SPLIT, new FieldMetaData("statusSplit", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+      put(_Fields.SPLIT_ELAPSED, new FieldMetaData("splitElapsed", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+      put(_Fields.SPLIT_NUM, new FieldMetaData("splitNum", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+      put(_Fields.SPLIT_SUM_DEV, new FieldMetaData("splitSumDev", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+      put(_Fields.SPLIT_FAIL, new FieldMetaData("splitFail", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+      put(_Fields.STATUS_MINOR, new FieldMetaData("statusMinor", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+      put(_Fields.MINOR_ELAPSED, new FieldMetaData("minorElapsed", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+      put(_Fields.MINOR_NUM, new FieldMetaData("minorNum", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+      put(_Fields.MINOR_COUNT, new FieldMetaData("minorCount", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64)));
+      put(_Fields.MINOR_SUM_DEV, new FieldMetaData("minorSumDev", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+      put(_Fields.MINOR_QUEUE_TIME, new FieldMetaData("minorQueueTime", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+      put(_Fields.MINOR_QUEUE_SUM_DEV, new FieldMetaData("minorQueueSumDev", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.DOUBLE)));
+      put(_Fields.MINOR_FAIL, new FieldMetaData("minorFail", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+      put(_Fields.NUM_ENTRIES, new FieldMetaData("numEntries", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I64)));
+    }
+  });
+  
   static {
     FieldMetaData.addStructMetaDataMap(TabletInfo.class, metaDataMap);
   }
-
-  public TabletInfo() {
-  }
-
-  public TabletInfo(
-    int statusMajor,
-    double majorElapsed,
-    int majorNum,
-    long majorCount,
-    double majorSumDev,
-    double majorQueueTime,
-    double majorQueueSumDev,
-    int majorFail,
-    int statusSplit,
-    double splitElapsed,
-    int splitNum,
-    double splitSumDev,
-    int splitFail,
-    int statusMinor,
-    double minorElapsed,
-    int minorNum,
-    long minorCount,
-    double minorSumDev,
-    double minorQueueTime,
-    double minorQueueSumDev,
-    int minorFail,
-    long numEntries)
-  {
+  
+  public TabletInfo() {}
+  
+  public TabletInfo(int statusMajor, double majorElapsed, int majorNum, long majorCount, double majorSumDev, double majorQueueTime, double majorQueueSumDev,
+      int majorFail, int statusSplit, double splitElapsed, int splitNum, double splitSumDev, int splitFail, int statusMinor, double minorElapsed, int minorNum,
+      long minorCount, double minorSumDev, double minorQueueTime, double minorQueueSumDev, int minorFail, long numEntries) {
     this();
     this.statusMajor = statusMajor;
     setStatusMajorIsSet(true);
@@ -286,7 +243,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
     this.numEntries = numEntries;
     setNumEntriesIsSet(true);
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -316,851 +273,851 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
     this.minorFail = other.minorFail;
     this.numEntries = other.numEntries;
   }
-
+  
   public TabletInfo deepCopy() {
     return new TabletInfo(this);
   }
-
+  
   @Deprecated
   public TabletInfo clone() {
     return new TabletInfo(this);
   }
-
+  
   public int getStatusMajor() {
     return this.statusMajor;
   }
-
+  
   public TabletInfo setStatusMajor(int statusMajor) {
     this.statusMajor = statusMajor;
     setStatusMajorIsSet(true);
     return this;
   }
-
+  
   public void unsetStatusMajor() {
     __isset_bit_vector.clear(__STATUSMAJOR_ISSET_ID);
   }
-
+  
   /** Returns true if field statusMajor is set (has been asigned a value) and false otherwise */
   public boolean isSetStatusMajor() {
     return __isset_bit_vector.get(__STATUSMAJOR_ISSET_ID);
   }
-
+  
   public void setStatusMajorIsSet(boolean value) {
     __isset_bit_vector.set(__STATUSMAJOR_ISSET_ID, value);
   }
-
+  
   public double getMajorElapsed() {
     return this.majorElapsed;
   }
-
+  
   public TabletInfo setMajorElapsed(double majorElapsed) {
     this.majorElapsed = majorElapsed;
     setMajorElapsedIsSet(true);
     return this;
   }
-
+  
   public void unsetMajorElapsed() {
     __isset_bit_vector.clear(__MAJORELAPSED_ISSET_ID);
   }
-
+  
   /** Returns true if field majorElapsed is set (has been asigned a value) and false otherwise */
   public boolean isSetMajorElapsed() {
     return __isset_bit_vector.get(__MAJORELAPSED_ISSET_ID);
   }
-
+  
   public void setMajorElapsedIsSet(boolean value) {
     __isset_bit_vector.set(__MAJORELAPSED_ISSET_ID, value);
   }
-
+  
   public int getMajorNum() {
     return this.majorNum;
   }
-
+  
   public TabletInfo setMajorNum(int majorNum) {
     this.majorNum = majorNum;
     setMajorNumIsSet(true);
     return this;
   }
-
+  
   public void unsetMajorNum() {
     __isset_bit_vector.clear(__MAJORNUM_ISSET_ID);
   }
-
+  
   /** Returns true if field majorNum is set (has been asigned a value) and false otherwise */
   public boolean isSetMajorNum() {
     return __isset_bit_vector.get(__MAJORNUM_ISSET_ID);
   }
-
+  
   public void setMajorNumIsSet(boolean value) {
     __isset_bit_vector.set(__MAJORNUM_ISSET_ID, value);
   }
-
+  
   public long getMajorCount() {
     return this.majorCount;
   }
-
+  
   public TabletInfo setMajorCount(long majorCount) {
     this.majorCount = majorCount;
     setMajorCountIsSet(true);
     return this;
   }
-
+  
   public void unsetMajorCount() {
     __isset_bit_vector.clear(__MAJORCOUNT_ISSET_ID);
   }
-
+  
   /** Returns true if field majorCount is set (has been asigned a value) and false otherwise */
   public boolean isSetMajorCount() {
     return __isset_bit_vector.get(__MAJORCOUNT_ISSET_ID);
   }
-
+  
   public void setMajorCountIsSet(boolean value) {
     __isset_bit_vector.set(__MAJORCOUNT_ISSET_ID, value);
   }
-
+  
   public double getMajorSumDev() {
     return this.majorSumDev;
   }
-
+  
   public TabletInfo setMajorSumDev(double majorSumDev) {
     this.majorSumDev = majorSumDev;
     setMajorSumDevIsSet(true);
     return this;
   }
-
+  
   public void unsetMajorSumDev() {
     __isset_bit_vector.clear(__MAJORSUMDEV_ISSET_ID);
   }
-
+  
   /** Returns true if field majorSumDev is set (has been asigned a value) and false otherwise */
   public boolean isSetMajorSumDev() {
     return __isset_bit_vector.get(__MAJORSUMDEV_ISSET_ID);
   }
-
+  
   public void setMajorSumDevIsSet(boolean value) {
     __isset_bit_vector.set(__MAJORSUMDEV_ISSET_ID, value);
   }
-
+  
   public double getMajorQueueTime() {
     return this.majorQueueTime;
   }
-
+  
   public TabletInfo setMajorQueueTime(double majorQueueTime) {
     this.majorQueueTime = majorQueueTime;
     setMajorQueueTimeIsSet(true);
     return this;
   }
-
+  
   public void unsetMajorQueueTime() {
     __isset_bit_vector.clear(__MAJORQUEUETIME_ISSET_ID);
   }
-
+  
   /** Returns true if field majorQueueTime is set (has been asigned a value) and false otherwise */
   public boolean isSetMajorQueueTime() {
     return __isset_bit_vector.get(__MAJORQUEUETIME_ISSET_ID);
   }
-
+  
   public void setMajorQueueTimeIsSet(boolean value) {
     __isset_bit_vector.set(__MAJORQUEUETIME_ISSET_ID, value);
   }
-
+  
   public double getMajorQueueSumDev() {
     return this.majorQueueSumDev;
   }
-
+  
   public TabletInfo setMajorQueueSumDev(double majorQueueSumDev) {
     this.majorQueueSumDev = majorQueueSumDev;
     setMajorQueueSumDevIsSet(true);
     return this;
   }
-
+  
   public void unsetMajorQueueSumDev() {
     __isset_bit_vector.clear(__MAJORQUEUESUMDEV_ISSET_ID);
   }
-
+  
   /** Returns true if field majorQueueSumDev is set (has been asigned a value) and false otherwise */
   public boolean isSetMajorQueueSumDev() {
     return __isset_bit_vector.get(__MAJORQUEUESUMDEV_ISSET_ID);
   }
-
+  
   public void setMajorQueueSumDevIsSet(boolean value) {
     __isset_bit_vector.set(__MAJORQUEUESUMDEV_ISSET_ID, value);
   }
-
+  
   public int getMajorFail() {
     return this.majorFail;
   }
-
+  
   public TabletInfo setMajorFail(int majorFail) {
     this.majorFail = majorFail;
     setMajorFailIsSet(true);
     return this;
   }
-
+  
   public void unsetMajorFail() {
     __isset_bit_vector.clear(__MAJORFAIL_ISSET_ID);
   }
-
+  
   /** Returns true if field majorFail is set (has been asigned a value) and false otherwise */
   public boolean isSetMajorFail() {
     return __isset_bit_vector.get(__MAJORFAIL_ISSET_ID);
   }
-
+  
   public void setMajorFailIsSet(boolean value) {
     __isset_bit_vector.set(__MAJORFAIL_ISSET_ID, value);
   }
-
+  
   public int getStatusSplit() {
     return this.statusSplit;
   }
-
+  
   public TabletInfo setStatusSplit(int statusSplit) {
     this.statusSplit = statusSplit;
     setStatusSplitIsSet(true);
     return this;
   }
-
+  
   public void unsetStatusSplit() {
     __isset_bit_vector.clear(__STATUSSPLIT_ISSET_ID);
   }
-
+  
   /** Returns true if field statusSplit is set (has been asigned a value) and false otherwise */
   public boolean isSetStatusSplit() {
     return __isset_bit_vector.get(__STATUSSPLIT_ISSET_ID);
   }
-
+  
   public void setStatusSplitIsSet(boolean value) {
     __isset_bit_vector.set(__STATUSSPLIT_ISSET_ID, value);
   }
-
+  
   public double getSplitElapsed() {
     return this.splitElapsed;
   }
-
+  
   public TabletInfo setSplitElapsed(double splitElapsed) {
     this.splitElapsed = splitElapsed;
     setSplitElapsedIsSet(true);
     return this;
   }
-
+  
   public void unsetSplitElapsed() {
     __isset_bit_vector.clear(__SPLITELAPSED_ISSET_ID);
   }
-
+  
   /** Returns true if field splitElapsed is set (has been asigned a value) and false otherwise */
   public boolean isSetSplitElapsed() {
     return __isset_bit_vector.get(__SPLITELAPSED_ISSET_ID);
   }
-
+  
   public void setSplitElapsedIsSet(boolean value) {
     __isset_bit_vector.set(__SPLITELAPSED_ISSET_ID, value);
   }
-
+  
   public int getSplitNum() {
     return this.splitNum;
   }
-
+  
   public TabletInfo setSplitNum(int splitNum) {
     this.splitNum = splitNum;
     setSplitNumIsSet(true);
     return this;
   }
-
+  
   public void unsetSplitNum() {
     __isset_bit_vector.clear(__SPLITNUM_ISSET_ID);
   }
-
+  
   /** Returns true if field splitNum is set (has been asigned a value) and false otherwise */
   public boolean isSetSplitNum() {
     return __isset_bit_vector.get(__SPLITNUM_ISSET_ID);
   }
-
+  
   public void setSplitNumIsSet(boolean value) {
     __isset_bit_vector.set(__SPLITNUM_ISSET_ID, value);
   }
-
+  
   public double getSplitSumDev() {
     return this.splitSumDev;
   }
-
+  
   public TabletInfo setSplitSumDev(double splitSumDev) {
     this.splitSumDev = splitSumDev;
     setSplitSumDevIsSet(true);
     return this;
   }
-
+  
   public void unsetSplitSumDev() {
     __isset_bit_vector.clear(__SPLITSUMDEV_ISSET_ID);
   }
-
+  
   /** Returns true if field splitSumDev is set (has been asigned a value) and false otherwise */
   public boolean isSetSplitSumDev() {
     return __isset_bit_vector.get(__SPLITSUMDEV_ISSET_ID);
   }
-
+  
   public void setSplitSumDevIsSet(boolean value) {
     __isset_bit_vector.set(__SPLITSUMDEV_ISSET_ID, value);
   }
-
+  
   public int getSplitFail() {
     return this.splitFail;
   }
-
+  
   public TabletInfo setSplitFail(int splitFail) {
     this.splitFail = splitFail;
     setSplitFailIsSet(true);
     return this;
   }
-
+  
   public void unsetSplitFail() {
     __isset_bit_vector.clear(__SPLITFAIL_ISSET_ID);
   }
-
+  
   /** Returns true if field splitFail is set (has been asigned a value) and false otherwise */
   public boolean isSetSplitFail() {
     return __isset_bit_vector.get(__SPLITFAIL_ISSET_ID);
   }
-
+  
   public void setSplitFailIsSet(boolean value) {
     __isset_bit_vector.set(__SPLITFAIL_ISSET_ID, value);
   }
-
+  
   public int getStatusMinor() {
     return this.statusMinor;
   }
-
+  
   public TabletInfo setStatusMinor(int statusMinor) {
     this.statusMinor = statusMinor;
     setStatusMinorIsSet(true);
     return this;
   }
-
+  
   public void unsetStatusMinor() {
     __isset_bit_vector.clear(__STATUSMINOR_ISSET_ID);
   }
-
+  
   /** Returns true if field statusMinor is set (has been asigned a value) and false otherwise */
   public boolean isSetStatusMinor() {
     return __isset_bit_vector.get(__STATUSMINOR_ISSET_ID);
   }
-
+  
   public void setStatusMinorIsSet(boolean value) {
     __isset_bit_vector.set(__STATUSMINOR_ISSET_ID, value);
   }
-
+  
   public double getMinorElapsed() {
     return this.minorElapsed;
   }
-
+  
   public TabletInfo setMinorElapsed(double minorElapsed) {
     this.minorElapsed = minorElapsed;
     setMinorElapsedIsSet(true);
     return this;
   }
-
+  
   public void unsetMinorElapsed() {
     __isset_bit_vector.clear(__MINORELAPSED_ISSET_ID);
   }
-
+  
   /** Returns true if field minorElapsed is set (has been asigned a value) and false otherwise */
   public boolean isSetMinorElapsed() {
     return __isset_bit_vector.get(__MINORELAPSED_ISSET_ID);
   }
-
+  
   public void setMinorElapsedIsSet(boolean value) {
     __isset_bit_vector.set(__MINORELAPSED_ISSET_ID, value);
   }
-
+  
   public int getMinorNum() {
     return this.minorNum;
   }
-
+  
   public TabletInfo setMinorNum(int minorNum) {
     this.minorNum = minorNum;
     setMinorNumIsSet(true);
     return this;
   }
-
+  
   public void unsetMinorNum() {
     __isset_bit_vector.clear(__MINORNUM_ISSET_ID);
   }
-
+  
   /** Returns true if field minorNum is set (has been asigned a value) and false otherwise */
   public boolean isSetMinorNum() {
     return __isset_bit_vector.get(__MINORNUM_ISSET_ID);
   }
-
+  
   public void setMinorNumIsSet(boolean value) {
     __isset_bit_vector.set(__MINORNUM_ISSET_ID, value);
   }
-
+  
   public long getMinorCount() {
     return this.minorCount;
   }
-
+  
   public TabletInfo setMinorCount(long minorCount) {
     this.minorCount = minorCount;
     setMinorCountIsSet(true);
     return this;
   }
-
+  
   public void unsetMinorCount() {
     __isset_bit_vector.clear(__MINORCOUNT_ISSET_ID);
   }
-
+  
   /** Returns true if field minorCount is set (has been asigned a value) and false otherwise */
   public boolean isSetMinorCount() {
     return __isset_bit_vector.get(__MINORCOUNT_ISSET_ID);
   }
-
+  
   public void setMinorCountIsSet(boolean value) {
     __isset_bit_vector.set(__MINORCOUNT_ISSET_ID, value);
   }
-
+  
   public double getMinorSumDev() {
     return this.minorSumDev;
   }
-
+  
   public TabletInfo setMinorSumDev(double minorSumDev) {
     this.minorSumDev = minorSumDev;
     setMinorSumDevIsSet(true);
     return this;
   }
-
+  
   public void unsetMinorSumDev() {
     __isset_bit_vector.clear(__MINORSUMDEV_ISSET_ID);
   }
-
+  
   /** Returns true if field minorSumDev is set (has been asigned a value) and false otherwise */
   public boolean isSetMinorSumDev() {
     return __isset_bit_vector.get(__MINORSUMDEV_ISSET_ID);
   }
-
+  
   public void setMinorSumDevIsSet(boolean value) {
     __isset_bit_vector.set(__MINORSUMDEV_ISSET_ID, value);
   }
-
+  
   public double getMinorQueueTime() {
     return this.minorQueueTime;
   }
-
+  
   public TabletInfo setMinorQueueTime(double minorQueueTime) {
     this.minorQueueTime = minorQueueTime;
     setMinorQueueTimeIsSet(true);
     return this;
   }
-
+  
   public void unsetMinorQueueTime() {
     __isset_bit_vector.clear(__MINORQUEUETIME_ISSET_ID);
   }
-
+  
   /** Returns true if field minorQueueTime is set (has been asigned a value) and false otherwise */
   public boolean isSetMinorQueueTime() {
     return __isset_bit_vector.get(__MINORQUEUETIME_ISSET_ID);
   }
-
+  
   public void setMinorQueueTimeIsSet(boolean value) {
     __isset_bit_vector.set(__MINORQUEUETIME_ISSET_ID, value);
   }
-
+  
   public double getMinorQueueSumDev() {
     return this.minorQueueSumDev;
   }
-
+  
   public TabletInfo setMinorQueueSumDev(double minorQueueSumDev) {
     this.minorQueueSumDev = minorQueueSumDev;
     setMinorQueueSumDevIsSet(true);
     return this;
   }
-
+  
   public void unsetMinorQueueSumDev() {
     __isset_bit_vector.clear(__MINORQUEUESUMDEV_ISSET_ID);
   }
-
+  
   /** Returns true if field minorQueueSumDev is set (has been asigned a value) and false otherwise */
   public boolean isSetMinorQueueSumDev() {
     return __isset_bit_vector.get(__MINORQUEUESUMDEV_ISSET_ID);
   }
-
+  
   public void setMinorQueueSumDevIsSet(boolean value) {
     __isset_bit_vector.set(__MINORQUEUESUMDEV_ISSET_ID, value);
   }
-
+  
   public int getMinorFail() {
     return this.minorFail;
   }
-
+  
   public TabletInfo setMinorFail(int minorFail) {
     this.minorFail = minorFail;
     setMinorFailIsSet(true);
     return this;
   }
-
+  
   public void unsetMinorFail() {
     __isset_bit_vector.clear(__MINORFAIL_ISSET_ID);
   }
-
+  
   /** Returns true if field minorFail is set (has been asigned a value) and false otherwise */
   public boolean isSetMinorFail() {
     return __isset_bit_vector.get(__MINORFAIL_ISSET_ID);
   }
-
+  
   public void setMinorFailIsSet(boolean value) {
     __isset_bit_vector.set(__MINORFAIL_ISSET_ID, value);
   }
-
+  
   public long getNumEntries() {
     return this.numEntries;
   }
-
+  
   public TabletInfo setNumEntries(long numEntries) {
     this.numEntries = numEntries;
     setNumEntriesIsSet(true);
     return this;
   }
-
+  
   public void unsetNumEntries() {
     __isset_bit_vector.clear(__NUMENTRIES_ISSET_ID);
   }
-
+  
   /** Returns true if field numEntries is set (has been asigned a value) and false otherwise */
   public boolean isSetNumEntries() {
     return __isset_bit_vector.get(__NUMENTRIES_ISSET_ID);
   }
-
+  
   public void setNumEntriesIsSet(boolean value) {
     __isset_bit_vector.set(__NUMENTRIES_ISSET_ID, value);
   }
-
+  
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case STATUS_MAJOR:
-      if (value == null) {
-        unsetStatusMajor();
-      } else {
-        setStatusMajor((Integer)value);
-      }
-      break;
-
-    case MAJOR_ELAPSED:
-      if (value == null) {
-        unsetMajorElapsed();
-      } else {
-        setMajorElapsed((Double)value);
-      }
-      break;
-
-    case MAJOR_NUM:
-      if (value == null) {
-        unsetMajorNum();
-      } else {
-        setMajorNum((Integer)value);
-      }
-      break;
-
-    case MAJOR_COUNT:
-      if (value == null) {
-        unsetMajorCount();
-      } else {
-        setMajorCount((Long)value);
-      }
-      break;
-
-    case MAJOR_SUM_DEV:
-      if (value == null) {
-        unsetMajorSumDev();
-      } else {
-        setMajorSumDev((Double)value);
-      }
-      break;
-
-    case MAJOR_QUEUE_TIME:
-      if (value == null) {
-        unsetMajorQueueTime();
-      } else {
-        setMajorQueueTime((Double)value);
-      }
-      break;
-
-    case MAJOR_QUEUE_SUM_DEV:
-      if (value == null) {
-        unsetMajorQueueSumDev();
-      } else {
-        setMajorQueueSumDev((Double)value);
-      }
-      break;
-
-    case MAJOR_FAIL:
-      if (value == null) {
-        unsetMajorFail();
-      } else {
-        setMajorFail((Integer)value);
-      }
-      break;
-
-    case STATUS_SPLIT:
-      if (value == null) {
-        unsetStatusSplit();
-      } else {
-        setStatusSplit((Integer)value);
-      }
-      break;
-
-    case SPLIT_ELAPSED:
-      if (value == null) {
-        unsetSplitElapsed();
-      } else {
-        setSplitElapsed((Double)value);
-      }
-      break;
-
-    case SPLIT_NUM:
-      if (value == null) {
-        unsetSplitNum();
-      } else {
-        setSplitNum((Integer)value);
-      }
-      break;
-
-    case SPLIT_SUM_DEV:
-      if (value == null) {
-        unsetSplitSumDev();
-      } else {
-        setSplitSumDev((Double)value);
-      }
-      break;
-
-    case SPLIT_FAIL:
-      if (value == null) {
-        unsetSplitFail();
-      } else {
-        setSplitFail((Integer)value);
-      }
-      break;
-
-    case STATUS_MINOR:
-      if (value == null) {
-        unsetStatusMinor();
-      } else {
-        setStatusMinor((Integer)value);
-      }
-      break;
-
-    case MINOR_ELAPSED:
-      if (value == null) {
-        unsetMinorElapsed();
-      } else {
-        setMinorElapsed((Double)value);
-      }
-      break;
-
-    case MINOR_NUM:
-      if (value == null) {
-        unsetMinorNum();
-      } else {
-        setMinorNum((Integer)value);
-      }
-      break;
-
-    case MINOR_COUNT:
-      if (value == null) {
-        unsetMinorCount();
-      } else {
-        setMinorCount((Long)value);
-      }
-      break;
-
-    case MINOR_SUM_DEV:
-      if (value == null) {
-        unsetMinorSumDev();
-      } else {
-        setMinorSumDev((Double)value);
-      }
-      break;
-
-    case MINOR_QUEUE_TIME:
-      if (value == null) {
-        unsetMinorQueueTime();
-      } else {
-        setMinorQueueTime((Double)value);
-      }
-      break;
-
-    case MINOR_QUEUE_SUM_DEV:
-      if (value == null) {
-        unsetMinorQueueSumDev();
-      } else {
-        setMinorQueueSumDev((Double)value);
-      }
-      break;
-
-    case MINOR_FAIL:
-      if (value == null) {
-        unsetMinorFail();
-      } else {
-        setMinorFail((Integer)value);
-      }
-      break;
-
-    case NUM_ENTRIES:
-      if (value == null) {
-        unsetNumEntries();
-      } else {
-        setNumEntries((Long)value);
-      }
-      break;
-
+      case STATUS_MAJOR:
+        if (value == null) {
+          unsetStatusMajor();
+        } else {
+          setStatusMajor((Integer) value);
+        }
+        break;
+      
+      case MAJOR_ELAPSED:
+        if (value == null) {
+          unsetMajorElapsed();
+        } else {
+          setMajorElapsed((Double) value);
+        }
+        break;
+      
+      case MAJOR_NUM:
+        if (value == null) {
+          unsetMajorNum();
+        } else {
+          setMajorNum((Integer) value);
+        }
+        break;
+      
+      case MAJOR_COUNT:
+        if (value == null) {
+          unsetMajorCount();
+        } else {
+          setMajorCount((Long) value);
+        }
+        break;
+      
+      case MAJOR_SUM_DEV:
+        if (value == null) {
+          unsetMajorSumDev();
+        } else {
+          setMajorSumDev((Double) value);
+        }
+        break;
+      
+      case MAJOR_QUEUE_TIME:
+        if (value == null) {
+          unsetMajorQueueTime();
+        } else {
+          setMajorQueueTime((Double) value);
+        }
+        break;
+      
+      case MAJOR_QUEUE_SUM_DEV:
+        if (value == null) {
+          unsetMajorQueueSumDev();
+        } else {
+          setMajorQueueSumDev((Double) value);
+        }
+        break;
+      
+      case MAJOR_FAIL:
+        if (value == null) {
+          unsetMajorFail();
+        } else {
+          setMajorFail((Integer) value);
+        }
+        break;
+      
+      case STATUS_SPLIT:
+        if (value == null) {
+          unsetStatusSplit();
+        } else {
+          setStatusSplit((Integer) value);
+        }
+        break;
+      
+      case SPLIT_ELAPSED:
+        if (value == null) {
+          unsetSplitElapsed();
+        } else {
+          setSplitElapsed((Double) value);
+        }
+        break;
+      
+      case SPLIT_NUM:
+        if (value == null) {
+          unsetSplitNum();
+        } else {
+          setSplitNum((Integer) value);
+        }
+        break;
+      
+      case SPLIT_SUM_DEV:
+        if (value == null) {
+          unsetSplitSumDev();
+        } else {
+          setSplitSumDev((Double) value);
+        }
+        break;
+      
+      case SPLIT_FAIL:
+        if (value == null) {
+          unsetSplitFail();
+        } else {
+          setSplitFail((Integer) value);
+        }
+        break;
+      
+      case STATUS_MINOR:
+        if (value == null) {
+          unsetStatusMinor();
+        } else {
+          setStatusMinor((Integer) value);
+        }
+        break;
+      
+      case MINOR_ELAPSED:
+        if (value == null) {
+          unsetMinorElapsed();
+        } else {
+          setMinorElapsed((Double) value);
+        }
+        break;
+      
+      case MINOR_NUM:
+        if (value == null) {
+          unsetMinorNum();
+        } else {
+          setMinorNum((Integer) value);
+        }
+        break;
+      
+      case MINOR_COUNT:
+        if (value == null) {
+          unsetMinorCount();
+        } else {
+          setMinorCount((Long) value);
+        }
+        break;
+      
+      case MINOR_SUM_DEV:
+        if (value == null) {
+          unsetMinorSumDev();
+        } else {
+          setMinorSumDev((Double) value);
+        }
+        break;
+      
+      case MINOR_QUEUE_TIME:
+        if (value == null) {
+          unsetMinorQueueTime();
+        } else {
+          setMinorQueueTime((Double) value);
+        }
+        break;
+      
+      case MINOR_QUEUE_SUM_DEV:
+        if (value == null) {
+          unsetMinorQueueSumDev();
+        } else {
+          setMinorQueueSumDev((Double) value);
+        }
+        break;
+      
+      case MINOR_FAIL:
+        if (value == null) {
+          unsetMinorFail();
+        } else {
+          setMinorFail((Integer) value);
+        }
+        break;
+      
+      case NUM_ENTRIES:
+        if (value == null) {
+          unsetNumEntries();
+        } else {
+          setNumEntries((Long) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case STATUS_MAJOR:
-      return new Integer(getStatusMajor());
-
-    case MAJOR_ELAPSED:
-      return new Double(getMajorElapsed());
-
-    case MAJOR_NUM:
-      return new Integer(getMajorNum());
-
-    case MAJOR_COUNT:
-      return new Long(getMajorCount());
-
-    case MAJOR_SUM_DEV:
-      return new Double(getMajorSumDev());
-
-    case MAJOR_QUEUE_TIME:
-      return new Double(getMajorQueueTime());
-
-    case MAJOR_QUEUE_SUM_DEV:
-      return new Double(getMajorQueueSumDev());
-
-    case MAJOR_FAIL:
-      return new Integer(getMajorFail());
-
-    case STATUS_SPLIT:
-      return new Integer(getStatusSplit());
-
-    case SPLIT_ELAPSED:
-      return new Double(getSplitElapsed());
-
-    case SPLIT_NUM:
-      return new Integer(getSplitNum());
-
-    case SPLIT_SUM_DEV:
-      return new Double(getSplitSumDev());
-
-    case SPLIT_FAIL:
-      return new Integer(getSplitFail());
-
-    case STATUS_MINOR:
-      return new Integer(getStatusMinor());
-
-    case MINOR_ELAPSED:
-      return new Double(getMinorElapsed());
-
-    case MINOR_NUM:
-      return new Integer(getMinorNum());
-
-    case MINOR_COUNT:
-      return new Long(getMinorCount());
-
-    case MINOR_SUM_DEV:
-      return new Double(getMinorSumDev());
-
-    case MINOR_QUEUE_TIME:
-      return new Double(getMinorQueueTime());
-
-    case MINOR_QUEUE_SUM_DEV:
-      return new Double(getMinorQueueSumDev());
-
-    case MINOR_FAIL:
-      return new Integer(getMinorFail());
-
-    case NUM_ENTRIES:
-      return new Long(getNumEntries());
-
+      case STATUS_MAJOR:
+        return new Integer(getStatusMajor());
+        
+      case MAJOR_ELAPSED:
+        return new Double(getMajorElapsed());
+        
+      case MAJOR_NUM:
+        return new Integer(getMajorNum());
+        
+      case MAJOR_COUNT:
+        return new Long(getMajorCount());
+        
+      case MAJOR_SUM_DEV:
+        return new Double(getMajorSumDev());
+        
+      case MAJOR_QUEUE_TIME:
+        return new Double(getMajorQueueTime());
+        
+      case MAJOR_QUEUE_SUM_DEV:
+        return new Double(getMajorQueueSumDev());
+        
+      case MAJOR_FAIL:
+        return new Integer(getMajorFail());
+        
+      case STATUS_SPLIT:
+        return new Integer(getStatusSplit());
+        
+      case SPLIT_ELAPSED:
+        return new Double(getSplitElapsed());
+        
+      case SPLIT_NUM:
+        return new Integer(getSplitNum());
+        
+      case SPLIT_SUM_DEV:
+        return new Double(getSplitSumDev());
+        
+      case SPLIT_FAIL:
+        return new Integer(getSplitFail());
+        
+      case STATUS_MINOR:
+        return new Integer(getStatusMinor());
+        
+      case MINOR_ELAPSED:
+        return new Double(getMinorElapsed());
+        
+      case MINOR_NUM:
+        return new Integer(getMinorNum());
+        
+      case MINOR_COUNT:
+        return new Long(getMinorCount());
+        
+      case MINOR_SUM_DEV:
+        return new Double(getMinorSumDev());
+        
+      case MINOR_QUEUE_TIME:
+        return new Double(getMinorQueueTime());
+        
+      case MINOR_QUEUE_SUM_DEV:
+        return new Double(getMinorQueueSumDev());
+        
+      case MINOR_FAIL:
+        return new Integer(getMinorFail());
+        
+      case NUM_ENTRIES:
+        return new Long(getNumEntries());
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case STATUS_MAJOR:
-      return isSetStatusMajor();
-    case MAJOR_ELAPSED:
-      return isSetMajorElapsed();
-    case MAJOR_NUM:
-      return isSetMajorNum();
-    case MAJOR_COUNT:
-      return isSetMajorCount();
-    case MAJOR_SUM_DEV:
-      return isSetMajorSumDev();
-    case MAJOR_QUEUE_TIME:
-      return isSetMajorQueueTime();
-    case MAJOR_QUEUE_SUM_DEV:
-      return isSetMajorQueueSumDev();
-    case MAJOR_FAIL:
-      return isSetMajorFail();
-    case STATUS_SPLIT:
-      return isSetStatusSplit();
-    case SPLIT_ELAPSED:
-      return isSetSplitElapsed();
-    case SPLIT_NUM:
-      return isSetSplitNum();
-    case SPLIT_SUM_DEV:
-      return isSetSplitSumDev();
-    case SPLIT_FAIL:
-      return isSetSplitFail();
-    case STATUS_MINOR:
-      return isSetStatusMinor();
-    case MINOR_ELAPSED:
-      return isSetMinorElapsed();
-    case MINOR_NUM:
-      return isSetMinorNum();
-    case MINOR_COUNT:
-      return isSetMinorCount();
-    case MINOR_SUM_DEV:
-      return isSetMinorSumDev();
-    case MINOR_QUEUE_TIME:
-      return isSetMinorQueueTime();
-    case MINOR_QUEUE_SUM_DEV:
-      return isSetMinorQueueSumDev();
-    case MINOR_FAIL:
-      return isSetMinorFail();
-    case NUM_ENTRIES:
-      return isSetNumEntries();
+      case STATUS_MAJOR:
+        return isSetStatusMajor();
+      case MAJOR_ELAPSED:
+        return isSetMajorElapsed();
+      case MAJOR_NUM:
+        return isSetMajorNum();
+      case MAJOR_COUNT:
+        return isSetMajorCount();
+      case MAJOR_SUM_DEV:
+        return isSetMajorSumDev();
+      case MAJOR_QUEUE_TIME:
+        return isSetMajorQueueTime();
+      case MAJOR_QUEUE_SUM_DEV:
+        return isSetMajorQueueSumDev();
+      case MAJOR_FAIL:
+        return isSetMajorFail();
+      case STATUS_SPLIT:
+        return isSetStatusSplit();
+      case SPLIT_ELAPSED:
+        return isSetSplitElapsed();
+      case SPLIT_NUM:
+        return isSetSplitNum();
+      case SPLIT_SUM_DEV:
+        return isSetSplitSumDev();
+      case SPLIT_FAIL:
+        return isSetSplitFail();
+      case STATUS_MINOR:
+        return isSetStatusMinor();
+      case MINOR_ELAPSED:
+        return isSetMinorElapsed();
+      case MINOR_NUM:
+        return isSetMinorNum();
+      case MINOR_COUNT:
+        return isSetMinorCount();
+      case MINOR_SUM_DEV:
+        return isSetMinorSumDev();
+      case MINOR_QUEUE_TIME:
+        return isSetMinorQueueTime();
+      case MINOR_QUEUE_SUM_DEV:
+        return isSetMinorQueueSumDev();
+      case MINOR_FAIL:
+        return isSetMinorFail();
+      case NUM_ENTRIES:
+        return isSetNumEntries();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof TabletInfo)
-      return this.equals((TabletInfo)that);
+      return this.equals((TabletInfo) that);
     return false;
   }
-
+  
   public boolean equals(TabletInfo that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_statusMajor = true;
     boolean that_present_statusMajor = true;
     if (this_present_statusMajor || that_present_statusMajor) {
@@ -1169,7 +1126,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.statusMajor != that.statusMajor)
         return false;
     }
-
+    
     boolean this_present_majorElapsed = true;
     boolean that_present_majorElapsed = true;
     if (this_present_majorElapsed || that_present_majorElapsed) {
@@ -1178,7 +1135,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.majorElapsed != that.majorElapsed)
         return false;
     }
-
+    
     boolean this_present_majorNum = true;
     boolean that_present_majorNum = true;
     if (this_present_majorNum || that_present_majorNum) {
@@ -1187,7 +1144,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.majorNum != that.majorNum)
         return false;
     }
-
+    
     boolean this_present_majorCount = true;
     boolean that_present_majorCount = true;
     if (this_present_majorCount || that_present_majorCount) {
@@ -1196,7 +1153,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.majorCount != that.majorCount)
         return false;
     }
-
+    
     boolean this_present_majorSumDev = true;
     boolean that_present_majorSumDev = true;
     if (this_present_majorSumDev || that_present_majorSumDev) {
@@ -1205,7 +1162,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.majorSumDev != that.majorSumDev)
         return false;
     }
-
+    
     boolean this_present_majorQueueTime = true;
     boolean that_present_majorQueueTime = true;
     if (this_present_majorQueueTime || that_present_majorQueueTime) {
@@ -1214,7 +1171,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.majorQueueTime != that.majorQueueTime)
         return false;
     }
-
+    
     boolean this_present_majorQueueSumDev = true;
     boolean that_present_majorQueueSumDev = true;
     if (this_present_majorQueueSumDev || that_present_majorQueueSumDev) {
@@ -1223,7 +1180,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.majorQueueSumDev != that.majorQueueSumDev)
         return false;
     }
-
+    
     boolean this_present_majorFail = true;
     boolean that_present_majorFail = true;
     if (this_present_majorFail || that_present_majorFail) {
@@ -1232,7 +1189,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.majorFail != that.majorFail)
         return false;
     }
-
+    
     boolean this_present_statusSplit = true;
     boolean that_present_statusSplit = true;
     if (this_present_statusSplit || that_present_statusSplit) {
@@ -1241,7 +1198,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.statusSplit != that.statusSplit)
         return false;
     }
-
+    
     boolean this_present_splitElapsed = true;
     boolean that_present_splitElapsed = true;
     if (this_present_splitElapsed || that_present_splitElapsed) {
@@ -1250,7 +1207,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.splitElapsed != that.splitElapsed)
         return false;
     }
-
+    
     boolean this_present_splitNum = true;
     boolean that_present_splitNum = true;
     if (this_present_splitNum || that_present_splitNum) {
@@ -1259,7 +1216,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.splitNum != that.splitNum)
         return false;
     }
-
+    
     boolean this_present_splitSumDev = true;
     boolean that_present_splitSumDev = true;
     if (this_present_splitSumDev || that_present_splitSumDev) {
@@ -1268,7 +1225,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.splitSumDev != that.splitSumDev)
         return false;
     }
-
+    
     boolean this_present_splitFail = true;
     boolean that_present_splitFail = true;
     if (this_present_splitFail || that_present_splitFail) {
@@ -1277,7 +1234,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.splitFail != that.splitFail)
         return false;
     }
-
+    
     boolean this_present_statusMinor = true;
     boolean that_present_statusMinor = true;
     if (this_present_statusMinor || that_present_statusMinor) {
@@ -1286,7 +1243,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.statusMinor != that.statusMinor)
         return false;
     }
-
+    
     boolean this_present_minorElapsed = true;
     boolean that_present_minorElapsed = true;
     if (this_present_minorElapsed || that_present_minorElapsed) {
@@ -1295,7 +1252,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.minorElapsed != that.minorElapsed)
         return false;
     }
-
+    
     boolean this_present_minorNum = true;
     boolean that_present_minorNum = true;
     if (this_present_minorNum || that_present_minorNum) {
@@ -1304,7 +1261,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.minorNum != that.minorNum)
         return false;
     }
-
+    
     boolean this_present_minorCount = true;
     boolean that_present_minorCount = true;
     if (this_present_minorCount || that_present_minorCount) {
@@ -1313,7 +1270,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.minorCount != that.minorCount)
         return false;
     }
-
+    
     boolean this_present_minorSumDev = true;
     boolean that_present_minorSumDev = true;
     if (this_present_minorSumDev || that_present_minorSumDev) {
@@ -1322,7 +1279,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.minorSumDev != that.minorSumDev)
         return false;
     }
-
+    
     boolean this_present_minorQueueTime = true;
     boolean that_present_minorQueueTime = true;
     if (this_present_minorQueueTime || that_present_minorQueueTime) {
@@ -1331,7 +1288,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.minorQueueTime != that.minorQueueTime)
         return false;
     }
-
+    
     boolean this_present_minorQueueSumDev = true;
     boolean that_present_minorQueueSumDev = true;
     if (this_present_minorQueueSumDev || that_present_minorQueueSumDev) {
@@ -1340,7 +1297,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.minorQueueSumDev != that.minorQueueSumDev)
         return false;
     }
-
+    
     boolean this_present_minorFail = true;
     boolean that_present_minorFail = true;
     if (this_present_minorFail || that_present_minorFail) {
@@ -1349,7 +1306,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.minorFail != that.minorFail)
         return false;
     }
-
+    
     boolean this_present_numEntries = true;
     boolean that_present_numEntries = true;
     if (this_present_numEntries || that_present_numEntries) {
@@ -1358,23 +1315,23 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       if (this.numEntries != that.numEntries)
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(TabletInfo other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    TabletInfo typedOther = (TabletInfo)other;
-
+    TabletInfo typedOther = (TabletInfo) other;
+    
     lastComparison = Boolean.valueOf(isSetStatusMajor()).compareTo(isSetStatusMajor());
     if (lastComparison != 0) {
       return lastComparison;
@@ -1553,14 +1510,13 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       _Fields fieldId = _Fields.findByThriftId(field.id);
@@ -1572,7 +1528,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.I32) {
               this.statusMajor = iprot.readI32();
               setStatusMajorIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1580,7 +1536,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.DOUBLE) {
               this.majorElapsed = iprot.readDouble();
               setMajorElapsedIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1588,7 +1544,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.I32) {
               this.majorNum = iprot.readI32();
               setMajorNumIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1596,7 +1552,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.I64) {
               this.majorCount = iprot.readI64();
               setMajorCountIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1604,7 +1560,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.DOUBLE) {
               this.majorSumDev = iprot.readDouble();
               setMajorSumDevIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1612,7 +1568,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.DOUBLE) {
               this.majorQueueTime = iprot.readDouble();
               setMajorQueueTimeIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1620,7 +1576,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.DOUBLE) {
               this.majorQueueSumDev = iprot.readDouble();
               setMajorQueueSumDevIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1628,7 +1584,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.I32) {
               this.majorFail = iprot.readI32();
               setMajorFailIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1636,7 +1592,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.I32) {
               this.statusSplit = iprot.readI32();
               setStatusSplitIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1644,7 +1600,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.DOUBLE) {
               this.splitElapsed = iprot.readDouble();
               setSplitElapsedIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1652,7 +1608,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.I32) {
               this.splitNum = iprot.readI32();
               setSplitNumIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1660,7 +1616,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.DOUBLE) {
               this.splitSumDev = iprot.readDouble();
               setSplitSumDevIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1668,7 +1624,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.I32) {
               this.splitFail = iprot.readI32();
               setSplitFailIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1676,7 +1632,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.I32) {
               this.statusMinor = iprot.readI32();
               setStatusMinorIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1684,7 +1640,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.DOUBLE) {
               this.minorElapsed = iprot.readDouble();
               setMinorElapsedIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1692,7 +1648,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.I32) {
               this.minorNum = iprot.readI32();
               setMinorNumIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1700,7 +1656,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.I64) {
               this.minorCount = iprot.readI64();
               setMinorCountIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1708,7 +1664,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.DOUBLE) {
               this.minorSumDev = iprot.readDouble();
               setMinorSumDevIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1716,7 +1672,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.DOUBLE) {
               this.minorQueueTime = iprot.readDouble();
               setMinorQueueTimeIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1724,7 +1680,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.DOUBLE) {
               this.minorQueueSumDev = iprot.readDouble();
               setMinorQueueSumDevIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1732,7 +1688,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.I32) {
               this.minorFail = iprot.readI32();
               setMinorFailIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1740,7 +1696,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
             if (field.type == TType.I64) {
               this.numEntries = iprot.readI64();
               setNumEntriesIsSet(true);
-            } else { 
+            } else {
               TProtocolUtil.skip(iprot, field.type);
             }
             break;
@@ -1749,14 +1705,14 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
       }
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     oprot.writeFieldBegin(STATUS_MAJOR_FIELD_DESC);
     oprot.writeI32(this.statusMajor);
@@ -1827,7 +1783,7 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("TabletInfo(");
@@ -1899,10 +1855,9 @@ public class TabletInfo implements TBase<TabletInfo, TabletInfo._Fields>, java.i
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

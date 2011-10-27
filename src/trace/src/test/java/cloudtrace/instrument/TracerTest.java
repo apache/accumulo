@@ -74,7 +74,8 @@ public class TracerTest {
     @Override
     public void span(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
       SpanStruct span = new SpanStruct(traceId, spanId, parentId, start, stop, description, data);
-      if (!traces.containsKey(traceId)) traces.put(traceId, new ArrayList<SpanStruct>());
+      if (!traces.containsKey(traceId))
+        traces.put(traceId, new ArrayList<SpanStruct>());
       traces.get(traceId).add(span);
     }
     

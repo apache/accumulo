@@ -127,7 +127,8 @@ public class AccumuloClassLoader {
        * if not it must be the build-server in which case I use a hack to get unittests working
        */
       String userDir = System.getProperty("user.dir");
-      if (userDir == null) throw new RuntimeException("Property user.dir is not set");
+      if (userDir == null)
+        throw new RuntimeException("Property user.dir is not set");
       int index = userDir.indexOf("accumulo/");
       if (index >= 0) {
         String acuhome = userDir.substring(0, index + "accumulo/".length());
@@ -147,7 +148,8 @@ public class AccumuloClassLoader {
   private static ArrayList<URL> findDynamicURLs() throws IOException {
     StringBuilder cp = new StringBuilder(DYNAMIC_CLASSPATH_VALUE);
     String envJars = System.getenv("ACCUMULO_XTRAJARS");
-    if (null != envJars && !envJars.equals("")) cp = cp.append(",").append(envJars);
+    if (null != envJars && !envJars.equals(""))
+      cp = cp.append(",").append(envJars);
     String[] cps = replaceEnvVars(cp.toString(), System.getenv()).split(",");
     ArrayList<URL> urls = new ArrayList<URL>();
     for (String classpath : cps) {
@@ -162,13 +164,15 @@ public class AccumuloClassLoader {
     Set<File> dirs = new HashSet<File>();
     StringBuilder cp = new StringBuilder(DYNAMIC_CLASSPATH_VALUE);
     String envJars = System.getenv("ACCUMULO_XTRAJARS");
-    if (null != envJars && !envJars.equals("")) cp = cp.append(",").append(envJars);
+    if (null != envJars && !envJars.equals(""))
+      cp = cp.append(",").append(envJars);
     String[] cps = replaceEnvVars(cp.toString(), System.getenv()).split(",");
     ArrayList<URL> urls = new ArrayList<URL>();
     for (String classpath : cps) {
       if (!classpath.startsWith("#")) {
         classpath = classpath.trim();
-        if (classpath.length() == 0) continue;
+        if (classpath.length() == 0)
+          continue;
         
         classpath = replaceEnvVars(classpath, System.getenv());
         
@@ -184,7 +188,8 @@ public class AccumuloClassLoader {
           // Then treat this URI as a File.
           // This checks to see if the url string is a dir if it expand and get all jars in that directory
           final File extDir = new File(classpath);
-          if (extDir.isDirectory()) urls.add(extDir.toURI().toURL());
+          if (extDir.isDirectory())
+            urls.add(extDir.toURI().toURL());
           else {
             urls.add(extDir.getAbsoluteFile().getParentFile().toURI().toURL());
           }
@@ -197,7 +202,8 @@ public class AccumuloClassLoader {
     for (URL url : urls) {
       try {
         File f = new File(url.toURI());
-        if (!f.isDirectory()) f = f.getParentFile();
+        if (!f.isDirectory())
+          f = f.getParentFile();
         dirs.add(f);
       } catch (URISyntaxException e) {
         log.error("Unable to find directory for " + url + ", cannot create URI from it");
@@ -208,7 +214,8 @@ public class AccumuloClassLoader {
   
   private static ArrayList<URL> findAccumuloURLs() throws IOException {
     String cp = getAccumuloClasspathStrings();
-    if (cp == null) return new ArrayList<URL>();
+    if (cp == null)
+      return new ArrayList<URL>();
     String[] cps = replaceEnvVars(cp, System.getenv()).split(",");
     ArrayList<URL> urls = new ArrayList<URL>();
     for (String classpath : cps) {
@@ -221,7 +228,8 @@ public class AccumuloClassLoader {
   
   private static void addUrl(String classpath, ArrayList<URL> urls) throws MalformedURLException {
     classpath = classpath.trim();
-    if (classpath.length() == 0) return;
+    if (classpath.length() == 0)
+      return;
     
     classpath = replaceEnvVars(classpath, System.getenv());
     
@@ -237,7 +245,8 @@ public class AccumuloClassLoader {
       // Then treat this URI as a File.
       // This checks to see if the url string is a dir if it expand and get all jars in that directory
       final File extDir = new File(classpath);
-      if (extDir.isDirectory()) urls.add(extDir.toURI().toURL());
+      if (extDir.isDirectory())
+        urls.add(extDir.toURI().toURL());
       else {
         if (extDir.getParentFile() != null) {
           File[] extJars = extDir.getParentFile().listFiles(new FilenameFilter() {
@@ -290,7 +299,8 @@ public class AccumuloClassLoader {
       } catch (Exception e) {
         /* we don't care because this is optional and we can use defaults */
       }
-      if (site_classpath_string != null) return site_classpath_string;
+      if (site_classpath_string != null)
+        return site_classpath_string;
       return ACCUMULO_CLASSPATH_VALUE;
     } catch (Exception e) {
       throw new IllegalStateException("ClassPath Strings Lookup failed", e);
@@ -364,7 +374,8 @@ public class AccumuloClassLoader {
             monitor = null;
           }
           
-          if (null == parent) parent = getAccumuloClassLoader();
+          if (null == parent)
+            parent = getAccumuloClassLoader();
           
           // Find the dynamic classpath items
           ArrayList<URL> dynamicURLs = findDynamicURLs();

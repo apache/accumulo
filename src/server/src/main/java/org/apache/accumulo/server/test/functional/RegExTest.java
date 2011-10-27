@@ -68,7 +68,8 @@ public class RegExTest extends FunctionalTest {
   }
   
   private void check(String regex, String val) throws Exception {
-    if (regex != null && !val.matches(regex)) throw new Exception(" " + val + " does not match " + regex);
+    if (regex != null && !val.matches(regex))
+      throw new Exception(" " + val + " does not match " + regex);
   }
   
   private void check(String regex, Text val) throws Exception {
@@ -124,10 +125,14 @@ public class RegExTest extends FunctionalTest {
   }
   
   private void setRegexs(ScannerBase scanner, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx) {
-    if (rowRegEx != null) scanner.setRowRegex(rowRegEx);
-    if (cfRegEx != null) scanner.setColumnFamilyRegex(cfRegEx);
-    if (cqRegEx != null) scanner.setColumnQualifierRegex(cqRegEx);
-    if (valRegEx != null) scanner.setValueRegex(valRegEx);
+    if (rowRegEx != null)
+      scanner.setRowRegex(rowRegEx);
+    if (cfRegEx != null)
+      scanner.setColumnFamilyRegex(cfRegEx);
+    if (cqRegEx != null)
+      scanner.setColumnQualifierRegex(cqRegEx);
+    if (valRegEx != null)
+      scanner.setValueRegex(valRegEx);
   }
   
   private void runTest(Iterable<Entry<Key,Value>> scanner, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx, int expected) throws Exception {

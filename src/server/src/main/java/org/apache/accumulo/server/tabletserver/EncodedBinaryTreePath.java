@@ -136,9 +136,10 @@ public class EncodedBinaryTreePath {
     
     sb.append('-');
     
-    if (len % 4 > 0 || len == 0) for (int i = 0; i < 4 - (len % 4); i++) {
-      sb.append('.');
-    }
+    if (len % 4 > 0 || len == 0)
+      for (int i = 0; i < 4 - (len % 4); i++) {
+        sb.append('.');
+      }
     
     int startBit = ((len - 1) / 4) * 4;
     for (int i = startBit; i < len; i++) {

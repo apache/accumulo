@@ -74,7 +74,8 @@ public class SimpleLoggerBalancerTest {
       if (adjustments != null) {
         Set<String> newLoggers = new HashSet<String>(adjustments);
         for (String logger : user.loggers) {
-          if (newLoggers.size() >= numberOfLoggers) break;
+          if (newLoggers.size() >= numberOfLoggers)
+            break;
           newLoggers.add(logger);
         }
         user.loggers = newLoggers;
@@ -83,7 +84,8 @@ public class SimpleLoggerBalancerTest {
     Map<String,Integer> result = new HashMap<String,Integer>();
     for (LoggerUser server : tservers) {
       for (String logger : server.getLoggers()) {
-        if (!result.containsKey(logger)) result.put(logger, 0);
+        if (!result.containsKey(logger))
+          result.put(logger, 0);
         result.put(logger, result.get(logger) + 1);
       }
     }

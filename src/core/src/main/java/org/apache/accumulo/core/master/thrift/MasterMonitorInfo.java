@@ -5,26 +5,24 @@
  */
 package org.apache.accumulo.core.master.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitorInfo._Fields>, java.io.Serializable, Cloneable {
+public class MasterMonitorInfo implements TBase<MasterMonitorInfo,MasterMonitorInfo._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("MasterMonitorInfo");
-
-  private static final TField TABLE_MAP_FIELD_DESC = new TField("tableMap", TType.MAP, (short)1);
-  private static final TField T_SERVER_INFO_FIELD_DESC = new TField("tServerInfo", TType.LIST, (short)2);
-  private static final TField BAD_TSERVERS_FIELD_DESC = new TField("badTServers", TType.MAP, (short)3);
-  private static final TField RECOVERY_FIELD_DESC = new TField("recovery", TType.LIST, (short)4);
-  private static final TField LOGGERS_FIELD_DESC = new TField("loggers", TType.LIST, (short)5);
-  private static final TField STATE_FIELD_DESC = new TField("state", TType.I32, (short)6);
-  private static final TField GOAL_STATE_FIELD_DESC = new TField("goalState", TType.I32, (short)8);
-  private static final TField UNASSIGNED_TABLETS_FIELD_DESC = new TField("unassignedTablets", TType.I32, (short)7);
-  private static final TField SERVERS_SHUTTING_DOWN_FIELD_DESC = new TField("serversShuttingDown", TType.SET, (short)9);
-
+  
+  private static final TField TABLE_MAP_FIELD_DESC = new TField("tableMap", TType.MAP, (short) 1);
+  private static final TField T_SERVER_INFO_FIELD_DESC = new TField("tServerInfo", TType.LIST, (short) 2);
+  private static final TField BAD_TSERVERS_FIELD_DESC = new TField("badTServers", TType.MAP, (short) 3);
+  private static final TField RECOVERY_FIELD_DESC = new TField("recovery", TType.LIST, (short) 4);
+  private static final TField LOGGERS_FIELD_DESC = new TField("loggers", TType.LIST, (short) 5);
+  private static final TField STATE_FIELD_DESC = new TField("state", TType.I32, (short) 6);
+  private static final TField GOAL_STATE_FIELD_DESC = new TField("goalState", TType.I32, (short) 8);
+  private static final TField UNASSIGNED_TABLETS_FIELD_DESC = new TField("unassignedTablets", TType.I32, (short) 7);
+  private static final TField SERVERS_SHUTTING_DOWN_FIELD_DESC = new TField("serversShuttingDown", TType.SET, (short) 9);
+  
   public java.util.Map<String,TableInfo> tableMap;
   public java.util.List<TabletServerStatus> tServerInfo;
   public java.util.Map<String,Byte> badTServers;
@@ -42,40 +40,40 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
   public MasterGoalState goalState;
   public int unassignedTablets;
   public java.util.Set<String> serversShuttingDown;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    TABLE_MAP((short)1, "tableMap"),
-    T_SERVER_INFO((short)2, "tServerInfo"),
-    BAD_TSERVERS((short)3, "badTServers"),
-    RECOVERY((short)4, "recovery"),
-    LOGGERS((short)5, "loggers"),
+    TABLE_MAP((short) 1, "tableMap"),
+    T_SERVER_INFO((short) 2, "tServerInfo"),
+    BAD_TSERVERS((short) 3, "badTServers"),
+    RECOVERY((short) 4, "recovery"),
+    LOGGERS((short) 5, "loggers"),
     /**
      * 
      * @see MasterState
      */
-    STATE((short)6, "state"),
+    STATE((short) 6, "state"),
     /**
      * 
      * @see MasterGoalState
      */
-    GOAL_STATE((short)8, "goalState"),
-    UNASSIGNED_TABLETS((short)7, "unassignedTablets"),
-    SERVERS_SHUTTING_DOWN((short)9, "serversShuttingDown");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    GOAL_STATE((short) 8, "goalState"),
+    UNASSIGNED_TABLETS((short) 7, "unassignedTablets"),
+    SERVERS_SHUTTING_DOWN((short) 9, "serversShuttingDown");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // TABLE_MAP
           return TABLE_MAP;
         case 2: // T_SERVER_INFO
@@ -98,92 +96,72 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
   private static final int __UNASSIGNEDTABLETS_ISSET_ID = 0;
   private java.util.BitSet __isset_bit_vector = new java.util.BitSet(1);
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.TABLE_MAP, new FieldMetaData("tableMap", TFieldRequirementType.DEFAULT, 
-        new MapMetaData(TType.MAP, 
-            new FieldValueMetaData(TType.STRING), 
-            new StructMetaData(TType.STRUCT, TableInfo.class))));
-    tmpMap.put(_Fields.T_SERVER_INFO, new FieldMetaData("tServerInfo", TFieldRequirementType.DEFAULT, 
-        new ListMetaData(TType.LIST, 
-            new StructMetaData(TType.STRUCT, TabletServerStatus.class))));
-    tmpMap.put(_Fields.BAD_TSERVERS, new FieldMetaData("badTServers", TFieldRequirementType.DEFAULT, 
-        new MapMetaData(TType.MAP, 
-            new FieldValueMetaData(TType.STRING), 
-            new FieldValueMetaData(TType.BYTE))));
-    tmpMap.put(_Fields.RECOVERY, new FieldMetaData("recovery", TFieldRequirementType.DEFAULT, 
-        new ListMetaData(TType.LIST, 
-            new StructMetaData(TType.STRUCT, RecoveryStatus.class))));
-    tmpMap.put(_Fields.LOGGERS, new FieldMetaData("loggers", TFieldRequirementType.DEFAULT, 
-        new ListMetaData(TType.LIST, 
-            new StructMetaData(TType.STRUCT, LoggerStatus.class))));
-    tmpMap.put(_Fields.STATE, new FieldMetaData("state", TFieldRequirementType.DEFAULT, 
-        new EnumMetaData(TType.ENUM, MasterState.class)));
-    tmpMap.put(_Fields.GOAL_STATE, new FieldMetaData("goalState", TFieldRequirementType.DEFAULT, 
-        new EnumMetaData(TType.ENUM, MasterGoalState.class)));
-    tmpMap.put(_Fields.UNASSIGNED_TABLETS, new FieldMetaData("unassignedTablets", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.I32)));
-    tmpMap.put(_Fields.SERVERS_SHUTTING_DOWN, new FieldMetaData("serversShuttingDown", TFieldRequirementType.DEFAULT, 
-        new SetMetaData(TType.SET, 
-            new FieldValueMetaData(TType.STRING))));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.TABLE_MAP, new FieldMetaData("tableMap", TFieldRequirementType.DEFAULT, new MapMetaData(TType.MAP, new FieldValueMetaData(TType.STRING),
+        new StructMetaData(TType.STRUCT, TableInfo.class))));
+    tmpMap.put(_Fields.T_SERVER_INFO, new FieldMetaData("tServerInfo", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST, new StructMetaData(
+        TType.STRUCT, TabletServerStatus.class))));
+    tmpMap.put(_Fields.BAD_TSERVERS, new FieldMetaData("badTServers", TFieldRequirementType.DEFAULT, new MapMetaData(TType.MAP, new FieldValueMetaData(
+        TType.STRING), new FieldValueMetaData(TType.BYTE))));
+    tmpMap.put(_Fields.RECOVERY, new FieldMetaData("recovery", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST, new StructMetaData(TType.STRUCT,
+        RecoveryStatus.class))));
+    tmpMap.put(_Fields.LOGGERS, new FieldMetaData("loggers", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST, new StructMetaData(TType.STRUCT,
+        LoggerStatus.class))));
+    tmpMap.put(_Fields.STATE, new FieldMetaData("state", TFieldRequirementType.DEFAULT, new EnumMetaData(TType.ENUM, MasterState.class)));
+    tmpMap.put(_Fields.GOAL_STATE, new FieldMetaData("goalState", TFieldRequirementType.DEFAULT, new EnumMetaData(TType.ENUM, MasterGoalState.class)));
+    tmpMap.put(_Fields.UNASSIGNED_TABLETS, new FieldMetaData("unassignedTablets", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.I32)));
+    tmpMap.put(_Fields.SERVERS_SHUTTING_DOWN, new FieldMetaData("serversShuttingDown", TFieldRequirementType.DEFAULT, new SetMetaData(TType.SET,
+        new FieldValueMetaData(TType.STRING))));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(MasterMonitorInfo.class, metaDataMap);
   }
-
-  public MasterMonitorInfo() {
-  }
-
-  public MasterMonitorInfo(
-    java.util.Map<String,TableInfo> tableMap,
-    java.util.List<TabletServerStatus> tServerInfo,
-    java.util.Map<String,Byte> badTServers,
-    java.util.List<RecoveryStatus> recovery,
-    java.util.List<LoggerStatus> loggers,
-    MasterState state,
-    MasterGoalState goalState,
-    int unassignedTablets,
-    java.util.Set<String> serversShuttingDown)
-  {
+  
+  public MasterMonitorInfo() {}
+  
+  public MasterMonitorInfo(java.util.Map<String,TableInfo> tableMap, java.util.List<TabletServerStatus> tServerInfo, java.util.Map<String,Byte> badTServers,
+      java.util.List<RecoveryStatus> recovery, java.util.List<LoggerStatus> loggers, MasterState state, MasterGoalState goalState, int unassignedTablets,
+      java.util.Set<String> serversShuttingDown) {
     this();
     this.tableMap = tableMap;
     this.tServerInfo = tServerInfo;
@@ -196,7 +174,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     setUnassignedTabletsIsSet(true);
     this.serversShuttingDown = serversShuttingDown;
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -205,15 +183,15 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     __isset_bit_vector.or(other.__isset_bit_vector);
     if (other.isSetTableMap()) {
       java.util.Map<String,TableInfo> __this__tableMap = new java.util.HashMap<String,TableInfo>();
-      for (java.util.Map.Entry<String, TableInfo> other_element : other.tableMap.entrySet()) {
-
+      for (java.util.Map.Entry<String,TableInfo> other_element : other.tableMap.entrySet()) {
+        
         String other_element_key = other_element.getKey();
         TableInfo other_element_value = other_element.getValue();
-
+        
         String __this__tableMap_copy_key = other_element_key;
-
+        
         TableInfo __this__tableMap_copy_value = new TableInfo(other_element_value);
-
+        
         __this__tableMap.put(__this__tableMap_copy_key, __this__tableMap_copy_value);
       }
       this.tableMap = __this__tableMap;
@@ -227,15 +205,15 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     }
     if (other.isSetBadTServers()) {
       java.util.Map<String,Byte> __this__badTServers = new java.util.HashMap<String,Byte>();
-      for (java.util.Map.Entry<String, Byte> other_element : other.badTServers.entrySet()) {
-
+      for (java.util.Map.Entry<String,Byte> other_element : other.badTServers.entrySet()) {
+        
         String other_element_key = other_element.getKey();
         Byte other_element_value = other_element.getValue();
-
+        
         String __this__badTServers_copy_key = other_element_key;
-
+        
         Byte __this__badTServers_copy_value = other_element_value;
-
+        
         __this__badTServers.put(__this__badTServers_copy_key, __this__badTServers_copy_value);
       }
       this.badTServers = __this__badTServers;
@@ -269,203 +247,203 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       this.serversShuttingDown = __this__serversShuttingDown;
     }
   }
-
+  
   public MasterMonitorInfo deepCopy() {
     return new MasterMonitorInfo(this);
   }
-
+  
   @Deprecated
   public MasterMonitorInfo clone() {
     return new MasterMonitorInfo(this);
   }
-
+  
   public int getTableMapSize() {
     return (this.tableMap == null) ? 0 : this.tableMap.size();
   }
-
+  
   public void putToTableMap(String key, TableInfo val) {
     if (this.tableMap == null) {
       this.tableMap = new java.util.HashMap<String,TableInfo>();
     }
     this.tableMap.put(key, val);
   }
-
+  
   public java.util.Map<String,TableInfo> getTableMap() {
     return this.tableMap;
   }
-
+  
   public MasterMonitorInfo setTableMap(java.util.Map<String,TableInfo> tableMap) {
     this.tableMap = tableMap;
     return this;
   }
-
+  
   public void unsetTableMap() {
     this.tableMap = null;
   }
-
+  
   /** Returns true if field tableMap is set (has been asigned a value) and false otherwise */
   public boolean isSetTableMap() {
     return this.tableMap != null;
   }
-
+  
   public void setTableMapIsSet(boolean value) {
     if (!value) {
       this.tableMap = null;
     }
   }
-
+  
   public int getTServerInfoSize() {
     return (this.tServerInfo == null) ? 0 : this.tServerInfo.size();
   }
-
+  
   public java.util.Iterator<TabletServerStatus> getTServerInfoIterator() {
     return (this.tServerInfo == null) ? null : this.tServerInfo.iterator();
   }
-
+  
   public void addToTServerInfo(TabletServerStatus elem) {
     if (this.tServerInfo == null) {
       this.tServerInfo = new java.util.ArrayList<TabletServerStatus>();
     }
     this.tServerInfo.add(elem);
   }
-
+  
   public java.util.List<TabletServerStatus> getTServerInfo() {
     return this.tServerInfo;
   }
-
+  
   public MasterMonitorInfo setTServerInfo(java.util.List<TabletServerStatus> tServerInfo) {
     this.tServerInfo = tServerInfo;
     return this;
   }
-
+  
   public void unsetTServerInfo() {
     this.tServerInfo = null;
   }
-
+  
   /** Returns true if field tServerInfo is set (has been asigned a value) and false otherwise */
   public boolean isSetTServerInfo() {
     return this.tServerInfo != null;
   }
-
+  
   public void setTServerInfoIsSet(boolean value) {
     if (!value) {
       this.tServerInfo = null;
     }
   }
-
+  
   public int getBadTServersSize() {
     return (this.badTServers == null) ? 0 : this.badTServers.size();
   }
-
+  
   public void putToBadTServers(String key, byte val) {
     if (this.badTServers == null) {
       this.badTServers = new java.util.HashMap<String,Byte>();
     }
     this.badTServers.put(key, val);
   }
-
+  
   public java.util.Map<String,Byte> getBadTServers() {
     return this.badTServers;
   }
-
+  
   public MasterMonitorInfo setBadTServers(java.util.Map<String,Byte> badTServers) {
     this.badTServers = badTServers;
     return this;
   }
-
+  
   public void unsetBadTServers() {
     this.badTServers = null;
   }
-
+  
   /** Returns true if field badTServers is set (has been asigned a value) and false otherwise */
   public boolean isSetBadTServers() {
     return this.badTServers != null;
   }
-
+  
   public void setBadTServersIsSet(boolean value) {
     if (!value) {
       this.badTServers = null;
     }
   }
-
+  
   public int getRecoverySize() {
     return (this.recovery == null) ? 0 : this.recovery.size();
   }
-
+  
   public java.util.Iterator<RecoveryStatus> getRecoveryIterator() {
     return (this.recovery == null) ? null : this.recovery.iterator();
   }
-
+  
   public void addToRecovery(RecoveryStatus elem) {
     if (this.recovery == null) {
       this.recovery = new java.util.ArrayList<RecoveryStatus>();
     }
     this.recovery.add(elem);
   }
-
+  
   public java.util.List<RecoveryStatus> getRecovery() {
     return this.recovery;
   }
-
+  
   public MasterMonitorInfo setRecovery(java.util.List<RecoveryStatus> recovery) {
     this.recovery = recovery;
     return this;
   }
-
+  
   public void unsetRecovery() {
     this.recovery = null;
   }
-
+  
   /** Returns true if field recovery is set (has been asigned a value) and false otherwise */
   public boolean isSetRecovery() {
     return this.recovery != null;
   }
-
+  
   public void setRecoveryIsSet(boolean value) {
     if (!value) {
       this.recovery = null;
     }
   }
-
+  
   public int getLoggersSize() {
     return (this.loggers == null) ? 0 : this.loggers.size();
   }
-
+  
   public java.util.Iterator<LoggerStatus> getLoggersIterator() {
     return (this.loggers == null) ? null : this.loggers.iterator();
   }
-
+  
   public void addToLoggers(LoggerStatus elem) {
     if (this.loggers == null) {
       this.loggers = new java.util.ArrayList<LoggerStatus>();
     }
     this.loggers.add(elem);
   }
-
+  
   public java.util.List<LoggerStatus> getLoggers() {
     return this.loggers;
   }
-
+  
   public MasterMonitorInfo setLoggers(java.util.List<LoggerStatus> loggers) {
     this.loggers = loggers;
     return this;
   }
-
+  
   public void unsetLoggers() {
     this.loggers = null;
   }
-
+  
   /** Returns true if field loggers is set (has been asigned a value) and false otherwise */
   public boolean isSetLoggers() {
     return this.loggers != null;
   }
-
+  
   public void setLoggersIsSet(boolean value) {
     if (!value) {
       this.loggers = null;
     }
   }
-
+  
   /**
    * 
    * @see MasterState
@@ -473,7 +451,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
   public MasterState getState() {
     return this.state;
   }
-
+  
   /**
    * 
    * @see MasterState
@@ -482,22 +460,22 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     this.state = state;
     return this;
   }
-
+  
   public void unsetState() {
     this.state = null;
   }
-
+  
   /** Returns true if field state is set (has been asigned a value) and false otherwise */
   public boolean isSetState() {
     return this.state != null;
   }
-
+  
   public void setStateIsSet(boolean value) {
     if (!value) {
       this.state = null;
     }
   }
-
+  
   /**
    * 
    * @see MasterGoalState
@@ -505,7 +483,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
   public MasterGoalState getGoalState() {
     return this.goalState;
   }
-
+  
   /**
    * 
    * @see MasterGoalState
@@ -514,245 +492,245 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     this.goalState = goalState;
     return this;
   }
-
+  
   public void unsetGoalState() {
     this.goalState = null;
   }
-
+  
   /** Returns true if field goalState is set (has been asigned a value) and false otherwise */
   public boolean isSetGoalState() {
     return this.goalState != null;
   }
-
+  
   public void setGoalStateIsSet(boolean value) {
     if (!value) {
       this.goalState = null;
     }
   }
-
+  
   public int getUnassignedTablets() {
     return this.unassignedTablets;
   }
-
+  
   public MasterMonitorInfo setUnassignedTablets(int unassignedTablets) {
     this.unassignedTablets = unassignedTablets;
     setUnassignedTabletsIsSet(true);
     return this;
   }
-
+  
   public void unsetUnassignedTablets() {
     __isset_bit_vector.clear(__UNASSIGNEDTABLETS_ISSET_ID);
   }
-
+  
   /** Returns true if field unassignedTablets is set (has been asigned a value) and false otherwise */
   public boolean isSetUnassignedTablets() {
     return __isset_bit_vector.get(__UNASSIGNEDTABLETS_ISSET_ID);
   }
-
+  
   public void setUnassignedTabletsIsSet(boolean value) {
     __isset_bit_vector.set(__UNASSIGNEDTABLETS_ISSET_ID, value);
   }
-
+  
   public int getServersShuttingDownSize() {
     return (this.serversShuttingDown == null) ? 0 : this.serversShuttingDown.size();
   }
-
+  
   public java.util.Iterator<String> getServersShuttingDownIterator() {
     return (this.serversShuttingDown == null) ? null : this.serversShuttingDown.iterator();
   }
-
+  
   public void addToServersShuttingDown(String elem) {
     if (this.serversShuttingDown == null) {
       this.serversShuttingDown = new java.util.HashSet<String>();
     }
     this.serversShuttingDown.add(elem);
   }
-
+  
   public java.util.Set<String> getServersShuttingDown() {
     return this.serversShuttingDown;
   }
-
+  
   public MasterMonitorInfo setServersShuttingDown(java.util.Set<String> serversShuttingDown) {
     this.serversShuttingDown = serversShuttingDown;
     return this;
   }
-
+  
   public void unsetServersShuttingDown() {
     this.serversShuttingDown = null;
   }
-
+  
   /** Returns true if field serversShuttingDown is set (has been asigned a value) and false otherwise */
   public boolean isSetServersShuttingDown() {
     return this.serversShuttingDown != null;
   }
-
+  
   public void setServersShuttingDownIsSet(boolean value) {
     if (!value) {
       this.serversShuttingDown = null;
     }
   }
-
+  
   @SuppressWarnings("unchecked")
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case TABLE_MAP:
-      if (value == null) {
-        unsetTableMap();
-      } else {
-        setTableMap((java.util.Map<String,TableInfo>)value);
-      }
-      break;
-
-    case T_SERVER_INFO:
-      if (value == null) {
-        unsetTServerInfo();
-      } else {
-        setTServerInfo((java.util.List<TabletServerStatus>)value);
-      }
-      break;
-
-    case BAD_TSERVERS:
-      if (value == null) {
-        unsetBadTServers();
-      } else {
-        setBadTServers((java.util.Map<String,Byte>)value);
-      }
-      break;
-
-    case RECOVERY:
-      if (value == null) {
-        unsetRecovery();
-      } else {
-        setRecovery((java.util.List<RecoveryStatus>)value);
-      }
-      break;
-
-    case LOGGERS:
-      if (value == null) {
-        unsetLoggers();
-      } else {
-        setLoggers((java.util.List<LoggerStatus>)value);
-      }
-      break;
-
-    case STATE:
-      if (value == null) {
-        unsetState();
-      } else {
-        setState((MasterState)value);
-      }
-      break;
-
-    case GOAL_STATE:
-      if (value == null) {
-        unsetGoalState();
-      } else {
-        setGoalState((MasterGoalState)value);
-      }
-      break;
-
-    case UNASSIGNED_TABLETS:
-      if (value == null) {
-        unsetUnassignedTablets();
-      } else {
-        setUnassignedTablets((Integer)value);
-      }
-      break;
-
-    case SERVERS_SHUTTING_DOWN:
-      if (value == null) {
-        unsetServersShuttingDown();
-      } else {
-        setServersShuttingDown((java.util.Set<String>)value);
-      }
-      break;
-
+      case TABLE_MAP:
+        if (value == null) {
+          unsetTableMap();
+        } else {
+          setTableMap((java.util.Map<String,TableInfo>) value);
+        }
+        break;
+      
+      case T_SERVER_INFO:
+        if (value == null) {
+          unsetTServerInfo();
+        } else {
+          setTServerInfo((java.util.List<TabletServerStatus>) value);
+        }
+        break;
+      
+      case BAD_TSERVERS:
+        if (value == null) {
+          unsetBadTServers();
+        } else {
+          setBadTServers((java.util.Map<String,Byte>) value);
+        }
+        break;
+      
+      case RECOVERY:
+        if (value == null) {
+          unsetRecovery();
+        } else {
+          setRecovery((java.util.List<RecoveryStatus>) value);
+        }
+        break;
+      
+      case LOGGERS:
+        if (value == null) {
+          unsetLoggers();
+        } else {
+          setLoggers((java.util.List<LoggerStatus>) value);
+        }
+        break;
+      
+      case STATE:
+        if (value == null) {
+          unsetState();
+        } else {
+          setState((MasterState) value);
+        }
+        break;
+      
+      case GOAL_STATE:
+        if (value == null) {
+          unsetGoalState();
+        } else {
+          setGoalState((MasterGoalState) value);
+        }
+        break;
+      
+      case UNASSIGNED_TABLETS:
+        if (value == null) {
+          unsetUnassignedTablets();
+        } else {
+          setUnassignedTablets((Integer) value);
+        }
+        break;
+      
+      case SERVERS_SHUTTING_DOWN:
+        if (value == null) {
+          unsetServersShuttingDown();
+        } else {
+          setServersShuttingDown((java.util.Set<String>) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case TABLE_MAP:
-      return getTableMap();
-
-    case T_SERVER_INFO:
-      return getTServerInfo();
-
-    case BAD_TSERVERS:
-      return getBadTServers();
-
-    case RECOVERY:
-      return getRecovery();
-
-    case LOGGERS:
-      return getLoggers();
-
-    case STATE:
-      return getState();
-
-    case GOAL_STATE:
-      return getGoalState();
-
-    case UNASSIGNED_TABLETS:
-      return new Integer(getUnassignedTablets());
-
-    case SERVERS_SHUTTING_DOWN:
-      return getServersShuttingDown();
-
+      case TABLE_MAP:
+        return getTableMap();
+        
+      case T_SERVER_INFO:
+        return getTServerInfo();
+        
+      case BAD_TSERVERS:
+        return getBadTServers();
+        
+      case RECOVERY:
+        return getRecovery();
+        
+      case LOGGERS:
+        return getLoggers();
+        
+      case STATE:
+        return getState();
+        
+      case GOAL_STATE:
+        return getGoalState();
+        
+      case UNASSIGNED_TABLETS:
+        return new Integer(getUnassignedTablets());
+        
+      case SERVERS_SHUTTING_DOWN:
+        return getServersShuttingDown();
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case TABLE_MAP:
-      return isSetTableMap();
-    case T_SERVER_INFO:
-      return isSetTServerInfo();
-    case BAD_TSERVERS:
-      return isSetBadTServers();
-    case RECOVERY:
-      return isSetRecovery();
-    case LOGGERS:
-      return isSetLoggers();
-    case STATE:
-      return isSetState();
-    case GOAL_STATE:
-      return isSetGoalState();
-    case UNASSIGNED_TABLETS:
-      return isSetUnassignedTablets();
-    case SERVERS_SHUTTING_DOWN:
-      return isSetServersShuttingDown();
+      case TABLE_MAP:
+        return isSetTableMap();
+      case T_SERVER_INFO:
+        return isSetTServerInfo();
+      case BAD_TSERVERS:
+        return isSetBadTServers();
+      case RECOVERY:
+        return isSetRecovery();
+      case LOGGERS:
+        return isSetLoggers();
+      case STATE:
+        return isSetState();
+      case GOAL_STATE:
+        return isSetGoalState();
+      case UNASSIGNED_TABLETS:
+        return isSetUnassignedTablets();
+      case SERVERS_SHUTTING_DOWN:
+        return isSetServersShuttingDown();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof MasterMonitorInfo)
-      return this.equals((MasterMonitorInfo)that);
+      return this.equals((MasterMonitorInfo) that);
     return false;
   }
-
+  
   public boolean equals(MasterMonitorInfo that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_tableMap = true && this.isSetTableMap();
     boolean that_present_tableMap = true && that.isSetTableMap();
     if (this_present_tableMap || that_present_tableMap) {
@@ -761,7 +739,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       if (!this.tableMap.equals(that.tableMap))
         return false;
     }
-
+    
     boolean this_present_tServerInfo = true && this.isSetTServerInfo();
     boolean that_present_tServerInfo = true && that.isSetTServerInfo();
     if (this_present_tServerInfo || that_present_tServerInfo) {
@@ -770,7 +748,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       if (!this.tServerInfo.equals(that.tServerInfo))
         return false;
     }
-
+    
     boolean this_present_badTServers = true && this.isSetBadTServers();
     boolean that_present_badTServers = true && that.isSetBadTServers();
     if (this_present_badTServers || that_present_badTServers) {
@@ -779,7 +757,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       if (!this.badTServers.equals(that.badTServers))
         return false;
     }
-
+    
     boolean this_present_recovery = true && this.isSetRecovery();
     boolean that_present_recovery = true && that.isSetRecovery();
     if (this_present_recovery || that_present_recovery) {
@@ -788,7 +766,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       if (!this.recovery.equals(that.recovery))
         return false;
     }
-
+    
     boolean this_present_loggers = true && this.isSetLoggers();
     boolean that_present_loggers = true && that.isSetLoggers();
     if (this_present_loggers || that_present_loggers) {
@@ -797,7 +775,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       if (!this.loggers.equals(that.loggers))
         return false;
     }
-
+    
     boolean this_present_state = true && this.isSetState();
     boolean that_present_state = true && that.isSetState();
     if (this_present_state || that_present_state) {
@@ -806,7 +784,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       if (!this.state.equals(that.state))
         return false;
     }
-
+    
     boolean this_present_goalState = true && this.isSetGoalState();
     boolean that_present_goalState = true && that.isSetGoalState();
     if (this_present_goalState || that_present_goalState) {
@@ -815,7 +793,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       if (!this.goalState.equals(that.goalState))
         return false;
     }
-
+    
     boolean this_present_unassignedTablets = true;
     boolean that_present_unassignedTablets = true;
     if (this_present_unassignedTablets || that_present_unassignedTablets) {
@@ -824,7 +802,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       if (this.unassignedTablets != that.unassignedTablets)
         return false;
     }
-
+    
     boolean this_present_serversShuttingDown = true && this.isSetServersShuttingDown();
     boolean that_present_serversShuttingDown = true && that.isSetServersShuttingDown();
     if (this_present_serversShuttingDown || that_present_serversShuttingDown) {
@@ -833,28 +811,29 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       if (!this.serversShuttingDown.equals(that.serversShuttingDown))
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(MasterMonitorInfo other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    MasterMonitorInfo typedOther = (MasterMonitorInfo)other;
-
+    MasterMonitorInfo typedOther = (MasterMonitorInfo) other;
+    
     lastComparison = Boolean.valueOf(isSetTableMap()).compareTo(typedOther.isSetTableMap());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetTableMap()) {      lastComparison = TBaseHelper.compareTo(this.tableMap, typedOther.tableMap);
+    if (isSetTableMap()) {
+      lastComparison = TBaseHelper.compareTo(this.tableMap, typedOther.tableMap);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -863,7 +842,8 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetTServerInfo()) {      lastComparison = TBaseHelper.compareTo(this.tServerInfo, typedOther.tServerInfo);
+    if (isSetTServerInfo()) {
+      lastComparison = TBaseHelper.compareTo(this.tServerInfo, typedOther.tServerInfo);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -872,7 +852,8 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetBadTServers()) {      lastComparison = TBaseHelper.compareTo(this.badTServers, typedOther.badTServers);
+    if (isSetBadTServers()) {
+      lastComparison = TBaseHelper.compareTo(this.badTServers, typedOther.badTServers);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -881,7 +862,8 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetRecovery()) {      lastComparison = TBaseHelper.compareTo(this.recovery, typedOther.recovery);
+    if (isSetRecovery()) {
+      lastComparison = TBaseHelper.compareTo(this.recovery, typedOther.recovery);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -890,7 +872,8 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetLoggers()) {      lastComparison = TBaseHelper.compareTo(this.loggers, typedOther.loggers);
+    if (isSetLoggers()) {
+      lastComparison = TBaseHelper.compareTo(this.loggers, typedOther.loggers);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -899,7 +882,8 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetState()) {      lastComparison = TBaseHelper.compareTo(this.state, typedOther.state);
+    if (isSetState()) {
+      lastComparison = TBaseHelper.compareTo(this.state, typedOther.state);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -908,7 +892,8 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetGoalState()) {      lastComparison = TBaseHelper.compareTo(this.goalState, typedOther.goalState);
+    if (isSetGoalState()) {
+      lastComparison = TBaseHelper.compareTo(this.goalState, typedOther.goalState);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -917,7 +902,8 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetUnassignedTablets()) {      lastComparison = TBaseHelper.compareTo(this.unassignedTablets, typedOther.unassignedTablets);
+    if (isSetUnassignedTablets()) {
+      lastComparison = TBaseHelper.compareTo(this.unassignedTablets, typedOther.unassignedTablets);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -926,21 +912,21 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetServersShuttingDown()) {      lastComparison = TBaseHelper.compareTo(this.serversShuttingDown, typedOther.serversShuttingDown);
+    if (isSetServersShuttingDown()) {
+      lastComparison = TBaseHelper.compareTo(this.serversShuttingDown, typedOther.serversShuttingDown);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
@@ -948,9 +934,8 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
           if (field.type == TType.MAP) {
             {
               TMap _map9 = iprot.readMapBegin();
-              this.tableMap = new java.util.HashMap<String,TableInfo>(2*_map9.size);
-              for (int _i10 = 0; _i10 < _map9.size; ++_i10)
-              {
+              this.tableMap = new java.util.HashMap<String,TableInfo>(2 * _map9.size);
+              for (int _i10 = 0; _i10 < _map9.size; ++_i10) {
                 String _key11;
                 TableInfo _val12;
                 _key11 = iprot.readString();
@@ -960,7 +945,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
               }
               iprot.readMapEnd();
             }
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -969,8 +954,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
             {
               TList _list13 = iprot.readListBegin();
               this.tServerInfo = new java.util.ArrayList<TabletServerStatus>(_list13.size);
-              for (int _i14 = 0; _i14 < _list13.size; ++_i14)
-              {
+              for (int _i14 = 0; _i14 < _list13.size; ++_i14) {
                 TabletServerStatus _elem15;
                 _elem15 = new TabletServerStatus();
                 _elem15.read(iprot);
@@ -978,7 +962,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
               }
               iprot.readListEnd();
             }
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -986,9 +970,8 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
           if (field.type == TType.MAP) {
             {
               TMap _map16 = iprot.readMapBegin();
-              this.badTServers = new java.util.HashMap<String,Byte>(2*_map16.size);
-              for (int _i17 = 0; _i17 < _map16.size; ++_i17)
-              {
+              this.badTServers = new java.util.HashMap<String,Byte>(2 * _map16.size);
+              for (int _i17 = 0; _i17 < _map16.size; ++_i17) {
                 String _key18;
                 byte _val19;
                 _key18 = iprot.readString();
@@ -997,7 +980,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
               }
               iprot.readMapEnd();
             }
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -1006,8 +989,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
             {
               TList _list20 = iprot.readListBegin();
               this.recovery = new java.util.ArrayList<RecoveryStatus>(_list20.size);
-              for (int _i21 = 0; _i21 < _list20.size; ++_i21)
-              {
+              for (int _i21 = 0; _i21 < _list20.size; ++_i21) {
                 RecoveryStatus _elem22;
                 _elem22 = new RecoveryStatus();
                 _elem22.read(iprot);
@@ -1015,7 +997,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
               }
               iprot.readListEnd();
             }
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -1024,8 +1006,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
             {
               TList _list23 = iprot.readListBegin();
               this.loggers = new java.util.ArrayList<LoggerStatus>(_list23.size);
-              for (int _i24 = 0; _i24 < _list23.size; ++_i24)
-              {
+              for (int _i24 = 0; _i24 < _list23.size; ++_i24) {
                 LoggerStatus _elem25;
                 _elem25 = new LoggerStatus();
                 _elem25.read(iprot);
@@ -1033,21 +1014,21 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
               }
               iprot.readListEnd();
             }
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 6: // STATE
           if (field.type == TType.I32) {
             this.state = MasterState.findByValue(iprot.readI32());
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
         case 8: // GOAL_STATE
           if (field.type == TType.I32) {
             this.goalState = MasterGoalState.findByValue(iprot.readI32());
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -1055,7 +1036,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
           if (field.type == TType.I32) {
             this.unassignedTablets = iprot.readI32();
             setUnassignedTabletsIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -1063,16 +1044,15 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
           if (field.type == TType.SET) {
             {
               TSet _set26 = iprot.readSetBegin();
-              this.serversShuttingDown = new java.util.HashSet<String>(2*_set26.size);
-              for (int _i27 = 0; _i27 < _set26.size; ++_i27)
-              {
+              this.serversShuttingDown = new java.util.HashSet<String>(2 * _set26.size);
+              for (int _i27 = 0; _i27 < _set26.size; ++_i27) {
                 String _elem28;
                 _elem28 = iprot.readString();
                 this.serversShuttingDown.add(_elem28);
               }
               iprot.readSetEnd();
             }
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -1082,21 +1062,20 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.tableMap != null) {
       oprot.writeFieldBegin(TABLE_MAP_FIELD_DESC);
       {
         oprot.writeMapBegin(new TMap(TType.STRING, TType.STRUCT, this.tableMap.size()));
-        for (java.util.Map.Entry<String, TableInfo> _iter29 : this.tableMap.entrySet())
-        {
+        for (java.util.Map.Entry<String,TableInfo> _iter29 : this.tableMap.entrySet()) {
           oprot.writeString(_iter29.getKey());
           _iter29.getValue().write(oprot);
         }
@@ -1108,8 +1087,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       oprot.writeFieldBegin(T_SERVER_INFO_FIELD_DESC);
       {
         oprot.writeListBegin(new TList(TType.STRUCT, this.tServerInfo.size()));
-        for (TabletServerStatus _iter30 : this.tServerInfo)
-        {
+        for (TabletServerStatus _iter30 : this.tServerInfo) {
           _iter30.write(oprot);
         }
         oprot.writeListEnd();
@@ -1120,8 +1098,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       oprot.writeFieldBegin(BAD_TSERVERS_FIELD_DESC);
       {
         oprot.writeMapBegin(new TMap(TType.STRING, TType.BYTE, this.badTServers.size()));
-        for (java.util.Map.Entry<String, Byte> _iter31 : this.badTServers.entrySet())
-        {
+        for (java.util.Map.Entry<String,Byte> _iter31 : this.badTServers.entrySet()) {
           oprot.writeString(_iter31.getKey());
           oprot.writeByte(_iter31.getValue());
         }
@@ -1133,8 +1110,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       oprot.writeFieldBegin(RECOVERY_FIELD_DESC);
       {
         oprot.writeListBegin(new TList(TType.STRUCT, this.recovery.size()));
-        for (RecoveryStatus _iter32 : this.recovery)
-        {
+        for (RecoveryStatus _iter32 : this.recovery) {
           _iter32.write(oprot);
         }
         oprot.writeListEnd();
@@ -1145,8 +1121,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       oprot.writeFieldBegin(LOGGERS_FIELD_DESC);
       {
         oprot.writeListBegin(new TList(TType.STRUCT, this.loggers.size()));
-        for (LoggerStatus _iter33 : this.loggers)
-        {
+        for (LoggerStatus _iter33 : this.loggers) {
           _iter33.write(oprot);
         }
         oprot.writeListEnd();
@@ -1170,8 +1145,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
       oprot.writeFieldBegin(SERVERS_SHUTTING_DOWN_FIELD_DESC);
       {
         oprot.writeSetBegin(new TSet(TType.STRING, this.serversShuttingDown.size()));
-        for (String _iter34 : this.serversShuttingDown)
-        {
+        for (String _iter34 : this.serversShuttingDown) {
           oprot.writeString(_iter34);
         }
         oprot.writeSetEnd();
@@ -1181,7 +1155,7 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("MasterMonitorInfo(");
@@ -1246,10 +1220,9 @@ public class MasterMonitorInfo implements TBase<MasterMonitorInfo, MasterMonitor
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

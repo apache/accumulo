@@ -63,7 +63,8 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
     
     public String getFullName() {
       String fn = data.get("fullname");
-      if (fn == null) return name;
+      if (fn == null)
+        return name;
       return fn;
     }
     
@@ -166,7 +167,8 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
   @Override
   public void valueChanged(TreeSelectionEvent e) {
     TreePath selected = e.getNewLeadSelectionPath();
-    if (selected == null) return;
+    if (selected == null)
+      return;
     DefaultMutableTreeNode node = (DefaultMutableTreeNode) selected.getLastPathComponent();
     text.setText(getText(node));
   }
@@ -177,7 +179,8 @@ public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansi
       System.exit(1);
     }
     String rootpath = "/";
-    if (args.length == 7) rootpath = args[6];
+    if (args.length == 7)
+      rootpath = args[6];
     Viewer v = new Viewer(args[0], args[1], args[2], args[3], args[4], new Authorizations(args[5].split(",")), rootpath);
     v.init();
     v.setVisible(true);

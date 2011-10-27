@@ -46,14 +46,16 @@ class ThriftTransportKey {
   
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof ThriftTransportKey)) return false;
+    if (!(o instanceof ThriftTransportKey))
+      return false;
     ThriftTransportKey ttk = (ThriftTransportKey) o;
     return location.equals(ttk.location) && port == ttk.port && timeout == ttk.timeout;
   }
   
   @Override
   public int hashCode() {
-    if (hash == -1) hash = (location + Integer.toString(port) + Long.toString(timeout)).hashCode();
+    if (hash == -1)
+      hash = (location + Integer.toString(port) + Long.toString(timeout)).hashCode();
     return hash;
   }
   

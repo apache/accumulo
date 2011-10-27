@@ -118,9 +118,10 @@ public class MetadataTable {
       colq = key.getColumnQualifier(colq);
       
       // interpret the row id as a key extent
-      if (colf.equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY) || colf.equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) location = new Text(
-          val.toString());
-      else if (Constants.METADATA_PREV_ROW_COLUMN.equals(colf, colq)) prevRow = new Value(val);
+      if (colf.equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY) || colf.equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY))
+        location = new Text(val.toString());
+      else if (Constants.METADATA_PREV_ROW_COLUMN.equals(colf, colq))
+        prevRow = new Value(val);
       
       if (location != null && prevRow != null) {
         ke = new KeyExtent(key.getRow(), prevRow);
@@ -233,13 +234,15 @@ public class MetadataTable {
           haveLocation = false;
           row = entry.getKey().getRow();
         }
-      } else row = entry.getKey().getRow();
+      } else
+        row = entry.getKey().getRow();
       
       colf = entry.getKey().getColumnFamily(colf);
       colq = entry.getKey().getColumnQualifier(colq);
       
       // stop scanning metadata table when another table is reached
-      if (!(new KeyExtent(entry.getKey().getRow(), (Text) null)).getTableId().toString().equals(tableId)) break;
+      if (!(new KeyExtent(entry.getKey().getRow(), (Text) null)).getTableId().toString().equals(tableId))
+        break;
       
       if (Constants.METADATA_PREV_ROW_COLUMN.equals(colf, colq)) {
         currentKeyExtent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
@@ -264,23 +267,25 @@ public class MetadataTable {
   public static void validateEntries(String tableId, SortedSet<KeyExtent> tablets) throws AccumuloException {
     // sanity check of metadata table entries
     // make sure tablets has no holes, and that it starts and ends w/ null
-    if (tablets.size() == 0) throw new AccumuloException("No entries found in metadata table for table " + tableId);
+    if (tablets.size() == 0)
+      throw new AccumuloException("No entries found in metadata table for table " + tableId);
     
-    if (tablets.first().getPrevEndRow() != null) throw new AccumuloException("Problem with metadata table, first entry for table " + tableId + "- "
-        + tablets.first() + " - has non null prev end row");
+    if (tablets.first().getPrevEndRow() != null)
+      throw new AccumuloException("Problem with metadata table, first entry for table " + tableId + "- " + tablets.first() + " - has non null prev end row");
     
-    if (tablets.last().getEndRow() != null) throw new AccumuloException("Problem with metadata table, last entry for table " + tableId + "- " + tablets.first()
-        + " - has non null end row");
+    if (tablets.last().getEndRow() != null)
+      throw new AccumuloException("Problem with metadata table, last entry for table " + tableId + "- " + tablets.first() + " - has non null end row");
     
     Iterator<KeyExtent> tabIter = tablets.iterator();
     Text lastEndRow = tabIter.next().getEndRow();
     while (tabIter.hasNext()) {
       KeyExtent tabke = tabIter.next();
       
-      if (tabke.getPrevEndRow() == null) throw new AccumuloException("Problem with metadata table, it has null prev end row in middle of table " + tabke);
+      if (tabke.getPrevEndRow() == null)
+        throw new AccumuloException("Problem with metadata table, it has null prev end row in middle of table " + tabke);
       
-      if (!tabke.getPrevEndRow().equals(lastEndRow)) throw new AccumuloException("Problem with metadata table, it has a hole " + tabke.getPrevEndRow() + " != "
-          + lastEndRow);
+      if (!tabke.getPrevEndRow().equals(lastEndRow))
+        throw new AccumuloException("Problem with metadata table, it has a hole " + tabke.getPrevEndRow() + " != " + lastEndRow);
       
       lastEndRow = tabke.getEndRow();
     }
@@ -289,9 +294,11 @@ public class MetadataTable {
   }
   
   public static boolean isContiguousRange(KeyExtent ke, SortedSet<KeyExtent> children) {
-    if (children.size() == 0) return false;
+    if (children.size() == 0)
+      return false;
     
-    if (children.size() == 1) return children.first().equals(ke);
+    if (children.size() == 1)
+      return children.first().equals(ke);
     
     Text per = children.first().getPrevEndRow();
     Text er = children.last().getEndRow();
@@ -300,7 +307,8 @@ public class MetadataTable {
     
     boolean erEqual = (er == ke.getEndRow() || er != null && ke.getEndRow() != null && ke.getEndRow().compareTo(er) == 0);
     
-    if (!perEqual || !erEqual) return false;
+    if (!perEqual || !erEqual)
+      return false;
     
     Iterator<KeyExtent> iter = children.iterator();
     
@@ -313,9 +321,11 @@ public class MetadataTable {
       
       // something in the middle should not be null
       
-      if (per == null || lastEndRow == null) return false;
+      if (per == null || lastEndRow == null)
+        return false;
       
-      if (per.compareTo(lastEndRow) != 0) return false;
+      if (per.compareTo(lastEndRow) != 0)
+        return false;
       
       lastEndRow = cke.getEndRow();
     }

@@ -68,9 +68,11 @@ public class ZooTabletStateStore extends TabletStateStore {
           TServerInstance futureSession = null;
           TServerInstance lastSession = null;
           
-          if (future != null) futureSession = parse(future);
+          if (future != null)
+            futureSession = parse(future);
           
-          if (last != null) lastSession = parse(last);
+          if (last != null)
+            lastSession = parse(last);
           
           if (current != null) {
             currentSession = parse(current);
@@ -115,18 +117,22 @@ public class ZooTabletStateStore extends TabletStateStore {
   
   @Override
   public void setFutureLocations(Collection<Assignment> assignments) throws DistributedStoreException {
-    if (assignments.size() != 1) throw new IllegalArgumentException("There is only one root tablet");
+    if (assignments.size() != 1)
+      throw new IllegalArgumentException("There is only one root tablet");
     Assignment assignment = assignments.iterator().next();
-    if (assignment.tablet.compareTo(Constants.ROOT_TABLET_EXTENT) != 0) throw new IllegalArgumentException("You can only store the root tablet location");
+    if (assignment.tablet.compareTo(Constants.ROOT_TABLET_EXTENT) != 0)
+      throw new IllegalArgumentException("You can only store the root tablet location");
     String value = AddressUtil.toString(assignment.server.getLocation()) + "|" + assignment.server.getSession();
     store.put(Constants.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes());
   }
   
   @Override
   public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
-    if (assignments.size() != 1) throw new IllegalArgumentException("There is only one root tablet");
+    if (assignments.size() != 1)
+      throw new IllegalArgumentException("There is only one root tablet");
     Assignment assignment = assignments.iterator().next();
-    if (assignment.tablet.compareTo(Constants.ROOT_TABLET_EXTENT) != 0) throw new IllegalArgumentException("You can only store the root tablet location");
+    if (assignment.tablet.compareTo(Constants.ROOT_TABLET_EXTENT) != 0)
+      throw new IllegalArgumentException("You can only store the root tablet location");
     String value = AddressUtil.toString(assignment.server.getLocation()) + "|" + assignment.server.getSession();
     store.put(Constants.ZROOT_TABLET_LOCATION, value.getBytes());
     store.put(Constants.ZROOT_TABLET_LAST_LOCATION, value.getBytes());
@@ -136,9 +142,11 @@ public class ZooTabletStateStore extends TabletStateStore {
   
   @Override
   public void unassign(Collection<TabletLocationState> tablets) throws DistributedStoreException {
-    if (tablets.size() != 1) throw new IllegalArgumentException("There is only one root tablet");
+    if (tablets.size() != 1)
+      throw new IllegalArgumentException("There is only one root tablet");
     TabletLocationState tls = tablets.iterator().next();
-    if (tls.extent.compareTo(Constants.ROOT_TABLET_EXTENT) != 0) throw new IllegalArgumentException("You can only store the root tablet location");
+    if (tls.extent.compareTo(Constants.ROOT_TABLET_EXTENT) != 0)
+      throw new IllegalArgumentException("You can only store the root tablet location");
     store.remove(Constants.ZROOT_TABLET_LOCATION);
     store.remove(Constants.ZROOT_TABLET_FUTURE_LOCATION);
     log.debug("unassign root tablet location");

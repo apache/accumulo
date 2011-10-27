@@ -5,40 +5,37 @@
  */
 package org.apache.accumulo.core.data.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class ScanResult implements TBase<ScanResult, ScanResult._Fields>, java.io.Serializable, Cloneable {
+public class ScanResult implements TBase<ScanResult,ScanResult._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("ScanResult");
-
-  private static final TField RESULTS_FIELD_DESC = new TField("results", TType.LIST, (short)1);
-  private static final TField MORE_FIELD_DESC = new TField("more", TType.BOOL, (short)2);
-
+  
+  private static final TField RESULTS_FIELD_DESC = new TField("results", TType.LIST, (short) 1);
+  private static final TField MORE_FIELD_DESC = new TField("more", TType.BOOL, (short) 2);
+  
   public java.util.List<TKeyValue> results;
   public boolean more;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    RESULTS((short)1, "results"),
-    MORE((short)2, "more");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    RESULTS((short) 1, "results"), MORE((short) 2, "more");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // RESULTS
           return RESULTS;
         case 2: // MORE
@@ -47,70 +44,64 @@ public class ScanResult implements TBase<ScanResult, ScanResult._Fields>, java.i
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
   private static final int __MORE_ISSET_ID = 0;
   private java.util.BitSet __isset_bit_vector = new java.util.BitSet(1);
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.RESULTS, new FieldMetaData("results", TFieldRequirementType.DEFAULT, 
-        new ListMetaData(TType.LIST, 
-            new StructMetaData(TType.STRUCT, TKeyValue.class))));
-    tmpMap.put(_Fields.MORE, new FieldMetaData("more", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.BOOL)));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.RESULTS, new FieldMetaData("results", TFieldRequirementType.DEFAULT, new ListMetaData(TType.LIST, new StructMetaData(TType.STRUCT,
+        TKeyValue.class))));
+    tmpMap.put(_Fields.MORE, new FieldMetaData("more", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.BOOL)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(ScanResult.class, metaDataMap);
   }
-
-  public ScanResult() {
-  }
-
-  public ScanResult(
-    java.util.List<TKeyValue> results,
-    boolean more)
-  {
+  
+  public ScanResult() {}
+  
+  public ScanResult(java.util.List<TKeyValue> results, boolean more) {
     this();
     this.results = results;
     this.more = more;
     setMoreIsSet(true);
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -126,148 +117,148 @@ public class ScanResult implements TBase<ScanResult, ScanResult._Fields>, java.i
     }
     this.more = other.more;
   }
-
+  
   public ScanResult deepCopy() {
     return new ScanResult(this);
   }
-
+  
   @Deprecated
   public ScanResult clone() {
     return new ScanResult(this);
   }
-
+  
   public int getResultsSize() {
     return (this.results == null) ? 0 : this.results.size();
   }
-
+  
   public java.util.Iterator<TKeyValue> getResultsIterator() {
     return (this.results == null) ? null : this.results.iterator();
   }
-
+  
   public void addToResults(TKeyValue elem) {
     if (this.results == null) {
       this.results = new java.util.ArrayList<TKeyValue>();
     }
     this.results.add(elem);
   }
-
+  
   public java.util.List<TKeyValue> getResults() {
     return this.results;
   }
-
+  
   public ScanResult setResults(java.util.List<TKeyValue> results) {
     this.results = results;
     return this;
   }
-
+  
   public void unsetResults() {
     this.results = null;
   }
-
+  
   /** Returns true if field results is set (has been asigned a value) and false otherwise */
   public boolean isSetResults() {
     return this.results != null;
   }
-
+  
   public void setResultsIsSet(boolean value) {
     if (!value) {
       this.results = null;
     }
   }
-
+  
   public boolean isMore() {
     return this.more;
   }
-
+  
   public ScanResult setMore(boolean more) {
     this.more = more;
     setMoreIsSet(true);
     return this;
   }
-
+  
   public void unsetMore() {
     __isset_bit_vector.clear(__MORE_ISSET_ID);
   }
-
+  
   /** Returns true if field more is set (has been asigned a value) and false otherwise */
   public boolean isSetMore() {
     return __isset_bit_vector.get(__MORE_ISSET_ID);
   }
-
+  
   public void setMoreIsSet(boolean value) {
     __isset_bit_vector.set(__MORE_ISSET_ID, value);
   }
-
+  
   @SuppressWarnings("unchecked")
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case RESULTS:
-      if (value == null) {
-        unsetResults();
-      } else {
-        setResults((java.util.List<TKeyValue>)value);
-      }
-      break;
-
-    case MORE:
-      if (value == null) {
-        unsetMore();
-      } else {
-        setMore((Boolean)value);
-      }
-      break;
-
+      case RESULTS:
+        if (value == null) {
+          unsetResults();
+        } else {
+          setResults((java.util.List<TKeyValue>) value);
+        }
+        break;
+      
+      case MORE:
+        if (value == null) {
+          unsetMore();
+        } else {
+          setMore((Boolean) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case RESULTS:
-      return getResults();
-
-    case MORE:
-      return new Boolean(isMore());
-
+      case RESULTS:
+        return getResults();
+        
+      case MORE:
+        return new Boolean(isMore());
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case RESULTS:
-      return isSetResults();
-    case MORE:
-      return isSetMore();
+      case RESULTS:
+        return isSetResults();
+      case MORE:
+        return isSetMore();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof ScanResult)
-      return this.equals((ScanResult)that);
+      return this.equals((ScanResult) that);
     return false;
   }
-
+  
   public boolean equals(ScanResult that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_results = true && this.isSetResults();
     boolean that_present_results = true && that.isSetResults();
     if (this_present_results || that_present_results) {
@@ -276,7 +267,7 @@ public class ScanResult implements TBase<ScanResult, ScanResult._Fields>, java.i
       if (!this.results.equals(that.results))
         return false;
     }
-
+    
     boolean this_present_more = true;
     boolean that_present_more = true;
     if (this_present_more || that_present_more) {
@@ -285,28 +276,29 @@ public class ScanResult implements TBase<ScanResult, ScanResult._Fields>, java.i
       if (this.more != that.more)
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(ScanResult other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    ScanResult typedOther = (ScanResult)other;
-
+    ScanResult typedOther = (ScanResult) other;
+    
     lastComparison = Boolean.valueOf(isSetResults()).compareTo(typedOther.isSetResults());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetResults()) {      lastComparison = TBaseHelper.compareTo(this.results, typedOther.results);
+    if (isSetResults()) {
+      lastComparison = TBaseHelper.compareTo(this.results, typedOther.results);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -315,21 +307,21 @@ public class ScanResult implements TBase<ScanResult, ScanResult._Fields>, java.i
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetMore()) {      lastComparison = TBaseHelper.compareTo(this.more, typedOther.more);
+    if (isSetMore()) {
+      lastComparison = TBaseHelper.compareTo(this.more, typedOther.more);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
@@ -338,8 +330,7 @@ public class ScanResult implements TBase<ScanResult, ScanResult._Fields>, java.i
             {
               TList _list4 = iprot.readListBegin();
               this.results = new java.util.ArrayList<TKeyValue>(_list4.size);
-              for (int _i5 = 0; _i5 < _list4.size; ++_i5)
-              {
+              for (int _i5 = 0; _i5 < _list4.size; ++_i5) {
                 TKeyValue _elem6;
                 _elem6 = new TKeyValue();
                 _elem6.read(iprot);
@@ -347,7 +338,7 @@ public class ScanResult implements TBase<ScanResult, ScanResult._Fields>, java.i
               }
               iprot.readListEnd();
             }
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -355,7 +346,7 @@ public class ScanResult implements TBase<ScanResult, ScanResult._Fields>, java.i
           if (field.type == TType.BOOL) {
             this.more = iprot.readBool();
             setMoreIsSet(true);
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -365,21 +356,20 @@ public class ScanResult implements TBase<ScanResult, ScanResult._Fields>, java.i
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.results != null) {
       oprot.writeFieldBegin(RESULTS_FIELD_DESC);
       {
         oprot.writeListBegin(new TList(TType.STRUCT, this.results.size()));
-        for (TKeyValue _iter7 : this.results)
-        {
+        for (TKeyValue _iter7 : this.results) {
           _iter7.write(oprot);
         }
         oprot.writeListEnd();
@@ -392,7 +382,7 @@ public class ScanResult implements TBase<ScanResult, ScanResult._Fields>, java.i
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("ScanResult(");
@@ -408,10 +398,9 @@ public class ScanResult implements TBase<ScanResult, ScanResult._Fields>, java.i
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-

@@ -73,7 +73,8 @@ public class RowDeleteTest extends FunctionalTest {
     Entry<Key,Value> entry : scanner) {
       count++;
     }
-    if (count != 2) throw new Exception("1 count=" + count);
+    if (count != 2)
+      throw new Exception("1 count=" + count);
     
     bw.addMutation(nm("r1", "", "", RowDeletingIterator.DELETE_ROW_VALUE));
     
@@ -89,7 +90,8 @@ public class RowDeleteTest extends FunctionalTest {
     Entry<Key,Value> entry : scanner) {
       count++;
     }
-    if (count != 3) throw new Exception("2 count=" + count);
+    if (count != 3)
+      throw new Exception("2 count=" + count);
     
     SimpleDateFormat dateParser = new SimpleDateFormat("yyyyMMddHHmmssz");
     String nowStr = dateParser.format(new Date());
@@ -105,7 +107,8 @@ public class RowDeleteTest extends FunctionalTest {
     Entry<Key,Value> entry : scanner) {
       count++;
     }
-    if (count != 0) throw new Exception("3 count=" + count);
+    if (count != 0)
+      throw new Exception("3 count=" + count);
     
     bw.close();
     

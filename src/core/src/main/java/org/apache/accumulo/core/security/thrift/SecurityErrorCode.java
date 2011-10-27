@@ -5,7 +5,6 @@
  */
 package org.apache.accumulo.core.security.thrift;
 
-
 import org.apache.thrift.TEnum;
 
 public enum SecurityErrorCode implements TEnum {
@@ -18,25 +17,26 @@ public enum SecurityErrorCode implements TEnum {
   GRANT_INVALID(6),
   BAD_AUTHORIZATIONS(7),
   INVALID_INSTANCEID(8);
-
+  
   private final int value;
-
+  
   private SecurityErrorCode(int value) {
     this.value = value;
   }
-
+  
   /**
    * Get the integer value of this enum value, as defined in the Thrift IDL.
    */
   public int getValue() {
     return value;
   }
-
+  
   /**
    * Find a the enum type by its integer value, as defined in the Thrift IDL.
+   * 
    * @return null if the value is not found.
    */
-  public static SecurityErrorCode findByValue(int value) { 
+  public static SecurityErrorCode findByValue(int value) {
     switch (value) {
       case 0:
         return DEFAULT_SECURITY_ERROR;

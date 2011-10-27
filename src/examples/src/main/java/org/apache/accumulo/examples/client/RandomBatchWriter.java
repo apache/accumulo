@@ -101,7 +101,8 @@ public class RandomBatchWriter {
     // logger.setLevel(Level.TRACE);
     
     Random r;
-    if (seed == null) r = new Random();
+    if (seed == null)
+      r = new Random();
     else {
       r = new Random(Long.parseLong(seed));
     }

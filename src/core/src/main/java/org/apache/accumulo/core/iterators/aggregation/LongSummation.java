@@ -46,8 +46,8 @@ public class LongSummation implements Aggregator {
   }
   
   public static long bytesToLong(byte[] b, int offset) throws IOException {
-    if (b.length < offset + 8) throw new IOException("trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8) + " found "
-        + b.length);
+    if (b.length < offset + 8)
+      throw new IOException("trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8) + " found " + b.length);
     return (((long) b[offset + 0] << 56) + ((long) (b[offset + 1] & 255) << 48) + ((long) (b[offset + 2] & 255) << 40) + ((long) (b[offset + 3] & 255) << 32)
         + ((long) (b[offset + 4] & 255) << 24) + ((b[offset + 5] & 255) << 16) + ((b[offset + 6] & 255) << 8) + ((b[offset + 7] & 255) << 0));
   }

@@ -5,99 +5,93 @@
  */
 package org.apache.accumulo.core.master.thrift;
 
-
-
 import org.apache.thrift.*;
 import org.apache.thrift.meta_data.*;
 import org.apache.thrift.protocol.*;
 
 @SuppressWarnings("serial")
-public class LoggerStatus implements TBase<LoggerStatus, LoggerStatus._Fields>, java.io.Serializable, Cloneable {
+public class LoggerStatus implements TBase<LoggerStatus,LoggerStatus._Fields>, java.io.Serializable, Cloneable {
   private static final TStruct STRUCT_DESC = new TStruct("LoggerStatus");
-
-  private static final TField LOGGER_FIELD_DESC = new TField("logger", TType.STRING, (short)1);
-
+  
+  private static final TField LOGGER_FIELD_DESC = new TField("logger", TType.STRING, (short) 1);
+  
   public String logger;
-
+  
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements TFieldIdEnum {
-    LOGGER((short)1, "logger");
-
-    private static final java.util.Map<String, _Fields> byName = new java.util.HashMap<String, _Fields>();
-
+    LOGGER((short) 1, "logger");
+    
+    private static final java.util.Map<String,_Fields> byName = new java.util.HashMap<String,_Fields>();
+    
     static {
       for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
         byName.put(field.getFieldName(), field);
       }
     }
-
+    
     /**
      * Find the _Fields constant that matches fieldId, or null if its not found.
      */
     public static _Fields findByThriftId(int fieldId) {
-      switch(fieldId) {
+      switch (fieldId) {
         case 1: // LOGGER
           return LOGGER;
         default:
           return null;
       }
     }
-
+    
     /**
-     * Find the _Fields constant that matches fieldId, throwing an exception
-     * if it is not found.
+     * Find the _Fields constant that matches fieldId, throwing an exception if it is not found.
      */
     public static _Fields findByThriftIdOrThrow(int fieldId) {
       _Fields fields = findByThriftId(fieldId);
-      if (fields == null) throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+      if (fields == null)
+        throw new IllegalArgumentException("Field " + fieldId + " doesn't exist!");
       return fields;
     }
-
+    
     /**
      * Find the _Fields constant that matches name, or null if its not found.
      */
     public static _Fields findByName(String name) {
       return byName.get(name);
     }
-
+    
     private final short _thriftId;
     private final String _fieldName;
-
+    
     _Fields(short thriftId, String fieldName) {
       _thriftId = thriftId;
       _fieldName = fieldName;
     }
-
+    
     public short getThriftFieldId() {
       return _thriftId;
     }
-
+    
     public String getFieldName() {
       return _fieldName;
     }
   }
-
+  
   // isset id assignments
-
-  public static final java.util.Map<_Fields, FieldMetaData> metaDataMap;
+  
+  public static final java.util.Map<_Fields,FieldMetaData> metaDataMap;
   static {
-    java.util.Map<_Fields, FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.LOGGER, new FieldMetaData("logger", TFieldRequirementType.DEFAULT, 
-        new FieldValueMetaData(TType.STRING)));
+    java.util.Map<_Fields,FieldMetaData> tmpMap = new java.util.EnumMap<_Fields,FieldMetaData>(_Fields.class);
+    tmpMap.put(_Fields.LOGGER, new FieldMetaData("logger", TFieldRequirementType.DEFAULT, new FieldValueMetaData(TType.STRING)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     FieldMetaData.addStructMetaDataMap(LoggerStatus.class, metaDataMap);
   }
-
-  public LoggerStatus() {
-  }
-
-  public LoggerStatus(
-    String logger)
-  {
+  
+  public LoggerStatus() {}
+  
+  public LoggerStatus(String logger) {
     this();
     this.logger = logger;
   }
-
+  
   /**
    * Performs a deep copy on <i>other</i>.
    */
@@ -106,96 +100,96 @@ public class LoggerStatus implements TBase<LoggerStatus, LoggerStatus._Fields>, 
       this.logger = other.logger;
     }
   }
-
+  
   public LoggerStatus deepCopy() {
     return new LoggerStatus(this);
   }
-
+  
   @Deprecated
   public LoggerStatus clone() {
     return new LoggerStatus(this);
   }
-
+  
   public String getLogger() {
     return this.logger;
   }
-
+  
   public LoggerStatus setLogger(String logger) {
     this.logger = logger;
     return this;
   }
-
+  
   public void unsetLogger() {
     this.logger = null;
   }
-
+  
   /** Returns true if field logger is set (has been asigned a value) and false otherwise */
   public boolean isSetLogger() {
     return this.logger != null;
   }
-
+  
   public void setLoggerIsSet(boolean value) {
     if (!value) {
       this.logger = null;
     }
   }
-
+  
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case LOGGER:
-      if (value == null) {
-        unsetLogger();
-      } else {
-        setLogger((String)value);
-      }
-      break;
-
+      case LOGGER:
+        if (value == null) {
+          unsetLogger();
+        } else {
+          setLogger((String) value);
+        }
+        break;
+    
     }
   }
-
+  
   public void setFieldValue(int fieldID, Object value) {
     setFieldValue(_Fields.findByThriftIdOrThrow(fieldID), value);
   }
-
+  
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case LOGGER:
-      return getLogger();
-
+      case LOGGER:
+        return getLogger();
+        
     }
     throw new IllegalStateException();
   }
-
+  
   public Object getFieldValue(int fieldId) {
     return getFieldValue(_Fields.findByThriftIdOrThrow(fieldId));
   }
-
+  
   /** Returns true if field corresponding to fieldID is set (has been asigned a value) and false otherwise */
   public boolean isSet(_Fields field) {
     switch (field) {
-    case LOGGER:
-      return isSetLogger();
+      case LOGGER:
+        return isSetLogger();
     }
     throw new IllegalStateException();
   }
-
+  
   public boolean isSet(int fieldID) {
     return isSet(_Fields.findByThriftIdOrThrow(fieldID));
   }
-
+  
   @Override
   public boolean equals(Object that) {
     if (that == null)
       return false;
     if (that instanceof LoggerStatus)
-      return this.equals((LoggerStatus)that);
+      return this.equals((LoggerStatus) that);
     return false;
   }
-
+  
   public boolean equals(LoggerStatus that) {
     if (that == null)
       return false;
-
+    
     boolean this_present_logger = true && this.isSetLogger();
     boolean that_present_logger = true && that.isSetLogger();
     if (this_present_logger || that_present_logger) {
@@ -204,49 +198,49 @@ public class LoggerStatus implements TBase<LoggerStatus, LoggerStatus._Fields>, 
       if (!this.logger.equals(that.logger))
         return false;
     }
-
+    
     return true;
   }
-
+  
   @Override
   public int hashCode() {
     return 0;
   }
-
+  
   public int compareTo(LoggerStatus other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
-
+    
     int lastComparison = 0;
-    LoggerStatus typedOther = (LoggerStatus)other;
-
+    LoggerStatus typedOther = (LoggerStatus) other;
+    
     lastComparison = Boolean.valueOf(isSetLogger()).compareTo(typedOther.isSetLogger());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetLogger()) {      lastComparison = TBaseHelper.compareTo(this.logger, typedOther.logger);
+    if (isSetLogger()) {
+      lastComparison = TBaseHelper.compareTo(this.logger, typedOther.logger);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
     return 0;
   }
-
+  
   public void read(TProtocol iprot) throws TException {
     TField field;
     iprot.readStructBegin();
-    while (true)
-    {
+    while (true) {
       field = iprot.readFieldBegin();
-      if (field.type == TType.STOP) { 
+      if (field.type == TType.STOP) {
         break;
       }
       switch (field.id) {
         case 1: // LOGGER
           if (field.type == TType.STRING) {
             this.logger = iprot.readString();
-          } else { 
+          } else {
             TProtocolUtil.skip(iprot, field.type);
           }
           break;
@@ -256,14 +250,14 @@ public class LoggerStatus implements TBase<LoggerStatus, LoggerStatus._Fields>, 
       iprot.readFieldEnd();
     }
     iprot.readStructEnd();
-
+    
     // check for required fields of primitive type, which can't be checked in the validate method
     validate();
   }
-
+  
   public void write(TProtocol oprot) throws TException {
     validate();
-
+    
     oprot.writeStructBegin(STRUCT_DESC);
     if (this.logger != null) {
       oprot.writeFieldBegin(LOGGER_FIELD_DESC);
@@ -273,7 +267,7 @@ public class LoggerStatus implements TBase<LoggerStatus, LoggerStatus._Fields>, 
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
-
+  
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("LoggerStatus(");
@@ -286,10 +280,9 @@ public class LoggerStatus implements TBase<LoggerStatus, LoggerStatus._Fields>, 
     sb.append(")");
     return sb.toString();
   }
-
+  
   public void validate() throws TException {
     // check for required fields
   }
-
+  
 }
-
