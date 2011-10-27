@@ -20,10 +20,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
-
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -32,6 +28,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 public class AndIterator implements SortedKeyValueIterator<Key, Value> {
 
@@ -690,7 +689,7 @@ public class AndIterator implements SortedKeyValueIterator<Key, Value> {
         boolean[] notFlags = decodeBooleans(options.get(notFlagsOptionName));
 
         if (terms.length < 2) {
-            throw new IOException("AndIterator requires two or more columns families");
+            throw new IllegalArgumentException("AndIterator requires two or more columns families");
         }
 
         // Scan the not flags.
@@ -725,7 +724,7 @@ public class AndIterator implements SortedKeyValueIterator<Key, Value> {
             }
 
             if (notFlags[0]) {
-                throw new IOException("AndIterator requires at least one column family without not");
+                throw new IllegalArgumentException("AndIterator requires at least one column family without not");
             }
         }
 

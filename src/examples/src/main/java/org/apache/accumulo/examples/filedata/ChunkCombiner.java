@@ -173,7 +173,7 @@ public class ChunkCombiner implements SortedKeyValueIterator<Key,Value> {
     try {
       cc.init(source.deepCopy(env), null, env);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new IllegalArgumentException(e);
     }
     return cc;
   }

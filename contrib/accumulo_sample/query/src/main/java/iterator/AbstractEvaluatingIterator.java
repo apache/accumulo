@@ -293,7 +293,7 @@ public abstract class AbstractEvaluatingIterator implements SortedKeyValueIterat
         	}
             this.evaluator = new QueryEvaluator(this.expression);
         } catch (ParseException e) {
-            throw new IOException("Failed to parse query", e);
+            throw new IllegalArgumentException("Failed to parse query", e);
         }
         EventFields.initializeKryo(kryo);
     }

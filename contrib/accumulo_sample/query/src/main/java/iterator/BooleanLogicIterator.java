@@ -31,6 +31,14 @@ import java.util.Map.Entry;
 import java.util.PriorityQueue;
 import java.util.Set;
 
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.OptionDescriber;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.commons.jexl2.parser.ASTAndNode;
 import org.apache.commons.jexl2.parser.ASTEQNode;
 import org.apache.commons.jexl2.parser.ASTERNode;
@@ -55,14 +63,6 @@ import parser.QueryParser.QueryTerm;
 import parser.RangeCalculator.RangeBounds;
 import parser.TreeNode;
 import util.FieldIndexKeyParser;
-import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.PartialKey;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.OptionDescriber;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 import com.google.common.collect.Multimap;
 
@@ -185,9 +185,9 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key, Value>,
 
         } catch (ParseException ex) {
             log.error("ParseException in init: " + ex);
-            throw new IOException("Failed to parse query", ex);
+            throw new IllegalArgumentException("Failed to parse query", ex);
         } catch (Exception ex) {
-            throw new IOException("probably had no indexed terms", ex);
+            throw new IllegalArgumentException("probably had no indexed terms", ex);
         }
 
     }

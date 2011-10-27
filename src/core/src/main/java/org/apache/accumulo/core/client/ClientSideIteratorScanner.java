@@ -86,7 +86,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
       if (!inclusive && columnFamilies.size() > 0)
-        throw new UnsupportedOperationException();
+        throw new IllegalArgumentException();
       scanner.setRange(range);
       scanner.clearColumns();
       for (ByteSequence colf : columnFamilies) {

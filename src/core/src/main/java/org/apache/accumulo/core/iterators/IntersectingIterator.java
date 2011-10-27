@@ -415,7 +415,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     boolean[] notFlag = decodeBooleans(options.get(notFlagOptionName));
     
     if (terms.length < 2) {
-      throw new IOException("IntersectionIterator requires two or more columns families");
+      throw new IllegalArgumentException("IntersectionIterator requires two or more columns families");
     }
     
     // Scan the not flags.
@@ -438,7 +438,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
         }
       }
       if (notFlag[0]) {
-        throw new IOException("IntersectionIterator requires at lest one column family without not");
+        throw new IllegalArgumentException("IntersectionIterator requires at lest one column family without not");
       }
     }
     

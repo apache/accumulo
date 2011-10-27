@@ -63,7 +63,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     if (options.get(LongCombiner.TYPE) == null)
-      throw new IOException("no type specified");
+      throw new IllegalArgumentException("no type specified");
     switch (Type.valueOf(options.get(LongCombiner.TYPE))) {
       case VARNUM:
         encoder = new VarNumArrayEncoder();
@@ -75,7 +75,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
         encoder = new StringArrayEncoder();
         return;
       default:
-        throw new UnsupportedOperationException();
+        throw new IllegalArgumentException();
     }
   }
   

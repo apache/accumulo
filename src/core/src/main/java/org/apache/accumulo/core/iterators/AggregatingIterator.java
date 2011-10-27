@@ -170,13 +170,13 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
       this.aggregators = new ColumnToClassMapping<Aggregator>(options, Aggregator.class);
     } catch (ClassNotFoundException e) {
       log.error(e.toString());
-      throw new IOException(e);
+      throw new IllegalArgumentException(e);
     } catch (InstantiationException e) {
       log.error(e.toString());
-      throw new IOException(e);
+      throw new IllegalArgumentException(e);
     } catch (IllegalAccessException e) {
       log.error(e.toString());
-      throw new IOException(e);
+      throw new IllegalArgumentException(e);
     }
   }
   

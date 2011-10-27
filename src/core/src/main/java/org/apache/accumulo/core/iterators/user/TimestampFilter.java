@@ -74,7 +74,7 @@ public class TimestampFilter extends Filter implements OptionDescriber {
       start = dateParser.parse(options.get(START)).getTime();
       end = dateParser.parse(options.get(END)).getTime();
     } catch (Exception e) {
-      throw new IOException(e);
+      throw new IllegalArgumentException(e);
     }
     if (options.get(START_INCL) != null)
       startInclusive = Boolean.parseBoolean(options.get(START_INCL));

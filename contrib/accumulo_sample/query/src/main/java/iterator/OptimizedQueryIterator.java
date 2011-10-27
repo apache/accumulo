@@ -67,7 +67,7 @@ public class OptimizedQueryIterator implements SortedKeyValueIterator<Key, Value
 
     public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
         if (!validateOptions(options)) {
-            throw new IOException("Invalid options");
+            throw new IllegalArgumentException("Invalid options");
         }
 
         //Setup the EvaluatingIterator

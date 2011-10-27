@@ -38,7 +38,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     if (options.get(TYPE) == null)
-      throw new IOException("no type specified");
+      throw new IllegalArgumentException("no type specified");
     switch (Type.valueOf(options.get(TYPE))) {
       case VARNUM:
         encoder = new VarNumEncoder();
@@ -50,7 +50,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
         encoder = new StringEncoder();
         return;
       default:
-        throw new UnsupportedOperationException();
+        throw new IllegalArgumentException();
     }
   }
   
