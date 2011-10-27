@@ -195,12 +195,12 @@ class LocalityGroupPerf(SunnyDayTest):
         out, err, code = self.shell(self.masterHost(),
                                     'table test_ingest\n'
                                     'insert zzzzzzzzzz colf2 cq value\n'
-                                    'scan -c colf\n')
+                                    'scan -c colf -np\n')
         t2 = time.time()
         diff = t2 - t
         out, err, code = self.shell(self.masterHost(),
                                     'table test_ingest\n'
-                                    'scan -c colf2\n')
+                                    'scan -c colf2 -np\n')
         diff2 = time.time() - t2
         self.assert_(diff2 < diff, "skipping over locality group was slower than a full scan")
         
