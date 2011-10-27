@@ -72,6 +72,7 @@ public class RegexExample extends Configured implements Tool {
   
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new RegexExample(), args);
-    if (res != 0) System.exit(res);
+    if (res != 0)
+      System.exit(res);
   }
 }

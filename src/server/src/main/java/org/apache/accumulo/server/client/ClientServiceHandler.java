@@ -63,7 +63,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   
   protected String checkTableId(String tableName, TableOperation operation) throws ThriftTableOperationException {
     final String tableId = Tables.getNameToIdMap(HdfsZooInstance.getInstance()).get(tableName);
-    if (tableId == null) throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.NOTFOUND, null);
+    if (tableId == null)
+      throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.NOTFOUND, null);
     return tableId;
   }
   
@@ -215,7 +216,8 @@ public class ClientServiceHandler implements ClientService.Iface {
     Map<String,String> result = new HashMap<String,String>();
     for (Entry<String,String> entry : conf) {
       // TODO: do we need to send any instance information?
-      if (!entry.getKey().equals(Property.INSTANCE_SECRET.getKey())) result.put(entry.getKey(), entry.getValue());
+      if (!entry.getKey().equals(Property.INSTANCE_SECRET.getKey()))
+        result.put(entry.getKey(), entry.getValue());
     }
     return result;
   }
@@ -244,8 +246,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   public List<String> bulkImportFiles(TInfo tinfo, final AuthInfo credentials, final long tid, final String tableId, final List<String> files,
       final String errorDir, final boolean setTime) throws ThriftSecurityException, ThriftTableOperationException, TException {
     try {
-      if (!authenticator.hasSystemPermission(credentials, credentials.getUser(), SystemPermission.SYSTEM)) throw new AccumuloSecurityException(
-          credentials.getUser(), SecurityErrorCode.PERMISSION_DENIED);
+      if (!authenticator.hasSystemPermission(credentials, credentials.getUser(), SystemPermission.SYSTEM))
+        throw new AccumuloSecurityException(credentials.getUser(), SecurityErrorCode.PERMISSION_DENIED);
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
         public List<String> call() throws Exception {
           return BulkImporter.bulkLoad(ServerConfiguration.getSystemConfiguration(), HdfsZooInstance.getInstance(), credentials, tid, tableId, files, errorDir,

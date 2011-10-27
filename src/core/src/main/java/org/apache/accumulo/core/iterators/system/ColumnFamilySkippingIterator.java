@@ -56,35 +56,37 @@ public class ColumnFamilySkippingIterator extends SkippingIterator implements In
   protected void consume() throws IOException {
     int count = 0;
     
-    if (inclusive) while (getSource().hasTop() && !colFamSet.contains(getSource().getTopKey().getColumnFamilyData())) {
-      if (count < 10) {
-        // it is quicker to call next if we are close, but we never know if we are close
-        // so give next a try a few times
-        getSource().next();
-        count++;
-      } else {
-        ByteSequence higherCF = sortedColFams.higher(getSource().getTopKey().getColumnFamilyData());
-        if (higherCF == null) {
-          // seek to the next row
-          reseek(getSource().getTopKey().followingKey(PartialKey.ROW));
+    if (inclusive)
+      while (getSource().hasTop() && !colFamSet.contains(getSource().getTopKey().getColumnFamilyData())) {
+        if (count < 10) {
+          // it is quicker to call next if we are close, but we never know if we are close
+          // so give next a try a few times
+          getSource().next();
+          count++;
         } else {
-          // seek to the next column family in the sorted list of column families
-          reseek(new Key(getSource().getTopKey().getRowData().toArray(), higherCF.toArray(), new byte[0], new byte[0], Long.MAX_VALUE));
+          ByteSequence higherCF = sortedColFams.higher(getSource().getTopKey().getColumnFamilyData());
+          if (higherCF == null) {
+            // seek to the next row
+            reseek(getSource().getTopKey().followingKey(PartialKey.ROW));
+          } else {
+            // seek to the next column family in the sorted list of column families
+            reseek(new Key(getSource().getTopKey().getRowData().toArray(), higherCF.toArray(), new byte[0], new byte[0], Long.MAX_VALUE));
+          }
+          
+          count = 0;
         }
-        
-        count = 0;
       }
-    }
-    else if (colFamSet != null && colFamSet.size() > 0) while (getSource().hasTop() && colFamSet.contains(getSource().getTopKey().getColumnFamilyData())) {
-      if (count < 10) {
-        getSource().next();
-        count++;
-      } else {
-        // seek to the next column family in the data
-        reseek(getSource().getTopKey().followingKey(PartialKey.ROW_COLFAM));
-        count = 0;
+    else if (colFamSet != null && colFamSet.size() > 0)
+      while (getSource().hasTop() && colFamSet.contains(getSource().getTopKey().getColumnFamilyData())) {
+        if (count < 10) {
+          getSource().next();
+          count++;
+        } else {
+          // seek to the next column family in the data
+          reseek(getSource().getTopKey().followingKey(PartialKey.ROW_COLFAM));
+          count = 0;
+        }
       }
-    }
   }
   
   private void reseek(Key key) throws IOException {

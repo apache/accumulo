@@ -63,9 +63,11 @@ public class MetadataConstraints implements Constraint {
   
   private static boolean isValidColumn(ColumnUpdate cu) {
     
-    if (validColumnFams.contains(new Text(cu.getColumnFamily()))) return true;
+    if (validColumnFams.contains(new Text(cu.getColumnFamily())))
+      return true;
     
-    if (validColumnQuals.contains(new ColumnFQ(cu))) return true;
+    if (validColumnQuals.contains(new ColumnFQ(cu)))
+      return true;
     
     return false;
   }
@@ -82,44 +84,55 @@ public class MetadataConstraints implements Constraint {
     byte[] row = mutation.getRow();
     
     // always allow rows that fall within reserved area
-    if (row.length > 0 && row[0] == '~') return null;
+    if (row.length > 0 && row[0] == '~')
+      return null;
     
     for (byte b : row) {
       if (b == ';') {
         containsSemiC = true;
       }
       
-      if (b == ';' || b == '<') break;
+      if (b == ';' || b == '<')
+        break;
       
       if (!validTableNameChars[0xff & b]) {
-        if (violations == null) violations = new ArrayList<Short>();
-        if (!violations.contains((short) 4)) violations.add((short) 4);
+        if (violations == null)
+          violations = new ArrayList<Short>();
+        if (!violations.contains((short) 4))
+          violations.add((short) 4);
       }
     }
     
     if (!containsSemiC) {
       // see if last row char is <
       if (row.length == 0 || row[row.length - 1] != '<') {
-        if (violations == null) violations = new ArrayList<Short>();
-        if (!violations.contains((short) 4)) violations.add((short) 4);
+        if (violations == null)
+          violations = new ArrayList<Short>();
+        if (!violations.contains((short) 4))
+          violations.add((short) 4);
       }
     } else {
       if (row.length == 0) {
-        if (violations == null) violations = new ArrayList<Short>();
-        if (!violations.contains((short) 4)) violations.add((short) 4);
+        if (violations == null)
+          violations = new ArrayList<Short>();
+        if (!violations.contains((short) 4))
+          violations.add((short) 4);
       }
     }
     
     if (row.length > 0 && row[0] == '!') {
       if (row.length < 3 || row[1] != '0' || (row[2] != '<' && row[2] != ';')) {
-        if (violations == null) violations = new ArrayList<Short>();
-        if (!violations.contains((short) 4)) violations.add((short) 4);
+        if (violations == null)
+          violations = new ArrayList<Short>();
+        if (!violations.contains((short) 4))
+          violations.add((short) 4);
       }
     }
     
     // ensure row is not less than Constants.METADATA_TABLE_ID
     if (new Text(row).compareTo(new Text(Constants.METADATA_TABLE_ID)) < 0) {
-      if (violations == null) violations = new ArrayList<Short>();
+      if (violations == null)
+        violations = new ArrayList<Short>();
       violations.add((short) 5);
     }
     
@@ -128,14 +141,16 @@ public class MetadataConstraints implements Constraint {
       
       if (columnUpdate.isDeleted()) {
         if (!isValidColumn(columnUpdate)) {
-          if (violations == null) violations = new ArrayList<Short>();
+          if (violations == null)
+            violations = new ArrayList<Short>();
           violations.add((short) 2);
         }
         continue;
       }
       
       if (columnUpdate.getValue().length == 0 && !columnFamily.equals(Constants.METADATA_SCANFILE_COLUMN_FAMILY)) {
-        if (violations == null) violations = new ArrayList<Short>();
+        if (violations == null)
+          violations = new ArrayList<Short>();
         violations.add((short) 6);
       }
       
@@ -144,21 +159,25 @@ public class MetadataConstraints implements Constraint {
           DataFileValue dfv = new DataFileValue(columnUpdate.getValue());
           
           if (dfv.getSize() < 0 || dfv.getNumEntries() < 0) {
-            if (violations == null) violations = new ArrayList<Short>();
+            if (violations == null)
+              violations = new ArrayList<Short>();
             violations.add((short) 1);
           }
         } catch (NumberFormatException nfe) {
-          if (violations == null) violations = new ArrayList<Short>();
+          if (violations == null)
+            violations = new ArrayList<Short>();
           violations.add((short) 1);
         } catch (ArrayIndexOutOfBoundsException aiooe) {
-          if (violations == null) violations = new ArrayList<Short>();
+          if (violations == null)
+            violations = new ArrayList<Short>();
           violations.add((short) 1);
         }
       } else if (columnFamily.equals(Constants.METADATA_SCANFILE_COLUMN_FAMILY)) {
         
       } else {
         if (!isValidColumn(columnUpdate)) {
-          if (violations == null) violations = new ArrayList<Short>();
+          if (violations == null)
+            violations = new ArrayList<Short>();
           violations.add((short) 2);
         } else if (new ColumnFQ(columnUpdate).equals(Constants.METADATA_PREV_ROW_COLUMN) && columnUpdate.getValue().length > 0
             && (violations == null || !violations.contains((short) 4))) {
@@ -169,7 +188,8 @@ public class MetadataConstraints implements Constraint {
           boolean prevEndRowLessThanEndRow = per == null || ke.getEndRow() == null || per.compareTo(ke.getEndRow()) < 0;
           
           if (!prevEndRowLessThanEndRow) {
-            if (violations == null) violations = new ArrayList<Short>();
+            if (violations == null)
+              violations = new ArrayList<Short>();
             violations.add((short) 3);
           }
         } else if (new ColumnFQ(columnUpdate).equals(Constants.METADATA_LOCK_COLUMN)) {
@@ -191,7 +211,8 @@ public class MetadataConstraints implements Constraint {
           }
           
           if (!lockHeld) {
-            if (violations == null) violations = new ArrayList<Short>();
+            if (violations == null)
+              violations = new ArrayList<Short>();
             violations.add((short) 7);
           }
         }
@@ -227,7 +248,8 @@ public class MetadataConstraints implements Constraint {
   }
   
   protected void finalize() {
-    if (zooCache != null) zooCache.clear();
+    if (zooCache != null)
+      zooCache.clear();
   }
   
 }

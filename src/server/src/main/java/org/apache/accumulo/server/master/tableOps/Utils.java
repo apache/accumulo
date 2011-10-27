@@ -44,7 +44,8 @@ public class Utils {
     
     String id = Tables.getNameToIdMap(instance).get(tableName);
     
-    if (id != null && !id.equals(tableId)) throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.EXISTS, null);
+    if (id != null && !id.equals(tableId))
+      throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.EXISTS, null);
   }
   
   static String getNextTableId(String tableName, Instance instance) throws ThriftTableOperationException {
@@ -77,12 +78,13 @@ public class Utils {
       if (tableMustExist) {
         Instance instance = HdfsZooInstance.getInstance();
         IZooReaderWriter zk = ZooReaderWriter.getRetryingInstance();
-        if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId)) throw new ThriftTableOperationException(tableId, "", op,
-            TableOperationExceptionType.NOTFOUND, "Table does not exists");
+        if (!zk.exists(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId))
+          throw new ThriftTableOperationException(tableId, "", op, TableOperationExceptionType.NOTFOUND, "Table does not exists");
       }
       log.info("table " + tableId + " (" + Long.toHexString(tid) + ") locked for " + (writeLock ? "write" : "read") + " operation: " + op);
       return 0;
-    } else return 100;
+    } else
+      return 100;
   }
   
   public static void unreserveTable(String tableId, long tid, boolean writeLock) throws Exception {
@@ -99,7 +101,8 @@ public class Utils {
     
     if (ZooReservation.attempt(zk, resvPath, String.format("%016x", tid), "")) {
       return 0;
-    } else return 50;
+    } else
+      return 50;
   }
   
   public static void unreserveHdfsDirectory(String directory, long tid) throws KeeperException, InterruptedException {
@@ -114,8 +117,10 @@ public class Utils {
     Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
     if (lock == null) {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
-      if (writeLock) lock = locker.writeLock();
-      else lock = locker.readLock();
+      if (writeLock)
+        lock = locker.writeLock();
+      else
+        lock = locker.readLock();
     }
     return lock;
   }

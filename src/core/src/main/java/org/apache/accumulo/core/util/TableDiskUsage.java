@@ -52,7 +52,8 @@ public class TableDiskUsage {
   private Map<String,Long> fileSizes = new HashMap<String,Long>();
   
   void addTable(String tableId) {
-    if (internalIds.containsKey(tableId)) throw new IllegalArgumentException("Already added table " + tableId);
+    if (internalIds.containsKey(tableId))
+      throw new IllegalArgumentException("Already added table " + tableId);
     
     int iid = nextInternalId++;
     
@@ -87,7 +88,8 @@ public class TableDiskUsage {
       Long size = fileSizes.get(entry.getKey());
       
       Long tablesUsage = usage.get(key);
-      if (tablesUsage == null) tablesUsage = 0l;
+      if (tablesUsage == null)
+        tablesUsage = 0l;
       
       tablesUsage += size;
       
@@ -101,7 +103,8 @@ public class TableDiskUsage {
       List<String> externalKey = new ArrayList<String>();
       List<Integer> key = entry.getKey();
       for (int i = 0; i < key.size(); i++)
-        if (key.get(i) != 0) externalKey.add(externalIds.get(i));
+        if (key.get(i) != 0)
+          externalKey.add(externalIds.get(i));
       
       externalUsage.put(externalKey, entry.getValue());
     }
@@ -118,7 +121,8 @@ public class TableDiskUsage {
     
     for (String tableName : tables) {
       String tableId = conn.tableOperations().tableIdMap().get(tableName);
-      if (tableId == null) throw new TableNotFoundException(null, tableName, "Table " + tableName + " not found");
+      if (tableId == null)
+        throw new TableNotFoundException(null, tableName, "Table " + tableName + " not found");
       
       tableIds.add(tableId);
     }
@@ -138,7 +142,8 @@ public class TableDiskUsage {
         if (file.startsWith("../")) {
           file = file.substring(2);
           tablesReferenced.add(file.split("\\/")[1]);
-        } else file = "/" + tableId + file;
+        } else
+          file = "/" + tableId + file;
         
         tdu.linkFileAndTable(tableId, file);
       }
@@ -180,7 +185,8 @@ public class TableDiskUsage {
           
           int cmp = s1.compareTo(s2);
           
-          if (cmp != 0) return cmp;
+          if (cmp != 0)
+            return cmp;
           
           count++;
         }

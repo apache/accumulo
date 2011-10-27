@@ -239,7 +239,8 @@ public class MyMapFile {
     
     private void checkKey(WritableComparable key) throws IOException {
       // check that keys are well-ordered
-      if (size != 0 && comparator.compare(lastKey, key) > 0) throw new IOException("key out of order: " + key + " after " + lastKey);
+      if (size != 0 && comparator.compare(lastKey, key) > 0)
+        throw new IOException("key out of order: " + key + " after " + lastKey);
       
       // update lastKey with a copy of key by writing and reading
       outBuf.reset();
@@ -354,15 +355,19 @@ public class MyMapFile {
       this.data = createDataFileReader(fs, dataFile, conf);
       this.firstPosition = data.getPosition();
       
-      if (comparator == null) this.comparator = WritableComparator.get(data.getKeyClass());
-      else this.comparator = comparator;
+      if (comparator == null)
+        this.comparator = WritableComparator.get(data.getKeyClass());
+      else
+        this.comparator = comparator;
       
       this.myIndexKey = new MapFileIndexKey(dirName + "/" + INDEX_FILE_NAME, fs);
       
       // open the index
       indexInfo = indexCache.get(myIndexKey);
-      if (indexInfo == null) this.index = new MySequenceFile.Reader(fs, indexFile, conf);
-      else this.index = null;
+      if (indexInfo == null)
+        this.index = new MySequenceFile.Reader(fs, indexFile, conf);
+      else
+        this.index = null;
     }
     
     /**
@@ -413,7 +418,8 @@ public class MyMapFile {
       indexInfo = indexCache.get(myIndexKey);
       if (indexInfo != null) {
         MapFileIndexKey temp = indexInfo.myKey.get();
-        if (temp != null) myIndexKey = temp;
+        if (temp != null)
+          myIndexKey = temp;
         return;
       }
       
@@ -431,10 +437,12 @@ public class MyMapFile {
         while (true) {
           WritableComparable k = comparator.newKey();
           
-          if (!index.next(k, position)) break;
+          if (!index.next(k, position))
+            break;
           
           // check order to make sure comparator is compatible
-          if (lastKey != null && comparator.compare(lastKey, k) > 0) throw new IOException("key out of order: " + k + " after " + lastKey);
+          if (lastKey != null && comparator.compare(lastKey, k) > 0)
+            throw new IOException("key out of order: " + k + " after " + lastKey);
           lastKey = k;
           
           if (skip > 0) {
@@ -578,16 +586,18 @@ public class MyMapFile {
       } else {
         seekIndex = binarySearch(key);
         if (seekIndex < 0) // decode insertion point
-        seekIndex = -seekIndex - 2;
+          seekIndex = -seekIndex - 2;
         
         if (seekIndex == -1) // belongs before first entry
-        seekPosition = firstPosition; // use beginning of file
-        else seekPosition = indexInfo.positions[seekIndex]; // else use index
+          seekPosition = firstPosition; // use beginning of file
+        else
+          seekPosition = indexInfo.positions[seekIndex]; // else use index
         seekLocation = 3;
         data.seek(seekPosition);
       }
       
-      if (nextKey == null) nextKey = comparator.newKey();
+      if (nextKey == null)
+        nextKey = comparator.newKey();
       
       long startTime = System.currentTimeMillis();
       
@@ -609,15 +619,17 @@ public class MyMapFile {
         if (c <= 0) { // at or beyond desired
           MyMapFile.mapFileSeekScans.addStat(scans);
           long timeSpent = System.currentTimeMillis() - startTime;
-          if (timeSpent > 200) log.debug("long seek time: " + timeSpent + " seek location: " + seekLocation + " seek scans: " + scans + " seeking key " + key
-              + " from " + lastKey + " previous " + previousKey);
+          if (timeSpent > 200)
+            log.debug("long seek time: " + timeSpent + " seek location: " + seekLocation + " seek scans: " + scans + " seeking key " + key + " from " + lastKey
+                + " previous " + previousKey);
           MyMapFile.mapFileSeekTimeStat.addStat(timeSpent);
           return c;
         }
       }
       long timeSpent = System.currentTimeMillis() - startTime;
-      if (timeSpent > 100) log.debug("long seek time (2): " + timeSpent + " seek location: " + seekLocation + " seek scans: " + scans + " seeking key " + key
-          + " from " + lastKey + " previous " + previousKey);
+      if (timeSpent > 100)
+        log.debug("long seek time (2): " + timeSpent + " seek location: " + seekLocation + " seek scans: " + scans + " seeking key " + key + " from " + lastKey
+            + " previous " + previousKey);
       MyMapFile.mapFileSeekTimeStat.addStat(timeSpent);
       MyMapFile.mapFileSeekScans.addStat(scans);
       return 1;
@@ -632,9 +644,12 @@ public class MyMapFile {
         WritableComparable midVal = indexInfo.keys[mid];
         int cmp = comparator.compare(midVal, key);
         
-        if (cmp < 0) low = mid + 1;
-        else if (cmp > 0) high = mid - 1;
-        else return mid; // key found
+        if (cmp < 0)
+          low = mid + 1;
+        else if (cmp > 0)
+          high = mid - 1;
+        else
+          return mid; // key found
       }
       return -(low + 1); // key not found.
     }
@@ -750,7 +765,8 @@ public class MyMapFile {
     
     @Override
     public Value getTopValue() {
-      if (topKey != null) return topValue;
+      if (topKey != null)
+        return topValue;
       return null;
     }
     
@@ -766,13 +782,16 @@ public class MyMapFile {
     
     @Override
     public void next() throws IOException {
-      if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get()) throw new IterationInterruptedException();
+      if (interruptFlag != null && interruptCheckCount++ % 100 == 0 && interruptFlag.get())
+        throw new IterationInterruptedException();
       
       Key temp = previousKey;
       previousKey = topKey;
       topKey = temp;
-      if (topKey == null) topKey = (Key) comparator.newKey();
-      if (topValue == null) topValue = new Value();
+      if (topKey == null)
+        topKey = (Key) comparator.newKey();
+      if (topValue == null)
+        topValue = new Value();
       if (!next(topKey, topValue)) {
         topKey = null;
         // try to learn the last key
@@ -790,9 +809,11 @@ public class MyMapFile {
         throw new IllegalArgumentException("I do not know how to filter column families");
       }
       
-      if (range == null) throw new IllegalArgumentException("Cannot seek to null range");
+      if (range == null)
+        throw new IllegalArgumentException("Cannot seek to null range");
       
-      if (interruptFlag != null && interruptFlag.get()) throw new IterationInterruptedException();
+      if (interruptFlag != null && interruptFlag.get())
+        throw new IterationInterruptedException();
       
       Key key = range.getStartKey();
       if (key == null) {
@@ -813,7 +834,8 @@ public class MyMapFile {
       } else {
         // seek in the map file
         previousKey = null;
-        if (topValue == null) topValue = new Value();
+        if (topValue == null)
+          topValue = new Value();
         topKey = (Key) getClosest(key, topValue, false, topKey);
         if (topKey == null) {
           // we seeked past the end of the map file
@@ -835,7 +857,8 @@ public class MyMapFile {
     @Override
     public synchronized Key getFirstKey() throws IOException {
       readIndex();
-      if (indexInfo.keys.length == 0) return null;
+      if (indexInfo.keys.length == 0)
+        return null;
       return (Key) indexInfo.keys[0];
     }
     
@@ -849,7 +872,8 @@ public class MyMapFile {
     @Override
     public DataInputStream getMetaStore(String name) throws IOException {
       Path path = new Path(this.dirName, name);
-      if (!fs.exists(path)) throw new NoSuchMetaStoreException("name = " + name);
+      if (!fs.exists(path))
+        throw new NoSuchMetaStoreException("name = " + name);
       return fs.open(path);
     }
     
@@ -938,7 +962,8 @@ public class MyMapFile {
       }
       Writable key = ReflectionUtils.newInstance(keyClass, conf);
       Writable value = ReflectionUtils.newInstance(valueClass, conf);
-      if (!dryrun) indexWriter = MySequenceFile.createWriter(fs, conf, index, keyClass, LongWritable.class);
+      if (!dryrun)
+        indexWriter = MySequenceFile.createWriter(fs, conf, index, keyClass, LongWritable.class);
       long currentPos = 0L;
       long lastPos = 0L;
       
@@ -965,12 +990,14 @@ public class MyMapFile {
           // write an index entry at position 0 and whenever the position changes
           if (cnt == 0 || position.get() != lastPos) {
             position.set(lastPos);
-            if (!dryrun) indexWriter.append(key, position);
+            if (!dryrun)
+              indexWriter.append(key, position);
           }
         } else {
           if (cnt % indexInterval == 0) {
             position.set(currentPos);
-            if (!dryrun) indexWriter.append(key, position);
+            if (!dryrun)
+              indexWriter.append(key, position);
           }
           long pos = dataReader.getPosition();
           if (pos != currentPos) {
@@ -985,8 +1012,10 @@ public class MyMapFile {
       // truncated data file. swallow it.
       log.error("Exception when trying to fix map file " + dir, t);
     } finally {
-      if (dataReader != null) dataReader.close();
-      if (indexWriter != null) indexWriter.close();
+      if (dataReader != null)
+        dataReader.close();
+      if (indexWriter != null)
+        indexWriter.close();
     }
     return cnt;
   }

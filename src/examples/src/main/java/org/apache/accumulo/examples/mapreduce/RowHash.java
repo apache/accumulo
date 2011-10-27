@@ -65,7 +65,8 @@ public class RowHash extends Configured implements Tool {
     int idx = col.indexOf(":");
     Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
     Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
-    if (cf.getLength() > 0) AccumuloInputFormat.fetchColumns(job, Collections.singleton(new Pair<Text,Text>(cf, cq)));
+    if (cf.getLength() > 0)
+      AccumuloInputFormat.fetchColumns(job, Collections.singleton(new Pair<Text,Text>(cf, cq)));
     
     // AccumuloInputFormat.setLogLevel(job, Level.TRACE);
     
@@ -86,6 +87,7 @@ public class RowHash extends Configured implements Tool {
   
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new RowHash(), args);
-    if (res != 0) System.exit(res);
+    if (res != 0)
+      System.exit(res);
   }
 }

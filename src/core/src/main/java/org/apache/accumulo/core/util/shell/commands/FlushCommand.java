@@ -55,9 +55,11 @@ public class FlushCommand extends TableOperation {
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     wait = cl.hasOption(waitOpt.getLongOpt());
     startRow = null;
-    if (cl.hasOption(optStartRow.getOpt())) startRow = new Text(cl.getOptionValue(optStartRow.getOpt()));
+    if (cl.hasOption(optStartRow.getOpt()))
+      startRow = new Text(cl.getOptionValue(optStartRow.getOpt()));
     endRow = null;
-    if (cl.hasOption(optEndRow.getOpt())) endRow = new Text(cl.getOptionValue(optEndRow.getOpt()));
+    if (cl.hasOption(optEndRow.getOpt()))
+      endRow = new Text(cl.getOptionValue(optEndRow.getOpt()));
     return super.execute(fullCommand, cl, shellState);
   }
   

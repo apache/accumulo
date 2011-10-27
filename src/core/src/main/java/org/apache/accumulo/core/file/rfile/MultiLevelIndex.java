@@ -132,8 +132,10 @@ public class MultiLevelIndex {
     @Override
     public IndexEntry get(int index) {
       int len;
-      if (index == offsets.length - 1) len = data.length - offsets[index];
-      else len = offsets[index + 1] - offsets[index];
+      if (index == offsets.length - 1)
+        len = data.length - offsets[index];
+      else
+        len = offsets[index + 1] - offsets[index];
       
       ByteArrayInputStream bais = new ByteArrayInputStream(data, offsets[index], len);
       DataInputStream dis = new DataInputStream(bais);
@@ -172,8 +174,10 @@ public class MultiLevelIndex {
     @Override
     public Key get(int index) {
       int len;
-      if (index == offsets.length - 1) len = data.length - offsets[index];
-      else len = offsets[index + 1] - offsets[index];
+      if (index == offsets.length - 1)
+        len = data.length - offsets[index];
+      else
+        len = offsets[index + 1] - offsets[index];
       
       ByteArrayInputStream bais = new ByteArrayInputStream(data, offsets[index], len);
       DataInputStream dis = new DataInputStream(bais);
@@ -371,7 +375,8 @@ public class MultiLevelIndex {
     
     private void flush(int level, Key lastKey, boolean last) throws IOException {
       
-      if (last && level == levels.size() - 1) return;
+      if (last && level == levels.size() - 1)
+        return;
       
       IndexBlock iblock = levels.get(level);
       if ((iblock.getSize() > threshold && iblock.offsets.size() > 1) || last) {
@@ -383,8 +388,10 @@ public class MultiLevelIndex {
         add(level + 1, lastKey, 0, out.getStartPos(), out.getCompressedSize(), out.getRawSize());
         flush(level + 1, lastKey, last);
         
-        if (last) levels.set(level, null);
-        else levels.set(level, new IndexBlock(level, totalAdded));
+        if (last)
+          levels.set(level, null);
+        else
+          levels.set(level, new IndexBlock(level, totalAdded));
       }
     }
     
@@ -395,7 +402,8 @@ public class MultiLevelIndex {
     }
     
     public void addLast(Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {
-      if (addedLast) throw new IllegalStateException("already added last");
+      if (addedLast)
+        throw new IllegalStateException("already added last");
       
       totalAdded++;
       add(0, key, data, offset, compressedSize, rawSize);
@@ -405,7 +413,8 @@ public class MultiLevelIndex {
     }
     
     public void close(DataOutput out) throws IOException {
-      if (totalAdded > 0 && !addedLast) throw new IllegalStateException("did not call addLast");
+      if (totalAdded > 0 && !addedLast)
+        throw new IllegalStateException("did not call addLast");
       
       out.writeInt(totalAdded);
       // save root node
@@ -448,10 +457,12 @@ public class MultiLevelIndex {
           }
         });
         
-        if (pos < 0) pos = (pos * -1) - 1;
+        if (pos < 0)
+          pos = (pos * -1) - 1;
         
         if (pos == indexBlock.getIndex().size()) {
-          if (parent != null) throw new IllegalStateException();
+          if (parent != null)
+            throw new IllegalStateException();
           this.currentPos = pos;
           return this;
         }
@@ -469,7 +480,8 @@ public class MultiLevelIndex {
       
       private Node getLast() throws IOException {
         currentPos = indexBlock.getIndex().size() - 1;
-        if (indexBlock.getLevel() == 0) return this;
+        if (indexBlock.getLevel() == 0)
+          return this;
         
         IndexEntry ie = indexBlock.getIndex().get(currentPos);
         Node child = new Node(this, getIndexBlock(ie));
@@ -478,7 +490,8 @@ public class MultiLevelIndex {
       
       private Node getFirst() throws IOException {
         currentPos = 0;
-        if (indexBlock.getLevel() == 0) return this;
+        if (indexBlock.getLevel() == 0)
+          return this;
         
         IndexEntry ie = indexBlock.getIndex().get(currentPos);
         Node child = new Node(this, getIndexBlock(ie));
@@ -486,7 +499,8 @@ public class MultiLevelIndex {
       }
       
       private Node getPrevious() throws IOException {
-        if (currentPos == 0) return parent.getPrevious();
+        if (currentPos == 0)
+          return parent.getPrevious();
         
         currentPos--;
         
@@ -497,7 +511,8 @@ public class MultiLevelIndex {
       }
       
       private Node getNext() throws IOException {
-        if (currentPos == indexBlock.getIndex().size() - 1) return parent.getNext();
+        if (currentPos == indexBlock.getIndex().size() - 1)
+          return parent.getNext();
         
         currentPos++;
         
@@ -548,7 +563,8 @@ public class MultiLevelIndex {
       
       @Override
       public boolean hasNext() {
-        if (node == null) return false;
+        if (node == null)
+          return false;
         
         if (!liter.hasNext()) {
           return node.indexBlock.hasNext();
@@ -582,7 +598,8 @@ public class MultiLevelIndex {
       
       @Override
       public boolean hasPrevious() {
-        if (node == null) return false;
+        if (node == null)
+          return false;
         
         if (!liter.hasPrevious()) {
           return node.indexBlock.getOffset() > 0;
@@ -670,10 +687,12 @@ public class MultiLevelIndex {
     
     private void getIndexInfo(IndexBlock ib, Map<Integer,Long> sizesByLevel, Map<Integer,Long> countsByLevel) throws IOException {
       Long size = sizesByLevel.get(ib.getLevel());
-      if (size == null) size = 0l;
+      if (size == null)
+        size = 0l;
       
       Long count = countsByLevel.get(ib.getLevel());
-      if (count == null) count = 0l;
+      if (count == null)
+        count = 0l;
       
       size += ib.index.sizeInBytes();
       count++;

@@ -240,7 +240,8 @@ public class CachableBlockFile {
     }
     
     private synchronized BCFile.Reader getBCFile() throws IOException {
-      if (closed) throw new IllegalStateException("File " + fileName + " is closed");
+      if (closed)
+        throw new IllegalStateException("File " + fileName + " is closed");
       
       if (_bc == null) {
         // lazily open file if needed
@@ -275,7 +276,8 @@ public class CachableBlockFile {
     
     public void cacheMetaBlock(String blockName, byte[] b) {
       
-      if (_iCache == null) return;
+      if (_iCache == null)
+        return;
       
       String _lookup = fileName + "M" + blockName;
       try {
@@ -382,11 +384,13 @@ public class CachableBlockFile {
     }
     
     public synchronized void close() throws IOException {
-      if (closed) return;
+      if (closed)
+        return;
       
       closed = true;
       
-      if (_bc != null) _bc.close();
+      if (_bc != null)
+        _bc.close();
       
       if (fin != null) {
         fin.close();

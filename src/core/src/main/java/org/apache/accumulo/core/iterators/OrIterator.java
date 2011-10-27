@@ -90,13 +90,15 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
   @Override
   final public void next() throws IOException {
     
-    if (currentTerm == null) return;
+    if (currentTerm == null)
+      return;
     
     // Advance currentTerm
     currentTerm.iter.next();
     
     // See if currentTerm is still valid, remove if not
-    if (!(currentTerm.iter.hasTop()) || ((currentTerm.term != null) && (currentTerm.term.compareTo(currentTerm.iter.getTopKey().getColumnFamily()) != 0))) currentTerm = null;
+    if (!(currentTerm.iter.hasTop()) || ((currentTerm.term != null) && (currentTerm.term.compareTo(currentTerm.iter.getTopKey().getColumnFamily()) != 0)))
+      currentTerm = null;
     
     // optimization.
     // if size == 0, currentTerm is the only item left,
@@ -104,7 +106,8 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
     // In either case, we don't need to use the PriorityQueue
     if (sorted.size() > 0) {
       // sort the term back in
-      if (currentTerm != null) sorted.add(currentTerm);
+      if (currentTerm != null)
+        sorted.add(currentTerm);
       // and get the current top item out.
       currentTerm = sorted.poll();
     }
@@ -124,17 +127,19 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
     // and we don't have a priority queue of size 0 or 1.
     if (sources.size() == 1) {
       
-      if (currentTerm == null) currentTerm = sources.get(0);
+      if (currentTerm == null)
+        currentTerm = sources.get(0);
       Range newRange = null;
       
       if (range != null) {
-        if ((range.getStartKey() == null) || (range.getStartKey().getRow() == null)) newRange = range;
+        if ((range.getStartKey() == null) || (range.getStartKey().getRow() == null))
+          newRange = range;
         else {
           Key newKey = null;
-          if (range.getStartKey().getColumnQualifier() == null) newKey = new Key(range.getStartKey().getRow(), (currentTerm.term == null) ? nullText
-              : currentTerm.term);
-          else newKey = new Key(range.getStartKey().getRow(), (currentTerm.term == null) ? nullText : currentTerm.term, range.getStartKey()
-              .getColumnQualifier());
+          if (range.getStartKey().getColumnQualifier() == null)
+            newKey = new Key(range.getStartKey().getRow(), (currentTerm.term == null) ? nullText : currentTerm.term);
+          else
+            newKey = new Key(range.getStartKey().getRow(), (currentTerm.term == null) ? nullText : currentTerm.term, range.getStartKey().getColumnQualifier());
           newRange = new Range((newKey == null) ? nullKey : newKey, true, range.getEndKey(), false);
         }
       }
@@ -145,7 +150,8 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
       // 1) NOT an iterator
       // 2) we have seeked into the next term (ie: seek man, get man001)
       // then ignore it as a valid source
-      if (!(currentTerm.iter.hasTop()) || ((currentTerm.term != null) && (currentTerm.term.compareTo(currentTerm.iter.getTopKey().getColumnFamily()) != 0))) currentTerm = null;
+      if (!(currentTerm.iter.hasTop()) || ((currentTerm.term != null) && (currentTerm.term.compareTo(currentTerm.iter.getTopKey().getColumnFamily()) != 0)))
+        currentTerm = null;
       
       // Otherwise, source is valid.
       return;
@@ -162,7 +168,8 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
       for (TermSource TS : sources) {
         TS.iter.seek(range, columnFamilies, inclusive);
         
-        if ((TS.iter.hasTop()) && ((TS.term != null) && (TS.term.compareTo(TS.iter.getTopKey().getColumnFamily()) == 0))) sorted.add(TS);
+        if ((TS.iter.hasTop()) && ((TS.term != null) && (TS.term.compareTo(TS.iter.getTopKey().getColumnFamily()) == 0)))
+          sorted.add(TS);
       }
       currentTerm = sorted.poll();
       return;
@@ -177,11 +184,14 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
       Range newRange = null;
       
       if (range != null) {
-        if ((range.getStartKey() == null) || (range.getStartKey().getRow() == null)) newRange = range;
+        if ((range.getStartKey() == null) || (range.getStartKey().getRow() == null))
+          newRange = range;
         else {
           Key newKey = null;
-          if (range.getStartKey().getColumnQualifier() == null) newKey = new Key(range.getStartKey().getRow(), (TS.term == null) ? nullText : TS.term);
-          else newKey = new Key(range.getStartKey().getRow(), (TS.term == null) ? nullText : TS.term, range.getStartKey().getColumnQualifier());
+          if (range.getStartKey().getColumnQualifier() == null)
+            newKey = new Key(range.getStartKey().getRow(), (TS.term == null) ? nullText : TS.term);
+          else
+            newKey = new Key(range.getStartKey().getRow(), (TS.term == null) ? nullText : TS.term, range.getStartKey().getColumnQualifier());
           newRange = new Range((newKey == null) ? nullKey : newKey, true, range.getEndKey(), false);
         }
       }
@@ -193,7 +203,8 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
       // 1) NOT an iterator
       // 2) we have seeked into the next term (ie: seek man, get man001)
       // then ignore it as a valid source
-      if (!(TS.iter.hasTop()) || ((TS.term != null) && (TS.term.compareTo(TS.iter.getTopKey().getColumnFamily()) != 0))) iter.remove();
+      if (!(TS.iter.hasTop()) || ((TS.term != null) && (TS.term.compareTo(TS.iter.getTopKey().getColumnFamily()) != 0)))
+        iter.remove();
       
       // Otherwise, source is valid. Add it to the sources.
       sorted.add(TS);

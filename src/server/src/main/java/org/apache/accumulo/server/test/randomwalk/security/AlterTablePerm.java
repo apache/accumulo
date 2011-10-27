@@ -44,8 +44,10 @@ public class AlterTablePerm extends Test {
     boolean tabExists = SecurityHelper.getTableExists(state);
     
     String target;
-    if ("table".equals(targetUser)) target = SecurityHelper.getTabUserName(state);
-    else target = SecurityHelper.getSysUserName(state);
+    if ("table".equals(targetUser))
+      target = SecurityHelper.getTabUserName(state);
+    else
+      target = SecurityHelper.getSysUserName(state);
     
     boolean exists = SecurityHelper.getTabUserExists(state);
     boolean tableExists = SecurityHelper.getTableExists(state);
@@ -55,7 +57,8 @@ public class AlterTablePerm extends Test {
       Random r = new Random();
       int i = r.nextInt(TablePermission.values().length);
       tabPerm = TablePermission.values()[i];
-    } else tabPerm = TablePermission.valueOf(perm);
+    } else
+      tabPerm = TablePermission.valueOf(perm);
     
     boolean hasPerm = SecurityHelper.getTabPerm(state, target, tabPerm);
     boolean canGive;
@@ -75,20 +78,26 @@ public class AlterTablePerm extends Test {
     if (!"take".equals(action) && !"give".equals(action)) {
       try {
         boolean res;
-        if (hasPerm != (res = state.getConnector().securityOperations().hasTablePermission(target, SecurityHelper.getTableName(state), tabPerm))) throw new AccumuloException(
-            "Test framework and accumulo are out of sync for user " + conn.whoami() + " for perm " + tabPerm.name() + " with local vs. accumulo being "
-                + hasPerm + " " + res);
+        if (hasPerm != (res = state.getConnector().securityOperations().hasTablePermission(target, SecurityHelper.getTableName(state), tabPerm)))
+          throw new AccumuloException("Test framework and accumulo are out of sync for user " + conn.whoami() + " for perm " + tabPerm.name()
+              + " with local vs. accumulo being " + hasPerm + " " + res);
         
-        if (hasPerm) action = "take";
-        else action = "give";
+        if (hasPerm)
+          action = "take";
+        else
+          action = "give";
       } catch (AccumuloSecurityException ae) {
         switch (ae.getErrorCode()) {
           case USER_DOESNT_EXIST:
-            if (exists) throw new AccumuloException("Framework and Accumulo are out of sync, we think user exists", ae);
-            else return;
+            if (exists)
+              throw new AccumuloException("Framework and Accumulo are out of sync, we think user exists", ae);
+            else
+              return;
           case TABLE_DOESNT_EXIST:
-            if (tabExists) throw new AccumuloException(conn.whoami(), ae);
-            else return;
+            if (tabExists)
+              throw new AccumuloException(conn.whoami(), ae);
+            else
+              return;
           default:
             throw ae;
         }
@@ -101,15 +110,19 @@ public class AlterTablePerm extends Test {
       } catch (AccumuloSecurityException ae) {
         switch (ae.getErrorCode()) {
           case GRANT_INVALID:
-            if (tabPerm.equals(SystemPermission.GRANT)) return;
+            if (tabPerm.equals(SystemPermission.GRANT))
+              return;
           case PERMISSION_DENIED:
-            if (canGive) throw new AccumuloException("Test user failed to give permission when it should have worked", ae);
+            if (canGive)
+              throw new AccumuloException("Test user failed to give permission when it should have worked", ae);
             return;
           case USER_DOESNT_EXIST:
-            if (exists) throw new AccumuloException("Table user doesn't exist and they SHOULD.", ae);
+            if (exists)
+              throw new AccumuloException("Table user doesn't exist and they SHOULD.", ae);
             return;
           case TABLE_DOESNT_EXIST:
-            if (tableExists) throw new AccumuloException("Table doesn't exist but it should", ae);
+            if (tableExists)
+              throw new AccumuloException("Table doesn't exist but it should", ae);
             return;
           default:
             throw new AccumuloException("Got unexpected exception", ae);
@@ -122,16 +135,20 @@ public class AlterTablePerm extends Test {
       } catch (AccumuloSecurityException ae) {
         switch (ae.getErrorCode()) {
           case GRANT_INVALID:
-            if (tabPerm.equals(SystemPermission.GRANT)) return;
+            if (tabPerm.equals(SystemPermission.GRANT))
+              return;
             throw new AccumuloException("Got a grant invalid on non-System.GRANT option", ae);
           case PERMISSION_DENIED:
-            if (canGive) throw new AccumuloException("Test user failed to give permission when it should have worked", ae);
+            if (canGive)
+              throw new AccumuloException("Test user failed to give permission when it should have worked", ae);
             return;
           case USER_DOESNT_EXIST:
-            if (exists) throw new AccumuloException("Table user doesn't exist and they SHOULD.", ae);
+            if (exists)
+              throw new AccumuloException("Table user doesn't exist and they SHOULD.", ae);
             return;
           case TABLE_DOESNT_EXIST:
-            if (tableExists) throw new AccumuloException("Table doesn't exist but it should", ae);
+            if (tableExists)
+              throw new AccumuloException("Table doesn't exist but it should", ae);
             return;
           default:
             throw new AccumuloException("Got unexpected exception", ae);
@@ -140,9 +157,12 @@ public class AlterTablePerm extends Test {
       SecurityHelper.setTabPerm(state, target, tabPerm, true);
     }
     
-    if (!exists) throw new AccumuloException("User shouldn't have existed, but apparantly does");
-    if (!tableExists) throw new AccumuloException("Table shouldn't have existed, but apparantly does");
-    if (!canGive) throw new AccumuloException("Source user shouldn't have been able to grant privilege");
+    if (!exists)
+      throw new AccumuloException("User shouldn't have existed, but apparantly does");
+    if (!tableExists)
+      throw new AccumuloException("Table shouldn't have existed, but apparantly does");
+    if (!canGive)
+      throw new AccumuloException("Source user shouldn't have been able to grant privilege");
     
   }
   

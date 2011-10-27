@@ -42,7 +42,8 @@ public class Violations {
     
     @Override
     public boolean equals(Object o) {
-      if (o instanceof CVSKey) return equals((CVSKey) o);
+      if (o instanceof CVSKey)
+        return equals((CVSKey) o);
       return false;
     }
     

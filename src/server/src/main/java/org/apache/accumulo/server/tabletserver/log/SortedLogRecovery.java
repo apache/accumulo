@@ -60,7 +60,8 @@ public class SortedLogRecovery {
     
     private void update(long newFinish) {
       this.seq = this.lastStart;
-      if (newFinish != -1) lastFinish = newFinish;
+      if (newFinish != -1)
+        lastFinish = newFinish;
     }
     
     private void update(int newStartFile, long newStart) {
@@ -96,8 +97,8 @@ public class SortedLogRecovery {
       
     }
     
-    if (lastStartToFinish.compactionStatus == Status.LOOKING_FOR_FINISH) throw new RuntimeException(
-        "COMPACTION_FINISH (without preceding COMPACTION_START) not followed by successful minor compaction");
+    if (lastStartToFinish.compactionStatus == Status.LOOKING_FOR_FINISH)
+      throw new RuntimeException("COMPACTION_FINISH (without preceding COMPACTION_START) not followed by successful minor compaction");
     
     for (int i = 0; i < recoveryLogs.size(); i++) {
       String logfile = recoveryLogs.get(i);
@@ -120,12 +121,14 @@ public class SortedLogRecovery {
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
     int tid = -1;
-    if (!reader.next(key, value)) throw new RuntimeException("Unable to read log entries");
-    if (key.event != OPEN) throw new RuntimeException("First log entry value is not OPEN");
+    if (!reader.next(key, value))
+      throw new RuntimeException("Unable to read log entries");
+    if (key.event != OPEN)
+      throw new RuntimeException("First log entry value is not OPEN");
     
     if (key.tserverSession.compareTo(lastStartToFinish.tserverSession) != 0) {
-      if (lastStartToFinish.compactionStatus == Status.LOOKING_FOR_FINISH) throw new RuntimeException(
-          "COMPACTION_FINISH (without preceding COMPACTION_START) is not followed by a successful minor compaction.");
+      if (lastStartToFinish.compactionStatus == Status.LOOKING_FOR_FINISH)
+        throw new RuntimeException("COMPACTION_FINISH (without preceding COMPACTION_START) is not followed by a successful minor compaction.");
       lastStartToFinish.update(key.tserverSession);
     }
     
@@ -135,7 +138,8 @@ public class SortedLogRecovery {
     // for the maximum tablet id, find the minimum sequence #... may be ok to find the max seq, but just want to make the code behave like it used to
     while (reader.next(key, value)) {
       // LogReader.printEntry(entry);
-      if (key.event != DEFINE_TABLET) break;
+      if (key.event != DEFINE_TABLET)
+        break;
       if (key.tablet.equals(extent)) {
         if (tid != key.tid) {
           tid = key.tid;
@@ -156,22 +160,30 @@ public class SortedLogRecovery {
     reader.seek(key);
     while (reader.next(key, value)) {
       // LogFileEntry.printEntry(entry);
-      if (key.tid != tid) break;
+      if (key.tid != tid)
+        break;
       if (key.event == COMPACTION_START) {
-        if (lastStartToFinish.compactionStatus == Status.INITIAL) lastStartToFinish.compactionStatus = Status.COMPLETE;
-        if (key.seq <= lastStartToFinish.lastStart) throw new RuntimeException("Sequence numbers are not increasing for start/stop events.");
+        if (lastStartToFinish.compactionStatus == Status.INITIAL)
+          lastStartToFinish.compactionStatus = Status.COMPLETE;
+        if (key.seq <= lastStartToFinish.lastStart)
+          throw new RuntimeException("Sequence numbers are not increasing for start/stop events.");
         lastStartToFinish.update(fileno, key.seq);
         
         // Tablet server finished the minor compaction, but didn't remove the entry from the METADATA table.
-        if (tabletFiles.contains(key.filename)) lastStartToFinish.update(-1);
+        if (tabletFiles.contains(key.filename))
+          lastStartToFinish.update(-1);
       } else if (key.event == COMPACTION_FINISH) {
-        if (key.seq <= lastStartToFinish.lastStart) throw new RuntimeException("Sequence numbers are not increasing for start/stop events.");
-        if (lastStartToFinish.compactionStatus == Status.INITIAL) lastStartToFinish.compactionStatus = Status.LOOKING_FOR_FINISH;
-        else if (lastStartToFinish.lastFinish > lastStartToFinish.lastStart) throw new RuntimeException(
-            "COMPACTION_FINISH does not have preceding COMPACTION_START event.");
-        else lastStartToFinish.compactionStatus = Status.COMPLETE;
+        if (key.seq <= lastStartToFinish.lastStart)
+          throw new RuntimeException("Sequence numbers are not increasing for start/stop events.");
+        if (lastStartToFinish.compactionStatus == Status.INITIAL)
+          lastStartToFinish.compactionStatus = Status.LOOKING_FOR_FINISH;
+        else if (lastStartToFinish.lastFinish > lastStartToFinish.lastStart)
+          throw new RuntimeException("COMPACTION_FINISH does not have preceding COMPACTION_START event.");
+        else
+          lastStartToFinish.compactionStatus = Status.COMPLETE;
         lastStartToFinish.update(key.seq);
-      } else break;
+      } else
+        break;
     }
     return tid;
   }
@@ -189,8 +201,10 @@ public class SortedLogRecovery {
     key.seq = lastStartToFinish.seq;
     reader.seek(key);
     while (true) {
-      if (!reader.next(key, value)) break;
-      if (key.tid != tid) break;
+      if (!reader.next(key, value))
+        break;
+      if (key.tid != tid)
+        break;
       // log.info("Replaying " + key);
       // log.info(value);
       if (key.event == MUTATION) {

@@ -36,18 +36,23 @@ import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 public class Column implements WritableComparable<Column> {
   
   static private int compareBytes(byte[] a, byte[] b) {
-    if (a == null && b == null) return 0;
-    if (a == null) return -1;
-    if (b == null) return 1;
+    if (a == null && b == null)
+      return 0;
+    if (a == null)
+      return -1;
+    if (b == null)
+      return 1;
     return WritableComparator.compareBytes(a, 0, a.length, b, 0, b.length);
   }
   
   public int compareTo(Column that) {
     int result;
     result = compareBytes(this.columnFamily, that.columnFamily);
-    if (result != 0) return result;
+    if (result != 0)
+      return result;
     result = compareBytes(this.columnQualifier, that.columnQualifier);
-    if (result != 0) return result;
+    if (result != 0)
+      return result;
     return compareBytes(this.columnVisibility, that.columnVisibility);
   }
   
@@ -123,8 +128,10 @@ public class Column implements WritableComparable<Column> {
   
   @Override
   public boolean equals(Object that) {
-    if (that == null) return false;
-    if (that instanceof Column) return this.equals((Column) that);
+    if (that == null)
+      return false;
+    if (that instanceof Column)
+      return this.equals((Column) that);
     return false;
   }
   
@@ -133,7 +140,8 @@ public class Column implements WritableComparable<Column> {
   }
   
   private static int hash(byte[] b) {
-    if (b == null) return 0;
+    if (b == null)
+      return 0;
     
     return WritableComparator.hashBytes(b, b.length);
   }

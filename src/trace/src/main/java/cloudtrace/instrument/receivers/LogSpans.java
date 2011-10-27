@@ -39,7 +39,8 @@ public class LogSpans implements SpanReceiver {
     }
     
     static public Level toLevel(int val) {
-      if (val == Level.DEBUG_INT + 150) return Level.DEBUG;
+      if (val == Level.DEBUG_INT + 150)
+        return Level.DEBUG;
       return Level.toLevel(val);
     }
   }
@@ -48,7 +49,8 @@ public class LogSpans implements SpanReceiver {
   
   public static String format(long traceId, long spanId, long parentId, long start, long stop, String description, Map<String,String> data) {
     String parentStr = "";
-    if (parentId > 0) parentStr = " parent:" + parentId;
+    if (parentId > 0)
+      parentStr = " parent:" + parentId;
     String startStr = fmt.format(new Date(start));
     return String.format("%20s:%x id:%d%s start:%s ms:%d", description, traceId, spanId, parentStr, startStr, stop - start);
   }

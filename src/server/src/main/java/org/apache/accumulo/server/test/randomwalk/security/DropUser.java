@@ -36,13 +36,15 @@ public class DropUser extends Test {
     
     boolean exists = SecurityHelper.getTabUserExists(state);
     boolean hasPermission = false;
-    if (SecurityHelper.getSysPerm(state, SecurityHelper.getSysUserName(state), SystemPermission.DROP_USER)) hasPermission = true;
+    if (SecurityHelper.getSysPerm(state, SecurityHelper.getSysUserName(state), SystemPermission.DROP_USER))
+      hasPermission = true;
     try {
       conn.securityOperations().dropUser(tableUserName);
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
         case PERMISSION_DENIED:
-          if (hasPermission) throw new AccumuloException("Got a security exception when I should have had permission.", ae);
+          if (hasPermission)
+            throw new AccumuloException("Got a security exception when I should have had permission.", ae);
           else {
             if (exists) {
               state.getConnector().securityOperations().dropUser(tableUserName);
@@ -56,8 +58,10 @@ public class DropUser extends Test {
           }
           
         case USER_DOESNT_EXIST:
-          if (exists) throw new AccumuloException("Got user DNE exception when user should exists.", ae);
-          else return;
+          if (exists)
+            throw new AccumuloException("Got user DNE exception when user should exists.", ae);
+          else
+            return;
         default:
           throw new AccumuloException("Got unexpected exception", ae);
       }
@@ -67,6 +71,7 @@ public class DropUser extends Test {
       SecurityHelper.setTabPerm(state, tableUserName, tp, false);
     for (SystemPermission sp : SystemPermission.values())
       SecurityHelper.setSysPerm(state, tableUserName, sp, false);
-    if (!hasPermission) throw new AccumuloException("Didn't get Security Exception when we should have");
+    if (!hasPermission)
+      throw new AccumuloException("Didn't get Security Exception when we should have");
   }
 }

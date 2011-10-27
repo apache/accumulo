@@ -64,7 +64,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     
     @Override
     public Value next() {
-      if (!hasNext) throw new NoSuchElementException();
+      if (!hasNext)
+        throw new NoSuchElementException();
       Value topValue = source.getTopValue();
       try {
         source.next();
@@ -88,13 +89,15 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   
   @Override
   public Key getTopKey() {
-    if (topKey == null) return super.getTopKey();
+    if (topKey == null)
+      return super.getTopKey();
     return topKey;
   }
   
   @Override
   public Value getTopValue() {
-    if (topKey == null) return super.getTopValue();
+    if (topKey == null)
+      return super.getTopValue();
     return topValue;
   }
   
@@ -122,7 +125,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     if (super.hasTop()) {
       workKey.set(super.getTopKey());
       if (combiners.isEmpty() || combiners.contains(workKey)) {
-        if (workKey.isDeleted()) return;
+        if (workKey.isDeleted())
+          return;
         topKey = workKey;
         Iterator<Value> viter = new ValueIterator(getSource());
         topValue = reduce(topKey, viter);

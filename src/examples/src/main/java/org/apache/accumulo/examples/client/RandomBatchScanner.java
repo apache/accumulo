@@ -89,9 +89,11 @@ public class RandomBatchScanner {
   private static void printRowsNotFound(HashMap<Text,Boolean> expectedRows) {
     int count = 0;
     for (Entry<Text,Boolean> entry : expectedRows.entrySet())
-      if (!entry.getValue()) count++;
+      if (!entry.getValue())
+        count++;
     
-    if (count > 0) log.warn("Did not find " + count + " rows");
+    if (count > 0)
+      log.warn("Did not find " + count + " rows");
   }
   
   static void doRandomQueries(int num, long min, long max, int evs, Random r, BatchScanner tsbr) {
@@ -159,8 +161,10 @@ public class RandomBatchScanner {
     BatchScanner tsbr = connector.createBatchScanner(table, new Authorizations(auths.split(",")), numThreads);
     
     Random r;
-    if (seed == null) r = new Random();
-    else r = new Random(Long.parseLong(seed));
+    if (seed == null)
+      r = new Random();
+    else
+      r = new Random(Long.parseLong(seed));
     
     // do one cold
     doRandomQueries(num, min, max, expectedValueSize, r, tsbr);
@@ -169,8 +173,10 @@ public class RandomBatchScanner {
     System.gc();
     System.gc();
     
-    if (seed == null) r = new Random();
-    else r = new Random(Long.parseLong(seed));
+    if (seed == null)
+      r = new Random();
+    else
+      r = new Random(Long.parseLong(seed));
     
     // do one hot (connections already established, metadata table cached)
     doRandomQueries(num, min, max, expectedValueSize, r, tsbr);

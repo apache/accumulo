@@ -117,9 +117,11 @@ public class ConcurrencyTest extends FunctionalTest {
     
     st1.join();
     st2.join();
-    if (st1.count != 50) throw new Exception("Thread 1 did not see 50, saw " + st1.count);
+    if (st1.count != 50)
+      throw new Exception("Thread 1 did not see 50, saw " + st1.count);
     
-    if (st2.count != 50) throw new Exception("Thread 2 did not see 50, saw " + st2.count);
+    if (st2.count != 50)
+      throw new Exception("Thread 2 did not see 50, saw " + st2.count);
     
     ScanTask st3 = new ScanTask(getConnector(), 150);
     st3.start();
@@ -128,10 +130,12 @@ public class ConcurrencyTest extends FunctionalTest {
     getConnector().tableOperations().flush("cct", null, null, false);
     
     st3.join();
-    if (st3.count != 50) throw new Exception("Thread 3 did not see 50, saw " + st3.count);
+    if (st3.count != 50)
+      throw new Exception("Thread 3 did not see 50, saw " + st3.count);
     
     st0.join();
-    if (st0.count != 50) throw new Exception("Thread 0 did not see 50, saw " + st0.count);
+    if (st0.count != 50)
+      throw new Exception("Thread 0 did not see 50, saw " + st0.count);
     
     bw.close();
   }

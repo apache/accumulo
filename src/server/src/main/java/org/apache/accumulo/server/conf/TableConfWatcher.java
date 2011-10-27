@@ -39,7 +39,8 @@ class TableConfWatcher implements Watcher {
   @Override
   public void process(WatchedEvent event) {
     String path = event.getPath();
-    if (log.isTraceEnabled()) log.trace("WatchEvent : " + path + " " + event.getState() + " " + event.getType());
+    if (log.isTraceEnabled())
+      log.trace("WatchEvent : " + path + " " + event.getState() + " " + event.getType());
     
     String tablesPrefix = ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/";
     
@@ -51,8 +52,8 @@ class TableConfWatcher implements Watcher {
         tableId = path.substring(tablesPrefix.length());
         if (tableId.contains("/")) {
           tableId = tableId.substring(0, tableId.indexOf('/'));
-          if (path.startsWith(tablesPrefix + tableId + Constants.ZTABLE_CONF + "/")) key = path
-              .substring((tablesPrefix + tableId + Constants.ZTABLE_CONF + "/").length());
+          if (path.startsWith(tablesPrefix + tableId + Constants.ZTABLE_CONF + "/"))
+            key = path.substring((tablesPrefix + tableId + Constants.ZTABLE_CONF + "/").length());
         }
       }
       
@@ -64,8 +65,10 @@ class TableConfWatcher implements Watcher {
     
     switch (event.getType()) {
       case NodeDataChanged:
-        if (log.isTraceEnabled()) log.trace("EventNodeDataChanged " + event.getPath());
-        if (key != null) ServerConfiguration.getTableConfiguration(instanceId, tableId).propertyChanged(key);
+        if (log.isTraceEnabled())
+          log.trace("EventNodeDataChanged " + event.getPath());
+        if (key != null)
+          ServerConfiguration.getTableConfiguration(instanceId, tableId).propertyChanged(key);
         break;
       case NodeChildrenChanged:
         ServerConfiguration.getTableConfiguration(instanceId, tableId).propertiesChanged(key);

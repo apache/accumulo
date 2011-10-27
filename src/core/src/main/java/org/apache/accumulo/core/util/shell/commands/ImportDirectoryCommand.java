@@ -47,8 +47,8 @@ public class ImportDirectoryCommand extends Command {
     
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     FileStatus failStatus = fs.getFileStatus(new Path(failureDir));
-    if (failStatus == null || !failStatus.isDir() || fs.listStatus(new Path(failureDir)).length != 0) throw new AccumuloException(failureDir
-        + " is not an empty directory");
+    if (failStatus == null || !failStatus.isDir() || fs.listStatus(new Path(failureDir)).length != 0)
+      throw new AccumuloException(failureDir + " is not an empty directory");
     shellState.getConnector().tableOperations().importDirectory(shellState.getTableName(), dir, failureDir, setTime);
     return 0;
   }

@@ -69,9 +69,13 @@ class MemKeyComparator implements Comparator<Key> {
     int cmp = k1.compareTo(k2);
     
     if (cmp == 0) {
-      if (k1 instanceof MemKey) if (k2 instanceof MemKey) cmp = ((MemKey) k2).mutationCount - ((MemKey) k1).mutationCount;
-      else cmp = 1;
-      else if (k2 instanceof MemKey) cmp = -1;
+      if (k1 instanceof MemKey)
+        if (k2 instanceof MemKey)
+          cmp = ((MemKey) k2).mutationCount - ((MemKey) k1).mutationCount;
+        else
+          cmp = 1;
+      else if (k2 instanceof MemKey)
+        cmp = -1;
     }
     
     return cmp;
@@ -159,7 +163,8 @@ public class InMemoryMap {
     public void put(Key key, Value value) {
       bytesInMemory.addAndGet(key.getLength());
       bytesInMemory.addAndGet(value.getSize());
-      if (map.put(key, value) == null) size.incrementAndGet();
+      if (map.put(key, value) == null)
+        size.incrementAndGet();
     }
     
     public Value get(Key key) {
@@ -177,7 +182,8 @@ public class InMemoryMap {
     }
     
     public synchronized InterruptibleIterator skvIterator() {
-      if (map == null) throw new IllegalStateException();
+      if (map == null)
+        throw new IllegalStateException();
       
       return new SortedMapIterator(map);
     }
@@ -290,7 +296,8 @@ public class InMemoryMap {
    * @return bytesInMemory
    */
   public synchronized long estimatedSizeInBytes() {
-    if (map == null) return 0;
+    if (map == null)
+      return 0;
     
     return map.getMemoryUsed();
   }
@@ -321,13 +328,16 @@ public class InMemoryMap {
     
     @Override
     public boolean isCurrent() {
-      if (switched) return true;
-      else return memDumpFile == null;
+      if (switched)
+        return true;
+      else
+        return memDumpFile == null;
     }
     
     @Override
     public DataSource getNewDataSource() {
-      if (switched) throw new IllegalStateException();
+      if (switched)
+        throw new IllegalStateException();
       
       if (!isCurrent()) {
         switched = true;
@@ -339,18 +349,20 @@ public class InMemoryMap {
     
     @Override
     public SortedKeyValueIterator<Key,Value> iterator() throws IOException {
-      if (iter == null) if (!switched) iter = map.skvIterator();
-      else {
-        
-        Configuration conf = CachedConfiguration.getInstance();
-        FileSystem fs = TraceFileSystem.wrap(FileSystem.getLocal(conf));
-        
-        FileSKVIterator reader = new MapFileOperations.RangeIterator(new MyMapFile.Reader(fs, memDumpFile, conf));
-        
-        readers.add(reader);
-        
-        iter = reader;
-      }
+      if (iter == null)
+        if (!switched)
+          iter = map.skvIterator();
+        else {
+          
+          Configuration conf = CachedConfiguration.getInstance();
+          FileSystem fs = TraceFileSystem.wrap(FileSystem.getLocal(conf));
+          
+          FileSKVIterator reader = new MapFileOperations.RangeIterator(new MyMapFile.Reader(fs, memDumpFile, conf));
+          
+          readers.add(reader);
+          
+          iter = reader;
+        }
       
       return iter;
     }
@@ -369,7 +381,8 @@ public class InMemoryMap {
     private MemoryDataSource mds;
     
     protected SortedKeyValueIterator<Key,Value> getSource() {
-      if (closed.get()) throw new IllegalStateException("Memory iterator is closed");
+      if (closed.get())
+        throw new IllegalStateException("Memory iterator is closed");
       return super.getSource();
     }
     
@@ -405,7 +418,8 @@ public class InMemoryMap {
     }
     
     private synchronized boolean switchNow() throws IOException {
-      if (closed.get()) return false;
+      if (closed.get())
+        return false;
       
       ssi.switchNow();
       return true;
@@ -427,9 +441,11 @@ public class InMemoryMap {
   }
   
   public synchronized MemoryIterator skvIterator() {
-    if (map == null) throw new NullPointerException();
+    if (map == null)
+      throw new NullPointerException();
     
-    if (deleted) throw new IllegalStateException("Can not obtain iterator after map deleted");
+    if (deleted)
+      throw new IllegalStateException("Can not obtain iterator after map deleted");
     
     int mc = mutationCount.get();
     MemoryDataSource mds = new MemoryDataSource();
@@ -443,8 +459,9 @@ public class InMemoryMap {
   
   public SortedKeyValueIterator<Key,Value> compactionIterator() {
     
-    if (nextMutationCount.get() - 1 != mutationCount.get()) throw new IllegalStateException("Memory map in unexpected state : nextMutationCount = "
-        + nextMutationCount.get() + " mutationCount = " + mutationCount.get());
+    if (nextMutationCount.get() - 1 != mutationCount.get())
+      throw new IllegalStateException("Memory map in unexpected state : nextMutationCount = " + nextMutationCount.get() + " mutationCount = "
+          + mutationCount.get());
     
     return new ColumnFamilySkippingIterator(map.skvIterator());
   }
@@ -454,7 +471,8 @@ public class InMemoryMap {
   public void delete(long waitTime) {
     
     synchronized (this) {
-      if (deleted) throw new IllegalStateException("Double delete");
+      if (deleted)
+        throw new IllegalStateException("Double delete");
       
       deleted = true;
     }

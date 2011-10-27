@@ -85,7 +85,8 @@ public class SecurityConstants {
    * @return RESERVED if the passwords match, otherwise a state that describes the failure state
    */
   public static TabletServerState compareSystemPassword(byte[] base64encodedPassword) {
-    if (Arrays.equals(SYSTEM_PASSWORD, base64encodedPassword)) return TabletServerState.RESERVED;
+    if (Arrays.equals(SYSTEM_PASSWORD, base64encodedPassword))
+      return TabletServerState.RESERVED;
     
     // parse to determine why
     byte[] decodedPassword = Base64.decodeBase64(base64encodedPassword);
@@ -103,7 +104,8 @@ public class SecurityConstants {
       buff = new byte[in.readInt()];
       in.readFully(buff);
       confFails = !Arrays.equals(buff, getSystemConfigChecksum());
-      if (in.available() > 0) throw new IOException();
+      if (in.available() > 0)
+        throw new IOException();
     } catch (IOException e) {
       return TabletServerState.BAD_SYSTEM_PASSWORD;
     } catch (NoSuchAlgorithmException e) {
@@ -114,10 +116,12 @@ public class SecurityConstants {
     // nested ternary conditionals, but
     // this is more readable; no fun :/
     if (versionFails) {
-      if (instanceFails) return confFails ? TabletServerState.BAD_VERSION_AND_INSTANCE_AND_CONFIG : TabletServerState.BAD_VERSION_AND_INSTANCE;
+      if (instanceFails)
+        return confFails ? TabletServerState.BAD_VERSION_AND_INSTANCE_AND_CONFIG : TabletServerState.BAD_VERSION_AND_INSTANCE;
       return confFails ? TabletServerState.BAD_VERSION_AND_CONFIG : TabletServerState.BAD_VERSION;
     }
-    if (instanceFails) return confFails ? TabletServerState.BAD_INSTANCE_AND_CONFIG : TabletServerState.BAD_INSTANCE;
+    if (instanceFails)
+      return confFails ? TabletServerState.BAD_INSTANCE_AND_CONFIG : TabletServerState.BAD_INSTANCE;
     return confFails ? TabletServerState.BAD_CONFIG : TabletServerState.BAD_SYSTEM_PASSWORD;
   }
   

@@ -204,13 +204,17 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
     public MergeStats(MergeInfo info) {
       this.info = info;
-      if (info.getState().equals(MergeState.NONE)) return;
-      if (info.getRange().getEndRow() == null) upperSplit = true;
-      if (info.getRange().getPrevEndRow() == null) lowerSplit = true;
+      if (info.getState().equals(MergeState.NONE))
+        return;
+      if (info.getRange().getEndRow() == null)
+        upperSplit = true;
+      if (info.getRange().getPrevEndRow() == null)
+        lowerSplit = true;
     }
     
     void update(KeyExtent ke, TabletState state, boolean chopped) {
-      if (info.getState().equals(MergeState.NONE)) return;
+      if (info.getState().equals(MergeState.NONE))
+        return;
       if (!upperSplit && info.getRange().getEndRow().equals(ke.getPrevEndRow())) {
         log.info("Upper split found");
         upperSplit = true;
@@ -219,14 +223,18 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         log.info("Lower split found");
         lowerSplit = true;
       }
-      if (!info.overlaps(ke)) return;
+      if (!info.overlaps(ke))
+        return;
       if (info.needsToBeChopped(ke)) {
         this.needsToBeChopped++;
-        if (chopped) this.chopped++;
+        if (chopped)
+          this.chopped++;
       }
       this.total++;
-      if (state.equals(TabletState.HOSTED)) this.hosted++;
-      if (state.equals(TabletState.UNASSIGNED)) this.unassigned++;
+      if (state.equals(TabletState.HOSTED))
+        this.hosted++;
+      if (state.equals(TabletState.UNASSIGNED))
+        this.unassigned++;
     }
   }
   
@@ -268,17 +276,18 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   static final boolean X = true;
   static final boolean _ = false;
   static final boolean transitionOK[][] = {
-    //                          INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
-    /* INITIAL                  */{X,         X,      _,      _,        _,          _,      X},
-    /* HAVE_LOCK                */{_,         X,      X,      X,        _,          _,      X},
-    /* SAFE_MODE                */{_,         _,      X,      X,        X,          _,      X},
-    /* NORMAL                   */{_,         _,      X,      X,        X,          _,      X},
-    /* UNLOAD_METADATA_TABLETS  */{_,         _,      X,      X,        X,          X,      X},
-    /* UNLOAD_ROOT_TABLET       */{_,         _,      _,      _,        _,          X,      X},
-    /* STOP                     */{_,         _,      _,      _,        _,          _,      X},}; 
+      // INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
+      /* INITIAL */{X, X, _, _, _, _, X},
+      /* HAVE_LOCK */{_, X, X, X, _, _, X},
+      /* SAFE_MODE */{_, _, X, X, X, _, X},
+      /* NORMAL */{_, _, X, X, X, _, X},
+      /* UNLOAD_METADATA_TABLETS */{_, _, X, X, X, X, X},
+      /* UNLOAD_ROOT_TABLET */{_, _, _, _, _, X, X},
+      /* STOP */{_, _, _, _, _, _, X},};
   
   synchronized private void setMasterState(MasterState newState) {
-    if (state.equals(newState)) return;
+    if (state.equals(newState))
+      return;
     if (!transitionOK[state.ordinal()][newState.ordinal()]) {
       log.error("Programmer error: master should not transition from " + state + " to " + newState);
     }
@@ -316,7 +325,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           log.error(String.format("Unable to upgrade: extent %s has log entry %s", entry.getKey().getRow(), entry.getValue()));
           fail = true;
         }
-        if (fail) throw new Exception("Upgrade requires a clean shutdown");
+        if (fail)
+          throw new Exception("Upgrade requires a clean shutdown");
         
         // perform 1.2 -> 1.3 settings
         zset(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
@@ -442,13 +452,16 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   private void verify(AuthInfo credentials, String tableId, TableOperation op, boolean match) throws ThriftSecurityException, ThriftTableOperationException {
     if (!match) {
       Tables.clearCache(instance);
-      if (!Tables.exists(instance, tableId)) throw new ThriftTableOperationException(tableId, null, op, TableOperationExceptionType.NOTFOUND, null);
-      else throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+      if (!Tables.exists(instance, tableId))
+        throw new ThriftTableOperationException(tableId, null, op, TableOperationExceptionType.NOTFOUND, null);
+      else
+        throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
   }
   
   private void verify(AuthInfo credentials, boolean match) throws ThriftSecurityException {
-    if (!match) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    if (!match)
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED).asThriftException();
   }
   
   private boolean check(AuthInfo credentials, SystemPermission permission) throws ThriftSecurityException {
@@ -469,8 +482,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   
   public void mustBeOnline(final String tableId) throws ThriftTableOperationException {
     Tables.clearCache(instance);
-    if (!Tables.getTableState(instance, tableId).equals(TableState.ONLINE)) throw new ThriftTableOperationException(tableId, null, TableOperation.MERGE,
-        TableOperationExceptionType.OFFLINE, "table is not online");
+    if (!Tables.getTableState(instance, tableId).equals(TableState.ONLINE))
+      throw new ThriftTableOperationException(tableId, null, TableOperation.MERGE, TableOperationExceptionType.OFFLINE, "table is not online");
   }
   
   Connector getConnector() throws AccumuloException, AccumuloSecurityException {
@@ -532,7 +545,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
     protected String checkTableId(String tableName, TableOperation operation) throws ThriftTableOperationException {
       final String tableId = Tables.getNameToIdMap(HdfsZooInstance.getInstance()).get(tableName);
-      if (tableId == null) throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.NOTFOUND, null);
+      if (tableId == null)
+        throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.NOTFOUND, null);
       return tableId;
     }
     
@@ -567,8 +581,9 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         throws ThriftSecurityException, ThriftTableOperationException, TException {
       verify(c, tableId, TableOperation.FLUSH, check(c, tableId, TablePermission.WRITE) || check(c, tableId, TablePermission.ALTER_TABLE));
       
-      if (endRow != null && startRow != null && ByteBufferUtil.toText(startRow).compareTo(ByteBufferUtil.toText(endRow)) >= 0) throw new ThriftTableOperationException(
-          tableId, null, TableOperation.FLUSH, TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
+      if (endRow != null && startRow != null && ByteBufferUtil.toText(startRow).compareTo(ByteBufferUtil.toText(endRow)) >= 0)
+        throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.BAD_RANGE,
+            "start row must be less than end row");
       
       Set<TServerInstance> serversToFlush = new HashSet<TServerInstance>(tserverSet.getCurrentServers());
       
@@ -577,13 +592,15 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         for (TServerInstance instance : serversToFlush) {
           try {
             final TServerConnection server = tserverSet.getConnection(instance);
-            if (server != null) server.flush(masterLock, tableId, ByteBufferUtil.toBytes(startRow), ByteBufferUtil.toBytes(endRow));
+            if (server != null)
+              server.flush(masterLock, tableId, ByteBufferUtil.toBytes(startRow), ByteBufferUtil.toBytes(endRow));
           } catch (TException ex) {
             log.error(ex.toString());
           }
         }
         
-        if (l == maxLoops - 1) break;
+        if (l == maxLoops - 1)
+          break;
         
         UtilWaitThread.sleep(50);
         
@@ -623,7 +640,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
                 tabletFlushID = Long.parseLong(entry.getValue().toString());
               }
               
-              if (Constants.METADATA_LOG_COLUMN_FAMILY.equals(key.getColumnFamily())) logs++;
+              if (Constants.METADATA_LOG_COLUMN_FAMILY.equals(key.getColumnFamily()))
+                logs++;
               
               if (Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY.equals(key.getColumnFamily())) {
                 online = true;
@@ -635,21 +653,24 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
             // when tablet is not online and has no logs, there is no reason to wait for it
             if ((online || logs > 0) && tabletFlushID < flushID) {
               tabletsToWaitFor++;
-              if (server != null) serversToFlush.add(server);
+              if (server != null)
+                serversToFlush.add(server);
             }
             
             tabletCount++;
             
             Text tabletEndRow = new KeyExtent(entry.getKey().getRow(), (Text) null).getEndRow();
-            if (tabletEndRow == null || (ert != null && tabletEndRow.compareTo(ert) >= 0)) break;
+            if (tabletEndRow == null || (ert != null && tabletEndRow.compareTo(ert) >= 0))
+              break;
           }
           
-          if (tabletsToWaitFor == 0) break;
+          if (tabletsToWaitFor == 0)
+            break;
           
           // TODO detect case of table offline AND tablets w/ logs?
           
-          if (tabletCount == 0 && !Tables.exists(instance, tableId)) throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH,
-              TableOperationExceptionType.NOTFOUND, null);
+          if (tabletCount == 0 && !Tables.exists(instance, tableId))
+            throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.NOTFOUND, null);
           
         } catch (AccumuloException e) {
           log.debug("Failed to scan !METADATA table to wait for flush " + tableId, e);
@@ -836,8 +857,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
     private void authenticate(AuthInfo credentials) throws ThriftSecurityException {
       try {
-        if (!authenticator.authenticateUser(credentials, credentials.user, credentials.password)) throw new ThriftSecurityException(credentials.user,
-            SecurityErrorCode.BAD_CREDENTIALS);
+        if (!authenticator.authenticateUser(credentials, credentials.user, credentials.password))
+          throw new ThriftSecurityException(credentials.user, SecurityErrorCode.BAD_CREDENTIALS);
       } catch (AccumuloSecurityException e) {
         throw e.asThriftException();
       }
@@ -1003,14 +1024,19 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       TStatus status = fate.waitForCompletion(opid);
       if (status == TStatus.FAILED) {
         Exception e = fate.getException(opid);
-        if (e instanceof ThriftTableOperationException) throw (ThriftTableOperationException) e;
-        if (e instanceof ThriftSecurityException) throw (ThriftSecurityException) e;
-        else if (e instanceof RuntimeException) throw (RuntimeException) e;
-        else throw new RuntimeException(e);
+        if (e instanceof ThriftTableOperationException)
+          throw (ThriftTableOperationException) e;
+        if (e instanceof ThriftSecurityException)
+          throw (ThriftSecurityException) e;
+        else if (e instanceof RuntimeException)
+          throw (RuntimeException) e;
+        else
+          throw new RuntimeException(e);
       }
       
       String ret = fate.getReturn(opid);
-      if (ret == null) ret = ""; // thrift does not like returning null
+      if (ret == null)
+        ret = ""; // thrift does not like returning null
       return ret;
     }
     
@@ -1027,7 +1053,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     synchronized (mergeLock) {
       try {
         String path = ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId.toString() + "/merge";
-        if (!ZooReaderWriter.getInstance().exists(path)) return new MergeInfo();
+        if (!ZooReaderWriter.getInstance().exists(path))
+          return new MergeInfo();
         byte[] data = ZooReaderWriter.getInstance().getData(path, new Stat());
         DataInputBuffer in = new DataInputBuffer();
         in.reset(data, data.length);
@@ -1107,7 +1134,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   
   public boolean hasCycled(long time) {
     for (TabletGroupWatcher watcher : watchers) {
-      if (watcher.stats.lastScanFinished() < time) return false;
+      if (watcher.stats.lastScanFinished() < time)
+        return false;
     }
     
     return true;
@@ -1136,10 +1164,12 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       case HAVE_LOCK: // fall-through intended
       case INITIAL: // fall-through intended
       case SAFE_MODE:
-        if (tls.extent.getTableId().equals(METADATA_TABLE_ID)) return TabletGoalState.HOSTED;
+        if (tls.extent.getTableId().equals(METADATA_TABLE_ID))
+          return TabletGoalState.HOSTED;
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_METADATA_TABLETS:
-        if (tls.extent.equals(Constants.ROOT_TABLET_EXTENT)) return TabletGoalState.HOSTED;
+        if (tls.extent.equals(Constants.ROOT_TABLET_EXTENT))
+          return TabletGoalState.HOSTED;
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_ROOT_TABLET:
         return TabletGoalState.UNASSIGNED;
@@ -1152,7 +1182,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   
   TabletGoalState getTableGoalState(KeyExtent extent) {
     TableState tableState = TableManager.getInstance().getTableState(extent.getTableId().toString());
-    if (tableState == null) return TabletGoalState.DELETED;
+    if (tableState == null)
+      return TabletGoalState.DELETED;
     switch (tableState) {
       case DELETING:
         return TabletGoalState.DELETED;
@@ -1298,7 +1329,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
               }
               switch (state) {
                 case HOSTED:
-                  if (server.equals(migrations.get(tls.extent))) migrations.remove(tls.extent);
+                  if (server.equals(migrations.get(tls.extent)))
+                    migrations.remove(tls.extent);
                   break;
                 case ASSIGNED_TO_DEAD_SERVER:
                   assignedToDeadServers.add(tls);
@@ -1374,19 +1406,26 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
     private void sendSplitRequest(MergeInfo info, TabletState state, TabletLocationState tls) {
       // Already split?
-      if (!info.getState().equals(MergeState.SPLITTING)) return;
+      if (!info.getState().equals(MergeState.SPLITTING))
+        return;
       // Merges don't split
-      if (!info.isDelete()) return;
+      if (!info.isDelete())
+        return;
       // Online and ready to split?
-      if (!state.equals(TabletState.HOSTED)) return;
+      if (!state.equals(TabletState.HOSTED))
+        return;
       // Does this extent cover the end points of the delete?
       KeyExtent range = info.getRange();
       if (tls.extent.overlaps(range)) {
         for (Text splitPoint : new Text[] {range.getPrevEndRow(), range.getEndRow()}) {
-          if (splitPoint == null) continue;
-          if (!tls.extent.contains(splitPoint)) continue;
-          if (splitPoint.equals(tls.extent.getEndRow())) continue;
-          if (splitPoint.equals(tls.extent.getPrevEndRow())) continue;
+          if (splitPoint == null)
+            continue;
+          if (!tls.extent.contains(splitPoint))
+            continue;
+          if (splitPoint.equals(tls.extent.getEndRow()))
+            continue;
+          if (splitPoint.equals(tls.extent.getPrevEndRow()))
+            continue;
           try {
             TServerConnection conn;
             conn = tserverSet.getConnection(tls.current);
@@ -1405,11 +1444,14 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
     private void sendChopRequest(MergeInfo info, TabletState state, TabletLocationState tls) {
       // Don't bother if we're in the wrong state
-      if (!info.getState().equals(MergeState.WAITING_FOR_CHOPPED)) return;
+      if (!info.getState().equals(MergeState.WAITING_FOR_CHOPPED))
+        return;
       // Tablet must be online
-      if (!state.equals(TabletState.HOSTED)) return;
+      if (!state.equals(TabletState.HOSTED))
+        return;
       // Tablet isn't already chopped
-      if (tls.chopped) return;
+      if (tls.chopped)
+        return;
       // Tablet ranges intersect
       if (info.needsToBeChopped(tls.extent)) {
         TServerConnection conn;
@@ -1441,9 +1483,12 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
               setMergeState(stats.info, state = MergeState.COMPLETE);
             } else if (stats.hosted == stats.total) {
               if (stats.info.isDelete()) {
-                if (!stats.lowerSplit) log.info("Waiting for " + stats.info + " lower split to occur");
-                else if (!stats.upperSplit) log.info("Waiting for " + stats.info + " upper split to occur");
-                else setMergeState(stats.info, state = MergeState.WAITING_FOR_CHOPPED);
+                if (!stats.lowerSplit)
+                  log.info("Waiting for " + stats.info + " lower split to occur");
+                else if (!stats.upperSplit)
+                  log.info("Waiting for " + stats.info + " upper split to occur");
+                else
+                  setMergeState(stats.info, state = MergeState.WAITING_FOR_CHOPPED);
               } else {
                 setMergeState(stats.info, state = MergeState.WAITING_FOR_CHOPPED);
               }
@@ -1485,8 +1530,10 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
             log.info(stats.unassigned + " tablets are unassigned");
             if (stats.hosted == 0 && stats.unassigned == stats.total) {
               try {
-                if (stats.info.isDelete()) deleteTablets(stats.info);
-                else mergeMetadataRecords(stats.info);
+                if (stats.info.isDelete())
+                  deleteTablets(stats.info);
+                else
+                  mergeMetadataRecords(stats.info);
                 setMergeState(stats.info, state = MergeState.COMPLETE);
               } catch (Exception ex) {
                 log.error("Unable merge metadata table records", ex);
@@ -1604,7 +1651,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         for (Entry<Key,Value> entry : scanner) {
           Key key = entry.getKey();
           Value value = entry.getValue();
-          if (key.getRow().equals(stopRow)) break;
+          if (key.getRow().equals(stopRow))
+            break;
           if (key.getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
             m.put(key.getColumnFamily(), key.getColumnQualifier(), value);
             fileCount++;
@@ -1652,7 +1700,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         scanner.setRange(scanRange);
         for (Entry<Key,Value> entry : scanner) {
           Key key = entry.getKey();
-          if (key.getRow().equals(stopRow)) break;
+          if (key.getRow().equals(stopRow))
+            break;
           if (Constants.METADATA_DIRECTORY_COLUMN.hasColumns(key)) {
             bw.addMutation(MetadataTable.createDeleteMutation(range.getTableId().toString(), entry.getValue().toString()));
           }
@@ -1729,7 +1778,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
             log.warn(store.name() + " load balancer assigning tablet that was not nominated for assignment " + assignment.getKey());
           }
         }
-        if (!unassigned.isEmpty() && assignedOut.isEmpty()) log.warn("Load balancer failed to assign any tablets");
+        if (!unassigned.isEmpty() && assignedOut.isEmpty())
+          log.warn("Load balancer failed to assign any tablets");
       }
       
       if (assignments.size() > 0) {
@@ -1821,7 +1871,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
                 case SAFE_MODE:
                   count = nonMetaDataTabletsAssignedOrHosted();
                   log.debug(String.format("There are %d non-metadata tablets assigned or hosted", count));
-                  if (count == 0) setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
+                  if (count == 0)
+                    setMasterState(MasterState.UNLOAD_METADATA_TABLETS);
                   break;
                 case UNLOAD_METADATA_TABLETS:
                   count = assignedOrHosted(METADATA_TABLE_ID);
@@ -1829,11 +1880,13 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
                   // Assumes last tablet hosted is the root tablet;
                   // it's possible
                   // that's not the case (root tablet is offline?)
-                  if (count == 1) setMasterState(MasterState.UNLOAD_ROOT_TABLET);
+                  if (count == 1)
+                    setMasterState(MasterState.UNLOAD_ROOT_TABLET);
                   break;
                 case UNLOAD_ROOT_TABLET:
                   count = assignedOrHosted(METADATA_TABLE_ID);
-                  if (count > 0) log.debug(String.format("The root tablet is still assigned or hosted"));
+                  if (count > 0)
+                    log.debug(String.format("The root tablet is still assigned or hosted"));
                   if (count == 0) {
                     Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
                     log.debug("stopping " + currentServers.size() + " tablet servers");
@@ -1847,7 +1900,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
                         tserverSet.remove(server);
                       }
                     }
-                    if (currentServers.size() == 0) setMasterState(MasterState.STOP);
+                    if (currentServers.size() == 0)
+                      setMasterState(MasterState.STOP);
                   }
                   break;
                 default:
@@ -1898,7 +1952,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         log.warn("Tablet server " + instance + " exceeded maximum hold time: attempting to kill it");
         try {
           TServerConnection connection = tserverSet.getConnection(instance);
-          if (connection != null) connection.fastHalt(masterLock);
+          if (connection != null)
+            connection.fastHalt(masterLock);
         } catch (TException e) {
           log.error(e, e);
         }
@@ -1920,7 +1975,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         try {
           log.debug("Telling " + tserver.getInstance() + " to use loggers " + entry.getValue());
           TServerConnection connection = tserverSet.getConnection(tserver.getInstance());
-          if (connection != null) connection.useLoggers(new HashSet<String>(entry.getValue()));
+          if (connection != null)
+            connection.useLoggers(new HashSet<String>(entry.getValue()));
         } catch (Exception ex) {
           log.warn("Unable to talk to " + tserver.getInstance(), ex);
         }
@@ -1960,7 +2016,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           log.warn("attempting to stop " + server);
           try {
             TServerConnection connection = tserverSet.getConnection(server);
-            if (connection != null) connection.halt(masterLock);
+            if (connection != null)
+              connection.halt(masterLock);
           } catch (TTransportException e) {
             // ignore: it's probably down
           } catch (Exception e) {
@@ -2131,8 +2188,10 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     }
     for (TServerInstance dead : deleted) {
       String cause = I_DONT_KNOW_WHY;
-      if (serversToShutdown.contains(dead)) cause = "clean shutdown"; // maybe an incorrect assumption
-      if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP)) obit.post(dead.hostPort(), cause);
+      if (serversToShutdown.contains(dead))
+        cause = "clean shutdown"; // maybe an incorrect assumption
+      if (!getMasterGoalState().equals(MasterGoalState.CLEAN_STOP))
+        obit.post(dead.hostPort(), cause);
     }
     
     Set<TServerInstance> unexpected = new HashSet<TServerInstance>(deleted);
@@ -2173,7 +2232,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   public Set<String> onlineTables() {
     Set<String> result = new HashSet<String>();
     if (getMasterState() != MasterState.NORMAL) {
-      if (getMasterState() != MasterState.UNLOAD_METADATA_TABLETS) result.add(Constants.METADATA_TABLE_ID);
+      if (getMasterState() != MasterState.UNLOAD_METADATA_TABLETS)
+        result.add(Constants.METADATA_TABLE_ID);
       return result;
     }
     TableManager manager = TableManager.getInstance();
@@ -2181,7 +2241,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     for (String tableId : Tables.getIdToNameMap(instance).keySet()) {
       TableState state = manager.getTableState(tableId);
       if (state != null) {
-        if (state == TableState.ONLINE) result.add(tableId);
+        if (state == TableState.ONLINE)
+          result.add(tableId);
       }
     }
     return result;

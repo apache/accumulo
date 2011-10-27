@@ -80,7 +80,8 @@ public class ZooConfiguration extends AccumuloConfiguration {
     }
     
     if (value == null || !property.getType().isValidFormat(value)) {
-      if (value != null) log.error("Using parent value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
+      if (value != null)
+        log.error("Using parent value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
       value = parent.get(property);
     }
     return value;
@@ -107,7 +108,8 @@ public class ZooConfiguration extends AccumuloConfiguration {
     String zPath = ZooUtil.getRoot(instanceId) + Constants.ZCONFIG + "/" + key;
     byte[] v = propCache.get(zPath);
     String value = null;
-    if (v != null) value = new String(v);
+    if (v != null)
+      value = new String(v);
     return value;
   }
   
@@ -122,7 +124,8 @@ public class ZooConfiguration extends AccumuloConfiguration {
     if (children != null) {
       for (String child : children) {
         String value = get(child);
-        if (child != null && value != null) entries.put(child, value);
+        if (child != null && value != null)
+          entries.put(child, value);
       }
     }
     

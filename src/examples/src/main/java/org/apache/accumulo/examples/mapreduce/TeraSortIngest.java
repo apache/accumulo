@@ -301,7 +301,8 @@ public class TeraSortIngest extends Configured implements Tool {
         valuelen -= 10;
       }
       
-      if (valuelen > 0) value.append(filler[(base + valuelen) % 26], 0, valuelen);
+      if (valuelen > 0)
+        value.append(filler[(base + valuelen) % 26], 0, valuelen);
     }
     
     public void map(LongWritable row, NullWritable ignored, Context context) throws IOException, InterruptedException {
@@ -367,7 +368,8 @@ public class TeraSortIngest extends Configured implements Tool {
     conf.setInt("cloudgen.maxvaluelength", Integer.parseInt(args[4]));
     conf.set("cloudgen.tablename", args[5]);
     
-    if (args.length > 10) conf.setInt(NUMSPLITS, Integer.parseInt(args[10]));
+    if (args.length > 10)
+      conf.setInt(NUMSPLITS, Integer.parseInt(args[10]));
     
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

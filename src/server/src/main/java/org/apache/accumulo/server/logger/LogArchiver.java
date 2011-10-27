@@ -45,7 +45,8 @@ public class LogArchiver {
   private final boolean archive;
   
   static Path archiveName(String fullPath) {
-    if (isArchive(fullPath)) return new Path(fullPath);
+    if (isArchive(fullPath))
+      return new Path(fullPath);
     return new Path(fullPath + ".archiving");
   }
   
@@ -54,7 +55,8 @@ public class LogArchiver {
   }
   
   static public String origName(String archiving) {
-    if (!isArchive(archiving)) throw new IllegalArgumentException(archiving);
+    if (!isArchive(archiving))
+      throw new IllegalArgumentException(archiving);
     return archiving.substring(0, archiving.length() - ".archiving".length());
   }
   
@@ -136,7 +138,8 @@ public class LogArchiver {
   public void archive(final String fullName) throws IOException {
     final Path fullPath = new Path(fullName);
     final String name = fullPath.getName();
-    if (archiving.contains(name)) return;
+    if (archiving.contains(name))
+      return;
     archiving.add(name);
     
     if (!archive) {
@@ -144,8 +147,10 @@ public class LogArchiver {
         @Override
         public void run() {
           try {
-            if (src.delete(fullPath, true)) log.info(fullPath + " deleted");
-            else log.error("Unable to delete " + fullPath);
+            if (src.delete(fullPath, true))
+              log.info(fullPath + " deleted");
+            else
+              log.error("Unable to delete " + fullPath);
           } catch (Exception ex) {
             log.error("Error trying to delete " + fullPath + ": " + ex);
           } finally {

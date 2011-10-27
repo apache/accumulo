@@ -52,7 +52,8 @@ public class ChunkInputStream extends InputStream {
   }
   
   public void setSource(PeekingIterator<Entry<Key,Value>> in) {
-    if (source != null) throw new RuntimeException("setting new source without closing old one");
+    if (source != null)
+      throw new RuntimeException("setting new source without closing old one");
     this.source = in;
     currentVis = new TreeSet<Text>();
     count = pos = 0;
@@ -68,7 +69,8 @@ public class ChunkInputStream extends InputStream {
     buf = entry.getValue().get();
     while (!currentKey.getColumnFamily().equals(FileDataIngest.CHUNK_CF)) {
       log.debug("skipping key: " + currentKey.toString());
-      if (!source.hasNext()) return;
+      if (!source.hasNext())
+        return;
       entry = source.next();
       currentKey = entry.getKey();
       buf = entry.getValue().get();
@@ -83,8 +85,10 @@ public class ChunkInputStream extends InputStream {
   
   private int fill() throws IOException {
     if (source == null || !source.hasNext()) {
-      if (gotEndMarker) return count = pos = 0;
-      else throw new IOException("no end chunk marker but source has no data");
+      if (gotEndMarker)
+        return count = pos = 0;
+      else
+        throw new IOException("no end chunk marker but source has no data");
     }
     
     Entry<Key,Value> entry = source.peek();
@@ -93,7 +97,8 @@ public class ChunkInputStream extends InputStream {
     
     // check that we're still on the same row
     if (!thisKey.equals(currentKey, PartialKey.ROW)) {
-      if (gotEndMarker) return -1;
+      if (gotEndMarker)
+        return -1;
       else {
         String currentRow = currentKey.getRow().toString();
         clear();
@@ -119,7 +124,8 @@ public class ChunkInputStream extends InputStream {
     }
     
     // add the visibility to the list if it's not there
-    if (!currentVis.contains(thisKey.getColumnVisibility())) currentVis.add(thisKey.getColumnVisibility());
+    if (!currentVis.contains(thisKey.getColumnVisibility()))
+      currentVis.add(thisKey.getColumnVisibility());
     
     // check to see if it is an identical chunk with a different visibility
     if (thisKey.getColumnQualifier().equals(currentKey.getColumnQualifier())) {
@@ -156,17 +162,20 @@ public class ChunkInputStream extends InputStream {
   }
   
   public Set<Text> getVisibilities() {
-    if (source != null) throw new RuntimeException("don't get visibilities before chunks have been completely read");
+    if (source != null)
+      throw new RuntimeException("don't get visibilities before chunks have been completely read");
     return currentVis;
   }
   
   public int read() throws IOException {
-    if (source == null) return -1;
+    if (source == null)
+      return -1;
     log.debug("pos: " + pos + " count: " + count);
     if (pos >= count) {
       if (fill() <= 0) {
         log.debug("done reading input stream at key: " + (currentKey == null ? "null" : currentKey.toString()));
-        if (source != null && source.hasNext()) log.debug("next key: " + source.peek().getKey());
+        if (source != null && source.hasNext())
+          log.debug("next key: " + source.peek().getKey());
         clear();
         return -1;
       }
@@ -192,7 +201,8 @@ public class ChunkInputStream extends InputStream {
       if (avail <= 0) {
         if (fill() <= 0) {
           log.debug("done reading input stream at key: " + (currentKey == null ? "null" : currentKey.toString()));
-          if (source != null && source.hasNext()) log.debug("next key: " + source.peek().getKey());
+          if (source != null && source.hasNext())
+            log.debug("next key: " + source.peek().getKey());
           clear();
           log.debug("filled " + total + " bytes");
           return total == 0 ? -1 : total;

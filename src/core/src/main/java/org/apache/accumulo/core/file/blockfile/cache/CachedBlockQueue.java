@@ -48,7 +48,8 @@ public class CachedBlockQueue implements HeapSize {
    */
   public CachedBlockQueue(long maxSize, long blockSize) {
     int initialSize = (int) Math.ceil(maxSize / (double) blockSize);
-    if (initialSize == 0) initialSize++;
+    if (initialSize == 0)
+      initialSize++;
     queue = new PriorityQueue<CachedBlock>(initialSize);
     heapSize = 0;
     this.maxSize = maxSize;

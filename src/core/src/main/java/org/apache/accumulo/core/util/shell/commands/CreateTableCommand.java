@@ -70,7 +70,8 @@ public class CreateTableCommand extends Command {
     }
     
     String tableName = cl.getArgs()[0];
-    if (shellState.getConnector().tableOperations().exists(tableName)) throw new TableExistsException(null, tableName, null);
+    if (shellState.getConnector().tableOperations().exists(tableName))
+      throw new TableExistsException(null, tableName, null);
     
     SortedSet<Text> partitions = new TreeSet<Text>();
     List<PerColumnIteratorConfig> aggregators = new ArrayList<PerColumnIteratorConfig>();
@@ -92,10 +93,11 @@ public class CreateTableCommand extends Command {
         EscapeTokenizer colToks = new EscapeTokenizer(col, ":");
         Iterator<String> tokIter = colToks.iterator();
         Text cf = null, cq = null;
-        if (colToks.count() < 1 || colToks.count() > 2) throw new BadArgumentException("column must be in the format cf[:cq]", fullCommand,
-            fullCommand.indexOf(col));
+        if (colToks.count() < 1 || colToks.count() > 2)
+          throw new BadArgumentException("column must be in the format cf[:cq]", fullCommand, fullCommand.indexOf(col));
         cf = new Text(tokIter.next());
-        if (colToks.count() == 2) cq = new Text(tokIter.next());
+        if (colToks.count() == 2)
+          cq = new Text(tokIter.next());
         
         aggregators.add(new PerColumnIteratorConfig(cf, cq, className));
       }
@@ -107,21 +109,25 @@ public class CreateTableCommand extends Command {
       java.util.Scanner file = new java.util.Scanner(new File(f));
       while (file.hasNextLine()) {
         line = file.nextLine();
-        if (!line.isEmpty()) partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
+        if (!line.isEmpty())
+          partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
       }
     } else if (cl.hasOption(createTableOptCopySplits.getOpt())) {
       String oldTable = cl.getOptionValue(createTableOptCopySplits.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(oldTable)) throw new TableNotFoundException(null, oldTable, null);
+      if (!shellState.getConnector().tableOperations().exists(oldTable))
+        throw new TableNotFoundException(null, oldTable, null);
       partitions.addAll(shellState.getConnector().tableOperations().getSplits(oldTable));
     }
     
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       String oldTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(oldTable)) throw new TableNotFoundException(null, oldTable, null);
+      if (!shellState.getConnector().tableOperations().exists(oldTable))
+        throw new TableNotFoundException(null, oldTable, null);
     }
     
     TimeType timeType = TimeType.MILLIS;
-    if (cl.hasOption(createTableOptTimeLogical.getOpt())) timeType = TimeType.LOGICAL;
+    if (cl.hasOption(createTableOptTimeLogical.getOpt()))
+      timeType = TimeType.LOGICAL;
     
     // create table
     shellState.getConnector().tableOperations().create(tableName, true, timeType);
@@ -156,14 +162,17 @@ public class CreateTableCommand extends Command {
       for (Entry<String,String> entry : props) {
         if (entry.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())) {
           int num = Integer.parseInt(entry.getKey().substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()));
-          if (num > max) max = num;
+          if (num > max)
+            max = num;
           
-          if (entry.getValue().equals(VisibilityConstraint.class.getName())) vcSet = true;
+          if (entry.getValue().equals(VisibilityConstraint.class.getName()))
+            vcSet = true;
         }
       }
       
-      if (!vcSet) shellState.getConnector().tableOperations()
-          .setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.getKey() + (max + 1), VisibilityConstraint.class.getName());
+      if (!vcSet)
+        shellState.getConnector().tableOperations()
+            .setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.getKey() + (max + 1), VisibilityConstraint.class.getName());
     }
     
     return 0;

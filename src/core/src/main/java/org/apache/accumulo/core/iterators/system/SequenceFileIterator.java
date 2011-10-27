@@ -54,7 +54,8 @@ public class SequenceFileIterator implements FileSKVIterator {
     
     top_key = new Key();
     
-    if (readValue) top_value = new Value();
+    if (readValue)
+      top_value = new Value();
     
     next();
   }
@@ -73,8 +74,10 @@ public class SequenceFileIterator implements FileSKVIterator {
   
   public void next() throws IOException {
     boolean valid;
-    if (readValue) valid = reader.next(top_key, top_value);
-    else valid = reader.next(top_key);
+    if (readValue)
+      valid = reader.next(top_key, top_value);
+    else
+      valid = reader.next(top_key);
     
     if (!valid) {
       top_key = null;

@@ -30,9 +30,12 @@ import org.apache.commons.cli.CommandLine;
 public class DebugCommand extends Command {
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws IOException {
     if (cl.getArgs().length == 1) {
-      if (cl.getArgs()[0].equalsIgnoreCase("on")) Shell.setDebugging(true);
-      else if (cl.getArgs()[0].equalsIgnoreCase("off")) Shell.setDebugging(false);
-      else throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+      if (cl.getArgs()[0].equalsIgnoreCase("on"))
+        Shell.setDebugging(true);
+      else if (cl.getArgs()[0].equalsIgnoreCase("off"))
+        Shell.setDebugging(false);
+      else
+        throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
     } else if (cl.getArgs().length == 0) {
       shellState.getReader().printString(Shell.isDebuggingEnabled() ? "on\n" : "off\n");
     } else {

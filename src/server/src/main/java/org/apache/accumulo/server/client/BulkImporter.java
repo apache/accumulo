@@ -154,7 +154,8 @@ public class BulkImporter {
             if (tabletsToAssignMapFileTo.size() == 0) {
               List<KeyExtent> empty = Collections.emptyList();
               completeFailures.put(mapFile, empty);
-            } else assignments.put(mapFile, tabletsToAssignMapFileTo);
+            } else
+              assignments.put(mapFile, tabletsToAssignMapFileTo);
           }
         };
         threadPool.submit(new TraceRunnable(new LoggingRunnable(log, getAssignments)));
@@ -214,7 +215,8 @@ public class BulkImporter {
             }
           }
           
-          if (tabletsToAssignMapFileTo.size() > 0) assignments.put(entry.getKey(), tabletsToAssignMapFileTo);
+          if (tabletsToAssignMapFileTo.size() > 0)
+            assignments.put(entry.getKey(), tabletsToAssignMapFileTo);
         }
         
         assignmentStats.attemptingAssignments(assignments);
@@ -227,7 +229,8 @@ public class BulkImporter {
           assignmentFailures.get(entry.getKey()).addAll(entry.getValue());
           
           Integer fc = failureCount.get(entry.getKey());
-          if (fc == null) fc = 0;
+          if (fc == null)
+            fc = 0;
           
           failureCount.put(entry.getKey(), fc + 1);
         }
@@ -236,7 +239,8 @@ public class BulkImporter {
         Iterator<Entry<Path,List<KeyExtent>>> afIter = assignmentFailures.entrySet().iterator();
         while (afIter.hasNext()) {
           Entry<Path,List<KeyExtent>> entry = afIter.next();
-          if (entry.getValue().size() == 0) afIter.remove();
+          if (entry.getValue().size() == 0)
+            afIter.remove();
         }
         
         Set<Entry<Path,Integer>> failureIter = failureCount.entrySet();
@@ -256,7 +260,8 @@ public class BulkImporter {
       printReport();
       return assignmentStats;
     } finally {
-      if (client != null) ServerClient.close(client);
+      if (client != null)
+        ServerClient.close(client);
       locator.invalidateCache();
     }
   }
@@ -264,7 +269,8 @@ public class BulkImporter {
   private void printReport() {
     long totalTime = 0;
     for (Timers t : Timers.values()) {
-      if (t == Timers.TOTAL) continue;
+      if (t == Timers.TOTAL)
+        continue;
       
       totalTime += timer.get(t);
     }
@@ -289,7 +295,8 @@ public class BulkImporter {
     
     Set<Entry<Path,List<KeyExtent>>> es = completeFailures.entrySet();
     
-    if (completeFailures.size() == 0) return Collections.emptySet();
+    if (completeFailures.size() == 0)
+      return Collections.emptySet();
     
     log.error("The following map files failed completely, saving this info to : " + new Path(failureDir, "failures.seq"));
     
@@ -640,7 +647,8 @@ public class BulkImporter {
       throws Exception {
     locator.invalidateCache(failed);
     Text start = failed.getPrevEndRow();
-    if (start != null) start = Range.followingPrefix(start);
+    if (start != null)
+      start = Range.followingPrefix(start);
     return findOverlappingTablets(acuConf, fs, locator, file, start, failed.getEndRow());
   }
   
@@ -653,16 +661,20 @@ public class BulkImporter {
     FileSKVIterator reader = FileOperations.getInstance().openReader(file.toString(), true, fs, fs.getConf(), acuConf);
     try {
       Text row = startRow;
-      if (row == null) row = new Text();
+      if (row == null)
+        row = new Text();
       while (true) {
         reader.seek(new Range(row, null), columnFamilies, false);
-        if (!reader.hasTop()) break;
+        if (!reader.hasTop())
+          break;
         row = reader.getTopKey().getRow();
         TabletLocation tabletLocation = locator.locateTablet(row, false, true);
         result.add(tabletLocation);
         row = tabletLocation.tablet_extent.getEndRow();
-        if (row != null && (endRow == null || row.compareTo(endRow) < 0)) row = Range.followingPrefix(row);
-        else break;
+        if (row != null && (endRow == null || row.compareTo(endRow) < 0))
+          row = Range.followingPrefix(row);
+        else
+          break;
       }
     } finally {
       reader.close();
@@ -738,11 +750,14 @@ public class BulkImporter {
       
       for (Entry<KeyExtent,Integer> entry : counts.entrySet()) {
         totalAssignments += entry.getValue();
-        if (entry.getValue() > 0) tabletsImportedTo++;
+        if (entry.getValue() > 0)
+          tabletsImportedTo++;
         
-        if (entry.getValue() < min) min = entry.getValue();
+        if (entry.getValue() < min)
+          min = entry.getValue();
         
-        if (entry.getValue() > max) max = entry.getValue();
+        if (entry.getValue() > max)
+          max = entry.getValue();
       }
       
       double stddev = 0;

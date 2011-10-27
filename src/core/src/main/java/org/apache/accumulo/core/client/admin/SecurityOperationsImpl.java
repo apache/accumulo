@@ -48,8 +48,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
       ServerClient.executeRaw(instance, exec);
     } catch (ThriftTableOperationException ttoe) {
       // recast missing table
-      if (ttoe.getType() == TableOperationExceptionType.NOTFOUND) throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      else throw new AccumuloException(ttoe);
+      if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+      else
+        throw new AccumuloException(ttoe);
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (AccumuloException e) {
@@ -64,8 +66,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
       return ServerClient.executeRaw(instance, exec);
     } catch (ThriftTableOperationException ttoe) {
       // recast missing table
-      if (ttoe.getType() == TableOperationExceptionType.NOTFOUND) throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      else throw new AccumuloException(ttoe);
+      if (ttoe.getType() == TableOperationExceptionType.NOTFOUND)
+        throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+      else
+        throw new AccumuloException(ttoe);
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code, e);
     } catch (AccumuloException e) {

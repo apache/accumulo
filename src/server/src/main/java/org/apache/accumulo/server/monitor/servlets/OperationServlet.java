@@ -47,7 +47,8 @@ public class OperationServlet extends BasicServlet {
     try {
       String operation = req.getParameter("action");
       redir = req.getParameter("redir");
-      if (redir != null) redir = decode(redir);
+      if (redir != null)
+        redir = decode(redir);
       
       if (operation != null) {
         for (Class<?> subclass : OperationServlet.class.getClasses()) {
@@ -70,8 +71,10 @@ public class OperationServlet extends BasicServlet {
       log.error(t, t);
     } finally {
       try {
-        if (redir != null) resp.sendRedirect(redir);
-        else resp.sendRedirect("/");
+        if (redir != null)
+          resp.sendRedirect(redir);
+        else
+          resp.sendRedirect("/");
         resp.flushBuffer();
       } catch (Throwable t) {
         log.error(t, t);
@@ -115,9 +118,11 @@ public class OperationServlet extends BasicServlet {
     public void execute(HttpServletRequest req, HttpServletResponse resp, Logger log) {
       String table = req.getParameter("table");
       String resource = req.getParameter("resource");
-      if (resource != null) resource = decode(resource);
+      if (resource != null)
+        resource = decode(resource);
       String ptype = req.getParameter("ptype");
-      if (ptype != null) ptype = decode(ptype);
+      if (ptype != null)
+        ptype = decode(ptype);
       try {
         ProblemReports.getInstance().deleteProblemReport(table, ProblemType.valueOf(ptype), resource);
       } catch (Exception e) {
@@ -133,9 +138,12 @@ public class OperationServlet extends BasicServlet {
       String table = req.getParameter("table");
       String asc = req.getParameter("asc");
       String col = req.getParameter("col");
-      if (table == null || page == null || (asc == null && col == null)) return;
-      if (asc == null) resp.addCookie(new Cookie("tableSort." + page + "." + table + "." + "sortCol", col));
-      else resp.addCookie(new Cookie("tableSort." + page + "." + table + "." + "sortAsc", asc));
+      if (table == null || page == null || (asc == null && col == null))
+        return;
+      if (asc == null)
+        resp.addCookie(new Cookie("tableSort." + page + "." + table + "." + "sortCol", col));
+      else
+        resp.addCookie(new Cookie("tableSort." + page + "." + table + "." + "sortAsc", asc));
     }
   }
   
@@ -145,7 +153,8 @@ public class OperationServlet extends BasicServlet {
       String page = req.getParameter("page");
       String table = req.getParameter("table");
       String show = req.getParameter("show");
-      if (table == null || page == null || show == null) return;
+      if (table == null || page == null || show == null)
+        return;
       resp.addCookie(new Cookie("tableLegend." + page + "." + table + "." + "show", show));
     }
   }

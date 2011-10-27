@@ -169,14 +169,20 @@ public class Module extends Node {
     Properties initProps = getProps("_init");
     initProps.putAll(props);
     String prop;
-    if ((prop = initProps.getProperty("maxHops")) == null || prop.equals("0") || prop.equals("")) maxHops = Integer.MAX_VALUE;
-    else maxHops = Integer.parseInt(initProps.getProperty("maxHops", "0"));
+    if ((prop = initProps.getProperty("maxHops")) == null || prop.equals("0") || prop.equals(""))
+      maxHops = Integer.MAX_VALUE;
+    else
+      maxHops = Integer.parseInt(initProps.getProperty("maxHops", "0"));
     
-    if ((prop = initProps.getProperty("maxSec")) == null || prop.equals("0") || prop.equals("")) maxSec = Integer.MAX_VALUE;
-    else maxSec = Integer.parseInt(initProps.getProperty("maxSec", "0"));
+    if ((prop = initProps.getProperty("maxSec")) == null || prop.equals("0") || prop.equals(""))
+      maxSec = Integer.MAX_VALUE;
+    else
+      maxSec = Integer.parseInt(initProps.getProperty("maxSec", "0"));
     
-    if ((prop = initProps.getProperty("teardown")) == null || prop.equals("true") || prop.equals("")) teardown = true;
-    else teardown = false;
+    if ((prop = initProps.getProperty("teardown")) == null || prop.equals("true") || prop.equals(""))
+      teardown = true;
+    else
+      teardown = false;
     
     if (fixture != null) {
       fixture.setUp(state);
@@ -187,9 +193,10 @@ public class Module extends Node {
     state.visitedNode();
     // update aliases
     Set<String> aliases;
-    if ((aliases = aliasMap.get(initNodeId)) != null) for (String alias : aliases) {
-      ((Alias) nodes.get(alias)).update(initNodeId);
-    }
+    if ((aliases = aliasMap.get(initNodeId)) != null)
+      for (String alias : aliases) {
+        ((Alias) nodes.get(alias)).update(initNodeId);
+      }
     
     String curNodeId = initNodeId;
     int numHops = 0;
@@ -231,9 +238,10 @@ public class Module extends Node {
       state.visitedNode();
       
       // update aliases
-      if ((aliases = aliasMap.get(curNodeId)) != null) for (String alias : aliases) {
-        ((Alias) nodes.get(alias)).update(curNodeId);
-      }
+      if ((aliases = aliasMap.get(curNodeId)) != null)
+        for (String alias : aliases) {
+          ((Alias) nodes.get(alias)).update(curNodeId);
+        }
       
       curNodeId = nextNodeId;
     }
@@ -361,13 +369,16 @@ public class Module extends Node {
     Properties initProps = new Properties();
     String attr = initEl.getAttribute("maxHops");
     
-    if (attr != null) initProps.setProperty("maxHops", attr);
+    if (attr != null)
+      initProps.setProperty("maxHops", attr);
     attr = initEl.getAttribute("maxSec");
     
-    if (attr != null) initProps.setProperty("maxSec", attr);
+    if (attr != null)
+      initProps.setProperty("maxSec", attr);
     attr = initEl.getAttribute("teardown");
     
-    if (attr != null) initProps.setProperty("teardown", attr);
+    if (attr != null)
+      initProps.setProperty("teardown", attr);
     localProps.put("_init", initProps);
     
     // parse all nodes
@@ -407,7 +418,8 @@ public class Module extends Node {
         aliases.add(key);
         createNode(key, null);
       }
-      if (aliases.size() > 0) aliasMap.put(id, aliases);
+      if (aliases.size() > 0)
+        aliasMap.put(id, aliases);
       
       // parse properties of nodes
       NodeList proplist = nodeEl.getElementsByTagName("property");

@@ -107,8 +107,10 @@ public class MultiLevelIndexTest extends TestCase {
     for (int i = 0; i < 100; i++) {
       int k = rand.nextInt(num * 1000);
       int expected;
-      if (k % 1000 == 0) expected = k / 1000; // end key is inclusive
-      else expected = k / 1000 + 1;
+      if (k % 1000 == 0)
+        expected = k / 1000; // end key is inclusive
+      else
+        expected = k / 1000 + 1;
       liter = reader.lookup(new Key(String.format("%08d", k)));
       IndexEntry ie = liter.next();
       assertEquals(expected, ie.getNumEntries());

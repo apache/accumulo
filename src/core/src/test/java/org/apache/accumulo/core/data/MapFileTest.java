@@ -276,7 +276,8 @@ public class MapFileTest extends TestCase {
           boolean moreKeys = false;
           // check for the same number of records
           assertTrue((moreKeys = oldIndexReader.next(oldKey, oldValue)) == newIndexReader.next(newKey, newValue));
-          if (!moreKeys) break;
+          if (!moreKeys)
+            break;
           assertTrue(oldKey.compareTo(newKey) == 0);
           assertTrue(oldValue.compareTo(newValue) == 0);
         }

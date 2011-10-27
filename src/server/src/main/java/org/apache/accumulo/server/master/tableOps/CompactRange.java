@@ -78,7 +78,8 @@ class CompactionDriver extends MasterRepo {
     
     Range range = new KeyExtent(new Text(tableId), null, startRow == null ? null : new Text(startRow)).toMetadataRange();
     
-    if (tableId.equals(Constants.METADATA_TABLE_ID)) range = range.clip(new Range(Constants.ROOT_TABLET_EXTENT.getMetadataEntry(), false, null, true));
+    if (tableId.equals(Constants.METADATA_TABLE_ID))
+      range = range.clip(new Range(Constants.ROOT_TABLET_EXTENT.getMetadataEntry(), false, null, true));
     
     scanner.setRange(range);
     ColumnFQ.fetch(scanner, Constants.METADATA_COMPACT_COLUMN);
@@ -103,39 +104,43 @@ class CompactionDriver extends MasterRepo {
         entry = row.next();
         Key key = entry.getKey();
         
-        if (Constants.METADATA_COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier())) tabletCompactID = Long.parseLong(entry.getValue()
-            .toString());
+        if (Constants.METADATA_COMPACT_COLUMN.equals(key.getColumnFamily(), key.getColumnQualifier()))
+          tabletCompactID = Long.parseLong(entry.getValue().toString());
         
-        if (Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY.equals(key.getColumnFamily())) server = new TServerInstance(entry.getValue(),
-            key.getColumnQualifier());
+        if (Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY.equals(key.getColumnFamily()))
+          server = new TServerInstance(entry.getValue(), key.getColumnQualifier());
       }
       
       if (tabletCompactID < compactId) {
         tabletsToWaitFor++;
-        if (server != null) serversToFlush.increment(server, 1);
+        if (server != null)
+          serversToFlush.increment(server, 1);
       }
       
       tabletCount++;
       
       Text tabletEndRow = new KeyExtent(entry.getKey().getRow(), (Text) null).getEndRow();
-      if (tabletEndRow == null || (endRow != null && tabletEndRow.compareTo(new Text(endRow)) >= 0)) break;
+      if (tabletEndRow == null || (endRow != null && tabletEndRow.compareTo(new Text(endRow)) >= 0))
+        break;
     }
     
     long scanTime = System.currentTimeMillis() - t1;
     
     Tables.clearCache(instance);
-    if (tabletCount == 0 && !Tables.exists(instance, tableId)) throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT,
-        TableOperationExceptionType.NOTFOUND, null);
+    if (tabletCount == 0 && !Tables.exists(instance, tableId))
+      throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
     
-    if (serversToFlush.size() == 0 && Tables.getTableState(instance, tableId) == TableState.OFFLINE) throw new ThriftTableOperationException(tableId, null,
-        TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, null);
+    if (serversToFlush.size() == 0 && Tables.getTableState(instance, tableId) == TableState.OFFLINE)
+      throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, null);
     
-    if (tabletsToWaitFor == 0) return 0;
+    if (tabletsToWaitFor == 0)
+      return 0;
     
     for (TServerInstance tsi : serversToFlush.keySet()) {
       try {
         final TServerConnection server = master.getConnection(tsi);
-        if (server != null) server.compact(master.getMasterLock(), tableId, startRow, endRow);
+        if (server != null)
+          server.compact(master.getMasterLock(), tableId, startRow, endRow);
       } catch (TException ex) {
         Logger.getLogger(CompactionDriver.class).error(ex.toString());
       }
@@ -143,9 +148,10 @@ class CompactionDriver extends MasterRepo {
     
     long sleepTime = 500;
     
-    if (serversToFlush.size() > 0) sleepTime = Collections.max(serversToFlush.values()) * sleepTime; // make wait time depend on the server with the most to
-                                                                                                     // compact
-    
+    if (serversToFlush.size() > 0)
+      sleepTime = Collections.max(serversToFlush.values()) * sleepTime; // make wait time depend on the server with the most to
+                                                                        // compact
+      
     sleepTime = Math.max(2 * scanTime, sleepTime);
     
     sleepTime = Math.min(sleepTime, 30000);
@@ -178,8 +184,9 @@ public class CompactRange extends MasterRepo {
     this.startRow = startRow.length == 0 ? null : startRow;
     this.endRow = endRow.length == 0 ? null : endRow;
     
-    if (this.startRow != null && this.endRow != null && new Text(startRow).compareTo(new Text(endRow)) >= 0) throw new ThriftTableOperationException(tableId,
-        null, TableOperation.COMPACT, TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
+    if (this.startRow != null && this.endRow != null && new Text(startRow).compareTo(new Text(endRow)) >= 0)
+      throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.BAD_RANGE,
+          "start row must be less than end row");
   }
   
   @Override

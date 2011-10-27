@@ -82,7 +82,8 @@ public class ServerSideErrorTest extends FunctionalTest {
       caught = true;
     }
     
-    if (!caught) throw new Exception("Scan did not fail");
+    if (!caught)
+      throw new Exception("Scan did not fail");
     
     // try to batch scan the table
     BatchScanner bs = getConnector().createBatchScanner("tt", Constants.NO_AUTHS, 2);
@@ -96,7 +97,8 @@ public class ServerSideErrorTest extends FunctionalTest {
     } catch (Exception e) {
       caught = true;
     }
-    if (!caught) throw new Exception("batch scan did not fail");
+    if (!caught)
+      throw new Exception("batch scan did not fail");
     
     // remove the bad agg so accumulo can shutdown
     TableOperations to = getConnector().tableOperations();
@@ -125,6 +127,7 @@ public class ServerSideErrorTest extends FunctionalTest {
       caught = true;
     }
     
-    if (!caught) throw new Exception("Scan did not fail");
+    if (!caught)
+      throw new Exception("Scan did not fail");
   }
 }

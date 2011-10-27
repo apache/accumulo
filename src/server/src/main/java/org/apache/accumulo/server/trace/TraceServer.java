@@ -115,7 +115,8 @@ public class TraceServer implements Watcher {
       TCompactProtocol protocol = new TCompactProtocol(transport);
       s.write(protocol);
       String parentString = Long.toHexString(s.parentId);
-      if (s.parentId == Span.ROOT_SPAN_ID) parentString = "";
+      if (s.parentId == Span.ROOT_SPAN_ID)
+        parentString = "";
       put(spanMutation, "span", parentString + ":" + Long.toHexString(s.spanId), transport.get(), transport.len());
       // Map the root span to time so we can look up traces by time
       Mutation timeMutation = null;
@@ -126,7 +127,8 @@ public class TraceServer implements Watcher {
       try {
         writer.addMutation(spanMutation);
         writer.addMutation(indexMutation);
-        if (timeMutation != null) writer.addMutation(timeMutation);
+        if (timeMutation != null)
+          writer.addMutation(timeMutation);
       } catch (Exception ex) {
         log.error("Unable to write mutation to table: " + spanMutation, ex);
       }

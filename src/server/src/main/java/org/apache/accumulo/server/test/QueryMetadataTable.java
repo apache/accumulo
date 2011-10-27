@@ -69,7 +69,8 @@ public class QueryMetadataTable {
         mdScanner.setRange(new Range(row));
         
         for (Entry<Key,Value> entry : mdScanner) {
-          if (!entry.getKey().getRow().equals(row)) break;
+          if (!entry.getKey().getRow().equals(row))
+            break;
         }
         
       } catch (TableNotFoundException e) {
@@ -134,7 +135,8 @@ public class QueryMetadataTable {
         location = entry.getValue().toString();
       }
       
-      if (!entry.getKey().getRow().toString().startsWith(Constants.METADATA_TABLE_ID)) rowSet.add(entry.getKey().getRow());
+      if (!entry.getKey().getRow().toString().startsWith(Constants.METADATA_TABLE_ID))
+        rowSet.add(entry.getKey().getRow());
       count++;
       
     }

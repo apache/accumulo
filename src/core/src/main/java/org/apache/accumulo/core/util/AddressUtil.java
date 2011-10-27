@@ -25,7 +25,8 @@ public class AddressUtil {
   static public InetSocketAddress parseAddress(String address, int defaultPort) throws NumberFormatException {
     final String[] parts = address.split(":", 2);
     if (parts.length == 2) {
-      if (parts[1].isEmpty()) return new InetSocketAddress(parts[0], defaultPort);
+      if (parts[1].isEmpty())
+        return new InetSocketAddress(parts[0], defaultPort);
       return new InetSocketAddress(parts[0], Integer.parseInt(parts[1]));
     }
     return new InetSocketAddress(address, defaultPort);

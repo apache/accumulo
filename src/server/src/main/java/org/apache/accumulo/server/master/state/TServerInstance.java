@@ -78,7 +78,8 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   
   @Override
   public int compareTo(TServerInstance other) {
-    if (this == other) return 0;
+    if (this == other)
+      return 0;
     return this.toString().compareTo(other.toString());
   }
   

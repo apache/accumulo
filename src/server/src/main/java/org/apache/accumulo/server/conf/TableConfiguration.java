@@ -58,10 +58,11 @@ public class TableConfiguration extends AccumuloConfiguration {
    */
   private static ZooCache getTablePropCache() {
     Instance inst = HdfsZooInstance.getInstance();
-    if (tablePropCache == null) synchronized (TableConfiguration.class) {
-      if (tablePropCache == null) tablePropCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new TableConfWatcher(
-          inst.getInstanceID()));
-    }
+    if (tablePropCache == null)
+      synchronized (TableConfiguration.class) {
+        if (tablePropCache == null)
+          tablePropCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new TableConfWatcher(inst.getInstanceID()));
+      }
     return tablePropCache;
   }
   
@@ -107,7 +108,8 @@ public class TableConfiguration extends AccumuloConfiguration {
     String value = get(key);
     
     if (value == null || !property.getType().isValidFormat(value)) {
-      if (value != null) log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
+      if (value != null)
+        log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
       value = parent.get(property);
     }
     return value;
@@ -117,12 +119,14 @@ public class TableConfiguration extends AccumuloConfiguration {
     String zPath = ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + table + Constants.ZTABLE_CONF + "/" + key;
     byte[] v = getTablePropCache().get(zPath);
     String value = null;
-    if (v != null) value = new String(v);
+    if (v != null)
+      value = new String(v);
     return value;
   }
   
   public static void invalidateCache() {
-    if (tablePropCache != null) tablePropCache.clear();
+    if (tablePropCache != null)
+      tablePropCache.clear();
   }
   
   @Override
@@ -136,7 +140,8 @@ public class TableConfiguration extends AccumuloConfiguration {
     if (children != null) {
       for (String child : children) {
         String value = get(child);
-        if (child != null && value != null) entries.put(child, value);
+        if (child != null && value != null)
+          entries.put(child, value);
       }
     }
     

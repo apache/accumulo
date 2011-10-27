@@ -80,7 +80,8 @@ public class FilteringIterator extends WrappingIterator implements OptionDescrib
           break;
         }
       }
-      if (goodKey == true) return;
+      if (goodKey == true)
+        return;
       getSource().next();
     }
   }
@@ -137,10 +138,12 @@ public class FilteringIterator extends WrappingIterator implements OptionDescrib
     Collection<Entry<String,String>> entries = options.entrySet();
     for (Entry<String,String> e : entries) {
       name = e.getKey();
-      if ((index = name.indexOf(".")) < 0) namesToClasses.put(name, e.getValue());
+      if ((index = name.indexOf(".")) < 0)
+        namesToClasses.put(name, e.getValue());
       else {
         subName = name.substring(0, index);
-        if (!namesToOptions.containsKey(subName)) namesToOptions.put(subName, new HashMap<String,String>());
+        if (!namesToOptions.containsKey(subName))
+          namesToOptions.put(subName, new HashMap<String,String>());
         namesToOptions.get(subName).put(name.substring(index + 1), e.getValue());
       }
     }

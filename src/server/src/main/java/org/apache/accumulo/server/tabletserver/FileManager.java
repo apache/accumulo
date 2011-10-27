@@ -165,7 +165,8 @@ public class FileManager {
    */
   FileManager(Configuration conf, FileSystem fs, int maxOpen, BlockCache dataCache, BlockCache indexCache) {
     
-    if (maxOpen <= 0) throw new IllegalArgumentException("maxOpen <= 0");
+    if (maxOpen <= 0)
+      throw new IllegalArgumentException("maxOpen <= 0");
     
     this.dataCache = dataCache;
     this.indexCache = indexCache;
@@ -364,11 +365,13 @@ public class FileManager {
       
       for (FileSKVIterator reader : readers) {
         String fileName = reservedReaders.remove(reader);
-        if (!sawIOException) getFileList(fileName, openFiles).add(new OpenReader(fileName, reader));
+        if (!sawIOException)
+          getFileList(fileName, openFiles).add(new OpenReader(fileName, reader));
       }
     }
     
-    if (sawIOException) closeReaders(readers);
+    if (sawIOException)
+      closeReaders(readers);
     
     // decrement the semaphore
     filePermits.release(readers.size());
@@ -509,7 +512,8 @@ public class FileManager {
     }
     
     synchronized void reattach() throws IOException {
-      if (tabletReservedReaders.size() != 0) throw new IllegalStateException();
+      if (tabletReservedReaders.size() != 0)
+        throw new IllegalStateException();
       
       Collection<String> files = new ArrayList<String>();
       for (FileDataSource fds : dataSources)

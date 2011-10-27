@@ -94,23 +94,28 @@ public class UpgradeAccumuloSite {
       
       Property p = Property.getPropertyByKey(entry.property);
       if (p != null) {
-        if (p.getDefaultValue().equals(entry.value)) continue;
+        if (p.getDefaultValue().equals(entry.value))
+          continue;
         
         if (p.getType().equals(PropertyType.TIMEDURATION)) {
           int value = Integer.parseInt(entry.value);
           if (value > 1000) {
-            if (value % 1000 == 0) entry.value = String.format("%ds", value / 1000);
-            else entry.value = String.format("%.2fs", value / 1000.);
+            if (value % 1000 == 0)
+              entry.value = String.format("%ds", value / 1000);
+            else
+              entry.value = String.format("%.2fs", value / 1000.);
           }
         }
-        if (entry.property.equals("table.scan.max.time")) entry.value = entry.value + "ms";
+        if (entry.property.equals("table.scan.max.time"))
+          entry.value = entry.value + "ms";
       }
       
       out.println("   <property>");
       out.println("      <name>" + entry.property + "</name>");
       
       out.println("      <value>" + entry.value + "</value>");
-      if (entry.description.trim().length() > 0) out.println("      <description>" + entry.description + "</description>");
+      if (entry.description.trim().length() > 0)
+        out.println("      <description>" + entry.description + "</description>");
       out.println("   </property>\n");
     }
     out.println("</configuration>");

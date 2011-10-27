@@ -84,9 +84,11 @@ public class TableToFile extends Configured implements Tool {
       int idx = col.indexOf(":");
       Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
       Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
-      if (cf.getLength() > 0) columnsToFetch.add(new Pair<Text,Text>(cf, cq));
+      if (cf.getLength() > 0)
+        columnsToFetch.add(new Pair<Text,Text>(cf, cq));
     }
-    if (!columnsToFetch.isEmpty()) AccumuloInputFormat.fetchColumns(job, columnsToFetch);
+    if (!columnsToFetch.isEmpty())
+      AccumuloInputFormat.fetchColumns(job, columnsToFetch);
     
     job.setMapperClass(TTFMapper.class);
     job.setMapOutputKeyClass(NullWritable.class);
@@ -109,6 +111,7 @@ public class TableToFile extends Configured implements Tool {
    */
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new TableToFile(), args);
-    if (res != 0) System.exit(res);
+    if (res != 0)
+      System.exit(res);
   }
 }

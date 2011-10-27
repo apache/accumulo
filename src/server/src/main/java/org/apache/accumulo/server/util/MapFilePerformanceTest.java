@@ -104,7 +104,8 @@ public class MapFilePerformanceTest {
     Key key = new Key();
     
     while (in.next(key)) {
-      if (r.nextDouble() < percentage) keys.add(new Key(key));
+      if (r.nextDouble() < percentage)
+        keys.add(new Key(key));
     }
     
     in.close();
@@ -163,7 +164,8 @@ public class MapFilePerformanceTest {
     int misses = 0;
     for (Key key : queries) {
       mmfi.seek(new Range(key, null), LocalityGroupUtil.EMPTY_CF_SET, false);
-      if (mmfi.getTopKey().compareTo(key) != 0) misses++;
+      if (mmfi.getTopKey().compareTo(key) != 0)
+        misses++;
       count++;
     }
     

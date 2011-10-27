@@ -60,7 +60,8 @@ public class FileDataIngest {
   }
   
   public String insertFileData(String filename, BatchWriter bw) throws MutationsRejectedException, IOException {
-    if (chunkSize == 0) return "";
+    if (chunkSize == 0)
+      return "";
     md5digest.reset();
     String uid = hexString(md5digest.digest(filename.getBytes()));
     
@@ -83,7 +84,8 @@ public class FileDataIngest {
     Mutation m = new Mutation(row);
     m.put(REFS_CF, KeyUtil.buildNullSepText(uid, REFS_ORIG_FILE), cv, new Value(filename.getBytes()));
     String fext = getExt(filename);
-    if (fext != null) m.put(REFS_CF, KeyUtil.buildNullSepText(uid, REFS_FILE_EXT), cv, new Value(fext.getBytes()));
+    if (fext != null)
+      m.put(REFS_CF, KeyUtil.buildNullSepText(uid, REFS_FILE_EXT), cv, new Value(fext.getBytes()));
     bw.addMutation(m);
     
     // read through file again, writing chunks to accumulo
@@ -93,15 +95,18 @@ public class FileDataIngest {
     while (numRead >= 0) {
       while (numRead < buf.length) {
         int moreRead = fis.read(buf, numRead, buf.length - numRead);
-        if (moreRead > 0) numRead += moreRead;
-        else if (moreRead < 0) break;
+        if (moreRead > 0)
+          numRead += moreRead;
+        else if (moreRead < 0)
+          break;
       }
       m = new Mutation(row);
       Text chunkCQ = new Text(chunkSizeBytes);
       chunkCQ.append(intToBytes(chunkCount), 0, 4);
       m.put(CHUNK_CF, chunkCQ, cv, new Value(buf, 0, numRead));
       bw.addMutation(m);
-      if (chunkCount == Integer.MAX_VALUE) throw new RuntimeException("too many chunks for file " + filename + ", try raising chunk size");
+      if (chunkCount == Integer.MAX_VALUE)
+        throw new RuntimeException("too many chunks for file " + filename + ", try raising chunk size");
       chunkCount++;
       numRead = fis.read(buf);
     }
@@ -115,7 +120,8 @@ public class FileDataIngest {
   }
   
   public static int bytesToInt(byte[] b, int offset) {
-    if (b.length <= offset + 3) throw new NumberFormatException("couldn't pull integer from bytes at offset " + offset);
+    if (b.length <= offset + 3)
+      throw new NumberFormatException("couldn't pull integer from bytes at offset " + offset);
     int i = (((b[offset] & 255) << 24) + ((b[offset + 1] & 255) << 16) + ((b[offset + 2] & 255) << 8) + ((b[offset + 3] & 255) << 0));
     return i;
   }
@@ -130,7 +136,8 @@ public class FileDataIngest {
   }
   
   private static String getExt(String filename) {
-    if (filename.indexOf(".") == -1) return null;
+    if (filename.indexOf(".") == -1)
+      return null;
     return filename.substring(filename.lastIndexOf(".") + 1);
   }
   
@@ -158,7 +165,8 @@ public class FileDataIngest {
     int chunkSize = Integer.parseInt(args[6]);
     
     Connector conn = new ZooKeeperInstance(instance, zooKeepers).getConnector(user, pass.getBytes());
-    if (!conn.tableOperations().exists(dataTable)) conn.tableOperations().create(dataTable);
+    if (!conn.tableOperations().exists(dataTable))
+      conn.tableOperations().create(dataTable);
     BatchWriter bw = conn.createBatchWriter(dataTable, 50000000, 300000l, 4);
     FileDataIngest fdi = new FileDataIngest(chunkSize, colvis);
     for (int i = 7; i < args.length; i++) {

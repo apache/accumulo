@@ -44,7 +44,8 @@ public class SelectCommand extends Command {
     
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.getConnector().tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
     }
     
     else {

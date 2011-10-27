@@ -37,7 +37,8 @@ public class ZooStore implements DistributedStore {
   ZooCache cache = new ZooCache();
   
   public ZooStore(String basePath) throws IOException {
-    if (basePath.endsWith("/")) basePath = basePath.substring(0, basePath.length() - 1);
+    if (basePath.endsWith("/"))
+      basePath = basePath.substring(0, basePath.length() - 1);
     this.basePath = basePath;
   }
   
@@ -85,7 +86,8 @@ public class ZooStore implements DistributedStore {
       log.debug("Removing " + path);
       path = relative(path);
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-      if (zoo.exists(path)) zoo.recursiveDelete(path, NodeMissingPolicy.SKIP);
+      if (zoo.exists(path))
+        zoo.recursiveDelete(path, NodeMissingPolicy.SKIP);
       cache.clear();
     } catch (Exception ex) {
       throw new DistributedStoreException(ex);

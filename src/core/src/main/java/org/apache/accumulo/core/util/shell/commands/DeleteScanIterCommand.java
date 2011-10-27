@@ -34,7 +34,8 @@ public class DeleteScanIterCommand extends Command {
     
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.getConnector().tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
     }
     
     else {
@@ -44,15 +45,19 @@ public class DeleteScanIterCommand extends Command {
     
     if (cl.hasOption(allOpt.getOpt())) {
       Map<String,Map<String,String>> tableIterators = shellState.scanIteratorOptions.remove(tableName);
-      if (tableIterators == null) Shell.log.info("No scan iterators set on table " + tableName);
-      else Shell.log.info("Removed the following scan iterators from table " + tableName + ":" + tableIterators.keySet());
+      if (tableIterators == null)
+        Shell.log.info("No scan iterators set on table " + tableName);
+      else
+        Shell.log.info("Removed the following scan iterators from table " + tableName + ":" + tableIterators.keySet());
     } else if (cl.hasOption(nameOpt.getOpt())) {
       String name = cl.getOptionValue(nameOpt.getOpt());
       Map<String,Map<String,String>> tableIterators = shellState.scanIteratorOptions.get(tableName);
       if (tableIterators != null) {
         Map<String,String> options = tableIterators.remove(name);
-        if (options == null) Shell.log.info("No iterator named " + name + " found for table " + tableName);
-        else Shell.log.info("Removed scan iterator " + name + " from table " + tableName);
+        if (options == null)
+          Shell.log.info("No iterator named " + name + " found for table " + tableName);
+        else
+          Shell.log.info("Removed scan iterator " + name + " from table " + tableName);
       } else {
         Shell.log.info("No iterator named " + name + " found for table " + tableName);
       }

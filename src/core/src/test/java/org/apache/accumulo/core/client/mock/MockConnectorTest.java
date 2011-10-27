@@ -66,7 +66,8 @@ public class MockConnectorTest {
     Key key = null;
     int count = 0;
     for (Entry<Key,Value> entry : s) {
-      if (key != null) assertTrue(key.compareTo(entry.getKey()) < 0);
+      if (key != null)
+        assertTrue(key.compareTo(entry.getKey()) < 0);
       assertEquals(entry.getKey().getRow(), new Text(entry.getValue().get()));
       key = entry.getKey();
       count++;
@@ -150,7 +151,8 @@ public class MockConnectorTest {
     Connector c = new MockConnector("root");
     
     // make sure we are using a clean table
-    if (c.tableOperations().exists("test")) c.tableOperations().delete("test");
+    if (c.tableOperations().exists("test"))
+      c.tableOperations().delete("test");
     c.tableOperations().create("test");
     
     BatchDeleter deleter = c.createBatchDeleter("test", Constants.NO_AUTHS, 2, 10000L, 1000L, 4);

@@ -36,7 +36,8 @@ public class Delete extends Test {
     Random rand = (Random) state.get("rand");
     
     Entry<Key,Value> entry = Search.findRandomDocument(state, dataTableName, rand);
-    if (entry == null) return;
+    if (entry == null)
+      return;
     
     String docID = entry.getKey().getRow().toString();
     String doc = entry.getValue().toString();

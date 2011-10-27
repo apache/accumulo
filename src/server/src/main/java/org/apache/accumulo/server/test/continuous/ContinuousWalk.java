@@ -144,10 +144,12 @@ public class ContinuousWalk {
           row = null;
         }
         
-        if (sleepTime > 0) Thread.sleep(sleepTime);
+        if (sleepTime > 0)
+          Thread.sleep(sleepTime);
       }
       
-      if (sleepTime > 0) Thread.sleep(sleepTime);
+      if (sleepTime > 0)
+        Thread.sleep(sleepTime);
     }
   }
   
@@ -166,7 +168,8 @@ public class ContinuousWalk {
       validate(entry.getKey(), entry.getValue());
       pr = getPrevRow(entry.getValue());
       count++;
-      if (pr != null) break;
+      if (pr != null)
+        break;
     }
     
     long t2 = System.currentTimeMillis();
@@ -177,12 +180,15 @@ public class ContinuousWalk {
   }
   
   static int getPrevRowOffset(byte val[]) {
-    if (val.length == 0) throw new IllegalArgumentException();
-    if (val[53] != ':') throw new IllegalArgumentException(new String(val));
+    if (val.length == 0)
+      throw new IllegalArgumentException();
+    if (val[53] != ':')
+      throw new IllegalArgumentException(new String(val));
     
     // prev row starts at 54
     if (val[54] != ':') {
-      if (val[54 + 16] != ':') throw new IllegalArgumentException(new String(val));
+      if (val[54 + 16] != ':')
+        throw new IllegalArgumentException(new String(val));
       return 54;
     }
     
@@ -202,7 +208,8 @@ public class ContinuousWalk {
   
   static int getChecksumOffset(byte val[]) {
     if (val[val.length - 1] != ':') {
-      if (val[val.length - 9] != ':') throw new IllegalArgumentException(new String(val));
+      if (val[val.length - 9] != ':')
+        throw new IllegalArgumentException(new String(val));
       return val.length - 8;
     }
     
@@ -211,7 +218,8 @@ public class ContinuousWalk {
   
   static void validate(Key key, Value value) throws BadChecksumException {
     int ckOff = getChecksumOffset(value.get());
-    if (ckOff < 0) return;
+    if (ckOff < 0)
+      return;
     
     long storedCksum = Long.parseLong(new String(value.get(), ckOff, 8), 16);
     

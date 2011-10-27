@@ -53,12 +53,14 @@ public class Table {
   }
   
   public synchronized <T> void addColumn(TableColumn<T> column) {
-    if (hasBegunAddingRows) throw new IllegalStateException("Cannot add more columns newServer rows have been added");
+    if (hasBegunAddingRows)
+      throw new IllegalStateException("Cannot add more columns newServer rows have been added");
     columns.add(column);
   }
   
   private synchronized <T> void addColumn(String title, CellType<T> type, String legend, boolean sortable) {
-    if (type == null) type = new StringType<T>();
+    if (type == null)
+      type = new StringType<T>();
     type.setSortable(sortable);
     addColumn(new TableColumn<T>(title, type, legend));
   }
@@ -86,13 +88,15 @@ public class Table {
   
   public synchronized void addRow(TableRow row) {
     hasBegunAddingRows = true;
-    if (columns.size() != row.size()) throw new IllegalStateException("Row must be the same size as the columns");
+    if (columns.size() != row.size())
+      throw new IllegalStateException("Row must be the same size as the columns");
     rows.add(row);
   }
   
   public synchronized void addRow(Object... cells) {
     TableRow row = prepareRow();
-    if (cells.length != columns.size()) throw new IllegalArgumentException("Argument length not equal to the number of columns");
+    if (cells.length != columns.size())
+      throw new IllegalArgumentException("Argument length not equal to the number of columns");
     for (Object cell : cells)
       row.add(cell);
     addRow(row);
@@ -100,20 +104,25 @@ public class Table {
   
   public synchronized void generate(HttpServletRequest req, StringBuilder sb) {
     String page = req.getRequestURI();
-    if (columns.isEmpty()) throw new IllegalStateException("No columns in table");
+    if (columns.isEmpty())
+      throw new IllegalStateException("No columns in table");
     for (TableRow row : rows)
-      if (row.size() != columns.size()) throw new RuntimeException("Each row must have the same number of columns");
+      if (row.size() != columns.size())
+        throw new RuntimeException("Each row must have the same number of columns");
     
     boolean sortAscending = true;
     Cookie c = BasicServlet.getCookie(req, "tableSort." + page + "." + table + "." + "sortAsc");
-    if (c != null && "false".equals(c.getValue())) sortAscending = false;
+    if (c != null && "false".equals(c.getValue()))
+      sortAscending = false;
     
     int sortCol = -1; // set to first sortable column by default
     int numLegends = 0;
     for (int i = 0; i < columns.size(); ++i) {
       TableColumn<?> col = columns.get(i);
-      if (sortCol < 0 && col.getCellType().isSortable()) sortCol = i;
-      if (col.getLegend() != null && !col.getLegend().isEmpty()) ++numLegends;
+      if (sortCol < 0 && col.getCellType().isSortable())
+        sortCol = i;
+      if (col.getLegend() != null && !col.getLegend().isEmpty())
+        ++numLegends;
     }
     
     // only get cookie if there is a possibility that it is sortable
@@ -123,7 +132,8 @@ public class Table {
         try {
           int col = Integer.parseInt(c.getValue());
           // only bother if specified column is sortable
-          if (!(col < 0 || sortCol >= columns.size()) && columns.get(col).getCellType().isSortable()) sortCol = col;
+          if (!(col < 0 || sortCol >= columns.size()) && columns.get(col).getCellType().isSortable())
+            sortCol = col;
         } catch (NumberFormatException e) {
           // ignore improperly formatted user cookie
         }
@@ -140,16 +150,20 @@ public class Table {
     sb.append("<a name='").append(table).append("'>&nbsp;</a>\n");
     sb.append("<table id='").append(table).append("' class='sortable'>\n");
     sb.append("<caption");
-    if (captionclass != null && !captionclass.isEmpty()) sb.append(" class='").append(captionclass).append("'");
+    if (captionclass != null && !captionclass.isEmpty())
+      sb.append(" class='").append(captionclass).append("'");
     sb.append(">\n");
-    if (caption != null && !caption.isEmpty()) sb.append("<span class='table-caption'>").append(caption).append("</span><br />\n");
-    if (subcaption != null && !subcaption.isEmpty()) sb.append("<span class='table-subcaption'>").append(subcaption).append("</span><br />\n");
+    if (caption != null && !caption.isEmpty())
+      sb.append("<span class='table-caption'>").append(caption).append("</span><br />\n");
+    if (subcaption != null && !subcaption.isEmpty())
+      sb.append("<span class='table-subcaption'>").append(subcaption).append("</span><br />\n");
     
     String redir = BasicServlet.currentPage(req);
     if (numLegends > 0) {
       String legendUrl = String.format("/op?action=toggleLegend&redir=%s&page=%s&table=%s&show=%s", redir, page, table, !showLegend);
       sb.append("<a href='").append(legendUrl).append("'>").append(showLegend ? "Hide" : "Show").append("&nbsp;Legend</a>\n");
-      if (showLegend) sb.append("<div class='left ").append(showLegend ? "show" : "hide").append("'><dl>\n");
+      if (showLegend)
+        sb.append("<div class='left ").append(showLegend ? "show" : "hide").append("'><dl>\n");
     }
     for (int i = 0; i < columns.size(); ++i) {
       TableColumn<?> col = columns.get(i);
@@ -158,15 +172,16 @@ public class Table {
         String url = String.format("/op?action=sortTable&redir=%s&page=%s&table=%s&%s=%s", redir, page, table, sortCol == i ? "asc" : "col",
             sortCol == i ? !sortAscending : i);
         String img = "";
-        if (sortCol == i) img = String.format("&nbsp;<img width='10px' height='10px' src='/web/%s.gif' alt='%s' />", sortAscending ? "up" : "down",
-            !sortAscending ? "^" : "v");
+        if (sortCol == i)
+          img = String.format("&nbsp;<img width='10px' height='10px' src='/web/%s.gif' alt='%s' />", sortAscending ? "up" : "down", !sortAscending ? "^" : "v");
         col.setTitle(String.format("<a href='%s'>%s%s</a>", url, title, img));
       }
       String legend = col.getLegend();
-      if (showLegend && legend != null && !legend.isEmpty()) sb.append("<dt class='smalltext'><b>").append(title.replace("<br />", "&nbsp;"))
-          .append("</b><dd>").append(legend).append("</dd></dt>\n");
+      if (showLegend && legend != null && !legend.isEmpty())
+        sb.append("<dt class='smalltext'><b>").append(title.replace("<br />", "&nbsp;")).append("</b><dd>").append(legend).append("</dd></dt>\n");
     }
-    if (showLegend && numLegends > 0) sb.append("</dl></div>\n");
+    if (showLegend && numLegends > 0)
+      sb.append("</dl></div>\n");
     sb.append("</caption>\n");
     sb.append("<tr>");
     boolean first = true;
@@ -179,7 +194,8 @@ public class Table {
     // don't sort if no columns are sortable or if there aren't enough rows
     if (rows.size() > 1 && sortCol > -1) {
       Collections.sort(rows, TableRow.getComparator(sortCol, columns.get(sortCol).getCellType()));
-      if (!sortAscending) Collections.reverse(rows);
+      if (!sortAscending)
+        Collections.reverse(rows);
     }
     boolean highlight = true;
     for (TableRow row : rows) {
@@ -193,7 +209,8 @@ public class Table {
       row(sb, highlight, columns, row);
       highlight = !highlight;
     }
-    if (rows.isEmpty()) sb.append("<tr><td class='center' colspan='").append(columns.size()).append("'><i>Empty</i></td></tr>\n");
+    if (rows.isEmpty())
+      sb.append("<tr><td class='center' colspan='").append(columns.size()).append("'><i>Empty</i></td></tr>\n");
     sb.append("</table>\n</div>\n\n");
   }
   
@@ -202,9 +219,11 @@ public class Table {
     boolean first = true;
     for (int i = 0; i < row.size(); ++i) {
       String cellValue = String.valueOf(row.get(i)).trim();
-      if (cellValue.isEmpty() || cellValue.equals(String.valueOf((Object) null))) cellValue = "-";
+      if (cellValue.isEmpty() || cellValue.equals(String.valueOf((Object) null)))
+        cellValue = "-";
       sb.append("<td class='").append(first ? "firstcell" : "");
-      if (columns.get(i).getCellType().alignment() != null) sb.append(first ? " " : "").append(columns.get(i).getCellType().alignment());
+      if (columns.get(i).getCellType().alignment() != null)
+        sb.append(first ? " " : "").append(columns.get(i).getCellType().alignment());
       sb.append("'>").append(cellValue).append("</td>");
       first = false;
     }

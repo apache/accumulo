@@ -138,16 +138,19 @@ public class DeleteRowsTest extends FunctionalTest {
   }
   
   private void assertEquals(int expected, int value) {
-    if (expected != value) throw new RuntimeException("Test failed, expected " + expected + " != " + value);
+    if (expected != value)
+      throw new RuntimeException("Test failed, expected " + expected + " != " + value);
     
   }
   
   private void assertTrue(boolean b) {
-    if (!b) throw new RuntimeException("test failed, false value");
+    if (!b)
+      throw new RuntimeException("test failed, false value");
   }
   
   private void assertEquals(String expected, String value) {
-    if (!expected.equals(value)) throw new RuntimeException("expected " + expected + " != " + value);
+    if (!expected.equals(value))
+      throw new RuntimeException("expected " + expected + " != " + value);
   }
   
 }

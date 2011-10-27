@@ -85,10 +85,14 @@ public class RegExIterator extends SkippingIterator implements OptionDescriber {
    *          if true, any of the non-null terms can match to return the entry
    */
   public static void setRegexs(IteratorSetting si, String rowTerm, String cfTerm, String cqTerm, String valueTerm, boolean orFields) {
-    if (rowTerm != null) si.addOption(RegExFilter.ROW_REGEX, rowTerm);
-    if (cfTerm != null) si.addOption(RegExFilter.COLF_REGEX, cfTerm);
-    if (cqTerm != null) si.addOption(RegExFilter.COLQ_REGEX, cqTerm);
-    if (valueTerm != null) si.addOption(RegExFilter.VALUE_REGEX, valueTerm);
+    if (rowTerm != null)
+      si.addOption(RegExFilter.ROW_REGEX, rowTerm);
+    if (cfTerm != null)
+      si.addOption(RegExFilter.COLF_REGEX, cfTerm);
+    if (cqTerm != null)
+      si.addOption(RegExFilter.COLQ_REGEX, cqTerm);
+    if (valueTerm != null)
+      si.addOption(RegExFilter.VALUE_REGEX, valueTerm);
     if (orFields) {
       si.addOption(RegExFilter.OR_FIELDS, "true");
     }

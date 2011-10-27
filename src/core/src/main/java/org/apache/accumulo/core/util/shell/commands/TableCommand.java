@@ -31,7 +31,8 @@ public class TableCommand extends Command {
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     String tableName = cl.getArgs()[0];
-    if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+    if (!shellState.getConnector().tableOperations().exists(tableName))
+      throw new TableNotFoundException(null, tableName, null);
     
     shellState.setTableName(tableName);
     return 0;

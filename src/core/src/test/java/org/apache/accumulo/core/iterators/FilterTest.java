@@ -56,7 +56,8 @@ public class FilterTest extends TestCase {
     
     public boolean accept(Key k, Value v) {
       // System.out.println(k.getRow());
-      if (k.getRow().toString().endsWith("0")) return true;
+      if (k.getRow().toString().endsWith("0"))
+        return true;
       return false;
     }
   }
@@ -67,7 +68,8 @@ public class FilterTest extends TestCase {
     }
     
     public boolean accept(Key k, Value v) {
-      if (k.getColumnFamily().toString().equals("a")) return false;
+      if (k.getColumnFamily().toString().equals("a"))
+        return false;
       return true;
     }
   }

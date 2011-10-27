@@ -86,7 +86,8 @@ public class RootTabletLocator extends TabletLocator {
       UtilWaitThread.sleep(500);
       location = instance.getRootTabletLocation();
     }
-    if (location != null) return new TabletLocation(Constants.ROOT_TABLET_EXTENT, location);
+    if (location != null)
+      return new TabletLocation(Constants.ROOT_TABLET_EXTENT, location);
     return null;
   }
   

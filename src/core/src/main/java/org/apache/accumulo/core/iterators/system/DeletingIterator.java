@@ -52,8 +52,10 @@ public class DeletingIterator extends WrappingIterator {
   
   @Override
   public void next() throws IOException {
-    if (super.getTopKey().isDeleted()) skipRowColumn();
-    else getSource().next();
+    if (super.getTopKey().isDeleted())
+      skipRowColumn();
+    else
+      getSource().next();
     findTop();
   }
   

@@ -77,8 +77,10 @@ public class LargestFirstMemoryManager implements MemoryManager {
     for (TabletState ts : tablets) {
       mts = ts.getMemTableSize();
       mcmts = ts.getMinorCompactingMemTableSize();
-      if (ts.getLastCommitTime() > 0) idleTime = ct - ts.getLastCommitTime();
-      else idleTime = ct - zerotime;
+      if (ts.getLastCommitTime() > 0)
+        idleTime = ct - ts.getLastCommitTime();
+      else
+        idleTime = ct - zerotime;
       ingestMemory += mts;
       tml = timeMemoryLoad(mts, idleTime);
       if (mcmts == 0 && mts > 0) {
@@ -89,8 +91,8 @@ public class LargestFirstMemoryManager implements MemoryManager {
           largestMemTableIdleTime = idleTime;
         }
         Text tableId = ts.getExtent().getTableId();
-        if (!mincIdleThresholds.containsKey(tableId)) mincIdleThresholds.put(tableId, ServerConfiguration.getTableConfiguration(tableId.toString())
-            .getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
+        if (!mincIdleThresholds.containsKey(tableId))
+          mincIdleThresholds.put(tableId, ServerConfiguration.getTableConfiguration(tableId.toString()).getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
         if (idleTime > mincIdleThresholds.get(tableId) && tml > largestIdleMemTableLoad) {
           largestIdleMemTableLoad = tml;
           largestIdleMemTablet = ts.getExtent();
@@ -104,7 +106,8 @@ public class LargestFirstMemoryManager implements MemoryManager {
       // }
       
       compactionMemory += mcmts;
-      if (mcmts > 0) numWaitingMincs++;
+      if (mcmts > 0)
+        numWaitingMincs++;
     }
     
     if (ingestMemory + compactionMemory > maxObserved) {

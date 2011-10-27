@@ -53,7 +53,8 @@ public class ProblemServlet extends BasicServlet {
   }
   
   private static void doProblemSummary(final HttpServletRequest req, StringBuilder sb, final Map<String,String> tidToNameMap) {
-    if (Monitor.getProblemSummary().isEmpty() && Monitor.getProblemException() == null) return;
+    if (Monitor.getProblemSummary().isEmpty() && Monitor.getProblemException() == null)
+      return;
     
     Table problemSummary = new Table("problemSummary", "Problem&nbsp;Summary", "error");
     problemSummary.addSortableColumn("Table", new TableProblemLinkType(tidToNameMap), null);
@@ -66,7 +67,8 @@ public class ProblemServlet extends BasicServlet {
       cell.append("<b>Failed to obtain problem reports</b> : " + Monitor.getProblemException().getMessage());
       Throwable cause = Monitor.getProblemException().getCause();
       while (cause != null) {
-        if (cause.getMessage() != null) cell.append("<br />\n caused by : " + cause.getMessage());
+        if (cause.getMessage() != null)
+          cell.append("<br />\n caused by : " + cause.getMessage());
         cause = cause.getCause();
       }
       problemSummary.setSubCaption(cell.toString());
@@ -87,7 +89,8 @@ public class ProblemServlet extends BasicServlet {
   
   private static void doProblemDetails(final HttpServletRequest req, StringBuilder sb, String tableId, Map<String,String> tidToNameMap) {
     
-    if (Monitor.getProblemException() != null) return;
+    if (Monitor.getProblemException() != null)
+      return;
     
     ArrayList<ProblemReport> problemReports = new ArrayList<ProblemReport>();
     Iterator<ProblemReport> iter = tableId == null ? ProblemReports.getInstance().iterator() : ProblemReports.getInstance().iterator(tableId);
@@ -127,7 +130,8 @@ public class ProblemServlet extends BasicServlet {
     
     @Override
     public String format(Object obj) {
-      if (obj == null) return "-";
+      if (obj == null)
+        return "-";
       String table = String.valueOf(obj);
       return String.format("<a href='/problems?table=%s'>%s</a>", table, Tables.getPrintableTableNameFromId(tidToNameMap, table));
     }
@@ -149,7 +153,8 @@ public class ProblemServlet extends BasicServlet {
     
     @Override
     public String format(Object obj) {
-      if (obj == null) return "-";
+      if (obj == null)
+        return "-";
       String table = String.valueOf(obj);
       return String.format("<a href='/op?table=%s&action=clearTableProblems&redir=%s'>clear ALL %s problems</a>", table, currentPage(req),
           Tables.getPrintableTableNameFromId(tidToNameMap, table));
@@ -170,7 +175,8 @@ public class ProblemServlet extends BasicServlet {
     
     @Override
     public String format(Object obj) {
-      if (obj == null) return "-";
+      if (obj == null)
+        return "-";
       ProblemReport p = (ProblemReport) obj;
       return String.format("<a href='/op?table=%s&action=clearProblem&redir=%s&resource=%s&ptype=%s'>clear this problem</a>", p.getTableName(),
           currentPage(req), encode(p.getResource()), encode(p.getProblemType().name()));

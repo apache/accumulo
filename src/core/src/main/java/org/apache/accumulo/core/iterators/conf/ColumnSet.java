@@ -64,7 +64,8 @@ public class ColumnSet {
     // lookup column family and column qualifier
     if (objectsCol.size() > 0) {
       lookupCol.set(key);
-      if (objectsCol.contains(lookupCol)) return true;
+      if (objectsCol.contains(lookupCol))
+        return true;
     }
     
     // lookup just column family

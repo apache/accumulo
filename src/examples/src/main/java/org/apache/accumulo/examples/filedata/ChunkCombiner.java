@@ -97,15 +97,17 @@ public class ChunkCombiner implements SortedKeyValueIterator<Key,Value> {
     topValue = new Value(source.getTopValue());
     source.next();
     
-    if (!topKey.getColumnFamilyData().equals(FileDataIngest.CHUNK_CF_BS)) return topKey.getColumnVisibility().getBytes();
+    if (!topKey.getColumnFamilyData().equals(FileDataIngest.CHUNK_CF_BS))
+      return topKey.getColumnVisibility().getBytes();
     
     maxTS = topKey.getTimestamp();
     
     while (source.hasTop() && source.getTopKey().equals(topKey, PartialKey.ROW_COLFAM_COLQUAL)) {
-      if (source.getTopKey().getTimestamp() > maxTS) maxTS = source.getTopKey().getTimestamp();
+      if (source.getTopKey().getTimestamp() > maxTS)
+        maxTS = source.getTopKey().getTimestamp();
       
-      if (!topValue.equals(source.getTopValue())) throw new RuntimeException("values not equals " + topKey + " " + source.getTopKey() + " : "
-          + diffInfo(topValue, source.getTopValue()));
+      if (!topValue.equals(source.getTopValue()))
+        throw new RuntimeException("values not equals " + topKey + " " + source.getTopKey() + " : " + diffInfo(topValue, source.getTopValue()));
       
       source.next();
     }
@@ -119,12 +121,14 @@ public class ChunkCombiner implements SortedKeyValueIterator<Key,Value> {
   
   private byte[] getVisFromRefs() throws IOException {
     Text row = topKey.getRow();
-    if (lastRowVC.containsKey(row)) return lastRowVC.get(row);
+    if (lastRowVC.containsKey(row))
+      return lastRowVC.get(row);
     Range range = new Range(row);
     refsSource.seek(range, refsColf, true);
     VisibilityCombiner vc = null;
     while (refsSource.hasTop()) {
-      if (vc == null) vc = new VisibilityCombiner();
+      if (vc == null)
+        vc = new VisibilityCombiner();
       vc.add(refsSource.getTopKey().getColumnVisibilityData());
       refsSource.next();
     }

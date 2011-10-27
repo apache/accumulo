@@ -50,7 +50,8 @@ class ActiveScanIterator implements Iterator<String> {
         scans.add(tserver + " ERROR " + e.getMessage());
       }
       
-      if (scans.size() > 0) break;
+      if (scans.size() > 0)
+        break;
     }
     
     scansIter = scans.iterator();
@@ -75,7 +76,8 @@ class ActiveScanIterator implements Iterator<String> {
   public String next() {
     String next = scansIter.next();
     
-    if (!scansIter.hasNext()) readNext();
+    if (!scansIter.hasNext())
+      readNext();
     
     return next;
   }

@@ -45,19 +45,17 @@ public class AccumuloFileOutputFormatTest {
   @Before
   public void setup() {
     job = new JobContext(new Configuration(), new JobID());
-
-    Path file = new Path(System.getenv("ACCUMULO_HOME")+"/target/");
-    f = new Path(file,"_temporary");
+    
+    Path file = new Path(System.getenv("ACCUMULO_HOME") + "/target/");
+    f = new Path(file, "_temporary");
     job.getConfiguration().set("mapred.output.dir", file.toString());
     
     tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());
   }
   
   @After
-  public void teardown() throws IOException
-  {
-    if (f!= null && f.getFileSystem(job.getConfiguration()).exists(f))
-    {
+  public void teardown() throws IOException {
+    if (f != null && f.getFileSystem(job.getConfiguration()).exists(f)) {
       f.getFileSystem(job.getConfiguration()).delete(f, true);
     }
   }
@@ -77,7 +75,7 @@ public class AccumuloFileOutputFormatTest {
   public void testEmptyWrite() throws IOException, InterruptedException {
     handleWriteTests(false);
   }
-
+  
   @Test
   public void testRealWrite() throws IOException, InterruptedException {
     handleWriteTests(true);
@@ -85,7 +83,7 @@ public class AccumuloFileOutputFormatTest {
   
   public void handleWriteTests(boolean content) throws IOException, InterruptedException {
     AccumuloFileOutputFormat afof = new AccumuloFileOutputFormat();
-    RecordWriter<Key, Value> rw = afof.getRecordWriter(tac);
+    RecordWriter<Key,Value> rw = afof.getRecordWriter(tac);
     
     if (content)
       rw.write(new Key("Key"), new Value("".getBytes()));

@@ -47,8 +47,8 @@ public class ConsistencyCheck extends BulkTest {
         v = entry.getValue();
         first = entry.getKey();
       }
-      if (!v.equals(entry.getValue())) throw new RuntimeException("Inconsistent value at " + entry.getKey() + " was " + entry.getValue() + " should be " + v
-          + " first read at " + first);
+      if (!v.equals(entry.getValue()))
+        throw new RuntimeException("Inconsistent value at " + entry.getKey() + " was " + entry.getValue() + " should be " + v + " first read at " + first);
     }
   }
   

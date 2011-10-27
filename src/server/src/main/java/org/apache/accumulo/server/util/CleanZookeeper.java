@@ -32,8 +32,7 @@ public class CleanZookeeper {
   
   /**
    * @param args
-   *          must contain one element: the address of a zookeeper node
-   *          a second parameter provides an additional authentication value
+   *          must contain one element: the address of a zookeeper node a second parameter provides an additional authentication value
    * @throws IOException
    *           error connecting to accumulo or zookeeper
    */

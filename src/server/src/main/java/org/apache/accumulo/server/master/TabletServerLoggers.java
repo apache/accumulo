@@ -61,7 +61,8 @@ public class TabletServerLoggers implements Watcher {
     Map<String,String> current = new HashMap<String,String>();
     for (String child : cache.getChildren(path)) {
       byte[] value = cache.get(path + "/" + child);
-      if (value != null) current.put(child, new String(value));
+      if (value != null)
+        current.put(child, new String(value));
     }
     return current;
   }

@@ -102,8 +102,10 @@ public class FamilyIntersectingIterator extends IntersectingIterator {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    if (options.containsKey(indexFamilyOptionName)) indexColf = new Text(options.get(indexFamilyOptionName));
-    if (options.containsKey(docFamilyOptionName)) docColf = new Text(options.get(docFamilyOptionName));
+    if (options.containsKey(indexFamilyOptionName))
+      indexColf = new Text(options.get(indexFamilyOptionName));
+    if (options.containsKey(docFamilyOptionName))
+      docColf = new Text(options.get(docFamilyOptionName));
     docSource = source.deepCopy(env);
     indexColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(indexColf.getBytes(), 0, indexColf.getLength()));
   }
@@ -122,8 +124,10 @@ public class FamilyIntersectingIterator extends IntersectingIterator {
   @Override
   protected void advanceToIntersection() throws IOException {
     super.advanceToIntersection();
-    if (topKey == null) return;
-    if (log.isTraceEnabled()) log.trace("using top key to seek for doc: " + topKey.toString());
+    if (topKey == null)
+      return;
+    if (log.isTraceEnabled())
+      log.trace("using top key to seek for doc: " + topKey.toString());
     Key docKey = buildDocKey();
     docSource.seek(new Range(docKey, true, null, false), docColfSet, true);
     log.debug("got doc key: " + docSource.getTopKey().toString());
@@ -134,18 +138,22 @@ public class FamilyIntersectingIterator extends IntersectingIterator {
   }
   
   protected Key buildDocKey() {
-    if (log.isTraceEnabled()) log.trace("building doc key for " + currentPartition + " " + currentDocID);
+    if (log.isTraceEnabled())
+      log.trace("building doc key for " + currentPartition + " " + currentDocID);
     int zeroIndex = currentDocID.find("\0");
-    if (zeroIndex < 0) throw new IllegalArgumentException("bad current docID");
+    if (zeroIndex < 0)
+      throw new IllegalArgumentException("bad current docID");
     Text colf = new Text(docColf);
     colf.append(nullByte, 0, 1);
     colf.append(currentDocID.getBytes(), 0, zeroIndex);
     docColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(colf.getBytes(), 0, colf.getLength()));
-    if (log.isTraceEnabled()) log.trace(zeroIndex + " " + currentDocID.getLength());
+    if (log.isTraceEnabled())
+      log.trace(zeroIndex + " " + currentDocID.getLength());
     Text colq = new Text();
     colq.set(currentDocID.getBytes(), zeroIndex + 1, currentDocID.getLength() - zeroIndex - 2);
     Key k = new Key(currentPartition, colf, colq);
-    if (log.isTraceEnabled()) log.trace("built doc key for seek: " + k.toString());
+    if (log.isTraceEnabled())
+      log.trace("built doc key for seek: " + k.toString());
     return k;
   }
 }

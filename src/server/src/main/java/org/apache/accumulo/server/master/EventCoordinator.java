@@ -27,7 +27,8 @@ public class EventCoordinator {
     // Did something happen since the last time we waited?
     if (lastEvent == eventCounter) {
       // no
-      if (millis <= 0) return eventCounter;
+      if (millis <= 0)
+        return eventCounter;
       try {
         wait(millis);
       } catch (InterruptedException e) {

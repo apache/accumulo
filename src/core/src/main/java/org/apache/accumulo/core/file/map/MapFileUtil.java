@@ -97,9 +97,11 @@ public class MapFileUtil {
       newConf.setInt("io.seqfile.compress.blocksize", tbs);
     }
     
-    if (fs.exists(new Path(dirname))) log.error("Map file " + dirname + " already exists", new Exception());
+    if (fs.exists(new Path(dirname)))
+      log.error("Map file " + dirname + " already exists", new Exception());
     
-    if (newConf != null) conf = newConf;
+    if (newConf != null)
+      conf = newConf;
     
     mfw = new MyMapFile.Writer(conf, fs, dirname, Key.class, Value.class, MySequenceFile.CompressionType.BLOCK);
     

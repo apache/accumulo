@@ -60,7 +60,8 @@ public class Tracer {
   
   public Span start(String description) {
     Span parent = currentTrace.get();
-    if (parent == null) return NULL_SPAN;
+    if (parent == null)
+      return NULL_SPAN;
     return push(parent.child(description));
   }
   
@@ -125,7 +126,8 @@ public class Tracer {
     if (span != null) {
       deliver(span);
       currentTrace.set(span.parent());
-    } else currentTrace.set(null);
+    } else
+      currentTrace.set(null);
   }
   
   public Span continueTrace(String description, long traceId, long parentId) {

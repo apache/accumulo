@@ -41,7 +41,8 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   private Map<String,DataFileValue> files;
   
   TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config) {
-    if (scope == IteratorScope.majc) throw new IllegalArgumentException("must set if compaction is full");
+    if (scope == IteratorScope.majc)
+      throw new IllegalArgumentException("must set if compaction is full");
     
     this.scope = scope;
     this.trm = null;
@@ -50,7 +51,8 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   }
   
   TabletIteratorEnvironment(IteratorScope scope, AccumuloConfiguration config, ScanFileManager trm, Map<String,DataFileValue> files) {
-    if (scope == IteratorScope.majc) throw new IllegalArgumentException("must set if compaction is full");
+    if (scope == IteratorScope.majc)
+      throw new IllegalArgumentException("must set if compaction is full");
     
     this.scope = scope;
     this.trm = trm;
@@ -60,7 +62,8 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   }
   
   TabletIteratorEnvironment(IteratorScope scope, boolean fullMajC, AccumuloConfiguration config) {
-    if (scope != IteratorScope.majc) throw new IllegalArgumentException("Tried to set maj compaction type when scope was " + scope);
+    if (scope != IteratorScope.majc)
+      throw new IllegalArgumentException("Tried to set maj compaction type when scope was " + scope);
     
     this.scope = scope;
     this.trm = null;
@@ -80,7 +83,8 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   
   @Override
   public boolean isFullMajorCompaction() {
-    if (scope != IteratorScope.majc) throw new IllegalStateException("Asked about major compaction type when scope is " + scope);
+    if (scope != IteratorScope.majc)
+      throw new IllegalStateException("Asked about major compaction type when scope is " + scope);
     return fullMajorCompaction;
   }
   
@@ -95,7 +99,8 @@ public class TabletIteratorEnvironment implements IteratorEnvironment {
   }
   
   SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
-    if (topLevelIterators.isEmpty()) return iter;
+    if (topLevelIterators.isEmpty())
+      return iter;
     ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<SortedKeyValueIterator<Key,Value>>(topLevelIterators);
     allIters.add(iter);
     return new MultiIterator(allIters, false);

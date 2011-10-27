@@ -61,7 +61,8 @@ public class ZooSpanClient extends SendSpansViaThrift {
       }
     });
     for (int i = 0; i < TOTAL_TIME_WAIT_CONNECT_MS; i += TIME_WAIT_CONNECT_CHECK_MS) {
-      if (zoo.getState().equals(States.CONNECTED)) break;
+      if (zoo.getState().equals(States.CONNECTED))
+        break;
       try {
         Thread.sleep(TIME_WAIT_CONNECT_CHECK_MS);
       } catch (InterruptedException ex) {

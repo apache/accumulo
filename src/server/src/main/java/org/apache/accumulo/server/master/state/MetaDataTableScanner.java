@@ -91,7 +91,8 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   @Override
   public boolean hasNext() {
     boolean result = iter.hasNext();
-    if (!result) mdScanner.close();
+    if (!result)
+      mdScanner.close();
     return result;
   }
   

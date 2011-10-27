@@ -103,8 +103,10 @@ public class ShellCompletor implements Completor {
             if (next != null) {
               current_command_token = next;
               
-              if (current_command_token.getCaseSensitive()) prefix += current_string_token + " ";
-              else prefix += current_string_token.toUpperCase() + " ";
+              if (current_command_token.getCaseSensitive())
+                prefix += current_string_token + " ";
+              else
+                prefix += current_string_token.toUpperCase() + " ";
               
               candidates.addAll(current_command_token.getSubcommandNames());
             }
@@ -116,25 +118,33 @@ public class ShellCompletor implements Completor {
         // if we're in -t <table> or -u <user> complete those
         if (inTableFlag) {
           for (String a : options.get(Shell.Command.CompletionSet.TABLENAMES))
-            if (a.startsWith(current_string_token)) candidates.add(a);
+            if (a.startsWith(current_string_token))
+              candidates.add(a);
         } else if (inUserFlag) {
           for (String a : options.get(Shell.Command.CompletionSet.USERNAMES))
-            if (a.startsWith(current_string_token)) candidates.add(a);
-        } else if (current_command_token != null) candidates.addAll(current_command_token.getSubcommandNames(current_string_token));
+            if (a.startsWith(current_string_token))
+              candidates.add(a);
+        } else if (current_command_token != null)
+          candidates.addAll(current_command_token.getSubcommandNames(current_string_token));
         
         Collections.sort(candidates);
         return (prefix.length());
       }
       
-      if (current_string_token.trim().equals("-" + Shell.tableOption)) inTableFlag = true;
-      else if (current_string_token.trim().equals("-" + Shell.userOption)) inUserFlag = true;
-      else inUserFlag = inTableFlag = false;
+      if (current_string_token.trim().equals("-" + Shell.tableOption))
+        inTableFlag = true;
+      else if (current_string_token.trim().equals("-" + Shell.userOption))
+        inUserFlag = true;
+      else
+        inUserFlag = inTableFlag = false;
       
-      if (current_command_token != null && current_command_token.getCaseSensitive()) prefix += current_string_token + " ";
-      else prefix += current_string_token.toUpperCase() + " ";
+      if (current_command_token != null && current_command_token.getCaseSensitive())
+        prefix += current_string_token + " ";
+      else
+        prefix += current_string_token.toUpperCase() + " ";
       
-      if (current_command_token != null && current_command_token.getSubcommandNames().contains(current_string_token)) current_command_token = current_command_token
-          .getSubcommand(current_string_token);
+      if (current_command_token != null && current_command_token.getSubcommandNames().contains(current_string_token))
+        current_command_token = current_command_token.getSubcommand(current_string_token);
       
     }
     return 0;

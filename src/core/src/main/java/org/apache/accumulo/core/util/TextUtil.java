@@ -32,7 +32,8 @@ public final class TextUtil {
   }
   
   public static ByteBuffer getByteBuffer(Text text) {
-    if (text == null) return null;
+    if (text == null)
+      return null;
     byte[] bytes = text.getBytes();
     return ByteBuffer.wrap(bytes, 0, text.getLength());
   }

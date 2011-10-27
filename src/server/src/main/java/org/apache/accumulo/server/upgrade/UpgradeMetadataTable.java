@@ -83,9 +83,11 @@ public class UpgradeMetadataTable {
       }
     }
     
-    if (files.size() == 0) throw new Exception("Tablet " + tabletEntries.lastKey().getRow() + " has no files");
+    if (files.size() == 0)
+      throw new Exception("Tablet " + tabletEntries.lastKey().getRow() + " has no files");
     
-    if (prevRow == null) throw new Exception("Tablet " + tabletEntries.lastKey().getRow() + " has no prevrow");
+    if (prevRow == null)
+      throw new Exception("Tablet " + tabletEntries.lastKey().getRow() + " has no prevrow");
     
     KeyExtent ke = new KeyExtent(new Text(tabletEntries.lastKey().getRow()), prevRow);
     // System.out.println("*** Processing tablet "+tabletEntries.lastKey().getRow()+" "+prevRow+" "+files);
@@ -137,10 +139,12 @@ public class UpgradeMetadataTable {
             val = rencodeDatafileValue(val);
           } else if (Constants.METADATA_PREV_ROW_COLUMN.equals(newKey.getColumnFamily(), newKey.getColumnQualifier())) {
             Text per = KeyExtent.decodePrevEndRow(val);
-            if (per == null) val = new Value(val.get(), true);
-            else if (new KeyExtent(newKey.getRow(), (Text) null).getTableId().toString().equals(Constants.METADATA_TABLE_ID) && per.getBytes()[0] != '~') val = KeyExtent
-                .encodePrevEndRow(translateRow(per, tableIds));
-            else val = new Value(val.get(), true);
+            if (per == null)
+              val = new Value(val.get(), true);
+            else if (new KeyExtent(newKey.getRow(), (Text) null).getTableId().toString().equals(Constants.METADATA_TABLE_ID) && per.getBytes()[0] != '~')
+              val = KeyExtent.encodePrevEndRow(translateRow(per, tableIds));
+            else
+              val = new Value(val.get(), true);
             
           } else {
             val = new Value(val.get(), true);
@@ -305,8 +309,10 @@ public class UpgradeMetadataTable {
       Key logicalTimeKey = new Key(tm.lastKey().getRow(), Constants.METADATA_TIME_COLUMN.getColumnFamily(),
           Constants.METADATA_TIME_COLUMN.getColumnQualifier(), System.currentTimeMillis());
       Value logicalTimeValue;
-      if (tm.lastKey().getRow().toString().startsWith("!0")) logicalTimeValue = new Value(("L" + maxTime).getBytes());
-      else logicalTimeValue = new Value(("M" + System.currentTimeMillis()).getBytes());
+      if (tm.lastKey().getRow().toString().startsWith("!0"))
+        logicalTimeValue = new Value(("L" + maxTime).getBytes());
+      else
+        logicalTimeValue = new Value(("M" + System.currentTimeMillis()).getBytes());
       tm.put(logicalTimeKey, logicalTimeValue);
       
       for (Entry<Key,Value> entry : tm.entrySet()) {

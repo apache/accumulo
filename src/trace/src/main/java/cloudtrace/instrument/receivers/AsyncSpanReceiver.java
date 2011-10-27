@@ -97,7 +97,8 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
           log.error(ex, ex);
         }
       }
-      if (!sent) break;
+      if (!sent)
+        break;
     }
   }
   

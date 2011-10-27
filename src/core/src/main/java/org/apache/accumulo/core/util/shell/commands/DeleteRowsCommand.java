@@ -32,15 +32,18 @@ public class DeleteRowsCommand extends Command {
     String tableName;
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.getConnector().tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
     } else {
       shellState.checkTableState();
       tableName = shellState.getTableName();
     }
     Text startRow = null;
-    if (cl.hasOption(optStartRow.getOpt())) startRow = new Text(cl.getOptionValue(optStartRow.getOpt()));
+    if (cl.hasOption(optStartRow.getOpt()))
+      startRow = new Text(cl.getOptionValue(optStartRow.getOpt()));
     Text endRow = null;
-    if (cl.hasOption(optEndRow.getOpt())) endRow = new Text(cl.getOptionValue(optEndRow.getOpt()));
+    if (cl.hasOption(optEndRow.getOpt()))
+      endRow = new Text(cl.getOptionValue(optEndRow.getOpt()));
     if (!cl.hasOption(forceOpt.getOpt()) && (startRow == null || endRow == null)) {
       shellState.getReader().printString("Not deleting unbounded range. Specify both ends, or use --force\n");
       return 1;

@@ -46,7 +46,8 @@ public class DefaultConfiguration extends AccumuloConfiguration {
   public Iterator<Entry<String,String>> iterator() {
     TreeMap<String,String> entries = new TreeMap<String,String>();
     for (Property prop : Property.values())
-      if (!prop.getType().equals(PropertyType.PREFIX)) entries.put(prop.getKey(), prop.getDefaultValue());
+      if (!prop.getType().equals(PropertyType.PREFIX))
+        entries.put(prop.getKey(), prop.getDefaultValue());
     
     return entries.entrySet().iterator();
   }
@@ -70,8 +71,10 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     ArrayList<Property> prefixes = new ArrayList<Property>();
     TreeMap<String,Property> sortedProps = new TreeMap<String,Property>();
     for (Property prop : Property.values()) {
-      if (prop.getType().equals(PropertyType.PREFIX)) prefixes.add(prop);
-      else sortedProps.put(prop.getKey(), prop);
+      if (prop.getType().equals(PropertyType.PREFIX))
+        prefixes.add(prop);
+      else
+        sortedProps.put(prop.getKey(), prop);
     }
     
     doc.println("  <p>Jump to: ");
@@ -87,8 +90,8 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       doc.println("   <tr><td colspan='5'><a name='" + prefix.name() + "' class='large'>" + prefix.getKey() + "*</a></td></tr>");
       doc.println("   <tr><td colspan='5'><i>" + prefix.getDescription() + "</i></td></tr>");
       if (!prefix.equals(Property.TABLE_CONSTRAINT_PREFIX) && !prefix.equals(Property.TABLE_ITERATOR_PREFIX)
-          && !prefix.equals(Property.TABLE_LOCALITY_GROUP_PREFIX)) doc
-          .println("   <tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>");
+          && !prefix.equals(Property.TABLE_LOCALITY_GROUP_PREFIX))
+        doc.println("   <tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>");
       
       boolean highlight = true;
       for (Property prop : sortedProps.values()) {
@@ -118,7 +121,8 @@ public class DefaultConfiguration extends AccumuloConfiguration {
     doc.println("   <tr><th>Property Type</th><th>Description</th></tr>");
     boolean highlight = true;
     for (PropertyType type : PropertyType.values()) {
-      if (type.equals(PropertyType.PREFIX)) continue;
+      if (type.equals(PropertyType.PREFIX))
+        continue;
       doc.println("   <tr " + (highlight ? "class='highlight'" : "") + ">");
       highlight = !highlight;
       doc.println("     <td><h3><a name='" + type.name() + "'>" + type + "</a></td>");
@@ -135,6 +139,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
    * Generate documentation for conf/accumulo-site.xml file usage
    */
   public static void main(String[] args) {
-    if (args.length == 1 && args[0].equals("--generate-doc")) generateDocumentation(System.out);
+    if (args.length == 1 && args[0].equals("--generate-doc"))
+      generateDocumentation(System.out);
   }
 }

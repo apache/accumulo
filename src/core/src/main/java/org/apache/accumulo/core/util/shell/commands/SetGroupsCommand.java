@@ -44,7 +44,8 @@ public class SetGroupsCommand extends Command {
     
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.getConnector().tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
     }
     
     else {
@@ -56,7 +57,8 @@ public class SetGroupsCommand extends Command {
     
     for (String arg : cl.getArgs()) {
       String sa[] = arg.split("=", 2);
-      if (sa.length < 2) throw new IllegalArgumentException("Missing '='");
+      if (sa.length < 2)
+        throw new IllegalArgumentException("Missing '='");
       String group = sa[0];
       HashSet<Text> colFams = new HashSet<Text>();
       

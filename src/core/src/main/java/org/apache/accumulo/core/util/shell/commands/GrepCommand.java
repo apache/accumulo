@@ -43,7 +43,8 @@ public class GrepCommand extends ScanCommand {
     
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.getConnector().tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
     }
     
     else {
@@ -51,7 +52,8 @@ public class GrepCommand extends ScanCommand {
       tableName = shellState.getTableName();
     }
     
-    if (cl.getArgList().isEmpty()) throw new MissingArgumentException("No terms specified");
+    if (cl.getArgList().isEmpty())
+      throw new MissingArgumentException("No terms specified");
     
     // handle first argument, if present, the authorizations list to
     // scan with
@@ -80,7 +82,8 @@ public class GrepCommand extends ScanCommand {
   }
   
   protected void setUpIterator(int prio, String name, String term, BatchScanner scanner) throws IOException {
-    if (prio < 0) throw new IllegalArgumentException("Priority < 0 " + prio);
+    if (prio < 0)
+      throw new IllegalArgumentException("Priority < 0 " + prio);
     
     IteratorSetting grep = new IteratorSetting(prio, name, GrepIterator.class);
     GrepIterator.setTerm(grep, term);

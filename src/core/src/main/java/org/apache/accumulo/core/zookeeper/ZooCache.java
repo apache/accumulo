@@ -60,7 +60,8 @@ public class ZooCache {
     @Override
     public void process(WatchedEvent event) {
       
-      if (log.isTraceEnabled()) log.trace(event);
+      if (log.isTraceEnabled())
+        log.trace(event);
       
       switch (event.getType()) {
         case NodeDataChanged:
@@ -72,13 +73,15 @@ public class ZooCache {
         case None:
           switch (event.getState()) {
             case Disconnected:
-              if (log.isTraceEnabled()) log.trace("Zoo keeper connection disconnected, clearing cache");
+              if (log.isTraceEnabled())
+                log.trace("Zoo keeper connection disconnected, clearing cache");
               clear();
               break;
             case SyncConnected:
               break;
             case Expired:
-              if (log.isTraceEnabled()) log.trace("Zoo keeper connection expired, clearing cache");
+              if (log.isTraceEnabled())
+                log.trace("Zoo keeper connection expired, clearing cache");
               clear();
               break;
             default:
@@ -144,7 +147,8 @@ public class ZooCache {
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
-      if (sleepTime < 10000) sleepTime = (int) (sleepTime + sleepTime * Math.random());
+      if (sleepTime < 10000)
+        sleepTime = (int) (sleepTime + sleepTime * Math.random());
       
     }
   }
@@ -156,7 +160,8 @@ public class ZooCache {
       @Override
       public void run(ZooKeeper zooKeeper) throws KeeperException, InterruptedException {
         
-        if (childrenCache.containsKey(zPath)) return;
+        if (childrenCache.containsKey(zPath))
+          return;
         
         try {
           List<String> children = zooKeeper.getChildren(zPath, watcher);
@@ -189,7 +194,8 @@ public class ZooCache {
       @Override
       public void run(ZooKeeper zooKeeper) throws KeeperException, InterruptedException {
         
-        if (cache.containsKey(zPath)) return;
+        if (cache.containsKey(zPath))
+          return;
         
         /*
          * The following call to exists() is important, since we are caching that a node does not exist. Once the node comes into existance, it will be added to
@@ -204,7 +210,8 @@ public class ZooCache {
         byte[] data = null;
         
         if (stat == null) {
-          if (log.isTraceEnabled()) log.trace("zookeeper did not contain " + zPath);
+          if (log.isTraceEnabled())
+            log.trace("zookeeper did not contain " + zPath);
         } else {
           try {
             data = zooKeeper.getData(zPath, watcher, stat);
@@ -213,9 +220,11 @@ public class ZooCache {
           } catch (KeeperException.NoNodeException e2) {
             throw new ConcurrentModificationException();
           }
-          if (log.isTraceEnabled()) log.trace("zookeeper contained " + zPath + " " + (data == null ? null : new String(data)));
+          if (log.isTraceEnabled())
+            log.trace("zookeeper contained " + zPath + " " + (data == null ? null : new String(data)));
         }
-        if (log.isTraceEnabled()) log.trace("putting " + zPath + " " + (data == null ? null : new String(data)) + " in cache");
+        if (log.isTraceEnabled())
+          log.trace("putting " + zPath + " " + (data == null ? null : new String(data)) + " in cache");
         put(zPath, data, stat);
       }
       
@@ -252,7 +261,8 @@ public class ZooCache {
   }
   
   private synchronized void remove(String zPath) {
-    if (log.isTraceEnabled()) log.trace("removing " + zPath + " from cache");
+    if (log.isTraceEnabled())
+      log.trace("removing " + zPath + " from cache");
     cache.remove(zPath);
     childrenCache.remove(zPath);
     statCache.remove(zPath);
@@ -268,17 +278,20 @@ public class ZooCache {
     
     for (Iterator<String> i = cache.keySet().iterator(); i.hasNext();) {
       String path = i.next();
-      if (path.startsWith(zPath)) i.remove();
+      if (path.startsWith(zPath))
+        i.remove();
     }
     
     for (Iterator<String> i = childrenCache.keySet().iterator(); i.hasNext();) {
       String path = i.next();
-      if (path.startsWith(zPath)) i.remove();
+      if (path.startsWith(zPath))
+        i.remove();
     }
     
     for (Iterator<String> i = statCache.keySet().iterator(); i.hasNext();) {
       String path = i.next();
-      if (path.startsWith(zPath)) i.remove();
+      if (path.startsWith(zPath))
+        i.remove();
     }
   }
   

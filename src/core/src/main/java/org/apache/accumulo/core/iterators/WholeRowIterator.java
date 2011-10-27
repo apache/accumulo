@@ -148,10 +148,12 @@ public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
   List<Value> values = new ArrayList<Value>();
   
   private void prepKeys() throws IOException {
-    if (topKey != null) return;
+    if (topKey != null)
+      return;
     Text currentRow;
     do {
-      if (sourceIter.hasTop() == false) return;
+      if (sourceIter.hasTop() == false)
+        return;
       currentRow = new Text(sourceIter.getTopKey().getRow());
       keys.clear();
       values.clear();
@@ -183,7 +185,8 @@ public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
   
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    if (sourceIter != null) return new WholeRowIterator(sourceIter.deepCopy(env));
+    if (sourceIter != null)
+      return new WholeRowIterator(sourceIter.deepCopy(env));
     return new WholeRowIterator();
   }
   
@@ -226,7 +229,8 @@ public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
       // assuming that we are seeking using a key previously returned by this iterator
       // therefore go to the next row
       Key followingRowKey = sk.followingKey(PartialKey.ROW);
-      if (range.getEndKey() != null && followingRowKey.compareTo(range.getEndKey()) > 0) return;
+      if (range.getEndKey() != null && followingRowKey.compareTo(range.getEndKey()) > 0)
+        return;
       
       range = new Range(sk.followingKey(PartialKey.ROW), true, range.getEndKey(), range.isEndKeyInclusive());
     }

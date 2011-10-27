@@ -24,8 +24,10 @@ public class PeekingIterator<E> implements Iterator<E> {
   
   public PeekingIterator(Iterator<E> source) {
     this.source = source;
-    if (source.hasNext()) top = source.next();
-    else top = null;
+    if (source.hasNext())
+      top = source.next();
+    else
+      top = null;
   }
   
   public E peek() {
@@ -34,8 +36,10 @@ public class PeekingIterator<E> implements Iterator<E> {
   
   public E next() {
     E lastPeeked = top;
-    if (source.hasNext()) top = source.next();
-    else top = null;
+    if (source.hasNext())
+      top = source.next();
+    else
+      top = null;
     return lastPeeked;
   }
   

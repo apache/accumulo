@@ -77,7 +77,8 @@ public class Histogram<T> implements Serializable {
   
   public long getCount(T x) {
     HistData<T> hd = counts.get(x);
-    if (hd == null) return 0;
+    if (hd == null)
+      return 0;
     return hd.count;
   }
   
@@ -98,8 +99,10 @@ public class Histogram<T> implements Serializable {
     
     Collections.sort(sortedCounts, new Comparator<HistData<T>>() {
       public int compare(HistData<T> o1, HistData<T> o2) {
-        if (o1.count < o2.count) return -1;
-        if (o1.count > o2.count) return 1;
+        if (o1.count < o2.count)
+          return -1;
+        if (o1.count > o2.count)
+          return 1;
         return 0;
       }
     });

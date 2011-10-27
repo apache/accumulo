@@ -35,7 +35,8 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
   }
   
   protected SortedKeyValueIterator<Key,Value> getSource() {
-    if (source == null) throw new IllegalStateException("getting null source");
+    if (source == null)
+      throw new IllegalStateException("getting null source");
     return source;
   }
   
@@ -46,22 +47,28 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
   
   @Override
   public Key getTopKey() {
-    if (source == null) throw new IllegalStateException("no source set");
-    if (seenSeek == false) throw new IllegalStateException("never been seeked");
+    if (source == null)
+      throw new IllegalStateException("no source set");
+    if (seenSeek == false)
+      throw new IllegalStateException("never been seeked");
     return getSource().getTopKey();
   }
   
   @Override
   public Value getTopValue() {
-    if (source == null) throw new IllegalStateException("no source set");
-    if (seenSeek == false) throw new IllegalStateException("never been seeked");
+    if (source == null)
+      throw new IllegalStateException("no source set");
+    if (seenSeek == false)
+      throw new IllegalStateException("never been seeked");
     return getSource().getTopValue();
   }
   
   @Override
   public boolean hasTop() {
-    if (source == null) throw new IllegalStateException("no source set");
-    if (seenSeek == false) throw new IllegalStateException("never been seeked");
+    if (source == null)
+      throw new IllegalStateException("no source set");
+    if (seenSeek == false)
+      throw new IllegalStateException("never been seeked");
     return getSource().hasTop();
   }
   
@@ -73,8 +80,10 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
   
   @Override
   public void next() throws IOException {
-    if (source == null) throw new IllegalStateException("no source set");
-    if (seenSeek == false) throw new IllegalStateException("never been seeked");
+    if (source == null)
+      throw new IllegalStateException("no source set");
+    if (seenSeek == false)
+      throw new IllegalStateException("never been seeked");
     getSource().next();
   }
   

@@ -52,13 +52,15 @@ public class DropTable extends Test {
     
     boolean exists = SecurityHelper.getTableExists(state);
     boolean hasPermission = false;
-    if (SecurityHelper.getSysPerm(state, username, SystemPermission.DROP_TABLE) || SecurityHelper.getTabPerm(state, username, TablePermission.DROP_TABLE)) hasPermission = true;
+    if (SecurityHelper.getSysPerm(state, username, SystemPermission.DROP_TABLE) || SecurityHelper.getTabPerm(state, username, TablePermission.DROP_TABLE))
+      hasPermission = true;
     
     try {
       conn.tableOperations().delete(tableName);
     } catch (AccumuloSecurityException ae) {
       if (ae.getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-        if (hasPermission) throw new AccumuloException("Got a security exception when I should have had permission.", ae);
+        if (hasPermission)
+          throw new AccumuloException("Got a security exception when I should have had permission.", ae);
         else {
           // Drop anyway for sake of state
           state.getConnector().tableOperations().delete(tableName);
@@ -71,13 +73,16 @@ public class DropTable extends Test {
       }
       throw new AccumuloException("Got unexpected ae error code", ae);
     } catch (TableNotFoundException tnfe) {
-      if (exists) throw new TableExistsException(null, tableName, "Got a TableNotFOundException but it should have existed", tnfe);
-      else return;
+      if (exists)
+        throw new TableExistsException(null, tableName, "Got a TableNotFOundException but it should have existed", tnfe);
+      else
+        return;
     }
     SecurityHelper.setTableExists(state, false);
     for (String user : new String[] {SecurityHelper.getSysUserName(state), SecurityHelper.getTabUserName(state)})
       for (TablePermission tp : TablePermission.values())
         SecurityHelper.setTabPerm(state, user, tp, false);
-    if (!hasPermission) throw new AccumuloException("Didn't get Security Exception when we should have");
+    if (!hasPermission)
+      throw new AccumuloException("Didn't get Security Exception when we should have");
   }
 }

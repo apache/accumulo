@@ -47,7 +47,8 @@ public class Verify extends Test {
     Scanner scanner = state.getConnector().createScanner(Setup.getTableName(), auths);
     for (Entry<Key,Value> entry : scanner) {
       byte[] value = entry.getValue().get();
-      if (!Arrays.equals(value, zero)) throw new Exception("Bad key at " + entry);
+      if (!Arrays.equals(value, zero))
+        throw new Exception("Bad key at " + entry);
     }
     log.info("Test successful on table " + Setup.getTableName());
   }

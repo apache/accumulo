@@ -48,74 +48,90 @@ public class MockSecurityOperations implements SecurityOperations {
   @Override
   public boolean authenticateUser(String name, byte[] password) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(name);
-    if (user == null) return false;
+    if (user == null)
+      return false;
     return Arrays.equals(user.password, password);
   }
   
   @Override
   public void changeUserPassword(String name, byte[] password) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(name);
-    if (user != null) user.password = Arrays.copyOf(password, password.length);
+    if (user != null)
+      user.password = Arrays.copyOf(password, password.length);
   }
   
   @Override
   public void changeUserAuthorizations(String name, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(name);
-    if (user != null) user.authorizations = authorizations;
+    if (user != null)
+      user.authorizations = authorizations;
   }
   
   @Override
   public Authorizations getUserAuthorizations(String name) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(name);
-    if (user != null) return user.authorizations;
+    if (user != null)
+      return user.authorizations;
     return new Authorizations();
   }
   
   @Override
   public boolean hasSystemPermission(String name, SystemPermission perm) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(name);
-    if (user != null) return user.permissions.contains(perm);
+    if (user != null)
+      return user.permissions.contains(perm);
     return false;
   }
   
   @Override
   public boolean hasTablePermission(String name, String tableName, TablePermission perm) throws AccumuloException, AccumuloSecurityException {
     MockTable table = acu.tables.get(tableName);
-    if (table == null) return false;
+    if (table == null)
+      return false;
     EnumSet<TablePermission> perms = table.userPermissions.get(name);
-    if (perms == null) return false;
+    if (perms == null)
+      return false;
     return perms.contains(perm);
   }
   
   @Override
   public void grantSystemPermission(String name, SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(name);
-    if (user != null) user.permissions.add(permission);
+    if (user != null)
+      user.permissions.add(permission);
   }
   
   @Override
   public void grantTablePermission(String name, String tableName, TablePermission permission) throws AccumuloException, AccumuloSecurityException {
-    if (acu.users.get(name) == null) return;
+    if (acu.users.get(name) == null)
+      return;
     MockTable table = acu.tables.get(tableName);
-    if (table == null) return;
+    if (table == null)
+      return;
     EnumSet<TablePermission> perms = table.userPermissions.get(name);
-    if (perms == null) table.userPermissions.put(name, EnumSet.of(permission));
-    else perms.add(permission);
+    if (perms == null)
+      table.userPermissions.put(name, EnumSet.of(permission));
+    else
+      perms.add(permission);
   }
   
   @Override
   public void revokeSystemPermission(String name, SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     MockUser user = acu.users.get(name);
-    if (user != null) user.permissions.remove(permission);
+    if (user != null)
+      user.permissions.remove(permission);
   }
   
   @Override
   public void revokeTablePermission(String name, String tableName, TablePermission permission) throws AccumuloException, AccumuloSecurityException {
-    if (acu.users.get(name) == null) return;
+    if (acu.users.get(name) == null)
+      return;
     MockTable table = acu.tables.get(tableName);
-    if (table == null) return;
+    if (table == null)
+      return;
     EnumSet<TablePermission> perms = table.userPermissions.get(name);
-    if (perms != null) perms.remove(permission);
+    if (perms != null)
+      perms.remove(permission);
     
   }
   

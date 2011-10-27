@@ -28,7 +28,8 @@ import org.apache.zookeeper.KeeperException;
 public class SystemPropUtil {
   public static boolean setSystemProperty(String property, String value) throws KeeperException, InterruptedException {
     Property p = Property.getPropertyByKey(property);
-    if ((p != null && !p.getType().isValidFormat(value)) || !Property.isValidZooPropertyKey(property)) return false;
+    if ((p != null && !p.getType().isValidFormat(value)) || !Property.isValidZooPropertyKey(property))
+      return false;
     
     // create the zk node for this property and set it's data to the specified value
     String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZCONFIG + "/" + property;

@@ -35,7 +35,8 @@ public class AboutCommand extends Command {
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws IOException {
     shellState.printInfo();
-    if (cl.hasOption(verboseOption.getOpt())) shellState.printVerboseInfo();
+    if (cl.hasOption(verboseOption.getOpt()))
+      shellState.printVerboseInfo();
     return 0;
   }
   

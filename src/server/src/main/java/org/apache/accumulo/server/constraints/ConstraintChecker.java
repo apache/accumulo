@@ -53,7 +53,8 @@ public class ConstraintChecker {
       if (violationCodes != null) {
         for (Short vcode : violationCodes) {
           ConstraintViolationSummary cvs = new ConstraintViolationSummary(constraint.getClass().getName(), vcode, constraint.getViolationDescription(vcode), 1);
-          if (violations == null) violations = new Violations();
+          if (violations == null)
+            violations = new Violations();
           violations.add(cvs);
         }
       } else if (throwable != null) {
@@ -80,7 +81,8 @@ public class ConstraintChecker {
         }
         
         ConstraintViolationSummary cvs = new ConstraintViolationSummary(constraint.getClass().getName(), vcode, "CONSTRAINT FAILED : " + msg, 1);
-        if (violations == null) violations = new Violations();
+        if (violations == null)
+          violations = new Violations();
         violations.add(cvs);
       }
     }

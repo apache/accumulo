@@ -42,16 +42,19 @@ public class AlterSystemPerm extends Test {
       Random r = new Random();
       int i = r.nextInt(SystemPermission.values().length);
       sysPerm = SystemPermission.values()[i];
-    } else sysPerm = SystemPermission.valueOf(perm);
+    } else
+      sysPerm = SystemPermission.valueOf(perm);
     
     boolean hasPerm = SecurityHelper.getSysPerm(state, SecurityHelper.getSysUserName(state), sysPerm);
     
     // toggle
     if (!"take".equals(action) && !"give".equals(action)) {
-      if (hasPerm != conn.securityOperations().hasSystemPermission(targetUser, sysPerm)) throw new AccumuloException(
-          "Test framework and accumulo are out of sync!");
-      if (hasPerm) action = "take";
-      else action = "give";
+      if (hasPerm != conn.securityOperations().hasSystemPermission(targetUser, sysPerm))
+        throw new AccumuloException("Test framework and accumulo are out of sync!");
+      if (hasPerm)
+        action = "take";
+      else
+        action = "give";
     }
     
     if ("take".equals(action)) {
@@ -60,7 +63,8 @@ public class AlterSystemPerm extends Test {
       } catch (AccumuloSecurityException ae) {
         switch (ae.getErrorCode()) {
           case GRANT_INVALID:
-            if (sysPerm.equals(SystemPermission.GRANT)) return;
+            if (sysPerm.equals(SystemPermission.GRANT))
+              return;
           case PERMISSION_DENIED:
             throw new AccumuloException("Test user doesn't have root", ae);
           case USER_DOESNT_EXIST:
@@ -76,7 +80,8 @@ public class AlterSystemPerm extends Test {
       } catch (AccumuloSecurityException ae) {
         switch (ae.getErrorCode()) {
           case GRANT_INVALID:
-            if (sysPerm.equals(SystemPermission.GRANT)) return;
+            if (sysPerm.equals(SystemPermission.GRANT))
+              return;
           case PERMISSION_DENIED:
             throw new AccumuloException("Test user doesn't have root", ae);
           case USER_DOESNT_EXIST:

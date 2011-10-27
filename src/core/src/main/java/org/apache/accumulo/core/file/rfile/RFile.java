@@ -138,7 +138,8 @@ public class RFile {
     }
     
     private void setFirstKey(Key key) {
-      if (firstKey != null) throw new IllegalStateException();
+      if (firstKey != null)
+        throw new IllegalStateException();
       this.firstKey = new Key(key);
     }
     
@@ -196,12 +197,15 @@ public class RFile {
       int size = in.readInt();
       
       if (size == -1) {
-        if (!isDefaultLG) throw new IllegalStateException("Non default LG " + name + " does not have column families");
+        if (!isDefaultLG)
+          throw new IllegalStateException("Non default LG " + name + " does not have column families");
         
         columnFamilies = null;
       } else {
-        if (columnFamilies == null) columnFamilies = new HashMap<ByteSequence,Count>();
-        else columnFamilies.clear();
+        if (columnFamilies == null)
+          columnFamilies = new HashMap<ByteSequence,Count>();
+        else
+          columnFamilies.clear();
         
         for (int i = 0; i < size; i++) {
           int len = in.readInt();
@@ -247,7 +251,8 @@ public class RFile {
       }
       
       out.writeBoolean(firstKey != null);
-      if (firstKey != null) firstKey.write(out);
+      if (firstKey != null)
+        firstKey.write(out);
       
       indexWriter.close(out);
     }
@@ -335,7 +340,8 @@ public class RFile {
       mba.writeInt(RINDEX_MAGIC);
       mba.writeInt(RINDEX_VER_6);
       
-      if (currentLocalityGroup != null) localityGroups.add(currentLocalityGroup);
+      if (currentLocalityGroup != null)
+        localityGroups.add(currentLocalityGroup);
       
       mba.writeInt(localityGroups.size());
       
@@ -400,9 +406,10 @@ public class RFile {
     private void closeBlock(Key key, boolean lastBlock) throws IOException {
       blockWriter.close();
       
-      if (lastBlock) currentLocalityGroup.indexWriter.addLast(key, entries, blockWriter.getStartPos(), blockWriter.getCompressedSize(),
-          blockWriter.getRawSize());
-      else currentLocalityGroup.indexWriter.add(key, entries, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize());
+      if (lastBlock)
+        currentLocalityGroup.indexWriter.addLast(key, entries, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize());
+      else
+        currentLocalityGroup.indexWriter.add(key, entries, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize());
       
       blockWriter = null;
       lastKeyInBlock = null;
@@ -452,7 +459,8 @@ public class RFile {
     
     @Override
     public void startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies) throws IOException {
-      if (columnFamilies == null) throw new NullPointerException();
+      if (columnFamilies == null)
+        throw new NullPointerException();
       
       _startNewLocalityGroup(name, columnFamilies);
     }
@@ -512,7 +520,8 @@ public class RFile {
     public void close() throws IOException {
       closed = true;
       hasTop = false;
-      if (currBlock != null) currBlock.close();
+      if (currBlock != null)
+        currBlock.close();
       
     }
     
@@ -553,7 +562,8 @@ public class RFile {
     
     private void _next() throws IOException {
       
-      if (!hasTop) throw new IllegalStateException();
+      if (!hasTop)
+        throw new IllegalStateException();
       
       if (entriesLeft == 0) {
         currBlock.close();
@@ -578,21 +588,27 @@ public class RFile {
     }
     
     private ABlockReader getDataBlock(IndexEntry indexEntry) throws IOException {
-      if (interruptFlag != null && interruptFlag.get()) throw new IterationInterruptedException();
+      if (interruptFlag != null && interruptFlag.get())
+        throw new IterationInterruptedException();
       
-      if (version == RINDEX_VER_3 || version == RINDEX_VER_4) return reader.getDataBlock(startBlock + iiter.previousIndex());
-      else return reader.getDataBlock(indexEntry.getOffset(), indexEntry.getCompressedSize(), indexEntry.getRawSize());
+      if (version == RINDEX_VER_3 || version == RINDEX_VER_4)
+        return reader.getDataBlock(startBlock + iiter.previousIndex());
+      else
+        return reader.getDataBlock(indexEntry.getOffset(), indexEntry.getCompressedSize(), indexEntry.getRawSize());
       
     }
     
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
       
-      if (closed) throw new IllegalStateException("Locality group reader closed");
+      if (closed)
+        throw new IllegalStateException("Locality group reader closed");
       
-      if (columnFamilies.size() != 0 || inclusive) throw new IllegalArgumentException("I do not know how to filter column families");
+      if (columnFamilies.size() != 0 || inclusive)
+        throw new IllegalArgumentException("I do not know how to filter column families");
       
-      if (interruptFlag != null && interruptFlag.get()) throw new IterationInterruptedException();
+      if (interruptFlag != null && interruptFlag.get())
+        throw new IterationInterruptedException();
       
       try {
         _seek(range);
@@ -629,7 +645,8 @@ public class RFile {
       }
       
       Key startKey = range.getStartKey();
-      if (startKey == null) startKey = new Key();
+      if (startKey == null)
+        startKey = new Key();
       
       boolean reseek = true;
       
@@ -692,9 +709,11 @@ public class RFile {
             iiter.previous();
           }
           
-          if (iiter.hasPrevious()) prevKey = new Key(iiter.peekPrevious().getKey()); // initially prevKey is the last key of the prev block
-          else prevKey = new Key(); // first block in the file, so set prev key to minimal key
-          
+          if (iiter.hasPrevious())
+            prevKey = new Key(iiter.peekPrevious().getKey()); // initially prevKey is the last key of the prev block
+          else
+            prevKey = new Key(); // first block in the file, so set prev key to minimal key
+            
           IndexEntry indexEntry = iiter.next();
           entriesLeft = indexEntry.getNumEntries();
           currBlock = getDataBlock(indexEntry);
@@ -726,7 +745,8 @@ public class RFile {
     
     @Override
     public Key getLastKey() throws IOException {
-      if (index.size() == 0) return null;
+      if (index.size() == 0)
+        return null;
       return index.getLastKey();
     }
     
@@ -780,8 +800,10 @@ public class RFile {
       int magic = mb.readInt();
       int ver = mb.readInt();
       
-      if (magic != RINDEX_MAGIC) throw new IOException("Did not see expected magic number, saw " + magic);
-      if (ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3) throw new IOException("Did not see expected version, saw " + ver);
+      if (magic != RINDEX_MAGIC)
+        throw new IOException("Did not see expected magic number, saw " + magic);
+      if (ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
+        throw new IOException("Did not see expected version, saw " + ver);
       
       int size = mb.readInt();
       lgReaders = new LocalityGroupReader[size];
@@ -800,7 +822,8 @@ public class RFile {
       
       nonDefaultColumnFamilies = new HashSet<ByteSequence>();
       for (LocalityGroupMetadata lgm : localityGroups) {
-        if (!lgm.isDefaultLG) nonDefaultColumnFamilies.addAll(lgm.columnFamilies.keySet());
+        if (!lgm.isDefaultLG)
+          nonDefaultColumnFamilies.addAll(lgm.columnFamilies.keySet());
       }
       
       createHeap(lgReaders.length);
@@ -831,7 +854,8 @@ public class RFile {
     
     @Override
     public void closeDeepCopies() {
-      if (deepCopy) throw new RuntimeException("Calling closeDeepCopies on a deep copy is not supported");
+      if (deepCopy)
+        throw new RuntimeException("Calling closeDeepCopies on a deep copy is not supported");
       
       for (Reader deepCopy : deepCopies)
         deepCopy.closeLocalityGroupReaders();
@@ -841,7 +865,8 @@ public class RFile {
     
     @Override
     public void close() throws IOException {
-      if (deepCopy) throw new RuntimeException("Calling close on a deep copy is not supported");
+      if (deepCopy)
+        throw new RuntimeException("Calling close on a deep copy is not supported");
       
       closeDeepCopies();
       closeLocalityGroupReaders();
@@ -868,7 +893,8 @@ public class RFile {
           minKey = lgReaders[i].getFirstKey();
         } else {
           Key firstKey = lgReaders[i].getFirstKey();
-          if (firstKey != null && firstKey.compareTo(minKey) < 0) minKey = firstKey;
+          if (firstKey != null && firstKey.compareTo(minKey) < 0)
+            minKey = firstKey;
         }
       }
       
@@ -888,7 +914,8 @@ public class RFile {
           maxKey = lgReaders[i].getLastKey();
         } else {
           Key lastKey = lgReaders[i].getLastKey();
-          if (lastKey != null && lastKey.compareTo(maxKey) > 0) maxKey = lastKey;
+          if (lastKey != null && lastKey.compareTo(maxKey) > 0)
+            maxKey = lastKey;
         }
       }
       
@@ -928,13 +955,15 @@ public class RFile {
       numLGSeeked = 0;
       
       Set<ByteSequence> cfSet;
-      if (columnFamilies.size() > 0) if (columnFamilies instanceof Set<?>) {
-        cfSet = (Set<ByteSequence>) columnFamilies;
-      } else {
-        cfSet = new HashSet<ByteSequence>();
-        cfSet.addAll(columnFamilies);
-      }
-      else cfSet = Collections.emptySet();
+      if (columnFamilies.size() > 0)
+        if (columnFamilies instanceof Set<?>) {
+          cfSet = (Set<ByteSequence>) columnFamilies;
+        } else {
+          cfSet = new HashSet<ByteSequence>();
+          cfSet.addAll(columnFamilies);
+        }
+      else
+        cfSet = Collections.emptySet();
       
       for (LocalityGroupReader lgr : lgReaders) {
         
@@ -972,10 +1001,16 @@ public class RFile {
            */
           
           for (Entry<ByteSequence,Count> entry : lgr.columnFamilies.entrySet())
-            if (entry.getValue().count > 0) if (cfSet.contains(entry.getKey())) if (inclusive) include = true;
-            else exclude = true;
-            else if (inclusive) exclude = true;
-            else include = true;
+            if (entry.getValue().count > 0)
+              if (cfSet.contains(entry.getKey()))
+                if (inclusive)
+                  include = true;
+                else
+                  exclude = true;
+              else if (inclusive)
+                exclude = true;
+              else
+                include = true;
         }
         
         if (include) {
@@ -1018,9 +1053,11 @@ public class RFile {
     
     @Override
     public void setInterruptFlag(AtomicBoolean flag) {
-      if (deepCopy) throw new RuntimeException("Calling setInterruptFlag on a deep copy is not supported");
+      if (deepCopy)
+        throw new RuntimeException("Calling setInterruptFlag on a deep copy is not supported");
       
-      if (deepCopies.size() != 0) throw new RuntimeException("Setting interrupt flag after calling deep copy not supported");
+      if (deepCopies.size() != 0)
+        throw new RuntimeException("Setting interrupt flag after calling deep copy not supported");
       
       setInterruptFlagInternal(flag);
     }

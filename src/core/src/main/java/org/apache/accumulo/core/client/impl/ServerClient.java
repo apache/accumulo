@@ -86,7 +86,8 @@ public class ServerClient {
         log.debug("ClientService request failed, retrying ... ", tte);
         UtilWaitThread.sleep(100);
       } finally {
-        if (client != null) ServerClient.close(client);
+        if (client != null)
+          ServerClient.close(client);
       }
     }
   }
@@ -102,7 +103,8 @@ public class ServerClient {
         log.debug("ClientService request failed, retrying ... ", tte);
         UtilWaitThread.sleep(100);
       } finally {
-        if (client != null) ServerClient.close(client);
+        if (client != null)
+          ServerClient.close(client);
       }
     }
   }
@@ -119,9 +121,9 @@ public class ServerClient {
     for (String tserver : zc.getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS)) {
       String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + tserver;
       byte[] data = ZooUtil.getLockData(zc, path);
-      if (data != null && !new String(data).equals("master")) servers.add(new ThriftTransportKey(new ServerServices(new String(data))
-          .getAddressString(Service.TSERV_CLIENT), instance.getConfiguration().getPort(Property.TSERV_CLIENTPORT), instance.getConfiguration().getTimeInMillis(
-          Property.GENERAL_RPC_TIMEOUT)));
+      if (data != null && !new String(data).equals("master"))
+        servers.add(new ThriftTransportKey(new ServerServices(new String(data)).getAddressString(Service.TSERV_CLIENT), instance.getConfiguration().getPort(
+            Property.TSERV_CLIENTPORT), instance.getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)));
     }
     
     boolean opened = false;
@@ -131,7 +133,8 @@ public class ServerClient {
       opened = true;
       return client;
     } finally {
-      if (!opened) log.warn("Failed to find an available server in the list of servers: " + servers);
+      if (!opened)
+        log.warn("Failed to find an available server in the list of servers: " + servers);
     }
   }
   

@@ -170,7 +170,8 @@ public class ProblemReports implements Iterable<ProblemReport> {
       delMut.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
     }
     
-    if (hasProblems) MetadataTable.getMetadataTable(SecurityConstants.getSystemCredentials()).update(delMut);
+    if (hasProblems)
+      MetadataTable.getMetadataTable(SecurityConstants.getSystemCredentials()).update(delMut);
   }
   
   public Iterator<ProblemReport> iterator(final String table) {

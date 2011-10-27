@@ -73,7 +73,8 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
         bw.addMutation(m);
       }
     } finally {
-      if (bw != null) bw.close();
+      if (bw != null)
+        bw.close();
     }
   }
   

@@ -53,7 +53,8 @@ public abstract class TableOperationsHelper implements TableOperations {
     for (Entry<String,String> property : copy.entrySet()) {
       for (IteratorScope scope : IteratorScope.values()) {
         String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
-        if (property.getKey().equals(root) || property.getKey().startsWith(root + ".opt.")) this.removeProperty(tableName, property.getKey());
+        if (property.getKey().equals(root) || property.getKey().startsWith(root + ".opt."))
+          this.removeProperty(tableName, property.getKey());
       }
     }
   }
@@ -75,9 +76,11 @@ public abstract class TableOperationsHelper implements TableOperations {
           }
           priority = Integer.parseInt(parts[0]);
           classname = parts[1];
-          if (!settings.containsKey(scope)) settings.put(scope, new HashMap<String,String>());
+          if (!settings.containsKey(scope))
+            settings.put(scope, new HashMap<String,String>());
         } else if (property.getKey().startsWith(opt)) {
-          if (!settings.containsKey(scope)) settings.put(scope, new HashMap<String,String>());
+          if (!settings.containsKey(scope))
+            settings.put(scope, new HashMap<String,String>());
           settings.get(scope).put(property.getKey().substring(opt.length()), property.getValue());
         }
       }
@@ -102,7 +105,8 @@ public abstract class TableOperationsHelper implements TableOperations {
       String name = property.getKey();
       String[] parts = name.split("\\.");
       if (parts.length == 4) {
-        if (parts[0].equals("table") && parts[1].equals("iterator") && lifecycles.contains(parts[2])) result.add(parts[3]);
+        if (parts[0].equals("table") && parts[1].equals("iterator") && lifecycles.contains(parts[2]))
+          result.add(parts[3]);
       }
     }
     return result;

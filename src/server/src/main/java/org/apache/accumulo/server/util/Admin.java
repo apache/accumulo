@@ -58,7 +58,8 @@ public class Admin {
     
     try {
       cl = new BasicParser().parse(opts, args);
-      if (cl.hasOption("?")) throw new ParseException("help requested");
+      if (cl.hasOption("?"))
+        throw new ParseException("help requested");
       args = cl.getArgs();
       
       user = cl.hasOption("u") ? cl.getOptionValue("u") : "root";
@@ -66,17 +67,21 @@ public class Admin {
       force = cl.hasOption("f");
       
       if (!((cl.getArgs().length == 1 && (args[0].equalsIgnoreCase("stopMaster") || args[0].equalsIgnoreCase("stopAll"))) || (cl.getArgs().length == 2 && args[0]
-          .equalsIgnoreCase("stop")))) throw new ParseException("Incorrect arguments");
+          .equalsIgnoreCase("stop"))))
+        throw new ParseException("Incorrect arguments");
       
     } catch (ParseException e) {
       // print to the log and to stderr
-      if (cl == null || !cl.hasOption("?")) log.error(e, e);
+      if (cl == null || !cl.hasOption("?"))
+        log.error(e, e);
       HelpFormatter h = new HelpFormatter();
       StringWriter str = new StringWriter();
       h.printHelp(new PrintWriter(str), h.getWidth(), Admin.class.getName() + " stopMaster | stopAll | stop <tserver>", null, opts, h.getLeftPadding(),
           h.getDescPadding(), null, true);
-      if (cl != null && cl.hasOption("?")) log.info(str.toString());
-      else log.error(str.toString());
+      if (cl != null && cl.hasOption("?"))
+        log.info(str.toString());
+      else
+        log.error(str.toString());
       h.printHelp(new PrintWriter(System.err), h.getWidth(), Admin.class.getName() + " stopMaster | stopAll | stop <tserver>", null, opts, h.getLeftPadding(),
           h.getDescPadding(), null, true);
       System.exit(3);

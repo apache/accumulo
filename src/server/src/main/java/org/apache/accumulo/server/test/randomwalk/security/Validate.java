@@ -41,11 +41,13 @@ public class Validate extends Test {
     
     boolean tableExists = SecurityHelper.getTableExists(state);
     boolean cloudTableExists = conn.tableOperations().list().contains(SecurityHelper.getTableName(state));
-    if (tableExists != cloudTableExists) throw new AccumuloException("Table existance out of sync");
+    if (tableExists != cloudTableExists)
+      throw new AccumuloException("Table existance out of sync");
     
     boolean tableUserExists = SecurityHelper.getTabUserExists(state);
     boolean cloudTableUserExists = conn.securityOperations().listUsers().contains(SecurityHelper.getTabUserName(state));
-    if (tableUserExists != cloudTableUserExists) throw new AccumuloException("Table User existance out of sync");
+    if (tableUserExists != cloudTableUserExists)
+      throw new AccumuloException("Table User existance out of sync");
     
     Properties props = new Properties();
     props.setProperty("target", "system");
@@ -63,12 +65,15 @@ public class Validate extends Test {
           log.debug("Just checked to see if user " + user + " has system perm " + sp.name() + " with answer " + accuHasSp);
         } catch (AccumuloSecurityException ae) {
           if (ae.getErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
-            if (tabUserExists) throw new AccumuloException("Got user DNE error when they should", ae);
-            else continue;
-          } else throw new AccumuloException("Unexpected exception!", ae);
+            if (tabUserExists)
+              throw new AccumuloException("Got user DNE error when they should", ae);
+            else
+              continue;
+          } else
+            throw new AccumuloException("Unexpected exception!", ae);
         }
-        if (hasSp != accuHasSp) throw new AccumuloException(user + " existance out of sync for system perm " + sp + " hasSp/CloudhasSP " + hasSp + " "
-            + accuHasSp);
+        if (hasSp != accuHasSp)
+          throw new AccumuloException(user + " existance out of sync for system perm " + sp + " hasSp/CloudhasSP " + hasSp + " " + accuHasSp);
       }
       
       for (TablePermission tp : TablePermission.values()) {
@@ -79,15 +84,20 @@ public class Validate extends Test {
           log.debug("Just checked to see if user " + user + " has table perm " + tp.name() + " with answer " + accuHasTp);
         } catch (AccumuloSecurityException ae) {
           if (ae.getErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
-            if (tabUserExists) throw new AccumuloException("Got user DNE error when they should", ae);
-            else continue;
+            if (tabUserExists)
+              throw new AccumuloException("Got user DNE error when they should", ae);
+            else
+              continue;
           } else if (ae.getErrorCode().equals(SecurityErrorCode.TABLE_DOESNT_EXIST)) {
-            if (tableExists) throw new AccumuloException("Got table DNE when it should", ae);
-            else continue;
-          } else throw new AccumuloException("Unexpected exception!", ae);
+            if (tableExists)
+              throw new AccumuloException("Got table DNE when it should", ae);
+            else
+              continue;
+          } else
+            throw new AccumuloException("Unexpected exception!", ae);
         }
-        if (hasTp != accuHasTp) throw new AccumuloException(user + " existance out of sync for table perm " + tp + " hasTp/CloudhasTP " + hasTp + " "
-            + accuHasTp);
+        if (hasTp != accuHasTp)
+          throw new AccumuloException(user + " existance out of sync for table perm " + tp + " hasTp/CloudhasTP " + hasTp + " " + accuHasTp);
       }
       
     }
@@ -98,12 +108,15 @@ public class Validate extends Test {
       accuAuths = conn.securityOperations().getUserAuthorizations(SecurityHelper.getTabUserName(state));
     } catch (AccumuloSecurityException ae) {
       if (ae.getErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
-        if (tabUserExists) throw new AccumuloException("Table user didn't exist when they should.", ae);
-        else return;
+        if (tabUserExists)
+          throw new AccumuloException("Table user didn't exist when they should.", ae);
+        else
+          return;
       }
       throw new AccumuloException("Unexpected exception!", ae);
     }
-    if (!auths.equals(accuAuths)) throw new AccumuloException("Table User authorizations out of sync");
+    if (!auths.equals(accuAuths))
+      throw new AccumuloException("Table User authorizations out of sync");
   }
   
 }

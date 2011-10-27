@@ -45,17 +45,19 @@ public class VerifyIndex extends Test {
     int count = 0;
     
     for (Entry<Key,Value> entry : indexScanner1) {
-      if (!iter.hasNext()) throw new Exception("index rebuild mismatch " + entry.getKey() + " " + indexTableName);
+      if (!iter.hasNext())
+        throw new Exception("index rebuild mismatch " + entry.getKey() + " " + indexTableName);
       
       Key key1 = entry.getKey();
       Key key2 = iter.next().getKey();
       
-      if (key1.compareTo(key2, PartialKey.ROW_COLFAM_COLQUAL) != 0) throw new Exception("index rebuild mismatch " + key1 + " " + key2 + " " + indexTableName
-          + " " + tmpIndexTableName);
+      if (key1.compareTo(key2, PartialKey.ROW_COLFAM_COLQUAL) != 0)
+        throw new Exception("index rebuild mismatch " + key1 + " " + key2 + " " + indexTableName + " " + tmpIndexTableName);
       count++;
     }
     
-    if (iter.hasNext()) throw new Exception("index rebuild mismatch " + iter.next().getKey() + " " + tmpIndexTableName);
+    if (iter.hasNext())
+      throw new Exception("index rebuild mismatch " + iter.next().getKey() + " " + tmpIndexTableName);
     
     log.debug("Verified " + count + " index entries ");
     

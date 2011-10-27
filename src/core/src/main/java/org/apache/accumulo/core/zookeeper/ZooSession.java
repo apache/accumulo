@@ -83,9 +83,11 @@ class ZooSession {
         // it may take some time to get connected to zookeeper if some of the servers are down
         for (int i = 0; i < TOTAL_CONNECT_TIME_WAIT_MS / TIME_BETWEEN_CONNECT_CHECKS_MS && tryAgain; i++) {
           if (zooKeeper.getState().equals(States.CONNECTED)) {
-            if (auth != null) zooKeeper.addAuthInfo("digest", auth.getBytes());
+            if (auth != null)
+              zooKeeper.addAuthInfo("digest", auth.getBytes());
             tryAgain = false;
-          } else UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
+          } else
+            UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
         }
       } catch (UnknownHostException uhe) {
         // do not expect to recover from this
@@ -94,17 +96,19 @@ class ZooSession {
       } catch (IOException e) {
         log.warn("Connection to zooKeeper failed, will try again in " + String.format("%.2f secs", sleepTime / 1000.0), e);
       } finally {
-        if (tryAgain && zooKeeper != null) try {
-          zooKeeper.close();
-          zooKeeper = null;
-        } catch (InterruptedException e) {
-          log.warn("interrupted", e);
-        }
+        if (tryAgain && zooKeeper != null)
+          try {
+            zooKeeper.close();
+            zooKeeper = null;
+          } catch (InterruptedException e) {
+            log.warn("interrupted", e);
+          }
       }
       
       if (tryAgain) {
         UtilWaitThread.sleep(sleepTime);
-        if (sleepTime < 10000) sleepTime = (int) (sleepTime + sleepTime * Math.random());
+        if (sleepTime < 10000)
+          sleepTime = (int) (sleepTime + sleepTime * Math.random());
       }
     }
     
@@ -124,7 +128,8 @@ class ZooSession {
     
     ZooSessionInfo zsi = sessions.get(sessionKey);
     if (zsi != null && zsi.zooKeeper.getState() == States.CLOSED) {
-      if (auth != null && sessions.get(readOnlySessionKey) == zsi) sessions.remove(readOnlySessionKey);
+      if (auth != null && sessions.get(readOnlySessionKey) == zsi)
+        sessions.remove(readOnlySessionKey);
       zsi = null;
       sessions.remove(sessionKey);
     }
@@ -134,7 +139,8 @@ class ZooSession {
       log.debug("Connecting to " + zooKeepers + " with timeout " + timeout + " with auth");
       zsi = new ZooSessionInfo(connect(zooKeepers, timeout, auth, watcher), watcher);
       sessions.put(sessionKey, zsi);
-      if (auth != null && !sessions.containsKey(readOnlySessionKey)) sessions.put(readOnlySessionKey, zsi);
+      if (auth != null && !sessions.containsKey(readOnlySessionKey))
+        sessions.put(readOnlySessionKey, zsi);
     }
     return zsi.zooKeeper;
   }

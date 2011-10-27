@@ -89,7 +89,8 @@ public class MasterClient {
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {
-        if (client != null) close(client);
+        if (client != null)
+          close(client);
       }
     }
   }
@@ -111,7 +112,8 @@ public class MasterClient {
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {
-        if (client != null) close(client);
+        if (client != null)
+          close(client);
       }
     }
   }

@@ -43,8 +43,10 @@ public class TraceFileSystem extends FileSystem {
   public void setConf(Configuration conf) {
     Span span = Trace.start("setConf");
     try {
-      if (impl != null) impl.setConf(conf);
-      else super.setConf(conf);
+      if (impl != null)
+        impl.setConf(conf);
+      else
+        super.setConf(conf);
     } finally {
       span.stop();
     }
@@ -72,7 +74,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FSDataInputStream open(Path f) throws IOException {
     Span span = Trace.start("open");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return new TraceFSDataInputStream(impl.open(f));
     } finally {
@@ -83,7 +86,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FSDataOutputStream create(Path f) throws IOException {
     Span span = Trace.start("create");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.create(f);
     } finally {
@@ -94,7 +98,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FSDataOutputStream create(Path f, boolean overwrite) throws IOException {
     Span span = Trace.start("create");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.create(f, overwrite);
     } finally {
@@ -105,7 +110,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FSDataOutputStream create(Path f, Progressable progress) throws IOException {
     Span span = Trace.start("create");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       
       return impl.create(f, progress);
@@ -117,7 +123,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FSDataOutputStream create(Path f, short replication) throws IOException {
     Span span = Trace.start("create");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.create(f, replication);
     } finally {
@@ -128,7 +135,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FSDataOutputStream create(Path f, short replication, Progressable progress) throws IOException {
     Span span = Trace.start("create");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.create(f, replication, progress);
     } finally {
@@ -139,7 +147,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FSDataOutputStream create(Path f, boolean overwrite, int bufferSize) throws IOException {
     Span span = Trace.start("create");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.create(f, overwrite, bufferSize);
     } finally {
@@ -150,7 +159,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FSDataOutputStream create(Path f, boolean overwrite, int bufferSize, Progressable progress) throws IOException {
     Span span = Trace.start("create");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.create(f, overwrite, bufferSize, progress);
     } finally {
@@ -161,7 +171,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FSDataOutputStream create(Path f, boolean overwrite, int bufferSize, short replication, long blockSize) throws IOException {
     Span span = Trace.start("create");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.create(f, overwrite, bufferSize, replication, blockSize);
     } finally {
@@ -172,7 +183,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FSDataOutputStream create(Path f, boolean overwrite, int bufferSize, short replication, long blockSize, Progressable progress) throws IOException {
     Span span = Trace.start("create");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.create(f, overwrite, bufferSize, replication, blockSize, progress);
     } finally {
@@ -183,7 +195,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public boolean createNewFile(Path f) throws IOException {
     Span span = Trace.start("createNewFile");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.createNewFile(f);
     } finally {
@@ -194,7 +207,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FSDataOutputStream append(Path f) throws IOException {
     Span span = Trace.start("append");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.append(f);
     } finally {
@@ -205,7 +219,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FSDataOutputStream append(Path f, int bufferSize) throws IOException {
     Span span = Trace.start("append");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.append(f, bufferSize);
     } finally {
@@ -217,7 +232,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public short getReplication(Path src) throws IOException {
     Span span = Trace.start("getReplication");
-    if (Trace.isTracing()) span.data("path", src.toString());
+    if (Trace.isTracing())
+      span.data("path", src.toString());
     try {
       return impl.getReplication(src);
     } finally {
@@ -228,7 +244,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public boolean setReplication(Path src, short replication) throws IOException {
     Span span = Trace.start("setReplication");
-    if (Trace.isTracing()) span.data("path", src.toString());
+    if (Trace.isTracing())
+      span.data("path", src.toString());
     try {
       return impl.setReplication(src, replication);
     } finally {
@@ -239,7 +256,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public boolean exists(Path f) throws IOException {
     Span span = Trace.start("exists");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.exists(f);
     } finally {
@@ -251,7 +269,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public boolean isDirectory(Path f) throws IOException {
     Span span = Trace.start("isDirectory");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.isDirectory(f);
     } finally {
@@ -262,7 +281,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public boolean isFile(Path f) throws IOException {
     Span span = Trace.start("isFile");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.isFile(f);
     } finally {
@@ -274,7 +294,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public long getLength(Path f) throws IOException {
     Span span = Trace.start("getLength");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.getLength(f);
     } finally {
@@ -285,7 +306,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public ContentSummary getContentSummary(Path f) throws IOException {
     Span span = Trace.start("getContentSummary");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.getContentSummary(f);
     } finally {
@@ -296,7 +318,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FileStatus[] listStatus(Path f, PathFilter filter) throws IOException {
     Span span = Trace.start("listStatus");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.listStatus(f, filter);
     } finally {
@@ -327,7 +350,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FileStatus[] globStatus(Path pathPattern) throws IOException {
     Span span = Trace.start("globStatus");
-    if (Trace.isTracing()) span.data("pattern", pathPattern.toString());
+    if (Trace.isTracing())
+      span.data("pattern", pathPattern.toString());
     try {
       return impl.globStatus(pathPattern);
     } finally {
@@ -338,7 +362,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public FileStatus[] globStatus(Path pathPattern, PathFilter filter) throws IOException {
     Span span = Trace.start("globStatus");
-    if (Trace.isTracing()) span.data("pattern", pathPattern.toString());
+    if (Trace.isTracing())
+      span.data("pattern", pathPattern.toString());
     try {
       return impl.globStatus(pathPattern, filter);
     } finally {
@@ -359,7 +384,8 @@ public class TraceFileSystem extends FileSystem {
   @Override
   public boolean mkdirs(Path f) throws IOException {
     Span span = Trace.start("mkdirs");
-    if (Trace.isTracing()) span.data("path", f.toString());
+    if (Trace.isTracing())
+      span.data("path", f.toString());
     try {
       return impl.mkdirs(f);
     } finally {

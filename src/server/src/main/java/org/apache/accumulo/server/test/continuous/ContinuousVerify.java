@@ -58,7 +58,8 @@ public class ContinuousVerify extends Configured implements Tool {
     
     public void map(Key key, Value data, Context context) throws IOException, InterruptedException {
       long r = Long.parseLong(key.getRow().toString(), 16);
-      if (r < 0) throw new IllegalArgumentException();
+      if (r < 0)
+        throw new IllegalArgumentException();
       
       try {
         ContinuousWalk.validate(key, data);
@@ -183,6 +184,7 @@ public class ContinuousVerify extends Configured implements Tool {
    */
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new ContinuousVerify(), args);
-    if (res != 0) System.exit(res);
+    if (res != 0)
+      System.exit(res);
   }
 }

@@ -111,7 +111,8 @@ public class LogSort extends Configured implements Tool {
    * The main driver for sort program. Invoke this method to submit the map/reduce job.
    */
   public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
-    if (job != null) throw new RuntimeException("job has already run");
+    if (job != null)
+      throw new RuntimeException("job has already run");
     
     // parse options
     int num_reduces = 1;
@@ -120,10 +121,14 @@ public class LogSort extends Configured implements Tool {
     List<String> otherArgs = new ArrayList<String>();
     for (int i = 0; i < args.length; ++i) {
       try {
-        if ("-r".equals(args[i])) num_reduces = Integer.parseInt(args[++i]);
-        else if ("-q".equals(args[i])) queueName = args[++i];
-        else if ("-p".equals(args[i])) poolName = args[++i];
-        else otherArgs.add(args[i]);
+        if ("-r".equals(args[i]))
+          num_reduces = Integer.parseInt(args[++i]);
+        else if ("-q".equals(args[i]))
+          queueName = args[++i];
+        else if ("-p".equals(args[i]))
+          poolName = args[++i];
+        else
+          otherArgs.add(args[i]);
       } catch (NumberFormatException e) {
         log.error("Integer expected instead of " + args[i], e);
         printUsage();
@@ -178,8 +183,10 @@ public class LogSort extends Configured implements Tool {
   public static Job startSort(boolean background, String[] args) throws Exception {
     LogSort sort = new LogSort();
     ToolRunner.run(CachedConfiguration.getInstance(), sort, args);
-    if (background) sort.job.submit();
-    else sort.job.waitForCompletion(true);
+    if (background)
+      sort.job.submit();
+    else
+      sort.job.waitForCompletion(true);
     return sort.job;
   }
   
@@ -188,7 +195,8 @@ public class LogSort extends Configured implements Tool {
     log.info("Job started");
     Job job = startSort(false, args);
     log.info("The job finished after " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds.");
-    if (!job.isSuccessful()) System.exit(1);
+    if (!job.isSuccessful())
+      System.exit(1);
   }
   
   private static class LoggerMapFileOutputFormat extends FileOutputFormat<WritableComparable<?>,Writable> {

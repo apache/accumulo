@@ -65,29 +65,38 @@ public class MultiIteratorTest extends TestCase {
     }
     
     MultiIterator mi;
-    if (endRow == null && prevEndRow == null) mi = new MultiIterator(iters, init);
+    if (endRow == null && prevEndRow == null)
+      mi = new MultiIterator(iters, init);
     else {
       Range range = new Range(prevEndRow, false, endRow, true);
-      if (init) for (SortedKeyValueIterator<Key,Value> iter : iters)
-        iter.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
+      if (init)
+        for (SortedKeyValueIterator<Key,Value> iter : iters)
+          iter.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
       mi = new MultiIterator(iters, range);
       
-      if (init) mi.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
+      if (init)
+        mi.seek(range, LocalityGroupUtil.EMPTY_CF_SET, false);
     }
     
-    if (seekKey != null) mi.seek(new Range(seekKey, null), EMPTY_COL_FAMS, false);
-    else mi.seek(new Range(), EMPTY_COL_FAMS, false);
+    if (seekKey != null)
+      mi.seek(new Range(seekKey, null), EMPTY_COL_FAMS, false);
+    else
+      mi.seek(new Range(), EMPTY_COL_FAMS, false);
     
     int i = start;
     while (mi.hasTop()) {
-      if (incrRow) assertEquals(nk(i, 0), mi.getTopKey());
-      else assertEquals(nk(0, i), mi.getTopKey());
+      if (incrRow)
+        assertEquals(nk(i, 0), mi.getTopKey());
+      else
+        assertEquals(nk(0, i), mi.getTopKey());
       
       assertEquals("v" + i, mi.getTopValue().toString());
       
       mi.next();
-      if (incrRow) i++;
-      else i--;
+      if (incrRow)
+        i++;
+      else
+        i--;
     }
     
     assertEquals("start=" + start + " end=" + end + " seekKey=" + seekKey + " endRow=" + endRow + " prevEndRow=" + prevEndRow + " init=" + init + " incrRow="
@@ -141,8 +150,10 @@ public class MultiIteratorTest extends TestCase {
     List<TreeMap<Key,Value>> tmpList = new ArrayList<TreeMap<Key,Value>>(2);
     
     for (int i = 0; i < 8; i++) {
-      if (i % 2 == 0) nkv(tm1, 0, i, false, "v" + i);
-      else nkv(tm2, 0, i, false, "v" + i);
+      if (i % 2 == 0)
+        nkv(tm1, 0, i, false, "v" + i);
+      else
+        nkv(tm2, 0, i, false, "v" + i);
     }
     tmpList.add(tm1);
     tmpList.add(tm2);
@@ -196,8 +207,10 @@ public class MultiIteratorTest extends TestCase {
     List<TreeMap<Key,Value>> tmpList = new ArrayList<TreeMap<Key,Value>>(2);
     
     for (int i = 0; i < 8; i++) {
-      if (i % 2 == 0) nkv(tm1, i, 0, false, "v" + i);
-      else nkv(tm2, i, 0, false, "v" + i);
+      if (i % 2 == 0)
+        nkv(tm1, i, 0, false, "v" + i);
+      else
+        nkv(tm2, i, 0, false, "v" + i);
     }
     
     tmpList.add(tm1);
@@ -223,9 +236,11 @@ public class MultiIteratorTest extends TestCase {
           
           int start = Math.max(per + 1, seek);
           
-          if (start > er) end = start;
+          if (start > er)
+            end = start;
           
-          if (per >= 8) end = start;
+          if (per >= 8)
+            end = start;
           
           int noSeekStart = Math.max(0, per + 1);
           

@@ -35,7 +35,8 @@ public class DeleteIterCommand extends Command {
     
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.getConnector().tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
     }
     
     else {
@@ -49,7 +50,8 @@ public class DeleteIterCommand extends Command {
       return 0;
     }
     IteratorSetting iterator = shellState.getConnector().tableOperations().getIterator(tableName, name);
-    if (iterator == null) return 0;
+    if (iterator == null)
+      return 0;
     boolean deleteAll = true;
     if (cl.hasOption(mincScopeOpt.getOpt())) {
       iterator.deleteOptions(IteratorScope.minc);
@@ -64,7 +66,8 @@ public class DeleteIterCommand extends Command {
       deleteAll = false;
     }
     shellState.getConnector().tableOperations().removeIterator(tableName, name);
-    if (!iterator.getProperties().isEmpty() && !deleteAll) shellState.getConnector().tableOperations().attachIterator(tableName, iterator);
+    if (!iterator.getProperties().isEmpty() && !deleteAll)
+      shellState.getConnector().tableOperations().attachIterator(tableName, iterator);
     return 0;
   }
   

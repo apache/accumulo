@@ -51,7 +51,8 @@ public class LogServlet extends BasicServlet {
       clear = false;
       LoggingEvent ev = dev.getEvent();
       Object application = ev.getMDC("application");
-      if (application == null) application = "";
+      if (application == null)
+        application = "";
       String msg = ev.getMessage().toString();
       StringBuilder text = new StringBuilder();
       for (int i = 0; i < msg.length(); i++) {
@@ -68,16 +69,18 @@ public class LogServlet extends BasicServlet {
         
       }
       msg = text.toString();
-      if (ev.getThrowableStrRep() != null) for (String line : ev.getThrowableStrRep())
-        msg += "\n\t" + line;
+      if (ev.getThrowableStrRep() != null)
+        for (String line : ev.getThrowableStrRep())
+          msg += "\n\t" + line;
       msg = sanitize(msg.trim());
       msg = "<pre class='logevent'>" + msg + "</pre>";
       logTable.addRow(ev.getTimeStamp(), application, dev.getCount(), ev.getLevel(), msg);
     }
-    if (!clear) logTable.setSubCaption("<a href='/op?action=clearLog&redir=" + currentPage(req) + "'>Clear&nbsp;All&nbsp;Events</a>");
+    if (!clear)
+      logTable.setSubCaption("<a href='/op?action=clearLog&redir=" + currentPage(req) + "'>Clear&nbsp;All&nbsp;Events</a>");
     logTable.generate(req, sb);
-    if (!clear) sb.append("<div class='center'><a href='/op?action=clearLog&redir=").append(currentPage(req))
-        .append("'>Clear&nbsp;All&nbsp;Events</a></div>\n");
+    if (!clear)
+      sb.append("<div class='center'><a href='/op?action=clearLog&redir=").append(currentPage(req)).append("'>Clear&nbsp;All&nbsp;Events</a></div>\n");
   }
   
   private static class LogLevelType extends StringType<Level> {
@@ -88,11 +91,15 @@ public class LogServlet extends BasicServlet {
     
     @Override
     public String format(Object obj) {
-      if (obj == null) return "-";
+      if (obj == null)
+        return "-";
       Level l = (Level) obj;
-      if (l.equals(Level.ERROR) || l.equals(Level.FATAL)) return "<div class='error'>" + l.toString() + "</div>";
-      else if (l.equals(Level.WARN)) return "<div class='warning'>" + l.toString() + "</div>";
-      else return l.toString();
+      if (l.equals(Level.ERROR) || l.equals(Level.FATAL))
+        return "<div class='error'>" + l.toString() + "</div>";
+      else if (l.equals(Level.WARN))
+        return "<div class='warning'>" + l.toString() + "</div>";
+      else
+        return l.toString();
     }
   }
 }

@@ -31,7 +31,8 @@ public class DropUserCommand extends Command {
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException {
     String user = cl.getArgs()[0];
-    if (shellState.getConnector().whoami().equals(user)) throw new BadArgumentException("You cannot delete yourself", fullCommand, fullCommand.indexOf(user));
+    if (shellState.getConnector().whoami().equals(user))
+      throw new BadArgumentException("You cannot delete yourself", fullCommand, fullCommand.indexOf(user));
     shellState.getConnector().securityOperations().dropUser(user);
     Shell.log.debug("Deleted user " + user);
     return 0;

@@ -140,13 +140,15 @@ public class BloomFilterLayer {
     public synchronized void append(org.apache.accumulo.core.data.Key key, Value val) throws IOException {
       writer.append(key, val);
       Key bloomKey = transformer.transform(key);
-      if (bloomKey.getBytes().length > 0) bloomFilter.add(bloomKey);
+      if (bloomKey.getBytes().length > 0)
+        bloomFilter.add(bloomKey);
     }
     
     @Override
     public synchronized void close() throws IOException {
       
-      if (closed) return;
+      if (closed)
+        return;
       
       DataOutputStream out = writer.createMetaStore(BLOOM_FILE_NAME);
       out.writeUTF(transformer.getClass().getCanonicalName());
@@ -199,7 +201,8 @@ public class BloomFilterLayer {
         public void run() {
           
           // no need to load the bloom filter if the map file is closed
-          if (closed) return;
+          if (closed)
+            return;
           String ClassName = null;
           DataInputStream in = null;
           
@@ -208,7 +211,8 @@ public class BloomFilterLayer {
             DynamicBloomFilter tmpBloomFilter = new DynamicBloomFilter();
             
             // check for closed again after open but before reading the bloom filter in
-            if (closed) return;
+            if (closed)
+              return;
             
             /**
              * Load classname for keyFunctor
@@ -228,8 +232,10 @@ public class BloomFilterLayer {
           } catch (NoSuchMetaStoreException nsme) {
             // file does not have a bloom filter, ignore it
           } catch (IOException ioe) {
-            if (!closed) LOG.warn("Can't open BloomFilter", ioe);
-            else LOG.debug("Can't open BloomFilter, file closed : " + ioe.getMessage());
+            if (!closed)
+              LOG.warn("Can't open BloomFilter", ioe);
+            else
+              LOG.debug("Can't open BloomFilter, file closed : " + ioe.getMessage());
             
             bloomFilter = null;
           } catch (ClassNotFoundException e) {
@@ -242,8 +248,10 @@ public class BloomFilterLayer {
             LOG.error("Illegal acess exception", e);
             bloomFilter = null;
           } catch (NullPointerException npe) {
-            if (!closed) throw npe;
-            else LOG.debug("Can't open BloomFilter, NPE after closed ", npe);
+            if (!closed)
+              throw npe;
+            else
+              LOG.debug("Can't open BloomFilter, NPE after closed ", npe);
             
           } finally {
             if (in != null) {
@@ -295,12 +303,14 @@ public class BloomFilterLayer {
     boolean probablyHasKey(Range range) throws IOException {
       if (bloomFilter == null) {
         initiateLoad(maxLoadThreads);
-        if (bloomFilter == null) return true;
+        if (bloomFilter == null)
+          return true;
       }
       
       Key bloomKey = transformer.transform(range);
       
-      if (bloomKey == null || bloomKey.getBytes().length == 0) return true;
+      if (bloomKey == null || bloomKey.getBytes().length == 0)
+        return true;
       
       return bloomFilter.membershipTest(bloomKey);
     }

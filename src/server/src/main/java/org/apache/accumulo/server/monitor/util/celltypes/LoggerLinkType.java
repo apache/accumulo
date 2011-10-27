@@ -25,13 +25,15 @@ public class LoggerLinkType extends CellType<RecoveryStatus> {
   
   @Override
   public String format(Object obj) {
-    if (obj == null) return "-";
+    if (obj == null)
+      return "-";
     RecoveryStatus status = (RecoveryStatus) obj;
     return String.format("<a href='/loggers?s=%s'>%s</a>", status.host, displayName(status));
   }
   
   public static String displayName(RecoveryStatus status) {
-    if (status.host == null) return "--Unknown--";
+    if (status.host == null)
+      return "--Unknown--";
     InetSocketAddress monitorAddress = AddressUtil.parseAddress(status.host, 0);
     return monitorAddress.getHostName() + ":" + monitorAddress.getPort();
   }

@@ -33,7 +33,8 @@ public class RenameTableCommand extends Command {
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TableExistsException {
     shellState.getConnector().tableOperations().rename(cl.getArgs()[0], cl.getArgs()[1]);
-    if (shellState.getTableName().equals(cl.getArgs()[0])) shellState.setTableName(cl.getArgs()[1]);
+    if (shellState.getTableName().equals(cl.getArgs()[0]))
+      shellState.setTableName(cl.getArgs()[1]);
     return 0;
   }
   

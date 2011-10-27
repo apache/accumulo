@@ -55,8 +55,10 @@ public class ZooUtil {
         throw new IllegalArgumentException("Malformed serialized lock id " + serializedLID);
       }
       
-      if (lastSlash == 0) path = root;
-      else path = root + "/" + sa[0].substring(0, lastSlash);
+      if (lastSlash == 0)
+        path = root;
+      else
+        path = root + "/" + sa[0].substring(0, lastSlash);
       node = sa[0].substring(lastSlash + 1);
       eid = Long.parseLong(sa[1], 16);
     }
@@ -95,15 +97,18 @@ public class ZooUtil {
    *          the path to delete
    */
   public static void recursiveDelete(ZooKeeper zk, String zPath, int version, NodeMissingPolicy policy) throws KeeperException, InterruptedException {
-    if (policy.equals(NodeMissingPolicy.CREATE)) throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
+    if (policy.equals(NodeMissingPolicy.CREATE))
+      throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
     try {
       for (String child : zk.getChildren(zPath, false))
         recursiveDelete(zk, zPath + "/" + child, NodeMissingPolicy.SKIP);
       
       Stat stat;
-      if ((stat = zk.exists(zPath, null)) != null) zk.delete(zPath, stat.getVersion());
+      if ((stat = zk.exists(zPath, null)) != null)
+        zk.delete(zPath, stat.getVersion());
     } catch (KeeperException e) {
-      if (policy.equals(NodeMissingPolicy.SKIP) && e.code().equals(KeeperException.Code.NONODE)) return;
+      if (policy.equals(NodeMissingPolicy.SKIP) && e.code().equals(KeeperException.Code.NONODE))
+        return;
       throw e;
     }
   }
@@ -133,7 +138,8 @@ public class ZooUtil {
   
   private static boolean putData(ZooKeeper zk, String zPath, byte[] data, CreateMode mode, int version, NodeExistsPolicy policy, List<ACL> acls)
       throws KeeperException, InterruptedException {
-    if (policy == null) policy = NodeExistsPolicy.FAIL;
+    if (policy == null)
+      policy = NodeExistsPolicy.FAIL;
     
     while (true) {
       try {
@@ -173,7 +179,8 @@ public class ZooUtil {
   public static void recursiveCopyPersistent(ZooKeeper zk, String source, String destination, NodeExistsPolicy policy) throws KeeperException,
       InterruptedException {
     Stat stat = null;
-    if (!exists(zk, source)) throw KeeperException.create(Code.NONODE, source);
+    if (!exists(zk, source))
+      throw KeeperException.create(Code.NONODE, source);
     if (exists(zk, destination)) {
       switch (policy) {
         case OVERWRITE:
@@ -189,10 +196,12 @@ public class ZooUtil {
     stat = new Stat();
     byte[] data = zk.getData(source, false, stat);
     if (stat.getEphemeralOwner() == 0) {
-      if (data == null) throw KeeperException.create(Code.NONODE, source);
+      if (data == null)
+        throw KeeperException.create(Code.NONODE, source);
       putPersistentData(zk, destination, data, policy);
-      if (stat.getNumChildren() > 0) for (String child : zk.getChildren(source, false))
-        recursiveCopyPersistent(zk, source + "/" + child, destination + "/" + child, policy);
+      if (stat.getNumChildren() > 0)
+        for (String child : zk.getChildren(source, false))
+          recursiveCopyPersistent(zk, source + "/" + child, destination + "/" + child, policy);
     }
   }
   
@@ -243,7 +252,8 @@ public class ZooUtil {
     Collections.sort(children);
     
     String lockNode = children.get(0);
-    if (!lid.node.equals(lockNode)) return false;
+    if (!lid.node.equals(lockNode))
+      return false;
     
     Stat stat = zk.exists(lid.path + "/" + lid.node, false);
     return stat != null && stat.getEphemeralOwner() == lid.eid;

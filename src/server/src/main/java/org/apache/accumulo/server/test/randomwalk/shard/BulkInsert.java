@@ -148,11 +148,14 @@ public class BulkInsert extends Test {
         log.warn("Failed to bulk import some files, retrying ");
         
         for (FileStatus failure : failures) {
-          if (!failure.getPath().getName().endsWith(".seq")) fs.rename(failure.getPath(), new Path(new Path(bulkDir), failure.getPath().getName()));
-          else log.debug("Ignoring " + failure.getPath());
+          if (!failure.getPath().getName().endsWith(".seq"))
+            fs.rename(failure.getPath(), new Path(new Path(bulkDir), failure.getPath().getName()));
+          else
+            log.debug("Ignoring " + failure.getPath());
         }
         UtilWaitThread.sleep(3000);
-      } else break;
+      } else
+        break;
     }
   }
   

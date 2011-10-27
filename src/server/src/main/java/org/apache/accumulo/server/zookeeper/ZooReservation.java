@@ -27,7 +27,8 @@ import org.apache.zookeeper.data.Stat;
 public class ZooReservation {
   
   public static boolean attempt(IZooReaderWriter zk, String path, String reservationID, String debugInfo) throws KeeperException, InterruptedException {
-    if (reservationID.contains(":")) throw new IllegalArgumentException();
+    if (reservationID.contains(":"))
+      throw new IllegalArgumentException();
     
     while (true) {
       try {

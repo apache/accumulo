@@ -30,7 +30,8 @@ public class ProgressChartType extends NumberType<Double> {
   
   @Override
   public String format(Object obj) {
-    if (obj == null) return "-";
+    if (obj == null)
+      return "-";
     Double num = (Double) obj;
     return getChart(num, max);
   }
@@ -38,12 +39,16 @@ public class ProgressChartType extends NumberType<Double> {
   public static String getChart(double num, double total) {
     StringBuilder result = new StringBuilder();
     double percent = 0;
-    if (total != 0) percent = (num / total) * 100;
+    if (total != 0)
+      percent = (num / total) * 100;
     
     int width = 0;
-    if (percent < 1) width = 0;
-    else if (percent > 100) width = 100;
-    else width = (int) percent;
+    if (percent < 1)
+      width = 0;
+    else if (percent > 100)
+      width = 100;
+    else
+      width = (int) percent;
     
     result.append("<div class='progress-chart'>");
     result.append("<div style='width: ").append(width).append("%;'></div>");

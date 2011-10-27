@@ -68,7 +68,8 @@ public class MockConnector extends Connector {
   @Override
   public Scanner createScanner(String tableName, Authorizations authorizations) throws TableNotFoundException {
     MockTable table = acu.tables.get(tableName);
-    if (table == null) throw new TableNotFoundException(tableName, tableName, "no such table");
+    if (table == null)
+      throw new TableNotFoundException(tableName, tableName, "no such table");
     return new MockScanner(table, authorizations);
   }
   

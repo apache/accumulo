@@ -50,8 +50,10 @@ public class Tables {
     for (String tableId : tableIds) {
       byte[] tblPath = zc.get(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME);
       if (tblPath != null) {
-        if (nameAsKey) tableMap.put(new String(tblPath), tableId);
-        else tableMap.put(tableId, new String(tblPath));
+        if (nameAsKey)
+          tableMap.put(new String(tblPath), tableId);
+        else
+          tableMap.put(tableId, new String(tblPath));
       }
     }
     
@@ -60,13 +62,15 @@ public class Tables {
   
   public static String getTableId(Instance instance, String tableName) throws TableNotFoundException {
     String tableId = getNameToIdMap(instance).get(tableName);
-    if (tableId == null) throw new TableNotFoundException(tableId, tableName, null);
+    if (tableId == null)
+      throw new TableNotFoundException(tableId, tableName, null);
     return tableId;
   }
   
   public static String getTableName(Instance instance, String tableId) throws TableNotFoundException {
     String tableName = getIdToNameMap(instance).get(tableId);
-    if (tableName == null) throw new TableNotFoundException(tableId, tableName, null);
+    if (tableName == null)
+      throw new TableNotFoundException(tableId, tableName, null);
     return tableName;
   }
   
@@ -102,7 +106,8 @@ public class Tables {
     String statePath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
     ZooCache zc = getZooCache(instance);
     byte[] state = zc.get(statePath);
-    if (state == null) return TableState.UNKNOWN;
+    if (state == null)
+      return TableState.UNKNOWN;
     
     return TableState.valueOf(new String(state));
   }

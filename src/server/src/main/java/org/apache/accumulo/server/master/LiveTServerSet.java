@@ -103,11 +103,13 @@ public class LiveTServerSet implements Watcher {
     }
     
     synchronized public void halt(ZooLock lock) throws TException, ThriftSecurityException {
-      if (client != null) client.halt(null, SecurityConstants.getSystemCredentials(), lockString(lock));
+      if (client != null)
+        client.halt(null, SecurityConstants.getSystemCredentials(), lockString(lock));
     }
     
     public void fastHalt(ZooLock lock) throws TException {
-      if (client != null) client.fastHalt(null, SecurityConstants.getSystemCredentials(), lockString(lock));
+      if (client != null)
+        client.fastHalt(null, SecurityConstants.getSystemCredentials(), lockString(lock));
     }
     
     synchronized public void flush(ZooLock lock, String tableId, byte[] startRow, byte[] endRow) throws TException {
@@ -171,7 +173,8 @@ public class LiveTServerSet implements Watcher {
   }
   
   public synchronized ZooCache getZooCache() {
-    if (zooCache == null) zooCache = new ZooCache(this);
+    if (zooCache == null)
+      zooCache = new ZooCache(this);
     return zooCache;
   }
   
@@ -239,7 +242,8 @@ public class LiveTServerSet implements Watcher {
         }
       }
       // log.debug("Current: " + current.keySet());
-      if (!doomed.isEmpty() && !updates.isEmpty()) this.cback.update(this, doomed, updates);
+      if (!doomed.isEmpty() && !updates.isEmpty())
+        this.cback.update(this, doomed, updates);
     } catch (Exception ex) {
       log.error(ex, ex);
     }
@@ -253,12 +257,15 @@ public class LiveTServerSet implements Watcher {
   public synchronized TServerConnection getConnection(TServerInstance server) throws TException {
     TServerConnection result;
     synchronized (this) {
-      if (server == null) return null;
+      if (server == null)
+        return null;
       TServerInfo serverInfo = current.get(server.hostPort());
       // lock was lost?
-      if (serverInfo == null) return null;
+      if (serverInfo == null)
+        return null;
       // instance changed?
-      if (!serverInfo.instance.equals(server)) return null;
+      if (!serverInfo.instance.equals(server))
+        return null;
       result = serverInfo.connection;
     }
     return result;
@@ -302,7 +309,7 @@ public class LiveTServerSet implements Watcher {
     try {
       ZooReaderWriter.getRetryingInstance().recursiveDelete(zpath, SKIP);
     } catch (Exception e) {
-      String msg =  "error removing tablet server lock";
+      String msg = "error removing tablet server lock";
       log.fatal(msg, e);
       Halt.halt(msg, -1);
     }

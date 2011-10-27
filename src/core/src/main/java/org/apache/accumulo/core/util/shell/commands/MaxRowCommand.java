@@ -39,7 +39,8 @@ public class MaxRowCommand extends ScanCommand {
     
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.getConnector().tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
     }
     
     else {
@@ -54,7 +55,8 @@ public class MaxRowCommand extends ScanCommand {
     boolean endInclusive = !cl.hasOption(optEndRowExclusice.getOpt());
     try {
       Text max = shellState.getConnector().tableOperations().getMaxRow(tableName, getAuths(cl, shellState), startRow, startInclusive, endRow, endInclusive);
-      if (max != null) shellState.getReader().printString(max.toString() + "\n");
+      if (max != null)
+        shellState.getReader().printString(max.toString() + "\n");
     } catch (Exception e) {
       e.printStackTrace();
     }

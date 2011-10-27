@@ -60,7 +60,8 @@ public class SetIterCommand extends Command {
     
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.getConnector().tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
     }
     
     else {
@@ -74,19 +75,25 @@ public class SetIterCommand extends Command {
     String classname = cl.getOptionValue(classnameTypeOpt.getOpt());
     if (cl.hasOption(aggTypeOpt.getOpt())) {
       classname = AggregatingIterator.class.getName();
-    } else if (cl.hasOption(regexTypeOpt.getOpt())) classname = RegExIterator.class.getName();
-    else if (cl.hasOption(ageoffTypeOpt.getOpt())) classname = AgeOffFilter.class.getName();
-    else if (cl.hasOption(versionTypeOpt.getOpt())) classname = VersioningIterator.class.getName();
-    else if (cl.hasOption(nolabelTypeOpt.getOpt())) classname = NoLabelIterator.class.getName();
+    } else if (cl.hasOption(regexTypeOpt.getOpt()))
+      classname = RegExIterator.class.getName();
+    else if (cl.hasOption(ageoffTypeOpt.getOpt()))
+      classname = AgeOffFilter.class.getName();
+    else if (cl.hasOption(versionTypeOpt.getOpt()))
+      classname = VersioningIterator.class.getName();
+    else if (cl.hasOption(nolabelTypeOpt.getOpt()))
+      classname = NoLabelIterator.class.getName();
     
-    if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName())) throw new ShellCommandException(
-        ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type " + SortedKeyValueIterator.class.getName());
+    if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName()))
+      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
+          + SortedKeyValueIterator.class.getName());
     
     String name = cl.getOptionValue(nameOpt.getOpt(), setUpOptions(shellState.getReader(), classname, options));
     
     String aggregatorClass = options.get("aggregatorClass");
-    if (aggregatorClass != null && !shellState.getConnector().instanceOperations().testClassLoad(aggregatorClass, Aggregator.class.getName())) throw new ShellCommandException(
-        ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + aggregatorClass + " as type " + Aggregator.class.getName());
+    if (aggregatorClass != null && !shellState.getConnector().instanceOperations().testClassLoad(aggregatorClass, Aggregator.class.getName()))
+      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + aggregatorClass + " as type "
+          + Aggregator.class.getName());
     
     setTableProperties(cl, shellState, tableName, priority, options, classname, name);
     
@@ -99,12 +106,17 @@ public class SetIterCommand extends Command {
     // remove empty values
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
       Entry<String,String> entry = i.next();
-      if (entry.getValue() == null || entry.getValue().isEmpty()) i.remove();
+      if (entry.getValue() == null || entry.getValue().isEmpty())
+        i.remove();
     }
-    if (cl.hasOption(mincScopeOpt.getOpt())) setting.addOptions(IteratorScope.minc, options);
-    if (cl.hasOption(majcScopeOpt.getOpt())) setting.addOptions(IteratorScope.majc, options);
-    if (cl.hasOption(scanScopeOpt.getOpt())) setting.addOptions(IteratorScope.scan, options);
-    if (setting.getProperties().isEmpty()) throw new IllegalArgumentException("You must select at least one scope to configure");
+    if (cl.hasOption(mincScopeOpt.getOpt()))
+      setting.addOptions(IteratorScope.minc, options);
+    if (cl.hasOption(majcScopeOpt.getOpt()))
+      setting.addOptions(IteratorScope.majc, options);
+    if (cl.hasOption(scanScopeOpt.getOpt()))
+      setting.addOptions(IteratorScope.scan, options);
+    if (setting.getProperties().isEmpty())
+      throw new IllegalArgumentException("You must select at least one scope to configure");
     shellState.getConnector().tableOperations().attachIterator(tableName, setting);
   }
   
@@ -124,7 +136,8 @@ public class SetIterCommand extends Command {
     }
     
     IteratorOptions itopts = skvi.describeOptions();
-    if (itopts.getName() == null) throw new IllegalArgumentException(className + " described its default distinguishing name as null");
+    if (itopts.getName() == null)
+      throw new IllegalArgumentException(className + " described its default distinguishing name as null");
     
     Map<String,String> localOptions = new HashMap<String,String>();
     do {
@@ -166,7 +179,8 @@ public class SetIterCommand extends Command {
               throw new IOException("Input stream closed");
             }
             
-            if (input.length() == 0) break;
+            if (input.length() == 0)
+              break;
             
             String[] sa = input.split(" ", 2);
             localOptions.put(sa[0], sa[1]);
@@ -175,7 +189,8 @@ public class SetIterCommand extends Command {
       }
       
       options.putAll(localOptions);
-      if (!skvi.validateOptions(options)) reader.printString("invalid options for " + clazz.getName() + "\n");
+      if (!skvi.validateOptions(options))
+        reader.printString("invalid options for " + clazz.getName() + "\n");
       
     } while (!skvi.validateOptions(options));
     return itopts.getName();

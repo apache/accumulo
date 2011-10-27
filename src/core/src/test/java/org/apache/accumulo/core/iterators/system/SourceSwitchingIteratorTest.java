@@ -51,7 +51,8 @@ public class SourceSwitchingIteratorTest extends TestCase {
     assertTrue(rdi.hasTop());
     assertEquals(nk(row, cf, cq, time), rdi.getTopKey());
     assertEquals(val, rdi.getTopValue().toString());
-    if (callNext) rdi.next();
+    if (callNext)
+      rdi.next();
   }
   
   class TestDataSource implements DataSource {
@@ -94,7 +95,8 @@ public class SourceSwitchingIteratorTest extends TestCase {
       this.next = next;
       
       for (TestDataSource tds : copies) {
-        if (tds != this) tds.next = new TestDataSource(next.iter.deepCopy(null), next.copies);
+        if (tds != this)
+          tds.next = new TestDataSource(next.iter.deepCopy(null), next.copies);
       }
     }
     

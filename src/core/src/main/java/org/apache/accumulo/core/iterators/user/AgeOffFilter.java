@@ -41,7 +41,8 @@ public class AgeOffFilter extends Filter implements OptionDescriber {
   
   @Override
   public boolean accept(Key k, Value v) {
-    if (currentTime - k.getTimestamp() > threshold) return false;
+    if (currentTime - k.getTimestamp() > threshold)
+      return false;
     return true;
   }
   
@@ -49,16 +50,20 @@ public class AgeOffFilter extends Filter implements OptionDescriber {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     threshold = -1;
-    if (options == null) throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
+    if (options == null)
+      throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
     
     String ttl = options.get(TTL);
-    if (ttl == null) throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
+    if (ttl == null)
+      throw new IllegalArgumentException(TTL + " must be set for AgeOffFilter");
     
     threshold = Long.parseLong(ttl);
     
     String time = options.get("currentTime");
-    if (time != null) currentTime = Long.parseLong(time);
-    else currentTime = System.currentTimeMillis();
+    if (time != null)
+      currentTime = Long.parseLong(time);
+    else
+      currentTime = System.currentTimeMillis();
     
     // add sanity checks for threshold and currentTime?
   }

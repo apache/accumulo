@@ -73,8 +73,10 @@ public class LogReader {
       usage();
       return;
     }
-    if (cl.hasOption(rowOpt.getOpt())) row = new Text(cl.getOptionValue(rowOpt.getOpt()));
-    if (cl.hasOption(maxOpt.getOpt())) max = Integer.parseInt(cl.getOptionValue(maxOpt.getOpt()));
+    if (cl.hasOption(rowOpt.getOpt()))
+      row = new Text(cl.getOptionValue(rowOpt.getOpt()));
+    if (cl.hasOption(maxOpt.getOpt()))
+      max = Integer.parseInt(cl.getOptionValue(maxOpt.getOpt()));
     
     for (String file : files) {
       
@@ -122,7 +124,8 @@ public class LogReader {
           }
         }
         
-        if (!found) return;
+        if (!found)
+          return;
       } else {
         return;
       }

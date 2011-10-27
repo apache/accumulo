@@ -68,7 +68,8 @@ public class ContinuousMoru extends Configured implements Tool {
       int max_cf = context.getConfiguration().getInt(MAX_CF, -1);
       int max_cq = context.getConfiguration().getInt(MAX_CQ, -1);
       
-      if (max_cf > Short.MAX_VALUE || max_cq > Short.MAX_VALUE) throw new IllegalArgumentException();
+      if (max_cf > Short.MAX_VALUE || max_cq > Short.MAX_VALUE)
+        throw new IllegalArgumentException();
       
       this.max_cf = (short) max_cf;
       this.max_cq = (short) max_cq;
@@ -171,6 +172,7 @@ public class ContinuousMoru extends Configured implements Tool {
    */
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new ContinuousMoru(), args);
-    if (res != 0) System.exit(res);
+    if (res != 0)
+      System.exit(res);
   }
 }

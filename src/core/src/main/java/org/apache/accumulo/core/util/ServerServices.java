@@ -69,7 +69,8 @@ public class ServerServices implements Comparable<ServerServices> {
     String address = getAddressString(service);
     String[] parts = address.split(":", 2);
     if (parts.length == 2) {
-      if (parts[1].isEmpty()) return new InetSocketAddress(parts[0], service.getDefaultPort());
+      if (parts[1].isEmpty())
+        return new InetSocketAddress(parts[0], service.getDefaultPort());
       return new InetSocketAddress(parts[0], Integer.parseInt(parts[1]));
     }
     return new InetSocketAddress(address, service.getDefaultPort());
@@ -98,7 +99,8 @@ public class ServerServices implements Comparable<ServerServices> {
   
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ServerServices) return toString().equals(((ServerServices) o).toString());
+    if (o instanceof ServerServices)
+      return toString().equals(((ServerServices) o).toString());
     return false;
   }
   

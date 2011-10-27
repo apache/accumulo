@@ -34,7 +34,8 @@ public class CreateUserCommand extends Command {
   private Option scanOptAuths;
   
   static Authorizations parseAuthorizations(String field) {
-    if (field == null || field.isEmpty()) return Constants.NO_AUTHS;
+    if (field == null || field.isEmpty())
+      return Constants.NO_AUTHS;
     return new Authorizations(field.split(","));
   }
   
@@ -56,7 +57,8 @@ public class CreateUserCommand extends Command {
       return 0;
     } // user canceled
     
-    if (!password.equals(passwordConfirm)) throw new IllegalArgumentException("Passwords do not match");
+    if (!password.equals(passwordConfirm))
+      throw new IllegalArgumentException("Passwords do not match");
     
     Authorizations authorizations = parseAuthorizations(cl.hasOption(scanOptAuths.getOpt()) ? cl.getOptionValue(scanOptAuths.getOpt()) : "");
     shellState.getConnector().securityOperations().createUser(user, password.getBytes(), authorizations);

@@ -53,10 +53,12 @@ public class IsolatedScan extends Test {
       while (iter.hasNext()) {
         PeekingIterator<Entry<Key,Value>> row = new PeekingIterator<Entry<Key,Value>>(iter.next());
         Entry<Key,Value> kv = null;
-        if (row.hasNext()) kv = row.peek();
+        if (row.hasNext())
+          kv = row.peek();
         while (row.hasNext()) {
           Entry<Key,Value> currentKV = row.next();
-          if (!kv.getValue().equals(currentKV.getValue())) throw new Exception("values not equal " + kv + " " + currentKV);
+          if (!kv.getValue().equals(currentKV.getValue()))
+            throw new Exception("values not equal " + kv + " " + currentKV);
         }
       }
       log.debug("Isolated scan " + tableName);

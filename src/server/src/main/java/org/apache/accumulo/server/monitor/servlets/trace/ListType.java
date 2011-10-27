@@ -49,7 +49,8 @@ public class ListType extends Basic {
   private static class ShowTraceLinkType extends StringType<RemoteSpan> {
     
     public String format(Object obj) {
-      if (obj == null) return "-";
+      if (obj == null)
+        return "-";
       RemoteSpan span = (RemoteSpan) obj;
       return String.format("<a href='/trace/show?id=%s'>%s</a>", Long.toHexString(span.traceId), TraceFormatter.formatDate(new Date(span.start)));
     }

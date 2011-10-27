@@ -51,7 +51,8 @@ public enum TabletServerState {
     badStates = new HashSet<TabletServerState>();
     for (TabletServerState state : TabletServerState.values()) {
       mapping.put(state.id, state);
-      if (state.id > 99) badStates.add(state);
+      if (state.id > 99)
+        badStates.add(state);
     }
   }
   
@@ -64,7 +65,8 @@ public enum TabletServerState {
   }
   
   public static TabletServerState getStateById(byte id) {
-    if (mapping.containsKey(id)) return mapping.get(id);
+    if (mapping.containsKey(id))
+      return mapping.get(id);
     throw new IndexOutOfBoundsException("No such state");
   }
   

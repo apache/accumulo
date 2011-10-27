@@ -44,7 +44,8 @@ public class DeleteSomeDocs extends Test {
     ArrayList<String> patterns = new ArrayList<String>();
     
     for (Object key : props.keySet())
-      if (key instanceof String && ((String) key).startsWith("pattern")) patterns.add(props.getProperty((String) key));
+      if (key instanceof String && ((String) key).startsWith("pattern"))
+        patterns.add(props.getProperty((String) key));
     
     String pattern = patterns.get(rand.nextInt(patterns.size()));
     

@@ -48,8 +48,10 @@ public class DeleteRange extends Test {
       range.add(new Text(String.format("%016x", Math.abs(rand.nextLong()))));
     } while (range.get(0).equals(range.get(1)));
     Collections.sort(range);
-    if (rand.nextInt(20) == 0) range.set(0, null);
-    if (rand.nextInt(20) == 0) range.set(1, null);
+    if (rand.nextInt(20) == 0)
+      range.set(0, null);
+    if (rand.nextInt(20) == 0)
+      range.set(1, null);
     
     try {
       conn.tableOperations().deleteRows(tableName, range.get(0), range.get(1));

@@ -85,8 +85,10 @@ public class Mutation implements Writable {
     
     void add(boolean b) {
       reserve(1);
-      if (b) data[offset++] = 1;
-      else data[offset++] = 0;
+      if (b)
+        data[offset++] = 1;
+      else
+        data[offset++] = 0;
     }
     
     void add(long v) {
@@ -214,7 +216,8 @@ public class Mutation implements Writable {
   
   private void put(Text cf, Text cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
     
-    if (buffer == null) throw new IllegalStateException("Can not add to mutation after serializing it");
+    if (buffer == null)
+      throw new IllegalStateException("Can not add to mutation after serializing it");
     
     put(cf);
     put(cq);
@@ -226,7 +229,8 @@ public class Mutation implements Writable {
     if (val.length < VALUE_SIZE_COPY_CUTOFF) {
       put(val);
     } else {
-      if (values == null) values = new ArrayList<byte[]>();
+      if (values == null)
+        values = new ArrayList<byte[]>();
       byte copy[] = new byte[val.length];
       System.arraycopy(val, 0, copy, 0, val.length);
       values.add(copy);
@@ -326,7 +330,8 @@ public class Mutation implements Writable {
   
   private byte[] readBytes(SimpleReader in) {
     int len = in.readInt();
-    if (len == 0) return EMPTY_BYTES;
+    if (len == 0)
+      return EMPTY_BYTES;
     
     byte bytes[] = new byte[len];
     in.readBytes(bytes);
@@ -381,7 +386,8 @@ public class Mutation implements Writable {
   private int cachedValLens = -1;
   
   long getValueLengths() {
-    if (values == null) return 0;
+    if (values == null)
+      return 0;
     
     if (cachedValLens == -1) {
       int tmpCVL = 0;
@@ -452,7 +458,8 @@ public class Mutation implements Writable {
     out.write(data);
     out.writeInt(entries);
     
-    if (values == null) out.writeBoolean(false);
+    if (values == null)
+      out.writeBoolean(false);
     else {
       out.writeBoolean(true);
       out.writeInt(values.size());
@@ -467,7 +474,8 @@ public class Mutation implements Writable {
   
   @Override
   public boolean equals(Object o) {
-    if (o instanceof Mutation) return equals((Mutation) o);
+    if (o instanceof Mutation)
+      return equals((Mutation) o);
     return false;
   }
   
@@ -479,11 +487,13 @@ public class Mutation implements Writable {
   public boolean equals(Mutation m) {
     serialize();
     if (Arrays.equals(row, m.row) && entries == m.entries && Arrays.equals(data, m.data)) {
-      if (values == null && m.values == null) return true;
+      if (values == null && m.values == null)
+        return true;
       
       if (values != null && m.values != null && values.size() == m.values.size()) {
         for (int i = 0; i < values.size(); i++) {
-          if (!Arrays.equals(values.get(i), m.values.get(i))) return false;
+          if (!Arrays.equals(values.get(i), m.values.get(i)))
+            return false;
         }
         
         return true;

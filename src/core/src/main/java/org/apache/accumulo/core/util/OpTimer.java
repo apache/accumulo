@@ -35,7 +35,8 @@ public class OpTimer {
   
   public OpTimer start(String msg) {
     opid = nextOpid.getAndIncrement();
-    if (log.isEnabledFor(level)) log.log(level, "tid=" + Thread.currentThread().getId() + " oid=" + opid + "  " + msg);
+    if (log.isEnabledFor(level))
+      log.log(level, "tid=" + Thread.currentThread().getId() + " oid=" + opid + "  " + msg);
     t1 = System.currentTimeMillis();
     return this;
   }

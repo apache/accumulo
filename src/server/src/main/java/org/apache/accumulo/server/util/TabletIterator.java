@@ -166,7 +166,8 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
   @Override
   public Map<Key,Value> next() {
     
-    if (!hasNext()) throw new NoSuchElementException();
+    if (!hasNext())
+      throw new NoSuchElementException();
     
     Map<Key,Value> tmp = currentTabletKeys;
     currentTabletKeys = null;
@@ -252,7 +253,8 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
         count++;
       }
       
-      if (count == 0) throw new TabletDeletedException("Tablet " + lastTablet + " was deleted while iterating");
+      if (count == 0)
+        throw new TabletDeletedException("Tablet " + lastTablet + " was deleted while iterating");
       
       // start right after the last good tablet
       range = new Range(new Key(lastTablet).followingKey(PartialKey.ROW), true, this.range.getEndKey(), this.range.isEndKeyInclusive());

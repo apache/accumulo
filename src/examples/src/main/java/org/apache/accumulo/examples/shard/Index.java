@@ -58,7 +58,8 @@ public class Index {
       }
     }
     
-    if (m.size() > 0) bw.addMutation(m);
+    if (m.size() > 0)
+      bw.addMutation(m);
   }
   
   private static void index(int numPartitions, File src, String splitRegex, BatchWriter bw) throws Exception {

@@ -75,17 +75,22 @@ public class SetAuths extends Test {
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
         case PERMISSION_DENIED:
-          if (hasPermission) throw new AccumuloException("Got a security exception when I should have had permission.", ae);
-          else return;
+          if (hasPermission)
+            throw new AccumuloException("Got a security exception when I should have had permission.", ae);
+          else
+            return;
         case USER_DOESNT_EXIST:
-          if (exists) throw new AccumuloException("Got security exception when the user should have existed", ae);
-          else return;
+          if (exists)
+            throw new AccumuloException("Got security exception when the user should have existed", ae);
+          else
+            return;
         default:
           throw new AccumuloException("Got unexpected exception", ae);
       }
     }
     SecurityHelper.setUserAuths(state, target, auths);
-    if (!hasPermission) throw new AccumuloException("Didn't get Security Exception when we should have");
+    if (!hasPermission)
+      throw new AccumuloException("Didn't get Security Exception when we should have");
   }
   
 }

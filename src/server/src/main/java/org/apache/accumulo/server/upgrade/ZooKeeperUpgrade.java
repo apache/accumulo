@@ -80,9 +80,10 @@ public class ZooKeeperUpgrade extends Initialize {
         zoo.putPersistentData(ZKUserPath + "/" + user + "/Tables", new byte[] {}, NodeExistsPolicy.FAIL);
         List<String> tables = zoo.getChildren(ZKUserPath + "/" + user + "/Tables.old");
         for (String table : tables) {
-          if (tableIds.containsKey(table)) move(zoo, ZKUserPath + "/" + user + "/Tables.old/" + table,
-              ZKUserPath + "/" + user + "/Tables/" + tableIds.get(table));
-          else System.err.println("WARN : User " + user + " has permissions for non-existant table " + table);
+          if (tableIds.containsKey(table))
+            move(zoo, ZKUserPath + "/" + user + "/Tables.old/" + table, ZKUserPath + "/" + user + "/Tables/" + tableIds.get(table));
+          else
+            System.err.println("WARN : User " + user + " has permissions for non-existant table " + table);
         }
         zoo.recursiveDelete(ZKUserPath + "/" + user + "/Tables.old", NodeMissingPolicy.SKIP);
       }
@@ -128,16 +129,23 @@ public class ZooKeeperUpgrade extends Initialize {
       System.out.println(tableName + " is being upgraded");
       
       String tableId;
-      if (!tableName.equals(Constants.METADATA_TABLE_NAME)) tableId = tii.next();
-      else tableId = Constants.METADATA_TABLE_ID;
+      if (!tableName.equals(Constants.METADATA_TABLE_NAME))
+        tableId = tii.next();
+      else
+        tableId = Constants.METADATA_TABLE_ID;
       
       TableManager.prepareNewTableState(HdfsZooInstance.getInstance().getInstanceID(), tableId, tableName, TableState.OFFLINE, NodeExistsPolicy.FAIL);
       String oldConfDir = zkInstanceRoot + OLD_TABLE_CONF_DIR + "/" + tableName;
-      if (zoo.exists(oldConfDir)) if (tableId.equals(Constants.METADATA_TABLE_ID)) zoo.recursiveDelete(oldConfDir, NodeMissingPolicy.SKIP);
-      else zoo.recursiveCopyPersistent(oldConfDir, zkInstanceRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF, NodeExistsPolicy.OVERWRITE);
+      if (zoo.exists(oldConfDir))
+        if (tableId.equals(Constants.METADATA_TABLE_ID))
+          zoo.recursiveDelete(oldConfDir, NodeMissingPolicy.SKIP);
+        else
+          zoo.recursiveCopyPersistent(oldConfDir, zkInstanceRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_CONF, NodeExistsPolicy.OVERWRITE);
       
-      if (!tableId.equals(Constants.METADATA_TABLE_ID)) validateConfig(tableId, zoo);
-      else initMetadataConfig();
+      if (!tableId.equals(Constants.METADATA_TABLE_ID))
+        validateConfig(tableId, zoo);
+      else
+        initMetadataConfig();
     }
     
     // clean up old table configuration directories
@@ -153,7 +161,8 @@ public class ZooKeeperUpgrade extends Initialize {
       tableName = tableName.substring(tableName.lastIndexOf('/') + 1);
       tableNames.add(tableName);
     }
-    if (zoo.exists(zkInstanceRoot + OLD_TABLE_CONF_DIR)) tableNames.addAll(zoo.getChildren(zkInstanceRoot + OLD_TABLE_CONF_DIR));
+    if (zoo.exists(zkInstanceRoot + OLD_TABLE_CONF_DIR))
+      tableNames.addAll(zoo.getChildren(zkInstanceRoot + OLD_TABLE_CONF_DIR));
     return tableNames;
   }
   

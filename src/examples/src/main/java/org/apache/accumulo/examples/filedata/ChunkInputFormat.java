@@ -55,12 +55,14 @@ public class ChunkInputFormat extends InputFormatBase<List<Entry<Key,Value>>,Inp
           while (!entry.getKey().getColumnFamily().equals(FileDataIngest.CHUNK_CF)) {
             currentK.add(entry);
             peekingScannerIterator.next();
-            if (!peekingScannerIterator.hasNext()) return true;
+            if (!peekingScannerIterator.hasNext())
+              return true;
             entry = peekingScannerIterator.peek();
           }
           currentKey = entry.getKey();
           ((ChunkInputStream) currentV).setSource(peekingScannerIterator);
-          if (log.isTraceEnabled()) log.trace("Processing key/value pair: " + DefaultFormatter.formatEntry(entry, true));
+          if (log.isTraceEnabled())
+            log.trace("Processing key/value pair: " + DefaultFormatter.formatEntry(entry, true));
           return true;
         }
         return false;

@@ -172,7 +172,9 @@ public class Compactor implements Callable<CompactionStats> {
             mfw.close();
           } finally {
             Path path = new Path(outputFile);
-            if (!fs.delete(path, true)) if (fs.exists(path)) log.error("Unable to delete " + outputFile);
+            if (!fs.delete(path, true))
+              if (fs.exists(path))
+                log.error("Unable to delete " + outputFile);
           }
         }
       } catch (IOException e) {
@@ -222,7 +224,8 @@ public class Compactor implements Callable<CompactionStats> {
         
         readers.clear();
         
-        if (e instanceof IOException) throw (IOException) e;
+        if (e instanceof IOException)
+          throw (IOException) e;
         throw new IOException("Failed to open map data files", e);
       }
     }
@@ -248,9 +251,12 @@ public class Compactor implements Callable<CompactionStats> {
       // if(env.getIteratorScope() )
       
       TabletIteratorEnvironment iterEnv;
-      if (env.getIteratorScope() == IteratorScope.majc) iterEnv = new TabletIteratorEnvironment(IteratorScope.majc, !propogateDeletes, acuTableConf);
-      else if (env.getIteratorScope() == IteratorScope.minc) iterEnv = new TabletIteratorEnvironment(IteratorScope.minc, acuTableConf);
-      else throw new IllegalArgumentException();
+      if (env.getIteratorScope() == IteratorScope.majc)
+        iterEnv = new TabletIteratorEnvironment(IteratorScope.majc, !propogateDeletes, acuTableConf);
+      else if (env.getIteratorScope() == IteratorScope.minc)
+        iterEnv = new TabletIteratorEnvironment(IteratorScope.minc, acuTableConf);
+      else
+        throw new IllegalArgumentException();
       
       SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(env.getIteratorScope(), delIter, extent, acuTableConf,
           iterEnv));

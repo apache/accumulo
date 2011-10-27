@@ -31,7 +31,8 @@ public enum PartialKey {
   
   public static PartialKey getByDepth(int depth) {
     for (PartialKey d : PartialKey.values())
-      if (depth == d.depth) return d;
+      if (depth == d.depth)
+        return d;
     throw new IllegalArgumentException("Invalid legacy depth " + depth);
   }
   

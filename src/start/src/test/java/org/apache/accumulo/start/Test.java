@@ -57,13 +57,15 @@ public class Test extends TestCase {
   @Override
   public void setUp() {
     String aHome = System.getenv("ACCUMULO_HOME");
-    if (aHome == null) fail("ACCUMULO_HOME must be set");
+    if (aHome == null)
+      fail("ACCUMULO_HOME must be set");
     
     String dynamicExpr = AccumuloClassLoader.getAccumuloDynamicClasspathStrings().split(";", 2)[0];
     File f = new File(dynamicExpr.replace("$ACCUMULO_HOME", aHome));
     
     tmpDir = f.getParentFile();
-    if (!tmpDir.exists()) tmpDir.mkdirs();
+    if (!tmpDir.exists())
+      tmpDir.mkdirs();
     destJar = new File(tmpDir, "Test.jar");
     if (destJar.exists()) {
       destJar.delete();
@@ -126,7 +128,8 @@ public class Test extends TestCase {
     Logger.getRootLogger().setLevel(Level.ERROR);
     
     // Copy JarA to the dir
-    if (log.isDebugEnabled()) log.debug("Test with Jar A");
+    if (log.isDebugEnabled())
+      log.debug("Test with Jar A");
     copyJar(jarA);
     // Load the TestObject class from the new classloader.
     test.Test a = create();
@@ -134,7 +137,8 @@ public class Test extends TestCase {
     assertTrue(a.add() == 1);
     assertTrue(a.add() == 2);
     // Copy jarB and wait to reload
-    if (log.isDebugEnabled()) log.debug("Test with Jar B");
+    if (log.isDebugEnabled())
+      log.debug("Test with Jar B");
     copyJar(jarB);
     test.Test b = create();
     assertEquals(a.hello(), "Hello from testA");
@@ -143,7 +147,8 @@ public class Test extends TestCase {
     assertTrue(b.add() == 2);
     assertTrue(a.add() == 3);
     assertTrue(a.add() == 4);
-    if (log.isDebugEnabled()) log.debug("Test with Jar C");
+    if (log.isDebugEnabled())
+      log.debug("Test with Jar C");
     copyJar(jarC);
     test.Test c = create();
     assertEquals(a.hello(), "Hello from testA");
@@ -156,7 +161,8 @@ public class Test extends TestCase {
     assertTrue(a.add() == 5);
     assertTrue(a.add() == 6);
     
-    if (log.isDebugEnabled()) log.debug("Deleting jar");
+    if (log.isDebugEnabled())
+      log.debug("Deleting jar");
     assertTrue(destJar.delete());
     // give the class loader time to remove the classes from the deleted jar
     Thread.sleep(1500);
@@ -165,7 +171,8 @@ public class Test extends TestCase {
       assertTrue(false);
     } catch (ClassNotFoundException cnfe) {}
     
-    if (log.isDebugEnabled()) log.debug("Test with Jar C");
+    if (log.isDebugEnabled())
+      log.debug("Test with Jar C");
     copyJar(jarC);
     test.Test e = create();
     assertEquals(e.hello(), "Hello from testC");
@@ -178,10 +185,8 @@ public class Test extends TestCase {
     File oldConf = new File(SITE_CONF);
     boolean exists = oldConf.exists();
     String siteBkp = SITE_CONF + ".bkp";
-    if (exists)
-    {
-      if (oldConf.exists())
-      {
+    if (exists) {
+      if (oldConf.exists()) {
         oldConf.renameTo(new File(siteBkp));
       }
       oldConf = new File(siteBkp);
@@ -195,9 +200,9 @@ public class Test extends TestCase {
       DocumentBuilder db = dbf.newDocumentBuilder();
       Document d;
       if (exists)
-    	  d = db.parse(siteBkp);
+        d = db.parse(siteBkp);
       else
-    	  d = db.parse(new File(SITE_CONF+".example"));
+        d = db.parse(new File(SITE_CONF + ".example"));
       
       NodeList pnodes = d.getElementsByTagName("property");
       for (int i = pnodes.getLength() - 1; i >= 0; i--) {
@@ -206,10 +211,10 @@ public class Test extends TestCase {
         if (cname != null && cname.getTextContent().compareTo(AccumuloClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME) == 0) {
           Node cvalue = current_property.getElementsByTagName("value").item(0);
           if (cvalue != null) {
-            cvalue.setTextContent(randomFolder+"/.*");
+            cvalue.setTextContent(randomFolder + "/.*");
           } else {
             cvalue = d.createElement("value");
-            cvalue.setTextContent(randomFolder+"/.*");
+            cvalue.setTextContent(randomFolder + "/.*");
             current_property.appendChild(cvalue);
           }
           break;

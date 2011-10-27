@@ -37,7 +37,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    if (options.get(TYPE) == null) throw new IOException("no type specified");
+    if (options.get(TYPE) == null)
+      throw new IOException("no type specified");
     switch (Type.valueOf(options.get(TYPE))) {
       case VARNUM:
         encoder = new VarNumEncoder();
@@ -64,7 +65,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    if (options.get(TYPE) == null) return false;
+    if (options.get(TYPE) == null)
+      return false;
     try {
       Type.valueOf(options.get(TYPE));
     } catch (Exception e) {
@@ -120,8 +122,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     }
     
     public static long decode(byte[] b, int offset) {
-      if (b.length < offset + 8) throw new NumberFormatException("trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8)
-          + " found " + b.length);
+      if (b.length < offset + 8)
+        throw new NumberFormatException("trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8) + " found " + b.length);
       return (((long) b[offset + 0] << 56) + ((long) (b[offset + 1] & 255) << 48) + ((long) (b[offset + 2] & 255) << 40) + ((long) (b[offset + 3] & 255) << 32)
           + ((long) (b[offset + 4] & 255) << 24) + ((b[offset + 5] & 255) << 16) + ((b[offset + 6] & 255) << 8) + ((b[offset + 7] & 255) << 0));
     }
@@ -144,9 +146,11 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     long bSign = Long.signum(b);
     if ((aSign != 0) && (bSign != 0) && (aSign == bSign)) {
       if (aSign > 0) {
-        if (Long.MAX_VALUE - a < b) return Long.MAX_VALUE;
+        if (Long.MAX_VALUE - a < b)
+          return Long.MAX_VALUE;
       } else {
-        if (Long.MIN_VALUE - a > b) return Long.MIN_VALUE;
+        if (Long.MIN_VALUE - a > b)
+          return Long.MIN_VALUE;
       }
     }
     return a + b;

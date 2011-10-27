@@ -50,9 +50,11 @@ public class ReadData {
     
     Scanner scan = connector.createScanner(tableName, Constants.NO_AUTHS);
     Key start = null;
-    if (args.length > 5) start = new Key(new Text(args[5]));
+    if (args.length > 5)
+      start = new Key(new Text(args[5]));
     Key end = null;
-    if (args.length > 6) end = new Key(new Text(args[6]));
+    if (args.length > 6)
+      end = new Key(new Text(args[6]));
     scan.setRange(new Range(start, end));
     Iterator<Entry<Key,Value>> iter = scan.iterator();
     

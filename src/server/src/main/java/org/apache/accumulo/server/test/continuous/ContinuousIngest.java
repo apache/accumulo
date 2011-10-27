@@ -223,13 +223,15 @@ public class ContinuousIngest {
   
   private static Value createValue(byte[] ingestInstanceId, long count, byte[] prevRow, Checksum cksum) {
     int dataLen = ingestInstanceId.length + 16 + (prevRow == null ? 0 : prevRow.length) + 3;
-    if (cksum != null) dataLen += 8;
+    if (cksum != null)
+      dataLen += 8;
     byte val[] = new byte[dataLen];
     System.arraycopy(ingestInstanceId, 0, val, 0, ingestInstanceId.length);
     int index = ingestInstanceId.length;
     val[index++] = ':';
     int added = FastFormat.toZeroPaddedString(val, index, count, 16, 16, EMPTY_BYTES);
-    if (added != 16) throw new RuntimeException(" " + added);
+    if (added != 16)
+      throw new RuntimeException(" " + added);
     index += 16;
     val[index++] = ':';
     if (prevRow != null) {

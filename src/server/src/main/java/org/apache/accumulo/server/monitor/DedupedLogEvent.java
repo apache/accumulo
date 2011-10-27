@@ -56,7 +56,8 @@ public class DedupedLogEvent {
   
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof DedupedLogEvent) return this.event.equals(event);
+    if (obj instanceof DedupedLogEvent)
+      return this.event.equals(event);
     return false;
   }
   

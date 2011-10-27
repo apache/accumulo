@@ -39,21 +39,27 @@ public class MergeCommand extends Command {
     String tableName;
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.getConnector().tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
     } else {
       shellState.checkTableState();
       tableName = shellState.getTableName();
     }
     Text startRow = null;
-    if (cl.hasOption(mergeOptStartRow.getOpt())) startRow = new Text(cl.getOptionValue(mergeOptStartRow.getOpt()));
+    if (cl.hasOption(mergeOptStartRow.getOpt()))
+      startRow = new Text(cl.getOptionValue(mergeOptStartRow.getOpt()));
     Text endRow = null;
-    if (cl.hasOption(mergeOptEndRow.getOpt())) endRow = new Text(cl.getOptionValue(mergeOptEndRow.getOpt()));
-    if (cl.hasOption(verboseOpt.getOpt())) verbose = true;
-    if (cl.hasOption(forceOpt.getOpt())) force = true;
+    if (cl.hasOption(mergeOptEndRow.getOpt()))
+      endRow = new Text(cl.getOptionValue(mergeOptEndRow.getOpt()));
+    if (cl.hasOption(verboseOpt.getOpt()))
+      verbose = true;
+    if (cl.hasOption(forceOpt.getOpt()))
+      force = true;
     if (cl.hasOption(sizeOpt.getOpt())) {
       size = AccumuloConfiguration.getMemoryInBytes(cl.getOptionValue(sizeOpt.getOpt()));
     }
-    if (size < 0) shellState.getConnector().tableOperations().merge(tableName, startRow, endRow);
+    if (size < 0)
+      shellState.getConnector().tableOperations().merge(tableName, startRow, endRow);
     else {
       final boolean finalVerbose = verbose;
       Merge merge = new Merge() {

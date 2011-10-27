@@ -155,7 +155,8 @@ public class Merge {
           totalSize = mergeMany(conn, table, sizes, goalSize, force, false);
         }
       }
-      if (sizes.size() > 1) mergeMany(conn, table, sizes, goalSize, force, true);
+      if (sizes.size() > 1)
+        mergeMany(conn, table, sizes, goalSize, force, true);
     } catch (Exception ex) {
       throw new MergeException(ex);
     }
@@ -164,7 +165,8 @@ public class Merge {
   protected long mergeMany(Connector conn, String table, List<Size> sizes, long goalSize, boolean force, boolean last) throws MergeException {
     // skip the big tablets, which will be the typical case
     while (!sizes.isEmpty()) {
-      if (sizes.get(0).size < goalSize) break;
+      if (sizes.get(0).size < goalSize)
+        break;
       sizes.remove(0);
     }
     if (sizes.isEmpty()) {

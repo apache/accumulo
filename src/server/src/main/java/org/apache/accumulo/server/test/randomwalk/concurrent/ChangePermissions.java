@@ -47,8 +47,10 @@ public class ChangePermissions extends Test {
     String tableName = tableNames.get(rand.nextInt(tableNames.size()));
     
     try {
-      if (rand.nextBoolean()) changeSystemPermission(conn, rand, userName);
-      else changeTablePermission(conn, rand, userName, tableName);
+      if (rand.nextBoolean())
+        changeSystemPermission(conn, rand, userName);
+      else
+        changeTablePermission(conn, rand, userName, tableName);
     } catch (AccumuloSecurityException ex) {
       log.debug("Unable to change user permissions: " + ex.getCause());
     }
@@ -58,7 +60,8 @@ public class ChangePermissions extends Test {
     
     EnumSet<TablePermission> perms = EnumSet.noneOf(TablePermission.class);
     for (TablePermission p : TablePermission.values()) {
-      if (conn.securityOperations().hasTablePermission(userName, tableName, p)) perms.add(p);
+      if (conn.securityOperations().hasTablePermission(userName, tableName, p))
+        perms.add(p);
     }
     
     EnumSet<TablePermission> more = EnumSet.allOf(TablePermission.class);
@@ -82,7 +85,8 @@ public class ChangePermissions extends Test {
   private void changeSystemPermission(Connector conn, Random rand, String userName) throws AccumuloException, AccumuloSecurityException {
     EnumSet<SystemPermission> perms = EnumSet.noneOf(SystemPermission.class);
     for (SystemPermission p : SystemPermission.values()) {
-      if (conn.securityOperations().hasSystemPermission(userName, p)) perms.add(p);
+      if (conn.securityOperations().hasSystemPermission(userName, p))
+        perms.add(p);
     }
     
     EnumSet<SystemPermission> more = EnumSet.allOf(SystemPermission.class);

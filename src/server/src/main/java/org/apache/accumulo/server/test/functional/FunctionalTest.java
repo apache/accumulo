@@ -81,8 +81,10 @@ public abstract class FunctionalTest {
     
     for (String line : perTableConfigs) {
       String[] splitLine = line.split("=");
-      if (splitLine.length == 1 && line.endsWith("=")) config.put(splitLine[0], "");
-      else config.put(splitLine[0], splitLine[1]);
+      if (splitLine.length == 1 && line.endsWith("="))
+        config.put(splitLine[0], "");
+      else
+        config.put(splitLine[0], splitLine[1]);
     }
     
     return config;
@@ -234,7 +236,8 @@ public abstract class FunctionalTest {
       Text row = entry.getKey().getRow();
       
       Integer count = tabletFileCounts.get(row);
-      if (count == null) count = 0;
+      if (count == null)
+        count = 0;
       if (entry.getKey().getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) {
         count = count + 1;
       }

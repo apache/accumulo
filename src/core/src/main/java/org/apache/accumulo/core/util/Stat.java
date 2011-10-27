@@ -25,8 +25,10 @@ public class Stat {
   double partialStdDev = 0;
   
   public void addStat(long stat) {
-    if (stat > max) max = stat;
-    if (stat < min) min = stat;
+    if (stat > max)
+      max = stat;
+    if (stat < min)
+      min = stat;
     
     sum += stat;
     

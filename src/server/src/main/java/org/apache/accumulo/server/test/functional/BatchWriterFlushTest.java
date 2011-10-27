@@ -128,11 +128,13 @@ public class BatchWriterFlushTest extends FunctionalTest {
         
         Iterator<Entry<Key,Value>> iter = scanner.iterator();
         
-        if (!iter.hasNext()) throw new Exception(" row " + rowToLookup + " not found after flush");
+        if (!iter.hasNext())
+          throw new Exception(" row " + rowToLookup + " not found after flush");
         
         Entry<Key,Value> entry = iter.next();
         
-        if (iter.hasNext()) throw new Exception("Scanner returned too much");
+        if (iter.hasNext())
+          throw new Exception("Scanner returned too much");
         
         verifyEntry(rowToLookup, entry);
       }
@@ -144,14 +146,16 @@ public class BatchWriterFlushTest extends FunctionalTest {
       for (int j = 0; j < NUM_TO_FLUSH; j++) {
         int row = i * NUM_TO_FLUSH + j;
         
-        if (!iter.hasNext()) throw new Exception("Scan stopped permaturely at " + row);
+        if (!iter.hasNext())
+          throw new Exception("Scan stopped permaturely at " + row);
         
         Entry<Key,Value> entry = iter.next();
         
         verifyEntry(row, entry);
       }
       
-      if (iter.hasNext()) throw new Exception("Scanner returned too much");
+      if (iter.hasNext())
+        throw new Exception("Scanner returned too much");
       
     }
     

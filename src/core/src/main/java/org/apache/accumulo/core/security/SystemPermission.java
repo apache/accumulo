@@ -60,7 +60,8 @@ public enum SystemPermission {
   }
   
   public static SystemPermission getPermissionById(byte id) {
-    if (mapping.containsKey(id)) return mapping.get(id);
+    if (mapping.containsKey(id))
+      return mapping.get(id);
     throw new IndexOutOfBoundsException("No such permission");
   }
 }

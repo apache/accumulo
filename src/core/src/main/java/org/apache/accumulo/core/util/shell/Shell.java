@@ -184,7 +184,8 @@ public class Shell {
     CommandLine cl;
     try {
       cl = new BasicParser().parse(opts, args);
-      if (cl.getArgs().length > 0) throw new ParseException("Unrecognized arguments: " + cl.getArgList());
+      if (cl.getArgs().length > 0)
+        throw new ParseException("Unrecognized arguments: " + cl.getArgList());
       
       if (cl.hasOption(helpOpt.getOpt())) {
         configError = true;
@@ -196,8 +197,8 @@ public class Shell {
       authTimeout = Integer.parseInt(cl.getOptionValue(authTimeoutOpt.getLongOpt(), DEFAULT_AUTH_TIMEOUT)) * 60 * 1000;
       disableAuthTimeout = cl.hasOption(disableAuthTimeoutOpt.getLongOpt());
       
-      if (cl.hasOption(zooKeeperInstance.getOpt()) && cl.getOptionValues(zooKeeperInstance.getOpt()).length != 2) throw new MissingArgumentException(
-          zooKeeperInstance);
+      if (cl.hasOption(zooKeeperInstance.getOpt()) && cl.getOptionValues(zooKeeperInstance.getOpt()).length != 2)
+        throw new MissingArgumentException(zooKeeperInstance);
       
     } catch (Exception e) {
       configError = true;
@@ -208,7 +209,8 @@ public class Shell {
     
     // get the options that were parsed
     String sysUser = System.getProperty("user.name");
-    if (sysUser == null) sysUser = "root";
+    if (sysUser == null)
+      sysUser = "root";
     String user = cl.getOptionValue(usernameOption.getOpt(), sysUser);
     
     String passw = cl.getOptionValue(passwOption.getOpt(), null);
@@ -244,7 +246,8 @@ public class Shell {
         }
       });
       
-      if (passw == null) passw = reader.readLine("Enter current password for '" + user + "'@'" + instance.getInstanceName() + "': ", '*');
+      if (passw == null)
+        passw = reader.readLine("Enter current password for '" + user + "'@'" + instance.getInstanceName() + "': ", '*');
       if (passw == null) {
         reader.printNewline();
         configError = true;
@@ -265,7 +268,8 @@ public class Shell {
     if (cl.hasOption(execfileOption.getOpt())) {
       execFile = cl.getOptionValue(execfileOption.getOpt());
       verbose = false;
-    } else if (cl.hasOption(execfileVerboseOption.getOpt())) execFile = cl.getOptionValue(execfileVerboseOption.getOpt());
+    } else if (cl.hasOption(execfileVerboseOption.getOpt()))
+      execFile = cl.getOptionValue(execfileVerboseOption.getOpt());
     
     rootToken = new Token();
     Command external[] = {new AboutCommand(), new AddSplitsCommand(), new AuthenticateCommand(), new ByeCommand(), new ClasspathCommand(), new ClearCommand(),
@@ -318,15 +322,18 @@ public class Shell {
   }
   
   public int start() throws IOException {
-    if (configError) return 1;
+    if (configError)
+      return 1;
     
     String input;
-    if (isVerbose()) printInfo();
+    if (isVerbose())
+      printInfo();
     
     String configDir = System.getenv("HOME") + "/.accumulo";
     String historyPath = configDir + "/shell_history.txt";
     File accumuloDir = new File(configDir);
-    if (!accumuloDir.exists() && !accumuloDir.mkdirs()) log.warn("Unable to make directory for history at " + accumuloDir);
+    if (!accumuloDir.exists() && !accumuloDir.mkdirs())
+      log.warn("Unable to make directory for history at " + accumuloDir);
     try {
       History history = new History();
       history.setHistoryFile(new File(historyPath));
@@ -344,11 +351,13 @@ public class Shell {
     }
     
     while (true) {
-      if (exit) return exitCode;
+      if (exit)
+        return exitCode;
       
       // If tab completion is true we need to reset
       if (tabCompletion) {
-        if (userCompletor != null) reader.removeCompletor(userCompletor);
+        if (userCompletor != null)
+          reader.removeCompletor(userCompletor);
         
         userCompletor = setupCompletion();
         reader.addCompletor(userCompletor);
@@ -374,9 +383,12 @@ public class Shell {
   public void printVerboseInfo() throws IOException {
     StringBuilder sb = new StringBuilder("-\n");
     sb.append("- Current user: ").append(connector.whoami()).append("\n");
-    if (execFile != null) sb.append("- Executing commands from: ").append(execFile).append("\n");
-    if (disableAuthTimeout) sb.append("- Authorization timeout: disabled\n");
-    else sb.append("- Authorization timeout: ").append(String.format("%.2fs\n", authTimeout / 1000.0));
+    if (execFile != null)
+      sb.append("- Executing commands from: ").append(execFile).append("\n");
+    if (disableAuthTimeout)
+      sb.append("- Authorization timeout: disabled\n");
+    else
+      sb.append("- Authorization timeout: ").append(String.format("%.2fs\n", authTimeout / 1000.0));
     sb.append("- Debug: ").append(isDebuggingEnabled() ? "on" : "off").append("\n");
     if (formatterClass != null && formatterClass != DefaultFormatter.class) {
       sb.append("- Active formatter class: ").append(formatterClass.getSimpleName()).append("\n");
@@ -416,7 +428,8 @@ public class Shell {
       ++exitCode;
       return;
     }
-    if (fields.length == 0) return;
+    if (fields.length == 0)
+      return;
     
     String command = fields[0];
     fields = fields.length > 1 ? Arrays.copyOfRange(fields, 1, fields.length) : new String[] {};
@@ -448,7 +461,8 @@ public class Shell {
               printException(e);
             }
             
-            if (authFailed) reader.printString("Invalid password. ");
+            if (authFailed)
+              reader.printString("Invalid password. ");
           } while (authFailed);
           lastUserActivity = System.currentTimeMillis();
         }
@@ -483,7 +497,8 @@ public class Shell {
         printConstraintViolationException(e);
       } catch (TableNotFoundException e) {
         ++exitCode;
-        if (getTableName().equals(e.getTableName())) setTableName("");
+        if (getTableName().equals(e.getTableName()))
+          setTableName("");
         printException(e);
       } catch (ParseException e) {
         // not really an error if the exception is a missing required
@@ -492,7 +507,8 @@ public class Shell {
           ++exitCode;
           printException(e);
         }
-        if (sc != null) sc.printHelp();
+        if (sc != null)
+          sc.printHelp();
       } catch (Exception e) {
         ++exitCode;
         printException(e);
@@ -667,7 +683,8 @@ public class Shell {
         SortedSet<String> tablesToFlush = new TreeSet<String>();
         if (cl.hasOption(optTablePattern.getOpt())) {
           for (String table : shellState.getConnector().tableOperations().list())
-            if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) tablesToFlush.add(table);
+            if (table.matches(cl.getOptionValue(optTablePattern.getOpt())))
+              tablesToFlush.add(table);
         } else if (cl.hasOption(optTableName.getOpt())) {
           tablesToFlush.add(cl.getOptionValue(optTableName.getOpt()));
         }
@@ -677,11 +694,13 @@ public class Shell {
           tablesToFlush.add(shellState.getTableName());
         }
         
-        if (tablesToFlush.isEmpty()) log.warn("No tables found that match your criteria");
+        if (tablesToFlush.isEmpty())
+          log.warn("No tables found that match your criteria");
         
         // flush the tables
         for (String tableName : tablesToFlush) {
-          if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+          if (!shellState.getConnector().tableOperations().exists(tableName))
+            throw new TableNotFoundException(null, tableName, null);
           doTableOp(shellState, tableName);
         }
       }
@@ -776,7 +795,8 @@ public class Shell {
     String peek = null;
     while (lines.hasNext()) {
       String nextLine = lines.next();
-      if (nextLine == null) continue;
+      if (nextLine == null)
+        continue;
       for (String line : nextLine.split("\\n")) {
         if (peek != null) {
           reader.printString(peek);
@@ -829,8 +849,9 @@ public class Shell {
   }
   
   public void checkTableState() {
-    if (getTableName().isEmpty()) throw new IllegalStateException(
-        "Not in a table context. Please use 'table <tableName>' to switch to a table, or use '-t' to specify a table if option is available.");
+    if (getTableName().isEmpty())
+      throw new IllegalStateException(
+          "Not in a table context. Please use 'table <tableName>' to switch to a table, or use '-t' to specify a table if option is available.");
   }
   
   private final void printConstraintViolationException(ConstraintViolationException cve) {

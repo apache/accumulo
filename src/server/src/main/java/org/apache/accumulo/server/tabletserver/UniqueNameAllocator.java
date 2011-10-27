@@ -70,7 +70,8 @@ public class UniqueNameAllocator {
   private static UniqueNameAllocator instance = null;
   
   public static synchronized UniqueNameAllocator getInstance() {
-    if (instance == null) instance = new UniqueNameAllocator();
+    if (instance == null)
+      instance = new UniqueNameAllocator();
     
     return instance;
   }

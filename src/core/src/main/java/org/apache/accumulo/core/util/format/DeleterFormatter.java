@@ -54,8 +54,9 @@ public class DeleterFormatter extends DefaultFormatter {
         writer.close();
       } catch (MutationsRejectedException e) {
         log.error(e.toString());
-        if (Shell.isDebuggingEnabled()) for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries())
-          log.trace(cvs.toString());
+        if (Shell.isDebuggingEnabled())
+          for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries())
+            log.trace(cvs.toString());
       }
       return false;
     }
@@ -82,8 +83,9 @@ public class DeleterFormatter extends DefaultFormatter {
           writer.addMutation(m);
         } catch (MutationsRejectedException e) {
           log.error(e.toString());
-          if (Shell.isDebuggingEnabled()) for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries())
-            log.trace(cvs.toString());
+          if (Shell.isDebuggingEnabled())
+            for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries())
+              log.trace(cvs.toString());
         }
       }
       shellState.getReader().printString(String.format("[%s] %s\n", delete ? "DELETED" : "SKIPPED", entryStr));

@@ -41,7 +41,8 @@ public class getSlaves {
       all.append(new String(buffer, 0, n));
     for (String slave : all.toString().split("\n")) {
       slave = slave.trim();
-      if (slave.length() > 0 && slave.indexOf("#") < 0) result.add(slave);
+      if (slave.length() > 0 && slave.indexOf("#") < 0)
+        result.add(slave);
     }
     return result;
   }

@@ -49,7 +49,8 @@ public class ShowTrace extends Basic {
   @Override
   public String getTitle(HttpServletRequest req) {
     String id = getTraceId(req);
-    if (id == null) return "No trace id specified";
+    if (id == null)
+      return "No trace id specified";
     return "Trace ID " + id;
   }
   
@@ -101,8 +102,10 @@ public class ShowTrace extends Basic {
         sb.append(String.format("<td style='text-indent: %dpx'>%s@%s</td>\n", level * 5, node.svc, node.sender));
         sb.append("<td>" + node.description + "</td>");
         boolean hasData = node.data != null && !node.data.isEmpty();
-        if (hasData) sb.append("<td><input type='checkbox' onclick='toggle(\"" + Long.toHexString(node.spanId) + "\")'></td>\n");
-        else sb.append("<td></td>\n");
+        if (hasData)
+          sb.append("<td><input type='checkbox' onclick='toggle(\"" + Long.toHexString(node.spanId) + "\")'></td>\n");
+        else
+          sb.append("<td></td>\n");
         sb.append("</tr>\n");
         sb.append("<tr id='" + Long.toHexString(node.spanId) + "' style='display:none'>");
         sb.append("<td colspan='5'>\n");

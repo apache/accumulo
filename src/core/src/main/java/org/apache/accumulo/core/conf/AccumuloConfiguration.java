@@ -82,8 +82,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       case 's':
         multiplier *= 1000;
         if (str.length() > 1 && str.endsWith("ms")) // millis
-        // case
-        return Long.parseLong(str.substring(0, str.length() - 2));
+          // case
+          return Long.parseLong(str.substring(0, str.length() - 2));
         return Long.parseLong(str.substring(0, str.length() - 1)) * multiplier;
       default:
         return Long.parseLong(str) * 1000;
@@ -102,7 +102,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
   
   public double getFraction(String str) {
-    if (str.charAt(str.length() - 1) == '%') return Double.parseDouble(str.substring(0, str.length() - 1)) / 100.0;
+    if (str.charAt(str.length() - 1) == '%')
+      return Double.parseDouble(str.substring(0, str.length() - 1)) / 100.0;
     return Double.parseDouble(str);
   }
   

@@ -42,7 +42,8 @@ public class MinorCompactor extends Compactor {
   private static final Map<String,DataFileValue> EMPTY_MAP = Collections.emptyMap();
   
   private static Map<String,DataFileValue> toFileMap(String mergeFile, DataFileValue dfv) {
-    if (mergeFile == null) return EMPTY_MAP;
+    if (mergeFile == null)
+      return EMPTY_MAP;
     
     return Collections.singletonMap(mergeFile, dfv);
   }

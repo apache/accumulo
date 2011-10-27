@@ -51,7 +51,8 @@ public class ConfigCommand extends Command {
     Token cmd = new Token(getName());
     Token sub = new Token("-" + setOpt.getOpt());
     for (Property p : Property.values()) {
-      if (!(p.getKey().endsWith("."))) sub.addSubcommand(new Token(p.toString()));
+      if (!(p.getKey().endsWith(".")))
+        sub.addSubcommand(new Token(p.toString()));
     }
     cmd.addSubcommand(sub);
     root.addSubcommand(cmd);
@@ -62,44 +63,48 @@ public class ConfigCommand extends Command {
     reader = shellState.getReader();
     
     String tableName = cl.getOptionValue(tableOpt.getOpt());
-    if (tableName != null && !shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+    if (tableName != null && !shellState.getConnector().tableOperations().exists(tableName))
+      throw new TableNotFoundException(null, tableName, null);
     
     if (cl.hasOption(deleteOpt.getOpt())) {
       // delete property from table
       String property = cl.getOptionValue(deleteOpt.getOpt());
-      if (property.contains("=")) throw new BadArgumentException("Invalid '=' operator in delete operation.", fullCommand, fullCommand.indexOf('='));
+      if (property.contains("="))
+        throw new BadArgumentException("Invalid '=' operator in delete operation.", fullCommand, fullCommand.indexOf('='));
       if (tableName != null) {
-        if (!Property.isValidTablePropertyKey(property)) Shell.log.warn("Invalid per-table property : " + property
-            + ", still removing from zookeeper if its there.");
+        if (!Property.isValidTablePropertyKey(property))
+          Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if its there.");
         shellState.getConnector().tableOperations().removeProperty(tableName, property);
         Shell.log.debug("Successfully deleted table configuration option.");
       } else {
-        if (!Property.isValidZooPropertyKey(property)) Shell.log.warn("Invalid per-table property : " + property
-            + ", still removing from zookeeper if its there.");
+        if (!Property.isValidZooPropertyKey(property))
+          Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if its there.");
         shellState.getConnector().instanceOperations().removeProperty(property);
         Shell.log.debug("Successfully deleted system configuration option");
       }
     } else if (cl.hasOption(setOpt.getOpt())) {
       // set property on table
       String property = cl.getOptionValue(setOpt.getOpt()), value = null;
-      if (!property.contains("=")) throw new BadArgumentException("Missing '=' operator in set operation.", fullCommand, fullCommand.indexOf(property));
+      if (!property.contains("="))
+        throw new BadArgumentException("Missing '=' operator in set operation.", fullCommand, fullCommand.indexOf(property));
       
       String pair[] = property.split("=", 2);
       property = pair[0];
       value = pair[1];
       
       if (tableName != null) {
-        if (!Property.isValidTablePropertyKey(property)) throw new BadArgumentException("Invalid per-table property.", fullCommand,
-            fullCommand.indexOf(property));
+        if (!Property.isValidTablePropertyKey(property))
+          throw new BadArgumentException("Invalid per-table property.", fullCommand, fullCommand.indexOf(property));
         
-        if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) new ColumnVisibility(value); // validate that it is a valid
+        if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey()))
+          new ColumnVisibility(value); // validate that it is a valid
         // expression
         
         shellState.getConnector().tableOperations().setProperty(tableName, property, value);
         Shell.log.debug("Successfully set table configuration option.");
       } else {
-        if (!Property.isValidZooPropertyKey(property)) throw new BadArgumentException("Property cannot be modified in zookeepr", fullCommand,
-            fullCommand.indexOf(property));
+        if (!Property.isValidZooPropertyKey(property))
+          throw new BadArgumentException("Property cannot be modified in zookeepr", fullCommand, fullCommand.indexOf(property));
         
         shellState.getConnector().instanceOperations().setProperty(property, value);
         Shell.log.debug("Successfully set system configuration option");
@@ -117,7 +122,8 @@ public class ConfigCommand extends Command {
         defaults.put(defaultEntry.getKey(), defaultEntry.getValue());
       
       Iterable<Entry<String,String>> acuconf = shellState.getConnector().instanceOperations().getSystemConfiguration().entrySet();
-      if (tableName != null) acuconf = shellState.getConnector().tableOperations().getProperties(tableName);
+      if (tableName != null)
+        acuconf = shellState.getConnector().tableOperations().getProperties(tableName);
       
       TreeMap<String,String> sortedConf = new TreeMap<String,String>();
       for (Entry<String,String> propEntry : acuconf) {
@@ -128,8 +134,10 @@ public class ConfigCommand extends Command {
         String key = propEntry.getKey();
         // only show properties with similar names to that
         // specified, or all of them if none specified
-        if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) continue;
-        if (tableName != null && !Property.isValidTablePropertyKey(key)) continue;
+        if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt())))
+          continue;
+        if (tableName != null && !Property.isValidTablePropertyKey(key))
+          continue;
         COL2 = Math.max(COL2, propEntry.getKey().length() + 3);
       }
       
@@ -141,9 +149,11 @@ public class ConfigCommand extends Command {
         
         // only show properties with similar names to that
         // specified, or all of them if none specified
-        if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) continue;
+        if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt())))
+          continue;
         
-        if (tableName != null && !Property.isValidTablePropertyKey(key)) continue;
+        if (tableName != null && !Property.isValidTablePropertyKey(key))
+          continue;
         
         String siteVal = siteConfig.get(key);
         String sysVal = systemConfig.get(key);
@@ -170,7 +180,8 @@ public class ConfigCommand extends Command {
         }
         
         // show per-table value only if it is different (overridden)
-        if (tableName != null && !curVal.equals(sysVal)) printConfLine(output, "table", printed ? "   @override" : key, curVal);
+        if (tableName != null && !curVal.equals(sysVal))
+          printConfLine(output, "table", printed ? "   @override" : key, curVal);
       }
       printConfFooter(output);
       shellState.printLines(output.iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
@@ -185,7 +196,8 @@ public class ConfigCommand extends Command {
   }
   
   private void printConfLine(ArrayList<String> output, String s1, String s2, String s3) {
-    if (s2.length() < COL2) s2 += " " + Shell.repeat(".", COL2 - s2.length() - 1);
+    if (s2.length() < COL2)
+      s2 += " " + Shell.repeat(".", COL2 - s2.length() - 1);
     output.add(String.format("%-" + COL1 + "s | %-" + COL2 + "s | %s", s1, s2,
         s3.replace("\n", "\n" + Shell.repeat(" ", COL1 + 1) + "|" + Shell.repeat(" ", COL2 + 2) + "|" + " ")));
   }

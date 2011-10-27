@@ -41,7 +41,8 @@ public class AlterTable extends Test {
     boolean exists = SecurityHelper.getTableExists(state);
     boolean hasPermission = false;
     if (SecurityHelper.getSysPerm(state, SecurityHelper.getSysUserName(state), SystemPermission.ALTER_TABLE)
-        || SecurityHelper.getTabPerm(state, SecurityHelper.getSysUserName(state), TablePermission.ALTER_TABLE)) hasPermission = true;
+        || SecurityHelper.getTabPerm(state, SecurityHelper.getSysUserName(state), TablePermission.ALTER_TABLE))
+      hasPermission = true;
     String newTableName = String.format("security_%s_%s_%d", InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_"), state.getPid(),
         System.currentTimeMillis());
     
@@ -54,15 +55,20 @@ public class AlterTable extends Test {
       conn.tableOperations().rename(oldName, newName);
     } catch (AccumuloSecurityException ae) {
       if (ae.getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-        if (hasPermission) throw new AccumuloException("Got a security exception when I should have had permission.", ae);
-        else return;
+        if (hasPermission)
+          throw new AccumuloException("Got a security exception when I should have had permission.", ae);
+        else
+          return;
       }
       throw new AccumuloException("Got unexpected ae error code", ae);
     } catch (TableNotFoundException tnfe) {
-      if (tableExists) throw new TableExistsException(null, oldName, "Got a TableNotFoundException but it should exist", tnfe);
-      else return;
+      if (tableExists)
+        throw new TableExistsException(null, oldName, "Got a TableNotFoundException but it should exist", tnfe);
+      else
+        return;
     }
     SecurityHelper.setTableName(state, newName);
-    if (!hasPermission) throw new AccumuloException("Didn't get Security Exception when we should have");
+    if (!hasPermission)
+      throw new AccumuloException("Didn't get Security Exception when we should have");
   }
 }

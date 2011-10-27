@@ -52,9 +52,12 @@ public class TimestampFilter extends Filter implements OptionDescriber {
   @Override
   public boolean accept(Key k, Value v) {
     long ts = k.getTimestamp();
-    if (ts < start || ts > end) return false;
-    if (!startInclusive && ts == start) return false;
-    if (!endInclusive && ts == end) return false;
+    if (ts < start || ts > end)
+      return false;
+    if (!startInclusive && ts == start)
+      return false;
+    if (!endInclusive && ts == end)
+      return false;
     return true;
   }
   
@@ -62,7 +65,8 @@ public class TimestampFilter extends Filter implements OptionDescriber {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     
-    if (options == null) throw new IllegalArgumentException("ttl must be set for AgeOffFilter");
+    if (options == null)
+      throw new IllegalArgumentException("ttl must be set for AgeOffFilter");
     
     startInclusive = true;
     endInclusive = true;
@@ -72,8 +76,10 @@ public class TimestampFilter extends Filter implements OptionDescriber {
     } catch (Exception e) {
       throw new IOException(e);
     }
-    if (options.get(START_INCL) != null) startInclusive = Boolean.parseBoolean(options.get(START_INCL));
-    if (options.get(END_INCL) != null) endInclusive = Boolean.parseBoolean(options.get(END_INCL));
+    if (options.get(START_INCL) != null)
+      startInclusive = Boolean.parseBoolean(options.get(START_INCL));
+    if (options.get(END_INCL) != null)
+      endInclusive = Boolean.parseBoolean(options.get(END_INCL));
   }
   
   @Override
@@ -98,8 +104,10 @@ public class TimestampFilter extends Filter implements OptionDescriber {
     try {
       dateParser.parse(options.get(START));
       dateParser.parse(options.get(END));
-      if (options.get(START_INCL) != null) Boolean.parseBoolean(options.get(START_INCL));
-      if (options.get(END_INCL) != null) Boolean.parseBoolean(options.get(END_INCL));
+      if (options.get(START_INCL) != null)
+        Boolean.parseBoolean(options.get(START_INCL));
+      if (options.get(END_INCL) != null)
+        Boolean.parseBoolean(options.get(END_INCL));
     } catch (Exception e) {
       return false;
     }

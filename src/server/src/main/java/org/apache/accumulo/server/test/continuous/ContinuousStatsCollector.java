@@ -102,8 +102,10 @@ public class ContinuousStatsCollector {
         s.addStat(Long.parseLong(entry.getValue().toString()));
       }
       
-      if (count > 0) return String.format("%d %d %.3f %.3f", s.getMin(), s.getMax(), s.getAverage(), s.getStdDev());
-      else return "0 0 0 0";
+      if (count > 0)
+        return String.format("%d %d %.3f %.3f", s.getMin(), s.getMax(), s.getAverage(), s.getStdDev());
+      else
+        return "0 0 0 0";
       
     }
     
@@ -147,7 +149,8 @@ public class ContinuousStatsCollector {
             + ti.recsInMemory + " " + (long) ti.ingestRate + " " + (long) ti.queryRate + " " + ti.tablets + " " + ti.onlineTablets;
         
       } finally {
-        if (client != null) MasterClient.close(client);
+        if (client != null)
+          MasterClient.close(client);
       }
       
     }

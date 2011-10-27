@@ -42,7 +42,8 @@ public class CompactCommand extends TableOperation {
   protected void doTableOp(Shell shellState, String tableName) throws AccumuloException, AccumuloSecurityException {
     // compact the tables
     try {
-      if (wait) Shell.log.info("Compacting table ...");
+      if (wait)
+        Shell.log.info("Compacting table ...");
       
       shellState.getConnector().tableOperations().compact(shellState.getTableName(), startRow, endRow, flush, wait);
       
@@ -56,9 +57,11 @@ public class CompactCommand extends TableOperation {
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     flush = !cl.hasOption(noFlushOption.getOpt());
     startRow = null;
-    if (cl.hasOption(optStartRow.getOpt())) startRow = new Text(cl.getOptionValue(optStartRow.getOpt()));
+    if (cl.hasOption(optStartRow.getOpt()))
+      startRow = new Text(cl.getOptionValue(optStartRow.getOpt()));
     endRow = null;
-    if (cl.hasOption(optEndRow.getOpt())) endRow = new Text(cl.getOptionValue(optEndRow.getOpt()));
+    if (cl.hasOption(optEndRow.getOpt()))
+      endRow = new Text(cl.getOptionValue(optEndRow.getOpt()));
     wait = cl.hasOption(waitOpt.getOpt());
     
     return super.execute(fullCommand, cl, shellState);

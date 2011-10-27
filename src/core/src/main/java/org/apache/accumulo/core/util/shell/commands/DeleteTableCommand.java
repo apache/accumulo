@@ -38,11 +38,13 @@ public class DeleteTableCommand extends Command {
       IOException {
     
     String tableName = cl.getArgs()[0];
-    if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+    if (!shellState.getConnector().tableOperations().exists(tableName))
+      throw new TableNotFoundException(null, tableName, null);
     
     shellState.getConnector().tableOperations().delete(tableName);
     shellState.getReader().printString("Table: [" + tableName + "] has been deleted. \n");
-    if (shellState.getTableName().equals(tableName)) shellState.setTableName("");
+    if (shellState.getTableName().equals(tableName))
+      shellState.setTableName("");
     return 0;
   }
   

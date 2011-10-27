@@ -59,9 +59,11 @@ public class ShardedTableDistributionFormatter extends DefaultFormatter {
       if (semicolon != -1) {
         semicolon++;
         day = row.substring(semicolon, semicolon + 8);
-      } else day = "NULL    ";
+      } else
+        day = "NULL    ";
       String server = entry.getValue().toString();
-      if (countsByDay.get(day) == null) countsByDay.put(day, new HashSet<String>());
+      if (countsByDay.get(day) == null)
+        countsByDay.put(day, new HashSet<String>());
       countsByDay.get(day).add(server);
     }
   }

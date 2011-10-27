@@ -47,8 +47,9 @@ public class SetScanIterCommand extends SetIterCommand {
       throws AccumuloException, AccumuloSecurityException, ShellCommandException {
     // instead of setting table properties, just put the options
     // in a map to use at scan time
-    if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName())) throw new ShellCommandException(
-        ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type " + SortedKeyValueIterator.class.getName());
+    if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName()))
+      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
+          + SortedKeyValueIterator.class.getName());
     options.put("iteratorClassName", classname);
     options.put("iteratorPriority", Integer.toString(priority));
     Map<String,Map<String,String>> tableIterators = shellState.scanIteratorOptions.get(tableName);
@@ -76,7 +77,8 @@ public class SetScanIterCommand extends SetIterCommand {
       if (!IteratorScope.majc.name().equals(o.getOpt()) && !IteratorScope.minc.name().equals(o.getOpt()) && !IteratorScope.scan.name().equals(o.getOpt())) {
         modifiedOptions.addOption(o);
         OptionGroup group = parentOptions.getOptionGroup(o);
-        if (group != null) groups.add(group);
+        if (group != null)
+          groups.add(group);
       }
     }
     for (OptionGroup group : groups) {

@@ -130,11 +130,13 @@ public class FamilyIntersectingIteratorTest extends TestCase {
     TreeMap<Key,Value> inMemoryMap = createSortedMap(numRows, numDocsPerRow, columnFamilies, otherColumnFamilies, docs);
     trf.writer.startNewLocalityGroup("docs", RFileTest.ncfs(docColf.toString()));
     for (Entry<Key,Value> entry : inMemoryMap.entrySet()) {
-      if (entry.getKey().getColumnFamily().equals(docColf)) trf.writer.append(entry.getKey(), entry.getValue());
+      if (entry.getKey().getColumnFamily().equals(docColf))
+        trf.writer.append(entry.getKey(), entry.getValue());
     }
     trf.writer.startNewLocalityGroup("terms", RFileTest.ncfs(FamilyIntersectingIterator.DEFAULT_INDEX_COLF.toString()));
     for (Entry<Key,Value> entry : inMemoryMap.entrySet()) {
-      if (entry.getKey().getColumnFamily().equals(FamilyIntersectingIterator.DEFAULT_INDEX_COLF)) trf.writer.append(entry.getKey(), entry.getValue());
+      if (entry.getKey().getColumnFamily().equals(FamilyIntersectingIterator.DEFAULT_INDEX_COLF))
+        trf.writer.append(entry.getKey(), entry.getValue());
     }
     
     trf.closeWriter();

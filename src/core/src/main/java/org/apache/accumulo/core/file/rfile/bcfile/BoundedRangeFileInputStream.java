@@ -74,7 +74,8 @@ class BoundedRangeFileInputStream extends InputStream {
   @Override
   public int read() throws IOException {
     int ret = read(oneByte);
-    if (ret == 1) return oneByte[0] & 0xff;
+    if (ret == 1)
+      return oneByte[0] & 0xff;
     return -1;
   }
   
@@ -90,7 +91,8 @@ class BoundedRangeFileInputStream extends InputStream {
     }
     
     final int n = (int) Math.min(Integer.MAX_VALUE, Math.min(len, (end - pos)));
-    if (n == 0) return -1;
+    if (n == 0)
+      return -1;
     Integer ret = 0;
     synchronized (in) {
       in.seek(pos);
@@ -132,7 +134,8 @@ class BoundedRangeFileInputStream extends InputStream {
   
   @Override
   public void reset() throws IOException {
-    if (mark < 0) throw new IOException("Resetting to invalid mark");
+    if (mark < 0)
+      throw new IOException("Resetting to invalid mark");
     pos = mark;
   }
   

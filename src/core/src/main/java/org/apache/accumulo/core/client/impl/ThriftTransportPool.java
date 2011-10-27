@@ -383,7 +383,8 @@ public class ThriftTransportPool {
           for (CachedConnection cachedConnection : entry.getValue()) {
             if (!cachedConnection.isReserved()) {
               cachedConnection.setReserved(true);
-              if (log.isTraceEnabled()) log.trace("Using existing connection to " + entry.getKey().getLocation() + ":" + entry.getKey().getPort());
+              if (log.isTraceEnabled())
+                log.trace("Using existing connection to " + entry.getKey().getLocation() + ":" + entry.getKey().getPort());
               return cachedConnection.transport;
             }
           }
@@ -423,7 +424,8 @@ public class ThriftTransportPool {
       for (CachedConnection cachedConnection : ccl) {
         if (!cachedConnection.isReserved()) {
           cachedConnection.setReserved(true);
-          if (log.isTraceEnabled()) log.trace("Using existing connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
+          if (log.isTraceEnabled())
+            log.trace("Using existing connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
           return cachedConnection.transport;
         }
       }
@@ -446,7 +448,8 @@ public class ThriftTransportPool {
     transport = ThriftUtil.transportFactory().getTransport(transport);
     transport.open();
     
-    if (log.isTraceEnabled()) log.trace("Creating new connection to connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
+    if (log.isTraceEnabled())
+      log.trace("Creating new connection to connection to " + cacheKey.getLocation() + ":" + cacheKey.getPort());
     
     CachedTTransport tsc = new CachedTTransport(transport, cacheKey);
     
@@ -483,10 +486,12 @@ public class ThriftTransportPool {
             tsc.close();
             iterator.remove();
             
-            if (log.isTraceEnabled()) log.trace("Returned connection had error " + ctsc.getCacheKey());
+            if (log.isTraceEnabled())
+              log.trace("Returned connection had error " + ctsc.getCacheKey());
             
             Long ecount = errorCount.get(ctsc.getCacheKey());
-            if (ecount == null) ecount = 0l;
+            if (ecount == null)
+              ecount = 0l;
             ecount++;
             errorCount.put(ctsc.getCacheKey(), ecount);
             
@@ -504,7 +509,8 @@ public class ThriftTransportPool {
             
           } else {
             
-            if (log.isTraceEnabled()) log.trace("Returned connection " + ctsc.getCacheKey() + " ioCount : " + cachedConnection.transport.ioCount);
+            if (log.isTraceEnabled())
+              log.trace("Returned connection " + ctsc.getCacheKey() + " ioCount : " + cachedConnection.transport.ioCount);
             
             cachedConnection.lastReturnTime = System.currentTimeMillis();
             cachedConnection.setReserved(false);

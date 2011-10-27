@@ -49,7 +49,8 @@ class TFileDumper {
   private enum Align {
     LEFT, CENTER, RIGHT, ZERO_PADDED;
     static String format(String s, int width, Align align) {
-      if (s.length() >= width) return s;
+      if (s.length() >= width)
+        return s;
       int room = width - s.length();
       Align alignAdjusted = align;
       if (room == 1) {

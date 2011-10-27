@@ -44,23 +44,27 @@ public class RowIterator implements Iterator<Iterator<Entry<Key,Value>>> {
      */
     public SingleRowIter(PeekingIterator<Entry<Key,Value>> source) {
       this.source = source;
-      if (source.hasNext()) currentRow = source.peek().getKey().getRow();
+      if (source.hasNext())
+        currentRow = source.peek().getKey().getRow();
     }
     
     @Override
     public boolean hasNext() {
-      if (disabled) throw new IllegalStateException("SingleRowIter no longer valid");
+      if (disabled)
+        throw new IllegalStateException("SingleRowIter no longer valid");
       return currentRow != null;
     }
     
     @Override
     public Entry<Key,Value> next() {
-      if (disabled) throw new IllegalStateException("SingleRowIter no longer valid");
+      if (disabled)
+        throw new IllegalStateException("SingleRowIter no longer valid");
       return _next();
     }
     
     private Entry<Key,Value> _next() {
-      if (currentRow == null) throw new NoSuchElementException();
+      if (currentRow == null)
+        throw new NoSuchElementException();
       count++;
       Entry<Key,Value> kv = source.next();
       if (!source.hasNext() || !source.peek().getKey().getRow().equals(currentRow)) {
@@ -134,7 +138,8 @@ public class RowIterator implements Iterator<Iterator<Entry<Key,Value>>> {
    */
   @Override
   public Iterator<Entry<Key,Value>> next() {
-    if (!hasNext()) throw new NoSuchElementException();
+    if (!hasNext())
+      throw new NoSuchElementException();
     return lastIter = new SingleRowIter(iter);
   }
   

@@ -64,7 +64,8 @@ public class TServersServlet extends BasicServlet {
     
     @Override
     public String format(Object obj) {
-      if (obj == null) return "&mdash;";
+      if (obj == null)
+        return "&mdash;";
       return Duration.format((long) (1000.0 * (Double) obj));
     }
     
@@ -96,7 +97,8 @@ public class TServersServlet extends BasicServlet {
       doDeadTserverList(req, sb);
       
       ArrayList<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
-      if (Monitor.getMmi() != null) tservers.addAll(Monitor.getMmi().tServerInfo);
+      if (Monitor.getMmi() != null)
+        tservers.addAll(Monitor.getMmi().tServerInfo);
       
       Table tServerList = new Table("tservers", "Tablet&nbsp;Servers");
       tServerList.setSubCaption("Click on the <span style='color: #0000ff;'>server address</span> to view detailed performance statistics for that server.");
@@ -184,11 +186,14 @@ public class TServersServlet extends BasicServlet {
     }
     
     // Calculate current averages oldServer adding in historical data
-    if (total.minor.num != 0) currentMinorAvg = (long) (total.minor.elapsed / total.minor.num);
-    if (total.minor.elapsed != 0 && total.minor.num != 0) currentMinorStdDev = stddev(total.minor.elapsed, total.minor.num, total.minor.sumDev);
-    if (total.major.num != 0) currentMajorAvg = total.major.elapsed / total.major.num;
-    if (total.major.elapsed != 0 && total.major.num != 0 && total.major.elapsed > total.major.num) currentMajorStdDev = stddev(total.major.elapsed,
-        total.major.num, total.major.sumDev);
+    if (total.minor.num != 0)
+      currentMinorAvg = (long) (total.minor.elapsed / total.minor.num);
+    if (total.minor.elapsed != 0 && total.minor.num != 0)
+      currentMinorStdDev = stddev(total.minor.elapsed, total.minor.num, total.minor.sumDev);
+    if (total.major.num != 0)
+      currentMajorAvg = total.major.elapsed / total.major.num;
+    if (total.major.elapsed != 0 && total.major.num != 0 && total.major.elapsed > total.major.num)
+      currentMajorStdDev = stddev(total.major.elapsed, total.major.num, total.major.sumDev);
     
     // After these += operations, these variables are now total for current
     // tablets and historical tablets
@@ -334,10 +339,13 @@ public class TServersServlet extends BasicServlet {
     
     log.debug("tableId: " + tableId);
     for (TabletServerStatus status : tservers) {
-      if (status == null) status = NO_STATUS;
+      if (status == null)
+        status = NO_STATUS;
       TableInfo summary = Monitor.summarizeTableStats(status);
-      if (tableId != null) summary = status.tableMap.get(tableId);
-      if (summary == null) continue;
+      if (tableId != null)
+        summary = status.tableMap.get(tableId);
+      if (summary == null)
+        continue;
       TableRow row = tServerList.prepareRow();
       row.add(status); // add for server name
       row.add(summary.tablets);

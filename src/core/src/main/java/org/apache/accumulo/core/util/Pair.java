@@ -26,7 +26,8 @@ public class Pair<A,B> {
   }
   
   private int hashCode(Object o) {
-    if (o == null) return 0;
+    if (o == null)
+      return 0;
     return o.hashCode();
   }
   
@@ -36,7 +37,8 @@ public class Pair<A,B> {
   }
   
   private boolean equals(Object o1, Object o2) {
-    if (o1 == null || o2 == null) return o1 == o2;
+    if (o1 == null || o2 == null)
+      return o1 == o2;
     
     return o1.equals(o2);
   }

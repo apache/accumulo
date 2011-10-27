@@ -178,7 +178,8 @@ public class GarbageCollectWriteAheadLogs {
     while (iterator.hasNext()) {
       for (String filename : iterator.next().logSet) {
         filename = filename.split("/", 2)[1];
-        if (fileToServerMap.remove(filename) != null) status.currentLog.inUse++;
+        if (fileToServerMap.remove(filename) != null)
+          status.currentLog.inUse++;
         count++;
       }
     }

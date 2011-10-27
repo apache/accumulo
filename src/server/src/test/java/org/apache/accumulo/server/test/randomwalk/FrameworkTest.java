@@ -72,7 +72,8 @@ public class FrameworkTest extends TestCase {
     
     // don't run test if accumulo home is not set
     String acuHome = System.getenv("ACCUMULO_HOME");
-    if (acuHome == null) return;
+    if (acuHome == null)
+      return;
     
     String confDir = acuHome + "/test/system/randomwalk/conf/";
     Framework.setConfigDir(confDir);
@@ -88,7 +89,8 @@ public class FrameworkTest extends TestCase {
     
     // don't run test if accumulo home is not set
     String acuHome = System.getenv("ACCUMULO_HOME");
-    if (acuHome == null) return;
+    if (acuHome == null)
+      return;
     
     Framework framework = Framework.getInstance();
     String confDir = acuHome + "/test/system/randomwalk/conf/";

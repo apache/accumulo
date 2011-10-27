@@ -100,8 +100,10 @@ class DispatchingFileFactory extends FileOperations {
   public FileSKVIterator openReader(String file, Range range, Set<ByteSequence> columnFamilies, boolean inclusive, FileSystem fs, Configuration conf,
       AccumuloConfiguration tableConf, BlockCache dataCache, BlockCache indexCache) throws IOException {
     
-    if (!tableConf.getBoolean(Property.TABLE_INDEXCACHE_ENABLED)) indexCache = null;
-    if (!tableConf.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) dataCache = null;
+    if (!tableConf.getBoolean(Property.TABLE_INDEXCACHE_ENABLED))
+      indexCache = null;
+    if (!tableConf.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED))
+      dataCache = null;
     
     return findFileFactory(file).openReader(file, range, columnFamilies, inclusive, fs, conf, tableConf, dataCache, indexCache);
   }
@@ -110,8 +112,10 @@ class DispatchingFileFactory extends FileOperations {
   public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf,
       BlockCache dataCache, BlockCache indexCache) throws IOException {
     
-    if (!acuconf.getBoolean(Property.TABLE_INDEXCACHE_ENABLED)) indexCache = null;
-    if (!acuconf.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) dataCache = null;
+    if (!acuconf.getBoolean(Property.TABLE_INDEXCACHE_ENABLED))
+      indexCache = null;
+    if (!acuconf.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED))
+      dataCache = null;
     
     FileSKVIterator iter = findFileFactory(file).openReader(file, seekToBeginning, fs, conf, acuconf, dataCache, indexCache);
     if (acuconf.getBoolean(Property.TABLE_BLOOM_ENABLED)) {
@@ -124,8 +128,10 @@ class DispatchingFileFactory extends FileOperations {
   public FileSKVIterator openIndex(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf, BlockCache dCache, BlockCache iCache)
       throws IOException {
     
-    if (!acuconf.getBoolean(Property.TABLE_INDEXCACHE_ENABLED)) iCache = null;
-    if (!acuconf.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) dCache = null;
+    if (!acuconf.getBoolean(Property.TABLE_INDEXCACHE_ENABLED))
+      iCache = null;
+    if (!acuconf.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED))
+      dCache = null;
     
     return findFileFactory(file).openIndex(file, fs, conf, acuconf, dCache, iCache);
   }

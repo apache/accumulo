@@ -208,7 +208,8 @@ public class MockTableOperations extends TableOperationsHelper {
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive, Text endRow, boolean endInclusive)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     MockTable table = acu.tables.get(tableName);
-    if (table == null) throw new TableNotFoundException(tableName, tableName, "no such table");
+    if (table == null)
+      throw new TableNotFoundException(tableName, tableName, "no such table");
     
     return FindMax.findMax(new MockScanner(table, auths), startRow, startInclusive, endRow, endInclusive);
   }

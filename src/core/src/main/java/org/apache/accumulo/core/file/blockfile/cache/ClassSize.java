@@ -184,14 +184,22 @@ public class ClassSize {
             } else {// Is simple primitive
               String name = fieldClass.getName();
               
-              if (name.equals("int") || name.equals("I")) primitives += SizeConstants.SIZEOF_INT;
-              else if (name.equals("long") || name.equals("J")) primitives += SizeConstants.SIZEOF_LONG;
-              else if (name.equals("boolean") || name.equals("Z")) primitives += SizeConstants.SIZEOF_BOOLEAN;
-              else if (name.equals("short") || name.equals("S")) primitives += SizeConstants.SIZEOF_SHORT;
-              else if (name.equals("byte") || name.equals("B")) primitives += SizeConstants.SIZEOF_BYTE;
-              else if (name.equals("char") || name.equals("C")) primitives += SizeConstants.SIZEOF_CHAR;
-              else if (name.equals("float") || name.equals("F")) primitives += SizeConstants.SIZEOF_FLOAT;
-              else if (name.equals("double") || name.equals("D")) primitives += SizeConstants.SIZEOF_DOUBLE;
+              if (name.equals("int") || name.equals("I"))
+                primitives += SizeConstants.SIZEOF_INT;
+              else if (name.equals("long") || name.equals("J"))
+                primitives += SizeConstants.SIZEOF_LONG;
+              else if (name.equals("boolean") || name.equals("Z"))
+                primitives += SizeConstants.SIZEOF_BOOLEAN;
+              else if (name.equals("short") || name.equals("S"))
+                primitives += SizeConstants.SIZEOF_SHORT;
+              else if (name.equals("byte") || name.equals("B"))
+                primitives += SizeConstants.SIZEOF_BYTE;
+              else if (name.equals("char") || name.equals("C"))
+                primitives += SizeConstants.SIZEOF_CHAR;
+              else if (name.equals("float") || name.equals("F"))
+                primitives += SizeConstants.SIZEOF_FLOAT;
+              else if (name.equals("double") || name.equals("D"))
+                primitives += SizeConstants.SIZEOF_DOUBLE;
             }
             if (debug) {
               if (LOG.isDebugEnabled()) {

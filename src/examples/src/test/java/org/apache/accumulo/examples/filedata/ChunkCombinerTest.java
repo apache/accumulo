@@ -55,8 +55,10 @@ public class ChunkCombinerTest extends TestCase {
       this.map = map;
       iter = map.entrySet().iterator();
       this.range = new Range();
-      if (iter.hasNext()) entry = iter.next();
-      else entry = null;
+      if (iter.hasNext())
+        entry = iter.next();
+      else
+        entry = null;
     }
     
     @Override
@@ -83,7 +85,8 @@ public class ChunkCombinerTest extends TestCase {
           entry = null;
           continue;
         }
-        if (range.afterEndKey((Key) entry.getKey())) entry = null;
+        if (range.afterEndKey((Key) entry.getKey()))
+          entry = null;
         break;
       }
     }
@@ -244,8 +247,10 @@ public class ChunkCombinerTest extends TestCase {
       assertFalse("already contains " + iter.getTopKey(), seen.containsKey(iter.getTopKey()));
       seen.put(new Key(iter.getTopKey()), new Value(iter.getTopValue()));
       
-      if (reseek) iter.seek(new Range(iter.getTopKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL), true, null, true), cols, true);
-      else iter.next();
+      if (reseek)
+        iter.seek(new Range(iter.getTopKey().followingKey(PartialKey.ROW_COLFAM_COLQUAL), true, null, true), cols, true);
+      else
+        iter.next();
     }
     
     assertEquals(result, seen);

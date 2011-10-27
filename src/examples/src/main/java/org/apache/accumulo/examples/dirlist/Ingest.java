@@ -39,16 +39,20 @@ public class Ingest {
   
   public static Mutation buildMutation(ColumnVisibility cv, String path, boolean isDir, boolean isHidden, boolean canExec, long length, long lastmod,
       String hash) {
-    if (path.equals("/")) path = "";
+    if (path.equals("/"))
+      path = "";
     Mutation m = new Mutation(QueryUtil.getRow(path));
     Text colf = null;
-    if (isDir) colf = QueryUtil.DIR_COLF;
-    else colf = new Text(LongSummation.longToBytes(Long.MAX_VALUE - lastmod));
+    if (isDir)
+      colf = QueryUtil.DIR_COLF;
+    else
+      colf = new Text(LongSummation.longToBytes(Long.MAX_VALUE - lastmod));
     m.put(colf, new Text(LENGTH_CQ), cv, new Value(Long.toString(length).getBytes()));
     m.put(colf, new Text(HIDDEN_CQ), cv, new Value(Boolean.toString(isHidden).getBytes()));
     m.put(colf, new Text(EXEC_CQ), cv, new Value(Boolean.toString(canExec).getBytes()));
     m.put(colf, new Text(LASTMOD_CQ), cv, new Value(Long.toString(lastmod).getBytes()));
-    if (hash != null && hash.length() > 0) m.put(colf, new Text(HASH_CQ), cv, new Value(hash.getBytes()));
+    if (hash != null && hash.length() > 0)
+      m.put(colf, new Text(HASH_CQ), cv, new Value(hash.getBytes()));
     return m;
   }
   
@@ -95,7 +99,8 @@ public class Ingest {
     // recurse into subdirectories
     if (src.isDirectory()) {
       File[] files = src.listFiles();
-      if (files == null) return;
+      if (files == null)
+        return;
       for (File child : files) {
         recurse(child, cv, dirBW, indexBW, fdi, data);
       }
@@ -120,9 +125,12 @@ public class Ingest {
     int chunkSize = Integer.parseInt(args[8]);
     
     Connector conn = new ZooKeeperInstance(instance, zooKeepers).getConnector(user, pass.getBytes());
-    if (!conn.tableOperations().exists(nameTable)) conn.tableOperations().create(nameTable);
-    if (!conn.tableOperations().exists(indexTable)) conn.tableOperations().create(indexTable);
-    if (!conn.tableOperations().exists(dataTable)) conn.tableOperations().create(dataTable);
+    if (!conn.tableOperations().exists(nameTable))
+      conn.tableOperations().create(nameTable);
+    if (!conn.tableOperations().exists(indexTable))
+      conn.tableOperations().create(indexTable);
+    if (!conn.tableOperations().exists(dataTable))
+      conn.tableOperations().create(dataTable);
     BatchWriter dirBW = conn.createBatchWriter(nameTable, 50000000, 300000l, 4);
     BatchWriter indexBW = conn.createBatchWriter(indexTable, 50000000, 300000l, 4);
     BatchWriter dataBW = conn.createBatchWriter(dataTable, 50000000, 300000l, 4);

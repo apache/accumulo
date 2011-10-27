@@ -28,8 +28,8 @@ import org.apache.hadoop.fs.Path;
 
 public class BulkImportDirectory {
   public static void main(String[] args) throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    if (args.length != 5) throw new RuntimeException("Usage: bin/accumulo " + BulkImportDirectory.class.getName()
-        + " <username> <password> <tablename> <sourcedir> <failuredir>");
+    if (args.length != 5)
+      throw new RuntimeException("Usage: bin/accumulo " + BulkImportDirectory.class.getName() + " <username> <password> <tablename> <sourcedir> <failuredir>");
     
     final String user = args[0];
     final byte[] pass = args[1].getBytes();

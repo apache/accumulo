@@ -70,7 +70,8 @@ public class RowDeleteTest extends FunctionalTest {
     Entry<Key,Value> entry : scanner) {
       count++;
     }
-    if (count != 2) throw new Exception("1 count=" + count);
+    if (count != 2)
+      throw new Exception("1 count=" + count);
     
     bw.addMutation(nm("r1", "", "", RowDeletingIterator.DELETE_ROW_VALUE));
     
@@ -88,7 +89,8 @@ public class RowDeleteTest extends FunctionalTest {
     Entry<Key,Value> entry : scanner) {
       count++;
     }
-    if (count != 3) throw new Exception("2 count=" + count);
+    if (count != 3)
+      throw new Exception("2 count=" + count);
     
     getConnector().tableOperations().compact("rdel1", null, null, false, true);
     
@@ -100,7 +102,8 @@ public class RowDeleteTest extends FunctionalTest {
     Entry<Key,Value> entry : scanner) {
       count++;
     }
-    if (count != 0) throw new Exception("3 count=" + count);
+    if (count != 0)
+      throw new Exception("3 count=" + count);
     
     bw.close();
     

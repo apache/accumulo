@@ -37,7 +37,8 @@ public class TraceFSDataInputStream extends FSDataInputStream {
   @Override
   public int read(long position, byte[] buffer, int offset, int length) throws IOException {
     Span span = Trace.start("FSDataInputStream.read");
-    if (Trace.isTracing()) span.data("length", Integer.toString(length));
+    if (Trace.isTracing())
+      span.data("length", Integer.toString(length));
     try {
       return impl.read(position, buffer, offset, length);
     } finally {
@@ -48,7 +49,8 @@ public class TraceFSDataInputStream extends FSDataInputStream {
   @Override
   public void readFully(long position, byte[] buffer, int offset, int length) throws IOException {
     Span span = Trace.start("FSDataInputStream.readFully");
-    if (Trace.isTracing()) span.data("length", Integer.toString(length));
+    if (Trace.isTracing())
+      span.data("length", Integer.toString(length));
     try {
       impl.readFully(position, buffer, offset, length);
     } finally {
@@ -59,7 +61,8 @@ public class TraceFSDataInputStream extends FSDataInputStream {
   @Override
   public void readFully(long position, byte[] buffer) throws IOException {
     Span span = Trace.start("FSDataInputStream.readFully");
-    if (Trace.isTracing()) span.data("length", Integer.toString(buffer.length));
+    if (Trace.isTracing())
+      span.data("length", Integer.toString(buffer.length));
     try {
       impl.readFully(position, buffer);
     } finally {

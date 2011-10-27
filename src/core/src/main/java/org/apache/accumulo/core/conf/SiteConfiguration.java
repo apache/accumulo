@@ -49,8 +49,10 @@ public class SiteConfiguration extends AccumuloConfiguration {
     if (xmlConfig == null) {
       xmlConfig = new Configuration(false);
       
-      if (SiteConfiguration.class.getClassLoader().getResource(configFile) == null) log.warn(configFile + " not found on classpath");
-      else xmlConfig.addResource(configFile);
+      if (SiteConfiguration.class.getClassLoader().getResource(configFile) == null)
+        log.warn(configFile + " not found on classpath");
+      else
+        xmlConfig.addResource(configFile);
     }
     return xmlConfig;
   }
@@ -62,7 +64,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
     String value = getXmlConfig().get(key);
     
     if (value == null || !property.getType().isValidFormat(value)) {
-      if (value != null) log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
+      if (value != null)
+        log.error("Using default value for " + key + " due to improperly formatted " + property.getType() + ": " + value);
       value = parent.get(property);
     }
     return value;

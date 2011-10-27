@@ -64,7 +64,8 @@ public class RenameTable extends MasterRepo {
       zoo.mutate(tap, null, null, new Mutator() {
         public byte[] mutate(byte[] current) throws Exception {
           final String currentName = new String(current);
-          if (currentName.equals(newTableName)) return null; // assume in this case the operation is running again, so we are done
+          if (currentName.equals(newTableName))
+            return null; // assume in this case the operation is running again, so we are done
           if (!currentName.equals(oldTableName)) {
             throw new ThriftTableOperationException(null, oldTableName, TableOperation.RENAME, TableOperationExceptionType.NOTFOUND,
                 "Name changed while processing");

@@ -75,7 +75,8 @@ public class TraceCommand extends DebugCommand {
         } else {
           shellState.getReader().printString("Not tracing\n");
         }
-      } else throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+      } else
+        throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
     } else if (cl.getArgs().length == 0) {
       shellState.getReader().printString(Trace.isTracing() ? "on\n" : "off\n");
     } else {

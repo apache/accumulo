@@ -66,16 +66,19 @@ public class BinaryTree<T> {
   }
   
   public boolean isEmpty() {
-    if (parent == null && left == null && right == null && contents == null) return true;
+    if (parent == null && left == null && right == null && contents == null)
+      return true;
     return false;
   }
   
   @Override
   public String toString() {
     String out = "[";
-    if (left != null) out += left.toString();
+    if (left != null)
+      out += left.toString();
     out += contents;
-    if (right != null) out += right.toString();
+    if (right != null)
+      out += right.toString();
     out += "]";
     return out;
   }

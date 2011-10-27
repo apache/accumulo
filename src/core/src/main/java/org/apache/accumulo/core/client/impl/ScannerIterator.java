@@ -79,7 +79,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
             return;
           }
           
-          if (currentBatch.size() == 0) continue;
+          if (currentBatch.size() == 0)
+            continue;
           
           synchQ.add(currentBatch);
           return;
@@ -143,7 +144,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   
   @SuppressWarnings("unchecked")
   public boolean hasNext() {
-    if (finished) return false;
+    if (finished)
+      return false;
     
     if (iter != null && iter.hasNext()) {
       return true;
@@ -161,8 +163,10 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       
       if (obj instanceof Exception) {
         finished = true;
-        if (obj instanceof RuntimeException) throw (RuntimeException) obj;
-        else throw new RuntimeException((Exception) obj);
+        if (obj instanceof RuntimeException)
+          throw (RuntimeException) obj;
+        else
+          throw new RuntimeException((Exception) obj);
       }
       
       List<KeyValue> currentBatch = (List<KeyValue>) obj;
@@ -188,7 +192,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   }
   
   public Entry<Key,Value> next() {
-    if (hasNext()) return iter.next();
+    if (hasNext())
+      return iter.next();
     throw new NoSuchElementException();
   }
   

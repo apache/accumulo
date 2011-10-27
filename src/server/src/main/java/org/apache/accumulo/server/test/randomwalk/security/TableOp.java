@@ -58,8 +58,10 @@ public class TableOp extends Test {
       conn = state.getInstance().getConnector(SecurityHelper.getTabUserName(state), SecurityHelper.getTabUserPass(state));
     } catch (AccumuloSecurityException ae) {
       if (ae.getErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
-        if (userExists) throw new AccumuloException("User didn't exist when they should (or worse- password mismatch)", ae);
-        else return;
+        if (userExists)
+          throw new AccumuloException("User didn't exist when they should (or worse- password mismatch)", ae);
+        else
+          return;
       }
       throw new AccumuloException("Unexpected exception!", ae);
     }
@@ -89,27 +91,36 @@ public class TableOp extends Test {
             Entry<Key,Value> entry = iter.next();
             Key k = entry.getKey();
             seen++;
-            if (!auths.contains(k.getColumnVisibilityData())) throw new AccumuloException("Got data I should not be capable of seeing");
+            if (!auths.contains(k.getColumnVisibilityData()))
+              throw new AccumuloException("Got data I should not be capable of seeing");
           }
-          if (!canRead) throw new AccumuloException("Was able to read when I shouldn't have had the perm with connection user " + conn.whoami());
+          if (!canRead)
+            throw new AccumuloException("Was able to read when I shouldn't have had the perm with connection user " + conn.whoami());
           for (Entry<String,Integer> entry : SecurityHelper.getAuthsMap(state).entrySet()) {
-            if (auths.contains(entry.getKey().getBytes())) seen = seen - entry.getValue();
+            if (auths.contains(entry.getKey().getBytes()))
+              seen = seen - entry.getValue();
           }
-          if (seen != 0) throw new AccumuloException("Got mismatched amounts of data");
+          if (seen != 0)
+            throw new AccumuloException("Got mismatched amounts of data");
         } catch (TableNotFoundException tnfe) {
-          if (tableExists) throw new AccumuloException("Accumulo and test suite out of sync", tnfe);
+          if (tableExists)
+            throw new AccumuloException("Accumulo and test suite out of sync", tnfe);
           return;
         } catch (AccumuloSecurityException ae) {
           if (ae.getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-            if (canRead) throw new AccumuloException("Table read permission out of sync with Accumulo", ae);
-            else return;
+            if (canRead)
+              throw new AccumuloException("Table read permission out of sync with Accumulo", ae);
+            else
+              return;
           }
           throw new AccumuloException("Unexpected exception!", ae);
         } catch (RuntimeException re) {
           if (re.getCause() instanceof AccumuloSecurityException
               && ((AccumuloSecurityException) re.getCause()).getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-            if (canRead) throw new AccumuloException("Table read permission out of sync with Accumulo", re.getCause());
-            else return;
+            if (canRead)
+              throw new AccumuloException("Table read permission out of sync with Accumulo", re.getCause());
+            else
+              return;
           }
           throw new AccumuloException("Unexpected exception!", re);
         }
@@ -125,7 +136,8 @@ public class TableOp extends Test {
         try {
           writer = conn.createBatchWriter(tableName, 9000l, 0l, 1);
         } catch (TableNotFoundException tnfe) {
-          if (tableExists) throw new AccumuloException("Table didn't exist when it should have");
+          if (tableExists)
+            throw new AccumuloException("Table didn't exist when it should have");
           return;
         }
         boolean works = true;
@@ -134,8 +146,9 @@ public class TableOp extends Test {
         } catch (MutationsRejectedException mre) {
           throw new AccumuloException("Mutation exception!", mre);
         }
-        if (works) for (String s : SecurityHelper.getAuthsArray())
-          SecurityHelper.increaseAuthMap(state, s, 1);
+        if (works)
+          for (String s : SecurityHelper.getAuthsArray())
+            SecurityHelper.increaseAuthMap(state, s, 1);
         break;
       case BULK_IMPORT:
         key = SecurityHelper.getLastKey(state) + "1";
@@ -157,11 +170,13 @@ public class TableOp extends Test {
         try {
           conn.tableOperations().importDirectory(tableName, dir.toString(), fail.toString(), true);
         } catch (TableNotFoundException tnfe) {
-          if (tableExists) throw new AccumuloException("Table didn't exist when it should have");
+          if (tableExists)
+            throw new AccumuloException("Table didn't exist when it should have");
           return;
         } catch (AccumuloSecurityException ae) {
           if (ae.getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-            if (hasPerm) throw new AccumuloException("Bulk Import failed when it should have worked.");
+            if (hasPerm)
+              throw new AccumuloException("Bulk Import failed when it should have worked.");
             return;
           }
           throw new AccumuloException("Unexpected exception!", ae);
@@ -169,7 +184,8 @@ public class TableOp extends Test {
         for (String s : SecurityHelper.getAuthsArray())
           SecurityHelper.increaseAuthMap(state, s, 1);
         
-        if (!hasPerm) throw new AccumuloException("Bulk Import succeeded when it should have failed.");
+        if (!hasPerm)
+          throw new AccumuloException("Bulk Import succeeded when it should have failed.");
         break;
       case ALTER_TABLE:
         AlterTable.renameTable(conn, state, tableName, tableName + "plus", hasPerm, tableExists);

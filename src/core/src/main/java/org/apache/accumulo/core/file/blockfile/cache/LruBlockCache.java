@@ -321,7 +321,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
   void evict() {
     
     // Ensure only one eviction at a time
-    if (!evictionLock.tryLock()) return;
+    if (!evictionLock.tryLock())
+      return;
     
     try {
       evictionInProgress = true;
@@ -330,7 +331,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
       
       LOG.debug("Block cache LRU eviction started.  Attempting to free " + bytesToFree + " bytes");
       
-      if (bytesToFree <= 0) return;
+      if (bytesToFree <= 0)
+        return;
       
       // Instantiate priority buckets
       BlockBucket bucketSingle = new BlockBucket(bytesToFree, blockSize, singleSize());
@@ -431,7 +433,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
     }
     
     public int compareTo(BlockBucket that) {
-      if (this.overflow() == that.overflow()) return 0;
+      if (this.overflow() == that.overflow())
+        return 0;
       return this.overflow() > that.overflow() ? 1 : -1;
     }
   }
@@ -515,7 +518,8 @@ public class LruBlockCache implements BlockCache, HeapSize {
           } catch (InterruptedException e) {}
         }
         LruBlockCache cache = this.cache.get();
-        if (cache == null) break;
+        if (cache == null)
+          break;
         cache.evict();
       }
     }

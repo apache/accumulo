@@ -145,7 +145,8 @@ public class ZooKeeperInstance implements Instance {
     }
     
     if (zooCache.get(Constants.ZROOT + "/" + instanceId) == null) {
-      if (instanceName == null) throw new RuntimeException("Instance id " + instanceId + " does not exist in zookeeper");
+      if (instanceName == null)
+        throw new RuntimeException("Instance id " + instanceId + " does not exist in zookeeper");
       throw new RuntimeException("Instance id " + instanceId + " pointed to by the name " + instanceName + " does not exist in zookeeper");
     }
     
@@ -184,7 +185,8 @@ public class ZooKeeperInstance implements Instance {
   
   @Override
   public String getInstanceName() {
-    if (instanceName == null) instanceName = lookupInstanceName(zooCache, UUID.fromString(getInstanceID()));
+    if (instanceName == null)
+      instanceName = lookupInstanceName(zooCache, UUID.fromString(getInstanceID()));
     
     return instanceName;
   }
@@ -220,7 +222,8 @@ public class ZooKeeperInstance implements Instance {
   
   @Override
   public AccumuloConfiguration getConfiguration() {
-    if (conf == null) conf = AccumuloConfiguration.getDefaultConfiguration();
+    if (conf == null)
+      conf = AccumuloConfiguration.getDefaultConfiguration();
     return conf;
   }
   

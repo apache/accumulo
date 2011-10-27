@@ -120,20 +120,23 @@ public class TableOperationsHelperTest {
     
     @Override
     public void setProperty(String tableName, String property, String value) throws AccumuloException, AccumuloSecurityException {
-      if (!settings.containsKey(tableName)) settings.put(tableName, new TreeMap<String,String>());
+      if (!settings.containsKey(tableName))
+        settings.put(tableName, new TreeMap<String,String>());
       settings.get(tableName).put(property, value);
     }
     
     @Override
     public void removeProperty(String tableName, String property) throws AccumuloException, AccumuloSecurityException {
-      if (!settings.containsKey(tableName)) return;
+      if (!settings.containsKey(tableName))
+        return;
       settings.get(tableName).remove(property);
     }
     
     @Override
     public Iterable<Entry<String,String>> getProperties(String tableName) throws AccumuloException, TableNotFoundException {
       Map<String,String> empty = Collections.emptyMap();
-      if (!settings.containsKey(tableName)) return empty.entrySet();
+      if (!settings.containsKey(tableName))
+        return empty.entrySet();
       return settings.get(tableName).entrySet();
     }
     

@@ -740,7 +740,8 @@ public class MySequenceFile {
     
     public void readFields(DataInput in) throws IOException {
       int sz = in.readInt();
-      if (sz < 0) throw new IOException("Invalid size: " + sz + " for file metadata object");
+      if (sz < 0)
+        throw new IOException("Invalid size: " + sz + " for file metadata object");
       this.theMetadata = new TreeMap<Text,Text>();
       for (int i = 0; i < sz; i++) {
         Text key = new Text();
@@ -752,7 +753,8 @@ public class MySequenceFile {
     }
     
     public boolean equals(Metadata other) {
-      if (other == null) return false;
+      if (other == null)
+        return false;
       if (this.theMetadata.size() != other.theMetadata.size()) {
         return false;
       }
@@ -776,7 +778,8 @@ public class MySequenceFile {
     
     @Override
     public boolean equals(Object other) {
-      if (other instanceof Metadata) return equals((Metadata) other);
+      if (other instanceof Metadata)
+        return equals((Metadata) other);
       return false;
     }
     
@@ -993,15 +996,18 @@ public class MySequenceFile {
     /** Append a key/value pair. */
     
     public synchronized void append(Object key, Object val) throws IOException {
-      if (key.getClass() != keyClass) throw new IOException("wrong key class: " + key.getClass().getName() + " is not " + keyClass);
-      if (val.getClass() != valClass) throw new IOException("wrong value class: " + val.getClass().getName() + " is not " + valClass);
+      if (key.getClass() != keyClass)
+        throw new IOException("wrong key class: " + key.getClass().getName() + " is not " + keyClass);
+      if (val.getClass() != valClass)
+        throw new IOException("wrong value class: " + val.getClass().getName() + " is not " + valClass);
       
       buffer.reset();
       
       // Append the 'key'
       keySerializer.serialize(key);
       int keyLength = buffer.getLength();
-      if (keyLength < 0) throw new IOException("negative length keys not allowed: " + key);
+      if (keyLength < 0)
+        throw new IOException("negative length keys not allowed: " + key);
       
       // Append the 'value'
       if (compress) {
@@ -1021,7 +1027,8 @@ public class MySequenceFile {
     }
     
     public synchronized void appendRaw(byte[] keyData, int keyOffset, int keyLength, ValueBytes val) throws IOException {
-      if (keyLength < 0) throw new IOException("negative length keys not allowed: " + keyLength);
+      if (keyLength < 0)
+        throw new IOException("negative length keys not allowed: " + keyLength);
       
       int valLength = val.getSize();
       
@@ -1101,15 +1108,18 @@ public class MySequenceFile {
     /** Append a key/value pair. */
     
     public synchronized void append(Object key, Object val) throws IOException {
-      if (key.getClass() != keyClass) throw new IOException("wrong key class: " + key.getClass().getName() + " is not " + keyClass);
-      if (val.getClass() != valClass) throw new IOException("wrong value class: " + val.getClass().getName() + " is not " + valClass);
+      if (key.getClass() != keyClass)
+        throw new IOException("wrong key class: " + key.getClass().getName() + " is not " + keyClass);
+      if (val.getClass() != valClass)
+        throw new IOException("wrong value class: " + val.getClass().getName() + " is not " + valClass);
       
       buffer.reset();
       
       // Append the 'key'
       keySerializer.serialize(key);
       int keyLength = buffer.getLength();
-      if (keyLength < 0) throw new IOException("negative length keys not allowed: " + key);
+      if (keyLength < 0)
+        throw new IOException("negative length keys not allowed: " + key);
       
       // Compress 'value' and append it
       deflateFilter.resetState();
@@ -1127,7 +1137,8 @@ public class MySequenceFile {
     /** Append a key/value pair. */
     public synchronized void appendRaw(byte[] keyData, int keyOffset, int keyLength, ValueBytes val) throws IOException {
       
-      if (keyLength < 0) throw new IOException("negative length keys not allowed: " + keyLength);
+      if (keyLength < 0)
+        throw new IOException("negative length keys not allowed: " + keyLength);
       
       int valLength = val.getSize();
       
@@ -1264,14 +1275,17 @@ public class MySequenceFile {
     /** Append a key/value pair. */
     
     public synchronized void append(Object key, Object val) throws IOException {
-      if (key.getClass() != keyClass) throw new IOException("wrong key class: " + key + " is not " + keyClass);
-      if (val.getClass() != valClass) throw new IOException("wrong value class: " + val + " is not " + valClass);
+      if (key.getClass() != keyClass)
+        throw new IOException("wrong key class: " + key + " is not " + keyClass);
+      if (val.getClass() != valClass)
+        throw new IOException("wrong value class: " + val + " is not " + valClass);
       
       // Save key/value into respective buffers
       int oldKeyLength = keyBuffer.getLength();
       keySerializer.serialize(key);
       int keyLength = keyBuffer.getLength() - oldKeyLength;
-      if (keyLength < 0) throw new IOException("negative length keys not allowed: " + key);
+      if (keyLength < 0)
+        throw new IOException("negative length keys not allowed: " + key);
       WritableUtils.writeVInt(keyLenBuffer, keyLength);
       
       int oldValLength = valBuffer.getLength();
@@ -1292,7 +1306,8 @@ public class MySequenceFile {
     /** Append a key/value pair. */
     public synchronized void appendRaw(byte[] keyData, int keyOffset, int keyLength, ValueBytes val) throws IOException {
       
-      if (keyLength < 0) throw new IOException("negative length keys not allowed");
+      if (keyLength < 0)
+        throw new IOException("negative length keys not allowed");
       
       int valLength = val.getSize();
       
@@ -1408,12 +1423,13 @@ public class MySequenceFile {
       byte[] versionBlock = new byte[VERSION.length];
       in.readFully(versionBlock);
       
-      if ((versionBlock[0] != VERSION[0]) || (versionBlock[1] != VERSION[1]) || (versionBlock[2] != VERSION[2])) throw new IOException(file
-          + " not a MySequenceFile");
+      if ((versionBlock[0] != VERSION[0]) || (versionBlock[1] != VERSION[1]) || (versionBlock[2] != VERSION[2]))
+        throw new IOException(file + " not a MySequenceFile");
       
       // Set 'version'
       version = versionBlock[3];
-      if (version > VERSION[3]) throw new VersionMismatchException(VERSION[3], version);
+      if (version > VERSION[3])
+        throw new VersionMismatchException(VERSION[3], version);
       
       if (version < BLOCK_COMPRESS_VERSION) {
         Text className = new Text();
@@ -1630,7 +1646,7 @@ public class MySequenceFile {
         in.readInt();
         in.readFully(syncCheck); // read syncCheck
         if (!Arrays.equals(sync, syncCheck)) // check it
-        throw new IOException("File is corrupt!");
+          throw new IOException("File is corrupt!");
       }
       syncSeen = true;
       
@@ -1775,19 +1791,22 @@ public class MySequenceFile {
      * Read the next key in the file into <code>key</code>, skipping its value. True if another entry exists, and false at end of file.
      */
     public synchronized boolean next(Writable key) throws IOException {
-      if (key.getClass() != getKeyClass()) throw new IOException("wrong key class: " + key.getClass().getName() + " is not " + keyClass);
+      if (key.getClass() != getKeyClass())
+        throw new IOException("wrong key class: " + key.getClass().getName() + " is not " + keyClass);
       
       if (!blockCompressed) {
         outBuf.reset();
         
         keyLength = next(outBuf);
-        if (keyLength < 0) return false;
+        if (keyLength < 0)
+          return false;
         
         valBuffer.reset(outBuf.getData(), outBuf.getLength());
         
         key.readFields(valBuffer);
         valBuffer.mark(0);
-        if (valBuffer.getPosition() != keyLength) throw new IOException(key + " read " + valBuffer.getPosition() + " bytes, should read " + keyLength);
+        if (valBuffer.getPosition() != keyLength)
+          throw new IOException(key + " read " + valBuffer.getPosition() + " bytes, should read " + keyLength);
       } else {
         // Reset syncSeen
         syncSeen = false;
@@ -1819,7 +1838,8 @@ public class MySequenceFile {
      * Read the next key/value pair in the file into <code>key</code> and <code>val</code>. Returns true if such a pair exists and false when at end of file
      */
     public synchronized boolean next(Writable key, Writable val) throws IOException {
-      if (val.getClass() != getValueClass()) throw new IOException("wrong value class: " + val + " is not " + valClass);
+      if (val.getClass() != getValueClass())
+        throw new IOException("wrong value class: " + val + " is not " + valClass);
       
       boolean more = next(key);
       
@@ -1844,7 +1864,7 @@ public class MySequenceFile {
       if (version > 1 && sync != null && length == SYNC_ESCAPE) { // process a sync entry
         in.readFully(syncCheck); // read syncCheck
         if (!Arrays.equals(sync, syncCheck)) // check it
-        throw new IOException("File is corrupt!");
+          throw new IOException("File is corrupt!");
         syncSeen = true;
         if (in.getPos() >= end) {
           return -1;
@@ -1925,7 +1945,8 @@ public class MySequenceFile {
       
       // Read 'key'
       if (noBufferedKeys == 0) {
-        if (in.getPos() >= end) return -1;
+        if (in.getPos() >= end)
+          return -1;
         
         try {
           readBlock();
@@ -1973,7 +1994,8 @@ public class MySequenceFile {
       
       // Read 'key'
       if (noBufferedKeys == 0) {
-        if (in.getPos() >= end) return -1;
+        if (in.getPos() >= end)
+          return -1;
         
         try {
           readBlock();
@@ -2004,13 +2026,15 @@ public class MySequenceFile {
         outBuf.reset();
         
         keyLength = next(outBuf);
-        if (keyLength < 0) return null;
+        if (keyLength < 0)
+          return null;
         
         valBuffer.reset(outBuf.getData(), outBuf.getLength());
         
         key = deserializeKey(key);
         valBuffer.mark(0);
-        if (valBuffer.getPosition() != keyLength) throw new IOException(key + " read " + valBuffer.getPosition() + " bytes, should read " + keyLength);
+        if (valBuffer.getPosition() != keyLength)
+          throw new IOException(key + " read " + valBuffer.getPosition() + " bytes, should read " + keyLength);
       } else {
         // Reset syncSeen
         syncSeen = false;
@@ -2112,7 +2136,8 @@ public class MySequenceFile {
         for (int i = 0; in.getPos() < end; i++) {
           int j = 0;
           for (; j < syncLen; j++) {
-            if (sync[j] != syncCheck[(i + j) % syncLen]) break;
+            if (sync[j] != syncCheck[(i + j) % syncLen])
+              break;
           }
           if (j == syncLen) {
             in.seek(in.getPos() - SYNC_SIZE); // position before sync
@@ -2260,9 +2285,12 @@ public class MySequenceFile {
       this.outFile = outFile;
       
       int segments = sortPass(deleteInput);
-      if (segments > 1) return merge(outFile.suffix(".0"), outFile.suffix(".0.index"), tempDir);
-      else if (segments == 1) return merge(new Path[] {outFile}, true, tempDir);
-      else return null;
+      if (segments > 1)
+        return merge(outFile.suffix(".0"), outFile.suffix(".0.index"), tempDir);
+      else if (segments == 1)
+        return merge(new Path[] {outFile}, true, tempDir);
+      else
+        return null;
     }
     
     /**
@@ -2361,7 +2389,8 @@ public class MySequenceFile {
             
             int keyLength = rawKeys.getLength() - keyOffset;
             
-            if (count == keyOffsets.length) grow();
+            if (count == keyOffsets.length)
+              grow();
             
             keyOffsets[count] = keyOffset; // update pointers
             pointers[count] = count;
@@ -2761,7 +2790,8 @@ public class MySequenceFile {
       }
       
       public boolean next() throws IOException {
-        if (size() == 0) return false;
+        if (size() == 0)
+          return false;
         if (minSegment != null) {
           // minSegment is non-null for all invocations of next except the first
           // one. For the first invocation, the priority queue is ready for use
@@ -2867,7 +2897,7 @@ public class MySequenceFile {
               totalBytes += segmentsToMerge.get(i).segmentLength;
             }
             if (totalBytes != 0) // being paranoid
-            progPerByte = 1.0f / (float) totalBytes;
+              progPerByte = 1.0f / (float) totalBytes;
             // reset factor to what it originally was
             factor = origFactor;
             return this;
@@ -2904,9 +2934,11 @@ public class MySequenceFile {
       
       // Hadoop-591
       public int getPassFactor(int passNo, int numSegments) {
-        if (passNo > 1 || numSegments <= factor || factor == 1) return factor;
+        if (passNo > 1 || numSegments <= factor || factor == 1)
+          return factor;
         int mod = (numSegments - 1) % (factor - 1);
-        if (mod == 0) return factor;
+        if (mod == 0)
+          return factor;
         return mod + 1;
       }
       
@@ -2914,7 +2946,8 @@ public class MySequenceFile {
        * Return (& remove) the requested number of segment descriptors from the sorted map.
        */
       public SegmentDescriptor[] getSegmentDescriptors(int numDescriptors) {
-        if (numDescriptors > sortedSegmentSizes.size()) numDescriptors = sortedSegmentSizes.size();
+        if (numDescriptors > sortedSegmentSizes.size())
+          numDescriptors = sortedSegmentSizes.size();
         SegmentDescriptor[] SegmentDescriptors = new SegmentDescriptor[numDescriptors];
         Iterator iter = sortedSegmentSizes.keySet().iterator();
         int i = 0;
@@ -3011,10 +3044,13 @@ public class MySequenceFile {
           Reader reader = new Reader(fs, segmentPathName, bufferSize, segmentOffset, segmentLength, conf, false);
           
           // sometimes we ignore syncs especially for temp merge files
-          if (ignoreSync) reader.sync = null;
+          if (ignoreSync)
+            reader.sync = null;
           
-          if (reader.getKeyClass() != keyClass) throw new IOException("wrong key class: " + reader.getKeyClass() + " is not " + keyClass);
-          if (reader.getValueClass() != valClass) throw new IOException("wrong value class: " + reader.getValueClass() + " is not " + valClass);
+          if (reader.getKeyClass() != keyClass)
+            throw new IOException("wrong key class: " + reader.getKeyClass() + " is not " + keyClass);
+          if (reader.getValueClass() != valClass)
+            throw new IOException("wrong value class: " + reader.getValueClass() + " is not " + valClass);
           this.in = reader;
           rawKey = new DataOutputBuffer();
         }
@@ -3084,7 +3120,8 @@ public class MySequenceFile {
        */
       public void cleanup() throws IOException {
         super.close();
-        if (super.shouldPreserveInput()) return;
+        if (super.shouldPreserveInput())
+          return;
         parentContainer.cleanup();
       }
     } // MySequenceFile.Sorter.LinkedSegmentsDescriptor

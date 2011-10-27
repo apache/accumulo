@@ -41,7 +41,8 @@ public class HelpCommand extends Command {
         i = Math.max(i, cmd.length());
       ArrayList<String> output = new ArrayList<String>();
       for (Command c : shellState.commandFactory.values()) {
-        if (!(c instanceof HiddenCommand)) output.add(String.format("%-" + i + "s  -  %s", c.getName(), c.description()));
+        if (!(c instanceof HiddenCommand))
+          output.add(String.format("%-" + i + "s  -  %s", c.getName(), c.description()));
       }
       shellState.printLines(output.iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
     }

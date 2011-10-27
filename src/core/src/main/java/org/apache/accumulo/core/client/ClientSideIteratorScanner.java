@@ -77,13 +77,16 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     
     @Override
     public void next() throws IOException {
-      if (iter.hasNext()) top = iter.next();
-      else top = null;
+      if (iter.hasNext())
+        top = iter.next();
+      else
+        top = null;
     }
     
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-      if (!inclusive && columnFamilies.size() > 0) throw new UnsupportedOperationException();
+      if (!inclusive && columnFamilies.size() > 0)
+        throw new UnsupportedOperationException();
       scanner.setRange(range);
       scanner.clearColumns();
       for (ByteSequence colf : columnFamilies) {
@@ -126,8 +129,10 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   public Iterator<Entry<Key,Value>> iterator() {
     smi.scanner.setBatchSize(size);
     smi.scanner.setTimeOut(timeOut);
-    if (isolated) smi.scanner.enableIsolation();
-    else smi.scanner.disableIsolation();
+    if (isolated)
+      smi.scanner.enableIsolation();
+    else
+      smi.scanner.disableIsolation();
     
     TreeMap<Integer,IterInfo> tm = new TreeMap<Integer,IterInfo>();
     

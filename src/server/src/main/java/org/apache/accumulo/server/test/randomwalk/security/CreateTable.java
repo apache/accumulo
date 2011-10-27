@@ -38,13 +38,15 @@ public class CreateTable extends Test {
     
     boolean exists = SecurityHelper.getTableExists(state);
     boolean hasPermission = false;
-    if (SecurityHelper.getSysPerm(state, SecurityHelper.getSysUserName(state), SystemPermission.CREATE_TABLE)) hasPermission = true;
+    if (SecurityHelper.getSysPerm(state, SecurityHelper.getSysUserName(state), SystemPermission.CREATE_TABLE))
+      hasPermission = true;
     
     try {
       conn.tableOperations().create(tableName);
     } catch (AccumuloSecurityException ae) {
       if (ae.getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-        if (hasPermission) throw new AccumuloException("Got a security exception when I should have had permission.", ae);
+        if (hasPermission)
+          throw new AccumuloException("Got a security exception when I should have had permission.", ae);
         else
         // create table anyway for sake of state
         {
@@ -52,19 +54,25 @@ public class CreateTable extends Test {
             state.getConnector().tableOperations().create(tableName);
             SecurityHelper.setTableExists(state, true);
           } catch (TableExistsException tee) {
-            if (exists) return;
-            else throw new AccumuloException("Test and Accumulo are out of sync");
+            if (exists)
+              return;
+            else
+              throw new AccumuloException("Test and Accumulo are out of sync");
           }
           return;
         }
-      } else throw new AccumuloException("Got unexpected error", ae);
+      } else
+        throw new AccumuloException("Got unexpected error", ae);
     } catch (TableExistsException tee) {
-      if (!exists) throw new TableExistsException(null, tableName, "Got a TableExistsException but it shouldn't have existed", tee);
-      else return;
+      if (!exists)
+        throw new TableExistsException(null, tableName, "Got a TableExistsException but it shouldn't have existed", tee);
+      else
+        return;
     }
     SecurityHelper.setTableExists(state, true);
     for (TablePermission tp : TablePermission.values())
       SecurityHelper.setTabPerm(state, conn.whoami(), tp, true);
-    if (!hasPermission) throw new AccumuloException("Didn't get Security Exception when we should have");
+    if (!hasPermission)
+      throw new AccumuloException("Didn't get Security Exception when we should have");
   }
 }

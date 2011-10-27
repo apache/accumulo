@@ -354,7 +354,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   }
   
   public static String stringTopKey(SortedKeyValueIterator<Key,Value> iter) {
-    if (iter.hasTop()) return iter.getTopKey().toString();
+    if (iter.hasTop())
+      return iter.getTopKey().toString();
     return "";
   }
   
@@ -375,8 +376,10 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   public static String encodeBooleans(boolean[] flags) {
     byte[] bytes = new byte[flags.length];
     for (int i = 0; i < flags.length; i++) {
-      if (flags[i]) bytes[i] = 1;
-      else bytes[i] = 0;
+      if (flags[i])
+        bytes[i] = 1;
+      else
+        bytes[i] = 0;
     }
     return new String(Base64.encodeBase64(bytes));
   }
@@ -392,13 +395,16 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   
   public static boolean[] decodeBooleans(String flags) {
     // return null of there were no flags
-    if (flags == null) return null;
+    if (flags == null)
+      return null;
     
     byte[] bytes = Base64.decodeBase64(flags.getBytes());
     boolean[] bFlags = new boolean[bytes.length];
     for (int i = 0; i < bytes.length; i++) {
-      if (bytes[i] == 1) bFlags[i] = true;
-      else bFlags[i] = false;
+      if (bytes[i] == 1)
+        bFlags[i] = true;
+      else
+        bFlags[i] = false;
     }
     return bFlags;
   }

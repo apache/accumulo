@@ -107,12 +107,15 @@ public class InterferenceTest {
         HashSet<String> values = new HashSet<String>();
         
         for (Entry<Key,Value> entry : scanner) {
-          if (row == null) row = entry.getKey().getRowData();
+          if (row == null)
+            row = entry.getKey().getRowData();
           
           if (!row.equals(entry.getKey().getRowData())) {
-            if (count != NUM_COLUMNS) System.err.println("ERROR Did not see " + NUM_COLUMNS + " columns in row " + row);
+            if (count != NUM_COLUMNS)
+              System.err.println("ERROR Did not see " + NUM_COLUMNS + " columns in row " + row);
             
-            if (values.size() > 1) System.err.println("ERROR Columns in row " + row + " had multiple values " + values);
+            if (values.size() > 1)
+              System.err.println("ERROR Columns in row " + row + " had multiple values " + values);
             
             row = entry.getKey().getRowData();
             count = 0;
@@ -124,9 +127,11 @@ public class InterferenceTest {
           values.add(entry.getValue().toString());
         }
         
-        if (count > 0 && count != NUM_COLUMNS) System.err.println("ERROR Did not see " + NUM_COLUMNS + " columns in row " + row);
+        if (count > 0 && count != NUM_COLUMNS)
+          System.err.println("ERROR Did not see " + NUM_COLUMNS + " columns in row " + row);
         
-        if (values.size() > 1) System.err.println("ERROR Columns in row " + row + " had multiple values " + values);
+        if (values.size() > 1)
+          System.err.println("ERROR Columns in row " + row + " had multiple values " + values);
       }
     }
     
@@ -148,14 +153,18 @@ public class InterferenceTest {
     
     String table = args[4];
     iterations = Long.parseLong(args[5]);
-    if (iterations < 1) iterations = Long.MAX_VALUE;
-    if (!conn.tableOperations().exists(table)) conn.tableOperations().create(table);
+    if (iterations < 1)
+      iterations = Long.MAX_VALUE;
+    if (!conn.tableOperations().exists(table))
+      conn.tableOperations().create(table);
     
     Thread writer = new Thread(new Writer(conn.createBatchWriter(table, 10000000, 60000l, 3)));
     writer.start();
     Reader r;
-    if (Boolean.parseBoolean(args[6])) r = new Reader(new IsolatedScanner(conn.createScanner(table, Constants.NO_AUTHS)));
-    else r = new Reader(conn.createScanner(table, Constants.NO_AUTHS));
+    if (Boolean.parseBoolean(args[6]))
+      r = new Reader(new IsolatedScanner(conn.createScanner(table, Constants.NO_AUTHS)));
+    else
+      r = new Reader(conn.createScanner(table, Constants.NO_AUTHS));
     Thread reader;
     reader = new Thread(r);
     reader.start();

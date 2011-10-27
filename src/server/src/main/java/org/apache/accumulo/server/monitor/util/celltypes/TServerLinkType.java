@@ -25,7 +25,8 @@ public class TServerLinkType extends CellType<TabletServerStatus> {
   
   @Override
   public String format(Object obj) {
-    if (obj == null) return "-";
+    if (obj == null)
+      return "-";
     TabletServerStatus status = (TabletServerStatus) obj;
     return String.format("<a href='/tservers?s=%s'>%s</a>", status.name, displayName(status));
   }
@@ -35,7 +36,8 @@ public class TServerLinkType extends CellType<TabletServerStatus> {
   }
   
   public static String displayName(String address) {
-    if (address == null) return "--Unknown--";
+    if (address == null)
+      return "--Unknown--";
     InetSocketAddress inetAddress = AddressUtil.parseAddress(address, 0);
     return inetAddress.getHostName() + ":" + inetAddress.getPort();
   }

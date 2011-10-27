@@ -78,7 +78,8 @@ public class TransactionWatcher {
         throw new Exception("Transaction " + tid + " of type " + ztxBulk + " is no longer active");
       }
       AtomicInteger count = counts.get(tid);
-      if (count == null) counts.put(tid, count = new AtomicInteger());
+      if (count == null)
+        counts.put(tid, count = new AtomicInteger());
       count.incrementAndGet();
     }
     try {
@@ -89,7 +90,8 @@ public class TransactionWatcher {
         if (count == null) {
           log.error("unexpected missing count for transaction" + tid);
         } else {
-          if (count.decrementAndGet() == 0) counts.remove(tid);
+          if (count.decrementAndGet() == 0)
+            counts.remove(tid);
         }
       }
     }

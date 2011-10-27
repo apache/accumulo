@@ -34,16 +34,19 @@ public class SpanTree {
   
   public void addNode(RemoteSpan span) {
     nodes.put(span.spanId, span);
-    if (parentChildren.get(span.parentId) == null) parentChildren.put(span.parentId, new ArrayList<Long>());
+    if (parentChildren.get(span.parentId) == null)
+      parentChildren.put(span.parentId, new ArrayList<Long>());
     parentChildren.get(span.parentId).add(span.spanId);
   }
   
   public Set<Long> visit(SpanTreeVisitor visitor) {
     Set<Long> visited = new HashSet<Long>();
     List<Long> root = parentChildren.get(new Long(Span.ROOT_SPAN_ID));
-    if (root == null || root.isEmpty()) return visited;
+    if (root == null || root.isEmpty())
+      return visited;
     RemoteSpan rootSpan = nodes.get(root.iterator().next());
-    if (rootSpan == null) return visited;
+    if (rootSpan == null)
+      return visited;
     recurse(0, null, rootSpan, visitor, visited);
     return visited;
   }
@@ -51,7 +54,8 @@ public class SpanTree {
   private void recurse(int level, RemoteSpan parent, RemoteSpan node, SpanTreeVisitor visitor, Set<Long> visited) {
     // improbable case: duplicate spanId in a trace tree: prevent
     // infinite recursion
-    if (visited.contains(node.spanId)) return;
+    if (visited.contains(node.spanId))
+      return;
     visited.add(node.spanId);
     List<RemoteSpan> children = new ArrayList<RemoteSpan>();
     List<Long> childrenIds = parentChildren.get(node.spanId);

@@ -41,7 +41,8 @@ public class AddSplitsCommand extends Command {
     
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.getConnector().tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
     }
     
     else {
@@ -60,17 +61,20 @@ public class AddSplitsCommand extends Command {
       java.util.Scanner file = new java.util.Scanner(new File(f));
       while (file.hasNextLine()) {
         line = file.nextLine();
-        if (!line.isEmpty()) splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
+        if (!line.isEmpty())
+          splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
       }
     } else {
-      if (cl.getArgList().isEmpty()) throw new MissingArgumentException("No split points specified");
+      if (cl.getArgList().isEmpty())
+        throw new MissingArgumentException("No split points specified");
       
       for (String s : cl.getArgs()) {
         splits.add(new Text(s));
       }
     }
     
-    if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+    if (!shellState.getConnector().tableOperations().exists(tableName))
+      throw new TableNotFoundException(null, tableName, null);
     shellState.getConnector().tableOperations().addSplits(tableName, splits);
     
     return 0;

@@ -81,13 +81,15 @@ public class MapFileOperations extends FileOperations {
     
     @Override
     public Key getTopKey() {
-      if (!hasTop) throw new IllegalStateException();
+      if (!hasTop)
+        throw new IllegalStateException();
       return reader.getTopKey();
     }
     
     @Override
     public Value getTopValue() {
-      if (!hasTop) throw new IllegalStateException();
+      if (!hasTop)
+        throw new IllegalStateException();
       return reader.getTopValue();
     }
     
@@ -103,7 +105,8 @@ public class MapFileOperations extends FileOperations {
     
     @Override
     public void next() throws IOException {
-      if (!hasTop) throw new IllegalStateException();
+      if (!hasTop)
+        throw new IllegalStateException();
       reader.next();
       hasTop = reader.hasTop() && !range.afterEndKey(reader.getTopKey());
     }
@@ -135,7 +138,8 @@ public class MapFileOperations extends FileOperations {
   public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
     FileSKVIterator iter = new FileCFSkippingIterator(new RangeIterator(MapFileUtil.openMapFile(acuconf, fs, file, conf)));
     
-    if (seekToBeginning) iter.seek(new Range(new Key(), null), new ArrayList<ByteSequence>(), false);
+    if (seekToBeginning)
+      iter.seek(new Range(new Key(), null), new ArrayList<ByteSequence>(), false);
     
     return iter;
   }
@@ -164,7 +168,8 @@ public class MapFileOperations extends FileOperations {
       
       @Override
       public void startDefaultLocalityGroup() throws IOException {
-        if (secondCall) throw new IllegalStateException("Start default locality group called twice");
+        if (secondCall)
+          throw new IllegalStateException("Start default locality group called twice");
         
         secondCall = true;
       }

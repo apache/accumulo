@@ -80,6 +80,7 @@ public class CountRowKeys extends Configured implements Tool {
   
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new CountRowKeys(), args);
-    if (res != 0) System.exit(res);
+    if (res != 0)
+      System.exit(res);
   }
 }

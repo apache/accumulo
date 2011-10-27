@@ -64,7 +64,8 @@ public class TestBinaryRows {
   
   static long decodeLong(byte ba[]) {
     // validate byte array
-    if (ba.length > Long.SIZE / Byte.SIZE) throw new IllegalArgumentException("Byte array of size " + ba.length + " is too big to hold a long");
+    if (ba.length > Long.SIZE / Byte.SIZE)
+      throw new IllegalArgumentException("Byte array of size " + ba.length + " is too big to hold a long");
     
     // build the long from the bytes
     long l = 0;

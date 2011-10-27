@@ -60,7 +60,8 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
     
     // both conditions work with numSubBins == 1, but this check is to avoid
     // hashing, when we don't need to, for speed
-    if (numSubBins < 2) return index;
+    if (numSubBins < 2)
+      return index;
     return (key.toString().hashCode() & Integer.MAX_VALUE) % numSubBins + index * numSubBins;
   }
   
@@ -97,7 +98,8 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
           }
         }
       }
-      if (cutPointArray == null) throw new FileNotFoundException(cutFileName + " not found in distributed cache");
+      if (cutPointArray == null)
+        throw new FileNotFoundException(cutFileName + " not found in distributed cache");
     }
     return cutPointArray;
   }

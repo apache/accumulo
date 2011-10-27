@@ -204,7 +204,8 @@ public class ListInstances {
       List<String> children = zk.getChildren(Constants.ZROOT);
       
       for (String iid : children) {
-        if (iid.equals("instances")) continue;
+        if (iid.equals("instances"))
+          continue;
         try {
           ts.add(UUID.fromString(iid));
         } catch (Exception e) {

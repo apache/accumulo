@@ -148,8 +148,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         try {
           resultsQueue.put(new MyEntry(key, value));
         } catch (InterruptedException e) {
-          if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown()) log.debug("Failed to add Batch Scan result for key " + key, e);
-          else log.warn("Failed to add Batch Scan result for key " + key, e);
+          if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown())
+            log.debug("Failed to add Batch Scan result for key " + key, e);
+          else
+            log.warn("Failed to add Batch Scan result for key " + key, e);
           fatalException = e;
           throw new RuntimeException(e);
           
@@ -171,15 +173,19 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   public boolean hasNext() {
     synchronized (nextLock) {
       // check if one was cached
-      if (nextEntry != null) return true;
+      if (nextEntry != null)
+        return true;
       
       // don't have one cached, try to cache one and return success
       try {
         while (nextEntry == null && fatalException == null)
           nextEntry = resultsQueue.poll(1, TimeUnit.SECONDS);
         
-        if (fatalException != null) if (fatalException instanceof RuntimeException) throw (RuntimeException) fatalException;
-        else throw new RuntimeException(fatalException);
+        if (fatalException != null)
+          if (fatalException instanceof RuntimeException)
+            throw (RuntimeException) fatalException;
+          else
+            throw new RuntimeException(fatalException);
         
         return nextEntry.getKey() != null && nextEntry.getValue() != null;
       } catch (InterruptedException e) {
@@ -234,12 +240,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         // not work because nothing ever invalidated entries in the tabletLocator cache... so even though
         // the table was deleted the tablet locator entries for the deleted table were not cleared... so
         // need to always do the check when failures occur
-        if (failures.size() >= lastFailureSize) if (!Tables.exists(instance, table)) throw new TableDeletedException(table);
-        else if (Tables.getTableState(instance, table) == TableState.OFFLINE) throw new TableOfflineException(instance, table);
+        if (failures.size() >= lastFailureSize)
+          if (!Tables.exists(instance, table))
+            throw new TableDeletedException(table);
+          else if (Tables.getTableState(instance, table) == TableState.OFFLINE)
+            throw new TableOfflineException(instance, table);
         
         lastFailureSize = failures.size();
         
-        if (log.isTraceEnabled()) log.trace("Failed to bin " + failures.size() + " ranges, tablet locations were null, retrying in 100ms");
+        if (log.isTraceEnabled())
+          log.trace("Failed to bin " + failures.size() + " ranges, tablet locations were null, retrying in 100ms");
         try {
           Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -272,7 +282,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   
   private void processFailures(Map<KeyExtent,List<Range>> failures, ResultReceiver receiver, List<Column> columns) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
-    if (log.isTraceEnabled()) log.trace("Failed to execute multiscans against " + failures.size() + " tablets, retrying...");
+    if (log.isTraceEnabled())
+      log.trace("Failed to execute multiscans against " + failures.size() + " tablets, retrying...");
     
     UtilWaitThread.sleep(failSleepTime);
     failSleepTime = Math.min(5000, failSleepTime * 2);
@@ -342,11 +353,15 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         log.debug(e.getMessage(), e);
         
         Tables.clearCache(instance);
-        if (!Tables.exists(instance, table)) fatalException = new TableDeletedException(table);
-        else fatalException = e;
+        if (!Tables.exists(instance, table))
+          fatalException = new TableDeletedException(table);
+        else
+          fatalException = e;
       } catch (Throwable t) {
-        if (queryThreadPool.isShutdown()) log.debug(t.getMessage(), t);
-        else log.warn(t.getMessage(), t);
+        if (queryThreadPool.isShutdown())
+          log.debug(t.getMessage(), t);
+        else
+          log.warn(t.getMessage(), t);
         fatalException = t;
       } finally {
         semaphore.release();
@@ -523,7 +538,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             Translator.RT));
         InitialMultiScan imsr = client.startMultiScan(null, credentials, thriftTabletRanges, Translator.translate(columns, Translator.CT),
             options.serverSideIteratorList, options.serverSideIteratorOptions, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites);
-        if (waitForWrites) ThriftScanner.serversWaitedForWrites.get(ttype).add(server);
+        if (waitForWrites)
+          ThriftScanner.serversWaitedForWrites.get(ttype).add(server);
         
         MultiScanResult scanResult = imsr.result;
         

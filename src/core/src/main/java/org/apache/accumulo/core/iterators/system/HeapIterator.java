@@ -48,7 +48,8 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
   }
   
   protected void createHeap(int maxSize) {
-    if (heap != null) throw new IllegalStateException("heap already exist");
+    if (heap != null)
+      throw new IllegalStateException("heap already exist");
     
     heap = new PriorityBuffer(maxSize == 0 ? 1 : maxSize);
   }
@@ -102,10 +103,13 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
   
   final protected void addSource(SortedKeyValueIterator<Key,Value> source) {
     
-    if (source.hasTop()) heap.add(new Index(source));
+    if (source.hasTop())
+      heap.add(new Index(source));
     
-    if (heap.size() > 0) currentIter = ((Index) heap.get()).iter;
-    else currentIter = null;
+    if (heap.size() > 0)
+      currentIter = ((Index) heap.get()).iter;
+    else
+      currentIter = null;
   }
   
 }

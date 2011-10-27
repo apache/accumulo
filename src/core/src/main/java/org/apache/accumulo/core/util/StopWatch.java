@@ -35,7 +35,8 @@ public class StopWatch<K extends Enum<K>> {
   }
   
   public synchronized void stopIfActive(K timer) {
-    if (startTime.containsKey(timer)) stop(timer);
+    if (startTime.containsKey(timer))
+      stop(timer);
   }
   
   public synchronized void stop(K timer) {
@@ -47,7 +48,8 @@ public class StopWatch<K extends Enum<K>> {
     }
     
     Long existingTime = totalTime.get(timer);
-    if (existingTime == null) existingTime = 0L;
+    if (existingTime == null)
+      existingTime = 0L;
     
     totalTime.put(timer, existingTime + (System.currentTimeMillis() - st));
     startTime.remove(timer);
@@ -59,13 +61,15 @@ public class StopWatch<K extends Enum<K>> {
   
   public synchronized long get(K timer) {
     Long existingTime = totalTime.get(timer);
-    if (existingTime == null) existingTime = 0L;
+    if (existingTime == null)
+      existingTime = 0L;
     return existingTime;
   }
   
   public synchronized double getSecs(K timer) {
     Long existingTime = totalTime.get(timer);
-    if (existingTime == null) existingTime = 0L;
+    if (existingTime == null)
+      existingTime = 0L;
     return existingTime / 1000.0;
   }
   

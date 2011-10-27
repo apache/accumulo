@@ -318,7 +318,8 @@ public enum Property {
         if (validTableProperties == null) {
           HashSet<String> tmp = new HashSet<String>();
           for (Property p : Property.values())
-            if (!p.getType().equals(PropertyType.PREFIX) && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) tmp.add(p.getKey());
+            if (!p.getType().equals(PropertyType.PREFIX) && p.getKey().startsWith(Property.TABLE_PREFIX.getKey()))
+              tmp.add(p.getKey());
           validTableProperties = tmp;
         }
       }
@@ -348,7 +349,8 @@ public enum Property {
   
   public static Property getPropertyByKey(String key) {
     for (Property prop : Property.values())
-      if (prop.getKey().equals(key)) return prop;
+      if (prop.getKey().equals(key))
+        return prop;
     return null;
   }
 }

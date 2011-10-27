@@ -27,7 +27,8 @@ import org.apache.zookeeper.KeeperException;
 
 public class TablePropUtil {
   public static boolean setTableProperty(String tableId, String property, String value) throws KeeperException, InterruptedException {
-    if (!isPropertyValid(property, value)) return false;
+    if (!isPropertyValid(property, value))
+      return false;
     
     // create the zk node for per-table properties for this table if it doesn't already exist
     String zkTablePath = getTablePath(tableId);
@@ -42,7 +43,8 @@ public class TablePropUtil {
   
   public static boolean isPropertyValid(String property, String value) {
     Property p = Property.getPropertyByKey(property);
-    if ((p != null && !p.getType().isValidFormat(value)) || !Property.isValidTablePropertyKey(property)) return false;
+    if ((p != null && !p.getType().isValidFormat(value)) || !Property.isValidTablePropertyKey(property))
+      return false;
     
     return true;
   }

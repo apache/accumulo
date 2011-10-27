@@ -82,7 +82,8 @@ public class ConnectorImpl extends Connector {
   
   private String getTableId(String tableName) throws TableNotFoundException {
     String tableId = Tables.getTableId(instance, tableName);
-    if (Tables.getTableState(instance, tableId) == TableState.OFFLINE) throw new TableOfflineException(instance, tableId);
+    if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
+      throw new TableOfflineException(instance, tableId);
     return tableId;
   }
   
@@ -138,7 +139,8 @@ public class ConnectorImpl extends Connector {
    */
   @Override
   public synchronized TableOperations tableOperations() {
-    if (tableops == null) tableops = new TableOperationsImpl(instance, credentials);
+    if (tableops == null)
+      tableops = new TableOperationsImpl(instance, credentials);
     return tableops;
   }
   
@@ -149,7 +151,8 @@ public class ConnectorImpl extends Connector {
    */
   @Override
   public synchronized SecurityOperations securityOperations() {
-    if (secops == null) secops = new SecurityOperationsImpl(instance, credentials);
+    if (secops == null)
+      secops = new SecurityOperationsImpl(instance, credentials);
     
     return secops;
   }
@@ -161,7 +164,8 @@ public class ConnectorImpl extends Connector {
    */
   @Override
   public synchronized InstanceOperations instanceOperations() {
-    if (instanceops == null) instanceops = new InstanceOperations(instance, credentials);
+    if (instanceops == null)
+      instanceops = new InstanceOperations(instance, credentials);
     
     return instanceops;
   }

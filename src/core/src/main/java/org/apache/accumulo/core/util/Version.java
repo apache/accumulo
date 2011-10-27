@@ -33,14 +33,19 @@ public class Version {
   private void parse(String everything) {
     Pattern pattern = Pattern.compile("(([^-]*)-)?(\\d+)(\\.(\\d+)(\\.(\\d+))?)?(-(.*))?");
     Matcher parser = pattern.matcher(everything);
-    if (!parser.matches()) throw new IllegalArgumentException("Unable to parse: " + everything + " as a version");
+    if (!parser.matches())
+      throw new IllegalArgumentException("Unable to parse: " + everything + " as a version");
     
-    if (parser.group(1) != null) package_ = parser.group(2);
+    if (parser.group(1) != null)
+      package_ = parser.group(2);
     major = Integer.valueOf(parser.group(3));
     minor = 0;
-    if (parser.group(5) != null) minor = Integer.valueOf(parser.group(5));
-    if (parser.group(7) != null) release = Integer.valueOf(parser.group(7));
-    if (parser.group(9) != null) etcetera = parser.group(9);
+    if (parser.group(5) != null)
+      minor = Integer.valueOf(parser.group(5));
+    if (parser.group(7) != null)
+      release = Integer.valueOf(parser.group(7));
+    if (parser.group(9) != null)
+      etcetera = parser.group(9);
     
   }
   

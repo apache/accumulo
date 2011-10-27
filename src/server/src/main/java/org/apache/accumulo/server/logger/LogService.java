@@ -107,7 +107,8 @@ public class LogService implements MutationLogger.Iface, Watcher {
   }
   
   synchronized private void closedCheck() throws LoggerClosedException {
-    if (!shutdownState.equals(ShutdownState.REGISTERED)) throw new LoggerClosedException();
+    if (!shutdownState.equals(ShutdownState.REGISTERED))
+      throw new LoggerClosedException();
   }
   
   private List<FileLock> fileLocks = new ArrayList<FileLock>();
@@ -147,8 +148,10 @@ public class LogService implements MutationLogger.Iface, Watcher {
     }
     final Set<String> rootDirs = new HashSet<String>();
     for (String root : ServerConfiguration.getSystemConfiguration().get(Property.LOGGER_DIR).split(",")) {
-      if (!root.startsWith("/")) root = System.getenv("ACCUMULO_HOME") + "/" + root;
-      else if (root.equals("")) root = System.getProperty("org.apache.accumulo.core.dir.log");
+      if (!root.startsWith("/"))
+        root = System.getenv("ACCUMULO_HOME") + "/" + root;
+      else if (root.equals(""))
+        root = System.getProperty("org.apache.accumulo.core.dir.log");
       else if (root == null || root.isEmpty()) {
         String msg = "Write-ahead log directory not set!";
         LOG.fatal(msg);
@@ -162,12 +165,14 @@ public class LogService implements MutationLogger.Iface, Watcher {
       rootFile.mkdirs();
       FileOutputStream lockOutputStream = new FileOutputStream(root + "/.lock");
       FileLock fileLock = lockOutputStream.getChannel().tryLock();
-      if (fileLock == null) throw new IOException("Failed to acquire lock file");
+      if (fileLock == null)
+        throw new IOException("Failed to acquire lock file");
       fileLocks.add(fileLock);
       
       try {
         File test = new File(root, "test_writable");
-        if (!test.mkdir()) throw new RuntimeException("Unable to write to write-ahead log directory " + root);
+        if (!test.mkdir())
+          throw new RuntimeException("Unable to write to write-ahead log directory " + root);
         test.delete();
       } catch (Throwable t) {
         LOG.fatal("Unable to write to write-ahead log directory", t);

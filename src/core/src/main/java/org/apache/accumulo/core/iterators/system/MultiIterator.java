@@ -97,7 +97,8 @@ public class MultiIterator extends HeapIterator {
     
     if (fence != null) {
       range = fence.clip(range, true);
-      if (range == null) return;
+      if (range == null)
+        return;
     }
     
     for (SortedKeyValueIterator<Key,Value> skvi : iters) {

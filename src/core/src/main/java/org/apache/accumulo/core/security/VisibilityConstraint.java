@@ -44,7 +44,8 @@ public class VisibilityConstraint implements Constraint {
     List<ColumnUpdate> updates = mutation.getUpdates();
     
     HashSet<String> ok = null;
-    if (updates.size() > 1) ok = new HashSet<String>();
+    if (updates.size() > 1)
+      ok = new HashSet<String>();
     
     VisibilityEvaluator ve = null;
     
@@ -53,13 +54,16 @@ public class VisibilityConstraint implements Constraint {
       byte[] cv = update.getColumnVisibility();
       if (cv.length > 0) {
         String key = null;
-        if (ok != null && ok.contains(key = new String(cv))) continue;
+        if (ok != null && ok.contains(key = new String(cv)))
+          continue;
         
         try {
           
-          if (ve == null) ve = new VisibilityEvaluator(env.getAuthorizations());
+          if (ve == null)
+            ve = new VisibilityEvaluator(env.getAuthorizations());
           
-          if (!ve.evaluate(new ColumnVisibility(cv))) return Collections.singletonList(new Short((short) 2));
+          if (!ve.evaluate(new ColumnVisibility(cv)))
+            return Collections.singletonList(new Short((short) 2));
           
         } catch (BadArgumentException bae) {
           return Collections.singletonList(new Short((short) 1));
@@ -67,7 +71,8 @@ public class VisibilityConstraint implements Constraint {
           return Collections.singletonList(new Short((short) 1));
         }
         
-        if (ok != null) ok.add(key);
+        if (ok != null)
+          ok.add(key);
       }
     }
     

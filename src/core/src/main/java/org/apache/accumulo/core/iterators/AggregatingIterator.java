@@ -65,7 +65,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
   private void aggregateRowColumn(Aggregator aggr) throws IOException {
     // this function assumes that first value is not delete
     
-    if (iterator.getTopKey().isDeleted()) return;
+    if (iterator.getTopKey().isDeleted())
+      return;
     
     workKey.set(iterator.getTopKey());
     
@@ -189,7 +190,8 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
   public boolean validateOptions(Map<String,String> options) {
     for (Entry<String,String> entry : options.entrySet()) {
       String classname = entry.getValue();
-      if (classname == null) return false;
+      if (classname == null)
+        return false;
       Class<? extends Aggregator> clazz;
       try {
         clazz = AccumuloClassLoader.loadClass(classname, Aggregator.class);

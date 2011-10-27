@@ -36,10 +36,12 @@ public class FormatterCommand extends Command {
   
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    if (cl.hasOption(resetOption.getOpt())) shellState.setFormatterClass(DefaultFormatter.class);
-    else if (cl.hasOption(formatterClassOption.getOpt())) shellState.setFormatterClass(AccumuloClassLoader.loadClass(
-        cl.getOptionValue(formatterClassOption.getOpt()), Formatter.class));
-    else if (cl.hasOption(listClassOption.getOpt())) shellState.getReader().printString(shellState.getFormatterClass().getName() + "\n");
+    if (cl.hasOption(resetOption.getOpt()))
+      shellState.setFormatterClass(DefaultFormatter.class);
+    else if (cl.hasOption(formatterClassOption.getOpt()))
+      shellState.setFormatterClass(AccumuloClassLoader.loadClass(cl.getOptionValue(formatterClassOption.getOpt()), Formatter.class));
+    else if (cl.hasOption(listClassOption.getOpt()))
+      shellState.getReader().printString(shellState.getFormatterClass().getName() + "\n");
     return 0;
   }
   

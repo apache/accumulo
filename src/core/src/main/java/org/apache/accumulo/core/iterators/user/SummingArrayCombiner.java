@@ -62,7 +62,8 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    if (options.get(LongCombiner.TYPE) == null) throw new IOException("no type specified");
+    if (options.get(LongCombiner.TYPE) == null)
+      throw new IOException("no type specified");
     switch (Type.valueOf(options.get(LongCombiner.TYPE))) {
       case VARNUM:
         encoder = new VarNumArrayEncoder();
@@ -89,7 +90,8 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    if (options.get(LongCombiner.TYPE) == null) return false;
+    if (options.get(LongCombiner.TYPE) == null)
+      return false;
     try {
       Type.valueOf(options.get(LongCombiner.TYPE));
     } catch (Exception e) {
@@ -161,7 +163,8 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   public static class StringArrayEncoder implements Encoder<List<Long>> {
     @Override
     public byte[] encode(List<Long> la) {
-      if (la.size() == 0) return new byte[] {};
+      if (la.size() == 0)
+        return new byte[] {};
       StringBuilder sb = new StringBuilder(Long.toString(la.get(0)));
       for (int i = 1; i < la.size(); i++) {
         sb.append(",");
@@ -175,8 +178,10 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       String[] longstrs = new String(b).split(",");
       List<Long> la = new ArrayList<Long>(longstrs.length);
       for (String s : longstrs) {
-        if (s.length() == 0) la.add(0l);
-        else la.add(Long.parseLong(s));
+        if (s.length() == 0)
+          la.add(0l);
+        else
+          la.add(Long.parseLong(s));
       }
       return la;
     }

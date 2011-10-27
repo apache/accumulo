@@ -39,7 +39,8 @@ public class TServerUsesLoggers implements LoggerUser {
   
   @Override
   public int compareTo(LoggerUser o) {
-    if (o instanceof TServerUsesLoggers) return instance.compareTo(((TServerUsesLoggers) o).instance);
+    if (o instanceof TServerUsesLoggers)
+      return instance.compareTo(((TServerUsesLoggers) o).instance);
     return -1;
   }
   

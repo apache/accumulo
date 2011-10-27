@@ -34,8 +34,10 @@ public class TransactionWatcherTest {
     
     public synchronized void start(String txType, Long txid) throws Exception {
       List<Long> txids = map.get(txType);
-      if (txids == null) txids = new ArrayList<Long>();
-      if (txids.contains(txid)) throw new Exception("transaction already started");
+      if (txids == null)
+        txids = new ArrayList<Long>();
+      if (txids.contains(txid))
+        throw new Exception("transaction already started");
       txids.add(txid);
       map.put(txType, txids);
     }
@@ -52,7 +54,8 @@ public class TransactionWatcherTest {
     @Override
     synchronized public boolean transactionAlive(String txType, long tid) throws Exception {
       List<Long> txids = map.get(txType);
-      if (txids == null) return false;
+      if (txids == null)
+        return false;
       return txids.contains(tid);
     }
     

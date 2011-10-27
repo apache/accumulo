@@ -51,7 +51,8 @@ public class ChangeSecret {
     
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Instance inst = HdfsZooInstance.getInstance();
-    if (!verifyAccumuloIsDown(inst, oldPass)) System.exit(-1);
+    if (!verifyAccumuloIsDown(inst, oldPass))
+      System.exit(-1);
     String instanceId = rewriteZooKeeperInstance(inst, oldPass, newPass);
     updateHdfs(fs, inst, instanceId);
     if (oldPass != null) {
@@ -83,7 +84,8 @@ public class ChangeSecret {
     recurse(zooReader, root, new Visitor() {
       public void visit(ZooReader zoo, String path) throws Exception {
         Stat stat = zoo.getStatus(path);
-        if (stat.getEphemeralOwner() != 0) ephemerals.add(path);
+        if (stat.getEphemeralOwner() != 0)
+          ephemerals.add(path);
       }
     });
     if (ephemerals.size() == 0) {

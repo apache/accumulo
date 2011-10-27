@@ -90,7 +90,8 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
     }
     
     SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
-      if (topLevelIterators.isEmpty()) return iter;
+      if (topLevelIterators.isEmpty())
+        return iter;
       ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<SortedKeyValueIterator<Key,Value>>(topLevelIterators);
       allIters.add(iter);
       return new MultiIterator(allIters, false);

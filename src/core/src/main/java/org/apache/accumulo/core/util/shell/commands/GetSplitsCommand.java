@@ -56,7 +56,8 @@ public class GetSplitsCommand extends Command {
     
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.getConnector().tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
     }
     
     else {
@@ -106,7 +107,8 @@ public class GetSplitsCommand extends Command {
   }
   
   private static String encode(boolean encode, Text text) {
-    if (text == null) return null;
+    if (text == null)
+      return null;
     return encode ? new String(Base64.encodeBase64(TextUtil.getBytes(text))) : text.toString();
   }
   

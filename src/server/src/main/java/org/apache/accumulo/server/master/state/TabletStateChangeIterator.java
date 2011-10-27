@@ -63,7 +63,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
   }
   
   private Set<String> parseTables(String tables) {
-    if (tables == null) return null;
+    if (tables == null)
+      return null;
     Set<String> result = new HashSet<String>();
     for (String table : tables.split(","))
       result.add(table);
@@ -71,7 +72,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
   }
   
   private Set<TServerInstance> parseServers(String servers) {
-    if (servers == null) return null;
+    if (servers == null)
+      return null;
     // parse "host:port[INSTANCE]"
     Set<TServerInstance> result = new HashSet<TServerInstance>();
     if (servers.length() > 0) {
@@ -79,7 +81,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
         String parts[] = part.split("\\[", 2);
         String hostport = parts[0];
         String instance = parts[1];
-        if (instance != null && instance.endsWith("]")) instance = instance.substring(0, instance.length() - 1);
+        if (instance != null && instance.endsWith("]"))
+          instance = instance.substring(0, instance.length() - 1);
         result.add(new TServerInstance(AddressUtil.parseAddress(hostport, Property.TSERV_CLIENTPORT), instance));
       }
     }
@@ -87,7 +90,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
   }
   
   private Map<Text,MergeInfo> parseMerges(String merges) {
-    if (merges == null) return null;
+    if (merges == null)
+      return null;
     try {
       Map<Text,MergeInfo> result = new HashMap<Text,MergeInfo>();
       DataInputBuffer buffer = new DataInputBuffer();
@@ -110,7 +114,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
       Key k = getSource().getTopKey();
       Value v = getSource().getTopValue();
       
-      if (onlineTables == null || current == null) return;
+      if (onlineTables == null || current == null)
+        return;
       SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(k, v);
       
       TabletLocationState tls = MetaDataTableScanner.createTabletLocationState(decodedRow);
@@ -127,11 +132,13 @@ public class TabletStateChangeIterator extends SkippingIterator {
           // we always want data about assigned tablets
           return;
         case HOSTED:
-          if (!shouldBeOnline) return;
+          if (!shouldBeOnline)
+            return;
         case ASSIGNED_TO_DEAD_SERVER:
           /* fall-through intentional */
         case UNASSIGNED:
-          if (shouldBeOnline) return;
+          if (shouldBeOnline)
+            return;
       }
       // table is in the expected state so don't bother returning any information about it
       getSource().next();
@@ -153,7 +160,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
   }
   
   public static void setOnlineTables(IteratorSetting cfg, Set<String> onlineTables) {
-    if (onlineTables != null) cfg.addOption(TABLES_OPTION, StringUtil.join(onlineTables, ","));
+    if (onlineTables != null)
+      cfg.addOption(TABLES_OPTION, StringUtil.join(onlineTables, ","));
   }
   
   public static void setMerges(IteratorSetting cfg, Collection<MergeInfo> merges) {

@@ -147,7 +147,8 @@ public class BulkIngestExample extends Configured implements Tool {
     } catch (Exception e) {
       throw new RuntimeException(e);
     } finally {
-      if (out != null) out.close();
+      if (out != null)
+        out.close();
     }
     
     return 0;

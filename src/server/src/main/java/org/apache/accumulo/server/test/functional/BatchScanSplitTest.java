@@ -114,7 +114,8 @@ public class BatchScanSplitTest extends FunctionalTest {
       
       System.out.printf("rate : %06.2f\n", ranges.size() / ((t2 - t1) / 1000.0));
       
-      if (!found.equals(expected)) throw new Exception("Found and expected differ " + found + " " + expected);
+      if (!found.equals(expected))
+        throw new Exception("Found and expected differ " + found + " " + expected);
     }
     
     splits = getConnector().tableOperations().getSplits("bss");

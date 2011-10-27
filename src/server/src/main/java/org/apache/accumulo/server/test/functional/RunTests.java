@@ -150,7 +150,8 @@ public class RunTests extends Configured implements Tool {
     RunTests tests = new RunTests();
     ToolRunner.run(new Configuration(), tests, args);
     tests.job.waitForCompletion(true);
-    if (!tests.job.isSuccessful()) System.exit(1);
+    if (!tests.job.isSuccessful())
+      System.exit(1);
   }
   
 }

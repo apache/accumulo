@@ -25,7 +25,8 @@ import org.apache.accumulo.core.iterators.RegExIterator;
 public class EGrepCommand extends GrepCommand {
   @Override
   protected void setUpIterator(int prio, String name, String term, BatchScanner scanner) throws IOException {
-    if (prio < 0) throw new IllegalArgumentException("Priority < 0 " + prio);
+    if (prio < 0)
+      throw new IllegalArgumentException("Priority < 0 " + prio);
     
     IteratorSetting si = new IteratorSetting(prio, name, RegExIterator.class);
     RegExIterator.setRegexs(si, term, term, term, term, true);

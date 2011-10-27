@@ -23,7 +23,8 @@ public class TableOfflineException extends RuntimeException {
   private static final long serialVersionUID = 1L;
   
   private static String getTableName(Instance instance, String tableId) {
-    if (tableId == null) return " <unknown table> ";
+    if (tableId == null)
+      return " <unknown table> ";
     try {
       String tableName = Tables.getTableName(instance, tableId);
       return tableName + " (" + tableId + ")";

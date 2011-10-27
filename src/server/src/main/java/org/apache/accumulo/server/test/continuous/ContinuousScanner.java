@@ -119,7 +119,8 @@ public class ContinuousScanner {
       if (count < (1 - delta) * numToScan || count > (1 + delta) * numToScan) {
         if (count == 0) {
           distance = distance * 10;
-          if (distance < 0) distance = 1000000000000l;
+          if (distance < 0)
+            distance = 1000000000000l;
         } else {
           double ratio = (double) numToScan / count;
           // move ratio closer to 1 to make change slower
@@ -132,7 +133,8 @@ public class ContinuousScanner {
       
       System.out.printf("SCN %d %s %d %d\n", t1, new String(scanStart), (t2 - t1), count);
       
-      if (sleepTime > 0) UtilWaitThread.sleep(sleepTime);
+      if (sleepTime > 0)
+        UtilWaitThread.sleep(sleepTime);
     }
     
   }

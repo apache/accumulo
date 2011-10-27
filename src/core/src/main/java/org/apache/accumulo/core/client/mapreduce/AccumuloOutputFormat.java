@@ -102,19 +102,22 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    */
   public static void setOutputInfo(JobContext job, String user, byte[] passwd, boolean createTables, String defaultTable) {
     Configuration conf = job.getConfiguration();
-    if (conf.getBoolean(OUTPUT_INFO_HAS_BEEN_SET, false)) throw new IllegalStateException("Output info can only be set once per job");
+    if (conf.getBoolean(OUTPUT_INFO_HAS_BEEN_SET, false))
+      throw new IllegalStateException("Output info can only be set once per job");
     conf.setBoolean(OUTPUT_INFO_HAS_BEEN_SET, true);
     
     ArgumentChecker.notNull(user, passwd);
     conf.set(USERNAME, user);
     conf.set(PASSWORD, new String(Base64.encodeBase64(passwd)));
     conf.setBoolean(CREATETABLES, createTables);
-    if (defaultTable != null) conf.set(DEFAULT_TABLE_NAME, defaultTable);
+    if (defaultTable != null)
+      conf.set(DEFAULT_TABLE_NAME, defaultTable);
   }
   
   public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
     Configuration conf = job.getConfiguration();
-    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) throw new IllegalStateException("Instance info can only be set once per job");
+    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
+      throw new IllegalStateException("Instance info can only be set once per job");
     conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
     
     ArgumentChecker.notNull(instanceName, zooKeepers);
@@ -181,7 +184,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   protected static Level getLogLevel(JobContext job) {
-    if (job.getConfiguration().get(LOGLEVEL) != null) return Level.toLevel(job.getConfiguration().getInt(LOGLEVEL, Level.INFO.toInt()));
+    if (job.getConfiguration().get(LOGLEVEL) != null)
+      return Level.toLevel(job.getConfiguration().getInt(LOGLEVEL, Level.INFO.toInt()));
     return null;
   }
   
@@ -204,11 +208,13 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     
     AccumuloRecordWriter(TaskAttemptContext attempt) throws AccumuloException, AccumuloSecurityException {
       Level l = getLogLevel(attempt);
-      if (l != null) log.setLevel(getLogLevel(attempt));
+      if (l != null)
+        log.setLevel(getLogLevel(attempt));
       this.simulate = getSimulationMode(attempt);
       this.createTables = canCreateTables(attempt);
       
-      if (simulate) log.info("Simulating output only. No writes to tables will occur");
+      if (simulate)
+        log.info("Simulating output only. No writes to tables will occur");
       
       this.bws = new HashMap<Text,BatchWriter>();
       
@@ -227,22 +233,26 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
      */
     @Override
     public void write(Text table, Mutation mutation) throws IOException {
-      if (table == null || table.toString().isEmpty()) table = this.defaultTableName;
+      if (table == null || table.toString().isEmpty())
+        table = this.defaultTableName;
       
-      if (!simulate && table == null) throw new IOException("No table or default table specified. Try simulation mode next time");
+      if (!simulate && table == null)
+        throw new IOException("No table or default table specified. Try simulation mode next time");
       
       ++mutCount;
       valCount += mutation.size();
       printMutation(table, mutation);
       
-      if (simulate) return;
+      if (simulate)
+        return;
       
-      if (!bws.containsKey(table)) try {
-        addTable(table);
-      } catch (Exception e) {
-        e.printStackTrace();
-        throw new IOException(e);
-      }
+      if (!bws.containsKey(table))
+        try {
+          addTable(table);
+        } catch (Exception e) {
+          e.printStackTrace();
+          throw new IOException(e);
+        }
       
       try {
         bws.get(table).addMutation(mutation);
@@ -283,7 +293,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
         throw e;
       }
       
-      if (bw != null) bws.put(tableName, bw);
+      if (bw != null)
+        bws.put(tableName, bw);
     }
     
     private int printMutation(Text table, Mutation m) {
@@ -301,8 +312,10 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     private String hexDump(byte[] ba) {
       StringBuilder sb = new StringBuilder();
       for (byte b : ba) {
-        if ((b > 0x20) && (b < 0x7e)) sb.append((char) b);
-        else sb.append(String.format("x%02x", b));
+        if ((b > 0x20) && (b < 0x7e))
+          sb.append((char) b);
+        else
+          sb.append(String.format("x%02x", b));
       }
       return sb.toString();
     }
@@ -310,7 +323,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     @Override
     public void close(TaskAttemptContext attempt) throws IOException, InterruptedException {
       log.debug("mutations written: " + mutCount + ", values written: " + valCount);
-      if (simulate) return;
+      if (simulate)
+        return;
       
       try {
         mtbw.close();
@@ -334,11 +348,14 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   @Override
   public void checkOutputSpecs(JobContext job) throws IOException {
     Configuration conf = job.getConfiguration();
-    if (!conf.getBoolean(OUTPUT_INFO_HAS_BEEN_SET, false)) throw new IOException("Output info has not been set.");
-    if (!conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) throw new IOException("Instance info has not been set.");
+    if (!conf.getBoolean(OUTPUT_INFO_HAS_BEEN_SET, false))
+      throw new IOException("Output info has not been set.");
+    if (!conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
+      throw new IOException("Instance info has not been set.");
     try {
       Connector c = getInstance(job).getConnector(getUsername(job), getPassword(job));
-      if (!c.securityOperations().authenticateUser(getUsername(job), getPassword(job))) throw new IOException("Unable to authenticate user");
+      if (!c.securityOperations().authenticateUser(getUsername(job), getPassword(job)))
+        throw new IOException("Unable to authenticate user");
     } catch (AccumuloException e) {
       throw new IOException(e);
     } catch (AccumuloSecurityException e) {

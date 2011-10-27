@@ -80,7 +80,8 @@ public class Trace {
   
   // Wrap the runnable in a new span, if tracing
   public static Runnable wrap(Runnable runnable) {
-    if (isTracing()) return new TraceRunnable(Trace.currentTrace(), runnable);
+    if (isTracing())
+      return new TraceRunnable(Trace.currentTrace(), runnable);
     return runnable;
   }
   

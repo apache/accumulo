@@ -33,7 +33,8 @@ public class ChangeTableState extends MasterRepo {
     this.tableId = tableId;
     this.top = top;
     
-    if (top != TableOperation.ONLINE && top != TableOperation.OFFLINE) throw new IllegalArgumentException(top.toString());
+    if (top != TableOperation.ONLINE && top != TableOperation.OFFLINE)
+      throw new IllegalArgumentException(top.toString());
   }
   
   @Override
@@ -46,7 +47,8 @@ public class ChangeTableState extends MasterRepo {
   public Repo<Master> call(long tid, Master env) throws Exception {
     
     TableState ts = TableState.ONLINE;
-    if (top == TableOperation.OFFLINE) ts = TableState.OFFLINE;
+    if (top == TableOperation.OFFLINE)
+      ts = TableState.OFFLINE;
     
     TableManager.getInstance().transitionTableState(tableId, ts);
     Utils.unreserveTable(tableId, tid, true);

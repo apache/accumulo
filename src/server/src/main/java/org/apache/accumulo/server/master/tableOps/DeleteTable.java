@@ -104,7 +104,8 @@ class CleanUp extends MasterRepo {
       metaDataTableScanner.close();
     }
     
-    if (!done) return 50;
+    if (!done)
+      return 50;
     
     return 0;
   }

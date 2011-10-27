@@ -47,7 +47,7 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   private static ZooReaderWriter instance = null;
   private static IZooReaderWriter retryingInstance = null;
   private final String auth;
-
+  
   @Override
   public ZooKeeper getZooKeeper() {
     SecurityManager sm = System.getSecurityManager();
@@ -130,7 +130,8 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
       Stat stat = new Stat();
       byte[] data = getZooKeeper().getData(zPath, false, stat);
       data = mutator.mutate(data);
-      if (data == null) return data;
+      if (data == null)
+        return data;
       try {
         getZooKeeper().setData(zPath, data, stat.getVersion());
         return data;
@@ -156,22 +157,22 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
    */
   public static synchronized IZooReaderWriter getRetryingInstance() {
     
-    if(retryingInstance == null){
+    if (retryingInstance == null) {
       final IZooReaderWriter inst = getInstance();
       
       InvocationHandler ih = new InvocationHandler() {
         @Override
         public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
           long retryTime = 250;
-          while(true){
+          while (true) {
             try {
               return method.invoke(inst, args);
             } catch (InvocationTargetException e) {
-              if(e.getCause() instanceof KeeperException.ConnectionLossException){
-                Logger.getLogger(ZooReaderWriter.class).warn("Error connecting to zookeeper, will retry in "+retryTime, e.getCause());
+              if (e.getCause() instanceof KeeperException.ConnectionLossException) {
+                Logger.getLogger(ZooReaderWriter.class).warn("Error connecting to zookeeper, will retry in " + retryTime, e.getCause());
                 UtilWaitThread.sleep(retryTime);
                 retryTime = Math.min(5000, retryTime + 250);
-              }else{
+              } else {
                 throw e.getCause();
               }
             }
@@ -179,7 +180,7 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
         }
       };
       
-      retryingInstance = (IZooReaderWriter) Proxy.newProxyInstance(ZooReaderWriter.class.getClassLoader(),new Class[] {IZooReaderWriter.class}, ih);
+      retryingInstance = (IZooReaderWriter) Proxy.newProxyInstance(ZooReaderWriter.class.getClassLoader(), new Class[] {IZooReaderWriter.class}, ih);
     }
     
     return retryingInstance;
@@ -192,9 +193,12 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   
   @Override
   public void mkdirs(String path) throws KeeperException, InterruptedException {
-    if (path.equals("")) return;
-    if (!path.startsWith("/")) throw new IllegalArgumentException(path + "does not start with /");
-    if (getZooKeeper().exists(path, false) != null) return;
+    if (path.equals(""))
+      return;
+    if (!path.startsWith("/"))
+      throw new IllegalArgumentException(path + "does not start with /");
+    if (getZooKeeper().exists(path, false) != null)
+      return;
     String parent = path.substring(0, path.lastIndexOf("/"));
     mkdirs(parent);
     putPersistentData(path, new byte[] {}, NodeExistsPolicy.SKIP);

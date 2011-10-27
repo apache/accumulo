@@ -85,8 +85,9 @@ public class RegExFilter extends Filter implements OptionDescriber {
   
   @Override
   public boolean accept(Key key, Value value) {
-    if (orFields) return matches(rowMatcher, key.getRowData()) || matches(colfMatcher, key.getColumnFamilyData())
-        || matches(colqMatcher, key.getColumnQualifierData()) || matches(valueMatcher, value.get(), 0, value.get().length);
+    if (orFields)
+      return matches(rowMatcher, key.getRowData()) || matches(colfMatcher, key.getColumnFamilyData()) || matches(colqMatcher, key.getColumnQualifierData())
+          || matches(valueMatcher, value.get(), 0, value.get().length);
     return matches(rowMatcher, key.getRowData()) && matches(colfMatcher, key.getColumnFamilyData()) && matches(colqMatcher, key.getColumnQualifierData())
         && matches(valueMatcher, value.get(), 0, value.get().length);
   }
@@ -140,13 +141,17 @@ public class RegExFilter extends Filter implements OptionDescriber {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    if (options.containsKey(ROW_REGEX)) Pattern.compile(options.get(ROW_REGEX)).matcher("");
+    if (options.containsKey(ROW_REGEX))
+      Pattern.compile(options.get(ROW_REGEX)).matcher("");
     
-    if (options.containsKey(COLF_REGEX)) Pattern.compile(options.get(COLF_REGEX)).matcher("");
+    if (options.containsKey(COLF_REGEX))
+      Pattern.compile(options.get(COLF_REGEX)).matcher("");
     
-    if (options.containsKey(COLQ_REGEX)) Pattern.compile(options.get(COLQ_REGEX)).matcher("");
+    if (options.containsKey(COLQ_REGEX))
+      Pattern.compile(options.get(COLQ_REGEX)).matcher("");
     
-    if (options.containsKey(VALUE_REGEX)) Pattern.compile(options.get(VALUE_REGEX)).matcher("");
+    if (options.containsKey(VALUE_REGEX))
+      Pattern.compile(options.get(VALUE_REGEX)).matcher("");
     
     return true;
   }

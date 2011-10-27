@@ -41,7 +41,8 @@ public class MutationLog {
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
     
-    if (!fs.exists(logfile)) logout = fs.create(logfile);
+    if (!fs.exists(logfile))
+      logout = fs.create(logfile);
   }
   
   public void log(Mutation m) throws IOException {

@@ -47,23 +47,28 @@ public class ChangePass extends Test {
         conn = state.getInstance().getConnector(sourceUser, (SecurityHelper.getTabUserPass(state)));
       } catch (AccumuloSecurityException ae) {
         if (ae.getErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
-          if (SecurityHelper.getTabUserExists(state)) throw new AccumuloException("Got a security exception when the user should have existed", ae);
-          else return;
+          if (SecurityHelper.getTabUserExists(state))
+            throw new AccumuloException("Got a security exception when the user should have existed", ae);
+          else
+            return;
         }
         throw new AccumuloException("Unexpected exception!", ae);
       }
     }
     
     boolean hasPerm = true;
-    if (!source.equals(target)) hasPerm = SecurityHelper.getSysPerm(state, sourceUser, SystemPermission.ALTER_USER);
+    if (!source.equals(target))
+      hasPerm = SecurityHelper.getSysPerm(state, sourceUser, SystemPermission.ALTER_USER);
     
     boolean targetExists = true;
     boolean targetSystem = true;
     if (target.equals("table")) {
       targetSystem = false;
-      if (!SecurityHelper.getTabUserExists(state)) targetExists = false;
+      if (!SecurityHelper.getTabUserExists(state))
+        targetExists = false;
       target = SecurityHelper.getTabUserName(state);
-    } else target = SecurityHelper.getSysUserName(state);
+    } else
+      target = SecurityHelper.getSysUserName(state);
     
     Random r = new Random();
     
@@ -77,10 +82,12 @@ public class ChangePass extends Test {
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
         case PERMISSION_DENIED:
-          if (hasPerm) throw new AccumuloException("Change failed when it should have succeeded to change " + target + "'s password", ae);
+          if (hasPerm)
+            throw new AccumuloException("Change failed when it should have succeeded to change " + target + "'s password", ae);
           return;
         case USER_DOESNT_EXIST:
-          if (targetExists) throw new AccumuloException("User " + target + " doesn't exist and they SHOULD.", ae);
+          if (targetExists)
+            throw new AccumuloException("User " + target + " doesn't exist and they SHOULD.", ae);
           return;
         default:
           throw new AccumuloException("Got unexpected exception", ae);
@@ -88,7 +95,9 @@ public class ChangePass extends Test {
     }
     if (targetSystem) {
       SecurityHelper.setSysUserPass(state, newPass);
-    } else SecurityHelper.setTabUserPass(state, newPass);
-    if (!hasPerm) throw new AccumuloException("Password change succeeded when it should have failed.");
+    } else
+      SecurityHelper.setTabUserPass(state, newPass);
+    if (!hasPerm)
+      throw new AccumuloException("Password change succeeded when it should have failed.");
   }
 }

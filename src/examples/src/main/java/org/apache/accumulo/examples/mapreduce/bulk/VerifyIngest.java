@@ -84,7 +84,8 @@ public class VerifyIngest {
       
     }
     
-    if (ok) System.out.println("OK");
+    if (ok)
+      System.out.println("OK");
     
     System.exit(ok ? 0 : 1);
   }

@@ -882,7 +882,8 @@ public final class BCFile {
     }
     
     public void addBlockRegion(BlockRegion region) {
-      if (trackBlocks) listRegions.add(region);
+      if (trackBlocks)
+        listRegions.add(region);
     }
     
     public void write(DataOutput out) throws IOException {

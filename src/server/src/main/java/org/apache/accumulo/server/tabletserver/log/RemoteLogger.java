@@ -47,8 +47,10 @@ public class RemoteLogger {
   @Override
   public boolean equals(Object obj) {
     // filename is unique
-    if (obj == null) return false;
-    if (obj instanceof RemoteLogger) return getFileName().equals(((RemoteLogger) obj).getFileName());
+    if (obj == null)
+      return false;
+    if (obj instanceof RemoteLogger)
+      return getFileName().equals(((RemoteLogger) obj).getFileName());
     return false;
   }
   

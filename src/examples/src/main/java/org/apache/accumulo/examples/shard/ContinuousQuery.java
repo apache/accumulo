@@ -57,7 +57,8 @@ public class ContinuousQuery {
     String pass = args[5];
     int numTerms = Integer.parseInt(args[6]);
     long iterations = Long.MAX_VALUE;
-    if (args.length >= 7) iterations = Long.parseLong(args[7]);
+    if (args.length >= 7)
+      iterations = Long.parseLong(args[7]);
     
     ZooKeeperInstance zki = new ZooKeeperInstance(instance, zooKeepers);
     Connector conn = zki.getConnector(user, pass.getBytes());
@@ -101,7 +102,8 @@ public class ContinuousQuery {
     for (Entry<Key,Value> entry : scanner) {
       Key key = entry.getKey();
       
-      if (currentRow == null) currentRow = key.getRow();
+      if (currentRow == null)
+        currentRow = key.getRow();
       
       if (!currentRow.equals(key.getRow())) {
         selectRandomWords(words, ret, rand, numTerms);

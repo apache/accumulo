@@ -40,7 +40,8 @@ public class HiddenCommand extends Command {
       shellState.getReader().printNewline();
       shellState.getReader().printString("Sortacus lives!\n");
       shellState.getReader().printNewline();
-    } else throw new ShellCommandException(ErrorCode.UNRECOGNIZED_COMMAND, getName());
+    } else
+      throw new ShellCommandException(ErrorCode.UNRECOGNIZED_COMMAND, getName());
     
     return 0;
   }

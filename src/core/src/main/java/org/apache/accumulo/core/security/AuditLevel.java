@@ -28,7 +28,8 @@ public class AuditLevel extends Level {
   }
   
   static public Level toLevel(int val) {
-    if (val == Level.INFO_INT + 100) return Level.INFO;
+    if (val == Level.INFO_INT + 100)
+      return Level.INFO;
     return Level.toLevel(val);
   }
 }

@@ -130,11 +130,15 @@ public class ZooStore<T> implements TStore<T> {
           
           synchronized (this) {
             if (defered.containsKey(tid)) {
-              if (defered.get(tid) < System.currentTimeMillis()) defered.remove(tid);
-              else continue;
+              if (defered.get(tid) < System.currentTimeMillis())
+                defered.remove(tid);
+              else
+                continue;
             }
-            if (!reserved.contains(tid)) reserved.add(tid);
-            else continue;
+            if (!reserved.contains(tid))
+              reserved.add(tid);
+            else
+              continue;
           }
           
           // have reserved id, status should not change
@@ -160,8 +164,10 @@ public class ZooStore<T> implements TStore<T> {
             if (defered.size() > 0) {
               Long minTime = Collections.min(defered.values());
               long waitTime = minTime - System.currentTimeMillis();
-              if (waitTime > 0) this.wait(Math.min(waitTime, 5000));
-            } else this.wait(5000);
+              if (waitTime > 0)
+                this.wait(Math.min(waitTime, 5000));
+            } else
+              this.wait(5000);
           }
         }
       }
@@ -190,23 +196,28 @@ public class ZooStore<T> implements TStore<T> {
   
   private void unreserve(long tid) {
     synchronized (this) {
-      if (!reserved.remove(tid)) throw new IllegalStateException("Tried to unreserve id that was not reserved " + String.format("%016x", tid));
+      if (!reserved.remove(tid))
+        throw new IllegalStateException("Tried to unreserve id that was not reserved " + String.format("%016x", tid));
       
       // do not want this unreserve to unesc wake up threads in reserve()... this leads to infinite loop when tx is stuck in NEW...
       // only do this when something external has called reserve(tid)...
-      if (reservationsWaiting > 0) this.notifyAll();
+      if (reservationsWaiting > 0)
+        this.notifyAll();
     }
   }
   
   @Override
   public void unreserve(long tid, long deferTime) {
     
-    if (deferTime < 0) throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
+    if (deferTime < 0)
+      throw new IllegalArgumentException("deferTime < 0 : " + deferTime);
     
     synchronized (this) {
-      if (!reserved.remove(tid)) throw new IllegalStateException("Tried to unreserve id that was not reserved " + String.format("%016x", tid));
+      if (!reserved.remove(tid))
+        throw new IllegalStateException("Tried to unreserve id that was not reserved " + String.format("%016x", tid));
       
-      if (deferTime > 0) defered.put(tid, System.currentTimeMillis() + deferTime);
+      if (deferTime > 0)
+        defered.put(tid, System.currentTimeMillis() + deferTime);
       
       this.notifyAll();
     }
@@ -215,7 +226,8 @@ public class ZooStore<T> implements TStore<T> {
   
   private void verifyReserved(long tid) {
     synchronized (this) {
-      if (!reserved.contains(tid)) throw new IllegalStateException("Tried to operate on unreserved transaction " + String.format("%016x", tid));
+      if (!reserved.contains(tid))
+        throw new IllegalStateException("Tried to operate on unreserved transaction " + String.format("%016x", tid));
     }
   }
   
@@ -227,7 +239,8 @@ public class ZooStore<T> implements TStore<T> {
     try {
       String txpath = getTXPath(tid);
       String top = findTop(txpath);
-      if (top == null) return null;
+      if (top == null)
+        return null;
       
       byte[] ser = zk.getData(txpath + "/" + top, null);
       return (Repo<T>) deserialize(ser);
@@ -244,9 +257,11 @@ public class ZooStore<T> implements TStore<T> {
     String max = "";
     
     for (String child : ops)
-      if (child.startsWith("repo_") && child.compareTo(max) > 0) max = child;
+      if (child.startsWith("repo_") && child.compareTo(max) > 0)
+        max = child;
     
-    if (max.equals("")) return null;
+    if (max.equals(""))
+      return null;
     
     return max;
   }
@@ -277,7 +292,8 @@ public class ZooStore<T> implements TStore<T> {
     try {
       String txpath = getTXPath(tid);
       String top = findTop(txpath);
-      if (top == null) throw new IllegalStateException("Tried to pop when empty " + tid);
+      if (top == null)
+        throw new IllegalStateException("Tried to pop when empty " + tid);
       zk.recursiveDelete(txpath + "/" + top, NodeMissingPolicy.SKIP);
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -309,7 +325,8 @@ public class ZooStore<T> implements TStore<T> {
       }
       
       TStatus status = _getStatus(tid);
-      if (expected.contains(status)) return status;
+      if (expected.contains(status))
+        return status;
       
       synchronized (this) {
         if (events == statusChangeEvents) {

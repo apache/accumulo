@@ -30,7 +30,8 @@ public class PercentageType extends CellType<Double> {
   
   @Override
   public String format(Object obj) {
-    if (obj == null) return "-";
+    if (obj == null)
+      return "-";
     
     return String.format("%.0f%s", 100 * (Double) obj, "%");
     

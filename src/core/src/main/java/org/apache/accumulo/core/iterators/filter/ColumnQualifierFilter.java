@@ -38,9 +38,11 @@ public class ColumnQualifierFilter implements Filter {
   }
   
   public boolean accept(Key key, Value v) {
-    if (!scanColumns) return true;
+    if (!scanColumns)
+      return true;
     
-    if (columnFamilies.contains(key.getColumnFamilyData())) return true;
+    if (columnFamilies.contains(key.getColumnFamilyData()))
+      return true;
     
     HashSet<ByteSequence> cfset = columnsQualifiers.get(key.getColumnQualifierData());
     // ensure the columm qualifier goes with a paired column family,

@@ -89,10 +89,12 @@ public class TimeBinner {
           }
           case AMM: {
             DoubleWrapper mindw = get(time, aggregation3, Double.POSITIVE_INFINITY);
-            if (data < mindw.d) mindw.d = data_min;
+            if (data < mindw.d)
+              mindw.d = data_min;
             
             DoubleWrapper maxdw = get(time, aggregation4, Double.NEGATIVE_INFINITY);
-            if (data > maxdw.d) maxdw.d = data_max;
+            if (data > maxdw.d)
+              maxdw.d = data_max;
             
             // fall through to AVG
           }

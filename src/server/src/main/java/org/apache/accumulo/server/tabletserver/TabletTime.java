@@ -124,7 +124,8 @@ public abstract class TabletTime {
     
     @Override
     void useMaxTimeFromWALog(long time) {
-      if (time > lastTime) lastTime = time;
+      if (time > lastTime)
+        lastTime = time;
     }
     
     @Override
@@ -133,7 +134,8 @@ public abstract class TabletTime {
       long currTime = RelativeTime.currentTimeMillis();
       
       synchronized (this) {
-        if (mutations.size() == 0) return lastTime;
+        if (mutations.size() == 0)
+          return lastTime;
         
         currTime = updateTime(currTime);
       }
@@ -207,7 +209,8 @@ public abstract class TabletTime {
     
     @Override
     long setUpdateTimes(List<Mutation> mutations) {
-      if (mutations.size() == 0) return getTime();
+      if (mutations.size() == 0)
+        return getTime();
       
       long time = nextTime.getAndAdd(mutations.size());
       for (Mutation mutation : mutations)

@@ -110,14 +110,16 @@ public class BulkImport extends MasterRepo {
   
   @Override
   public long isReady(long tid, Master master) throws Exception {
-    if (!Utils.getReadLock(tableId, tid).tryLock()) return 100;
+    if (!Utils.getReadLock(tableId, tid).tryLock())
+      return 100;
     
     Instance instance = HdfsZooInstance.getInstance();
     Tables.clearCache(instance);
     if (Tables.getTableState(instance, tableId) == TableState.ONLINE) {
       long reserve1, reserve2;
       reserve1 = reserve2 = Utils.reserveHdfsDirectory(sourceDir, tid);
-      if (reserve1 == 0) reserve2 = Utils.reserveHdfsDirectory(errorDir, tid);
+      if (reserve1 == 0)
+        reserve2 = Utils.reserveHdfsDirectory(errorDir, tid);
       return reserve2;
     } else {
       throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.OFFLINE, null);
@@ -136,12 +138,15 @@ public class BulkImport extends MasterRepo {
     ;
     Path errorPath = new Path(errorDir);
     FileStatus errorStatus = fs.getFileStatus(errorPath);
-    if (errorStatus == null) throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
-        TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir + " does not exist");
-    if (!errorStatus.isDir()) throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
-        TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir + " is not a directory");
-    if (fs.listStatus(errorPath).length != 0) throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
-        TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir + " is not empty");
+    if (errorStatus == null)
+      throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir
+          + " does not exist");
+    if (!errorStatus.isDir())
+      throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir
+          + " is not a directory");
+    if (fs.listStatus(errorPath).length != 0)
+      throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, errorDir
+          + " is not empty");
     
     ZooArbitrator.start(Constants.BULK_ARBITRATOR_TYPE, tid);
     
@@ -172,8 +177,9 @@ public class BulkImport extends MasterRepo {
     while (true) {
       Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
       if (fs.exists(newBulkDir)) // sanity check
-      throw new IllegalStateException("Dir exist when it should not " + newBulkDir);
-      if (fs.mkdirs(newBulkDir)) return newBulkDir;
+        throw new IllegalStateException("Dir exist when it should not " + newBulkDir);
+      if (fs.mkdirs(newBulkDir))
+        return newBulkDir;
       log.warn("Failed to create " + newBulkDir + " for unknown reason");
       
       UtilWaitThread.sleep(3000);
@@ -272,12 +278,14 @@ class CleanUpBulkImport extends MasterRepo {
     Set<TServerInstance> running = master.onlineTabletServers();
     for (TServerInstance server : running) {
       try {
-        if (!master.getConnection(server).isActive(tid)) finished.add(server);
+        if (!master.getConnection(server).isActive(tid))
+          finished.add(server);
       } catch (TException ex) {
         log.info("Ignoring error trying to check on tid " + tid + " from server " + server + ": " + ex);
       }
     }
-    if (finished.containsAll(running)) return 0;
+    if (finished.containsAll(running))
+      return 0;
     return 1000;
   }
   
@@ -374,8 +382,9 @@ class LoadFiles extends MasterRepo {
     if (!fs.createNewFile(writable)) {
       // Maybe this is a re-try... clear the flag and try again
       fs.delete(writable, false);
-      if (!fs.createNewFile(writable)) throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
-          TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY, "Unable to write to " + this.errorDir);
+      if (!fs.createNewFile(writable))
+        throw new ThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_BAD_ERROR_DIRECTORY,
+            "Unable to write to " + this.errorDir);
     }
     fs.delete(writable, false);
     

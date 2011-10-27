@@ -69,7 +69,8 @@ public class Fate<T> {
               if (deferTime == 0) {
                 prevOp = op;
                 op = op.call(tid, environment);
-              } else continue;
+              } else
+                continue;
               
             } catch (Exception e) {
               transitionToFailed(tid, op, e);
@@ -79,7 +80,8 @@ public class Fate<T> {
             if (op == null) {
               // transaction is finished
               String ret = prevOp.getReturn();
-              if (ret != null) store.setProperty(tid, RETURN_PROP, ret);
+              if (ret != null)
+                store.setProperty(tid, RETURN_PROP, ret);
               store.setStatus(tid, TStatus.SUCCESSFUL);
               doCleanUp(tid);
             } else {
@@ -95,7 +97,8 @@ public class Fate<T> {
           }
         } finally {
           store.unreserve(tid, deferTime);
-          if (span != null) span.stop();
+          if (span != null)
+            span.stop();
         }
         
       }
@@ -173,7 +176,8 @@ public class Fate<T> {
           }
         }
         
-        if (autoCleanUp) store.setProperty(tid, AUTO_CLEAN_PROP, new Boolean(autoCleanUp));
+        if (autoCleanUp)
+          store.setProperty(tid, AUTO_CLEAN_PROP, new Boolean(autoCleanUp));
         
         store.setProperty(tid, DEBUG_PROP, repo.getClass().getName());
         
@@ -215,8 +219,8 @@ public class Fate<T> {
   public String getReturn(long tid) {
     store.reserve(tid);
     try {
-      if (store.getStatus(tid) != TStatus.SUCCESSFUL) throw new IllegalStateException("Tried to get exception when transaction " + String.format("%016x", tid)
-          + " not in successful state");
+      if (store.getStatus(tid) != TStatus.SUCCESSFUL)
+        throw new IllegalStateException("Tried to get exception when transaction " + String.format("%016x", tid) + " not in successful state");
       return (String) store.getProperty(tid, RETURN_PROP);
     } finally {
       store.unreserve(tid, 0);
@@ -227,8 +231,8 @@ public class Fate<T> {
   public Exception getException(long tid) {
     store.reserve(tid);
     try {
-      if (store.getStatus(tid) != TStatus.FAILED) throw new IllegalStateException("Tried to get exception when transaction " + String.format("%016x", tid)
-          + " not in failed state");
+      if (store.getStatus(tid) != TStatus.FAILED)
+        throw new IllegalStateException("Tried to get exception when transaction " + String.format("%016x", tid) + " not in failed state");
       return (Exception) store.getProperty(tid, EXCEPTION_PROP);
     } finally {
       store.unreserve(tid, 0);

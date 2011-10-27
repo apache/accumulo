@@ -120,8 +120,10 @@ public class TabletLocatorImplTest extends TestCase {
     TreeMap<Text,TabletLocation> mc = new TreeMap<Text,TabletLocation>(TabletLocatorImpl.endRowComparator);
     
     for (Entry<KeyExtent,TabletLocation> entry : mcke.entrySet()) {
-      if (entry.getKey().getEndRow() == null) mc.put(TabletLocatorImpl.MAX_TEXT, entry.getValue());
-      else mc.put(entry.getKey().getEndRow(), entry.getValue());
+      if (entry.getKey().getEndRow() == null)
+        mc.put(TabletLocatorImpl.MAX_TEXT, entry.getValue());
+      else
+        mc.put(entry.getKey().getEndRow(), entry.getValue());
     }
     
     return mc;
@@ -526,8 +528,10 @@ public class TabletLocatorImplTest extends TestCase {
         List<Range> ranges = entry.getValue();
         for (Range range : ranges) {
           SortedMap<Key,Value> tm;
-          if (range.getStartKey() == null) tm = tabletData;
-          else tm = tabletData.tailMap(range.getStartKey());
+          if (range.getStartKey() == null)
+            tm = tabletData;
+          else
+            tm = tabletData.tailMap(range.getStartKey());
           
           for (Entry<Key,Value> de : tm.entrySet()) {
             if (range.afterEndKey(de.getKey())) {
@@ -541,7 +545,8 @@ public class TabletLocatorImplTest extends TestCase {
         }
       }
       
-      if (failures.size() > 0) parent.invalidateCache(failures);
+      if (failures.size() > 0)
+        parent.invalidateCache(failures);
       
       SortedMap<KeyExtent,Text> metadata = MetadataTable.getMetadataLocationEntries(results);
       
@@ -590,7 +595,8 @@ public class TabletLocatorImplTest extends TestCase {
     TabletLocation tl = cache.locateTablet(new Text(row), skipRow, false);
     
     if (expected == null) {
-      if (tl != null) System.out.println("tl = " + tl);
+      if (tl != null)
+        System.out.println("tl = " + tl);
       assertNull(tl);
     } else {
       assertNotNull(tl);
@@ -1086,7 +1092,8 @@ public class TabletLocatorImplTest extends TestCase {
       
       List<Mutation> ml = nml(nm("a", "cf1:cq1=v1", "cf1:cq2=v2"), nm("m", "cf1:cq1=v3", "cf1:cq2=v4"), nm("z", "cf1:cq1=v5"));
       Map<String,Map<KeyExtent,List<String>>> emb = cemb(nol("a", "l1", ke1), nol("m", "l1", ke1), nol("z", "l1", ke1));
-      if (i == 0 || i == 2) runTest(metaCache, ml, emb);
+      if (i == 0 || i == 2)
+        runTest(metaCache, ml, emb);
       
       List<Range> ranges = nrl(new Range(new Text("a")), new Range(new Text("m")), new Range(new Text("z")));
       
@@ -1094,7 +1101,8 @@ public class TabletLocatorImplTest extends TestCase {
       
       );
       
-      if (i == 1 || i == 2) runTest(new Text("foo"), ranges, metaCache, expected1);
+      if (i == 1 || i == 2)
+        runTest(new Text("foo"), ranges, metaCache, expected1);
       
       KeyExtent ke11 = nke("foo", "n", null);
       KeyExtent ke12 = nke("foo", null, "n");
@@ -1104,24 +1112,28 @@ public class TabletLocatorImplTest extends TestCase {
       metaCache.invalidateCache(ke1);
       
       emb = cemb(nol("z", "l2", ke12));
-      if (i == 0 || i == 2) runTest(metaCache, ml, emb, "a", "m");
+      if (i == 0 || i == 2)
+        runTest(metaCache, ml, emb, "a", "m");
       
       Map<String,Map<KeyExtent,List<Range>>> expected2 = createExpectedBinnings("l2", nol(nke("foo", null, "n"), nrl(new Range(new Text("z"))))
       
       );
       
-      if (i == 1 || i == 2) runTest(new Text("foo"), ranges, metaCache, expected2, nrl(new Range(new Text("a")), new Range(new Text("m"))));
+      if (i == 1 || i == 2)
+        runTest(new Text("foo"), ranges, metaCache, expected2, nrl(new Range(new Text("a")), new Range(new Text("m"))));
       
       setLocation(tservers, "tserver2", MTE, ke11, "l3");
       emb = cemb(nol("a", "l3", ke11), nol("m", "l3", ke11), nol("z", "l2", ke12));
-      if (i == 0 || i == 2) runTest(metaCache, ml, emb);
+      if (i == 0 || i == 2)
+        runTest(metaCache, ml, emb);
       
       Map<String,Map<KeyExtent,List<Range>>> expected3 = createExpectedBinnings("l2", nol(nke("foo", null, "n"), nrl(new Range(new Text("z")))), "l3",
           nol(nke("foo", "n", null), nrl(new Range(new Text("a")), new Range(new Text("m"))))
       
       );
       
-      if (i == 1 || i == 2) runTest(new Text("foo"), ranges, metaCache, expected3);
+      if (i == 1 || i == 2)
+        runTest(new Text("foo"), ranges, metaCache, expected3);
     }
   }
   

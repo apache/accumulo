@@ -52,7 +52,8 @@ public class ScanCommand extends Command {
     
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName)) throw new TableNotFoundException(null, tableName, null);
+      if (!shellState.getConnector().tableOperations().exists(tableName))
+        throw new TableNotFoundException(null, tableName, null);
     } else {
       shellState.checkTableState();
       tableName = shellState.getTableName();
@@ -96,7 +97,8 @@ public class ScanCommand extends Command {
   
   protected void addScanIterators(Shell shellState, Scanner scanner, String tableName) {
     Map<String,Map<String,String>> tableIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
-    if (tableIterators == null) return;
+    if (tableIterators == null)
+      return;
     
     for (Entry<String,Map<String,String>> entry : tableIterators.entrySet()) {
       Map<String,String> options = new HashMap<String,String>(entry.getValue());
@@ -126,8 +128,10 @@ public class ScanCommand extends Command {
     if (cl.hasOption(scanOptColumns.getOpt())) {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
         String sa[] = a.split(":", 2);
-        if (sa.length == 1) scanner.fetchColumnFamily(new Text(a));
-        else scanner.fetchColumn(new Text(sa[0]), new Text(sa[1]));
+        if (sa.length == 1)
+          scanner.fetchColumnFamily(new Text(a));
+        else
+          scanner.fetchColumn(new Text(sa[0]), new Text(sa[1]));
       }
     }
   }

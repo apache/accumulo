@@ -43,12 +43,14 @@ public class DeleteCommand extends Command {
     
     if (cl.hasOption(deleteOptAuths.getOpt())) {
       ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(deleteOptAuths.getOpt()));
-      if (cl.hasOption(timestampOpt.getOpt())) m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le,
-          Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
-      else m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le);
-    } else if (cl.hasOption(timestampOpt.getOpt())) m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]),
-        Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
-    else m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]));
+      if (cl.hasOption(timestampOpt.getOpt()))
+        m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
+      else
+        m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le);
+    } else if (cl.hasOption(timestampOpt.getOpt()))
+      m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
+    else
+      m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]));
     
     BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), m.estimatedMemoryUsed() + 0L, 0L, 1);
     bw.addMutation(m);

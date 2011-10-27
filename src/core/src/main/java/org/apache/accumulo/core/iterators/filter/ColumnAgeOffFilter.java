@@ -55,8 +55,10 @@ public class ColumnAgeOffFilter implements Filter, OptionDescriber {
   @Override
   public boolean accept(Key k, Value v) {
     Long threshold = ttls.getObject(k);
-    if (threshold == null) return true;
-    if (currentTime - k.getTimestamp() > threshold) return false;
+    if (threshold == null)
+      return true;
+    if (currentTime - k.getTimestamp() > threshold)
+      return false;
     return true;
   }
   

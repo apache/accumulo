@@ -45,7 +45,8 @@ public class GetMasterStats {
       client = MasterClient.getConnection(HdfsZooInstance.getInstance());
       stats = client.getMasterStats(null, SecurityConstants.getSystemCredentials());
     } finally {
-      if (client != null) MasterClient.close(client);
+      if (client != null)
+        MasterClient.close(client);
     }
     out(0, "State: " + stats.state.name());
     out(0, "Goal State: " + stats.goalState.name());
@@ -92,7 +93,8 @@ public class GetMasterStats {
         out(2, "Loggers %d", server.loggers.size());
         for (String logger : server.loggers)
           out(3, "Logger %s", logger);
-        if (server.holdTime > 0) out(2, "Hold Time %d", server.holdTime);
+        if (server.holdTime > 0)
+          out(2, "Hold Time %d", server.holdTime);
         if (server.tableMap != null && server.tableMap.size() > 0) {
           out(2, "Tables");
           for (Entry<String,TableInfo> status : server.tableMap.entrySet()) {

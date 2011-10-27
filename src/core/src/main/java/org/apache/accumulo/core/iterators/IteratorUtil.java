@@ -93,7 +93,8 @@ public class IteratorUtil {
     int max = 0;
     
     for (IterInfo iterInfo : iters) {
-      if (iterInfo.priority > max) max = iterInfo.priority;
+      if (iterInfo.priority > max)
+        max = iterInfo.priority;
     }
     
     return max;
@@ -182,7 +183,8 @@ public class IteratorUtil {
     parseIterConf(scope, iters, allOptions, conf);
     
     for (Entry<String,Map<String,String>> entry : ssio.entrySet()) {
-      if (entry.getValue() == null) continue;
+      if (entry.getValue() == null)
+        continue;
       Map<String,String> options = allOptions.get(entry.getKey());
       if (options == null) {
         allOptions.put(entry.getKey(), entry.getValue());
@@ -207,7 +209,8 @@ public class IteratorUtil {
         
         Map<String,String> options = iterOpts.get(iterInfo.iterName);
         
-        if (options == null) options = Collections.emptyMap();
+        if (options == null)
+          options = Collections.emptyMap();
         
         skvi.init(prev, options, env);
         prev = skvi;

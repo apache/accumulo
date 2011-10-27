@@ -86,7 +86,8 @@ public class ZooQueueLock implements QueueLock {
         try {
           byte[] data = zoo.getData(path + "/" + name, null);
           long order = Long.parseLong(name.substring(PREFIX.length()));
-          if (order <= entry) result.put(order, data);
+          if (order <= entry)
+            result.put(order, data);
         } catch (KeeperException.NoNodeException ex) {
           // ignored
         }
@@ -123,11 +124,13 @@ public class ZooQueueLock implements QueueLock {
     Lock readLock2 = rlocker.readLock();
     readLock2.lock();
     Lock writeLock = wlocker.writeLock();
-    if (writeLock.tryLock(100, TimeUnit.MILLISECONDS)) throw new RuntimeException("Write lock achieved during read lock!");
+    if (writeLock.tryLock(100, TimeUnit.MILLISECONDS))
+      throw new RuntimeException("Write lock achieved during read lock!");
     readLock.unlock();
     readLock2.unlock();
     writeLock.lock();
-    if (readLock.tryLock(100, TimeUnit.MILLISECONDS)) throw new RuntimeException("Read lock achieved during write lock!");
+    if (readLock.tryLock(100, TimeUnit.MILLISECONDS))
+      throw new RuntimeException("Read lock achieved during write lock!");
     Lock writeLock2 = DistributedReadWriteLock.recoverLock(lock, "wlocker".getBytes());
     writeLock2.unlock();
     readLock.lock();

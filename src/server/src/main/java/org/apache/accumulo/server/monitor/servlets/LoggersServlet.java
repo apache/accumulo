@@ -59,7 +59,8 @@ public class LoggersServlet extends BasicServlet {
     if (loggerAddress == null || loggerAddress.isEmpty()) {
       
       ArrayList<LoggerStatus> loggers = new ArrayList<LoggerStatus>();
-      if (Monitor.getMmi() != null) loggers.addAll(Monitor.getMmi().loggers);
+      if (Monitor.getMmi() != null)
+        loggers.addAll(Monitor.getMmi().loggers);
       Table loggerList = new Table("loggers", "Logger&nbsp;Servers");
       
       doLoggerServerList(req, sb, loggers, loggerList);
@@ -71,7 +72,8 @@ public class LoggersServlet extends BasicServlet {
     loggerList.addSortableColumn("Server", new LoggerLinkType(), null);
     
     for (LoggerStatus status : loggers) {
-      if (status == null) status = NO_STATUS;
+      if (status == null)
+        status = NO_STATUS;
       RecoveryStatus s = new RecoveryStatus();
       s.host = status.logger;
       loggerList.addRow(s);

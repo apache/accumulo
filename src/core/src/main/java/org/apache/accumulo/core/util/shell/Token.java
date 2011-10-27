@@ -72,7 +72,8 @@ public class Token {
     Iterator<Token> iter = subcommands.iterator();
     while (iter.hasNext()) {
       Token t = iter.next();
-      if (t.containsCommand(name)) return t;
+      if (t.containsCommand(name))
+        return t;
     }
     return null;
   }
@@ -110,9 +111,11 @@ public class Token {
     while (iter.hasNext()) {
       String t = iter.next();
       if (caseSensitive) {
-        if (t.equals(match)) return true;
+        if (t.equals(match))
+          return true;
       } else {
-        if (t.equalsIgnoreCase(match)) return true;
+        if (t.equalsIgnoreCase(match))
+          return true;
       }
     }
     return false;

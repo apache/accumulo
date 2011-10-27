@@ -41,7 +41,8 @@ public class CacheTestClean {
       reportDir.mkdir();
     } else {
       File[] files = reportDir.listFiles();
-      if (files.length != 0) throw new Exception("dir " + reportDir + " is not empty");
+      if (files.length != 0)
+        throw new Exception("dir " + reportDir + " is not empty");
     }
     
   }

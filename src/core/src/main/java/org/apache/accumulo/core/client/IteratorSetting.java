@@ -226,8 +226,10 @@ public class IteratorSetting {
    *          key/value pairs
    */
   public void addOptions(IteratorScope scope, Map<String,String> properties) {
-    if (properties == null) return;
-    if (!this.properties.containsKey(scope)) this.properties.put(scope, new HashMap<String,String>());
+    if (properties == null)
+      return;
+    if (!this.properties.containsKey(scope))
+      this.properties.put(scope, new HashMap<String,String>());
     for (Entry<String,String> entry : properties.entrySet()) {
       this.properties.get(scope).put(entry.getKey(), entry.getValue());
     }

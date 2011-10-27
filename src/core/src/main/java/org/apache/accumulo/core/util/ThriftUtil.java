@@ -94,7 +94,8 @@ public class ThriftUtil {
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {
-        if (client != null) returnClient(client);
+        if (client != null)
+          returnClient(client);
       }
     }
   }
@@ -113,7 +114,8 @@ public class ThriftUtil {
       } catch (Exception e) {
         throw new AccumuloException(e);
       } finally {
-        if (client != null) returnClient(client);
+        if (client != null)
+          returnClient(client);
       }
     }
   }

@@ -110,7 +110,8 @@ public class TestLogWriter {
     writer.startCopy(null, CREDENTIALS, logFile.name, "mylog", false);
     for (int i = 0; i < 100; i++) {
       UtilWaitThread.sleep(100);
-      if (fs.exists(mylog)) break;
+      if (fs.exists(mylog))
+        break;
     }
     assertTrue(fs.exists(mylog));
     Mutation m = new Mutation(new Text("row1"));

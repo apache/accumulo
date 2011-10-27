@@ -96,8 +96,10 @@ public class CheckForMetadataProblems {
       
       lastEndRow = tabke.getEndRow();
     }
-    if (everythingLooksGood) System.out.println("All is well for table " + tablename);
-    else sawProblems = true;
+    if (everythingLooksGood)
+      System.out.println("All is well for table " + tablename);
+    else
+      sawProblems = true;
   }
   
   public static void checkMetadataTableEntries(boolean offline, boolean patch) throws Exception {
@@ -224,7 +226,8 @@ public class CheckForMetadataProblems {
       System.exit(-1);
     }
     
-    if (sawProblems) System.exit(-1);
+    if (sawProblems)
+      System.exit(-1);
   }
   
 }

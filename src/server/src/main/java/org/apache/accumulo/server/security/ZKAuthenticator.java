@@ -65,7 +65,8 @@ public final class ZKAuthenticator implements Authenticator {
   private final ZooCache zooCache;
   
   public static synchronized Authenticator getInstance() {
-    if (zkAuthenticatorInstance == null) zkAuthenticatorInstance = new Auditor(new ZKAuthenticator());
+    if (zkAuthenticatorInstance == null)
+      zkAuthenticatorInstance = new Auditor(new ZKAuthenticator());
     return zkAuthenticatorInstance;
   }
   
@@ -85,10 +86,11 @@ public final class ZKAuthenticator implements Authenticator {
    * @throws AccumuloSecurityException
    */
   private boolean authenticate(AuthInfo credentials) throws AccumuloSecurityException {
-    if (!credentials.instanceId.equals(HdfsZooInstance.getInstance().getInstanceID())) throw new AccumuloSecurityException(credentials.user,
-        SecurityErrorCode.INVALID_INSTANCEID);
+    if (!credentials.instanceId.equals(HdfsZooInstance.getInstance().getInstanceID()))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.INVALID_INSTANCEID);
     
-    if (credentials.user.equals(SecurityConstants.SYSTEM_USERNAME)) return credentials.equals(SecurityConstants.getSystemCredentials());
+    if (credentials.user.equals(SecurityConstants.SYSTEM_USERNAME))
+      return credentials.equals(SecurityConstants.getSystemCredentials());
     
     byte[] pass;
     String zpath = ZKUserPath + "/" + credentials.user;
@@ -106,8 +108,8 @@ public final class ZKAuthenticator implements Authenticator {
    * Only SYSTEM user can call this method
    */
   public void initializeSecurity(AuthInfo credentials, String rootuser, byte[] rootpass) throws AccumuloSecurityException {
-    if (!credentials.user.equals(SecurityConstants.SYSTEM_USERNAME) || !authenticate(credentials)) throw new AccumuloSecurityException(credentials.user,
-        SecurityErrorCode.PERMISSION_DENIED);
+    if (!credentials.user.equals(SecurityConstants.SYSTEM_USERNAME) || !authenticate(credentials))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     try {
       // remove old settings from zookeeper first, if any
@@ -173,14 +175,16 @@ public final class ZKAuthenticator implements Authenticator {
   }
   
   public synchronized String getRootUsername() {
-    if (rootUserName == null) rootUserName = new String(zooCache.get(ZKUserPath));
+    if (rootUserName == null)
+      rootUserName = new String(zooCache.get(ZKUserPath));
     return rootUserName;
   }
   
   public boolean authenticateUser(AuthInfo credentials, String user, ByteBuffer pass) throws AccumuloSecurityException {
-    if (!authenticate(credentials)) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.BAD_CREDENTIALS);
-    if (!credentials.user.equals(user) && !hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM)) throw new AccumuloSecurityException(
-        credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+    if (!authenticate(credentials))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.BAD_CREDENTIALS);
+    if (!credentials.user.equals(user) && !hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     return authenticate(new AuthInfo(user, pass, credentials.instanceId));
   }
@@ -191,7 +195,8 @@ public final class ZKAuthenticator implements Authenticator {
   
   @Override
   public Set<String> listUsers(AuthInfo credentials) throws AccumuloSecurityException {
-    if (!authenticate(credentials)) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.BAD_CREDENTIALS);
+    if (!authenticate(credentials))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.BAD_CREDENTIALS);
     
     return new TreeSet<String>(zooCache.getChildren(ZKUserPath));
   }
@@ -200,18 +205,20 @@ public final class ZKAuthenticator implements Authenticator {
    * Creates a user with no permissions whatsoever
    */
   public void createUser(AuthInfo credentials, String user, byte[] pass, Authorizations authorizations) throws AccumuloSecurityException {
-    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.CREATE_USER)) throw new AccumuloSecurityException(credentials.user,
-        SecurityErrorCode.PERMISSION_DENIED);
+    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.CREATE_USER))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     // don't allow creating a user with the same name as system user
-    if (user.equals(SecurityConstants.SYSTEM_USERNAME)) throw new AccumuloSecurityException(user, SecurityErrorCode.PERMISSION_DENIED);
+    if (user.equals(SecurityConstants.SYSTEM_USERNAME))
+      throw new AccumuloSecurityException(user, SecurityErrorCode.PERMISSION_DENIED);
     
     try {
       constructUser(user, Tool.createPass(pass), new TreeSet<SystemPermission>(), new HashMap<String,Set<TablePermission>>(), authorizations);
       log.info("Created user " + user + " at the request of user " + credentials.user);
     } catch (KeeperException e) {
       log.error(e, e);
-      if (e.code().equals(KeeperException.Code.NODEEXISTS)) throw new AccumuloSecurityException(user, SecurityErrorCode.USER_EXISTS, e);
+      if (e.code().equals(KeeperException.Code.NODEEXISTS))
+        throw new AccumuloSecurityException(user, SecurityErrorCode.USER_EXISTS, e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
       log.error(e, e);
@@ -223,12 +230,12 @@ public final class ZKAuthenticator implements Authenticator {
   }
   
   public void dropUser(AuthInfo credentials, String user) throws AccumuloSecurityException {
-    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.DROP_USER)) throw new AccumuloSecurityException(credentials.user,
-        SecurityErrorCode.PERMISSION_DENIED);
+    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.DROP_USER))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     // can't delete root or system users
-    if (user.equals(getRootUsername()) || user.equals(SecurityConstants.SYSTEM_USERNAME)) throw new AccumuloSecurityException(user,
-        SecurityErrorCode.PERMISSION_DENIED);
+    if (user.equals(getRootUsername()) || user.equals(SecurityConstants.SYSTEM_USERNAME))
+      throw new AccumuloSecurityException(user, SecurityErrorCode.PERMISSION_DENIED);
     
     try {
       synchronized (zooCache) {
@@ -241,17 +248,19 @@ public final class ZKAuthenticator implements Authenticator {
       throw new RuntimeException(e);
     } catch (KeeperException e) {
       log.error(e, e);
-      if (e.code().equals(KeeperException.Code.NONODE)) throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST, e);
+      if (e.code().equals(KeeperException.Code.NONODE))
+        throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST, e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     }
   }
   
   public void changePassword(AuthInfo credentials, String user, byte[] pass) throws AccumuloSecurityException {
-    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.ALTER_USER) && !credentials.user.equals(user)) throw new AccumuloSecurityException(
-        credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.ALTER_USER) && !credentials.user.equals(user))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     // can't modify system user
-    if (user.equals(SecurityConstants.SYSTEM_USERNAME)) throw new AccumuloSecurityException(user, SecurityErrorCode.PERMISSION_DENIED);
+    if (user.equals(SecurityConstants.SYSTEM_USERNAME))
+      throw new AccumuloSecurityException(user, SecurityErrorCode.PERMISSION_DENIED);
     
     if (userExists(user)) {
       try {
@@ -270,24 +279,27 @@ public final class ZKAuthenticator implements Authenticator {
         log.error(e, e);
         throw new AccumuloSecurityException(user, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
       }
-    } else throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
+    } else
+      throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
   
   /**
    * Checks if a user exists
    */
   private boolean userExists(String user) {
-    if (zooCache.get(ZKUserPath + "/" + user) != null) return true;
+    if (zooCache.get(ZKUserPath + "/" + user) != null)
+      return true;
     zooCache.clear(ZKUserPath + "/" + user);
     return zooCache.get(ZKUserPath + "/" + user) != null;
   }
   
   public void changeAuthorizations(AuthInfo credentials, String user, Authorizations authorizations) throws AccumuloSecurityException {
-    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.ALTER_USER)) throw new AccumuloSecurityException(credentials.user,
-        SecurityErrorCode.PERMISSION_DENIED);
+    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.ALTER_USER))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     // can't modify system user
-    if (user.equals(SecurityConstants.SYSTEM_USERNAME)) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+    if (user.equals(SecurityConstants.SYSTEM_USERNAME))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     if (userExists(user)) {
       try {
@@ -304,17 +316,20 @@ public final class ZKAuthenticator implements Authenticator {
         log.error(e, e);
         throw new RuntimeException(e);
       }
-    } else throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
+    } else
+      throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
   
   public Authorizations getUserAuthorizations(AuthInfo credentials, String user) throws AccumuloSecurityException {
-    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM) && !credentials.user.equals(user)) throw new AccumuloSecurityException(
-        credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM) && !credentials.user.equals(user))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     // system user doesn't need record-level authorizations for the tables it reads (for now)
-    if (user.equals(SecurityConstants.SYSTEM_USERNAME)) return Constants.NO_AUTHS;
+    if (user.equals(SecurityConstants.SYSTEM_USERNAME))
+      return Constants.NO_AUTHS;
     
-    if (userExists(user)) return Tool.convertAuthorizations(zooCache.get(ZKUserPath + "/" + user + ZKUserAuths));
+    if (userExists(user))
+      return Tool.convertAuthorizations(zooCache.get(ZKUserPath + "/" + user + ZKUserAuths));
     throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
   
@@ -325,20 +340,23 @@ public final class ZKAuthenticator implements Authenticator {
    */
   @Override
   public boolean hasSystemPermission(AuthInfo credentials, String user, SystemPermission permission) throws AccumuloSecurityException {
-    if (!authenticate(credentials)) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.BAD_CREDENTIALS);
+    if (!authenticate(credentials))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.BAD_CREDENTIALS);
     
     // some people just aren't allowed to ask about other users; here are those who can ask
     if (!credentials.user.equals(user) && !hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM)
         && !hasSystemPermission(credentials, credentials.user, SystemPermission.CREATE_USER)
         && !hasSystemPermission(credentials, credentials.user, SystemPermission.ALTER_USER)
-        && !hasSystemPermission(credentials, credentials.user, SystemPermission.DROP_USER)) throw new AccumuloSecurityException(credentials.user,
-        SecurityErrorCode.PERMISSION_DENIED);
+        && !hasSystemPermission(credentials, credentials.user, SystemPermission.DROP_USER))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
-    if (user.equals(getRootUsername()) || user.equals(SecurityConstants.SYSTEM_USERNAME)) return true;
+    if (user.equals(getRootUsername()) || user.equals(SecurityConstants.SYSTEM_USERNAME))
+      return true;
     
     byte[] perms = zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms);
     if (perms != null) {
-      if (Tool.convertSystemPermissions(perms).contains(permission)) return true;
+      if (Tool.convertSystemPermissions(perms).contains(permission))
+        return true;
       zooCache.clear(ZKUserPath + "/" + user + ZKUserSysPerms);
       return Tool.convertSystemPermissions(zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms)).contains(permission);
     }
@@ -356,23 +374,27 @@ public final class ZKAuthenticator implements Authenticator {
   }
   
   private boolean _hasTablePermission(AuthInfo credentials, String user, String table, TablePermission permission) throws AccumuloSecurityException {
-    if (!authenticate(credentials)) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.BAD_CREDENTIALS);
+    if (!authenticate(credentials))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.BAD_CREDENTIALS);
     
     // some people just aren't allowed to ask about other users; here are those who can ask
     if (!credentials.user.equals(user) && !hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM)
         && !hasSystemPermission(credentials, credentials.user, SystemPermission.CREATE_USER)
         && !hasSystemPermission(credentials, credentials.user, SystemPermission.ALTER_USER)
-        && !hasSystemPermission(credentials, credentials.user, SystemPermission.DROP_USER)) throw new AccumuloSecurityException(credentials.user,
-        SecurityErrorCode.PERMISSION_DENIED);
+        && !hasSystemPermission(credentials, credentials.user, SystemPermission.DROP_USER))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     // always allow system user
-    if (user.equals(SecurityConstants.SYSTEM_USERNAME)) return true;
+    if (user.equals(SecurityConstants.SYSTEM_USERNAME))
+      return true;
     
     // Don't let nonexistant users scan
-    if (!userExists(user)) throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
-    
+    if (!userExists(user))
+      throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
+      
     // allow anybody to read the METADATA table
-    if (table.equals(Constants.METADATA_TABLE_ID) && permission.equals(TablePermission.READ)) return true;
+    if (table.equals(Constants.METADATA_TABLE_ID) && permission.equals(TablePermission.READ))
+      return true;
     
     byte[] serializedPerms = zooCache.get(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table);
     if (serializedPerms != null) {
@@ -383,13 +405,15 @@ public final class ZKAuthenticator implements Authenticator {
   
   @Override
   public void grantSystemPermission(AuthInfo credentials, String user, SystemPermission permission) throws AccumuloSecurityException {
-    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.GRANT)) throw new AccumuloSecurityException(credentials.user,
-        SecurityErrorCode.PERMISSION_DENIED);
+    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.GRANT))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     // can't modify system user
-    if (user.equals(SecurityConstants.SYSTEM_USERNAME)) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+    if (user.equals(SecurityConstants.SYSTEM_USERNAME))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
-    if (permission.equals(SystemPermission.GRANT)) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.GRANT_INVALID);
+    if (permission.equals(SystemPermission.GRANT))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.GRANT_INVALID);
     
     if (userExists(user)) {
       Set<SystemPermission> perms = Tool.convertSystemPermissions(zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms));
@@ -409,30 +433,34 @@ public final class ZKAuthenticator implements Authenticator {
         log.error(e, e);
         throw new RuntimeException(e);
       }
-    } else throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
+    } else
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
   
   @Override
   public void grantTablePermission(AuthInfo credentials, String user, String table, TablePermission permission) throws AccumuloSecurityException {
     if (!hasSystemPermission(credentials, credentials.user, SystemPermission.ALTER_USER)
-        && !hasTablePermission(credentials, credentials.user, table, TablePermission.GRANT)) throw new AccumuloSecurityException(credentials.user,
-        SecurityErrorCode.PERMISSION_DENIED);
+        && !hasTablePermission(credentials, credentials.user, table, TablePermission.GRANT))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     // can't modify system user
-    if (user.equals(SecurityConstants.SYSTEM_USERNAME)) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+    if (user.equals(SecurityConstants.SYSTEM_USERNAME))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     if (userExists(user)) {
       Set<TablePermission> tablePerms;
       byte[] serializedPerms = zooCache.get(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table);
-      if (serializedPerms != null) tablePerms = Tool.convertTablePermissions(serializedPerms);
-      else tablePerms = new TreeSet<TablePermission>();
+      if (serializedPerms != null)
+        tablePerms = Tool.convertTablePermissions(serializedPerms);
+      else
+        tablePerms = new TreeSet<TablePermission>();
       
       try {
         if (tablePerms.add(permission)) {
           synchronized (zooCache) {
             zooCache.clear();
-            ZooReaderWriter.getRetryingInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, Tool.convertTablePermissions(tablePerms),
-                NodeExistsPolicy.OVERWRITE);
+            ZooReaderWriter.getRetryingInstance().putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table,
+                Tool.convertTablePermissions(tablePerms), NodeExistsPolicy.OVERWRITE);
           }
         }
         log.info("Granted table permission " + permission + " for user " + user + " on the table " + table + " at the request of user " + credentials.user);
@@ -443,19 +471,21 @@ public final class ZKAuthenticator implements Authenticator {
         log.error(e, e);
         throw new RuntimeException(e);
       }
-    } else throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
+    } else
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
   
   @Override
   public void revokeSystemPermission(AuthInfo credentials, String user, SystemPermission permission) throws AccumuloSecurityException {
-    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.GRANT)) throw new AccumuloSecurityException(credentials.user,
-        SecurityErrorCode.PERMISSION_DENIED);
+    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.GRANT))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     // can't modify system user or revoke permissions from root user
-    if (user.equals(SecurityConstants.SYSTEM_USERNAME) || user.equals(getRootUsername())) throw new AccumuloSecurityException(credentials.user,
-        SecurityErrorCode.PERMISSION_DENIED);
+    if (user.equals(SecurityConstants.SYSTEM_USERNAME) || user.equals(getRootUsername()))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
-    if (permission.equals(SystemPermission.GRANT)) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.GRANT_INVALID);
+    if (permission.equals(SystemPermission.GRANT))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.GRANT_INVALID);
     
     if (userExists(user)) {
       Set<SystemPermission> sysPerms = Tool.convertSystemPermissions(zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms));
@@ -475,30 +505,35 @@ public final class ZKAuthenticator implements Authenticator {
         log.error(e, e);
         throw new RuntimeException(e);
       }
-    } else throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST);
+    } else
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST);
   }
   
   @Override
   public void revokeTablePermission(AuthInfo credentials, String user, String table, TablePermission permission) throws AccumuloSecurityException {
     if (!hasSystemPermission(credentials, credentials.user, SystemPermission.ALTER_USER)
-        && !hasTablePermission(credentials, credentials.user, table, TablePermission.GRANT)) throw new AccumuloSecurityException(credentials.user,
-        SecurityErrorCode.PERMISSION_DENIED);
+        && !hasTablePermission(credentials, credentials.user, table, TablePermission.GRANT))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     // can't modify system user
-    if (user.equals(SecurityConstants.SYSTEM_USERNAME)) throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+    if (user.equals(SecurityConstants.SYSTEM_USERNAME))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     if (userExists(user)) {
       
       byte[] serializedPerms = zooCache.get(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table);
-      if (serializedPerms == null) return;
+      if (serializedPerms == null)
+        return;
       Set<TablePermission> tablePerms = Tool.convertTablePermissions(serializedPerms);
       try {
         if (tablePerms.remove(permission)) {
           zooCache.clear();
           IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
-          if (tablePerms.size() == 0) zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, NodeMissingPolicy.SKIP);
-          else zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, Tool.convertTablePermissions(tablePerms),
-              NodeExistsPolicy.OVERWRITE);
+          if (tablePerms.size() == 0)
+            zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, NodeMissingPolicy.SKIP);
+          else
+            zoo.putPersistentData(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table, Tool.convertTablePermissions(tablePerms),
+                NodeExistsPolicy.OVERWRITE);
         }
       } catch (KeeperException e) {
         log.error(e, e);
@@ -508,14 +543,15 @@ public final class ZKAuthenticator implements Authenticator {
         throw new RuntimeException(e);
       }
       log.info("Revoked table permission " + permission + " for user " + user + " on the table " + table + " at the request of user " + credentials.user);
-    } else throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST);
+    } else
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST);
   }
   
   @Override
   public void deleteTable(AuthInfo credentials, String table) throws AccumuloSecurityException {
     if (!hasSystemPermission(credentials, credentials.user, SystemPermission.DROP_TABLE)
-        && !hasTablePermission(credentials, credentials.user, table, TablePermission.DROP_TABLE)) throw new AccumuloSecurityException(credentials.user,
-        SecurityErrorCode.PERMISSION_DENIED);
+        && !hasTablePermission(credentials, credentials.user, table, TablePermission.DROP_TABLE))
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     try {
       synchronized (zooCache) {
@@ -556,7 +592,8 @@ public final class ZKAuthenticator implements Authenticator {
     }
     
     public static boolean checkPass(byte[] password, byte[] zkData) {
-      if (zkData == null) return false;
+      if (zkData == null)
+        return false;
       
       byte[] salt = new byte[SALT_LENGTH];
       System.arraycopy(zkData, 0, salt, 0, SALT_LENGTH);

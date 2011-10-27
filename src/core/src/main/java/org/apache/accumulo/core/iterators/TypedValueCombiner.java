@@ -45,7 +45,8 @@ public abstract class TypedValueCombiner<V> extends Combiner {
     
     @Override
     public V next() {
-      if (!source.hasNext()) throw new NoSuchElementException();
+      if (!source.hasNext())
+        throw new NoSuchElementException();
       return encoder.decode(source.next().get());
     }
     

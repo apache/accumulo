@@ -248,7 +248,8 @@ public class VisibilityTest extends FunctionalTest {
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner)
       --expectedCount;
-    if (expectedCount != 0) throw new Exception(" expected count !=0 " + expectedCount);
+    if (expectedCount != 0)
+      throw new Exception(" expected count !=0 " + expectedCount);
   }
   
   private void verify(Set<String> auths, Set<String> expectedValues) throws Exception {

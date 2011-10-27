@@ -96,8 +96,8 @@ public class VerifyTabletAssignments {
     try {
       cl = new BasicParser().parse(opts, args);
       
-      if (cl.hasOption(zooKeeperInstance.getOpt()) && cl.getOptionValues(zooKeeperInstance.getOpt()).length != 2) throw new MissingArgumentException(
-          zooKeeperInstance);
+      if (cl.hasOption(zooKeeperInstance.getOpt()) && cl.getOptionValues(zooKeeperInstance.getOpt()).length != 2)
+        throw new MissingArgumentException(zooKeeperInstance);
       
       user = cl.getOptionValue(usernameOption.getOpt());
       passw = cl.getOptionValue(passwOption.getOpt());
@@ -109,13 +109,15 @@ public class VerifyTabletAssignments {
         instance = HdfsZooInstance.getInstance();
       }
       
-      if (passw == null) passw = reader.readLine("Enter current password for '" + user + "'@'" + instance.getInstanceName() + "': ", '*');
+      if (passw == null)
+        passw = reader.readLine("Enter current password for '" + user + "'@'" + instance.getInstanceName() + "': ", '*');
       if (passw == null) {
         reader.printNewline();
         return;
       } // user canceled
       
-      if (cl.getArgs().length != 0) throw new ParseException("Unrecognized arguments: " + cl.getArgList());
+      if (cl.getArgs().length != 0)
+        throw new ParseException("Unrecognized arguments: " + cl.getArgList());
       
     } catch (ParseException e) {
       PrintWriter pw = new PrintWriter(System.err);
@@ -134,8 +136,10 @@ public class VerifyTabletAssignments {
   private static void checkTable(final String user, final String pass, String table, HashSet<KeyExtent> check, boolean verbose) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, InterruptedException {
     
-    if (check == null) System.out.println("Checking table " + table);
-    else System.out.println("Checking table " + table + " again, failures " + check.size());
+    if (check == null)
+      System.out.println("Checking table " + table);
+    else
+      System.out.println("Checking table " + table + " again, failures " + check.size());
     
     Map<KeyExtent,String> locations = new TreeMap<KeyExtent,String>();
     SortedSet<KeyExtent> tablets = new TreeSet<KeyExtent>();
@@ -146,8 +150,10 @@ public class VerifyTabletAssignments {
     final HashSet<KeyExtent> failures = new HashSet<KeyExtent>();
     
     for (KeyExtent keyExtent : tablets)
-      if (!locations.containsKey(keyExtent)) System.out.println(" Tablet " + keyExtent + " has no location");
-      else if (verbose) System.out.println(" Tablet " + keyExtent + " is located at " + locations.get(keyExtent));
+      if (!locations.containsKey(keyExtent))
+        System.out.println(" Tablet " + keyExtent + " has no location");
+      else if (verbose)
+        System.out.println(" Tablet " + keyExtent + " is located at " + locations.get(keyExtent));
     
     Map<String,List<KeyExtent>> extentsPerServer = new TreeMap<String,List<KeyExtent>>();
     
@@ -158,7 +164,8 @@ public class VerifyTabletAssignments {
         extentsPerServer.put(entry.getValue(), extentList);
       }
       
-      if (check == null || check.contains(entry.getKey())) extentList.add(entry.getKey());
+      if (check == null || check.contains(entry.getKey()))
+        extentList.add(entry.getKey());
     }
     
     ExecutorService tp = Executors.newFixedThreadPool(20);
@@ -186,7 +193,8 @@ public class VerifyTabletAssignments {
     
     while (!tp.awaitTermination(1, TimeUnit.HOURS)) {}
     
-    if (failures.size() > 0) checkTable(user, pass, table, failures, verbose);
+    if (failures.size() > 0)
+      checkTable(user, pass, table, failures, verbose);
   }
   
   private static void checkFailures(String server, HashSet<KeyExtent> failures, MultiScanResult scanResult) {

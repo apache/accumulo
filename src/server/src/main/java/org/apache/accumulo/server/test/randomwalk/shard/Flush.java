@@ -32,8 +32,10 @@ public class Flush extends Test {
     
     String table;
     
-    if (rand.nextDouble() < .5) table = indexTableName;
-    else table = dataTableName;
+    if (rand.nextDouble() < .5)
+      table = indexTableName;
+    else
+      table = dataTableName;
     
     state.getConnector().tableOperations().flush(table, null, null, true);
     log.debug("Flushed " + table);

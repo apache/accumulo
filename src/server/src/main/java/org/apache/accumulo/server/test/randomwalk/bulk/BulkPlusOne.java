@@ -59,7 +59,8 @@ public class BulkPlusOne extends BulkTest {
           AccumuloConfiguration.getDefaultConfiguration());
       f.startDefaultLocalityGroup();
       int end = (int) LOTS / parts;
-      if (i == parts - 1) end = (int) (LOTS - ctr);
+      if (i == parts - 1)
+        end = (int) (LOTS - ctr);
       for (int j = 0; j < end; j++) {
         for (String col : cols) {
           f.append(new Key(String.format(FMT, ctr), "cf", col), value);
@@ -72,7 +73,8 @@ public class BulkPlusOne extends BulkTest {
     fs.delete(dir, true);
     fs.delete(fail, true);
     FileStatus[] failures = fs.listStatus(fail);
-    if (failures != null && failures.length > 0) throw new Exception("Failures " + Arrays.asList(failures) + " found importing files from " + dir);
+    if (failures != null && failures.length > 0)
+      throw new Exception("Failures " + Arrays.asList(failures) + " found importing files from " + dir);
   }
   
   @Override

@@ -81,7 +81,8 @@ public class Insert extends Test {
     for (int i = 0; i < numWords; i++) {
       String word = generateRandomWord(rand);
       
-      if (i > 0) sb.append(" ");
+      if (i > 0)
+        sb.append(" ");
       
       sb.append(word);
     }
@@ -120,12 +121,15 @@ public class Insert extends Test {
       
       if (!tokensSeen.contains(token)) {
         tokensSeen.add(token);
-        if (delete) m.putDelete(token, docId);
-        else m.put(token, docId, new Value(new byte[0]));
+        if (delete)
+          m.putDelete(token, docId);
+        else
+          m.put(token, docId, new Value(new byte[0]));
       }
     }
     
-    if (m.size() > 0) bw.addMutation(m);
+    if (m.size() > 0)
+      bw.addMutation(m);
   }
   
 }

@@ -133,7 +133,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   public boolean exists(String tableName) {
     ArgumentChecker.notNull(tableName);
-    if (tableName.equals(Constants.METADATA_TABLE_NAME)) return true;
+    if (tableName.equals(Constants.METADATA_TABLE_NAME))
+      return true;
     
     OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Checking if table " + tableName + "exists...");
     boolean exists = Tables.getNameToIdMap(instance).containsKey(tableName);
@@ -184,7 +185,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (limitVersion) {
       List<PerColumnIteratorConfig> emptyArgs = Collections.emptyList();
       opts = IteratorUtil.generateInitialTableProperties(emptyArgs);
-    } else opts = Collections.emptyMap();
+    } else
+      opts = Collections.emptyMap();
     
     try {
       doTableOperation(TableOperation.CREATE, args, opts);
@@ -294,11 +296,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new AccumuloException(e.getMessage(), e);
     } finally {
       // always finish table op, even when exception
-      if (opid != null) try {
-        finishTableOperation(opid);
-      } catch (Exception e) {
-        log.warn(e.getMessage(), e);
-      }
+      if (opid != null)
+        try {
+          finishTableOperation(opid);
+        } catch (Exception e) {
+          log.warn(e.getMessage(), e);
+        }
     }
   }
   
@@ -329,15 +332,18 @@ public class TableOperationsImpl extends TableOperationsHelper {
       
       while (!successful) {
         
-        if (attempt > 0) UtilWaitThread.sleep(100);
+        if (attempt > 0)
+          UtilWaitThread.sleep(100);
         
         attempt++;
         
         TabletLocation tl = tabLocator.locateTablet(split, false, false);
         
         if (tl == null) {
-          if (!Tables.exists(instance, tableId)) throw new TableNotFoundException(tableId, tableName, null);
-          else if (Tables.getTableState(instance, tableId) == TableState.OFFLINE) throw new TableOfflineException(instance, tableId);
+          if (!Tables.exists(instance, tableId))
+            throw new TableNotFoundException(tableId, tableName, null);
+          else if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
+            throw new TableOfflineException(instance, tableId);
           continue;
         }
         
@@ -345,15 +351,16 @@ public class TableOperationsImpl extends TableOperationsHelper {
           TabletClientService.Iface client = ThriftUtil.getTServerClient(tl.tablet_location, instance.getConfiguration());
           try {
             OpTimer opTimer = null;
-            if (log.isTraceEnabled()) opTimer = new OpTimer(log, Level.TRACE).start("Splitting tablet " + tl.tablet_extent + " on " + tl.tablet_location
-                + " at " + split);
+            if (log.isTraceEnabled())
+              opTimer = new OpTimer(log, Level.TRACE).start("Splitting tablet " + tl.tablet_extent + " on " + tl.tablet_location + " at " + split);
             
             client.splitTablet(null, credentials, tl.tablet_extent.toThrift(), TextUtil.getByteBuffer(split));
             
             // just split it, might as well invalidate it in the cache
             tabLocator.invalidateCache(tl.tablet_extent);
             
-            if (opTimer != null) opTimer.stop("Split tablet in %DURATION%");
+            if (opTimer != null)
+              opTimer.stop("Split tablet in %DURATION%");
           } finally {
             ThriftUtil.returnClient((TServiceClient) client);
           }
@@ -365,7 +372,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
           continue;
         } catch (ThriftSecurityException e) {
           Tables.clearCache(instance);
-          if (!Tables.exists(instance, tableId)) throw new TableNotFoundException(tableId, tableName, null);
+          if (!Tables.exists(instance, tableId))
+            throw new TableNotFoundException(tableId, tableName, null);
           throw new AccumuloSecurityException(e.user, e.code, e);
         } catch (NotServingTabletException e) {
           tabLocator.invalidateCache(tl.tablet_extent);
@@ -442,7 +450,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ArrayList<Text> endRows = new ArrayList<Text>(tablets.size());
     
     for (KeyExtent ke : tablets)
-      if (ke.getEndRow() != null) endRows.add(ke.getEndRow());
+      if (ke.getEndRow() != null)
+        endRows.add(ke.getEndRow());
     
     return endRows;
   }
@@ -459,7 +468,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException {
     Collection<Text> endRows = getSplits(tableName);
     
-    if (endRows.size() <= maxSplits) return endRows;
+    if (endRows.size() <= maxSplits)
+      return endRows;
     
     double r = (maxSplits + 1) / (double) (endRows.size());
     double pos = 0;
@@ -514,10 +524,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     
     String srcTableId = Tables.getTableId(instance, srcTableName);
     
-    if (flush) _flush(srcTableId, null, null, true);
+    if (flush)
+      _flush(srcTableId, null, null, true);
     
-    if (!Collections.disjoint(propertiesToExclude, propertiesToSet.keySet())) throw new IllegalArgumentException(
-        "propertiesToSet and propertiesToExclude not disjoint");
+    if (!Collections.disjoint(propertiesToExclude, propertiesToSet.keySet()))
+      throw new IllegalArgumentException("propertiesToSet and propertiesToExclude not disjoint");
     
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.getBytes()), ByteBuffer.wrap(newTableName.getBytes()));
     Map<String,String> opts = new HashMap<String,String>();
@@ -588,7 +599,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     
     String tableId = Tables.getTableId(instance, tableName);
     
-    if (flush) _flush(tableId, start, end, true);
+    if (flush)
+      _flush(tableId, start, end, true);
     
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes()), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
         : TextUtil.getByteBuffer(end));
@@ -832,8 +844,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     ArgumentChecker.notNull(tableName, range);
-    if (maxSplits < 1) throw new IllegalArgumentException("maximum splits must be >= 1");
-    if (maxSplits == 1) return Collections.singleton(range);
+    if (maxSplits < 1)
+      throw new IllegalArgumentException("maximum splits must be >= 1");
+    if (maxSplits == 1)
+      return Collections.singleton(range);
     
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     TabletLocator tl = TabletLocator.getInstance(instance, credentials, new Text(Tables.getTableId(instance, tableName)));
@@ -886,8 +900,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Path failPath = new Path(failureDir);
     FileStatus[] listStatus = fs.listStatus(failPath);
-    if (fs.exists(failPath) && listStatus != null && listStatus.length != 0) throw new AccumuloException("Failure directory exists, and is not empty");
-    if (!fs.exists(failPath)) fs.mkdirs(failPath);
+    if (fs.exists(failPath) && listStatus != null && listStatus.length != 0)
+      throw new AccumuloException("Failure directory exists, and is not empty");
+    if (!fs.exists(failPath))
+      fs.mkdirs(failPath);
     
     try {
       importDirectory(tableName, dir, failureDir, false);
@@ -906,11 +922,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ArgumentChecker.notNull(tableName, dir, failureDir);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Path failPath = fs.makeQualified(new Path(failureDir));
-    if (!fs.exists(new Path(dir))) throw new AccumuloException("Bulk import directory " + dir + " does not exist!");
-    if (!fs.exists(failPath)) throw new AccumuloException("Bulk import failure directory " + failureDir + " does not exist!");
+    if (!fs.exists(new Path(dir)))
+      throw new AccumuloException("Bulk import directory " + dir + " does not exist!");
+    if (!fs.exists(failPath))
+      throw new AccumuloException("Bulk import failure directory " + failureDir + " does not exist!");
     FileStatus[] listStatus = fs.listStatus(failPath);
     if (listStatus != null && listStatus.length != 0) {
-      if (listStatus.length == 1 && listStatus[0].isDir()) throw new AccumuloException("Bulk import directory " + failPath + " is a file");
+      if (listStatus.length == 1 && listStatus[0].isDir())
+        throw new AccumuloException("Bulk import directory " + failPath + " is a file");
       throw new AccumuloException("Bulk import failure directory " + failPath + " is not empty");
     }
     

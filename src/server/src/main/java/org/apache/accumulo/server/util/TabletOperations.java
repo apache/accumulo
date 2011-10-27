@@ -41,13 +41,16 @@ public class TabletOperations {
         if (endRow == null) {
           lowDirectory = Constants.DEFAULT_TABLET_LOCATION;
           Path lowDirectoryPath = new Path(tableDir + lowDirectory);
-          if (fs.exists(lowDirectoryPath) || fs.mkdirs(lowDirectoryPath)) return lowDirectory;
+          if (fs.exists(lowDirectoryPath) || fs.mkdirs(lowDirectoryPath))
+            return lowDirectory;
           log.warn("Failed to create " + lowDirectoryPath + " for unknown reason");
         } else {
           lowDirectory = "/t-" + namer.getNextName();
           Path lowDirectoryPath = new Path(tableDir + lowDirectory);
-          if (fs.exists(lowDirectoryPath)) throw new IllegalStateException("Dir exist when it should not " + lowDirectoryPath);
-          if (fs.mkdirs(lowDirectoryPath)) return lowDirectory;
+          if (fs.exists(lowDirectoryPath))
+            throw new IllegalStateException("Dir exist when it should not " + lowDirectoryPath);
+          if (fs.mkdirs(lowDirectoryPath))
+            return lowDirectory;
         }
       } catch (IOException e) {
         log.warn(e);

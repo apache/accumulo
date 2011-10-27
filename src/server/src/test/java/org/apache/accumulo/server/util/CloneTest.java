@@ -107,7 +107,8 @@ public class CloneTest extends TestCase {
     HashSet<String> files = new HashSet<String>();
     
     for (Entry<Key,Value> entry : scanner) {
-      if (entry.getKey().getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY)) files.add(entry.getKey().getColumnQualifier().toString());
+      if (entry.getKey().getColumnFamily().equals(Constants.METADATA_DATAFILE_COLUMN_FAMILY))
+        files.add(entry.getKey().getColumnQualifier().toString());
     }
     
     assertEquals(1, files.size());

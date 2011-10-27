@@ -85,7 +85,8 @@ public class Summary extends Basic {
     }
     
     public String format(Object obj) {
-      if (obj == null) return "-";
+      if (obj == null)
+        return "-";
       String type = obj.toString();
       String encodedType = BasicServlet.encode(type);
       return String.format("<a href='/trace/listType?type=%s&minutes=%d'>%s</a>", encodedType, minutes, type);
@@ -99,8 +100,10 @@ public class Summary extends Basic {
       sb.append("<table>");
       sb.append("<tr>");
       for (long count : stat.histogram) {
-        if (count > 0) sb.append(String.format("<td style='width:5em'>%d</td>", count));
-        else sb.append("<td style='width:5em'>-</td>");
+        if (count > 0)
+          sb.append(String.format("<td style='width:5em'>%d</td>", count));
+        else
+          sb.append("<td style='width:5em'>-</td>");
       }
       sb.append("</tr></table>");
       return sb.toString();
@@ -110,8 +113,10 @@ public class Summary extends Basic {
     public int compare(Stats o1, Stats o2) {
       for (int i = 0; i < o1.histogram.length; i++) {
         long diff = o1.histogram[i] - o2.histogram[i];
-        if (diff < 0) return -1;
-        if (diff > 0) return 1;
+        if (diff < 0)
+          return -1;
+        if (diff > 0)
+          return 1;
       }
       return 0;
     }

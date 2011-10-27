@@ -62,7 +62,8 @@ public class RegExTest {
   }
   
   private void check(String regex, String val) throws Exception {
-    if (regex != null && !val.matches(regex)) throw new Exception(" " + val + " does not match " + regex);
+    if (regex != null && !val.matches(regex))
+      throw new Exception(" " + val + " does not match " + regex);
   }
   
   private void check(String regex, Text val) throws Exception {
@@ -119,10 +120,14 @@ public class RegExTest {
   
   private void setRegexs(ScannerBase scanner, String rowRegEx, String cfRegEx, String cqRegEx, String valRegEx) {
     IteratorSetting regex = new IteratorSetting(50, "regex", RegExFilter.class);
-    if (rowRegEx != null) regex.addOption(RegExFilter.ROW_REGEX, rowRegEx);
-    if (cfRegEx != null) regex.addOption(RegExFilter.COLF_REGEX, cfRegEx);
-    if (cqRegEx != null) regex.addOption(RegExFilter.COLQ_REGEX, cqRegEx);
-    if (valRegEx != null) regex.addOption(RegExFilter.VALUE_REGEX, valRegEx);
+    if (rowRegEx != null)
+      regex.addOption(RegExFilter.ROW_REGEX, rowRegEx);
+    if (cfRegEx != null)
+      regex.addOption(RegExFilter.COLF_REGEX, cfRegEx);
+    if (cqRegEx != null)
+      regex.addOption(RegExFilter.COLQ_REGEX, cqRegEx);
+    if (valRegEx != null)
+      regex.addOption(RegExFilter.VALUE_REGEX, valRegEx);
     scanner.addScanIterator(regex);
   }
   

@@ -100,8 +100,10 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   
   @Override
   public synchronized void setBatchSize(int size) {
-    if (size > 0) this.size = size;
-    else throw new IllegalArgumentException("size must be greater than zero");
+    if (size > 0)
+      this.size = size;
+    else
+      throw new IllegalArgumentException("size must be greater than zero");
   }
   
   @Override

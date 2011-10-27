@@ -141,7 +141,8 @@ public class TabletServerLogger {
       boolean test() {
         copy.clear();
         copy.addAll(loggers);
-        if (!loggers.isEmpty()) result[0] = logSetId.get();
+        if (!loggers.isEmpty())
+          result[0] = logSetId.get();
         return loggers.isEmpty();
       }
       
@@ -150,8 +151,10 @@ public class TabletServerLogger {
           createLoggers();
           copy.clear();
           copy.addAll(loggers);
-          if (copy.size() > 0) result[0] = logSetId.get();
-          else result[0] = -1;
+          if (copy.size() > 0)
+            result[0] = logSetId.get();
+          else
+            result[0] = -1;
         } catch (IOException e) {
           log.error("Unable to create loggers", e);
         }
@@ -197,7 +200,8 @@ public class TabletServerLogger {
             }
           }
           
-          if (loggers.size() == loggerAddresses.size()) break;
+          if (loggers.size() == loggerAddresses.size())
+            break;
           if (loggers.size() > 0) {
             // something is screwy, loggers.size() should be 0 or loggerAddresses.size()..
             throw new RuntimeException("Unexpected number of loggers " + loggers.size() + " " + loggerAddresses.size());
@@ -274,7 +278,8 @@ public class TabletServerLogger {
               try {
                 // Scribble out a tablet definition and then write to the metadata table
                 defineTablet(commitSession);
-                if (currentLogSet == logSetId.get()) tserver.addLoggersToMetadata(copy, commitSession.getExtent(), commitSession.getLogId());
+                if (currentLogSet == logSetId.get())
+                  tserver.addLoggersToMetadata(copy, commitSession.getExtent(), commitSession.getLogId());
               } finally {
                 commitSession.finishUpdatingLogsUsed();
               }
@@ -287,7 +292,8 @@ public class TabletServerLogger {
           
           // write the mutation to the logs
           seq = seqGen.incrementAndGet();
-          if (seq < 0) throw new RuntimeException("Logger sequence generator wrapped!  Onos!!!11!eleven");
+          if (seq < 0)
+            throw new RuntimeException("Logger sequence generator wrapped!  Onos!!!11!eleven");
           for (RemoteLogger wal : copy) {
             writer.write(wal, seq);
           }
@@ -340,7 +346,8 @@ public class TabletServerLogger {
   
   public int defineTablet(final CommitSession commitSession) throws IOException {
     // scribble this into the metadata tablet, too.
-    if (!enabled(commitSession)) return -1;
+    if (!enabled(commitSession))
+      return -1;
     return write(commitSession, false, new Writer() {
       @Override
       public void write(RemoteLogger logger, int ignored) throws Exception {
@@ -350,7 +357,8 @@ public class TabletServerLogger {
   }
   
   public int log(final CommitSession commitSession, final int tabletSeq, final Mutation m) throws IOException {
-    if (!enabled(commitSession)) return -1;
+    if (!enabled(commitSession))
+      return -1;
     int seq = write(commitSession, false, new Writer() {
       @Override
       public void write(RemoteLogger logger, int ignored) throws Exception {
@@ -365,9 +373,11 @@ public class TabletServerLogger {
     
     final Map<CommitSession,List<Mutation>> loggables = new HashMap<CommitSession,List<Mutation>>(mutations);
     for (CommitSession t : mutations.keySet()) {
-      if (!enabled(t)) loggables.remove(t);
+      if (!enabled(t))
+        loggables.remove(t);
     }
-    if (loggables.size() == 0) return -1;
+    if (loggables.size() == 0)
+      return -1;
     
     int seq = write(loggables.keySet(), false, new Writer() {
       @Override
@@ -384,7 +394,8 @@ public class TabletServerLogger {
       }
     });
     for (List<Mutation> entry : loggables.values()) {
-      if (entry.size() < 1) throw new IllegalArgumentException("logManyTablets: logging empty mutation list");
+      if (entry.size() < 1)
+        throw new IllegalArgumentException("logManyTablets: logging empty mutation list");
       for (Mutation m : entry) {
         logSizeEstimate.addAndGet(m.numBytes());
       }
@@ -394,7 +405,8 @@ public class TabletServerLogger {
   
   public void minorCompactionFinished(final CommitSession commitSession, final String fullyQualifiedFileName, final int walogSeq) throws IOException {
     
-    if (!enabled(commitSession)) return;
+    if (!enabled(commitSession))
+      return;
     
     long t1 = System.currentTimeMillis();
     
@@ -411,7 +423,8 @@ public class TabletServerLogger {
   }
   
   public int minorCompactionStarted(final CommitSession commitSession, final int seq, final String fullyQualifiedFileName) throws IOException {
-    if (!enabled(commitSession)) return -1;
+    if (!enabled(commitSession))
+      return -1;
     write(commitSession, false, new Writer() {
       @Override
       public void write(RemoteLogger logger, int ignored) throws Exception {
@@ -422,7 +435,8 @@ public class TabletServerLogger {
   }
   
   public void recover(Tablet tablet, List<String> logs, Set<String> tabletFiles, MutationReceiver mr) throws IOException {
-    if (!enabled(tablet)) return;
+    if (!enabled(tablet))
+      return;
     try {
       SortedLogRecovery recovery = new SortedLogRecovery();
       KeyExtent extent = tablet.getExtent();

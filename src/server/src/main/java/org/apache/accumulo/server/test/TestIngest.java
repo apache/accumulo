@@ -369,8 +369,10 @@ public class TestIngest {
             bytesWritten += key.getSize();
             
             if (ingestArgs.delete) {
-              if (ingestArgs.hasTimestamp) m.putDelete(colf, colq, le, ingestArgs.timestamp);
-              else m.putDelete(colf, colq, le);
+              if (ingestArgs.hasTimestamp)
+                m.putDelete(colf, colq, le, ingestArgs.timestamp);
+              else
+                m.putDelete(colf, colq, le);
             } else {
               byte value[];
               if (ingestArgs.random) {
@@ -390,7 +392,8 @@ public class TestIngest {
           }
           
         }
-        if (bw != null) bw.addMutation(m);
+        if (bw != null)
+          bw.addMutation(m);
         
       }
       

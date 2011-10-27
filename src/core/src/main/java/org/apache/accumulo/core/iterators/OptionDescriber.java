@@ -51,9 +51,11 @@ public interface OptionDescriber {
     public IteratorOptions(String name, String description, Map<String,String> namedOptions, List<String> unnamedOptionDescriptions) {
       this.name = name;
       this.namedOptions = null;
-      if (namedOptions != null) this.namedOptions = new LinkedHashMap<String,String>(namedOptions);
+      if (namedOptions != null)
+        this.namedOptions = new LinkedHashMap<String,String>(namedOptions);
       this.unnamedOptionDescriptions = null;
-      if (unnamedOptionDescriptions != null) this.unnamedOptionDescriptions = new ArrayList<String>(unnamedOptionDescriptions);
+      if (unnamedOptionDescriptions != null)
+        this.unnamedOptionDescriptions = new ArrayList<String>(unnamedOptionDescriptions);
       this.description = description;
     }
     
@@ -90,12 +92,14 @@ public interface OptionDescriber {
     }
     
     public void addNamedOption(String name, String description) {
-      if (namedOptions == null) namedOptions = new LinkedHashMap<String,String>();
+      if (namedOptions == null)
+        namedOptions = new LinkedHashMap<String,String>();
       namedOptions.put(name, description);
     }
     
     public void addUnnamedOption(String description) {
-      if (unnamedOptionDescriptions == null) unnamedOptionDescriptions = new ArrayList<String>();
+      if (unnamedOptionDescriptions == null)
+        unnamedOptionDescriptions = new ArrayList<String>();
       unnamedOptionDescriptions.add(description);
     }
   }

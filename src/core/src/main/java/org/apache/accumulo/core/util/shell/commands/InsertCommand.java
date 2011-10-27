@@ -50,12 +50,16 @@ public class InsertCommand extends Command {
       ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(insertOptAuths.getOpt()));
       Shell.log.debug("Authorization label will be set to: " + le.toString());
       
-      if (cl.hasOption(timestampOpt.getOpt())) m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le,
-          Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())), new Value(cl.getArgs()[3].getBytes()));
-      else m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le, new Value(cl.getArgs()[3].getBytes()));
-    } else if (cl.hasOption(timestampOpt.getOpt())) m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]),
-        Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())), new Value(cl.getArgs()[3].getBytes()));
-    else m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), new Value(cl.getArgs()[3].getBytes()));
+      if (cl.hasOption(timestampOpt.getOpt()))
+        m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())),
+            new Value(cl.getArgs()[3].getBytes()));
+      else
+        m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le, new Value(cl.getArgs()[3].getBytes()));
+    } else if (cl.hasOption(timestampOpt.getOpt()))
+      m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())),
+          new Value(cl.getArgs()[3].getBytes()));
+    else
+      m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), new Value(cl.getArgs()[3].getBytes()));
     
     BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), m.estimatedMemoryUsed() + 0L, 0L, 1);
     bw.addMutation(m);
@@ -63,11 +67,13 @@ public class InsertCommand extends Command {
       bw.close();
     } catch (MutationsRejectedException e) {
       ArrayList<String> lines = new ArrayList<String>();
-      if (e.getAuthorizationFailures().isEmpty() == false) lines.add("	Authorization Failures:");
+      if (e.getAuthorizationFailures().isEmpty() == false)
+        lines.add("	Authorization Failures:");
       for (KeyExtent extent : e.getAuthorizationFailures()) {
         lines.add("		" + extent);
       }
-      if (e.getConstraintViolationSummaries().isEmpty() == false) lines.add("	Constraint Failures:");
+      if (e.getConstraintViolationSummaries().isEmpty() == false)
+        lines.add("	Constraint Failures:");
       for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
         lines.add("		" + cvs.toString());
       }

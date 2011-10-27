@@ -42,7 +42,8 @@ public class DUCommand extends Command {
     SortedSet<String> tablesToFlush = new TreeSet<String>(Arrays.asList(cl.getArgs()));
     if (cl.hasOption(optTablePattern.getOpt())) {
       for (String table : shellState.getConnector().tableOperations().list())
-        if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) tablesToFlush.add(table);
+        if (table.matches(cl.getOptionValue(optTablePattern.getOpt())))
+          tablesToFlush.add(table);
     }
     try {
       AccumuloConfiguration acuConf = new ConfigurationCopy(shellState.getConnector().instanceOperations().getSystemConfiguration());

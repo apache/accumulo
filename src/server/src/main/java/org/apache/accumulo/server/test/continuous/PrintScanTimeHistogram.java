@@ -74,10 +74,12 @@ public class PrintScanTimeHistogram {
     
     if (delta / 1000.0 < .1) {
       point = String.format("%07.2f", delta / 1000.0);
-      if (point.equals("0000.10")) point = "0000.1x";
+      if (point.equals("0000.10"))
+        point = "0000.1x";
     } else if (delta / 1000.0 < 1.0) {
       point = String.format("%06.1fx", delta / 1000.0);
-      if (point.equals("0001.0x")) point = "0001.xx";
+      if (point.equals("0001.0x"))
+        point = "0001.xx";
     } else {
       point = String.format("%04.0f.xx", delta / 1000.0);
     }

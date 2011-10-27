@@ -51,16 +51,19 @@ public class Key implements WritableComparable<Key>, Cloneable {
   
   @Override
   public boolean equals(Object o) {
-    if (o instanceof Key) return this.equals((Key) o, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL);
+    if (o instanceof Key)
+      return this.equals((Key) o, PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL);
     return false;
   }
   
   private static final byte EMPTY_BYTES[] = new byte[0];
   
   private byte[] copyIfNeeded(byte ba[], int off, int len, boolean copyData) {
-    if (len == 0) return EMPTY_BYTES;
+    if (len == 0)
+      return EMPTY_BYTES;
     
-    if (!copyData && ba.length == len && off == 0) return ba;
+    if (!copyData && ba.length == len && off == 0)
+      return ba;
     
     byte[] copy = new byte[len];
     System.arraycopy(ba, off, copy, 0, len);
@@ -388,30 +391,40 @@ public class Key implements WritableComparable<Key>, Cloneable {
   public int compareTo(Key other, PartialKey part) {
     // check for matching row
     int result = WritableComparator.compareBytes(row, 0, row.length, other.row, 0, other.row.length);
-    if (result != 0 || part.equals(PartialKey.ROW)) return result;
+    if (result != 0 || part.equals(PartialKey.ROW))
+      return result;
     
     // check for matching column family
     result = WritableComparator.compareBytes(colFamily, 0, colFamily.length, other.colFamily, 0, other.colFamily.length);
-    if (result != 0 || part.equals(PartialKey.ROW_COLFAM)) return result;
+    if (result != 0 || part.equals(PartialKey.ROW_COLFAM))
+      return result;
     
     // check for matching column qualifier
     result = WritableComparator.compareBytes(colQualifier, 0, colQualifier.length, other.colQualifier, 0, other.colQualifier.length);
-    if (result != 0 || part.equals(PartialKey.ROW_COLFAM_COLQUAL)) return result;
+    if (result != 0 || part.equals(PartialKey.ROW_COLFAM_COLQUAL))
+      return result;
     
     // check for matching column visibility
     result = WritableComparator.compareBytes(colVisibility, 0, colVisibility.length, other.colVisibility, 0, other.colVisibility.length);
-    if (result != 0 || part.equals(PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) return result;
+    if (result != 0 || part.equals(PartialKey.ROW_COLFAM_COLQUAL_COLVIS))
+      return result;
     
     // check for matching timestamp
-    if (timestamp < other.timestamp) result = 1;
-    else if (timestamp > other.timestamp) result = -1;
-    else result = 0;
+    if (timestamp < other.timestamp)
+      result = 1;
+    else if (timestamp > other.timestamp)
+      result = -1;
+    else
+      result = 0;
     
-    if (result != 0 || part.equals(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME)) return result;
+    if (result != 0 || part.equals(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME))
+      return result;
     
     // check for matching deleted flag
-    if (deleted) result = other.deleted ? 0 : -1;
-    else result = other.deleted ? 1 : 0;
+    if (deleted)
+      result = other.deleted ? 0 : -1;
+    else
+      result = other.deleted ? 1 : 0;
     
     return result;
   }
@@ -437,8 +450,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
     
     for (int i = 0; i < plen; i++) {
       int c = 0xff & ba[offset + i];
-      if (c >= 32 && c <= 126) sb.append((char) c);
-      else sb.append("%" + String.format("%02x;", c));
+      if (c >= 32 && c <= 126)
+        sb.append((char) c);
+      else
+        sb.append("%" + String.format("%02x;", c));
     }
     
     if (len > maxLen) {
@@ -476,13 +491,16 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
   
   private static boolean isEqual(byte a1[], byte a2[]) {
-    if (a1 == a2) return true;
+    if (a1 == a2)
+      return true;
     
     int last = a1.length;
     
-    if (last != a2.length) return false;
+    if (last != a2.length)
+      return false;
     
-    if (last == 0) return true;
+    if (last == 0)
+      return true;
     
     // since sorted data is usually compared in accumulo,
     // the prefixes will normally be the same... so compare
@@ -498,7 +516,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
     
     if (a1[last] == a2[last]) {
       for (int i = 0; i < last; i++)
-        if (a1[i] != a2[i]) return false;
+        if (a1[i] != a2[i])
+          return false;
     } else {
       return false;
     }
@@ -516,7 +535,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
     
     List<TKeyValue> tkvl = Arrays.asList(new TKeyValue[param.size()]);
     
-    if (param.size() > 0) tkvl.set(0, new TKeyValue(param.get(0).key.toThrift(), ByteBuffer.wrap(param.get(0).value)));
+    if (param.size() > 0)
+      tkvl.set(0, new TKeyValue(param.get(0).key.toThrift(), ByteBuffer.wrap(param.get(0).value)));
     
     for (int i = param.size() - 1; i > 0; i--) {
       Key prevKey = param.get(i - 1).key;
@@ -531,21 +551,25 @@ public class Key implements WritableComparable<Key>, Cloneable {
       }
       
       if (isEqual(prevKey.colFamily, key.colFamily)) {
-        if (newKey == null) newKey = key.toThrift();
+        if (newKey == null)
+          newKey = key.toThrift();
         newKey.colFamily = null;
       }
       
       if (isEqual(prevKey.colQualifier, key.colQualifier)) {
-        if (newKey == null) newKey = key.toThrift();
+        if (newKey == null)
+          newKey = key.toThrift();
         newKey.colQualifier = null;
       }
       
       if (isEqual(prevKey.colVisibility, key.colVisibility)) {
-        if (newKey == null) newKey = key.toThrift();
+        if (newKey == null)
+          newKey = key.toThrift();
         newKey.colVisibility = null;
       }
       
-      if (newKey == null) newKey = key.toThrift();
+      if (newKey == null)
+        newKey = key.toThrift();
       
       tkvl.set(i, new TKeyValue(newKey, ByteBuffer.wrap(kv.value)));
     }

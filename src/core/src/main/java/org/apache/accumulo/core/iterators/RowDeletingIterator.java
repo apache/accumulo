@@ -127,7 +127,8 @@ public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
         currentRowDeleted = true;
         deleteTS = source.getTopKey().getTimestamp();
         
-        if (propogateDeletes) break;
+        if (propogateDeletes)
+          break;
       } else {
         break;
       }

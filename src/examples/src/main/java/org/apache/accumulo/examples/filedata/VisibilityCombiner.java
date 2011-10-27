@@ -25,7 +25,8 @@ public class VisibilityCombiner {
   private TreeSet<String> visibilities = new TreeSet<String>();
   
   void add(ByteSequence cv) {
-    if (cv.length() == 0) return;
+    if (cv.length() == 0)
+      return;
     
     int depth = 0;
     int offset = 0;
@@ -37,7 +38,8 @@ public class VisibilityCombiner {
           break;
         case ')':
           depth--;
-          if (depth < 0) throw new IllegalArgumentException("Invalid vis " + cv);
+          if (depth < 0)
+            throw new IllegalArgumentException("Invalid vis " + cv);
           break;
         case '|':
           if (depth == 0) {
@@ -51,7 +53,8 @@ public class VisibilityCombiner {
     
     insert(cv.subSequence(offset, cv.length()));
     
-    if (depth != 0) throw new IllegalArgumentException("Invalid vis " + cv);
+    if (depth != 0)
+      throw new IllegalArgumentException("Invalid vis " + cv);
     
   }
   
@@ -62,7 +65,8 @@ public class VisibilityCombiner {
     
     String cvs = cv.toString();
     
-    if (cvs.charAt(0) != '(') cvs = "(" + cvs + ")";
+    if (cvs.charAt(0) != '(')
+      cvs = "(" + cvs + ")";
     else {
       int depth = 0;
       int depthZeroCloses = 0;
@@ -73,12 +77,14 @@ public class VisibilityCombiner {
             break;
           case ')':
             depth--;
-            if (depth == 0) depthZeroCloses++;
+            if (depth == 0)
+              depthZeroCloses++;
             break;
         }
       }
       
-      if (depthZeroCloses > 1) cvs = "(" + cvs + ")";
+      if (depthZeroCloses > 1)
+        cvs = "(" + cvs + ")";
     }
     
     visibilities.add(cvs);

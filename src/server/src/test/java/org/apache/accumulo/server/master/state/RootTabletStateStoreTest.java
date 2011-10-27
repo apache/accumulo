@@ -52,7 +52,8 @@ public class RootTabletStateStoreTest {
     
     Node find(String name) {
       for (Node node : children)
-        if (node.name.equals(name)) return node;
+        if (node.name.equals(name))
+          return node;
       return null;
     }
   };
@@ -62,9 +63,11 @@ public class RootTabletStateStoreTest {
     Node root = new Node("/");
     
     private Node recurse(Node root, String[] path, int depth) {
-      if (depth == path.length) return root;
+      if (depth == path.length)
+        return root;
       Node child = root.find(path[depth]);
-      if (child == null) return null;
+      if (child == null)
+        return null;
       return recurse(child, path, depth + 1);
     }
     
@@ -76,7 +79,8 @@ public class RootTabletStateStoreTest {
     @Override
     public List<String> getChildren(String path) throws DistributedStoreException {
       Node node = navigate(path);
-      if (node == null) return Collections.emptyList();
+      if (node == null)
+        return Collections.emptyList();
       List<String> children = new ArrayList<String>(node.children.size());
       for (Node child : node.children)
         children.add(child.name);
@@ -94,7 +98,8 @@ public class RootTabletStateStoreTest {
     }
     
     private Node recurseCreate(Node root, String[] path, int index) {
-      if (path.length == index) return root;
+      if (path.length == index)
+        return root;
       Node node = root.find(path[index]);
       if (node == null) {
         node = new Node(path[index]);
@@ -108,15 +113,18 @@ public class RootTabletStateStoreTest {
       String[] parts = path.split("/");
       String[] parentPath = Arrays.copyOf(parts, parts.length - 1);
       Node parent = recurse(root, parentPath, 1);
-      if (parent == null) return;
+      if (parent == null)
+        return;
       Node child = parent.find(parts[parts.length - 1]);
-      if (child != null) parent.children.remove(child);
+      if (child != null)
+        parent.children.remove(child);
     }
     
     @Override
     public byte[] get(String path) throws DistributedStoreException {
       Node node = navigate(path);
-      if (node != null) return node.value;
+      if (node != null)
+        return node.value;
       return null;
     }
   }

@@ -33,7 +33,8 @@ public class ZooZap {
    * @param args
    */
   private static void message(String msg) {
-    if (verbose) System.out.println(msg);
+    if (verbose)
+      System.out.println(msg);
   }
   
   public static void main(String[] args) {
@@ -81,7 +82,8 @@ public class ZooZap {
         for (String child : children) {
           message("Deleting " + tserversPath + "/" + child + " from zookeeper");
           
-          if (zapMaster) ZooReaderWriter.getInstance().recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
+          if (zapMaster)
+            ZooReaderWriter.getInstance().recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
           else {
             String path = tserversPath + "/" + child;
             if (zoo.getChildren(path).size() > 0) {

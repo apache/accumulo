@@ -28,7 +28,8 @@ public class TLevel extends Level {
   }
   
   static public Level toLevel(int val) {
-    if (val == Level.DEBUG_INT + 100) return Level.DEBUG;
+    if (val == Level.DEBUG_INT + 100)
+      return Level.DEBUG;
     return Level.toLevel(val);
   }
   

@@ -84,7 +84,8 @@ public class CountTest extends TestCase {
     
     @Override
     public Value put(Key key, Value value) {
-      if (!this.containsKey(key)) return super.put(key, value);
+      if (!this.containsKey(key))
+        return super.put(key, value);
       agg.reset();
       agg.collect(value);
       agg.collect(this.get(key));

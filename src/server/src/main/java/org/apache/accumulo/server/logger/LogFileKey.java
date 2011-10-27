@@ -135,8 +135,10 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
   }
   
   private static int sign(long l) {
-    if (l < 0) return -1;
-    if (l > 0) return 1;
+    if (l < 0)
+      return -1;
+    if (l > 0)
+      return 1;
     return 0;
   }
   
@@ -145,7 +147,8 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     if (eventType(this.event) != eventType(o.event)) {
       return eventType(this.event) - eventType(o.event);
     }
-    if (this.event == OPEN) return 0;
+    if (this.event == OPEN)
+      return 0;
     if (this.tid != o.tid) {
       return this.tid - o.tid;
     }

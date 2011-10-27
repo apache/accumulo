@@ -52,10 +52,12 @@ public class RestoreZookeeper {
     public void startElement(String uri, String localName, String name, Attributes attributes) throws SAXException {
       if ("node".equals(name)) {
         String child = attributes.getValue("name");
-        if (child == null) throw new RuntimeException("name attribute not set");
+        if (child == null)
+          throw new RuntimeException("name attribute not set");
         String encoding = attributes.getValue("encoding");
         String value = attributes.getValue("value");
-        if (value == null) value = "";
+        if (value == null)
+          value = "";
         String path = cwd.lastElement() + "/" + child;
         create(path, value, encoding);
         cwd.push(path);
@@ -73,12 +75,14 @@ public class RestoreZookeeper {
     
     private void create(String path, String value, String encoding) {
       byte[] data = value.getBytes();
-      if ("base64".equals(encoding)) data = Base64.decodeBase64(value.getBytes());
+      if ("base64".equals(encoding))
+        data = Base64.decodeBase64(value.getBytes());
       try {
         try {
           ZooUtil.putPersistentData(zk, path, data, overwrite ? NodeExistsPolicy.OVERWRITE : NodeExistsPolicy.FAIL);
         } catch (KeeperException e) {
-          if (e.code().equals(KeeperException.Code.NODEEXISTS)) throw new RuntimeException(path + " exists.  Remove it first.");
+          if (e.code().equals(KeeperException.Code.NODEEXISTS))
+            throw new RuntimeException(path + " exists.  Remove it first.");
           throw e;
         }
       } catch (Exception e) {
@@ -102,7 +106,8 @@ public class RestoreZookeeper {
       in = new FileInputStream(args[1]);
     }
     for (String arg : args)
-      if (arg.equals("--overwrite")) overwrite = true;
+      if (arg.equals("--overwrite"))
+        overwrite = true;
     
     ZooKeeper zk = new ZooKeeper(server, timeout, new Watcher() {
       @Override

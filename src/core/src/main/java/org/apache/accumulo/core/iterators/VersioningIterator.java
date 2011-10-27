@@ -47,7 +47,8 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
   public VersioningIterator() {}
   
   public VersioningIterator(SortedKeyValueIterator<Key,Value> iterator, int maxVersions) {
-    if (maxVersions < 1) throw new IllegalArgumentException("maxVersions for versioning iterator must be >= 1");
+    if (maxVersions < 1)
+      throw new IllegalArgumentException("maxVersions for versioning iterator must be >= 1");
     this.setSource(iterator);
     this.maxVersions = maxVersions;
   }
@@ -98,7 +99,8 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
   }
   
   private void resetVersionCount() {
-    if (super.hasTop()) currentKey.set(getSource().getTopKey());
+    if (super.hasTop())
+      currentKey.set(getSource().getTopKey());
     numVersions = 1;
   }
   
@@ -117,10 +119,13 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
     this.numVersions = 0;
     
     String maxVerString = options.get("maxVersions");
-    if (maxVerString != null) this.maxVersions = Integer.parseInt(maxVerString);
-    else this.maxVersions = 1;
+    if (maxVerString != null)
+      this.maxVersions = Integer.parseInt(maxVerString);
+    else
+      this.maxVersions = 1;
     
-    if (maxVersions < 1) throw new IllegalArgumentException("maxVersions for versioning iterator must be >= 1");
+    if (maxVersions < 1)
+      throw new IllegalArgumentException("maxVersions for versioning iterator must be >= 1");
   }
   
   @Override
@@ -134,7 +139,8 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
   @Override
   public boolean validateOptions(Map<String,String> options) {
     int i = Integer.parseInt(options.get(MAXVERSIONS_OPT));
-    if (i < 1) throw new IllegalArgumentException(MAXVERSIONS_OPT + " for versioning iterator must be >= 1");
+    if (i < 1)
+      throw new IllegalArgumentException(MAXVERSIONS_OPT + " for versioning iterator must be >= 1");
     return true;
   }
   

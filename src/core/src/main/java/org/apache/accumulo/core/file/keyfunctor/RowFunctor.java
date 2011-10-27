@@ -48,7 +48,8 @@ public class RowFunctor implements KeyFunctor {
       return false;
     }
     
-    if (range.getStartKey().equals(range.getEndKey(), keyDepth)) return true;
+    if (range.getStartKey().equals(range.getEndKey(), keyDepth))
+      return true;
     
     // include everything but the deleted flag in the comparison...
     return range.getStartKey().followingKey(keyDepth).equals(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME) && !range.isEndKeyInclusive();

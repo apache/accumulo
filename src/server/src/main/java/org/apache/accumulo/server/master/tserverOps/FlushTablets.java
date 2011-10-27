@@ -77,7 +77,8 @@ public class FlushTablets extends MasterRepo {
           }
         }
       }
-      if (zooTabletStateStore != null && !flushed) break;
+      if (zooTabletStateStore != null && !flushed)
+        break;
       listener.waitForEvents(1000);
     }
     return new StopLogger(logger);

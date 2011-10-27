@@ -45,14 +45,16 @@ public class Search extends Test {
     Random rand = (Random) state.get("rand");
     
     Entry<Key,Value> entry = findRandomDocument(state, dataTableName, rand);
-    if (entry == null) return;
+    if (entry == null)
+      return;
     
     Text docID = entry.getKey().getRow();
     String doc = entry.getValue().toString();
     
     String[] tokens = doc.split("\\W+");
     int numSearchTerms = rand.nextInt(6);
-    if (numSearchTerms < 2) numSearchTerms = 2;
+    if (numSearchTerms < 2)
+      numSearchTerms = 2;
     
     HashSet<String> searchTerms = new HashSet<String>();
     while (searchTerms.size() < numSearchTerms)
@@ -84,7 +86,8 @@ public class Search extends Test {
     
     bs.close();
     
-    if (!sawDocID) throw new Exception("Did not see doc " + docID + " in index.  terms:" + searchTerms + " " + indexTableName + " " + dataTableName);
+    if (!sawDocID)
+      throw new Exception("Did not see doc " + docID + " in index.  terms:" + searchTerms + " " + indexTableName + " " + dataTableName);
   }
   
   static Entry<Key,Value> findRandomDocument(State state, String dataTableName, Random rand) throws Exception {
@@ -93,7 +96,8 @@ public class Search extends Test {
     scanner.setRange(new Range(Integer.toString(rand.nextInt(0xfffffff), 16), null));
     
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    if (!iter.hasNext()) return null;
+    if (!iter.hasNext())
+      return null;
     
     return iter.next();
   }

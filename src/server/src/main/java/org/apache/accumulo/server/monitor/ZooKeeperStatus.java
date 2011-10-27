@@ -74,8 +74,10 @@ public class ZooKeeperStatus implements Runnable {
         TTransport transport = null;
         try {
           InetSocketAddress addr;
-          if (parts.length > 1) addr = new InetSocketAddress(parts[0], Integer.parseInt(parts[1]));
-          else addr = new InetSocketAddress(parts[0], 2181);
+          if (parts.length > 1)
+            addr = new InetSocketAddress(parts[0], Integer.parseInt(parts[1]));
+          else
+            addr = new InetSocketAddress(parts[0], 2181);
           
           transport = TTimeoutTransport.create(addr, 10 * 1000l);
           transport.write("stat\n".getBytes(), 0, 5);
@@ -91,8 +93,10 @@ public class ZooKeeperStatus implements Runnable {
             // happens at EOF
           }
           for (String line : response.toString().split("\n")) {
-            if (line.startsWith(" ")) clients++;
-            if (line.startsWith("Mode")) mode = line.split(":")[1];
+            if (line.startsWith(" "))
+              clients++;
+            if (line.startsWith("Mode"))
+              mode = line.split(":")[1];
           }
           update.add(new ZooKeeperState(keeper, mode, clients));
         } catch (Exception ex) {

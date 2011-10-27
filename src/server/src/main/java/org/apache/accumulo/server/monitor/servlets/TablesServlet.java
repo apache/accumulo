@@ -72,7 +72,8 @@ public class TablesServlet extends BasicServlet {
   
   static void doProblemsBanner(StringBuilder sb) {
     int numProblems = Monitor.getProblemSummary().entrySet().size();
-    if (numProblems > 0) banner(sb, "error", String.format("<a href='/problems'>Table Problems: %d Total</a>", numProblems));
+    if (numProblems > 0)
+      banner(sb, "error", String.format("<a href='/problems'>Table Problems: %d Total</a>", numProblems));
   }
   
   static void doTableList(HttpServletRequest req, StringBuilder sb, Map<String,String> tidToNameMap) {
@@ -102,8 +103,9 @@ public class TablesServlet extends BasicServlet {
             + "They reduce the number of files used during queries.");
     SortedMap<String,TableInfo> tableStats = new TreeMap<String,TableInfo>();
     
-    if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null) for (Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
-      tableStats.put(Tables.getPrintableTableNameFromId(tidToNameMap, te.getKey()), te.getValue());
+    if (Monitor.getMmi() != null && Monitor.getMmi().tableMap != null)
+      for (Entry<String,TableInfo> te : Monitor.getMmi().tableMap.entrySet())
+        tableStats.put(Tables.getPrintableTableNameFromId(tidToNameMap, te.getKey()), te.getValue());
     
     Map<String,Double> compactingByTable = Monitor.summarizeTableStats(Monitor.getMmi());
     TableManager tableManager = TableManager.getInstance();
@@ -113,7 +115,8 @@ public class TablesServlet extends BasicServlet {
       String tableId = tableName_tableId.getValue();
       TableInfo tableInfo = tableStats.get(tableName);
       Double holdTime = compactingByTable.get(tableId);
-      if (holdTime == null) holdTime = new Double(0.);
+      if (holdTime == null)
+        holdTime = new Double(0.);
       TableRow row = tableList.prepareRow();
       row.add(tableId);
       row.add(tableManager.getTableState(tableId));
@@ -157,7 +160,8 @@ public class TablesServlet extends BasicServlet {
       for (TabletServerStatus tss : Monitor.getMmi().tServerInfo) {
         try {
           log.debug("tss: " + tss.name);
-          if (tss.name != null && locs.contains(tss.name)) tservers.add(tss);
+          if (tss.name != null && locs.contains(tss.name))
+            tservers.add(tss);
         } catch (Exception ex) {
           log.error(ex, ex);
         }

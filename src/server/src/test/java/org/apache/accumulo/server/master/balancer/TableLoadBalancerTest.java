@@ -150,7 +150,8 @@ public class TableLoadBalancerTest {
     movedByTable.put("t2", new Integer(0));
     movedByTable.put("t3", new Integer(0));
     for (TabletMigration migration : migrationsOut) {
-      if (migration.oldServer.equals(svr)) count++;
+      if (migration.oldServer.equals(svr))
+        count++;
       String key = migration.tablet.getTableId().toString();
       movedByTable.put(key, movedByTable.get(key) + 1);
     }
