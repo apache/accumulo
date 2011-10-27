@@ -19,7 +19,7 @@
 \section{Hardware}
 
 Because we are running essentially two or three systems simultaneously layered
-across the cluster: HDFS, Accumulo, and MapReduce, it is typical for hardware to
+across the cluster: HDFS, Accumulo and MapReduce, it is typical for hardware to
 consist of 4 to 8 cores, and 8 to 32 GB RAM. This is so each running process can have
 at least one core and 2 - 4 GB each.
 
@@ -53,7 +53,7 @@ Repeat this step at each machine within the cluster. Usually all machines have t
 same \texttt{\$ACCUMULO\_HOME}.
 
 \section{Dependencies}
-Accumulo requires HDFS, MapReduce, and ZooKeeper to be configured and running
+Accumulo requires HDFS and ZooKeeper to be configured and running
 before starting. Password-less SSH should be configured between at least the
 Accumulo master and TabletServer machines. It is also a good idea to run Network
 Time Protocol (NTP) within the cluster to ensure nodes' clocks don't get too out of
@@ -131,7 +131,7 @@ Specify appropriate values for the following settings in\\
 \end{verbatim}
 \normalsize
 
-This enables Accumulo to find Zookeeper. Accumulo uses ZooKeeper to coordinate
+This enables Accumulo to find ZooKeeper. Accumulo uses ZooKeeper to coordinate
 settings between processes and helps finalize TabletServer failure.
 
 Accumulo records all changes to tables to a write-ahead log before committing
@@ -169,7 +169,7 @@ initialized it can be started.
 \subsection{Starting Accumulo}
 
 Make sure Hadoop is configured on all of the machines in the cluster, including
-access to a shared HDFS instance. Make sure HDFS and MapReduce are running.
+access to a shared HDFS instance. Make sure HDFS and ZooKeeper are running.
 Make sure ZooKeeper is configured and running on at least one machine in the
 cluster.
 Start Accumulo using the \texttt{bin/start-all.sh} script.
@@ -203,8 +203,10 @@ either when the tablets from the failed server are reassigned by the Master, in 
 case of a single TabletServer failure or the next time Accumulo starts, in the event of
 failure during shutdown.
 
-Recovery is performed using the MapReduce framework and is shown on the
-Accumulo monitor status page. Once the MapReduce recovery is complete any
+Recovery is performed by asking the loggers to copy their write-ahead logs into HDFS.
+As the logs are copied, they are also sorted, so that tablets can easily find their missing
+updates. The copy/sort status of each file is displayed on
+Accumulo monitor status page. Once the recovery is complete any
 tablets involved should return to an ``online" state. Until then those tablets will be
 unavailable to clients.
 
