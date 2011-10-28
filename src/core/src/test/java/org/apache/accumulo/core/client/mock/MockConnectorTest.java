@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -268,4 +269,34 @@ public class MockConnectorTest {
     assertEquals(value, next.getValue().toString());
   }
   
+  public void testMockMultiTableBatchWriter() throws Exception {
+    Connector c = new MockConnector("root");
+    c.tableOperations().create("a");
+    c.tableOperations().create("b");
+    MultiTableBatchWriter bw = c.createMultiTableBatchWriter(10000L, 1000L, 4);
+    Mutation m1 = new Mutation("r1");
+    m1.put("cf1", "cq1", 1, "v1");
+    BatchWriter b = bw.getBatchWriter("a");
+    b.addMutation(m1);
+    b.flush();
+    b = bw.getBatchWriter("b");
+    b.addMutation(m1);
+    b.flush();
+    
+    Scanner scanner = c.createScanner("a", Constants.NO_AUTHS);
+    int count = 0;
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : scanner) {
+      count++;
+    }
+    assertEquals(1, count);
+    scanner = c.createScanner("b", Constants.NO_AUTHS);
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : scanner) {
+      count++;
+    }
+    assertEquals(1, count);
+
+  }
+
 }
