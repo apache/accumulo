@@ -1,8 +1,8 @@
 package org.apache.accumulo.core.security;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.fail;
 
-import org.apache.accumulo.core.security.ColumnVisibility;
 import org.junit.Test;
 
 public class ColumnVisibilityTest {
@@ -39,6 +39,7 @@ public class ColumnVisibilityTest {
   public void testCompound() {
     shouldNotThrow("a|b", "a&b", "ab&bc");
     shouldNotThrow("A&B&C&D&E", "A|B|C|D|E", "(A|B|C)", "(A)|B|(C)", "A&(B)&(C)", "A&B&(L)");
+    shouldNotThrow("_&-&:");
   }
   
   @Test
