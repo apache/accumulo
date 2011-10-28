@@ -205,7 +205,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
             'hadoop', 'fs', '-mkdir', "/tmp/wc"
             ]))
         self.wait(self.runOn(self.masterHost(), [
-            'hadoop', 'fs', '-copyFromLocal', ACCUMULO_HOME + "/Accumulo.README", "/tmp/wc/Accumulo.README"
+            'hadoop', 'fs', '-copyFromLocal', ACCUMULO_HOME + "/README", "/tmp/wc/Accumulo.README"
             ]))
         self.ashell('createtable wordCount -a count=org.apache.accumulo.core.iterators.aggregation.StringSummation\nquit\n')
         self.wait(self.runOn(self.masterHost(), [

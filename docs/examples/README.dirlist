@@ -72,8 +72,8 @@ Here is an illustration of what data looks like in the index table:
 row colf:colq [vis]
 fAccumulo.README i:002/local/Accumulo.README [visibility]
 flocal i:001/local [visibility]
-rEMDAER.esabduolC i:002/local/Accumulo.README [visibility]
-rlocal i:001/local [visibility]
+rEMDAER.olumuccA i:002/local/Accumulo.README [visibility]
+rlacol i:001/local [visibility]
 
 The values of the index table are null.  The rows are of the form "f" + filename or "r" + reverse file name.  This is to enable searches with wildcards at the beginning, middle, or end.
 

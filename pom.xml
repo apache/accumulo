@@ -208,7 +208,7 @@
 							<directory>/opt/accumulo/accumulo-${project.version}</directory>
 							<sources>
 								<source>
-									<location>Accumulo.README</location>
+									<location>README</location>
 								</source>
 							</sources>
 						</mapping>
