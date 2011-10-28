@@ -72,11 +72,18 @@ public class LiveTServerSet implements Watcher {
     
     public TServerConnection(InetSocketAddress addr) throws TException {
       address = addr;
-      try {
-        client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, ServerConfiguration.getSystemConfiguration());
-      } catch (Exception ex) {
-        log.error(ex, ex);
+    }
+    
+    synchronized private TabletClientService.Iface connect() {
+      if (client == null) {
+        try {
+          client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, ServerConfiguration.getSystemConfiguration());
+        } catch (Exception ex) {
+          client = null;
+          log.error(ex, ex);
+        }
       }
+      return client;
     }
     
     private String lockString(ZooLock mlock) {
@@ -91,55 +98,57 @@ public class LiveTServerSet implements Watcher {
     }
     
     synchronized public void assignTablet(ZooLock lock, KeyExtent extent) throws TException {
-      client.loadTablet(null, SecurityConstants.getSystemCredentials(), lockString(lock), extent.toThrift());
+      connect().loadTablet(null, SecurityConstants.getSystemCredentials(), lockString(lock), extent.toThrift());
     }
     
     synchronized public void unloadTablet(ZooLock lock, KeyExtent extent, boolean save) throws TException {
-      client.unloadTablet(null, SecurityConstants.getSystemCredentials(), lockString(lock), extent.toThrift(), save);
+      connect().unloadTablet(null, SecurityConstants.getSystemCredentials(), lockString(lock), extent.toThrift(), save);
     }
     
     synchronized public TabletServerStatus getTableMap() throws TException, ThriftSecurityException {
-      return client.getTabletServerStatus(null, SecurityConstants.getSystemCredentials());
+      return connect().getTabletServerStatus(null, SecurityConstants.getSystemCredentials());
     }
     
     synchronized public void halt(ZooLock lock) throws TException, ThriftSecurityException {
-      if (client != null)
+      if (client != null) {
         client.halt(null, SecurityConstants.getSystemCredentials(), lockString(lock));
+      }
     }
     
     public void fastHalt(ZooLock lock) throws TException {
-      if (client != null)
+      if (client != null) {
         client.fastHalt(null, SecurityConstants.getSystemCredentials(), lockString(lock));
+      }
     }
     
     synchronized public void flush(ZooLock lock, String tableId, byte[] startRow, byte[] endRow) throws TException {
-      client.flush(null, SecurityConstants.getSystemCredentials(), lockString(lock), tableId, startRow == null ? null : ByteBuffer.wrap(startRow),
+      connect().flush(null, SecurityConstants.getSystemCredentials(), lockString(lock), tableId, startRow == null ? null : ByteBuffer.wrap(startRow),
           endRow == null ? null : ByteBuffer.wrap(endRow));
     }
     
     synchronized public void useLoggers(Set<String> loggers) throws TException {
-      client.useLoggers(null, SecurityConstants.getSystemCredentials(), loggers);
+      connect().useLoggers(null, SecurityConstants.getSystemCredentials(), loggers);
     }
     
     synchronized public void chop(ZooLock lock, KeyExtent extent) throws TException {
-      client.chop(null, SecurityConstants.getSystemCredentials(), lockString(lock), extent.toThrift());
+      connect().chop(null, SecurityConstants.getSystemCredentials(), lockString(lock), extent.toThrift());
     }
     
     synchronized public void splitTablet(ZooLock lock, KeyExtent extent, Text splitPoint) throws TException, ThriftSecurityException, NotServingTabletException {
-      client.splitTablet(null, SecurityConstants.getSystemCredentials(), extent.toThrift(), ByteBuffer.wrap(splitPoint.getBytes(), 0, splitPoint.getLength()));
+      connect().splitTablet(null, SecurityConstants.getSystemCredentials(), extent.toThrift(), ByteBuffer.wrap(splitPoint.getBytes(), 0, splitPoint.getLength()));
     }
     
     synchronized public void flushTablet(ZooLock lock, KeyExtent extent) throws TException {
-      client.flushTablet(null, SecurityConstants.getSystemCredentials(), lockString(lock), extent.toThrift());
+      connect().flushTablet(null, SecurityConstants.getSystemCredentials(), lockString(lock), extent.toThrift());
     }
     
     synchronized public void compact(ZooLock lock, String tableId, byte[] startRow, byte[] endRow) throws TException {
-      client.compact(null, SecurityConstants.getSystemCredentials(), lockString(lock), tableId, startRow == null ? null : ByteBuffer.wrap(startRow),
+      connect().compact(null, SecurityConstants.getSystemCredentials(), lockString(lock), tableId, startRow == null ? null : ByteBuffer.wrap(startRow),
           endRow == null ? null : ByteBuffer.wrap(endRow));
     }
     
     synchronized public boolean isActive(long tid) throws TException {
-      return client.isActive(null, tid);
+      return connect().isActive(null, tid);
     }
     
   }
