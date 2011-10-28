@@ -119,6 +119,12 @@ public class BulkImportHelper {
     
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = FileSystem.get(conf);
+    FileStatus status = fs.getFileStatus(dir);
+    if (status == null)
+      throw new RuntimeException(dir + " does not exist");
+    if (!status.isDir())
+      throw new RuntimeException(dir + " is not a directory");
+    dir = new Path(dir.toUri().getPath());
     
     Map<Path,MapFileInfo> mapFilesInfo = null;
     Map<KeyExtent,String> locations = null;
@@ -133,6 +139,7 @@ public class BulkImportHelper {
     }
     
     fs.mkdirs(failureDir);
+    failureDir = new Path(failureDir.toUri().getPath());
     
     ClientService.Iface client = null;
     String lockFile = null;
