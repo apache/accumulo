@@ -34,7 +34,9 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooCache;
+import org.apache.accumulo.core.zookeeper.ZooLock;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -44,6 +46,7 @@ import org.apache.thrift.transport.TTransportException;
  * Provides a class for administering the accumulo instance
  */
 public class InstanceOperations {
+  private static final Logger log = Logger.getLogger(InstanceOperations.class);
   private Instance instance;
   private AuthInfo credentials;
   
@@ -125,9 +128,13 @@ public class InstanceOperations {
     String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
     List<String> results = new ArrayList<String>();
     for (String candidate : cache.getChildren(path)) {
-      List<String> lockEntries = cache.getChildren(path + "/" + candidate);
-      if (lockEntries != null && lockEntries.size() == 2) {
-        results.add(candidate);
+      try {
+        byte[] data = ZooLock.getLockData(cache, path + "/" + candidate);
+        if (data != null && !"master".equals(new String(data))) {
+          results.add(candidate);
+        }
+      } catch (Exception ex) {
+        log.error("Unable to read lock data:" + path);
       }
     }
     return results;
