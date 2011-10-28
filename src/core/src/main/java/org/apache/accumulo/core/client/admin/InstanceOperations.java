@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.admin;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -38,19 +39,12 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooCache;
-import org.apache.accumulo.core.zookeeper.ZooLock;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.log4j.Logger;
-import org.apache.thrift.TApplicationException;
-import org.apache.thrift.TException;
-import org.apache.thrift.TServiceClient;
-import org.apache.thrift.transport.TTransportException;
 
 /**
  * Provides a class for administering the accumulo instance
  */
 public class InstanceOperations {
-  private static final Logger log = Logger.getLogger(InstanceOperations.class);
   private Instance instance;
   private AuthInfo credentials;
   
@@ -139,13 +133,14 @@ public class InstanceOperations {
     String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
     List<String> results = new ArrayList<String>();
     for (String candidate : cache.getChildren(path)) {
-      try {
-        byte[] data = ZooLock.getLockData(cache, path + "/" + candidate);
+      List<String> children = cache.getChildren(path + "/" + candidate);
+      if (children != null && children.size() > 0) {
+        List<String> copy = new ArrayList<String>(children);
+        Collections.sort(copy);
+        byte[] data = cache.get(path + "/" + candidate + "/" + copy.get(0));
         if (data != null && !"master".equals(new String(data))) {
           results.add(candidate);
         }
-      } catch (Exception ex) {
-        log.error("Unable to read lock data:" + path);
       }
     }
     return results;
