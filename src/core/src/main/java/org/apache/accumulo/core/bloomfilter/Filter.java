@@ -113,8 +113,9 @@ public abstract class Filter implements Writable {
    * 
    * @param key
    *          The key to add.
+   * @return
    */
-  public abstract void add(Key key);
+  public abstract boolean add(Key key);
   
   /**
    * Determines whether a specified key belongs to <i>this</i> filter.

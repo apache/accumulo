@@ -124,7 +124,7 @@ public class DynamicBloomFilter extends Filter {
   }
   
   @Override
-  public void add(Key key) {
+  public boolean add(Key key) {
     if (key == null) {
       throw new NullPointerException("Key can not be null");
     }
@@ -137,9 +137,12 @@ public class DynamicBloomFilter extends Filter {
       currentNbRecord = 0;
     }
     
-    bf.add(key);
+    boolean added = bf.add(key);
     
-    currentNbRecord++;
+    if (added)
+      currentNbRecord++;
+    
+    return added;
   }
   
   @Override

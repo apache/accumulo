@@ -106,7 +106,7 @@ public class BloomFilter extends Filter {
   }
   
   @Override
-  public void add(Key key) {
+  public boolean add(Key key) {
     if (key == null) {
       throw new NullPointerException("key cannot be null");
     }
@@ -114,9 +114,14 @@ public class BloomFilter extends Filter {
     int[] h = hash.hash(key);
     hash.clear();
     
+    boolean bitsSet = false;
+
     for (int i = 0; i < nbHash; i++) {
+      bitsSet |= !bits.get(h[i]);
       bits.set(h[i]);
     }
+    
+    return bitsSet;
   }
   
   @Override
