@@ -57,6 +57,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.master.thrift.LoggerStatus;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.MasterClientService.Processor;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.MasterState;
@@ -65,7 +66,6 @@ import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
 import org.apache.accumulo.core.master.thrift.TimeType;
-import org.apache.accumulo.core.master.thrift.MasterClientService.Processor;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
@@ -79,10 +79,10 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooLock;
-import org.apache.accumulo.core.zookeeper.ZooSession;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.core.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.Accumulo;
@@ -1304,8 +1304,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
                   count = assignedOrHosted(METADATA_TABLE_ID);
                   if (count > 0)
                     log.debug(String.format("The root tablet is still assigned or hosted"));
-                  Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
                   if (count == 0) {
+                    Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
                     log.debug("stopping " + currentServers.size() + " tablet servers");
                     for (TServerInstance server : currentServers) {
                       try {
