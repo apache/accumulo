@@ -60,7 +60,7 @@ public class MockConnector extends Connector {
   }
   
   @Override
-  public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, int maxLatency, int maxWriteThreads) {
+  public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
     return null;
   }
   
