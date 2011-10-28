@@ -305,7 +305,7 @@ public class ZooLock implements Watcher {
     
     List<String> children = zk.getChildren(lid.path, false);
     
-    if (children.size() == 0) {
+    if (children == null || children.size() == 0) {
       return false;
     }
     
@@ -323,7 +323,7 @@ public class ZooLock implements Watcher {
     
     List<String> children = zc.getChildren(lid.path);
     
-    if (children.size() == 0) {
+    if (children == null || children.size() == 0) {
       return false;
     }
     
@@ -341,7 +341,7 @@ public class ZooLock implements Watcher {
   public static byte[] getLockData(ZooKeeper zk, String path) throws KeeperException, InterruptedException {
     List<String> children = zk.getChildren(path, false);
     
-    if (children.size() == 0) {
+    if (children == null || children.size() == 0) {
       return null;
     }
     
@@ -356,7 +356,7 @@ public class ZooLock implements Watcher {
     
     List<String> children = zc.getChildren(path);
     
-    if (children.size() == 0) {
+    if (children == null || children.size() == 0) {
       return null;
     }
     
@@ -381,7 +381,7 @@ public class ZooLock implements Watcher {
   public static long getSessionId(ZooCache zc, String path) throws KeeperException, InterruptedException {
     List<String> children = zc.getChildren(path);
     
-    if (children.size() == 0) {
+    if (children == null || children.size() == 0) {
       return 0;
     }
     
@@ -406,7 +406,7 @@ public class ZooLock implements Watcher {
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
     children = zk.getChildren(path);
     
-    if (children.size() == 0) {
+    if (children == null || children.size() == 0) {
       throw new IllegalStateException("No lock is held at " + path);
     }
     
@@ -428,7 +428,7 @@ public class ZooLock implements Watcher {
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
     children = zk.getChildren(path);
     
-    if (children.size() == 0) {
+    if (children == null || children.size() == 0) {
       throw new IllegalStateException("No lock is held at " + path);
     }
     
