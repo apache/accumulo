@@ -315,6 +315,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     } catch (AccumuloSecurityException ex) {
       throw ex.asThriftException();
     } catch (Exception ex) {
+      log.error("Error preparing bulk import directory " + dir, ex);
       return null;
     }
   }
