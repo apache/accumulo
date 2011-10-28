@@ -16,48 +16,47 @@
   limitations under the License.
 -->
 <ejb-jar xmlns="http://java.sun.com/xml/ns/javaee"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
-          http://java.sun.com/xml/ns/javaee/ejb-jar_3_1.xsd"
-         version="3.1">
- 	<enterprise-beans>
-		<session>
-			<ejb-name>Query</ejb-name>
-			<env-entry>
-				<env-entry-name>instanceName</env-entry-name>
-				<env-entry-type>java.lang.String</env-entry-type>
-				<env-entry-value><!-- replace me --></env-entry-value>
-			</env-entry>
-			<env-entry>
-				<env-entry-name>zooKeepers</env-entry-name>
-				<env-entry-type>java.lang.String</env-entry-type>
-				<env-entry-value><!-- replace me --></env-entry-value>
-			</env-entry>
-			<env-entry>
-				<env-entry-name>username</env-entry-name>
-				<env-entry-type>java.lang.String</env-entry-type>
-				<env-entry-value><!-- replace me --></env-entry-value>
-			</env-entry>
-			<env-entry>
-				<env-entry-name>password</env-entry-name>
-				<env-entry-type>java.lang.String</env-entry-type>
-				<env-entry-value><!-- replace me --></env-entry-value>
-			</env-entry>
-			<env-entry>
-				<env-entry-name>tableName</env-entry-name>
-				<env-entry-type>java.lang.String</env-entry-type>
-				<env-entry-value>wiki</env-entry-value>
-			</env-entry>
-			<env-entry>
-				<env-entry-name>partitions</env-entry-name>
-				<env-entry-type>java.lang.Integer</env-entry-type>
-				<env-entry-value>100</env-entry-value>
-			</env-entry>
-			<env-entry>
-				<env-entry-name>threads</env-entry-name>
-				<env-entry-type>java.lang.Integer</env-entry-type>
-				<env-entry-value>8</env-entry-value>
-			</env-entry>
-		</session>
-	</enterprise-beans>
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+          http://java.sun.com/xml/ns/javaee/ejb-jar_3_1.xsd" version="3.1">
+  <enterprise-beans>
+    <session>
+      <ejb-name>Query</ejb-name>
+      <env-entry>
+        <env-entry-name>instanceName</env-entry-name>
+        <env-entry-type>java.lang.String</env-entry-type>
+        <env-entry-value><!-- replace me --></env-entry-value>
+      </env-entry>
+      <env-entry>
+        <env-entry-name>zooKeepers</env-entry-name>
+        <env-entry-type>java.lang.String</env-entry-type>
+        <env-entry-value><!-- replace me --></env-entry-value>
+      </env-entry>
+      <env-entry>
+        <env-entry-name>username</env-entry-name>
+        <env-entry-type>java.lang.String</env-entry-type>
+        <env-entry-value><!-- replace me --></env-entry-value>
+      </env-entry>
+      <env-entry>
+        <env-entry-name>password</env-entry-name>
+        <env-entry-type>java.lang.String</env-entry-type>
+        <env-entry-value><!-- replace me --></env-entry-value>
+      </env-entry>
+      <env-entry>
+        <env-entry-name>tableName</env-entry-name>
+        <env-entry-type>java.lang.String</env-entry-type>
+        <env-entry-value>wiki</env-entry-value>
+      </env-entry>
+      <env-entry>
+        <env-entry-name>partitions</env-entry-name>
+        <env-entry-type>java.lang.Integer</env-entry-type>
+        <env-entry-value>100</env-entry-value>
+      </env-entry>
+      <env-entry>
+        <env-entry-name>threads</env-entry-name>
+        <env-entry-type>java.lang.Integer</env-entry-type>
+        <env-entry-value>8</env-entry-value>
+      </env-entry>
+    </session>
+  </enterprise-beans>
 </ejb-jar>

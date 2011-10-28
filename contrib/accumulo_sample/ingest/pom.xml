@@ -25,7 +25,7 @@
 
   <artifactId>accumulo-sample-ingest</artifactId>
   <name>accumulo-sample-ingest</name>
-  
+
   <dependencies>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
@@ -55,64 +55,64 @@
       <groupId>com.google.collections</groupId>
       <artifactId>google-collections</artifactId>
     </dependency>
-	<dependency>
+    <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-core</artifactId>
-   	</dependency>
-	<dependency>
+    </dependency>
+    <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-analyzers</artifactId>
-   	</dependency>   	
-	<dependency>
-	  <groupId>org.apache.lucene</groupId>
-	  <artifactId>lucene-wikipedia</artifactId>
-	</dependency>	   	   	
-	<dependency>
-		<groupId>com.google.protobuf</groupId>
-		<artifactId>protobuf-java</artifactId>
-	</dependency>
-	<dependency>
-	  <groupId>org.jboss</groupId>
-	  <artifactId>jboss-common-core</artifactId>
-	</dependency>	
-	<dependency>
-	  <groupId>org.jboss.logging</groupId>
-	  <artifactId>jboss-logging-spi</artifactId>
-	  <scope>runtime</scope>
-	</dependency>	
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-wikipedia</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss</groupId>
+      <artifactId>jboss-common-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging-spi</artifactId>
+      <scope>runtime</scope>
+    </dependency>
   </dependencies>
-  
+
   <build>
     <plugins>
-		<plugin>
-			<groupId>org.apache.maven.plugins</groupId>
-			<artifactId>maven-dependency-plugin</artifactId>
-			<executions>
-				<execution>
-					<id>copy-dependencies</id>
-					<phase>process-resources</phase>
-					<goals>
-						<goal>copy-dependencies</goal>
-					</goals>
-					<configuration>
-						<outputDirectory>lib</outputDirectory>
-						<!-- just grab the non-provided runtime dependencies -->
-						<includeArtifactIds>commons-lang,google-collections,lucene-core,lucene-analyzers,lucene-wikipedia,protobuf-java,jboss-common-core,jboss-logging-spi</includeArtifactIds>
-						<excludeTransitive>true</excludeTransitive>
-					</configuration>
-				</execution>
-			</executions>
-		</plugin>
-		<plugin>
-			<artifactId>maven-assembly-plugin</artifactId>
-			<configuration>
-				<descriptors>
-					<descriptor>src/assembly/dist.xml</descriptor>
-				</descriptors>
-				<tarLongFileMode>gnu</tarLongFileMode>
-			</configuration>
-		</plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-dependencies</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>lib</outputDirectory>
+              <!-- just grab the non-provided runtime dependencies -->
+              <includeArtifactIds>commons-lang,google-collections,lucene-core,lucene-analyzers,lucene-wikipedia,protobuf-java,jboss-common-core,jboss-logging-spi</includeArtifactIds>
+              <excludeTransitive>true</excludeTransitive>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <descriptors>
+            <descriptor>src/assembly/dist.xml</descriptor>
+          </descriptors>
+          <tarLongFileMode>gnu</tarLongFileMode>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
-  
+
 </project>

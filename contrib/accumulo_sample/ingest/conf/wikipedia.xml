@@ -16,28 +16,28 @@
   limitations under the License.
 -->
 <configuration>
-<property>
-  <name>wikipedia.accumulo.zookeepers</name>
-  <value><!--zookeeper servers--></value>
-</property>
-	<property>
-	<name>wikipedia.accumulo.instance_name</name>
-   <value><!--instance name--></value>
-</property>
-	<property>
-	<name>wikipedia.accumulo.user</name>
-   <value><!--user name--></value>
-</property>
-	<property>
-	<name>wikipedia.accumulo.password</name>
-   <value><!-- password --></value>
-</property>
- <property>
-   <name>wikipedia.accumulo.table</name>
-   <value><!--table name--></value>
-</property>
-<property>
-  <name>wikipedia.ingest.partitions</name>
-  <value><!--number of partitions--></value>
-</property>
+  <property>
+    <name>wikipedia.accumulo.zookeepers</name>
+    <value><!--zookeeper servers --></value>
+  </property>
+  <property>
+    <name>wikipedia.accumulo.instance_name</name>
+    <value><!--instance name --></value>
+  </property>
+  <property>
+    <name>wikipedia.accumulo.user</name>
+    <value><!--user name --></value>
+  </property>
+  <property>
+    <name>wikipedia.accumulo.password</name>
+    <value><!-- password --></value>
+  </property>
+  <property>
+    <name>wikipedia.accumulo.table</name>
+    <value><!--table name --></value>
+  </property>
+  <property>
+    <name>wikipedia.ingest.partitions</name>
+    <value><!--number of partitions --></value>
+  </property>
 </configuration>

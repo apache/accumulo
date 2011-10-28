@@ -26,7 +26,7 @@
       <directory>lib</directory>
       <outputDirectory>lib</outputDirectory>
       <excludes>
-      	<exclude>${project.name}-${project.version}.jar</exclude>
+        <exclude>${project.name}-${project.version}.jar</exclude>
       </excludes>
       <fileMode>0644</fileMode>
     </fileSet>
