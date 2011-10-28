@@ -122,13 +122,22 @@ public class InstanceOperations {
   }
   
   /**
-   * List the current tablet servers participating in the accumulo instance
+   * List the currently active tablet servers participating in the accumulo instance
    * 
    * @return
    */
   
   public List<String> getTabletServers() {
-    return ZooCache.getInstance(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()).getChildren(ZooUtil.getRoot(instance) + Constants.ZTSERVERS);
+    ZooCache cache = ZooCache.getInstance(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
+    String path = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
+    List<String> results = new ArrayList<String>();
+    for (String candidate : cache.getChildren(path)) {
+      List<String> lockEntries = cache.getChildren(path + "/" + candidate);
+      if (lockEntries != null && lockEntries.size() == 2) {
+        results.add(candidate);
+      }
+    }
+    return results;
   }
   
   /**

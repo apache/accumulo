@@ -140,7 +140,7 @@ public class Connector {
    * 
    * @return MultiTableBatchWriter object for configuring and writing data to
    */
-  public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, int maxLatency, int maxWriteThreads) {
+  public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
     return impl.createMultiTableBatchWriter(maxMemory, maxLatency, maxWriteThreads);
   }
   

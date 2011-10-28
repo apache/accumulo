@@ -69,7 +69,7 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   private HashMap<String,BatchWriter> tableWriters;
   private Instance instance;
   
-  public MultiTableBatchWriterImpl(Instance instance, AuthInfo credentials, long maxMemory, int maxLatency, int maxWriteThreads) {
+  public MultiTableBatchWriterImpl(Instance instance, AuthInfo credentials, long maxMemory, long maxLatency, int maxWriteThreads) {
     ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.bw = new TabletServerBatchWriter(instance, credentials, maxMemory, maxLatency, maxWriteThreads);
