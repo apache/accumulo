@@ -23,7 +23,6 @@ Accumulo called MockAccumulo.  The normal interaction with the client API looks 
 </p>
 
 <pre>
-   DistributedTrace.enable(instance, zooReader, hostname, "myApplication");
    Instance instance = new ZooKeeperInstance(...);
    Connector conn = instance.getConnector(user, passwd);
    BatchScanner scanner = conn.createBatchScaner(...);
