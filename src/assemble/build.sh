@@ -26,4 +26,4 @@ runAt() {
 run mvn -U -P distclean clean package javadoc:aggregate javadoc:jar source:jar
 runAt ./src/server/src/main/c++ make 
 run mvn package source:jar assembly:single
-run mvn -N rpm:rpm
+test -x /usr/bin/rpmbuild && run mvn -N rpm:rpm
