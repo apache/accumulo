@@ -204,7 +204,7 @@ enum ScanRunState {
   QUEUED, RUNNING, FINISHED
 }
 
-public class TabletServer extends AbstractMetricsImpl implements TabletServerMBean {
+public class TabletServer extends AbstractMetricsImpl implements org.apache.accumulo.server.tabletserver.metrics.TabletServerMBean  {
   private static final Logger log = Logger.getLogger(TabletServer.class);
   
   private static HashMap<String,Long> prevGcTime = new HashMap<String,Long>();
