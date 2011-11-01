@@ -50,6 +50,21 @@
     </property>
 
     <property>
+      <name>tserver.memory.maps.max</name>
+      <value>1G</value>
+    </property>
+    
+    <property>
+      <name>tserver.cache.data.size</name>
+      <value>50M</value>
+    </property>
+    
+    <property>
+      <name>tserver.cache.index.size</name>
+      <value>512M</value>
+    </property>
+    
+    <property>
       <name>general.classpaths</name>
       <value>
     $ACCUMULO_HOME/src/server/target/classes/,
