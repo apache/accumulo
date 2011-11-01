@@ -36,6 +36,7 @@ import org.apache.hadoop.util.ToolRunner;
 
 public class FileCountMR extends Configured implements Tool {
   private static final String OUTPUT_VIS = FileCountMR.class.getSimpleName() + ".output.vis";
+  private static final Text EMPTY = new Text();
   
   public static class FileCountMapper extends Mapper<Key,Value,Key,Value> {
     long dirCount = 0;
@@ -114,7 +115,7 @@ public class FileCountMR extends Configured implements Tool {
       }
       Mutation m = new Mutation(QueryUtil.getRow(key.getRow().toString()));
       m.put(QueryUtil.DIR_COLF, QueryUtil.COUNTS_COLQ, colvis, sas.aggregate());
-      context.write(null, m);
+      context.write(EMPTY, m);
     }
     
     @Override
