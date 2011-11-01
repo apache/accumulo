@@ -84,10 +84,11 @@ class GCTest(SunnyDayTest):
 class GCLotsOfCandidatesTest(TestUtilsMixin, unittest.TestCase):
 
     order = GCTest.order + 1
-    settings = {
+    settings = SunnyDayTest.settings.copy()
+    settings.update({
         'gc.cycle.start': 5,
         'gc.cycle.delay': 15
-        }
+        })
 
     def runTest(self):
         self.stop_gc(self.masterHost())
