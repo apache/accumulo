@@ -2871,7 +2871,8 @@ public class Tablet {
       } else {
         Key first = pair.getFirst();
         Key last = pair.getSecond();
-        if (!this.extent.contains(first.getRow()) || !this.extent.contains(last.getRow())) {
+        // If first and last are null, it's an empty file. Add it to the compact set so it goes away.
+        if ( (first == null && last == null) || !this.extent.contains(first.getRow()) || !this.extent.contains(last.getRow())) {
           result.put(file, entry.getValue().getSize());
         }
       }
