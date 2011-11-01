@@ -352,7 +352,7 @@ public class ZooLock implements Watcher {
     return zk.getData(path + "/" + lockNode, false, null);
   }
   
-  public static byte[] getLockData(org.apache.accumulo.core.zookeeper.ZooCache zc, String path) {
+  public static byte[] getLockData(org.apache.accumulo.core.zookeeper.ZooCache zc, String path, Stat stat) {
     
     List<String> children = zc.getChildren(path);
     
@@ -369,13 +369,17 @@ public class ZooLock implements Watcher {
       throw new RuntimeException("Node " + lockNode + " at " + path + " is not a lock node");
     }
     
-    return zc.get(path + "/" + lockNode);
+    return zc.get(path + "/" + lockNode, stat);
   }
   
   private static ZooCache getLockDataZooCache = new ZooCache();
   
   public static byte[] getLockData(String path) {
-    return getLockData(getLockDataZooCache, path);
+    return getLockData(path, null);
+  }
+
+  public static byte[] getLockData(String path, Stat stat) {
+    return getLockData(getLockDataZooCache, path, stat);
   }
   
   public static long getSessionId(ZooCache zc, String path) throws KeeperException, InterruptedException {

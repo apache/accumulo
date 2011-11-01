@@ -52,6 +52,7 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.data.Stat;
 
 public class LiveTServerSet implements Watcher {
   
@@ -225,14 +226,15 @@ public class LiveTServerSet implements Watcher {
           // Nope... there's a server out there: is this is a new server?
           if (info == null) {
             // Yep: hold onto the information about this server
-            byte[] lockData = ZooLock.getLockData(lockPath);
+            Stat stat = new Stat();
+            byte[] lockData = ZooLock.getLockData(lockPath, stat);
             String lockString = new String(lockData == null ? new byte[] {} : lockData);
             if (lockString.length() > 0 && !lockString.equals("master")) {
               ServerServices services = new ServerServices(new String(lockData));
               InetSocketAddress client = services.getAddress(ServerServices.Service.TSERV_CLIENT);
               InetSocketAddress addr = AddressUtil.parseAddress(server, Property.TSERV_CLIENTPORT);
               TServerConnection conn = new TServerConnection(addr);
-              instance = new TServerInstance(client, lock.getSessionId());
+              instance = new TServerInstance(client, stat.getEphemeralOwner());
               info = new TServerInfo(lock, instance, conn, watcher);
               current.put(server, info);
               updates.add(instance);
