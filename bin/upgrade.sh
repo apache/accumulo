@@ -21,7 +21,7 @@
 
 # Where are we?
 ACCUMULO_HOME=`dirname "$0"`
-ACCUMULO_HOME=`cd "$bin"; pwd`
+ACCUMULO_HOME=`cd "$ACCUMULO_HOME/.."; pwd`
 
 PREVIOUS=cloudbase
 
@@ -88,7 +88,7 @@ fi
 
 . $ACCUMULO_HOME/conf/accumulo-env.sh
 test -z "$HADOOP_COMMAND" && HADOOP_COMMAND="$HADOOP_HOME/bin/hadoop"
-test -x "$HADOOP_COMMAND" || fail You must set HADOOP_HOME, or set HADOOP_COMMAND to the path for the '"hadoop'" command
+test -x "$HADOOP_COMMAND" || fail You must set HADOOP_HOME, or set HADOOP_COMMAND to the path for the '"hadoop"' command
 test -z "$ZOOKEEPER_COMMAND" && ZOOKEEPER_COMMAND="$ZOOKEEPER_HOME/bin/zkCli.sh"
 test -x "$ZOOKEEPER_COMMAND" || fail You must set ZOOKEEPER_HOME, or set ZOOKEEPER_COMMAND to the path for the '"zkCli.sh"' command
 
@@ -107,11 +107,11 @@ then
 fi
 
 verbose Getting instance name
-NAME=`"$ACCUMULO_HOME/bin/accumulo" org.apache.accumulo.server.util.DumpZookeeper "$ZOOKEEPER" / | grep "$INSTANCE" | grep value | sed "s/.*name='\([^']*\).*/\1/" | head -1` || fail "Unable to get instance name"
+NAME=`"$ACCUMULO_HOME/bin/accumulo" org.apache.accumulo.server.util.DumpZookeeper "$ZOOKEEPER" "/$PREVIOUS/instances" | grep "$INSTANCE" | grep value | sed "s/.*name='\([^']*\).*/\1/" | head -1` || fail "Unable to get instance name"
 verbose instance name "$NAME"
 verbose Getting zookeeper settings
 TEMP=/tmp/accumulo-rename-$$
-./bin/accumulo org.apache.accumulo.server.util.DumpZookeeper "$ZOOKEEPER" "/$PREVIOUS/$INSTANCE" >"$TEMP"
+"$ACCUMULO_HOME"/bin/accumulo org.apache.accumulo.server.util.DumpZookeeper "$ZOOKEEPER" "/$PREVIOUS/$INSTANCE" >"$TEMP"
 grep -q ephemeral "$TEMP" && fail There are running programs still using zookeeper.
 verbose switching names
 sed -i.xml \
@@ -209,7 +209,7 @@ sed -i.xml \
  -e "s%/$PREVIOUS/$INSTANCE%/accumulo/$INSTANCE%g" \
  "$TEMP"
 verbose Loading zookeeper with renamed values
-./bin/accumulo org.apache.accumulo.server.util.RestoreZookeeper "$ZOOKEEPER" "$TEMP" --overwrite || fail unable to load new settings into zookeeper
+"$ACCUMULO_HOME"/bin/accumulo org.apache.accumulo.server.util.RestoreZookeeper "$ZOOKEEPER" "$TEMP" --overwrite || fail unable to load new settings into zookeeper
 verbose Making final instance name setting
 
 "$ZOOKEEPER_COMMAND" -server "$ZOOKEEPER" 'create /accumulo/instances instances' >/dev/null 2>/dev/null
