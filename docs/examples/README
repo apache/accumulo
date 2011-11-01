@@ -33,4 +33,4 @@ Commands intended to be run in bash are prefixed by '$'.  These are always assum
 
 Commands intended to be run in the Accumulo shell are prefixed by '>'.
 
-[1]: /accumulo/user_manual_1.3-incubating/Accumulo_Shell.html#SECTION00430000000000000000
+[1]: /accumulo/user_manual_1.3-incubating/Accumulo_Shell.html#User_Administration
