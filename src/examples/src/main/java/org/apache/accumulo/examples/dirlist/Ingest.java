@@ -18,6 +18,8 @@ package org.apache.accumulo.examples.dirlist;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -25,6 +27,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.aggregation.LongSummation;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
@@ -92,6 +95,7 @@ public class Ingest {
     String pass = args[3];
     String table = args[4];
     String indexTable = args[5];
+    byte[] visibility = args[6].getBytes();
     ColumnVisibility colvis = new ColumnVisibility(args[6]);
     
     Connector conn = new ZooKeeperInstance(instance, zooKeepers).getConnector(user, pass.getBytes());
@@ -99,6 +103,17 @@ public class Ingest {
       conn.tableOperations().create(table);
     if (!conn.tableOperations().exists(indexTable))
       conn.tableOperations().create(indexTable);
+      Authorizations auths = conn.securityOperations().getUserAuthorizations(user);
+      if (!auths.contains(visibility)) {
+        List<byte[]> copy = new ArrayList<byte[]>(auths.getAuthorizations());
+        copy.add(visibility);
+        try {
+          conn.securityOperations().changeUserAuthorizations(user, new Authorizations(copy));
+      } catch (Exception ex) {
+        System.out.println("Unable to add visiblity to user " + user + ": " + ex);
+        System.exit(1);
+      }
+    }
     BatchWriter mainBW = conn.createBatchWriter(table, 50000000, 300000l, 4);
     BatchWriter indexBW = conn.createBatchWriter(indexTable, 50000000, 300000l, 4);
     for (int i = 7; i < args.length; i++) {
