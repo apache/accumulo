@@ -41,9 +41,10 @@ runAt() {
 run mvn -U -P distclean clean 
 mvn rat:check 
 COUNT=`grep '!????' target/rat.txt | wc -l`
-if [ "$COUNT" -ne 31 ]
+EXPECTED=19
+if [ "$COUNT" -ne $EXPECTED ]
 then
-   fail expected 32 files missing licenses, but saw "$COUNT"
+   fail expected $EXPECTED files missing licenses, but saw "$COUNT"
 fi
 run mvn package javadoc:aggregate javadoc:jar source:jar
 runAt ./src/server/src/main/c++ make 

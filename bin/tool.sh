@@ -31,10 +31,10 @@ fi
 
 LIB=$ACCUMULO_HOME/lib
 
-ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/*.jar | grep -e "zookeeper-[^-]*.jar$"'
-CORE_CMD='ls -1 $LIB/accumulo-core-*.jar | grep -v -e ".*javadoc.jar$"'
-THRIFT_CMD='ls -1 $LIB/libthrift-*.jar | grep -v -e ".*javadoc.jar$"'
-CLOUDTRACE_CMD='ls -1 $LIB/cloudtrace-*.jar | grep -v -e ".*javadoc.jar$"'
+ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/zookeeper-[0-9]*.jar'
+CORE_CMD='ls -1 $LIB/accumulo-core-*[^c].jar'
+THRIFT_CMD='ls -1 $LIB/libthrift-*[^c].jar'
+CLOUDTRACE_CMD='ls -1 $LIB/cloudtrace-*[^c].jar'
 
 if [ `eval $ZOOKEEPER_CMD | wc -l` != "1" ] ; then
     echo "Not exactly one zookeeper jar in $ZOOKEEPER_HOME"

@@ -17,7 +17,7 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
            under the License.
 
 This example uses mapreduce and accumulo to compute word counts for a set of
-documents.  This is accomplished using a map only map reduce job and a
+documents.  This is accomplished using a map-only mapreduce job and a
 accumulo table with aggregators.
 
 To run this example you will need a directory in HDFS containing text files.
@@ -44,7 +44,7 @@ for the column family count.
 
 After creating the table, run the word count map reduce job.
 
-    [user1@instance accumulo]$ bin/tool.sh lib/accumulo-examples-*.jar org.apache.accumulo.examples.mapreduce.WordCount instance zookeepers /user/user1/wc wordCount -u username -p password
+    [user1@instance accumulo]$ bin/tool.sh lib/accumulo-examples-*[^c].jar org.apache.accumulo.examples.mapreduce.WordCount instance zookeepers /user/user1/wc wordCount -u username -p password
     
     11/02/07 18:20:11 INFO input.FileInputFormat: Total input paths to process : 1
     11/02/07 18:20:12 INFO mapred.JobClient: Running job: job_201102071740_0003
