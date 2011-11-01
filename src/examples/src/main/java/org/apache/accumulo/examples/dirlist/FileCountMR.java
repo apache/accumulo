@@ -156,8 +156,6 @@ public class FileCountMR extends Configured implements Tool {
     job.setMapOutputKeyClass(Key.class);
     job.setMapOutputValueClass(Value.class);
     
-    job.setCombinerClass(FileCountReducer.class);
-    
     job.setReducerClass(FileCountReducer.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Mutation.class);
