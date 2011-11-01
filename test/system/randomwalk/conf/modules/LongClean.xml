@@ -29,6 +29,7 @@
   <edge id="MultiTable.xml" weight="1"/>
   <edge id="Shard.xml" weight="1"/>
   <edge id="Concurrent.xml" weight="1"/>
+  <edge id="Security.xml" weight="1"/>
 </node>
 
 <node id="Sequential.xml" maxSec="3600" teardown="true">
@@ -44,6 +45,10 @@
 </node>
 
 <node id="Concurrent.xml" maxSec="3600" teardown="true">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="Security.xml" maxSec="3600" teardown="true">
   <edge id="dummy.ToAll" weight="1"/>
 </node>
 
