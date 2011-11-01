@@ -47,5 +47,9 @@
       </description>
     </property>
 
-
+    <property>
+      <name>tserver.memory.maps.max</name>
+      <value>1G</value>
+    </property>
+    
 </configuration>
