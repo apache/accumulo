@@ -136,7 +136,10 @@ public class TabletServerResourceManager {
           runtime.maxMemory()));
     }
     runtime.gc();
-    if (!usingNativeMap && maxMemory > runtime.freeMemory()) {
+
+    // totalMemory - freeMemory = memory in use
+    // maxMemory - memory in use = max available memory
+    if (!usingNativeMap && maxMemory > runtime.maxMemory() - (runtime.totalMemory() - runtime.freeMemory())) {
       log.warn("In-memory map may not fit into local memory space.");
     }
     
