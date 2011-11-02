@@ -70,24 +70,24 @@ import org.apache.accumulo.core.file.map.MyMapFile;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
-import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
+import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -111,8 +111,8 @@ import org.apache.accumulo.server.tabletserver.metrics.TabletServerMinCMetrics;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.MapCounter;
 import org.apache.accumulo.server.util.MetadataTable;
-import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.accumulo.server.util.MetadataTable.LogEntry;
+import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
@@ -1344,7 +1344,7 @@ public class Tablet {
     
     if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
       
-      long rtime = 0l;
+      long rtime = Long.MIN_VALUE;
       for (String path : datafiles.keySet()) {
         String filename = new Path(path).getName();
         
@@ -1362,9 +1362,9 @@ public class Tablet {
           reader.close();
         }
         
-        if (maxTime + 1 > rtime) {
-          time = TabletTime.LOGICAL_TIME_ID + "" + (maxTime + 1);
-          rtime = maxTime + 1;
+        if (maxTime > rtime) {
+          time = TabletTime.LOGICAL_TIME_ID + "" + maxTime;
+          rtime = maxTime;
         }
       }
     }
