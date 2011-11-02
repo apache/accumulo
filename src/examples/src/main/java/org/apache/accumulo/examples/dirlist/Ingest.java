@@ -126,6 +126,7 @@ public class Ingest {
     String dataTable = args[6];
     byte[] visibility = args[7].getBytes();
     ColumnVisibility colvis = new ColumnVisibility(args[7]);
+    int chunkSize = Integer.parseInt(args[8]);
     
     Connector conn = new ZooKeeperInstance(instance, zooKeepers).getConnector(user, pass.getBytes());
     if (!conn.tableOperations().exists(nameTable))
