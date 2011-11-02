@@ -25,6 +25,7 @@
 #include <string>
 #include <vector>
 #include <stdlib.h>
+#include <stddef.h>
 
 struct Block {
 	unsigned char *data;

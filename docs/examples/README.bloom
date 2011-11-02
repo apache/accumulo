@@ -22,7 +22,7 @@ initialized with the seed 7.
     [user@localhost bin]$ ../bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 7 testInstance localhost root secret bloom_test 1000000 0 1000000000 50 2000000 60000 3 CV1
 
 Below the table is flushed, look at the monitor page and wait for the flush to
-complete.
+complete.  
 
    [user@localhost bin]$ ./accumulo shell -u root -p secret
     Shell - Accumulo Interactive Shell
@@ -34,6 +34,9 @@ complete.
     root@localhost> flush -t bloom_test
     Flush of table bloom_test initiated...
     root@localhost> quit
+
+The flush will be finished when there are no entries in memory and the 
+number of minor compactions goes to zero. Refresh the page to see changes to the table.
 
 After the flush completes, 500 random queries are done against the table.  The
 same seed is used to generate the queries, therefore everything is found in the

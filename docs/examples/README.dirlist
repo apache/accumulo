@@ -31,17 +31,17 @@ To list the contents of specific directories, use QueryUtil.java.
   bin/accumulo org.apache.accumulo.examples.dirlist.QueryUtil test-instance localhost root password dirTable auths /local/user1/workspace
 
 To perform searches on file or directory names, also use QueryUtil.java.  Search terms must contain no more than one wild card and cannot contain "/".
-Note these queries run on the indexTable table instead of the dirTable table.
+*Note* these queries run on the _dirindex_ table instead of the direxample table.
 
-  bin/accumulo org.apache.accumulo.examples.dirlist.QueryUtil test-instance localhost root password indexTable auths filename -search
-  bin/accumulo org.apache.accumulo.examples.dirlist.QueryUtil test-instance localhost root password indexTable auths filename* -search
-  bin/accumulo org.apache.accumulo.examples.dirlist.QueryUtil test-instance localhost root password indexTable auths *jar -search
-  bin/accumulo org.apache.accumulo.examples.dirlist.QueryUtil test-instance localhost root password indexTable auths filename*jar -search
+    $ ./bin/accumulo org.apache.accumulo.examples.dirlist.QueryUtil instance zookeepers username password dirindex exampleVis filename -search
+    $ ./bin/accumulo org.apache.accumulo.examples.dirlist.QueryUtil instance zookeepers username password dirindex exampleVis 'filename*' -search
+    $ ./bin/accumulo org.apache.accumulo.examples.dirlist.QueryUtil instance zookeepers username password dirindex exampleVis '*jar' -search
+    $ ./bin/accumulo org.apache.accumulo.examples.dirlist.QueryUtil instance zookeepers username password dirindex exampleVis filename*jar -search
 
 To count the number of direct children (directories and files) and descendants (children and children's descendents, directories and files), run the FileCountMR over the dirTable table.
 The results can be written back to the same table.
 
-  bin/tool.sh lib/accumulo-examples-*.jar org.apache.accumulo.examples.dirlist.FileCountMR test-instance localhost root password dirTable dirTable visibility visibility
+    $ ./bin/tool.sh lib/accumulo-examples-*[^c].jar org.apache.accumulo.examples.dirlist.FileCountMR instance zookeepers username password direxample direxample exampleVis exampleVis
 
 Alternatively, you can run FileCount.java which performs the same counts but is not a MapReduce.  FileCount will be faster for small data sets.
 

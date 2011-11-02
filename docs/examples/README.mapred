@@ -2,6 +2,10 @@ This example uses mapreduce and accumulo to compute word counts for a
 set of documents.  This is accomplished using a map only map-reduce
 job and a accumulo table with aggregators.
 
+This example uses mapreduce and accumulo to compute word counts for a set of
+documents.  This is accomplished using a map-only mapreduce job and a
+accumulo table with aggregators.
+
 To run this example you will need a directory in HDFS containing text files.
 The accumulo readme will be used to show how to run this example.
 
@@ -26,29 +30,28 @@ for the column family count.
   
 After creating the table, run the word count map reduce job.
 
-  [user1@localhost accumulo]$ bin/tool.sh lib/accumulo-examples-*.jar org.apache.accumulo.examples.mapreduce.WordCount testInstance localhost /user/user1/wc wordCount
-
-  11/02/07 18:20:11 INFO input.FileInputFormat: Total input paths to process : 1
-  11/02/07 18:20:12 INFO mapred.JobClient: Running job: job_201102071740_0003
-  11/02/07 18:20:13 INFO mapred.JobClient:  map 0% reduce 0%
-  11/02/07 18:20:20 INFO mapred.JobClient:  map 100% reduce 0%
-  11/02/07 18:20:22 INFO mapred.JobClient: Job complete: job_201102071740_0003
-  11/02/07 18:20:22 INFO mapred.JobClient: Counters: 6
-  11/02/07 18:20:22 INFO mapred.JobClient:   Job Counters 
-  11/02/07 18:20:22 INFO mapred.JobClient:     Launched map tasks=1
-  11/02/07 18:20:22 INFO mapred.JobClient:     Data-local map tasks=1
-  11/02/07 18:20:22 INFO mapred.JobClient:   FileSystemCounters
-  11/02/07 18:20:22 INFO mapred.JobClient:     HDFS_BYTES_READ=10487
-  11/02/07 18:20:22 INFO mapred.JobClient:   Map-Reduce Framework
-  11/02/07 18:20:22 INFO mapred.JobClient:     Map input records=255
-  11/02/07 18:20:22 INFO mapred.JobClient:     Spilled Records=0
-  11/02/07 18:20:22 INFO mapred.JobClient:     Map output records=1452
-
+    $ bin/tool.sh lib/accumulo-examples-*[^c].jar org.apache.accumulo.examples.mapreduce.WordCount instance zookeepers /user/user1/wc wordCount -u username -p password
+    
+    11/02/07 18:20:11 INFO input.FileInputFormat: Total input paths to process : 1
+    11/02/07 18:20:12 INFO mapred.JobClient: Running job: job_201102071740_0003
+    11/02/07 18:20:13 INFO mapred.JobClient:  map 0% reduce 0%
+    11/02/07 18:20:20 INFO mapred.JobClient:  map 100% reduce 0%
+    11/02/07 18:20:22 INFO mapred.JobClient: Job complete: job_201102071740_0003
+    11/02/07 18:20:22 INFO mapred.JobClient: Counters: 6
+    11/02/07 18:20:22 INFO mapred.JobClient:   Job Counters 
+    11/02/07 18:20:22 INFO mapred.JobClient:     Launched map tasks=1
+    11/02/07 18:20:22 INFO mapred.JobClient:     Data-local map tasks=1
+    11/02/07 18:20:22 INFO mapred.JobClient:   FileSystemCounters
+    11/02/07 18:20:22 INFO mapred.JobClient:     HDFS_BYTES_READ=10487
+    11/02/07 18:20:22 INFO mapred.JobClient:   Map-Reduce Framework
+    11/02/07 18:20:22 INFO mapred.JobClient:     Map input records=255
+    11/02/07 18:20:22 INFO mapred.JobClient:     Spilled Records=0
+    11/02/07 18:20:22 INFO mapred.JobClient:     Map output records=1452
   
 After the map reduce job completes, query the accumulo table to see word
 counts.
 
-  [user1@localhost accumulo]$ ./bin/accumulo shell -u root -p secret
+  $ ./bin/accumulo shell -u root -p secret
   Shell - Accumulo Interactive Shell
   - version: 1.4.0-incubating-SNAPSHOT
   - instance id: 00000000-0000-0000-0000-000000000000

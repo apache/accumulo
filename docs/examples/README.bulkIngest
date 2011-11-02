@@ -12,10 +12,11 @@ NOTE: You should replace "root" with your username that has the appropriate
 permissions on the table, and "secret" with that user's password.
 $ACCUMULO_HOME should also be replaced with the home directory where accumulo is stored.
 
-  bin/accumulo org.apache.accumulo.examples.mapreduce.bulk.SetupTable testInstance localhost root secret test_bulk row_00000333 row_00000666
-  bin/accumulo org.apache.accumulo.examples.mapreduce.bulk.GenerateTestData 0 1000 bulk/test_1.txt
-  
-  bin/tool.sh $ACCUMULO_HOME/lib/accumulo-examples-[0-9].[0-9].[0-9].jar org.apache.accumulo.examples.mapreduce.bulk.BulkIngestExample testInstance localhost root secret test_bulk bulk tmp/bulkWork
-  bin/accumulo org.apache.accumulo.examples.mapreduce.bulk.VerifyIngest testInstance localhost root secret test_bulk 0 1000
+    $ ./bin/accumulo org.apache.accumulo.examples.mapreduce.bulk.SetupTable instance zookeepers username password test_bulk row_00000333 row_00000666
+    $ ./bin/accumulo org.apache.accumulo.examples.mapreduce.bulk.GenerateTestData 0 1000 bulk/test_1.txt
+    
+    $ ./bin/tool.sh lib/accumulo-examples-*[^c].jar org.apache.accumulo.examples.mapreduce.bulk.BulkIngestExample instance zookeepers username password test_bulk bulk tmp/bulkWork
+    $ ./bin/accumulo org.apache.accumulo.examples.mapreduce.bulk.VerifyIngest instance zookeepers username password test_bulk 0 1000
+
 
 For a high level discussion of bulk ingest, see the docs dir.
