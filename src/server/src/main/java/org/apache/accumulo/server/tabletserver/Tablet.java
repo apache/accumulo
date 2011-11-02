@@ -77,22 +77,22 @@ import org.apache.accumulo.core.iterators.InterruptibleIterator;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.MultiIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SourceSwitchingIterator;
-import org.apache.accumulo.core.iterators.SystemScanIterator;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SourceSwitchingIterator.DataSource;
+import org.apache.accumulo.core.iterators.SystemScanIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TabletOperations;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
-import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.core.zookeeper.ZooLock;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.constraints.ConstraintChecker;
@@ -1214,7 +1214,7 @@ public class Tablet {
     
     if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
       
-      long rtime = 0l;
+      long rtime = Long.MIN_VALUE;
       for (String path : datafiles.keySet()) {
         String filename = new Path(path).getName();
         
@@ -1232,8 +1232,10 @@ public class Tablet {
           reader.close();
         }
         
-        if (maxTime + 1 > rtime)
-          time = TabletTime.LOGICAL_TIME_ID + "" + (maxTime + 1);
+        if (maxTime > rtime) {
+          time = TabletTime.LOGICAL_TIME_ID + "" + maxTime;
+          rtime = maxTime;
+        }
       }
     }
     
