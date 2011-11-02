@@ -121,8 +121,12 @@ public class Accumulo {
     for (Entry<String,String> entry : ServerConfiguration.getSystemConfiguration())
       sortedProps.put(entry.getKey(), entry.getValue());
     
-    for (Entry<String,String> entry : sortedProps.entrySet())
-      log.info(entry.getKey() + " = " + entry.getValue());
+    for (Entry<String,String> entry : sortedProps.entrySet()) {
+      if (entry.getKey().toLowerCase().contains("password"))
+        log.info(entry.getKey() + " = <hidden>");
+      else
+        log.info(entry.getKey() + " = " + entry.getValue());
+    }
   }
   
   public static InetAddress getLocalAddress(String[] args) throws UnknownHostException {
