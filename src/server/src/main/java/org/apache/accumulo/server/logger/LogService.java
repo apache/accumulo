@@ -124,8 +124,11 @@ public class LogService implements MutationLogger.Iface, Watcher {
       LOG.fatal("Failed to initialize log service args=" + Arrays.asList(args), e);
       throw e;
     }
-    
-    logService.run();
+    try {
+      logService.run();
+    } catch (Exception ex) {
+      LOG.error("Unexpected exception, exiting.", ex);
+    }
   }
   
   public LogService(String[] args) throws UnknownHostException, KeeperException, InterruptedException, IOException {

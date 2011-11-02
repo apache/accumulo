@@ -65,6 +65,7 @@ import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.LoggerStatus;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.MasterClientService.Processor;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.MasterState;
@@ -72,7 +73,6 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
-import org.apache.accumulo.core.master.thrift.MasterClientService.Processor;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
@@ -151,9 +151,9 @@ import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.server.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.fs.FileSystem;
@@ -276,14 +276,15 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   static final boolean X = true;
   static final boolean _ = false;
   static final boolean transitionOK[][] = {
-      // INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
-      /* INITIAL */{X, X, _, _, _, _, X},
-      /* HAVE_LOCK */{_, X, X, X, _, _, X},
-      /* SAFE_MODE */{_, _, X, X, X, _, X},
-      /* NORMAL */{_, _, X, X, X, _, X},
-      /* UNLOAD_METADATA_TABLETS */{_, _, X, X, X, X, X},
-      /* UNLOAD_ROOT_TABLET */{_, _, _, _, _, X, X},
-      /* STOP */{_, _, _, _, _, _, X},};
+      //                            INITIAL HAVE_LOCK SAFE_MODE NORMAL UNLOAD_META UNLOAD_ROOT STOP
+      /* INITIAL                 */{X,      X,        _,        _,     _,          _,          X},
+      /* HAVE_LOCK               */{_,      X,        X,        X,     _,          _,          X},
+      /* SAFE_MODE               */{_,      _,        X,        X,     X,          _,          X},
+      /* NORMAL                  */{_,      _,        X,        X,     X,          _,          X},
+      /* UNLOAD_METADATA_TABLETS */{_,      _,        X,        X,     X,          X,          X},
+      /* UNLOAD_ROOT_TABLET      */{_,      _,        _,        _,     _,          X,          X},
+      /* STOP                    */{_,      _,        _,        _,     _,          _,          X},
+      };
   
   synchronized private void setMasterState(MasterState newState) {
     if (state.equals(newState))
@@ -2139,8 +2140,12 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   }
   
   public static void main(String[] args) throws Exception {
-    Master master = new Master(args);
-    master.run();
+    try {
+      Master master = new Master(args);
+      master.run();
+    } catch (Exception ex) {
+      log.error("Unexpected exception, exiting", ex);
+    }
   }
   
   @Override

@@ -69,8 +69,8 @@ import org.apache.accumulo.core.client.impl.TabletType;
 import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.constraints.Constraint.Environment;
+import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Key;
@@ -120,10 +120,10 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.ServerServices;
+import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
@@ -170,8 +170,8 @@ import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MapCounter;
 import org.apache.accumulo.server.util.MetadataTable;
-import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.MetadataTable.LogEntry;
+import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TServerUtils.ServerPort;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -179,9 +179,9 @@ import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.server.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.Platform;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.conf.Configuration;
@@ -3080,9 +3080,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   }
   
   public static void main(String[] args) throws IOException {
-    TabletServer server = new TabletServer();
-    server.config(args);
-    server.run();
+    try {
+      TabletServer server = new TabletServer();
+      server.config(args);
+      server.run();
+    } catch (Exception ex) {
+      log.error("Uncaught exception in TabletServer.main, exiting", ex);
+    }
   }
   
   public void minorCompactionFinished(CommitSession tablet, String newDatafile, int walogSeq) throws IOException {
