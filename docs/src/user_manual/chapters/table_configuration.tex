@@ -18,7 +18,7 @@
 
 Accumulo tables have a few options that can be configured to alter the default
 behavior of Accumulo as well as improve performance based on the data stored.
-These include locality groups, constraints, and iterators.
+These include locality groups, constraints, bloom filters, iterators, and block cache.
 
 \section{Locality Groups}
 Accumulo supports storing of sets of column families separately on disk to allow
@@ -184,7 +184,7 @@ Tables support separate Iterator settings to be applied at scan time, upon minor
 compaction and upon major compaction. For most uses, tables will have identical
 iterator settings for all three to avoid inconsistent results.
 
-\section{Versioning Iterators and Timestamps}
+\subsection{Versioning Iterators and Timestamps}
 
 Accumulo provides the capability to manage versioned data through the use of
 timestamps within the Key. If a timestamp is not specified in the key created by the
@@ -213,7 +213,7 @@ table.iterator.majc.vers.opt.maxVersions=3
 \end{verbatim}
 \normalsize
 
-\subsection{Logical Time}
+\subsubsection{Logical Time}
 
 Accumulo 1.2 introduces the concept of logical time. This ensures that timestamps
 set by accumulo always move forward. This helps avoid problems caused by
@@ -231,14 +231,14 @@ user@myinstance> createtable -tl logical
 \end{verbatim}
 \normalsize
 
-\subsection{Deletes}
+\subsubsection{Deletes}
 Deletes are special keys in accumulo that get sorted along will all the other data.
 When a delete key is inserted, accumulo will not show anything that has a
 timestamp less than or equal to the delete key. During major compaction, any keys
 older than a delete key are omitted from the new file created, and the omitted keys
 are removed from disk as part of the regular garbage collection process.
 
-\section{Filters}
+\subsection{Filters}
 When scanning over a set of key-value pairs it is possible to apply an arbitrary
 filtering policy through the use of a Filter. Filters are types of iterators that return
 only key-value pairs that satisfy the filter logic. Accumulo has a few built-in filters
@@ -293,7 +293,7 @@ table    | table.iterator.scan.vers.opt.maxVersions .. | 1
 \end{verbatim}
 \normalsize
 
-\section{Aggregating Iterators}
+\subsection{Aggregating Iterators}
 
 Accumulo allows aggregating iterators to be configured on tables and column
 families. When an aggregating iterator is set, the iterator is applied across the values
@@ -354,6 +354,29 @@ class to Accumulo's lib directory.
 
 An example of an aggregator can be found under\\
 accumulo/src/examples/main/java/accumulo/examples/aggregation/SortedSetAggregator.java
+
+
+\section{Block Cache}
+
+In order to increase throughput of commonly accessed entries, Accumulo employs a block cache.
+This block cache buffers data in memory so that it doesn't have to be read off of disk.
+The RFile format that Accumulo prefers is a mix of index blocks and data blocks, where the index blocks are used to find the appropriate data blocks.
+Typical queries to Accumulo result in a binary search over several index blocks followed by a linear scan of one or more data blocks.
+
+The block cache can be configured on a per-table basis, and all tablets hosted on a tablet server share a single resource pool.
+To configure the size of the tablet server's block cache, set the following properties:
+\begin{verbatim}
+tserver.cache.data.size: Specifies the size of the cache for file data blocks.
+tserver.cache.index.size: Specifies the size of the cache for file indices.
+\end{verbatim}
+To enable the block cache for your table, set the following properties:
+\begin{verbatim}
+table.cache.block.enable: Determines whether file (data) block cache is enabled.
+table.cache.index.enable: Determines whether index cache is enabled.
+\end{verbatim}
+
+The block cache can have a significant effect on alleviating hot spots, as well as reducing query latency.
+It is enabled by default for the !METADATA table.
 
 
 \section{Pre-splitting tables}
