@@ -25,6 +25,15 @@
     <fileSet>
       <directory>bin</directory>
       <fileMode>0755</fileMode>
+      <directoryMode>0755</directoryMode>
+    </fileSet>
+    <fileSet>
+      <directory>logs</directory>
+      <directoryMode>0700</directoryMode>
+    </fileSet>
+    <fileSet>
+      <directory>walogs</directory>
+      <directoryMode>0700</directoryMode>
     </fileSet>
     <fileSet>
       <includes>
@@ -62,8 +71,8 @@
         <exclude>**/test-*</exclude>
         <exclude>**/slaves</exclude>
         <exclude>**/masters</exclude>
-        <exclude>**/tracers</exclude>
         <exclude>**/monitor</exclude>
+        <exclude>**/tracers</exclude>
         <exclude>**/gc</exclude>
         <exclude>**/walkers.txt</exclude>
         <exclude>**/ingesters.txt</exclude>
@@ -73,6 +82,8 @@
         <exclude>**/randomwalk/conf/randomwalk.conf</exclude>
         <exclude>**/randomwalk/conf/walkers</exclude>
       </excludes>
+      <fileMode>0644</fileMode>
+      <directoryMode>0755</directoryMode>
     </fileSet>
   </fileSets>
 </assembly>

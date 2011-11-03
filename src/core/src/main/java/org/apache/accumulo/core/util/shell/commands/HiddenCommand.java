@@ -30,7 +30,7 @@ public class HiddenCommand extends Command {
   
   @Override
   public String description() {
-    return "The first rule of Accumulus is: \"You don't talk about Accumulus.\"";
+    return "The first rule of Accumulo is: \"You don't talk about Accumulo.\"";
   }
   
   @Override
