@@ -42,7 +42,7 @@
 
     <property>
       <name>instance.secret</name>
-      <value></value>
+      <value>DEFAULT</value>
       <description>A secret unique to a given instance that all servers must know in order to communicate with one another.
       </description>
     </property>

@@ -3435,13 +3435,7 @@ public class Shell {
       if (rand.nextInt(10) == 0) {
         shellState.reader.beep();
         shellState.reader.printNewline();
-        shellState.reader.printString("  CCCCCCCC  LL         OOOOOO   UU    UU  DDDDDDD   BBBBBBB     AAAA    SSSSSSSS  EEEEEEEE\n");
-        shellState.reader.printString("  CC        LL        OO    OO  UU    UU  DD    DD  BB    BB   AA  AA   SS        EE      \n");
-        shellState.reader.printString("  CC        LL        OO    OO  UU    UU  DD    DD  BB    BB  AA    AA  SS        EE      \n");
-        shellState.reader.printString("  CC        LL        OO    OO  UU    UU  DD    DD  BBBBBBB   AAAAAAAA  SSSSSSSS  EEEEEEEE\n");
-        shellState.reader.printString("  CC        LL        OO    OO  UU    UU  DD    DD  BB    BB  AA    AA        SS  EE      \n");
-        shellState.reader.printString("  CC        LL        OO    OO  UU    UU  DD    DD  BB    BB  AA    AA        SS  EE      \n");
-        shellState.reader.printString("  CCCCCCCC  LLLLLLLL   OOOOOO    UUUUUU   DDDDDDD   BBBBBBB   AA    AA  SSSSSSSS  EEEEEEEE\n");
+        shellState.reader.printString("Sortacus lives!");
         shellState.reader.printNewline();
       } else
         throw new ShellCommandException(ErrorCode.UNRECOGNIZED_COMMAND, getName());
