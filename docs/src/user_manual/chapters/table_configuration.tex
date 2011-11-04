@@ -386,7 +386,7 @@ added to tablets directly by bulk import.  In the background tablet servers run
 major compactions to merge multiple files into one.  The tablet server has to
 decide which tablets to compact and which files within a tablet to compact.
 This decision is made using the compaction ratio, which is configurable on a
-per table basis.  To configure this ratio modify the following property.
+per table basis.  To configure this ratio modify the following property:
 
 \begin{verbatim}
 table.compaction.major.ratio
@@ -397,21 +397,22 @@ work.  More files per tablet means more higher query latency.  So adjusting
 this ratio is a trade off between ingest and query performance.  The ratio
 defaults to 3.  
 
-The way the ratio works is that files in a tablet are compacted if all files
-are larger than the ratio multiplied by the largest file size. If this cannot
-be done with all the files, the largest file is removed from consideration, and
-the remaining files are considered for compaction. This is done until there are
-no files to consider.
+The way the ratio works is that a set of files is compacted into one file if the
+sum of the sizes of the files in the set is larger than the ratio multiplied by
+the size of the largest file in the set. If this is not true for the set of all
+files in a tablet, the largest file is removed from consideration, and the
+remaining files are considered for compaction. This is repeated until a
+compaction is triggered or there are no files left to consider.
 
 The number of background threads tablet servers use to run major compactions is
-configurable.  To configure this modify the following property
+configurable.  To configure this modify the following property:
 
 \begin{verbatim}
 tserver.compaction.major.concurrent.max
 \end{verbatim}
 
 Also, the number of threads tablet servers use for minor compactions is
-configurable.  To configure this modify the following property
+configurable.  To configure this modify the following property:
 
 \begin{verbatim}
 tserver.compaction.minor.concurrent.max
@@ -420,51 +421,52 @@ tserver.compaction.minor.concurrent.max
 The numbers of minor and major compactions running and queued is visible on the
 Accumulo monitor page.  This allows you to see if compactions are backing up
 and adjustments to the above settings are needed.  When adjusting the number of
-threads available for compactions consider the number of cores and other task
-running on the nodes like map reduce.
+threads available for compactions, consider the number of cores and other tasks
+running on the nodes such as maps and reduces.
 
-If major compactions are not keeping up, then the number of file per tablet
-will grow to a point where query performance starts to suffer. One way to
+If major compactions are not keeping up, then the number of files per tablet
+will grow to a point such that query performance starts to suffer. One way to
 handle this situation is to increase the compaction ratio.  For example, if the
-compaction ratio was set to 1, then every new file that was added to a tablet
-by minor compaction would immediately queue the tablet for major compaction.
-So if a tablet had a 200M file and minor compaction wrote a 1M file, then the
-major compaction would attempt to merge the 200M and 1M file.  If the tablet
-server has lots of tablets trying to do this sort of thing, then major
-compactions will backup and the number of files per tablet will start to grow.
-This is assuming data is being continuously written.  So increasing the
-compaction ratio will lower the amount of major compaction work that needs to
-be done and alleviate backups.
+compaction ratio were set to 1, then every new file added to a tablet by minor
+compaction would immediately queue the tablet for major compaction. So if a
+tablet has a 200M file and minor compaction writes a 1M file, then the major
+compaction will attempt to merge the 200M and 1M file.  If the tablet server
+has lots of tablets trying to do this sort of thing, then major compactions
+will back up and the number of files per tablet will start to grow, assuming
+data is being continuously written.  Increasing the compaction ratio will
+alleviate backups by lowering the amount of major compaction work that needs to
+be done.
 
-Another option to deal with the files per tablet growing too large is adjust
-the following property. 
+Another option to deal with the files per tablet growing too large is to adjust
+the following property:
 
 \begin{verbatim}
 table.file.max  
 \end{verbatim}
 
-When a tablet reaches this number of files it will choose to do a merging minor
-compaction.  A merging minor compaction will merge the tablets smallest file
-with the data in memory at minor compaction time.  Therefore the number of
-files will not grow beyond this limit.  This will make minor compactions take
-longer, which will cause ingest performance to decrease.  This can cause ingest
-to slow down until major compactions have enough time to catch up.   When
-adjusting this property, also consider adjusting the compaction ratio.
-Ideally, merging minor compactions never need to occur and major compactions
-can keep up.It is possible to configure the file max and compaction ratio such
-that only merging minor compaction occur and major compactions never occur.
-This is bad because merging minor compactions do $O(N^2)$ work where the amount
-of work done by major compactions is $O(N*\log_R(N))$ where R is the ratio.
- 
+When a tablet reaches this number of files and needs to flush its in-memory data
+to disk, it will choose to do a merging minor compaction.  A merging minor
+compaction will merge the tablet's smallest file with the data in memory at
+minor compaction time.  Therefore the number of files will not grow beyond this
+limit.  This will make minor compactions take longer, which will cause ingest
+performance to decrease.  This can cause ingest to slow down until major
+compactions have enough time to catch up.   When adjusting this property, also
+consider adjusting the compaction ratio. Ideally, merging minor compactions
+never need to occur and major compactions will keep up. It is possible to
+configure the file max and compaction ratio such that only merging minor
+compaction occur and major compactions never occur. This should be avoided
+because merging minor compactions cause $O(N^2)$ work to be done during major
+compaction.  Without merging minor compactions, the amount of work done by major
+compactions is $O(N*\log_R(N))$ where $R$ is the compaction ratio.
 
-Compactions can be manually initiated for a table.  To initiate a minor
+Compactions can be initiated manually for a table.  To initiate a minor
 compaction, use the flush command in the shell.  To initiate a major compaction,
 use the compact command in the shell.  The compact command will compact all
-tablets in a table to one file.  Even tablets with one file are compacted this
-is useful for the case where a filter was added to a table.  In 1.4 the ability
-to compact a range of a table was added.  To use this feature specify start and
-stop rows for the compact command.  This will only compact tablets that overlap
-the given row range. 
+tablets in a table to one file.  Even tablets with one file are compacted.  This
+is useful for the case where a major compaction filter is configured for a
+table. In 1.4 the ability to compact a range of a table was added.  To use this
+feature specify start and stop rows for the compact command.  This will only
+compact tablets that overlap the given row range.
 
 \section{Pre-splitting tables}
 
