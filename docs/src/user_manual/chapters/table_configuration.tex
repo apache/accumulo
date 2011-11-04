@@ -444,8 +444,8 @@ the following property:
 table.file.max  
 \end{verbatim}
 
-When a tablet reaches this number of files and needs to flush its in-memory data
-to disk, it will choose to do a merging minor compaction.  A merging minor
+When a tablet reaches this number of files and needs to flush its in-memory
+data to disk, it will choose to do a merging minor compaction.  A merging minor
 compaction will merge the tablet's smallest file with the data in memory at
 minor compaction time.  Therefore the number of files will not grow beyond this
 limit.  This will make minor compactions take longer, which will cause ingest
@@ -454,10 +454,10 @@ compactions have enough time to catch up.   When adjusting this property, also
 consider adjusting the compaction ratio. Ideally, merging minor compactions
 never need to occur and major compactions will keep up. It is possible to
 configure the file max and compaction ratio such that only merging minor
-compaction occur and major compactions never occur. This should be avoided
-because merging minor compactions cause $O(N^2)$ work to be done during major
-compaction.  Without merging minor compactions, the amount of work done by major
-compactions is $O(N*\log_R(N))$ where $R$ is the compaction ratio.
+compactions occur and major compactions never occur. This should be avoided
+because doing only merging minor compactions causes $O(N^2)$ work to be done.
+The amount of work done by major compactions is $O(N*\log_R(N))$ where $R$ is
+the compaction ratio.
 
 Compactions can be initiated manually for a table.  To initiate a minor
 compaction, use the flush command in the shell.  To initiate a major compaction,
