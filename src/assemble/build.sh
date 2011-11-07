@@ -48,5 +48,6 @@ then
 fi
 run mvn package javadoc:aggregate javadoc:jar source:jar
 runAt ./src/server/src/main/c++ make 
-run mvn package source:jar assembly:single
+run mvn package source:jar
+run mvn assembly:single
 test -x /usr/bin/rpmbuild && run mvn -N rpm:rpm
