@@ -78,6 +78,7 @@
         <exclude>**/ingesters.txt</exclude>
         <exclude>**/continuous-env.sh</exclude>
         <exclude>**/*.pyc</exclude>
+        <exclude>src/**/*.so</exclude>
       </excludes>
       <fileMode>0644</fileMode>
       <directoryMode>0755</directoryMode>
