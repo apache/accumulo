@@ -52,7 +52,7 @@ import org.apache.log4j.Logger;
  * <p>
  * Because it is possible for multiple instances of accumulo to share a single set of zookeeper servers, all constructors require a accumulo instance name.
  * 
- * If you do not know the instance names then run accumulo accumulo.server.util.ListInstances on a accumulo server.
+ * If you do not know the instance names then run accumulo org.apache.accumulo.server.util.ListInstances on a accumulo server.
  * 
  */
 
@@ -139,7 +139,7 @@ public class ZooKeeperInstance implements Instance {
       byte[] iidb = zooCache.get(instanceNamePath);
       if (iidb == null) {
         throw new RuntimeException("Instance name " + instanceName
-            + " does not exist in zookeeper.  Run \"accumulo accumulo.server.util.ListInstances\" to see a list.");
+            + " does not exist in zookeeper.  Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
       }
       instanceId = new String(iidb);
     }
