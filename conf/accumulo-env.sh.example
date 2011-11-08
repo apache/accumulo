@@ -15,10 +15,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-test -z "$JAVA_HOME"              && export JAVA_HOME=$JAVA_HOME
-test -z "$HADOOP_HOME"            && export HADOOP_HOME=$HADOOP_LOCATION
+###
+### Configure these environment variables to point to your local installations.
+###
+### The functional tests require conditional values, so keep this style:
+###
+### test -z "$JAVA_HOME" && export JAVA_HOME=/usr/local/lib/jdk-1.6.0
+###
+###
+### Note that the -Xmx -Xms settings below require substantial free memory: 
+### you may want to use smaller values, especially when running everything
+### on a single machine.
+###
+
+test -z "$JAVA_HOME"             && export JAVA_HOME=$JAVA_HOME
+test -z "$HADOOP_HOME"           && export HADOOP_HOME=$HADOOP_LOCATION
 test -z "$ACCUMULO_LOG_DIR"      && export ACCUMULO_LOG_DIR=$ACCUMULO_HOME/logs
-test -z "$ZOOKEEPER_HOME"         && export ZOOKEEPER_HOME="$ZOOKEEPER_HOME"
+test -z "$ZOOKEEPER_HOME"        && export ZOOKEEPER_HOME="$ZOOKEEPER_HOME"
 if [ -f ${ACCUMULO_HOME}/conf/accumulo.policy ]
 then
    POLICY="-Djava.security.manager -Djava.security.policy=${ACCUMULO_HOME}/conf/accumulo.policy"
