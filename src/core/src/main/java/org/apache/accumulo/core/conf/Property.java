@@ -215,7 +215,7 @@ public enum Property {
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client."),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.STRING, "Change the type of file a table writes"),
-  TABLE_LOAD_BALANCER("table.balancer", "accumulo.server.master.balancer.DefaultLoadBalancer", PropertyType.STRING,
+  TABLE_LOAD_BALANCER("table.balancer", "org.apache.accumulo.server.master.balancer.DefaultLoadBalancer", PropertyType.STRING,
       "This property can be set to allow the LoadBalanceByTable load balancer to change the called Load Balancer for this table"),
   TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING, "One of gz,lzo,none"),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100K", PropertyType.MEMORY,
@@ -240,8 +240,8 @@ public enum Property {
   TABLE_BLOOM_SIZE("table.bloom.size", "1048576", PropertyType.COUNT, "Bloom filter size, as number of keys."),
   TABLE_BLOOM_ERRORRATE("table.bloom.error.rate", "0.5%", PropertyType.FRACTION, "Bloom filter error rate."),
   TABLE_BLOOM_KEY_FUNCTOR("table.bloom.key.functor", "org.apache.accumulo.core.file.keyfunctor.RowFunctor", PropertyType.CLASSNAME,
-      "A function that can transform the key prior to insertion and check of bloom filter.  accumulo.core.file.keyfunctor.RowFunctor,"
-          + ",accumulo.core.file.keyfunctor.ColumnFamilyFunctor, and accumulo.core.file.keyfunctor.ColumnQualifierFunctor are allowable values."
+      "A function that can transform the key prior to insertion and check of bloom filter.  org.apache.accumulo.core.file.keyfunctor.RowFunctor,"
+          + ",org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor, and org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor are allowable values."
           + " One can extend any of the above mentioned classes to perform specialized parsing of the key. "),
   TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING, "The bloom filter hash type"),
   TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN,
@@ -260,7 +260,7 @@ public enum Property {
       "Properties in this category are per-table properties that add constraints to a table. "
           + "These properties start with the category prefix, followed by a number, and their values "
           + "correspond to a fully qualified Java class that implements the Constraint interface.<br />"
-          + "For example, table.constraint.1 = accumulo.core.constraints.MyCustomConstraint "
+          + "For example, table.constraint.1 = org.apache.accumulo.core.constraints.MyCustomConstraint "
           + "and table.constraint.2 = my.package.constraints.MySecondConstraint"),
   TABLE_INDEXCACHE_ENABLED("table.cache.index.enable", "true", PropertyType.BOOLEAN, "Determines whether index cache is enabled."),
   TABLE_BLOCKCACHE_ENABLED("table.cache.block.enable", "false", PropertyType.BOOLEAN, "Determines whether file block cache is enabled."),
@@ -269,7 +269,7 @@ public enum Property {
           + "with a table. These properties start with the category prefix, followed by a scope (minc, majc, scan, etc.), "
           + "followed by a period, followed by a name, as in table.iterator.scan.vers, or table.iterator.scan.custom. "
           + "The values for these properties are a number indicating the ordering in which it is applied, and a class name "
-          + "such as table.iterator.scan.vers = 10,accumulo.core.iterators.VersioningIterator<br /> "
+          + "such as table.iterator.scan.vers = 10,org.apache.accumulo.core.iterators.VersioningIterator<br /> "
           + "These iterators can take options if additional properties are set that look like this property, "
           + "but are suffixed with a period, followed by 'opt' followed by another period, and a property name.<br />"
           + "For example, table.iterator.minc.vers.opt.maxVersions = 3"),

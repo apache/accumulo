@@ -53,7 +53,7 @@ user@instance:9999 perDayCounts&gt;
 </pre>
 
 
-<p>Implementing a new aggregation function is a snap.  Simply write some Java code that implements <a href='apidocs/accumulo/core/iterators/aggregation/Aggregator.html'>org.apache.accumulo.core.iterators.aggregation.Aggregator</a>. A good example to look at is <a href='apidocs/accumulo/core/iterators/aggregation/StringSummation.html'>StringSummation</a> which sums numbers encoded as ascii strings.  However, one could easily write a much more efficient summation aggregator that operates on numbers encoded in twos complement.     
+<p>Implementing a new aggregation function is a snap.  Simply write some Java code that implements <a href='apidocs/org/apache/accumulo/core/iterators/aggregation/Aggregator.html'>org.apache.accumulo.core.iterators.aggregation.Aggregator</a>. A good example to look at is <a href='apidocs/org/apache/accumulo/core/iterators/aggregation/StringSummation.html'>StringSummation</a> which sums numbers encoded as ascii strings.  However, one could easily write a much more efficient summation aggregator that operates on numbers encoded in twos complement.     
 
 <p>To deploy a new aggregator, jar it up and put the jar in accumulo/lib.  To see an example look at <a href='examples/README.aggregation'>README.aggregation</a>
 

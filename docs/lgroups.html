@@ -34,9 +34,9 @@
 
 <P>When the locality group configuration for a table is changed it has no effect on existing data.  All minor and major compactions that occur after the change will organize data into the new locality group structure.  As data is written into a table, it will cause minor and major compactions to occur.  Over time this will result in all data being organized according to the new locality groups.   If all data must be reorganized into the new locality groups immediately, this can be accomplished by forcing a full major compaction of the table.  Use the compact command in the shell to accomplish this. 
 
-<P>There are two ways to manipulate locality groups, via the shell or through the Java API.  From the shell use the getgroups and setgroups commands.  Through the API, <a href='apidocs/accumulo/core/client/admin/TableOperations.html'>TableOperations</a> has the methods setLocalityGroups() and getLocalityGroups().
+<P>There are two ways to manipulate locality groups, via the shell or through the Java API.  From the shell use the getgroups and setgroups commands.  Through the API, <a href='apidocs/org/apache/accumulo/core/client/admin/TableOperations.html'>TableOperations</a> has the methods setLocalityGroups() and getLocalityGroups().
 
-<P>To limit scans to a set of locality groups, use the fetchColumnFamily() function on  <a href='apidocs/accumulo/core/client/Scanner.html'>Scanner</a> or <a href='apidocs/accumulo/core/client/BatchScanner.html'>BatchScanner</a>.  From the shell use scan with the -c option.  
+<P>To limit scans to a set of locality groups, use the fetchColumnFamily() function on  <a href='apidocs/org/apache/accumulo/core/client/Scanner.html'>Scanner</a> or <a href='apidocs/org/apache/accumulo/core/client/BatchScanner.html'>BatchScanner</a>.  From the shell use scan with the -c option.  
 
 </body>
 </html>
