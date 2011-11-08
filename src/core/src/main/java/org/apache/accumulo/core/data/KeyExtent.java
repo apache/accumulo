@@ -612,7 +612,7 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       metadataPrevRow.append(getPrevEndRow().getBytes(), 0, getPrevEndRow().getLength());
     }
     
-    Range range = new Range(metadataPrevRow, false, getMetadataEntry(), true);
+    Range range = new Range(metadataPrevRow, getPrevEndRow() == null, getMetadataEntry(), true);
     return range;
   }
   
