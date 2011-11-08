@@ -2,13 +2,19 @@
 1. Building
 
 In the normal tarball or RPM release of accumulo, everything is built and
-ready to go: there is no build step.
+ready to go on x86 GNU/Linux: there is no build step.
 
 However, if you only have source code, or you wish to make changes, you need to
-have maven configured to get Accumulo pre-requisites from repositories.  See
+have maven configured to get Accumulo prerequisites from repositories.  See
 the pom.xml file for the necessary components.
 
 Run "mvn package && mvn assembly:single"
+
+If you are running on another Unix-like operating system (OSX, etc) then
+you may wish to build the native libraries.  They are not strictly necessary
+but having them available suppresses a runtime warning:
+
+  $ ( cd ./src/server/src/main/c++ ; make )
 
 ******************************************************************************
 2. Deployment
@@ -22,7 +28,6 @@ accumulo.
 
 ******************************************************************************
 3. Upgrading from 1.3 to 1.4
-
 
 
 ******************************************************************************
@@ -74,8 +79,8 @@ additional variables you can modify and what the defaults are.
 * Some recommended modifications for the accumulo site are:
 
 logger.dir.walog
-	- a local directory that will be used to log updates which will be used in the event of
-	  tablet server failure
+	- a local directory that will be used to log updates which 
+          will be used in the event of tablet server failure
 
 Synchronize your accumulo conf directory across the cluster.  As a precaution
 against mis-configured systems, servers using different configuration files
@@ -104,12 +109,12 @@ In the example below a table is created, data is inserted, and the table is
 scanned.
 
     $ ./bin/accumulo shell -u root
-    Enter current password for 'root'@'acu14': ******
+    Enter current password for 'root'@'accumulo': ******
 
     Shell - Accumulo Interactive Shell
     - 
     - version: 1.4.0-incubating-SNAPSHOT
-    - instance name: acu14
+    - instance name: accumulo
     - instance id: f5947fe6-081e-41a8-9877-43730c4dfc6f
     - 
     - type 'help' for a list of available commands
@@ -125,12 +130,12 @@ The example below start the shell, switches to table foo, and scans for a
 certain column.
 
     $ ./bin/accumulo shell -u root
-    Enter current password for 'root'@'acu14': ******
+    Enter current password for 'root'@'accumulo': ******
 
     Shell - Accumulo Interactive Shell
     - 
     - version: 1.4.0-incubating-SNAPSHOT
-    - instance name: acu14
+    - instance name: accumulo
     - instance id: f5947fe6-081e-41a8-9877-43730c4dfc6f
     - 
     - type 'help' for a list of available commands
@@ -147,7 +152,7 @@ certain column.
 
 You can point your browser to the master host, on port 50095 to see the status
 of accumulo across the cluster.  You can even do this with the text-based
-browser "elinks":
+browser "links":
 
  $ links http://localhost:50095
 
