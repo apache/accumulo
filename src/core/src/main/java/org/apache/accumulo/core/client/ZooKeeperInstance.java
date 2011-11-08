@@ -91,7 +91,7 @@ public class ZooKeeperInstance implements Instance {
    *          zoo keeper session time out in milliseconds.
    */
   
-  private ZooKeeperInstance(String instanceName, String zooKeepers, int sessionTimeout) {
+  public ZooKeeperInstance(String instanceName, String zooKeepers, int sessionTimeout) {
     ArgumentChecker.notNull(instanceName, zooKeepers);
     this.instanceName = instanceName;
     this.zooKeepers = zooKeepers;
@@ -122,7 +122,7 @@ public class ZooKeeperInstance implements Instance {
    *          zoo keeper session time out in milliseconds.
    */
   
-  private ZooKeeperInstance(UUID instanceId, String zooKeepers, int sessionTimeout) {
+  public ZooKeeperInstance(UUID instanceId, String zooKeepers, int sessionTimeout) {
     ArgumentChecker.notNull(instanceId, zooKeepers);
     this.instanceId = instanceId.toString();
     this.zooKeepers = zooKeepers;
