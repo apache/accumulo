@@ -17,8 +17,10 @@
 
 
 
-THIS_SCRIPT=`readlink -f $0`
+THIS_SCRIPT="$0"
 SCRIPT_DIR="${THIS_SCRIPT%/*}"
+SCRIPT_DIR=`cd $SCRIPT_DIR ; pwd`
+echo $SCRIPT_DIR
 
 ACCUMULO_HOME=${ACCUMULO_HOME}
 ZOOKEEPER_HOME=${ZOOKEEPER_HOME}
@@ -64,7 +66,7 @@ LIBJARS=`echo $CLASSPATH | sed 's/:/,/g'`
 #
 # Map/Reduce job
 #
-JAR=$SCRIPT_DIR/../lib/accumulo-sample-ingest-1.4.0-SNAPSHOT.jar
+JAR=$SCRIPT_DIR/../lib/accumulo-sample-ingest-1.4.0-incubating-SNAPSHOT.jar
 CONF=$SCRIPT_DIR/../conf/wikipedia.xml
 HDFS_DATA_DIR=$1
 export HADOOP_CLASSPATH=$CLASSPATH
