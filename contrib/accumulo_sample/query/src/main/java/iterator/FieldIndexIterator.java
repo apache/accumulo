@@ -75,9 +75,6 @@ public class FieldIndexIterator extends WrappingIterator {
         functions.put("f", QueryFunctions.class);
         engine.setFunctions(functions);
     }
-    // Wrapping iterator only accesses its private source in setSource and getSource
-    // Since this class overrides these methods, it's safest to keep the source declaration here
-    private SortedKeyValueIterator<Key, Value> source;
 
     public static void setLogLevel(Level l) {
         log.setLevel(l);
@@ -124,7 +121,7 @@ public class FieldIndexIterator extends WrappingIterator {
     }
 
     public FieldIndexIterator(FieldIndexIterator other, IteratorEnvironment env) {
-        source = other.getSource().deepCopy(env);
+        setSource(other.getSource().deepCopy(env));
         //Set a default KeyParser
         keyParser = createDefaultKeyParser();
     }
@@ -134,23 +131,7 @@ public class FieldIndexIterator extends WrappingIterator {
         return parser;
     }
 
-    //-------------------------------------------------------------------------
-    //-------------  Overrides
-    @Override
-    public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env) throws IOException {
-        super.init(source, options, env);
-        source = super.getSource();
-    }
 
-    @Override
-    protected void setSource(SortedKeyValueIterator<Key, Value> source) {
-        this.source = source;
-    }
-
-    @Override
-    protected SortedKeyValueIterator<Key, Value> getSource() {
-        return source;
-    }
 
     @Override
     public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment env) {
@@ -181,18 +162,18 @@ public class FieldIndexIterator extends WrappingIterator {
             currentRow = topKey.getRow();
         }
 
-        source.next();
+        getSource().next();
         while (true) {
             log.debug("next(), Range: " + range);
-            if (source.hasTop()) {
-                Key k = source.getTopKey();
+            if (getSource().hasTop()) {
+                Key k = getSource().getTopKey();
                 if (range.contains(k)) {
                     if (matches(k)) {
                         topKey = k;
-                        topValue = source.getTopValue();
+                        topValue = getSource().getTopValue();
                         return;
                     } else {
-                        source.next();
+                    	getSource().next();
                     }
 
                 } else {
@@ -229,7 +210,7 @@ public class FieldIndexIterator extends WrappingIterator {
                     if (log.isDebugEnabled()) {
                         log.debug("next, range: " + range);
                     }
-                    source.seek(range, EMPTY_COL_FAMS, false);
+                    getSource().seek(range, EMPTY_COL_FAMS, false);
                 }
             } else {
                 topKey = null;
@@ -290,23 +271,23 @@ public class FieldIndexIterator extends WrappingIterator {
             if (log.isDebugEnabled()) {
                 log.debug("seek, incoming range: " + range);
             }
-            source.seek(range, columnFamilies, inclusive);
+            getSource().seek(range, columnFamilies, inclusive);
 
             while (topKey == null) {
-                if (source.hasTop()) {
+                if (getSource().hasTop()) {
                     if (log.isDebugEnabled()) {
-                        log.debug("seek, source has top: " + source.getTopKey());
+                        log.debug("seek, source has top: " + getSource().getTopKey());
                     }
-                    Key k = source.getTopKey();
+                    Key k = getSource().getTopKey();
                     if (range.contains(k)) {
                         if (matches(k)) {
                             topKey = k;
-                            topValue = source.getTopValue();
+                            topValue = getSource().getTopValue();
                             if (log.isDebugEnabled()) {
                                 log.debug("seek, source has top in valid range");
                             }
                         } else {
-                            source.next();
+                        	getSource().next();
                         }
                     } else {
                         if (log.isDebugEnabled()) {
@@ -353,7 +334,7 @@ public class FieldIndexIterator extends WrappingIterator {
                             log.debug("currentRow: " + currentRow);
                             log.debug("seek, range: " + range);
                         }
-                        source.seek(range, columnFamilies, inclusive);
+                        getSource().seek(range, columnFamilies, inclusive);
                     }
                 } else {
                     if (log.isDebugEnabled()) {
@@ -621,18 +602,18 @@ public class FieldIndexIterator extends WrappingIterator {
         }
         Key fakeKey = new Key(new Text(currentRow + NULL_BYTE));
         Range fakeRange = new Range(fakeKey, fakeKey);
-        source.seek(fakeRange, EMPTY_COL_FAMS, false);
-        if (source.hasTop()) {
-            return source.getTopKey().getRow();
+        getSource().seek(fakeRange, EMPTY_COL_FAMS, false);
+        if (getSource().hasTop()) {
+            return getSource().getTopKey().getRow();
         } else {
             return null;
         }
     }
 
     private Text getFirstRow() throws IOException {
-        source.seek(new Range(), EMPTY_COL_FAMS, false);
-        if (source.hasTop()) {
-            return source.getTopKey().getRow();
+    	getSource().seek(new Range(), EMPTY_COL_FAMS, false);
+        if (getSource().hasTop()) {
+            return getSource().getTopKey().getRow();
         } else {
             throw new IOException();
         }
@@ -668,22 +649,22 @@ public class FieldIndexIterator extends WrappingIterator {
         range = r;
         setTopKey(null);
         setTopValue(null);
-        source.seek(range, EMPTY_COL_FAMS, false);
+        getSource().seek(range, EMPTY_COL_FAMS, false);
         while (topKey == null) {
-            if (source.hasTop()) {
+            if (getSource().hasTop()) {
                 if (log.isDebugEnabled()) {
-                    log.debug("jump, source has top: " + source.getTopKey());
+                    log.debug("jump, source has top: " + getSource().getTopKey());
                 }
-                Key k = source.getTopKey();
+                Key k = getSource().getTopKey();
                 if (range.contains(k)) {
                     if (matches(k)) {
                         topKey = k;
-                        topValue = source.getTopValue();
+                        topValue = getSource().getTopValue();
                         if (log.isDebugEnabled()) {
                             log.debug("jump, source has top in valid range");
                         }
                     } else {
-                        source.next();
+                    	getSource().next();
                     }
                 } else {
                     if (log.isDebugEnabled()) {
@@ -740,7 +721,7 @@ public class FieldIndexIterator extends WrappingIterator {
                     if (log.isDebugEnabled()) {
                         log.debug("jump, new build range: " + range);
                     }
-                    source.seek(range, EMPTY_COL_FAMS, false);
+                    getSource().seek(range, EMPTY_COL_FAMS, false);
                 }
             } else {
                 if (log.isDebugEnabled()) {

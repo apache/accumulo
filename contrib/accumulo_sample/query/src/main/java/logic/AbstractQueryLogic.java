@@ -466,7 +466,6 @@ public abstract class AbstractQueryLogic {
         StopWatch fullScanQuery = new StopWatch();
         StopWatch processResults = new StopWatch();
 
-
         abstractQueryLogic.start();
         
         StopWatch parseQuery = new StopWatch();
@@ -778,6 +777,8 @@ public abstract class AbstractQueryLogic {
                     
                     bs.addScanIterator(si);
 
+                    processResults.start();
+                    processResults.suspend();
                     long count = 0;
                     for (Entry<Key, Value> entry : bs) {
                         count++;

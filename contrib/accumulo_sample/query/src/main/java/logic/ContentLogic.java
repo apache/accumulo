@@ -30,7 +30,6 @@ import org.jboss.util.Base64;
 import sample.Document;
 import sample.Field;
 import sample.Results;
-import util.RegionTimer;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -74,10 +73,6 @@ public class ContentLogic {
         Authorizations auths = new Authorizations(StringUtils.join(authorizations, "|"));
 
 		
-        RegionTimer timer = new RegionTimer("ContentLogic: " + query);
-        String section = "1) parse query";
-        timer.enter(section);
-
 		Matcher match = queryPattern.matcher(query);
 		if (!match.matches()) {
 			throw new IllegalArgumentException("Query does not match the pattern: DOCUMENT:partitionId/wikitype/uid, your query: " + query.toString());
@@ -88,7 +83,6 @@ public class ContentLogic {
 			
 			log.debug("Received pieces: " + partitionId + ", " + wikitype + ", " + id);
 			
-			timer.change(section = "2) creating range");
 			//Create the Range
 			Key startKey = new Key(partitionId, WikipediaMapper.DOCUMENT_COLUMN_FAMILY, wikitype+NULL_BYTE+id);
 			Key endKey = new Key(partitionId, WikipediaMapper.DOCUMENT_COLUMN_FAMILY, wikitype+NULL_BYTE+id+NULL_BYTE);
@@ -96,14 +90,11 @@ public class ContentLogic {
 			
 			log.debug("Setting range: " + r);
 
-			timer.change(section = "3) querying table");
 			try {
 				Scanner scanner = connector.createScanner(this.getTableName(), auths);
 				scanner.setRange(r);
 				//This should in theory only match one thing.
-				timer.change(section = "4) process results");
 				for (Entry<Key,Value> entry : scanner) {
-					timer.enter("1) handle result");
 					Document doc = new Document();
 					doc.setId(id);
 					Field val = new Field();
@@ -111,16 +102,12 @@ public class ContentLogic {
 					val.setFieldValue(new String(Base64.decode(entry.getValue().toString())));
 					doc.getFields().add(val);
 					results.getResults().add(doc);
-					timer.exit("1) handle result");
 				}
 			} catch (TableNotFoundException e) {
 				throw new RuntimeException("Table not found: " + this.getTableName(), e);
 			}
 			
 		}
-		timer.exit(section);
-		log.info(timer.toString());
-		timer = null;
 		return results;
 	}
 
