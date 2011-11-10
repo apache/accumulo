@@ -41,6 +41,7 @@ import normalizer.Normalizer;
 
 import org.apache.commons.jexl2.parser.ParserTreeConstants;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.StopWatch;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -54,7 +55,6 @@ import parser.RangeCalculator;
 import sample.Document;
 import sample.Field;
 import sample.Results;
-import util.RegionTimer;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -459,9 +459,18 @@ public abstract class AbstractQueryLogic {
         String queryString = query;
         
         
-        RegionTimer timer = new RegionTimer("AbstractQueryLogic: " + queryString);
-        String section = "1) parse query";
-        timer.enter(section);
+        StopWatch abstractQueryLogic = new StopWatch();
+        StopWatch optimizedQuery = new StopWatch();
+        StopWatch queryGlobalIndex = new StopWatch();
+        StopWatch optimizedEventQuery = new StopWatch();
+        StopWatch fullScanQuery = new StopWatch();
+        StopWatch processResults = new StopWatch();
+
+
+        abstractQueryLogic.start();
+        
+        StopWatch parseQuery = new StopWatch();
+        parseQuery.start();
 
         QueryParser parser;
         try {
@@ -474,7 +483,7 @@ public abstract class AbstractQueryLogic {
             throw new IllegalArgumentException("Error parsing query", e1);
         }
         int hash = parser.getHashValue();
-        timer.exit(section);
+        parseQuery.stop();
         if (log.isDebugEnabled()) {
             log.debug(hash + " Query: " + queryString);
         }
@@ -500,7 +509,8 @@ public abstract class AbstractQueryLogic {
         //Find out which terms are indexed
         //TODO: Should we cache indexed terms or does that not make sense since we are always
         //loading data.
-        timer.enter(section = "2) query metadata");
+        StopWatch queryMetadata = new StopWatch();
+        queryMetadata.start();
         Map<String, Multimap<String, Class<? extends Normalizer>>> metadataResults;
 		try {
 			metadataResults = findIndexedTerms(connector, auths, fields, typeFilter);
@@ -516,7 +526,7 @@ public abstract class AbstractQueryLogic {
         		indexedTerms.put(entry.getKey(), normalizerCacheMap.get(clazz));
         	}
         }
-        timer.exit(section);
+        queryMetadata.stop();
         if (log.isDebugEnabled()) {
             log.debug(hash + " Indexed Terms: " + indexedTerms.toString());
         }
@@ -579,16 +589,16 @@ public abstract class AbstractQueryLogic {
         }
 
         if (!unsupportedOperatorSpecified && (((null == orTerms || orTerms.isEmpty()) && indexedTerms.size() > 0) || (fields.size() > 0 && indexedTerms.size() == fields.size()) ||orsAllIndexed ) ) {
-            timer.enter(section = "3) optimized query");
+            optimizedQuery.start();
             //Set up intersecting iterator over field index.
 
             //Get information from the global index for the indexed terms. The results object will contain the term
             //mapped to an object that contains the total count, and partitions where this term is located.
 
             //TODO: Should we cache indexed term information or does that not make sense since we are always loading data
-            timer.enter(section = "1) query global index");
+            queryGlobalIndex.start();
             IndexRanges termIndexInfo;
-            Set<String> indexedColumns = null;
+            Set<String> indexedColumns;
             try {
                 //If fields is null or zero, then it's probably the case that the user entered a value
                 //to search for with no fields. Check for the value in index.
@@ -650,7 +660,7 @@ public abstract class AbstractQueryLogic {
 				log.info("Indexed fields not found in index, performing full scan");
 				termIndexInfo = null;
 			} 
-            timer.exit(section);
+            queryGlobalIndex.stop();
 
             //Determine if we should proceed with optimized query based on results from the global index
             boolean proceed = false;
@@ -682,7 +692,7 @@ public abstract class AbstractQueryLogic {
                 }
 
                 //Create BatchScanner, set the ranges, and setup the iterators.
-                timer.enter(section = "2) optimized event query");
+                optimizedEventQuery.start();
                 BatchScanner bs = null;
                 try {
                     bs = connector.createBatchScanner(this.getTableName(), auths, queryThreads);
@@ -769,7 +779,6 @@ public abstract class AbstractQueryLogic {
                     bs.addScanIterator(si);
 
                     long count = 0;
-                    section = "1) process results";
                     for (Entry<Key, Value> entry : bs) {
                         count++;
                         if (log.isDebugEnabled()) {
@@ -778,13 +787,14 @@ public abstract class AbstractQueryLogic {
                         //The key that is returned by the EvaluatingIterator is not the same key that is in
                         //the table. The value that is returned by the EvaluatingIterator is a kryo
                         //serialized EventFields object.
-                        timer.enter(section);
+                        processResults.resume();
                         Document d = this.createDocument(entry.getKey(), entry.getValue());
                         results.getResults().add(d);
-                        timer.exit(section);
+                        processResults.suspend();
                     }
                     log.info(count + " matching entries found in optimized query.");
                     optimizationSucceeded = true;
+                    processResults.stop();
                 } catch (TableNotFoundException e) {
                     log.error(this.getTableName() + "not found", e);
                     throw new RuntimeException(this.getIndexTableName() + "not found", e);
@@ -793,18 +803,17 @@ public abstract class AbstractQueryLogic {
                         bs.close();
                     }
                 }
-                timer.exit("2) optimized event query");
-
+                optimizedEventQuery.stop();
             }
-            timer.exit("3) optimized query");
+            optimizedQuery.stop();
         }
 
         // WE should look into finding a better way to handle whether we do an optimized query or not.
         //We are not setting up an else condition here because we may have aborted the logic early in the if statement.
         if (!optimizationSucceeded || ((null != orTerms && orTerms.size() > 0) && (indexedTerms.size() != fields.size()) && !orsAllIndexed)) {
         //if (!optimizationSucceeded || ((null != orTerms && orTerms.size() > 0) && (indexedTerms.size() != fields.size()))) {
-            timer.enter(section = "3) full scan query");
-            if (log.isDebugEnabled()) {
+            fullScanQuery.start();
+             if (log.isDebugEnabled()) {
                 log.debug(hash + " Performing full scan query");
             }
 
@@ -854,17 +863,19 @@ public abstract class AbstractQueryLogic {
                 }
                 bs.addScanIterator(si);
                 long count = 0;
-                section = "1) process results";
+                processResults.start();
+                processResults.suspend();
                 for (Entry<Key, Value> entry : bs) {
                     count++;
                     //The key that is returned by the EvaluatingIterator is not the same key that is in
                     //the partition table. The value that is returned by the EvaluatingIterator is a kryo
                     //serialized EventFields object.
-                    timer.enter(section);
+                    processResults.resume();
                     Document d = this.createDocument(entry.getKey(), entry.getValue());
                     results.getResults().add(d);
-                    timer.exit(section);
+                    processResults.suspend();
                 }
+                processResults.stop();
                 log.info(count + " matching entries found in full scan query.");
             } catch (TableNotFoundException e) {
                 log.error(this.getTableName() + "not found", e);
@@ -873,14 +884,22 @@ public abstract class AbstractQueryLogic {
                     bs.close();
                 }
             }
-            timer.exit("3) full scan query");
+            fullScanQuery.stop();
         }
-
-        log.info(timer.toString());
-
+        
+        log.info("AbstractQueryLogic: " + queryString + " " + timeString(abstractQueryLogic.getTime()));
+        log.info("  1) parse query " + timeString(parseQuery.getTime()));
+        log.info("  2) query metadata " + timeString(queryMetadata.getTime()));
+        log.info("  3) full scan query " + timeString(fullScanQuery.getTime()));
+        log.info("  3) optimized query " + timeString(optimizedQuery.getTime()));
+        log.info("  1) process results " + timeString(processResults.getTime()));
+        log.info("      1) query global index " + timeString(queryGlobalIndex.getTime()));
         log.info(hash + " Query completed.");
 
         return results;
+    }
+    private static String timeString(long millis) {
+    	return String.format("%4.2f", millis / 1000.);
     }
     
 }
