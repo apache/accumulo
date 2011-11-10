@@ -16,7 +16,6 @@
   limitations under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
   <parent>
     <artifactId>accumulo-sample</artifactId>
     <groupId>org.apache.accumulo</groupId>
@@ -109,6 +108,10 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>com.googlecode</groupId>
+      <artifactId>minlog</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
     </dependency>
@@ -170,4 +173,5 @@
       </plugin>
     </plugins>
   </build>
+  <modelVersion>4.0.0</modelVersion>
 </project>
