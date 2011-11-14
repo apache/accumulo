@@ -8,7 +8,7 @@ the end shows the inserts were not allowed.
 
   Shell - Accumulo Interactive Shell
   - 
-  - version: 1.4.0-incubating-SNAPSHOT
+  - version: 1.5.0-incubating-SNAPSHOT
   - instance name: example
   - instance id: 00000000-0000-0000-0000-000000000000
   - 

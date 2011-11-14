@@ -10,7 +10,7 @@ To run these example programs, create two tables like below.
 
   Shell - Accumulo Interactive Shell
   - 
-  - version: 1.4.0-incubating-SNAPSHOT
+  - version: 1.5.0-incubating-SNAPSHOT
   - instance name: test-instance
   - instance id: test-instance-id
   - 

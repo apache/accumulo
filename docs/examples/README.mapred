@@ -19,7 +19,7 @@ for the column family count.
 
   [user1@localhost accumulo]$ ./bin/accumulo shell -u root -p secret
   Shell - Accumulo Interactive Shell
-  - version: 1.4.0-incubating-SNAPSHOT
+  - version: 1.5.0-incubating-SNAPSHOT
   - instance id: 00000000-0000-0000-0000-000000000000
   - 
   - type 'help' for a list of available commands
@@ -53,7 +53,7 @@ counts.
 
   $ ./bin/accumulo shell -u root -p secret
   Shell - Accumulo Interactive Shell
-  - version: 1.4.0-incubating-SNAPSHOT
+  - version: 1.5.0-incubating-SNAPSHOT
   - instance id: 00000000-0000-0000-0000-000000000000
   - 
   - type 'help' for a list of available commands

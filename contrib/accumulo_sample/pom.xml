@@ -23,13 +23,13 @@
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo</artifactId>
-    <version>1.4.0-incubating-SNAPSHOT</version>
+    <version>1.5.0-incubating-SNAPSHOT</version>
     <relativePath>../../</relativePath>
   </parent>
 
   <artifactId>accumulo-sample</artifactId>
   <groupId>org.apache.accumulo</groupId>
-  <version>1.4.0-incubating-SNAPSHOT</version>
+  <version>1.5.0-incubating-SNAPSHOT</version>
   <name>accumulo-sample</name>
   <packaging>pom</packaging>
 
