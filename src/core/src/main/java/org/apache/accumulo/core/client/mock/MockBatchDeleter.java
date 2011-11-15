@@ -26,7 +26,6 @@ public class MockBatchDeleter extends MockBatchScanner implements BatchDeleter {
   
   private final MockAccumulo acc;
   private final String tableName;
-  private final Authorizations authorizations;
   
   /**
    * Create a {@link BatchDeleter} for the specified instance on the specified table where the writer uses the specified {@link Authorizations}.
@@ -37,7 +36,6 @@ public class MockBatchDeleter extends MockBatchScanner implements BatchDeleter {
    */
   public MockBatchDeleter(MockAccumulo acc, String tableName, Authorizations auths) {
     super(acc.tables.get(tableName), auths);
-    this.authorizations = auths;
     this.acc = acc;
     this.tableName = tableName;
   }
@@ -47,10 +45,6 @@ public class MockBatchDeleter extends MockBatchScanner implements BatchDeleter {
     
     BatchWriter writer = new MockBatchWriter(acc, tableName);
     try {
-      // super.setScanIterators(Integer.MAX_VALUE,
-      // SortedKeyIterator.class.getName(), BatchDeleter.class.getName()
-      // + ".NOVALUE");
-      
       Iterator<Entry<Key,Value>> iter = super.iterator();
       while (iter.hasNext()) {
         Entry<Key,Value> next = iter.next();

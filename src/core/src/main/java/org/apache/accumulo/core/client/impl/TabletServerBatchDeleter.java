@@ -51,6 +51,7 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
     this.maxMemory = maxMemory;
     this.maxLatency = maxLatency;
     this.maxWriteThreads = maxWriteThreads;
+    super.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, BatchDeleter.class.getName() + ".NOVALUE", SortedKeyIterator.class));
   }
   
   @Override
@@ -60,7 +61,6 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
   
   @Override
   public void delete() throws MutationsRejectedException, TableNotFoundException {
-    super.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, BatchDeleter.class.getName() + ".NOVALUE", SortedKeyIterator.class));
     BatchWriter bw = null;
     try {
       bw = new BatchWriterImpl(instance, credentials, tableId, maxMemory, maxLatency, maxWriteThreads);
