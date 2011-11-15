@@ -1,31 +1,48 @@
+Title: Constraints Example
+Notice:    Licensed to the Apache Software Foundation (ASF) under one
+           or more contributor license agreements.  See the NOTICE file
+           distributed with this work for additional information
+           regarding copyright ownership.  The ASF licenses this file
+           to you under the Apache License, Version 2.0 (the
+           "License"); you may not use this file except in compliance
+           with the License.  You may obtain a copy of the License at
+           .
+             http://www.apache.org/licenses/LICENSE-2.0
+           .
+           Unless required by applicable law or agreed to in writing,
+           software distributed under the License is distributed on an
+           "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+           KIND, either express or implied.  See the License for the
+           specific language governing permissions and limitations
+           under the License.
+
 This an example of how to create a table with constraints. Below a table is
 create with two example constraints.  One constraints does not allow non alpha
 numeric keys.  The other constraint does not allow non numeric values. Two
 inserts that violate these constraints are attempted and denied.  The scan at
 the end shows the inserts were not allowed. 
 
-[user@localhost bin]$ ./accumulo shell -u user -p pass
-
-  Shell - Accumulo Interactive Shell
-  - 
-  - version: 1.4.0-incubating-SNAPSHOT
-  - instance name: example
-  - instance id: 00000000-0000-0000-0000-000000000000
-  - 
-  - type 'help' for a list of available commands
-  - 
-  user@example> createtable testConstraints
-  user@example testConstraints> config -t testConstraints -s table.constraint.1=org.apache.accumulo.examples.constraints.NumericValueConstraint
-  user@example testConstraints> config -t testConstraints -s table.constraint.2=org.apache.accumulo.examples.constraints.AlphaNumKeyConstraint                                                                                                    
-  user@example testConstraints> insert r1 cf1 cq1 1111
-  user@example testConstraints> insert r1 cf1 cq1 ABC
+    $ ./bin/accumulo shell -u username -p pass
+    
+    Shell - Accumulo Interactive Shell
+    - 
+    - version: 1.4.x-incubating
+    - instance name: instance
+    - instance id: 00000000-0000-0000-0000-000000000000
+    - 
+    - type 'help' for a list of available commands
+    - 
+    username@instance> createtable testConstraints
+    username@instance testConstraints> config -t testConstraints -s table.constraint.1=org.apache.accumulo.examples.constraints.NumericValueConstraint
+    username@instance testConstraints> config -t testConstraints -s table.constraint.2=org.apache.accumulo.examples.constraints.AlphaNumKeyConstrain                                                                                                    
+    username@instance testConstraints> insert r1 cf1 cq1 1111
+    username@instance testConstraints> insert r1 cf1 cq1 ABC
       Constraint Failures:
           ConstraintViolationSummary(constrainClass:org.apache.accumulo.examples.constraints.NumericValueConstraint, violationCode:1, violationDescription:Value is not numeric, numberOfViolatingMutations:1)
-  user@example testConstraints> insert r1! cf1 cq1 ABC 
+    username@instance testConstraints> insert r1! cf1 cq1 ABC 
       Constraint Failures:
           ConstraintViolationSummary(constrainClass:org.apache.accumulo.examples.constraints.NumericValueConstraint, violationCode:1, violationDescription:Value is not numeric, numberOfViolatingMutations:1)
           ConstraintViolationSummary(constrainClass:org.apache.accumulo.examples.constraints.AlphaNumKeyConstraint, violationCode:1, violationDescription:Row was not alpha numeric, numberOfViolatingMutations:1)
-  user@example testConstraints> scan
-  r1 cf1:cq1 []    1111
-  user@example testConstraints> 
-
+    username@instance testConstraints> scan
+    r1 cf1:cq1 []    1111
+    username@instance testConstraints> 
