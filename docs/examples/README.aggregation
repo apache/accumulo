@@ -1,32 +1,50 @@
+Title: Aggregation Example
+Notice:    Licensed to the Apache Software Foundation (ASF) under one
+           or more contributor license agreements.  See the NOTICE file
+           distributed with this work for additional information
+           regarding copyright ownership.  The ASF licenses this file
+           to you under the Apache License, Version 2.0 (the
+           "License"); you may not use this file except in compliance
+           with the License.  You may obtain a copy of the License at
+           .
+             http://www.apache.org/licenses/LICENSE-2.0
+           .
+           Unless required by applicable law or agreed to in writing,
+           software distributed under the License is distributed on an
+           "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+           KIND, either express or implied.  See the License for the
+           specific language governing permissions and limitations
+           under the License.
+
 This is a simple aggregation example.  To build this example run maven and then
 copy the produced jar into the accumulo lib dir.  This is already done in the
 tar distribution.
-  
-$ bin/accumulo shell -u user
-Enter current password for 'user'@'example': ***
 
-Shell - Accumulo Interactive Shell
-- 
-- version: 1.2-SNAPSHOT
-- instance name: example
-- instance id: 42f24290-dbc3-42db-b72d-f6647b4cb988
-- 
-- type 'help' for a list of available commands
-- 
-user@example> createtable aggtest1 -a app=org.apache.accumulo.examples.aggregation.SortedSetAggregator
-user@example aggtest1> insert foo app 1 a
-user@example aggtest1> insert foo app 1 b
-user@example aggtest1> scan
-foo app:1 []  a,b
-user@example aggtest1> insert foo app 1 z,1,foo,w
-user@example aggtest1> scan
-foo app:1 []  1,a,b,foo,w,z
-user@example aggtest1> insert foo app 2 cat,dog,muskrat
-user@example aggtest1> insert foo app 2 mouse,bird
-user@example aggtest1> scan
-foo app:1 []  1,a,b,foo,w,z
-foo app:2 []  bird,cat,dog,mouse,muskrat
-user@example aggtest1> 
+    $ bin/accumulo shell -u username
+    Enter current password for 'username'@'instance': ***
+    
+    Shell - Accumulo Interactive Shell
+    - 
+    - version: 1.5.x-incubating
+    - instance name: instance
+    - instance id: 00000000-0000-0000-0000-000000000000
+    - 
+    - type 'help' for a list of available commands
+    - 
+    username@instance> createtable aggtest1 -a app=org.apache.accumulo.examples.aggregation.SortedSetAggregator
+    username@instance aggtest1> insert foo app 1 a
+    username@instance aggtest1> insert foo app 1 b
+    username@instance aggtest1> scan
+    foo app:1 []  a,b
+    username@instance aggtest1> insert foo app 1 z,1,foo,w
+    username@instance aggtest1> scan
+    foo app:1 []  1,a,b,foo,w,z
+    username@instance aggtest1> insert foo app 2 cat,dog,muskrat
+    username@instance aggtest1> insert foo app 2 mouse,bird
+    username@instance aggtest1> scan
+    foo app:1 []  1,a,b,foo,w,z
+    foo app:2 []  bird,cat,dog,mouse,muskrat
+    username@instance aggtest1> 
 
 In this example a table is created and the example set aggregator is
 applied to the column family app.

@@ -1,22 +1,34 @@
+Title: Bulk Ingest Example
+Notice:    Licensed to the Apache Software Foundation (ASF) under one
+           or more contributor license agreements.  See the NOTICE file
+           distributed with this work for additional information
+           regarding copyright ownership.  The ASF licenses this file
+           to you under the Apache License, Version 2.0 (the
+           "License"); you may not use this file except in compliance
+           with the License.  You may obtain a copy of the License at
+           .
+             http://www.apache.org/licenses/LICENSE-2.0
+           .
+           Unless required by applicable law or agreed to in writing,
+           software distributed under the License is distributed on an
+           "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+           KIND, either express or implied.  See the License for the
+           specific language governing permissions and limitations
+           under the License.
+
 This is an example of how to bulk ingest data into accumulo using map reduce.
-Compile using Maven.  Then copy the produced jar into the accumulo lib dir.  
-  
+
 The following commands show how to run this example.  This example creates a
 table called test_bulk which has two initial split points. Then 1000 rows of
 test data are created in HDFS. After that the 1000 rows are ingested into
 accumulo.  Then we verify the 1000 rows are in accumulo. The
-first two arguments to all of the commands except for GenerateTestData is the
-accumulo instance name, and a comman-separated list of zookeepers.
-
-NOTE: You should replace "root" with your username that has the appropriate
-permissions on the table, and "secret" with that user's password.
-$ACCUMULO_HOME should also be replaced with the home directory where accumulo is stored.
+first two arguments to all of the commands except for GenerateTestData are the
+accumulo instance name, and a comma-separated list of zookeepers.
 
     $ ./bin/accumulo org.apache.accumulo.examples.mapreduce.bulk.SetupTable instance zookeepers username password test_bulk row_00000333 row_00000666
     $ ./bin/accumulo org.apache.accumulo.examples.mapreduce.bulk.GenerateTestData 0 1000 bulk/test_1.txt
     
     $ ./bin/tool.sh lib/accumulo-examples-*[^c].jar org.apache.accumulo.examples.mapreduce.bulk.BulkIngestExample instance zookeepers username password test_bulk bulk tmp/bulkWork
     $ ./bin/accumulo org.apache.accumulo.examples.mapreduce.bulk.VerifyIngest instance zookeepers username password test_bulk 0 1000
-
 
 For a high level discussion of bulk ingest, see the docs dir.
