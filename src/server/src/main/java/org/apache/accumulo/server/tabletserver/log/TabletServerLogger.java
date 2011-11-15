@@ -40,8 +40,9 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletMutations;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.tabletserver.Tablet;
-import org.apache.accumulo.server.tabletserver.TabletServer;
 import org.apache.accumulo.server.tabletserver.Tablet.CommitSession;
+import org.apache.accumulo.server.tabletserver.TabletServer;
+import org.apache.accumulo.server.tabletserver.log.RemoteLogger.LoggerOperation;
 import org.apache.log4j.Logger;
 
 /**
@@ -247,7 +248,7 @@ public class TabletServerLogger {
   }
   
   interface Writer {
-    void write(RemoteLogger logger, int seq) throws Exception;
+    LoggerOperation write(RemoteLogger logger, int seq) throws Exception;
   }
   
   private int write(CommitSession commitSession, boolean mincFinish, Writer writer) throws IOException {
@@ -294,8 +295,15 @@ public class TabletServerLogger {
           seq = seqGen.incrementAndGet();
           if (seq < 0)
             throw new RuntimeException("Logger sequence generator wrapped!  Onos!!!11!eleven");
+          ArrayList<LoggerOperation> queuedOperations = new ArrayList<LoggerOperation>(copy.size());
           for (RemoteLogger wal : copy) {
-            writer.write(wal, seq);
+            LoggerOperation lop = writer.write(wal, seq);
+            if (lop != null)
+              queuedOperations.add(lop);
+          }
+          
+          for (LoggerOperation lop : queuedOperations) {
+            lop.await();
           }
           
           // double-check: did the log set change?
@@ -350,8 +358,9 @@ public class TabletServerLogger {
       return -1;
     return write(commitSession, false, new Writer() {
       @Override
-      public void write(RemoteLogger logger, int ignored) throws Exception {
+      public LoggerOperation write(RemoteLogger logger, int ignored) throws Exception {
         logger.defineTablet(commitSession.getWALogSeq(), commitSession.getLogId(), commitSession.getExtent());
+        return null;
       }
     });
   }
@@ -361,8 +370,8 @@ public class TabletServerLogger {
       return -1;
     int seq = write(commitSession, false, new Writer() {
       @Override
-      public void write(RemoteLogger logger, int ignored) throws Exception {
-        logger.log(tabletSeq, commitSession.getLogId(), m);
+      public LoggerOperation write(RemoteLogger logger, int ignored) throws Exception {
+        return logger.log(tabletSeq, commitSession.getLogId(), m);
       }
     });
     logSizeEstimate.addAndGet(m.numBytes());
@@ -381,7 +390,7 @@ public class TabletServerLogger {
     
     int seq = write(loggables.keySet(), false, new Writer() {
       @Override
-      public void write(RemoteLogger logger, int ignored) throws Exception {
+      public LoggerOperation write(RemoteLogger logger, int ignored) throws Exception {
         List<TabletMutations> copy = new ArrayList<TabletMutations>(loggables.size());
         for (Entry<CommitSession,List<Mutation>> entry : loggables.entrySet()) {
           CommitSession cs = entry.getKey();
@@ -390,7 +399,7 @@ public class TabletServerLogger {
             tmutations.add(m.toThrift());
           copy.add(new TabletMutations(cs.getLogId(), cs.getWALogSeq(), tmutations));
         }
-        logger.logManyTablets(copy);
+        return logger.logManyTablets(copy);
       }
     });
     for (List<Mutation> entry : loggables.values()) {
@@ -412,8 +421,9 @@ public class TabletServerLogger {
     
     int seq = write(commitSession, true, new Writer() {
       @Override
-      public void write(RemoteLogger logger, int ignored) throws Exception {
+      public LoggerOperation write(RemoteLogger logger, int ignored) throws Exception {
         logger.minorCompactionFinished(walogSeq, commitSession.getLogId(), fullyQualifiedFileName);
+        return null;
       }
     });
     
@@ -427,8 +437,9 @@ public class TabletServerLogger {
       return -1;
     write(commitSession, false, new Writer() {
       @Override
-      public void write(RemoteLogger logger, int ignored) throws Exception {
+      public LoggerOperation write(RemoteLogger logger, int ignored) throws Exception {
         logger.minorCompactionStarted(seq, commitSession.getLogId(), fullyQualifiedFileName);
+        return null;
       }
     });
     return seq;
