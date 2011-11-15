@@ -456,8 +456,8 @@ never need to occur and major compactions will keep up. It is possible to
 configure the file max and compaction ratio such that only merging minor
 compactions occur and major compactions never occur. This should be avoided
 because doing only merging minor compactions causes $O(N^2)$ work to be done.
-The amount of work done by major compactions is $O(N*\log_R(N))$ where $R$ is
-the compaction ratio.
+The amount of work done by major compactions is $O(N*\log_R(N))$ where 
+\textit{R} is the compaction ratio.
 
 Compactions can be initiated manually for a table.  To initiate a minor
 compaction, use the flush command in the shell.  To initiate a major compaction,
