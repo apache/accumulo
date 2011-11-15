@@ -109,4 +109,7 @@ public class NullScanner implements Scanner {
     return new NullKeyValueIterator();
   }
   
+  @Override
+  public void removeScanIterator(String iteratorName) {}
+  
 }

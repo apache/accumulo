@@ -33,15 +33,20 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   /**
    * Add a server-side scan iterator.
    * 
-   * @param iteratorClass
-   *          the fully qualified class name of the iterator to be applied at scan time
-   * @param iteratorName
-   *          a nickname for the iterator
-   * @throws IOException
-   *           if an exception occurs reading from the iterator stack
+   * @param cfg
+   *          fully specified scan-time iterator, including all options for the iterator. Any changes to the iterator setting after this call are not propagated
+   *          to the stored iterator.
    * 
    */
   public void addScanIterator(IteratorSetting cfg);
+  
+  /**
+   * Remove an iterator from the list of iterators
+   * 
+   * @param iteratorName
+   *          nickname used for the iterator
+   */
+  public void removeScanIterator(String iteratorName);
   
   /**
    * Update the options for an iterator. Note that this does <b>not</b> change the iterator options during a scan, it just replaces the given option on a

@@ -66,7 +66,7 @@ public class ScannerOptions implements ScannerBase {
     
     for (IterInfo ii : serverSideIteratorList)
       if (ii.iterName.equals(si.getName()))
-        throw new RuntimeException("Iterator name is already in use " + si.getName());
+        throw new IllegalArgumentException("Iterator name is already in use " + si.getName());
     
     serverSideIteratorList.add(new IterInfo(si.getPriority(), si.getIteratorClass(), si.getName()));
     
@@ -80,6 +80,23 @@ public class ScannerOptions implements ScannerBase {
       serverSideIteratorOptions.put(si.getName(), opts);
     }
     opts.putAll(si.getProperties());
+  }
+  
+  @Override
+  public synchronized void removeScanIterator(String iteratorName) {
+    ArgumentChecker.notNull(iteratorName);
+    // if no iterators are set, we don't have it, so it is already removed
+    if (serverSideIteratorList.size() == 0)
+      return;
+    
+    for (IterInfo ii : serverSideIteratorList) {
+      if (ii.iterName.equals(iteratorName)) {
+        serverSideIteratorList.remove(ii);
+        break;
+      }
+    }
+    
+    serverSideIteratorOptions.remove(iteratorName);
   }
   
   /**
