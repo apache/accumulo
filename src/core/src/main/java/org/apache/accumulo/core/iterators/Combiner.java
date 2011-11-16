@@ -152,15 +152,15 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   private Key workKey = new Key();
   
   /*
-   * Sets the topKey and topValue based on the top key of the source. If the column of the source top key is in the set of combiners, or if there are no columns
-   * in the set of combiners, topKey will be the top key of the source and topValue will be the result of the reduce method. Otherwise, topKey and topValue will
-   * be null.
+   * Sets the topKey and topValue based on the top key of the source. If the column of the source top key is in the set of combiners, topKey will be the top key
+   * of the source and topValue will be the result of the reduce method. Otherwise, topKey and topValue will be unchanged. (They are always set to null before
+   * this method is called.)
    */
   private void findTop() throws IOException {
     // check if aggregation is needed
     if (super.hasTop()) {
       workKey.set(super.getTopKey());
-      if (combiners.isEmpty() || combiners.contains(workKey)) {
+      if (combiners.contains(workKey)) {
         if (workKey.isDeleted())
           return;
         topKey = workKey;
