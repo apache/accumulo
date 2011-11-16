@@ -26,6 +26,9 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
+/**
+ * A Filter that matches entries whose timestamps fall within a range.
+ */
 public class TimestampFilter extends Filter {
   private final SimpleDateFormat dateParser = new SimpleDateFormat("yyyyMMddHHmmssz");
   

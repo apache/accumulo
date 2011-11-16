@@ -28,7 +28,10 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
 import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 
-@SuppressWarnings("deprecation")
+/**
+ * A filter that ages off key/value pairs based on the Key's column and timestamp. It removes an entry if its timestamp is less than currentTime - threshold.
+ * Different thresholds are set for each column.
+ */
 public class ColumnAgeOffFilter extends Filter {
   
   public ColumnAgeOffFilter() {}

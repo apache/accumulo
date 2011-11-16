@@ -21,6 +21,9 @@ import java.util.Iterator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iterators.LongCombiner;
 
+/**
+ * A Combiner that interprets Values as Longs and returns their sum.
+ */
 public class SummingCombiner extends LongCombiner {
   @Override
   public Long typedReduce(Key key, Iterator<Long> iter) {

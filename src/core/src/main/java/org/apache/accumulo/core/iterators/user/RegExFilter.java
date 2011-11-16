@@ -29,6 +29,9 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.ByteArrayBackedCharSequence;
 
+/**
+ * A Filter that matches entries based on Java regular expressions.
+ */
 public class RegExFilter extends Filter {
   
   @Override

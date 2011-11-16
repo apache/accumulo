@@ -21,6 +21,9 @@ import java.util.Iterator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iterators.LongCombiner;
 
+/**
+ * A Combiner that interprets Values as Longs and returns the largest Long among them.
+ */
 public class MaxCombiner extends LongCombiner {
   @Override
   public Long typedReduce(Key key, Iterator<Long> iter) {
