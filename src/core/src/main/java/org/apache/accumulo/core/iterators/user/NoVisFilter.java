@@ -19,11 +19,10 @@ package org.apache.accumulo.core.iterators.user;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
-import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.ColumnVisibility;
 
-public class NoVisFilter extends Filter implements OptionDescriber {
+public class NoVisFilter extends Filter {
   
   public NoVisFilter() {}
   
@@ -41,7 +40,7 @@ public class NoVisFilter extends Filter implements OptionDescriber {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.setName("novis");
-    io.setDescription("NoLabelFilter hides entries without a visibility label");
+    io.setDescription("NoVisFilter hides entries without a visibility label");
     return io;
   }
 }

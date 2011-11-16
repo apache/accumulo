@@ -30,9 +30,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.LongCombiner;
+import org.apache.accumulo.core.iterators.LongCombiner.Type;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
-import org.apache.accumulo.core.iterators.LongCombiner.Type;
 import org.apache.hadoop.io.WritableUtils;
 
 public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
@@ -90,6 +90,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
+    super.validateOptions(options);
     if (options.get(LongCombiner.TYPE) == null)
       return false;
     try {

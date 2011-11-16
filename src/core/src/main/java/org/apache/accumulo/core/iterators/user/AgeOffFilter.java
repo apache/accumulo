@@ -23,10 +23,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-public class AgeOffFilter extends Filter implements OptionDescriber {
+public class AgeOffFilter extends Filter {
   private static final String TTL = "ttl";
   private long threshold;
   private long currentTime;
@@ -85,6 +84,7 @@ public class AgeOffFilter extends Filter implements OptionDescriber {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
+    super.validateOptions(options);
     try {
       Long.parseLong(options.get(TTL));
     } catch (NumberFormatException e) {

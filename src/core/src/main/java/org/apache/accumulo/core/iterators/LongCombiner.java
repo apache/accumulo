@@ -76,6 +76,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
+    super.validateOptions(options);
     if (options.get(TYPE) == null)
       return false;
     try {

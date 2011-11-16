@@ -26,11 +26,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.ByteArrayBackedCharSequence;
 
-public class RegExFilter extends Filter implements OptionDescriber {
+public class RegExFilter extends Filter {
   
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
@@ -141,6 +140,7 @@ public class RegExFilter extends Filter implements OptionDescriber {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
+    super.validateOptions(options);
     if (options.containsKey(ROW_REGEX))
       Pattern.compile(options.get(ROW_REGEX)).matcher("");
     
