@@ -24,13 +24,12 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
 import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 
 @SuppressWarnings("deprecation")
-public class ColumnAgeOffFilter extends Filter implements OptionDescriber {
+public class ColumnAgeOffFilter extends Filter {
   
   public ColumnAgeOffFilter() {}
   
@@ -100,6 +99,7 @@ public class ColumnAgeOffFilter extends Filter implements OptionDescriber {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
+    super.validateOptions(options);
     this.ttls = new TTLSet(options);
     return true;
   }

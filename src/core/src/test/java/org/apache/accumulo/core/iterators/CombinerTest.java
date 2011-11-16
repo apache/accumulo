@@ -32,10 +32,6 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.Combiner;
-import org.apache.accumulo.core.iterators.LongCombiner;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.Combiner.ValueIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
@@ -97,7 +93,6 @@ public class CombinerTest {
     
     Map<String,String> opts = new HashMap<String,String>();
     
-    opts.put(Combiner.COLUMN_PREFIX + "cf002", null);
     opts.put(SummingCombiner.TYPE, SummingCombiner.Type.VARNUM.name());
     
     ai.init(new SortedMapIterator(tm1), opts, null);

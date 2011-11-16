@@ -27,6 +27,17 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.WritableUtils;
 
+/*
+ * A TypedValueCombiner that translates each Value to a Long before reducing, then encodes the reduced Long back to a Value.
+ * 
+ * Subclasses must implement a typedReduce method:
+ *   public Long typedReduce(Key key, Iterator<Long> iter);
+ * 
+ * This typedReduce method will be passed the most recent Key and an iterator over the Values (translated to Longs) for all non-deleted versions of that Key.
+ * 
+ * A required option for this Combiner is "type" which indicates which type of Encoder to use to encode and decode Longs into Values.  Supported types are
+ * VARNUM, LONG, and STRING which indicate the VarNumEncoder, LongEncoder, and StringEncoder respectively.
+ */
 public abstract class LongCombiner extends TypedValueCombiner<Long> {
   public static final String TYPE = "type";
   
@@ -65,6 +76,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
+    super.validateOptions(options);
     if (options.get(TYPE) == null)
       return false;
     try {
@@ -75,6 +87,9 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     return true;
   }
   
+  /*
+   * An Encoder that uses a variable-length encoding for Longs. It uses WritableUtils.writeVLong and WritableUtils.readVLong for encoding and decoding.
+   */
   public static class VarNumEncoder implements Encoder<Long> {
     @Override
     public byte[] encode(Long v) {
@@ -101,6 +116,9 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     }
   }
   
+  /*
+   * An Encoder that uses an 8-byte encoding for Longs.
+   */
   public static class LongEncoder implements Encoder<Long> {
     @Override
     public byte[] encode(Long l) {
@@ -129,6 +147,9 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     }
   }
   
+  /*
+   * An Encoder that uses a String representation of Longs. It uses Long.toString and Long.parseLong for encoding and decoding.
+   */
   public static class StringEncoder implements Encoder<Long> {
     @Override
     public byte[] encode(Long v) {

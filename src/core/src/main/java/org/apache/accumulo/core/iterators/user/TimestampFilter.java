@@ -24,10 +24,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-public class TimestampFilter extends Filter implements OptionDescriber {
+public class TimestampFilter extends Filter {
   private final SimpleDateFormat dateParser = new SimpleDateFormat("yyyyMMddHHmmssz");
   
   public static final String START = "start";
@@ -101,6 +100,7 @@ public class TimestampFilter extends Filter implements OptionDescriber {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
+    super.validateOptions(options);
     try {
       dateParser.parse(options.get(START));
       dateParser.parse(options.get(END));
