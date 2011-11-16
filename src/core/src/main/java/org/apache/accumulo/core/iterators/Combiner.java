@@ -37,17 +37,33 @@ import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
-@SuppressWarnings("deprecation")
+/*
+ * A SortedKeyValueIterator that combines the Values for different versions of a Key into a single Value.
+ * Combiner will replace one or more versions of a Key and their Values with the most recent Key and a Value which is the result of the reduce method.
+ * 
+ * Subclasses must implement a reduce method:
+ *   public Value reduce(Key key, Iterator<Value> iter);
+ * 
+ * This reduce method will be passed the most recent Key and an iterator over the Values for all non-deleted versions of that Key.
+ */
 public abstract class Combiner extends WrappingIterator implements OptionDescriber {
   static final Logger log = Logger.getLogger(Combiner.class);
   public static final String COLUMN_PREFIX = "column:";
   
+  /*
+   * A Java Iterator that iterates over the Values for a given Key from a source SortedKeyValueIterator.
+   */
   public static class ValueIterator implements Iterator<Value> {
     Key topKey;
     SortedKeyValueIterator<Key,Value> source;
     boolean hasNext;
     
-    ValueIterator(SortedKeyValueIterator<Key,Value> source) {
+    /*
+     * Constructs an iterator over Values whose Keys are versions of the current topKey of the source SortedKeyValueIterator.
+     * 
+     * @param source The SortedKeyValueIterator<Key,Value> from which to read data.
+     */
+    public ValueIterator(SortedKeyValueIterator<Key,Value> source) {
       this.source = source;
       topKey = source.getTopKey();
       hasNext = _hasNext();
@@ -57,11 +73,21 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       return source.hasTop() && !source.getTopKey().isDeleted() && topKey.equals(source.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS);
     }
     
+    /*
+     * @return <tt>true</tt> if there is another Value
+     * 
+     * @see java.util.Iterator#hasNext()
+     */
     @Override
     public boolean hasNext() {
       return hasNext;
     }
     
+    /*
+     * @return the next Value
+     * 
+     * @see java.util.Iterator#next()
+     */
     @Override
     public Value next() {
       if (!hasNext)
@@ -76,6 +102,11 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       return topValue;
     }
     
+    /*
+     * unsupported
+     * 
+     * @see java.util.Iterator#remove()
+     */
     @Override
     public void remove() {
       throw new UnsupportedOperationException();
@@ -120,6 +151,11 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   
   private Key workKey = new Key();
   
+  /*
+   * Sets the topKey and topValue based on the top key of the source. If the column of the source top key is in the set of combiners, or if there are no columns
+   * in the set of combiners, topKey will be the top key of the source and topValue will be the result of the reduce method. Otherwise, topKey and topValue will
+   * be null.
+   */
   private void findTop() throws IOException {
     // check if aggregation is needed
     if (super.hasTop()) {
@@ -138,8 +174,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    // do not want to seek to the middle of a value that should be
-    // combined...
+    // do not want to seek to the middle of a value that should be combined...
     
     Range seekRange = IteratorUtil.maximizeStartKeyTimeStamp(range);
     
@@ -149,8 +184,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     if (range.getStartKey() != null) {
       while (hasTop() && getTopKey().equals(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS)
           && getTopKey().getTimestamp() > range.getStartKey().getTimestamp()) {
-        // the value has a more recent time stamp, so
-        // pass it up
+        // the value has a more recent time stamp, so pass it up
         // log.debug("skipping "+getTopKey());
         next();
       }
@@ -161,6 +195,15 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     }
   }
   
+  /*
+   * Reduces a list of Values into a single Value.
+   * 
+   * @param key The most recent version of the Key being reduced.
+   * 
+   * @param iter An iterator over the Values for different versions of the key.
+   * 
+   * @return The combined Value.
+   */
   public abstract Value reduce(Key key, Iterator<Value> iter);
   
   private ColumnSet combiners;
@@ -188,6 +231,15 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     return true;
   }
   
+  /*
+   * Adds a column (colf and colq) to an IteratorSetting.
+   * 
+   * @param colf The column family.
+   * 
+   * @param colq The column qualifier (<tt>null</tt> if unspecified).
+   * 
+   * @param is The IteratorSetting to which to add the column parameter.
+   */
   public static void addColumn(Text colf, Text colq, IteratorSetting is) {
     String column = PerColumnIteratorConfig.encodeColumns(colf, colq);
     is.addOption(COLUMN_PREFIX + column, "");

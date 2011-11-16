@@ -23,16 +23,32 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
 /*
- * Subclasses should implement a switch on the "type" variable 
- * in their reduce method.
+ * A Combiner that decodes each Value to type V before reducing, then encodes the result of typedReduce back to Value.
+ * 
+ * Subclasses must implement a typedReduce method:
+ *   public V typedReduce(Key key, Iterator<V> iter);
+ * 
+ * This typedReduce method will be passed the most recent Key and an iterator over the Values (translated to Vs) for all non-deleted versions of that Key.
+ *
+ * Subclasses may implement a switch on the "type" variable to choose an Encoder in their init method.
  */
 public abstract class TypedValueCombiner<V> extends Combiner {
   protected Encoder<V> encoder;
   
+  /*
+   * A Java Iterator that translates an Iterator<Value> to an Iterator<V> using the decode method of an Encoder.
+   */
   private static class VIterator<V> implements Iterator<V> {
     private Iterator<Value> source;
     private Encoder<V> encoder;
     
+    /*
+     * Constructs an Iterator<V> from an Iterator<Value>
+     * 
+     * @param iter The source iterator
+     * 
+     * @param encoder The Encoder whose decode method is used to translate from Value to V
+     */
     VIterator(Iterator<Value> iter, Encoder<V> encoder) {
       this.source = iter;
       this.encoder = encoder;
@@ -56,6 +72,9 @@ public abstract class TypedValueCombiner<V> extends Combiner {
     }
   }
   
+  /*
+   * An interface for translating from byte[] to V and back.
+   */
   public static interface Encoder<V> {
     public byte[] encode(V v);
     
@@ -67,5 +86,14 @@ public abstract class TypedValueCombiner<V> extends Combiner {
     return new Value(encoder.encode(typedReduce(key, new VIterator<V>(iter, encoder))));
   }
   
+  /*
+   * Reduces a list of V into a single V.
+   * 
+   * @param key The most recent version of the Key being reduced.
+   * 
+   * @param iter An iterator over the V for different versions of the key.
+   * 
+   * @return The combined V.
+   */
   public abstract V typedReduce(Key key, Iterator<V> iter);
 }
