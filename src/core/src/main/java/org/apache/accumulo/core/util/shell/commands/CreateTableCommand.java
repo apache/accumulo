@@ -46,7 +46,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Text;
 
-@SuppressWarnings("deprecation")
 public class CreateTableCommand extends Command {
   private Option createTableOptCopySplits;
   private Option createTableOptCopyConfig;

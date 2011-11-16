@@ -38,8 +38,6 @@ import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.log4j.Logger;
-
-@SuppressWarnings("deprecation")
 public class IteratorUtil {
   
   private static final Logger log = Logger.getLogger(IteratorUtil.class);

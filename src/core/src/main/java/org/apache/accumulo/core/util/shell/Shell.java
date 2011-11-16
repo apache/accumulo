@@ -122,6 +122,7 @@ public class Shell {
   private long lastUserActivity = System.currentTimeMillis();
   
   @SuppressWarnings("deprecation")
+  // Not for client use
   public void config(String... args) {
     Options opts = new Options();
     

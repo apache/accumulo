@@ -37,6 +37,7 @@ import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+
 /*
  * A SortedKeyValueIterator that combines the Values for different versions of a Key into a single Value.
  * Combiner will replace one or more versions of a Key and their Values with the most recent Key and a Value which is the result of the reduce method.

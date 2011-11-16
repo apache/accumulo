@@ -36,7 +36,6 @@ import org.apache.accumulo.server.test.randomwalk.Test;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
-@SuppressWarnings("deprecation")
 public class Setup extends Test {
   
   private static final int CORE_POOL_SIZE = 8;

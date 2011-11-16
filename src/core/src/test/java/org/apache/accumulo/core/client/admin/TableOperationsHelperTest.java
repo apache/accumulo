@@ -43,7 +43,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
-@SuppressWarnings("deprecation")
 public class TableOperationsHelperTest {
   
   static class Tester extends TableOperationsHelper {

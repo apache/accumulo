@@ -312,6 +312,7 @@ public class CoordinateRecoveryTask implements Runnable {
     try {
       Configuration conf = CachedConfiguration.getInstance();
       @SuppressWarnings("deprecation")
+      // No alternative api in hadoop 20
       JobClient jc = new JobClient(new org.apache.hadoop.mapred.JobConf(conf));
       for (JobStatus status : jc.getAllJobs()) {
         if (!status.isJobComplete()) {

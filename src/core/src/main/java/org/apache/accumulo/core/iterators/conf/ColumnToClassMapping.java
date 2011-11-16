@@ -26,7 +26,6 @@ import org.apache.accumulo.core.iterators.conf.ColumnUtil.ColHashKey;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.io.Text;
 
-@SuppressWarnings("deprecation")
 public class ColumnToClassMapping<K> {
   
   private HashMap<ColFamHashKey,K> objectsCF;

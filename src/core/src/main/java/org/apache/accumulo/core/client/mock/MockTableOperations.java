@@ -42,7 +42,6 @@ import org.apache.accumulo.core.util.BulkImportHelper.AssignmentStats;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.io.Text;
 
-@SuppressWarnings("deprecation")
 public class MockTableOperations extends TableOperationsHelper {
   
   final private MockAccumulo acu;

@@ -39,6 +39,7 @@ public class MockConnector extends Connector {
   }
   
   @SuppressWarnings("deprecation")
+  // Not really deprecated, just discouraging client use.
   MockConnector(String username, MockAccumulo acu) {
     this.username = username;
     this.acu = acu;

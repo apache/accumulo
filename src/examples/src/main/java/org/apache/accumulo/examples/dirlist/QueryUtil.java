@@ -31,8 +31,8 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.RegExIterator;
 import org.apache.accumulo.core.iterators.aggregation.LongSummation;
+import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
@@ -184,8 +184,8 @@ public class QueryUtil {
       System.out.println("executing middle wildcard search for " + regexString + " from entries ending with " + lastPart);
       scanner.setRange(Range.prefix(getReverseIndex(lastPart)));
     }
-    IteratorSetting regex = new IteratorSetting(50, "regex", RegExIterator.class);
-    RegExIterator.setRegexs(regex, null, null, regexString, null, false);
+    IteratorSetting regex = new IteratorSetting(50, "regex", RegExFilter.class);
+    RegExFilter.setRegexs(regex, null, null, regexString, null, false);
     scanner.addScanIterator(regex);
     return scanner;
   }

@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -60,100 +59,6 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    *          the new value for the named option
    */
   public void updateScanIteratorOption(String iteratorName, String key, String value);
-  
-  /**
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-   */
-  public void setScanIterators(int priority, String iteratorClass, String iteratorName);
-  
-  /**
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-   */
-  public void setScanIteratorOption(String iteratorName, String key, String value);
-  
-  /**
-   * Call this method to initialize regular expressions on a scanner. If it is not called, reasonable defaults will be used.
-   * 
-   * @param iteratorName
-   *          a nickname for the iterator
-   * @param iteratorPriority
-   *          determines the order in which iterators are applied (system iterators are always applied first, then per-table and scan-time, lowest first)
-   * @throws IOException
-   *           if an exception occurs reading from the iterator stack
-   * 
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-   */
-  public void setupRegex(String iteratorName, int iteratorPriority) throws IOException;
-  
-  /**
-   * 
-   * Set a row regular expression that filters non matching entries server side.
-   * 
-   * @param regex
-   *          java regular expression to match
-   * 
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-   * @see {@link org.apache.accumulo.core.iterators.filter.RegExFilter#ROW_REGEX}
-   * 
-   *      <pre>
-   * // Use the more flexible addScanIterator method:
-   * ScanIterator cfg = new ScanIterator(&quot;regex&quot;, RegexIterator.class);
-   * RegexIterator.setRegexs(cfg, row, null, null, null, false);
-   * scanner.addScanIterator(priority, cfg);
-   * </pre>
-   */
-  public void setRowRegex(String regex);
-  
-  /**
-   * 
-   * Set a column family regular expression that filters non matching entries server side.
-   * 
-   * @param regex
-   *          java regular expression to match
-   * 
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-   * @see {@link org.apache.accumulo.core.iterators.filter.RegExFilter#COLF_REGEX}
-   */
-  public void setColumnFamilyRegex(String regex);
-  
-  /**
-   * Use addScanIterator(int, ScanIterator);
-   * 
-   * Set a column qualifier regular expression that filters non matching entries server side.
-   * 
-   * @param regex
-   *          java regular expression to match
-   * 
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-   * @see {@link org.apache.accumulo.core.iterators.filter.RegExFilter#COLQ_REGEX}.
-   * 
-   */
-  public void setColumnQualifierRegex(String regex);
-  
-  /**
-   * Set a value regular expression that filters non matching entries server side.
-   * 
-   * @param regex
-   *          java regular expression to match
-   * 
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.RegExIterator}
-   * @see {@link org.apache.accumulo.core.iterators.filter.RegExFilter#VALUE_REGEX}
-   */
-  public void setValueRegex(String regex);
   
   /**
    * @param col

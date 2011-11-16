@@ -29,18 +29,18 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.iterators.AggregatingIterator;
-import org.apache.accumulo.core.iterators.NoLabelIterator;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.OptionDescriber;
-import org.apache.accumulo.core.iterators.RegExIterator;
+import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.VersioningIterator;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
 import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
+import org.apache.accumulo.core.iterators.user.NoVisFilter;
+import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.ShellCommandException.ErrorCode;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.cli.CommandLine;
@@ -76,13 +76,13 @@ public class SetIterCommand extends Command {
     if (cl.hasOption(aggTypeOpt.getOpt())) {
       classname = AggregatingIterator.class.getName();
     } else if (cl.hasOption(regexTypeOpt.getOpt()))
-      classname = RegExIterator.class.getName();
+      classname = RegExFilter.class.getName();
     else if (cl.hasOption(ageoffTypeOpt.getOpt()))
       classname = AgeOffFilter.class.getName();
     else if (cl.hasOption(versionTypeOpt.getOpt()))
       classname = VersioningIterator.class.getName();
     else if (cl.hasOption(nolabelTypeOpt.getOpt()))
-      classname = NoLabelIterator.class.getName();
+      classname = NoVisFilter.class.getName();
     
     if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName()))
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "

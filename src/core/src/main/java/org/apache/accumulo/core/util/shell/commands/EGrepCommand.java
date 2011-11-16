@@ -20,7 +20,7 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.iterators.RegExIterator;
+import org.apache.accumulo.core.iterators.user.RegExFilter;
 
 public class EGrepCommand extends GrepCommand {
   @Override
@@ -28,8 +28,8 @@ public class EGrepCommand extends GrepCommand {
     if (prio < 0)
       throw new IllegalArgumentException("Priority < 0 " + prio);
     
-    IteratorSetting si = new IteratorSetting(prio, name, RegExIterator.class);
-    RegExIterator.setRegexs(si, term, term, term, term, true);
+    IteratorSetting si = new IteratorSetting(prio, name, RegExFilter.class);
+    RegExFilter.setRegexs(si, term, term, term, term, true);
     scanner.addScanIterator(si);
   }
   

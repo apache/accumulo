@@ -40,7 +40,6 @@ import org.apache.hadoop.io.Text;
  * 
  */
 
-@SuppressWarnings("deprecation")
 public interface TableOperations {
   
   public SortedSet<String> list();

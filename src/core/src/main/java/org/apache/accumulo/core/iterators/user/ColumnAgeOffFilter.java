@@ -28,7 +28,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
 import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 
-@SuppressWarnings("deprecation")
 public class ColumnAgeOffFilter extends Filter {
   
   public ColumnAgeOffFilter() {}

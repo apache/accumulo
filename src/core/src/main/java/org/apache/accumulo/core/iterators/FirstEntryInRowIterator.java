@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -43,16 +42,6 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   // private fields
   private Text lastRowFound;
   private int numscans;
-  
-  /**
-   * @deprecated since 1.4, use {@link #setNumScansBeforeSeek(IteratorSetting, int)}
-   * @param scanner
-   * @param iteratorName
-   * @param num
-   */
-  public static void setNumScansBeforeSeek(Scanner scanner, String iteratorName, int num) {
-    scanner.setScanIteratorOption(iteratorName, NUM_SCANS_STRING_NAME, Integer.toString(num));
-  }
   
   /**
    * convenience method to set the option to optimize the frequency of scans vs. seeks

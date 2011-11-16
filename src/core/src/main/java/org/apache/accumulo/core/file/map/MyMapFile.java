@@ -113,7 +113,6 @@ public class MyMapFile {
     private WritableComparable lastKey;
     
     /** Create the named map for keys of the named class. */
-    @SuppressWarnings("deprecation")
     public Writer(Configuration conf, FileSystem fs, String dirName, Class keyClass, Class valClass) throws IOException {
       this(conf, fs, dirName, WritableComparator.get(keyClass), valClass, MySequenceFile.getCompressionType(conf));
     }
@@ -136,7 +135,6 @@ public class MyMapFile {
     }
     
     /** Create the named map using the named key comparator. */
-    @SuppressWarnings("deprecation")
     public Writer(Configuration conf, FileSystem fs, String dirName, WritableComparator comparator, Class valClass) throws IOException {
       this(conf, fs, dirName, comparator, valClass, MySequenceFile.getCompressionType(conf));
     }

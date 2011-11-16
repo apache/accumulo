@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.monitor.servlets.trace;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -30,31 +29,10 @@ import org.apache.hadoop.io.Text;
 public class NullScanner implements Scanner {
   
   @Override
-  public void setScanIterators(int priority, String iteratorClass, String iteratorName) {}
-  
-  @Override
   public void addScanIterator(IteratorSetting cfg) {}
-  
-  @Override
-  public void setScanIteratorOption(String iteratorName, String key, String value) {}
-  
+    
   @Override
   public void updateScanIteratorOption(String iteratorName, String key, String value) {}
-  
-  @Override
-  public void setupRegex(String iteratorName, int iteratorPriority) throws IOException {}
-  
-  @Override
-  public void setRowRegex(String regex) {}
-  
-  @Override
-  public void setColumnFamilyRegex(String regex) {}
-  
-  @Override
-  public void setColumnQualifierRegex(String regex) {}
-  
-  @Override
-  public void setValueRegex(String regex) {}
   
   @Override
   public void fetchColumnFamily(Text col) {}

@@ -28,12 +28,12 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mapreduce.InputFormatBase.AccumuloIterator;
 import org.apache.accumulo.core.client.mapreduce.InputFormatBase.AccumuloIteratorOption;
 import org.apache.accumulo.core.client.mapreduce.InputFormatBase.RangeInputSplit;
-import org.apache.accumulo.core.client.mapreduce.InputFormatBase.RegexType;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.WholeRowIterator;
+import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -91,12 +91,11 @@ public class AccumuloInputFormatTest {
   /**
    * Check that the iterator configuration is getting stored in the Job conf correctly.
    */
-  @SuppressWarnings("deprecation")
   @Test
   public void testSetIterator() {
     JobContext job = new JobContext(new Configuration(), new JobID());
     
-    AccumuloInputFormat.setIterator(job, 1, "org.apache.accumulo.core.iterators.WholeRowIterator", "WholeRow");
+    AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
     Configuration conf = job.getConfiguration();
     String iterators = conf.get("AccumuloInputFormat.iterators");
     assertEquals("1:org.apache.accumulo.core.iterators.WholeRowIterator:WholeRow", iterators);
@@ -147,14 +146,13 @@ public class AccumuloInputFormatTest {
   /**
    * Test getting iterator settings for multiple iterators set
    */
-  @SuppressWarnings("deprecation")
   @Test
   public void testGetIteratorSettings() {
     JobContext job = new JobContext(new Configuration(), new JobID());
     
-    AccumuloInputFormat.setIterator(job, 1, "org.apache.accumulo.core.iterators.WholeRowIterator", "WholeRow");
-    AccumuloInputFormat.setIterator(job, 2, "org.apache.accumulo.core.iterators.VersioningIterator", "Versions");
-    AccumuloInputFormat.setIterator(job, 3, "org.apache.accumulo.core.iterators.CountingIterator", "Count");
+    AccumuloInputFormat.addIterator(job, new IteratorSetting(1, "WholeRow", "org.apache.accumulo.core.iterators.WholeRowIterator"));
+    AccumuloInputFormat.addIterator(job, new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
+    AccumuloInputFormat.addIterator(job, new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator"));
     
     List<AccumuloIterator> list = AccumuloInputFormat.getIterators(job);
     
@@ -179,64 +177,17 @@ public class AccumuloInputFormatTest {
     
   }
   
-  /**
-   * Check that the iterator options are getting stored in the Job conf correctly.
-   */
-  @SuppressWarnings("deprecation")
-  @Test
-  public void testSetIteratorOption() {
-    JobContext job = new JobContext(new Configuration(), new JobID());
-    AccumuloInputFormat.setIteratorOption(job, "someIterator", "aKey", "aValue");
-    
-    Configuration conf = job.getConfiguration();
-    String options = conf.get("AccumuloInputFormat.iterators.options");
-    assertEquals(new String("someIterator:aKey:aValue"), options);
-  }
-  
-  /**
-   * Test getting iterator options for multiple options set
-   */
-  @SuppressWarnings("deprecation")
-  @Test
-  public void testGetIteratorOption() {
-    JobContext job = new JobContext(new Configuration(), new JobID());
-    
-    AccumuloInputFormat.setIteratorOption(job, "iterator1", "key1", "value1");
-    AccumuloInputFormat.setIteratorOption(job, "iterator2", "key2", "value2");
-    AccumuloInputFormat.setIteratorOption(job, "iterator3", "key3", "value3");
-    
-    List<AccumuloIteratorOption> list = AccumuloInputFormat.getIteratorOptions(job);
-    
-    // Check the list size
-    assertEquals(3, list.size());
-    
-    // Walk the list and make sure all the options are correct
-    AccumuloIteratorOption option = list.get(0);
-    assertEquals("iterator1", option.getIteratorName());
-    assertEquals("key1", option.getKey());
-    assertEquals("value1", option.getValue());
-    
-    option = list.get(1);
-    assertEquals("iterator2", option.getIteratorName());
-    assertEquals("key2", option.getKey());
-    assertEquals("value2", option.getValue());
-    
-    option = list.get(2);
-    assertEquals("iterator3", option.getIteratorName());
-    assertEquals("key3", option.getKey());
-    assertEquals("value3", option.getValue());
-  }
-  
-  @SuppressWarnings("deprecation")
   @Test
   public void testSetRegex() {
     JobContext job = new JobContext(new Configuration(), new JobID());
     
     String regex = ">\"*%<>\'\\";
     
-    AccumuloInputFormat.setRegex(job, RegexType.ROW, regex);
+    IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);
+    RegExFilter.setRegexs(is, regex, null, null, null, false);
+    AccumuloInputFormat.addIterator(job, is);
     
-    assertTrue(regex.equals(AccumuloInputFormat.getRegex(job, RegexType.ROW)));
+    assertTrue(regex.equals(AccumuloInputFormat.getIterators(job).get(0).getIteratorName()));
   }
   
   static class TestMapper extends Mapper<Key,Value,Key,Value> {

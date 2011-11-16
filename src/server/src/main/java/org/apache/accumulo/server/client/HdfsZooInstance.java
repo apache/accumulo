@@ -141,12 +141,14 @@ public class HdfsZooInstance implements Instance {
   
   @SuppressWarnings("deprecation")
   @Override
+  // Not really deprecated, just not for client use
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(this, user, pass);
   }
   
-  @Override
   @SuppressWarnings("deprecation")
+  @Override
+  // Not really deprecated, just not for client use
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
     return new ConnectorImpl(this, user, ByteBufferUtil.toBytes(pass));
   }

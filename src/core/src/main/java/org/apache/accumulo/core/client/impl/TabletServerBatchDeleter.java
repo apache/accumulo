@@ -55,11 +55,6 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
   }
   
   @Override
-  public synchronized void setValueRegex(String regex) {
-    throw new UnsupportedOperationException("Cannot filter on value with deleter; Write your own deleter");
-  }
-  
-  @Override
   public void delete() throws MutationsRejectedException, TableNotFoundException {
     BatchWriter bw = null;
     try {

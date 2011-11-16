@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.impl;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,7 +33,6 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.IterInfo;
-import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
@@ -98,23 +96,7 @@ public class ScannerOptions implements ScannerBase {
     
     serverSideIteratorOptions.remove(iteratorName);
   }
-  
-  /**
-   * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
-   */
-  @Override
-  public void setScanIterators(int priority, String iteratorClass, String iteratorName) {
-    addScanIterator(new IteratorSetting(priority, iteratorClass, iteratorName));
-  }
-  
-  /**
-   * @deprecated since 1.4, use {@link #updateScanIteratorOption(String, String, String)}
-   */
-  @Override
-  public synchronized void setScanIteratorOption(String iteratorName, String key, String value) {
-    updateScanIteratorOption(iteratorName, key, value);
-  }
-  
+    
   /**
    * Override any existing options on the given named iterator
    */
@@ -131,86 +113,6 @@ public class ScannerOptions implements ScannerBase {
       serverSideIteratorOptions.put(iteratorName, opts);
     }
     opts.put(key, value);
-  }
-  
-  /**
-   * Must call this method to initialize regular expresions on a scanner.
-   * 
-   * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
-   * @see RegExIterator
-   */
-  @Override
-  public synchronized void setupRegex(String iteratorName, int iteratorPriority) throws IOException {
-    ArgumentChecker.notNull(iteratorName);
-    if (regexIterName != null)
-      throw new RuntimeException("regex already setup");
-    
-    addScanIterator(new IteratorSetting(iteratorPriority, iteratorName, RegExFilter.class));
-    regexIterName = iteratorName;
-  }
-  
-  private synchronized void setupDefaultRegex() {
-    try {
-      setupRegex("regExAuto", Integer.MAX_VALUE);
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to setup default regex");
-    }
-  }
-  
-  /**
-   * Set a row regular expression that filters non matching entries server side.
-   * 
-   * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
-   * @see RegExIterator
-   */
-  @Override
-  public synchronized void setRowRegex(String regex) {
-    ArgumentChecker.notNull(regex);
-    if (regexIterName == null)
-      setupDefaultRegex();
-    setScanIteratorOption(regexIterName, RegExFilter.ROW_REGEX, regex);
-  }
-  
-  /**
-   * Set a column family regular expression that filters non matching entries server side.
-   * 
-   * @deprecated since 1.4, use{@link #addScanIterator(IteratorSetting)}
-   * @see RegExIterator
-   */
-  @Override
-  public synchronized void setColumnFamilyRegex(String regex) {
-    ArgumentChecker.notNull(regex);
-    if (regexIterName == null)
-      setupDefaultRegex();
-    setScanIteratorOption(regexIterName, RegExFilter.COLF_REGEX, regex);
-  }
-  
-  /**
-   * Set a column qualifier regular expression that filters non matching entries server side.
-   * 
-   * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
-   * @see RegExIterator
-   */
-  @Override
-  public synchronized void setColumnQualifierRegex(String regex) {
-    ArgumentChecker.notNull(regex);
-    if (regexIterName == null)
-      setupDefaultRegex();
-    setScanIteratorOption(regexIterName, RegExFilter.COLQ_REGEX, regex);
-  }
-  
-  /**
-   * Set a value regular expression that filters non matching entries server side.
-   * 
-   * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
-   * @see RegExIterator
-   */
-  @Override
-  public synchronized void setValueRegex(String regex) {
-    ArgumentChecker.notNull(regex);
-    if (regexIterName == null)
-      setupDefaultRegex();
-    setScanIteratorOption(regexIterName, RegExFilter.VALUE_REGEX, regex);
   }
   
   /**

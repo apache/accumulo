@@ -1,18 +1,12 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership. The ASF licenses this file to You under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
 package org.apache.accumulo.core.client.mapreduce;
 
@@ -24,7 +18,6 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -37,7 +30,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.StringTokenizer;
 
@@ -62,7 +54,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.RegExIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
@@ -118,11 +109,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   
   private static final String RANGES = PREFIX + ".ranges";
   private static final String AUTO_ADJUST_RANGES = PREFIX + ".ranges.autoAdjust";
-  
-  private static final String ROW_REGEX = PREFIX + ".regex.row";
-  private static final String COLUMN_FAMILY_REGEX = PREFIX + ".regex.cf";
-  private static final String COLUMN_QUALIFIER_REGEX = PREFIX + ".regex.cq";
-  private static final String VALUE_REGEX = PREFIX + ".regex.value";
   
   private static final String COLUMNS = PREFIX + ".columns";
   private static final String LOGLEVEL = PREFIX + ".loglevel";
@@ -210,44 +196,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   
   public static void disableAutoAdjustRanges(JobContext job) {
     job.getConfiguration().setBoolean(AUTO_ADJUST_RANGES, false);
-  }
-  
-  public static enum RegexType {
-    ROW, COLUMN_FAMILY, COLUMN_QUALIFIER, VALUE
-  }
-  
-  /**
-   * @deprecated since 1.4 {@link #addIterator(JobContext, IteratorSetting)}
-   * @see RegExIterator#setRegexs(IteratorSetting, String, String, String, String, boolean)
-   * @param job
-   * @param type
-   * @param regex
-   */
-  public static void setRegex(JobContext job, RegexType type, String regex) {
-    ArgumentChecker.notNull(type, regex);
-    String key = null;
-    switch (type) {
-      case ROW:
-        key = ROW_REGEX;
-        break;
-      case COLUMN_FAMILY:
-        key = COLUMN_FAMILY_REGEX;
-        break;
-      case COLUMN_QUALIFIER:
-        key = COLUMN_QUALIFIER_REGEX;
-        break;
-      case VALUE:
-        key = VALUE_REGEX;
-        break;
-      default:
-        throw new NoSuchElementException();
-    }
-    try {
-      job.getConfiguration().set(key, URLEncoder.encode(regex, "UTF-8"));
-    } catch (UnsupportedEncodingException e) {
-      log.error("Failedd to encode regular expression", e);
-      throw new RuntimeException(e);
-    }
   }
   
   /**
@@ -456,35 +404,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     return ranges;
   }
   
-  protected static String getRegex(JobContext job, RegexType type) {
-    String key = null;
-    switch (type) {
-      case ROW:
-        key = ROW_REGEX;
-        break;
-      case COLUMN_FAMILY:
-        key = COLUMN_FAMILY_REGEX;
-        break;
-      case COLUMN_QUALIFIER:
-        key = COLUMN_QUALIFIER_REGEX;
-        break;
-      case VALUE:
-        key = VALUE_REGEX;
-        break;
-      default:
-        throw new NoSuchElementException();
-    }
-    try {
-      String s = job.getConfiguration().get(key);
-      if (s == null)
-        return null;
-      return URLDecoder.decode(s, "UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      log.error("Failed to decode regular expression", e);
-      throw new RuntimeException(e);
-    }
-  }
-  
   protected static Set<Pair<Text,Text>> getFetchedColumns(JobContext job) {
     Set<Pair<Text,Text>> columns = new HashSet<Pair<Text,Text>>();
     for (String col : job.getConfiguration().getStringCollection(COLUMNS)) {
@@ -580,34 +499,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected abstract static class RecordReaderBase<K,V> extends RecordReader<K,V> {
     protected long numKeysRead;
     protected Iterator<Entry<Key,Value>> scannerIterator;
-    private boolean scannerRegexEnabled = false;
     protected RangeInputSplit split;
-    
-    @SuppressWarnings("deprecation")
-    private void checkAndEnableRegex(String regex, Scanner scanner, String methodName) throws IllegalArgumentException, SecurityException,
-        IllegalAccessException, InvocationTargetException, NoSuchMethodException, IOException {
-      if (regex != null) {
-        if (scannerRegexEnabled == false) {
-          scanner.setupRegex(PREFIX + ".regex.iterator", 50);
-          scannerRegexEnabled = true;
-        }
-        scanner.getClass().getMethod(methodName, String.class).invoke(scanner, regex);
-        log.info("Setting " + methodName + " to " + regex);
-      }
-    }
-    
-    protected boolean setupRegex(TaskAttemptContext attempt, Scanner scanner) throws AccumuloException {
-      try {
-        checkAndEnableRegex(getRegex(attempt, RegexType.ROW), scanner, "setRowRegex");
-        checkAndEnableRegex(getRegex(attempt, RegexType.COLUMN_FAMILY), scanner, "setColumnFamilyRegex");
-        checkAndEnableRegex(getRegex(attempt, RegexType.COLUMN_QUALIFIER), scanner, "setColumnQualifierRegex");
-        checkAndEnableRegex(getRegex(attempt, RegexType.VALUE), scanner, "setValueRegex");
-        return true;
-      } catch (Exception e) {
-        throw new AccumuloException("Can't set up regex for scanner");
-      }
-    }
-    
+       
     // Apply the configured iterators from the job to the scanner
     protected void setupIterators(TaskAttemptContext attempt, Scanner scanner) throws AccumuloException {
       List<AccumuloIterator> iterators = getIterators(attempt);
@@ -660,7 +553,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
           scanner = new ClientSideIteratorScanner(scanner);
         }
         setupMaxVersions(attempt, scanner);
-        setupRegex(attempt, scanner);
         setupIterators(attempt, scanner);
       } catch (Exception e) {
         throw new IOException(e);
@@ -733,12 +625,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       while (!tl.binRanges(ranges, binnedRanges).isEmpty()) {
         log.warn("Unable to locate bins for specified ranges. Retrying.");
         UtilWaitThread.sleep(100 + (int) (Math.random() * 100)); // sleep
-        // randomly
-        // between
-        // 100
-        // and
-        // 200
-        // ms
+        // randomly between 100 and 200 ms
       }
     } catch (Exception e) {
       throw new IOException(e);
@@ -756,8 +643,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         Range ke = extentRanges.getKey().toDataRange();
         for (Range r : extentRanges.getValue()) {
           if (autoAdjust) {
-            // divide ranges into smaller ranges, based on the
-            // tablets
+            // divide ranges into smaller ranges, based on the tablets
             splits.add(new RangeInputSplit(tableName, ke.clip(r), new String[] {location}));
           } else {
             // don't divide ranges

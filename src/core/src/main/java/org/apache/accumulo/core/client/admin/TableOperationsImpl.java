@@ -93,7 +93,6 @@ import org.apache.thrift.transport.TTransportException;
  * Provides a class for administering tables
  * 
  */
-@SuppressWarnings("deprecation")
 public class TableOperationsImpl extends TableOperationsHelper {
   private Instance instance;
   private AuthInfo credentials;

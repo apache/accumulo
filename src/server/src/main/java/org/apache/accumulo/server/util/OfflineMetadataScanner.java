@@ -242,11 +242,6 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
   }
   
   @Override
-  public void setScanIterators(int priority, String iteratorClass, String iteratorName) {
-    throw new UnsupportedOperationException();
-  }
-  
-  @Override
   public void enableIsolation() {
     // should always give an isolated view since it is scanning immutable files
   }

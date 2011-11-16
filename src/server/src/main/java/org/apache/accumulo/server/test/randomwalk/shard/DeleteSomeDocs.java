@@ -25,7 +25,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.iterators.RegExIterator;
+import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 
@@ -52,8 +52,8 @@ public class DeleteSomeDocs extends Test {
     BatchDeleter ibd = state.getConnector().createBatchDeleter(indexTableName, Constants.NO_AUTHS, 8, 100000000, 60000, 3);
     ibd.setRanges(Collections.singletonList(new Range()));
     
-    IteratorSetting iterSettings = new IteratorSetting(100, RegExIterator.class);
-    RegExIterator.setRegexs(iterSettings, null, null, pattern, null, false);
+    IteratorSetting iterSettings = new IteratorSetting(100, RegExFilter.class);
+    RegExFilter.setRegexs(iterSettings, null, null, pattern, null, false);
     
     ibd.addScanIterator(iterSettings);
     
@@ -64,8 +64,8 @@ public class DeleteSomeDocs extends Test {
     BatchDeleter dbd = state.getConnector().createBatchDeleter(dataTableName, Constants.NO_AUTHS, 8, 100000000, 60000, 3);
     dbd.setRanges(Collections.singletonList(new Range()));
     
-    iterSettings = new IteratorSetting(100, RegExIterator.class);
-    RegExIterator.setRegexs(iterSettings, pattern, null, null, null, false);
+    iterSettings = new IteratorSetting(100, RegExFilter.class);
+    RegExFilter.setRegexs(iterSettings, pattern, null, null, null, false);
     
     dbd.addScanIterator(iterSettings);
     

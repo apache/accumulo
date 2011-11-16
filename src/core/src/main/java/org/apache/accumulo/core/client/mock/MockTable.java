@@ -36,7 +36,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.accumulo.core.security.TablePermission;
 
-@SuppressWarnings("deprecation")
 public class MockTable {
   
   static class MockMemKey extends Key {

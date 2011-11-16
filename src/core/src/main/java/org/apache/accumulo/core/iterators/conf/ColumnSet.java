@@ -24,8 +24,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iterators.conf.ColumnUtil.ColFamHashKey;
 import org.apache.accumulo.core.iterators.conf.ColumnUtil.ColHashKey;
 import org.apache.hadoop.io.Text;
-
-@SuppressWarnings("deprecation")
 public class ColumnSet {
   private Set<ColFamHashKey> objectsCF;
   private Set<ColHashKey> objectsCol;

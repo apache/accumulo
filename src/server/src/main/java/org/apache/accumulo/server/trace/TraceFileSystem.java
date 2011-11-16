@@ -228,14 +228,13 @@ public class TraceFileSystem extends FileSystem {
     }
   }
   
-  @SuppressWarnings("deprecation")
   @Override
   public short getReplication(Path src) throws IOException {
     Span span = Trace.start("getReplication");
     if (Trace.isTracing())
       span.data("path", src.toString());
     try {
-      return impl.getReplication(src);
+      return impl.getFileStatus(src).getReplication();
     } finally {
       span.stop();
     }

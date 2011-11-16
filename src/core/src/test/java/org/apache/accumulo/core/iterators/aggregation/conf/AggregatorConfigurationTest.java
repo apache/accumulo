@@ -21,7 +21,6 @@ import junit.framework.TestCase;
 import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.hadoop.io.Text;
 
-@SuppressWarnings("deprecation")
 public class AggregatorConfigurationTest extends TestCase {
   public void testBinary() {
     Text colf = new Text();

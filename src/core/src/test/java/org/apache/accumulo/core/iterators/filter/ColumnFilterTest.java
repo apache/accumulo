@@ -23,7 +23,7 @@ import junit.framework.TestCase;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.filter.ColumnQualifierFilter;
+import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
 import org.apache.hadoop.io.Text;
 
 public class ColumnFilterTest extends TestCase {
@@ -45,7 +45,7 @@ public class ColumnFilterTest extends TestCase {
     
     columns.add(nc("cf1"));
     
-    ColumnQualifierFilter cf = new ColumnQualifierFilter(columns);
+    ColumnQualifierFilter cf = new ColumnQualifierFilter(null, columns);
     
     assertTrue(cf.accept(nk("r1", "cf1", "cq1"), new Value(new byte[0])));
     assertTrue(cf.accept(nk("r1", "cf2", "cq1"), new Value(new byte[0])));
@@ -58,7 +58,7 @@ public class ColumnFilterTest extends TestCase {
     columns.add(nc("cf1"));
     columns.add(nc("cf2", "cq1"));
     
-    ColumnQualifierFilter cf = new ColumnQualifierFilter(columns);
+    ColumnQualifierFilter cf = new ColumnQualifierFilter(null, columns);
     
     assertTrue(cf.accept(nk("r1", "cf1", "cq1"), new Value(new byte[0])));
     assertTrue(cf.accept(nk("r1", "cf2", "cq1"), new Value(new byte[0])));
@@ -70,7 +70,7 @@ public class ColumnFilterTest extends TestCase {
     
     columns.add(nc("cf2", "cq1"));
     
-    ColumnQualifierFilter cf = new ColumnQualifierFilter(columns);
+    ColumnQualifierFilter cf = new ColumnQualifierFilter(null, columns);
     
     assertFalse(cf.accept(nk("r1", "cf1", "cq1"), new Value(new byte[0])));
     assertTrue(cf.accept(nk("r1", "cf2", "cq1"), new Value(new byte[0])));
