@@ -59,7 +59,6 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.TableOperation;
@@ -182,8 +181,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     
     Map<String,String> opts;
     if (limitVersion) {
-      List<PerColumnIteratorConfig> emptyArgs = Collections.emptyList();
-      opts = IteratorUtil.generateInitialTableProperties(emptyArgs);
+      opts = IteratorUtil.generateInitialTableProperties();
     } else
       opts = Collections.emptyMap();
     
@@ -1039,13 +1037,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * @deprecated since 1.4 {@link #attachIterator(String, IteratorSetting)}
    */
   @Override
-  public void addAggregators(String tableName, List<? extends PerColumnIteratorConfig> aggregators) throws AccumuloSecurityException, TableNotFoundException,
+  public void addAggregators(String tableName, List<? extends org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig> aggregators)
+      throws AccumuloSecurityException, TableNotFoundException,
       AccumuloException {
     ArgumentChecker.notNull(tableName, aggregators);
     MasterClientService.Iface client = null;
     try {
       client = MasterClient.getConnection(instance);
-      for (Entry<String,String> entry : IteratorUtil.generateInitialTableProperties(aggregators).entrySet()) {
+      for (Entry<String,String> entry : IteratorUtil.generateAggTableProperties(aggregators).entrySet()) {
         client.setTableProperty(null, credentials, tableName, entry.getKey(), entry.getValue());
       }
     } catch (ThriftSecurityException e) {

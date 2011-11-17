@@ -19,7 +19,6 @@ package org.apache.accumulo.core.util.shell.commands;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -136,8 +135,7 @@ public class CreateTableCommand extends Command {
     // context
     
     if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
-      List<PerColumnIteratorConfig> empty = Collections.emptyList();
-      for (String key : IteratorUtil.generateInitialTableProperties(empty).keySet())
+      for (String key : IteratorUtil.generateInitialTableProperties().keySet())
         shellState.getConnector().tableOperations().removeProperty(tableName, key);
     }
     

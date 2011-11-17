@@ -16,12 +16,10 @@
  */
 package org.apache.accumulo.core.iterators.conf;
 
-import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.hadoop.io.Text;
 
 /**
  * @deprecated since 1.4
- * @see Combiner#addColumn(Text, Text, accumulo.core.client.IteratorSetting)
  */
 public class PerColumnIteratorConfig {
   
