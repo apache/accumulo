@@ -58,64 +58,22 @@ public class PerColumnIteratorConfig {
   }
   
   private static String encodeColumns(PerColumnIteratorConfig pcic) {
-    return encodeColumns(pcic.colf, pcic.colq);
+    return ColumnSet.encodeColumns(pcic.colf, pcic.colq);
   }
   
   public static String encodeColumns(Text columnFamily, Text columnQualifier) {
-    StringBuilder sb = new StringBuilder();
-    
-    encode(sb, columnFamily);
-    if (columnQualifier != null) {
-      sb.append(':');
-      encode(sb, columnQualifier);
-    }
-    
-    return sb.toString();
+    return ColumnSet.encodeColumns(columnFamily, columnQualifier);
   }
-  
-  private static void encode(StringBuilder sb, Text t) {
-    for (int i = 0; i < t.getLength(); i++) {
-      int b = (0xff & t.getBytes()[i]);
-      
-      // very inefficient code
-      if ((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_' || b == '-') {
-        sb.append((char) b);
-      } else {
-        sb.append('%');
-        sb.append(String.format("%02x", b));
-      }
-    }
-  }
-  
+
   public static PerColumnIteratorConfig decodeColumns(String columns, String className) {
     String[] cols = columns.split(":");
     
     if (cols.length == 1) {
-      return new PerColumnIteratorConfig(decode(cols[0]), className);
+      return new PerColumnIteratorConfig(ColumnSet.decode(cols[0]), className);
     } else if (cols.length == 2) {
-      return new PerColumnIteratorConfig(decode(cols[0]), decode(cols[1]), className);
+      return new PerColumnIteratorConfig(ColumnSet.decode(cols[0]), ColumnSet.decode(cols[1]), className);
     } else {
       throw new IllegalArgumentException(columns);
     }
-  }
-  
-  private static Text decode(String s) {
-    Text t = new Text();
-    
-    byte[] sb = s.getBytes();
-    
-    // very inefficient code
-    for (int i = 0; i < sb.length; i++) {
-      if (sb[i] != '%') {
-        t.append(new byte[] {sb[i]}, 0, 1);
-      } else {
-        byte hex[] = new byte[] {sb[++i], sb[++i]};
-        String hs = new String(hex);
-        int b = Integer.parseInt(hs, 16);
-        t.append(new byte[] {(byte) b}, 0, 1);
-      }
-    }
-    
-    return t;
   }
 }

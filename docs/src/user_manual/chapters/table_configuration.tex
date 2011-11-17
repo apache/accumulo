@@ -293,15 +293,15 @@ table    | table.iterator.scan.vers.opt.maxVersions .. | 1
 \end{verbatim}
 \normalsize
 
-\subsection{Aggregating Iterators}
+\subsection{Combiners}
 
-Accumulo allows aggregating iterators to be configured on tables and column
-families. When an aggregating iterator is set, the iterator is applied across the values
+Accumulo allows Combiners to be configured on tables and column
+families. When a Combiner is set it is applied across the values
 associated with any keys that share rowID, column family, and column qualifier.
 This is similar to the reduce step in MapReduce, which applied some function to all
 the values associated with a particular key.
 
-For example, if an aggregating iterator were configured on a table and the following
+For example, if a summing combiner were configured on a table and the following
 mutations were inserted:
 
 \small
@@ -320,40 +320,40 @@ rowID1  colfA  colqA     -          2
 \end{verbatim}
 \normalsize
 
-Aggregating iterators can be enabled for a table as follows:
+Combiners can be enabled for a table using the setiter command in the shell.  Below is an example.
 
 \small
 \begin{verbatim}
-user@myinstance> createtable perDayCounts -a
-day=org.apache.accumulo.core.iterators.aggregation.StringSummation
+root@a14 perDayCounts> setiter -t perDayCounts -p 10 -scan -minc -majc -n daycount 
+                       -class org.apache.accumulo.core.iterators.user.SummingCombiner
+TypedValueCombiner can interpret Values as a variety of number encodings 
+  (VLong, Long, or String) before combining
+----------> set SummingCombiner parameter columns, 
+            <col fam>[:<col qual>]{,<col fam>[:<col qual>]} : day
+----------> set SummingCombiner parameter type, <VARNUM|LONG|STRING>: STRING
 
-user@myinstance perDayCounts> insert row1 day 20080101 1
-user@myinstance perDayCounts> insert row1 day 20080101 1
-user@myinstance perDayCounts> insert row1 day 20080103 1
-user@myinstance perDayCounts> insert row2 day 20080101 1
-user@myinstance perDayCounts> insert row3 day 20080101 1
+root@a14 perDayCounts> insert foo day 20080101 1
+root@a14 perDayCounts> insert foo day 20080101 1
+root@a14 perDayCounts> insert foo day 20080103 1
+root@a14 perDayCounts> insert bar day 20080101 1
+root@a14 perDayCounts> insert bar day 20080101 1
 
-user@myinstance perDayCounts> scan
-row1 day:20080101 [] 2
-row1 day:20080103 [] 1
-row2 day:20080101 [] 2
+root@a14 perDayCounts> scan
+bar day:20080101 []    2
+foo day:20080101 []    2
+foo day:20080103 []    1
 \end{verbatim}
 \normalsize
 
-Accumulo includes the following aggregators:
-\begin{itemize}
-\item{\textbf{LongSummation}: expects values of type long and adds them.}
-\item{\textbf{StringSummation}: expects numbers represented as strings and adds them.}
-\item{\textbf{StringMax}: expects numbers as strings and retains the maximum number inserted.}
-\item{\textbf{StringMin}: expects numbers as strings and retains the minimum number inserted.}
-\end{itemize}
+Accumulo includes some useful Combiners out of the box.  To find these look in
+the\\ \textbf{org.apache.accumulo.core.iterators.user} package.
 
-Additional Aggregators can be added by creating a Java class that implements\\
-\textbf{org.apache.accumulo.core.iterators.aggregation.Aggregator} and adding a jar containing that
-class to Accumulo's lib directory.
+Additional Combiners can be added by creating a Java class that extends\\
+\textbf{org.apache.accumulo.core.iterators.Combiner} and adding a jar containing that
+class to Accumulo's lib/ext directory.
 
-An example of an aggregator can be found under\\
-accumulo/src/examples/main/java/org/apache/accumulo/examples/aggregation/SortedSetAggregator.java
+An example of a Combiner can be found under\\
+accumulo/src/examples/main/java/org/apache/accumulo/examples/combiner/StatsCombiner.java
 
 
 \section{Block Cache}

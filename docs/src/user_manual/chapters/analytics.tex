@@ -154,33 +154,33 @@ AccumuloOutputFormat.setMaxMutationBufferSize(job, 5000000); // bytes
 An example of using MapReduce with Accumulo can be found at\\
 accumulo/docs/examples/README.mapred
 
-\section{Aggregating Iterators}
+\section{Combiners}
 
 Many applications can benefit from the ability to aggregate values across common
-keys. This can be done via aggregating iterators and is similar to the Reduce step in
+keys. This can be done via Combiner iterators and is similar to the Reduce step in
 MapReduce. This provides the ability to define online, incrementally updated
 analytics without the overhead or latency associated with batch-oriented
 MapReduce jobs.
 
 All that is needed to aggregate values of a table is to identify the fields over which
 values will be grouped, insert mutations with those fields as the key, and configure
-the table with an aggregating iterator that supports the summarization operation
+the table with a combining iterator that supports the summarization operation
 desired.
 
-The only restriction on an aggregating iterator is that the aggregator developer
+The only restriction on an combining iterator is that the combiner developer
 should not assume that all values for a given key have been seen, since new
 mutations can be inserted at anytime. This precludes using the total number of
 values in the aggregation such as when calculating an average, for example.
 
 \subsection{Feature Vectors}
 
-An interesting use of aggregating iterators within a Accumulo table is to store
+An interesting use of combining iterators within a Accumulo table is to store
 feature vectors for use in machine learning algorithms. For example, many
 algorithms such as k-means clustering, support vector machines, anomaly detection,
 etc. use the concept of a feature vector and the calculation of distance metrics to
 learn a particular model. The columns in a Accumulo table can be used to efficiently
 store sparse features and their weights to be incrementally updated via the use of an
-aggregating iterator.
+combining iterator.
 
 \section{Statistical Modeling}
 

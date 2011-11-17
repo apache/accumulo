@@ -58,7 +58,7 @@ public class ServerSideErrorTest extends FunctionalTest {
     
     getConnector().tableOperations().create("tt");
     IteratorSetting is = new IteratorSetting(5, "Bad Aggregator", BadCombiner.class);
-    Combiner.addColumn(new Text("acf"), null, is);
+    Combiner.setColumns(is, Collections.singletonList(new Combiner.Column("acf")));
     getConnector().tableOperations().attachIterator("tt", is);
     
     BatchWriter bw = getConnector().createBatchWriter("tt", 1000000, 60000l, 2);

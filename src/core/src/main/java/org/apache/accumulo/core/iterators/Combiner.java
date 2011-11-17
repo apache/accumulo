@@ -17,13 +17,12 @@
 package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -33,25 +32,23 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.conf.ColumnSet;
-import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
-
-/*
- * A SortedKeyValueIterator that combines the Values for different versions of a Key into a single Value.
- * Combiner will replace one or more versions of a Key and their Values with the most recent Key and a Value which is the result of the reduce method.
+/**
+ * A SortedKeyValueIterator that combines the Values for different versions of a Key into a single Value. Combiner will replace one or more versions of a Key
+ * and their Values with the most recent Key and a Value which is the result of the reduce method.
  * 
- * Subclasses must implement a reduce method:
- *   public Value reduce(Key key, Iterator<Value> iter);
+ * Subclasses must implement a reduce method: public Value reduce(Key key, Iterator<Value> iter);
  * 
  * This reduce method will be passed the most recent Key and an iterator over the Values for all non-deleted versions of that Key.
  */
 public abstract class Combiner extends WrappingIterator implements OptionDescriber {
   static final Logger log = Logger.getLogger(Combiner.class);
-  public static final String COLUMN_PREFIX = "column:";
+  public static final String COLUMNS_OPTION = "columns";
   
-  /*
+  /**
    * A Java Iterator that iterates over the Values for a given Key from a source SortedKeyValueIterator.
    */
   public static class ValueIterator implements Iterator<Value> {
@@ -59,10 +56,11 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     SortedKeyValueIterator<Key,Value> source;
     boolean hasNext;
     
-    /*
+    /**
      * Constructs an iterator over Values whose Keys are versions of the current topKey of the source SortedKeyValueIterator.
      * 
-     * @param source The SortedKeyValueIterator<Key,Value> from which to read data.
+     * @param source
+     *          The SortedKeyValueIterator<Key,Value> from which to read data.
      */
     public ValueIterator(SortedKeyValueIterator<Key,Value> source) {
       this.source = source;
@@ -74,7 +72,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       return source.hasTop() && !source.getTopKey().isDeleted() && topKey.equals(source.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS);
     }
     
-    /*
+    /**
      * @return <tt>true</tt> if there is another Value
      * 
      * @see java.util.Iterator#hasNext()
@@ -84,7 +82,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       return hasNext;
     }
     
-    /*
+    /**
      * @return the next Value
      * 
      * @see java.util.Iterator#next()
@@ -103,7 +101,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
       return topValue;
     }
     
-    /*
+    /**
      * unsupported
      * 
      * @see java.util.Iterator#remove()
@@ -152,7 +150,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   
   private Key workKey = new Key();
   
-  /*
+  /**
    * Sets the topKey and topValue based on the top key of the source. If the column of the source top key is in the set of combiners, topKey will be the top key
    * of the source and topValue will be the result of the reduce method. Otherwise, topKey and topValue will be unchanged. (They are always set to null before
    * this method is called.)
@@ -196,12 +194,14 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     }
   }
   
-  /*
+  /**
    * Reduces a list of Values into a single Value.
    * 
-   * @param key The most recent version of the Key being reduced.
+   * @param key
+   *          The most recent version of the Key being reduced.
    * 
-   * @param iter An iterator over the Values for different versions of the key.
+   * @param iter
+   *          An iterator over the Values for different versions of the key.
    * 
    * @return The combined Value.
    */
@@ -213,36 +213,87 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     
-    List<String> colOpts = new ArrayList<String>();
-    for (Entry<String,String> opt : options.entrySet()) {
-      if ((opt.getKey().startsWith(COLUMN_PREFIX))) {
-        colOpts.add(opt.getKey().substring(COLUMN_PREFIX.length()));
-      }
-    }
-    combiners = new ColumnSet(colOpts);
+    if (!options.containsKey(COLUMNS_OPTION))
+      throw new IllegalArgumentException("Must specify " + COLUMNS_OPTION + " option");
+    
+    String encodedColumns = options.get(COLUMNS_OPTION);
+    if (encodedColumns.length() == 0)
+      throw new IllegalArgumentException("The " + COLUMNS_OPTION + " must not be empty");
+    
+    combiners = new ColumnSet(Arrays.asList(encodedColumns.split(",")));
   }
   
   @Override
   public IteratorOptions describeOptions() {
-    return new IteratorOptions("comb", "Combiners apply reduce functions to values with identical keys", null, Collections.singletonList("<columnName> null"));
+    return new IteratorOptions(
+        "comb",
+        "Combiners apply reduce functions to values with identical keys",
+        Collections
+            .singletonMap(
+                COLUMNS_OPTION,
+        "<col fam>[:<col qual>]{,<col fam>[:<col qual>]} escape non aplhanum chars using %<hex>."),
+        null);
   }
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
+    if (!options.containsKey(COLUMNS_OPTION))
+      return false;
+    
+    String encodedColumns = options.get(COLUMNS_OPTION);
+    if (encodedColumns.length() == 0)
+      return false;
+
+    for (String columns : encodedColumns.split(",")) {
+      if (!ColumnSet.isValidEncoding(columns))
+        return false;
+    }
+
     return true;
   }
   
-  /*
-   * Adds a column (colf and colq) to an IteratorSetting.
-   * 
-   * @param colf The column family.
-   * 
-   * @param colq The column qualifier (<tt>null</tt> if unspecified).
-   * 
-   * @param is The IteratorSetting to which to add the column parameter.
+  /**
+   * A convenience class for passing column family and column qualifiers
    */
-  public static void addColumn(Text colf, Text colq, IteratorSetting is) {
-    String column = PerColumnIteratorConfig.encodeColumns(colf, colq);
-    is.addOption(COLUMN_PREFIX + column, "");
+  public static class Column extends Pair<Text,Text> {
+    
+    public Column(Text columnFamily, Text columnQualifier) {
+      super(columnFamily, columnQualifier);
+    }
+    
+    public Column(Text columnFamily) {
+      super(columnFamily, null);
+    }
+    
+    public Column(String columnFamily, String columnQualifier) {
+      super(new Text(columnFamily), new Text(columnQualifier));
+    }
+    
+    public Column(String columnFamily) {
+      super(new Text(columnFamily), null);
+    }
+    
+  }
+
+  /**
+   * A convenience method to set which columns a combiner should be applied to.
+   * 
+   * @param is
+   *          iterator settings object to configure
+   * @param columns
+   *          a list columns to encode as the value for the combiner column configuration
+   */
+  
+  public static void setColumns(IteratorSetting is, List<Column> columns) {
+    String sep = "";
+    StringBuilder sb = new StringBuilder();
+    
+    for (Column col : columns) {
+      sb.append(sep);
+      sep = ",";
+      sb.append(ColumnSet.encodeColumns(col.getFirst(), col.getSecond()));
+    }
+    
+    is.addOption(COLUMNS_OPTION, sb.toString());
   }
 }

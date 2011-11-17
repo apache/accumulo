@@ -139,6 +139,10 @@ public class SetIterCommand extends Command {
     if (itopts.getName() == null)
       throw new IllegalArgumentException(className + " described its default distinguishing name as null");
     
+    String shortClassName = className;
+    if (className.contains("."))
+      shortClassName = className.substring(className.lastIndexOf('.') + 1);
+
     Map<String,String> localOptions = new HashMap<String,String>();
     do {
       // clean up the overall options that caused things to fail
@@ -152,7 +156,7 @@ public class SetIterCommand extends Command {
       String prompt;
       if (itopts.getNamedOptions() != null) {
         for (Entry<String,String> e : itopts.getNamedOptions().entrySet()) {
-          prompt = Shell.repeat("-", 10) + "> set " + className + " parameter " + e.getKey() + ", " + e.getValue() + ": ";
+          prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " parameter " + e.getKey() + ", " + e.getValue() + ": ";
           
           input = reader.readLine(prompt);
           if (input == null) {
@@ -171,7 +175,7 @@ public class SetIterCommand extends Command {
           reader.printString(Shell.repeat("-", 10) + "> entering options: " + desc + "\n");
           input = "start";
           while (true) {
-            prompt = Shell.repeat("-", 10) + "> set " + className + " option (<name> <value>, hit enter to skip): ";
+            prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " option (<name> <value>, hit enter to skip): ";
             
             input = reader.readLine(prompt);
             if (input == null) {
