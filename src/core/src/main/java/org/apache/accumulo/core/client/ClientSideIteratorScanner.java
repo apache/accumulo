@@ -38,17 +38,16 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
-/*
- * A scanner that instantiates iterators on the client side instead of on the tablet server.  This can be useful for testing iterators or in cases where you don't want iterators affecting the performance of tablet servers.
+/**
+ * A scanner that instantiates iterators on the client side instead of on the tablet server. This can be useful for testing iterators or in cases where you
+ * don't want iterators affecting the performance of tablet servers.
  * 
- * Suggested usage:
- * Scanner scanner = new ClientSideIteratorScanner(connector.createScanner(tableName, authorizations))
+ * Suggested usage: Scanner scanner = new ClientSideIteratorScanner(connector.createScanner(tableName, authorizations))
  */
-
 public class ClientSideIteratorScanner extends ScannerOptions implements Scanner {
   private int size;
   private int timeOut;
