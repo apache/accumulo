@@ -23,9 +23,9 @@ import java.util.Set;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iterators.conf.ColumnUtil.ColFamHashKey;
 import org.apache.accumulo.core.iterators.conf.ColumnUtil.ColHashKey;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
-@SuppressWarnings("deprecation")
 public class ColumnSet {
   private Set<ColFamHashKey> objectsCF;
   private Set<ColHashKey> objectsCol;
@@ -42,12 +42,12 @@ public class ColumnSet {
     this();
     
     for (String column : objectStrings) {
-      PerColumnIteratorConfig pcic = PerColumnIteratorConfig.decodeColumns(column, null);
+      Pair<Text,Text> pcic = ColumnSet.decodeColumns(column);
       
-      if (pcic.getColumnQualifier() == null) {
-        add(pcic.getColumnFamily());
+      if (pcic.getSecond() == null) {
+        add(pcic.getFirst());
       } else {
-        add(pcic.getColumnFamily(), pcic.getColumnQualifier());
+        add(pcic.getFirst(), pcic.getSecond());
       }
     }
   }
@@ -79,5 +79,76 @@ public class ColumnSet {
   
   public boolean isEmpty() {
     return objectsCol.size() == 0 && objectsCF.size() == 0;
+  }
+
+  public static String encodeColumns(Text columnFamily, Text columnQualifier) {
+    StringBuilder sb = new StringBuilder();
+    
+    encode(sb, columnFamily);
+    if (columnQualifier != null) {
+      sb.append(':');
+      encode(sb, columnQualifier);
+    }
+    
+    return sb.toString();
+  }
+
+  static void encode(StringBuilder sb, Text t) {
+    for (int i = 0; i < t.getLength(); i++) {
+      int b = (0xff & t.getBytes()[i]);
+      
+      // very inefficient code
+      if ((b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') || (b >= '0' && b <= '9') || b == '_' || b == '-') {
+        sb.append((char) b);
+      } else {
+        sb.append('%');
+        sb.append(String.format("%02x", b));
+      }
+    }
+  }
+
+  public static boolean isValidEncoding(String enc) {
+    for (char c : enc.toCharArray()) {
+      boolean validChar = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-' || c == ':' || c == '%';
+      if (!validChar)
+        return false;
+    }
+    
+    return true;
+  }
+
+  public static Pair<Text,Text> decodeColumns(String columns) {
+    if (!isValidEncoding(columns))
+      throw new IllegalArgumentException("Invalid encoding " + columns);
+  
+    String[] cols = columns.split(":");
+    
+    if (cols.length == 1) {
+      return new Pair<Text,Text>(decode(cols[0]), null);
+    } else if (cols.length == 2) {
+      return new Pair<Text,Text>(decode(cols[0]), decode(cols[1]));
+    } else {
+      throw new IllegalArgumentException(columns);
+    }
+  }
+
+  static Text decode(String s) {
+    Text t = new Text();
+    
+    byte[] sb = s.getBytes();
+    
+    // very inefficient code
+    for (int i = 0; i < sb.length; i++) {
+      if (sb[i] != '%') {
+        t.append(new byte[] {sb[i]}, 0, 1);
+      } else {
+        byte hex[] = new byte[] {sb[++i], sb[++i]};
+        String hs = new String(hex);
+        int b = Integer.parseInt(hs, 16);
+        t.append(new byte[] {(byte) b}, 0, 1);
+      }
+    }
+    
+    return t;
   }
 }

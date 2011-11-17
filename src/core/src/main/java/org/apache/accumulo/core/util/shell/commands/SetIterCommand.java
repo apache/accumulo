@@ -29,18 +29,18 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.iterators.AggregatingIterator;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.NoLabelIterator;
 import org.apache.accumulo.core.iterators.OptionDescriber;
+import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
 import org.apache.accumulo.core.iterators.RegExIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.VersioningIterator;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
 import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.ShellCommandException.ErrorCode;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.cli.CommandLine;
@@ -139,6 +139,10 @@ public class SetIterCommand extends Command {
     if (itopts.getName() == null)
       throw new IllegalArgumentException(className + " described its default distinguishing name as null");
     
+    String shortClassName = className;
+    if (className.contains("."))
+      shortClassName = className.substring(className.lastIndexOf('.') + 1);
+
     Map<String,String> localOptions = new HashMap<String,String>();
     do {
       // clean up the overall options that caused things to fail
@@ -152,7 +156,7 @@ public class SetIterCommand extends Command {
       String prompt;
       if (itopts.getNamedOptions() != null) {
         for (Entry<String,String> e : itopts.getNamedOptions().entrySet()) {
-          prompt = Shell.repeat("-", 10) + "> set " + className + " parameter " + e.getKey() + ", " + e.getValue() + ": ";
+          prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " parameter " + e.getKey() + ", " + e.getValue() + ": ";
           
           input = reader.readLine(prompt);
           if (input == null) {
@@ -171,7 +175,7 @@ public class SetIterCommand extends Command {
           reader.printString(Shell.repeat("-", 10) + "> entering options: " + desc + "\n");
           input = "start";
           while (true) {
-            prompt = Shell.repeat("-", 10) + "> set " + className + " option (<name> <value>, hit enter to skip): ";
+            prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " option (<name> <value>, hit enter to skip): ";
             
             input = reader.readLine(prompt);
             if (input == null) {

@@ -94,6 +94,7 @@ public class CombinerTest {
     Map<String,String> opts = new HashMap<String,String>();
     
     opts.put(SummingCombiner.TYPE, SummingCombiner.Type.VARNUM.name());
+    opts.put(Combiner.COLUMNS_OPTION, "2");
     
     ai.init(new SortedMapIterator(tm1), opts, null);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -158,7 +159,7 @@ public class CombinerTest {
     
     Map<String,String> opts = new HashMap<String,String>();
     
-    opts.put(Combiner.COLUMN_PREFIX + "cf001", null);
+    opts.put(Combiner.COLUMNS_OPTION, "cf001");
     opts.put(SummingCombiner.TYPE, SummingCombiner.Type.VARNUM.name());
     
     ai.init(new SortedMapIterator(tm1), opts, null);
@@ -225,7 +226,7 @@ public class CombinerTest {
     
     Map<String,String> opts = new HashMap<String,String>();
     
-    opts.put(Combiner.COLUMN_PREFIX + "cf001", "null");
+    opts.put(Combiner.COLUMNS_OPTION, "cf001");
     opts.put(SummingCombiner.TYPE, SummingCombiner.Type.LONG.name());
     
     ai.init(new SortedMapIterator(tm1), opts, null);
@@ -295,7 +296,7 @@ public class CombinerTest {
     
     Map<String,String> opts = new HashMap<String,String>();
     
-    opts.put(Combiner.COLUMN_PREFIX + "cf001", null);
+    opts.put(Combiner.COLUMNS_OPTION, "cf001");
     opts.put(SummingCombiner.TYPE, SummingCombiner.Type.STRING.name());
     
     ai.init(new SortedMapIterator(tm1), opts, null);
@@ -366,7 +367,7 @@ public class CombinerTest {
     
     Combiner ai = new SummingCombiner();
     Map<String,String> opts = new HashMap<String,String>();
-    opts.put(Combiner.COLUMN_PREFIX + "cf001", null);
+    opts.put(Combiner.COLUMNS_OPTION, "cf001");
     opts.put(SummingCombiner.TYPE, SummingCombiner.Type.STRING.name());
     
     List<SortedKeyValueIterator<Key,Value>> sources = new ArrayList<SortedKeyValueIterator<Key,Value>>(3);
@@ -397,7 +398,7 @@ public class CombinerTest {
     
     Map<String,String> opts = new HashMap<String,String>();
     
-    opts.put(Combiner.COLUMN_PREFIX + "cf001", null);
+    opts.put(Combiner.COLUMNS_OPTION, "cf001");
     opts.put(SummingCombiner.TYPE, SummingCombiner.Type.VARNUM.name());
     
     ai.init(new SortedMapIterator(tm1), opts, new DefaultIteratorEnvironment());
@@ -426,7 +427,7 @@ public class CombinerTest {
     
     Map<String,String> opts = new HashMap<String,String>();
     
-    opts.put(Combiner.COLUMN_PREFIX + "cf001", "null");
+    opts.put(Combiner.COLUMNS_OPTION, "cf001");
     opts.put(SummingCombiner.TYPE, SummingCombiner.Type.LONG.name());
     
     ai.init(new SortedMapIterator(tm1), opts, new DefaultIteratorEnvironment());
@@ -488,7 +489,7 @@ public class CombinerTest {
     
     Map<String,String> opts = new HashMap<String,String>();
     
-    opts.put(Combiner.COLUMN_PREFIX + "cf001", null);
+    opts.put(Combiner.COLUMNS_OPTION, "cf001");
     opts.put(SummingCombiner.TYPE, SummingCombiner.Type.VARNUM.name());
     
     ai.init(new SortedMapIterator(tm1), opts, null);
@@ -542,7 +543,7 @@ public class CombinerTest {
     
     Map<String,String> opts = new HashMap<String,String>();
     
-    opts.put(Combiner.COLUMN_PREFIX + "cf001", null);
+    opts.put(Combiner.COLUMNS_OPTION, "cf001");
     opts.put(SummingCombiner.TYPE, type);
     
     ai.init(new SortedMapIterator(tm1), opts, null);

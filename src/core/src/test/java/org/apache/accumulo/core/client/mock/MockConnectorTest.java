@@ -84,7 +84,7 @@ public class MockConnectorTest {
     c.tableOperations().create(table);
     Class<? extends SortedKeyValueIterator<Key,Value>> clazz = SummingCombiner.class;
     IteratorSetting is = new IteratorSetting(10, "String Summation", clazz);
-    Combiner.addColumn(new Text("day"), null, is);
+    Combiner.setColumns(is, Collections.singletonList(new Combiner.Column("day")));
     is.addOption(SummingCombiner.TYPE, SummingCombiner.Type.STRING.name());
     c.tableOperations().attachIterator(table, is);
     String keys[][] = { {"foo", "day", "20080101"}, {"foo", "day", "20080101"}, {"foo", "day", "20080103"}, {"bar", "day", "20080101"},

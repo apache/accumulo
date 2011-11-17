@@ -1,0 +1,85 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<html>
+<head>
+<title>Accumulo Documentation : Combiners</title>
+<link rel='stylesheet' type='text/css' href='documentation.css' media='screen'/>
+</head>
+<body>
+
+<h1>Combiners</h1>
+
+<p>Accumulo supports on the fly lazy aggregation of data using Combiners.  Aggregation is done at compaction and scan time.  No lookup is done at insert time, which` greatly speeds up ingest. 
+
+<p>Combiners are easy to use.  You use the setiters command to configure a combiner for a table.  Allowing a Combiner to apply to a whole column family is an interesting twist that gives the user great flexibility.  The example below demonstrates this flexibility.  
+
+<p><pre>
+
+Shell - Accumulo Interactive Shell
+- version: 1.4.0-incubating-SNAPSHOT
+- instance id: 863fc0d1-3623-4b6c-8c23-7d4fdb1c8a49
+- 
+- type 'help' for a list of available commands
+-
+user@instance&gt; createtable perDayCounts
+user@instance perDayCounts&gt; setiter -t perDayCounts -p 10 -scan -minc -majc -n daycount -class org.apache.accumulo.core.iterators.user.SummingCombiner
+TypedValueCombiner can interpret Values as a variety of number encodings (VLong, Long, or String) before combining
+----------&gt; set SummingCombiner parameter columns, &lt;col fam&gt;[:&lt;col qual&gt;]{,&lt;col fam&gt;[:&lt;col qual&gt;]} escape non aplhanum chars using %&lt;hex&gt;.: day
+----------&gt; set SummingCombiner parameter type, &lt;VARNUM|LONG|STRING&gt;: STRING
+user@instance perDayCounts&gt; insert foo day 20080101 1
+user@instance perDayCounts&gt; insert foo day 20080101 1
+user@instance perDayCounts&gt; insert foo day 20080103 1
+user@instance perDayCounts&gt; insert bar day 20080101 1
+user@instance perDayCounts&gt; insert bar day 20080101 1
+user@instance perDayCounts&gt; scan
+bar day:20080101 []    2
+foo day:20080101 []    2
+foo day:20080103 []    1
+</pre>
+
+
+<p>Implementing a new Combiner is a snap.  Simply write some Java code that extends <a href='apidocs/org/apache/accumulo/core/iterators/Combiner.html'>org.apache.accumulo.core.iterators.Combiner</a>. A good place to look for examples is the <a href='apidocs/org/apache/accumulo/core/iterators/user/package-summary.html'>org.apache.accumulo.core.iterators.user</a> package.  Also look at the example StatsCombiner.     
+
+<p>To deploy a new aggregator, jar it up and put the jar in accumulo/lib/ext.  To see an example look at <a href='examples/README.combiner'>README.combiner</a>
+
+<p>If you would like to see what iterators a table has you can use the config command like in the following example.
+
+<p><pre>
+user@instance perDayCounts&gt; config -t perDayCounts -f iterator
+---------+---------------------------------------------+-----------------------------------------------------------
+SCOPE    | NAME                                        | VALUE
+---------+---------------------------------------------+-----------------------------------------------------------
+table    | table.iterator.majc.daycount .............. | 10,org.apache.accumulo.core.iterators.user.SummingCombiner
+table    | table.iterator.majc.daycount.opt.columns .. | day
+table    | table.iterator.majc.daycount.opt.type ..... | STRING
+table    | table.iterator.majc.vers .................. | 20,org.apache.accumulo.core.iterators.VersioningIterator
+table    | table.iterator.majc.vers.opt.maxVersions .. | 1
+table    | table.iterator.minc.daycount .............. | 10,org.apache.accumulo.core.iterators.user.SummingCombiner
+table    | table.iterator.minc.daycount.opt.columns .. | day
+table    | table.iterator.minc.daycount.opt.type ..... | STRING
+table    | table.iterator.minc.vers .................. | 20,org.apache.accumulo.core.iterators.VersioningIterator
+table    | table.iterator.minc.vers.opt.maxVersions .. | 1
+table    | table.iterator.scan.daycount .............. | 10,org.apache.accumulo.core.iterators.user.SummingCombiner
+table    | table.iterator.scan.daycount.opt.columns .. | day
+table    | table.iterator.scan.daycount.opt.type ..... | STRING
+table    | table.iterator.scan.vers .................. | 20,org.apache.accumulo.core.iterators.VersioningIterator
+table    | table.iterator.scan.vers.opt.maxVersions .. | 1
+---------+---------------------------------------------+-----------------------------------------------------------
+</pre>
+
+</body>
+</html>
