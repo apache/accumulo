@@ -24,6 +24,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.filter.RegExFilter;
 
+/**
+ * @deprecated since 1.4
+ * @use org.apache.accumulo.core.iterators.user.RegExFilter
+ **/
 public class RegExIterator extends SkippingIterator implements OptionDescriber {
   
   private RegExFilter ref = new RegExFilter();

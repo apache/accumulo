@@ -23,7 +23,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 
-@SuppressWarnings("deprecation")
+/**
+ * @deprecated since 1.4
+ * @use org.apache.accumulo.core.iterators.user.AgeOffFilter
+ **/
 public class AgeOffFilter implements Filter, OptionDescriber {
   private long threshold;
   private long currentTime;

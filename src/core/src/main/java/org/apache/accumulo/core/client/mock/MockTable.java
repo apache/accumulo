@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client.mock;
 
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -25,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -33,10 +33,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.accumulo.core.security.TablePermission;
 
-@SuppressWarnings("deprecation")
 public class MockTable {
   
   static class MockMemKey extends Key {
@@ -89,24 +87,7 @@ public class MockTable {
   
   MockTable(boolean useVersions, TimeType timeType) {
     this.timeType = timeType;
-    List<PerColumnIteratorConfig> aggs = Collections.emptyList();
-    settings = IteratorUtil.generateInitialTableProperties(aggs);
-    for (Entry<String,String> entry : AccumuloConfiguration.getDefaultConfiguration()) {
-      String key = entry.getKey();
-      if (key.startsWith(Property.TABLE_PREFIX.getKey()))
-        settings.put(key, entry.getValue());
-    }
-  }
-  
-  /**
-   * @deprecated since 1.4, use {@link #MockTable(boolean, TimeType)}
-   * @see {@link #addAggregators(List)}
-   * @param aggregators
-   * @param timeType
-   */
-  MockTable(List<? extends PerColumnIteratorConfig> aggregators, TimeType timeType) {
-    this.timeType = timeType;
-    settings = IteratorUtil.generateInitialTableProperties(aggregators);
+    settings = IteratorUtil.generateInitialTableProperties();
     for (Entry<String,String> entry : AccumuloConfiguration.getDefaultConfiguration()) {
       String key = entry.getKey();
       if (key.startsWith(Property.TABLE_PREFIX.getKey()))
@@ -132,8 +113,11 @@ public class MockTable {
     }
   }
   
-  public void addAggregators(List<? extends PerColumnIteratorConfig> aggregators) {
-    for (Entry<String,String> entry : IteratorUtil.generateInitialTableProperties(aggregators).entrySet()) {
+  /**
+   * @deprecated since 1.4 {@link #attachIterator(String, IteratorSetting)}
+   */
+  public void addAggregators(List<? extends org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig> aggregators) {
+    for (Entry<String,String> entry : IteratorUtil.generateAggTableProperties(aggregators).entrySet()) {
       String key = entry.getKey();
       if (key.startsWith(Property.TABLE_PREFIX.getKey()))
         settings.put(key, entry.getValue());

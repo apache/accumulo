@@ -28,7 +28,10 @@ import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
-@SuppressWarnings("deprecation")
+/**
+ * @deprecated since 1.4
+ * @use org.apache.accumulo.core.iterators.System.VisibilityFilter
+ **/
 public class VisibilityFilter implements Filter {
   private VisibilityEvaluator ve;
   private Text defaultVisibility;

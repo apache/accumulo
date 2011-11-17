@@ -23,6 +23,10 @@ import org.apache.accumulo.core.data.Value;
  * Caller sets up this filter for the rows that they want to match on and then this filter ignores those rows during scans and compactions.
  * 
  */
+/**
+ * @deprecated since 1.4
+ * @use org.apache.accumulo.core.iterators.Filter with negate flag set to <tt>true</tt>
+ **/
 public class DeleteFilter extends RegExFilter {
   
   @Override

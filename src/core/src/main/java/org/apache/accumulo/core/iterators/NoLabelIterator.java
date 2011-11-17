@@ -23,6 +23,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.filter.NoLabelFilter;
 
+/**
+ * @deprecated since 1.4
+ * @use org.apache.accumulo.core.iterators.user.NoVisFilter
+ **/
 public class NoLabelIterator extends SkippingIterator implements OptionDescriber {
   
   private NoLabelFilter ref = new NoLabelFilter();

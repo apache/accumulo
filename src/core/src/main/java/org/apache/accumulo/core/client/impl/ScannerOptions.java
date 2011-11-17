@@ -137,7 +137,7 @@ public class ScannerOptions implements ScannerBase {
    * Must call this method to initialize regular expresions on a scanner.
    * 
    * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
-   * @see RegExIterator
+   * @see org.apache.accumulo.core.iterators.user.RegExFilter
    */
   @Override
   public synchronized void setupRegex(String iteratorName, int iteratorPriority) throws IOException {
@@ -161,7 +161,7 @@ public class ScannerOptions implements ScannerBase {
    * Set a row regular expression that filters non matching entries server side.
    * 
    * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
-   * @see RegExIterator
+   * @see org.apache.accumulo.core.iterators.user.RegExFilter
    */
   @Override
   public synchronized void setRowRegex(String regex) {
@@ -175,7 +175,7 @@ public class ScannerOptions implements ScannerBase {
    * Set a column family regular expression that filters non matching entries server side.
    * 
    * @deprecated since 1.4, use{@link #addScanIterator(IteratorSetting)}
-   * @see RegExIterator
+   * @see org.apache.accumulo.core.iterators.user.RegExFilter
    */
   @Override
   public synchronized void setColumnFamilyRegex(String regex) {
@@ -189,7 +189,7 @@ public class ScannerOptions implements ScannerBase {
    * Set a column qualifier regular expression that filters non matching entries server side.
    * 
    * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
-   * @see RegExIterator
+   * @see org.apache.accumulo.core.iterators.user.RegExFilter
    */
   @Override
   public synchronized void setColumnQualifierRegex(String regex) {
@@ -203,7 +203,7 @@ public class ScannerOptions implements ScannerBase {
    * Set a value regular expression that filters non matching entries server side.
    * 
    * @deprecated since 1.4, use {@link #addScanIterator(IteratorSetting)}
-   * @see RegExIterator
+   * @see org.apache.accumulo.core.iterators.user.RegExFilter
    */
   @Override
   public synchronized void setValueRegex(String regex) {

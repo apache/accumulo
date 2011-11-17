@@ -62,9 +62,8 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.RegExIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.VersioningIterator;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
@@ -218,7 +217,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   
   /**
    * @deprecated since 1.4 {@link #addIterator(JobContext, IteratorSetting)}
-   * @see RegExIterator#setRegexs(IteratorSetting, String, String, String, String, boolean)
+   * @see org.apache.accumulo.core.iterators.user.RegExFilter#setRegexs(IteratorSetting, String, String, String, String, boolean)
    * @param job
    * @param type
    * @param regex

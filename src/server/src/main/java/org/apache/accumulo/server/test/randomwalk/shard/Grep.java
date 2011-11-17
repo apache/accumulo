@@ -29,8 +29,8 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IntersectingIterator;
-import org.apache.accumulo.core.iterators.RegExIterator;
+import org.apache.accumulo.core.iterators.user.IntersectingIterator;
+import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 import org.apache.hadoop.io.Text;
@@ -69,8 +69,8 @@ public class Grep extends Test {
     bs = state.getConnector().createBatchScanner(dataTableName, Constants.NO_AUTHS, 16);
     
     for (int i = 0; i < words.length; i++) {
-      IteratorSetting more = new IteratorSetting(20 + i, "ii" + i, RegExIterator.class);
-      RegExIterator.setRegexs(more, null, null, null, "(^|(.*\\s))" + words[i] + "($|(\\s.*))", false);
+      IteratorSetting more = new IteratorSetting(20 + i, "ii" + i, RegExFilter.class);
+      RegExFilter.setRegexs(more, null, null, null, "(^|(.*\\s))" + words[i] + "($|(\\s.*))", false);
       bs.addScanIterator(more);
     }
     

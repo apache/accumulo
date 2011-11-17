@@ -27,7 +27,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.util.ByteArrayBackedCharSequence;
 
-@SuppressWarnings("deprecation")
+/**
+ * @deprecated since 1.4
+ * @use org.apache.accumulo.core.iterators.user.RegExFilter
+ **/
 public class RegExFilter implements Filter, OptionDescriber {
   
   public static final String ROW_REGEX = "rowRegex";

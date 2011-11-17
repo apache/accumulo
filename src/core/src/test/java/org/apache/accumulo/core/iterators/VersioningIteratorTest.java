@@ -29,8 +29,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.VersioningIterator;
 import org.apache.accumulo.core.iterators.aggregation.LongSummation;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.hadoop.io.Text;
 
 public class VersioningIteratorTest extends TestCase {

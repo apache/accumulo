@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -159,4 +160,33 @@ public class RegExFilter extends Filter {
     return true;
   }
   
+  /**
+   * Encode the terms to match against in the iterator
+   * 
+   * @param si
+   *          ScanIterator config to be updated
+   * @param rowTerm
+   *          the pattern to match against the Key's row. Not used if null.
+   * @param cfTerm
+   *          the pattern to match against the Key's column family. Not used if null.
+   * @param cqTerm
+   *          the pattern to match against the Key's column qualifier. Not used if null.
+   * @param valueTerm
+   *          the pattern to match against the Key's value. Not used if null.
+   * @param orFields
+   *          if true, any of the non-null terms can match to return the entry
+   */
+  public static void setRegexs(IteratorSetting si, String rowTerm, String cfTerm, String cqTerm, String valueTerm, boolean orFields) {
+    if (rowTerm != null)
+      si.addOption(RegExFilter.ROW_REGEX, rowTerm);
+    if (cfTerm != null)
+      si.addOption(RegExFilter.COLF_REGEX, cfTerm);
+    if (cqTerm != null)
+      si.addOption(RegExFilter.COLQ_REGEX, cqTerm);
+    if (valueTerm != null)
+      si.addOption(RegExFilter.VALUE_REGEX, valueTerm);
+    if (orFields) {
+      si.addOption(RegExFilter.OR_FIELDS, "true");
+    }
+  }
 }

@@ -27,7 +27,10 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 
-@SuppressWarnings("deprecation")
+/**
+ * @deprecated since 1.4
+ * @use org.apache.accumulo.core.iterators.system.ColumnQualifierFilter
+ **/
 public class ColumnQualifierFilter implements Filter {
   private boolean scanColumns;
   private HashSet<ByteSequence> columnFamilies;

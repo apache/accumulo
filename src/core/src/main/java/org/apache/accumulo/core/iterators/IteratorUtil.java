@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -34,6 +36,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -64,17 +67,14 @@ public class IteratorUtil {
    * 
    * @see {@link TableOperations#attachIterators(String, IteratorSetting)}
    */
-  public static Map<String,String> generateInitialTableProperties(List<? extends PerColumnIteratorConfig> aggregators) {
+  public static Map<String,String> generateAggTableProperties(List<? extends PerColumnIteratorConfig> aggregators) {
     
-    TreeMap<String,String> props = new TreeMap<String,String>();
+    Map<String,String> props = new TreeMap<String,String>();
     
     for (IteratorScope iterScope : IteratorScope.values()) {
       if (aggregators.size() > 0) {
         props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".agg", "10," + AggregatingIterator.class.getName());
       }
-      
-      props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers", "20," + VersioningIterator.class.getName());
-      props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers.opt.maxVersions", "1");
     }
     
     for (PerColumnIteratorConfig ac : aggregators) {
@@ -83,6 +83,16 @@ public class IteratorUtil {
       }
     }
     
+    return props;
+  }
+  
+  public static Map<String,String> generateInitialTableProperties() {
+    TreeMap<String,String> props = new TreeMap<String,String>();
+    
+    for (IteratorScope iterScope : IteratorScope.values()) {
+      props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers", "20," + VersioningIterator.class.getName());
+      props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers.opt.maxVersions", "1");
+    }
     return props;
   }
   

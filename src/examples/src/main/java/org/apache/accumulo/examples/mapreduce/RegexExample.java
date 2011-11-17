@@ -22,7 +22,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.RegExIterator;
+import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configured;
@@ -48,8 +48,8 @@ public class RegexExample extends Configured implements Tool {
     AccumuloInputFormat.setZooKeeperInstance(job, args[0], args[1]);
     AccumuloInputFormat.setInputInfo(job, args[2], args[3].getBytes(), args[4], new Authorizations());
     
-    IteratorSetting regex = new IteratorSetting(50, "regex", RegExIterator.class);
-    RegExIterator.setRegexs(regex, args[5], args[6], args[7], args[8], false);
+    IteratorSetting regex = new IteratorSetting(50, "regex", RegExFilter.class);
+    RegExFilter.setRegexs(regex, args[5], args[6], args[7], args[8], false);
     AccumuloInputFormat.addIterator(job, regex);
     
     job.setMapperClass(RegexMapper.class);
