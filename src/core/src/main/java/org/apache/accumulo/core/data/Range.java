@@ -512,76 +512,91 @@ public class Range implements WritableComparable<Range> {
     return infiniteStopKey;
   }
   
-  /*
+  /**
    * Creates a range that covers an exact row Returns the same Range as new Range(row)
    * 
-   * @param row all keys in the range will have this row
+   * @param row
+   *          all keys in the range will have this row
    */
   public static Range exact(Text row) {
     return new Range(row);
   }
   
-  /*
+  /**
    * Creates a range that covers an exact row and column family
    * 
-   * @param row all keys in the range will have this row
+   * @param row
+   *          all keys in the range will have this row
    * 
-   * @param cf all keys in the range will have this column family
+   * @param cf
+   *          all keys in the range will have this column family
    */
   public static Range exact(Text row, Text cf) {
     Key startKey = new Key(row, cf);
     return new Range(startKey, true, startKey.followingKey(PartialKey.ROW_COLFAM), false);
   }
   
-  /*
+  /**
    * Creates a range that covers an exact row, column family, and column qualifier
    * 
-   * @param row all keys in the range will have this row
+   * @param row
+   *          all keys in the range will have this row
    * 
-   * @param cf all keys in the range will have this column family
+   * @param cf
+   *          all keys in the range will have this column family
    * 
-   * @param cq all keys in the range will have this column qualifier
+   * @param cq
+   *          all keys in the range will have this column qualifier
    */
   public static Range exact(Text row, Text cf, Text cq) {
     Key startKey = new Key(row, cf, cq);
     return new Range(startKey, true, startKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL), false);
   }
   
-  /*
+  /**
    * Creates a range that covers an exact row, column family, column qualifier, and visibility
    * 
-   * @param row all keys in the range will have this row
+   * @param row
+   *          all keys in the range will have this row
    * 
-   * @param cf all keys in the range will have this column family
+   * @param cf
+   *          all keys in the range will have this column family
    * 
-   * @param cq all keys in the range will have this column qualifier
+   * @param cq
+   *          all keys in the range will have this column qualifier
    * 
-   * @param cv all keys in the range will have this column visibility
+   * @param cv
+   *          all keys in the range will have this column visibility
    */
   public static Range exact(Text row, Text cf, Text cq, Text cv) {
     Key startKey = new Key(row, cf, cq, cv);
     return new Range(startKey, true, startKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS), false);
   }
   
-  /*
+  /**
    * Creates a range that covers an exact row, column family, column qualifier, visibility, and timestamp
    * 
-   * @param row all keys in the range will have this row
+   * @param row
+   *          all keys in the range will have this row
    * 
-   * @param cf all keys in the range will have this column family
+   * @param cf
+   *          all keys in the range will have this column family
    * 
-   * @param cq all keys in the range will have this column qualifier
+   * @param cq
+   *          all keys in the range will have this column qualifier
    * 
-   * @param cv all keys in the range will have this column visibility
+   * @param cv
+   *          all keys in the range will have this column visibility
    * 
-   * @param ts all keys in the range will have this timestamp
+   * @param ts
+   *          all keys in the range will have this timestamp
    */
   public static Range exact(Text row, Text cf, Text cq, Text cv, long ts) {
     Key startKey = new Key(row, cf, cq, cv, ts);
     return new Range(startKey, true, startKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME), false);
   }
   
-  /*
+  /**
    * Returns a Text that sorts just after all Texts beginning with a prefix
    * 
    * @param prefix
@@ -605,52 +620,62 @@ public class Range implements WritableComparable<Range> {
     return new Text(newBytes);
   }
   
-  /*
+  /**
    * Returns a Range that covers all rows beginning with a prefix
    * 
-   * @param rowPrefix all keys in the range will have rows that begin with this prefix
+   * @param rowPrefix
+   *          all keys in the range will have rows that begin with this prefix
    */
   public static Range prefix(Text rowPrefix) {
     Text fp = followingPrefix(rowPrefix);
     return new Range(new Key(rowPrefix), true, fp == null ? null : new Key(fp), false);
   }
   
-  /*
+  /**
    * Returns a Range that covers all column families beginning with a prefix within a given row
    * 
-   * @param row all keys in the range will have this row
+   * @param row
+   *          all keys in the range will have this row
    * 
-   * @param cfPrefix all keys in the range will have column families that begin with this prefix
+   * @param cfPrefix
+   *          all keys in the range will have column families that begin with this prefix
    */
   public static Range prefix(Text row, Text cfPrefix) {
     Text fp = followingPrefix(cfPrefix);
     return new Range(new Key(row, cfPrefix), true, fp == null ? new Key(row).followingKey(PartialKey.ROW) : new Key(row, fp), false);
   }
   
-  /*
+  /**
    * Returns a Range that covers all column qualifiers beginning with a prefix within a given row and column family
    * 
-   * @param row all keys in the range will have this row
+   * @param row
+   *          all keys in the range will have this row
    * 
-   * @param cf all keys in the range will have this column family
+   * @param cf
+   *          all keys in the range will have this column family
    * 
-   * @param cqPrefix all keys in the range will have column qualifiers that begin with this prefix
+   * @param cqPrefix
+   *          all keys in the range will have column qualifiers that begin with this prefix
    */
   public static Range prefix(Text row, Text cf, Text cqPrefix) {
     Text fp = followingPrefix(cqPrefix);
     return new Range(new Key(row, cf, cqPrefix), true, fp == null ? new Key(row, cf).followingKey(PartialKey.ROW_COLFAM) : new Key(row, cf, fp), false);
   }
   
-  /*
+  /**
    * Returns a Range that covers all column visibilities beginning with a prefix within a given row, column family, and column qualifier
    * 
-   * @param row all keys in the range will have this row
+   * @param row
+   *          all keys in the range will have this row
    * 
-   * @param cf all keys in the range will have this column family
+   * @param cf
+   *          all keys in the range will have this column family
    * 
-   * @param cq all keys in the range will have this column qualifier
+   * @param cq
+   *          all keys in the range will have this column qualifier
    * 
-   * @param cvPrefix all keys in the range will have column visibilities that begin with this prefix
+   * @param cvPrefix
+   *          all keys in the range will have column visibilities that begin with this prefix
    */
   public static Range prefix(Text row, Text cf, Text cq, Text cvPrefix) {
     Text fp = followingPrefix(cvPrefix);
@@ -658,7 +683,7 @@ public class Range implements WritableComparable<Range> {
         fp), false);
   }
   
-  /*
+  /**
    * Creates a range that covers an exact row
    * 
    * @see Range#exact(Text)
@@ -667,7 +692,7 @@ public class Range implements WritableComparable<Range> {
     return Range.exact(new Text(row.toString()));
   }
   
-  /*
+  /**
    * Creates a range that covers an exact row and column family
    * 
    * @see Range#exact(Text, Text)
@@ -676,7 +701,7 @@ public class Range implements WritableComparable<Range> {
     return Range.exact(new Text(row.toString()), new Text(cf.toString()));
   }
   
-  /*
+  /**
    * Creates a range that covers an exact row, column family, and column qualifier
    * 
    * @see Range#exact(Text, Text, Text)
@@ -685,7 +710,7 @@ public class Range implements WritableComparable<Range> {
     return Range.exact(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()));
   }
   
-  /*
+  /**
    * Creates a range that covers an exact row, column family, column qualifier, and visibility
    * 
    * @see Range#exact(Text, Text, Text, Text)
@@ -694,7 +719,7 @@ public class Range implements WritableComparable<Range> {
     return Range.exact(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()), new Text(cv.toString()));
   }
   
-  /*
+  /**
    * Creates a range that covers an exact row, column family, column qualifier, visibility, and timestamp
    * 
    * @see Range#exact(Text, Text, Text, Text, long)
@@ -703,7 +728,7 @@ public class Range implements WritableComparable<Range> {
     return Range.exact(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()), new Text(cv.toString()), ts);
   }
   
-  /*
+  /**
    * Returns a Range that covers all rows beginning with a prefix
    * 
    * @see Range#prefix(Text)
@@ -712,7 +737,7 @@ public class Range implements WritableComparable<Range> {
     return Range.prefix(new Text(rowPrefix.toString()));
   }
   
-  /*
+  /**
    * Returns a Range that covers all column families beginning with a prefix within a given row
    * 
    * @see Range#prefix(Text, Text)
@@ -721,7 +746,7 @@ public class Range implements WritableComparable<Range> {
     return Range.prefix(new Text(row.toString()), new Text(cfPrefix.toString()));
   }
   
-  /*
+  /**
    * Returns a Range that covers all column qualifiers beginning with a prefix within a given row and column family
    * 
    * @see Range#prefix(Text, Text, Text)
@@ -730,7 +755,7 @@ public class Range implements WritableComparable<Range> {
     return Range.prefix(new Text(row.toString()), new Text(cf.toString()), new Text(cqPrefix.toString()));
   }
   
-  /*
+  /**
    * Returns a Range that covers all column visibilities beginning with a prefix within a given row, column family, and column qualifier
    * 
    * @see Range#prefix(Text, Text, Text, Text)

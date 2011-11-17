@@ -22,6 +22,9 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.ColumnVisibility;
 
+/**
+ * A Filter that matches entries with a non-empty ColumnVisibility.
+ */
 public class NoVisFilter extends Filter {
   
   public NoVisFilter() {}

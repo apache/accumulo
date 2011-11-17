@@ -35,6 +35,9 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
 import org.apache.hadoop.io.WritableUtils;
 
+/**
+ * A Combiner that interprets Values as arrays of Longs and returns an array of element-wise sums.
+ */
 public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   @Override
   public List<Long> typedReduce(Key key, Iterator<List<Long>> iter) {

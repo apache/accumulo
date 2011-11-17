@@ -26,6 +26,15 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 
+/**
+ * A SortedKeyValueIterator that filters entries from its source iterator.
+ * 
+ * Subclasses must implement an accept method: public boolean accept(Key k, Value v);
+ * 
+ * Key/Value pairs for which the accept method returns true are said to match the filter. By default, this class iterates over entries that match its filter.
+ * This iterator takes an optional "negate" boolean parameter that defaults to false. If negate is set to true, this class instead omits entries that match its
+ * filter, thus iterating over entries that do not match its filter.
+ */
 public abstract class Filter extends WrappingIterator implements OptionDescriber {
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
@@ -62,6 +71,9 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
     findTop();
   }
   
+  /**
+   * Iterates over the source until an acceptable key/value pair is found.
+   */
   protected void findTop() {
     while (getSource().hasTop() && (negate == accept(getSource().getTopKey(), getSource().getTopValue()))) {
       try {
@@ -72,6 +84,9 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
     }
   }
   
+  /**
+   * @return <tt>true</tt> if the key/value pair is accepted by the filter.
+   */
   public abstract boolean accept(Key k, Value v);
   
   @Override
@@ -96,5 +111,4 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
     }
     return true;
   }
-  
 }

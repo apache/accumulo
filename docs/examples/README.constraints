@@ -22,7 +22,7 @@ numeric keys.  The other constraint does not allow non numeric values. Two
 inserts that violate these constraints are attempted and denied.  The scan at
 the end shows the inserts were not allowed. 
 
-    $ ./bin/accumulo shell -u username -p pass
+    $ ./bin/accumulo shell -u username -p password
     
     Shell - Accumulo Interactive Shell
     - 
@@ -34,7 +34,7 @@ the end shows the inserts were not allowed.
     - 
     username@instance> createtable testConstraints
     username@instance testConstraints> config -t testConstraints -s table.constraint.1=org.apache.accumulo.examples.constraints.NumericValueConstraint
-    username@instance testConstraints> config -t testConstraints -s table.constraint.2=org.apache.accumulo.examples.constraints.AlphaNumKeyConstrain                                                                                                    
+    username@instance testConstraints> config -t testConstraints -s table.constraint.2=org.apache.accumulo.examples.constraints.AlphaNumKeyConstraint
     username@instance testConstraints> insert r1 cf1 cq1 1111
     username@instance testConstraints> insert r1 cf1 cq1 ABC
       Constraint Failures:

@@ -25,6 +25,11 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
+/**
+ * A filter that ages off key/value pairs based on the Key's timestamp. It removes an entry if its timestamp is less than currentTime - threshold.
+ * 
+ * This filter requires a "ttl" option, in milliseconds, to determine the age off threshold.
+ */
 public class AgeOffFilter extends Filter {
   private static final String TTL = "ttl";
   private long threshold;
@@ -32,12 +37,29 @@ public class AgeOffFilter extends Filter {
   
   public AgeOffFilter() {}
   
+  /**
+   * Constructs a filter that omits entries read from a source iterator if the Key's timestamp is less than currentTime - threshold.
+   * 
+   * @param iterator
+   *          The source iterator.
+   * 
+   * @param threshold
+   *          Maximum age in milliseconds of data to keep.
+   * 
+   * @param threshold
+   *          Current time in milliseconds.
+   */
   public AgeOffFilter(SortedKeyValueIterator<Key,Value> iterator, long threshold, long currentTime) {
     super(iterator);
     this.threshold = threshold;
     this.currentTime = currentTime;
   }
   
+  /**
+   * Accepts entries whose timestamps are less than currentTime - threshold.
+   * 
+   * @see org.apache.accumulo.core.iterators.Filter#accept(org.apache.accumulo.core.data.Key, org.apache.accumulo.core.data.Value)
+   */
   @Override
   public boolean accept(Key k, Value v) {
     if (currentTime - k.getTimestamp() > threshold)
