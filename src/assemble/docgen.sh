@@ -15,8 +15,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ ! -z $HADOOP_HOME ]; then
-../../bin/accumulo org.apache.accumulo.core.conf.DefaultConfiguration --generate-doc | grep -v ^STANDALONE > ../../docs/config.html
-else
-echo HADOOP_HOME is not set
-fi
+java -cp ../../lib/accumulo-core-1.5.0-incubating-SNAPSHOT.jar:../../lib/log4j-1.2.16.jar  org.apache.accumulo.core.conf.DefaultConfiguration --generate-doc | grep -v ^STANDALONE > ../../docs/config.html

@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+	license agreements. See the NOTICE file distributed with this work for additional 
+	information regarding copyright ownership. The ASF licenses this file to 
+	You under the Apache License, Version 2.0 (the "License"); you may not use 
+	this file except in compliance with the License. You may obtain a copy of 
+	the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+	by applicable law or agreed to in writing, software distributed under the 
+	License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+	OF ANY KIND, either express or implied. See the License for the specific 
+	language governing permissions and limitations under the License. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<parent>
+		<groupId>org.apache.accumulo</groupId>
+		<artifactId>accumulo</artifactId>
+		<version>1.5.0-incubating-SNAPSHOT</version>
+		<relativePath>../..</relativePath>
+	</parent>
+
+
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>accumulo-assemble</artifactId>
+	<name>accumulo-assemble</name>
+
+	<packaging>pom</packaging>
+
+	<!-- NOTE: These dependency declarations are only required to sort this 
+		project to the end of the line in the multimodule build. Since we only include 
+		the child1 module in our assembly, we only need to ensure this distribution 
+		project builds AFTER that one... -->
+	<dependencies>
+		<dependency>
+			<groupId>org.apache.accumulo</groupId>
+			<artifactId>accumulo-core</artifactId>
+			<version>1.5.0-incubating-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.accumulo</groupId>
+			<artifactId>accumulo-server</artifactId>
+			<version>1.5.0-incubating-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.accumulo</groupId>
+			<artifactId>accumulo-start</artifactId>
+			<version>1.5.0-incubating-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.accumulo</groupId>
+			<artifactId>accumulo-examples</artifactId>
+			<version>1.5.0-incubating-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.accumulo</groupId>
+			<artifactId>cloudtrace</artifactId>
+			<version>1.5.0-incubating-SNAPSHOT</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>user-manual</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<executable>bash</executable>
+							<arguments>
+								<argument>../../docs/src/user_manual/build.sh</argument>
+							</arguments>
+						</configuration>
+					</execution>
+					<execution>
+						<id>config webpage</id>
+						<phase>package</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<executable>bash</executable>
+							<arguments>
+								<argument>docgen.sh</argument>
+							</arguments>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<descriptors>
+						<descriptor>src/assemble/dist.xml</descriptor>
+					</descriptors>
+					<tarLongFileMode>gnu</tarLongFileMode>
+				</configuration>
+				<executions>
+					<execution>
+						<id>distro-assembly</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+	<profiles>
+		<profile>
+			<id>rpm</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>rpm-maven-plugin</artifactId>
+            <version>2.1-alpha-1</version>
+						<inherited>false</inherited>
+						<executions>
+							<execution>
+								<phase>package</phase>
+								<goals>
+									<goal>rpm</goal>
+								</goals>
+							</execution>
+						</executions>
+						<configuration>
+							<name>accumulo</name>
+							<projversion>${project.version}</projversion>
+							<summary>Accumulo BigTable clone</summary>
+							<description>
+								Accumulo is a large distributed structured store based on Google's
+								BigTable design.
+							</description>
+							<copyright>2011 The Apache Software Foundation.</copyright>
+							<url>http://incubator.apache.org/accumulo</url>
+							<needarch>true</needarch>
+							<group>Utilities</group>
+							<requires>
+								<require>jdk</require>
+								<require>hadoop</require>
+								<require>zookeeper</require>
+							</requires>
+							<prefix>/opt/accumulo</prefix>
+							<defaultDirmode>755</defaultDirmode>
+							<defaultFilemode>644</defaultFilemode>
+							<defaultUsername>root</defaultUsername>
+							<defaultGroupname>root</defaultGroupname>
+							<mappings>
+								<mapping>
+									<directory>/opt/accumulo/accumulo-${project.version}</directory>
+									<sources>
+										<source>
+											<location>${project.parent.relativePath}/README</location>
+										</source>
+									</sources>
+								</mapping>
+								<mapping>
+									<directory>/opt/accumulo/accumulo-${project.version}/docs</directory>
+									<sources>
+										<source>
+											<location>${project.parent.relativePath}/docs</location>
+										</source>
+									</sources>
+								</mapping>
+								<mapping>
+									<directory>/opt/accumulo/accumulo-${project.version}/test</directory>
+									<sources>
+										<source>
+											<location>${project.parent.relativePath}/test</location>
+											<excludes>
+												<exclude>${project.parent.relativePath}/**/walkers.txt</exclude>
+												<exclude>${project.parent.relativePath}/**/ingesters.txt</exclude>
+												<exclude>${project.parent.relativePath}/**/continuous-env.sh</exclude>
+												<exclude>${project.parent.relativePath}/**/*.pyc</exclude>
+											</excludes>
+										</source>
+									</sources>
+								</mapping>
+								<mapping>
+									<directory>/opt/accumulo/accumulo-${project.version}/bin</directory>
+								</mapping>
+								<mapping>
+									<directory>/opt/accumulo/accumulo-${project.version}/bin</directory>
+									<directoryIncluded>false</directoryIncluded>
+									<filemode>755</filemode>
+									<username>root</username>
+									<groupname>root</groupname>
+									<sources>
+										<source>
+											<location>${project.parent.relativePath}/bin</location>
+										</source>
+									</sources>
+								</mapping>
+								<mapping>
+									<directory>/opt/accumulo/accumulo-${project.version}/conf</directory>
+									<sources>
+										<source>
+											<location>${project.parent.relativePath}/conf</location>
+											<excludes>
+												<exclude>${project.parent.relativePath}/**/accumulo-site.xml</exclude>
+												<exclude>${project.parent.relativePath}/**/accumulo-env.sh</exclude>
+												<exclude>${project.parent.relativePath}/**/accumulo-metrics.xml</exclude>
+												<exclude>${project.parent.relativePath}/**/test-*</exclude>
+												<exclude>${project.parent.relativePath}/**/slaves</exclude>
+												<exclude>${project.parent.relativePath}/**/masters</exclude>
+												<exclude>${project.parent.relativePath}/**/tracers</exclude>
+												<exclude>${project.parent.relativePath}/**/gc</exclude>
+												<exclude>${project.parent.relativePath}/**/monitor</exclude>
+											</excludes>
+										</source>
+									</sources>
+								</mapping>
+								<mapping>
+									<directory>/opt/accumulo/accumulo-${project.version}/lib</directory>
+									<dependency />
+									<sources>
+										<source>
+											<location>${project.parent.relativePath}/lib</location>
+										</source>
+									</sources>
+								</mapping>
+							</mappings>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+</project>

@@ -34,7 +34,6 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>1.1.1</version>
         <executions>
           <execution>
             <id>generate-core-thrift</id>
@@ -44,16 +43,6 @@
             </goals>
             <configuration>
               <executable>${basedir}/src/main/thrift/thrift.sh</executable>
-            </configuration>
-          </execution>
-          <execution>
-            <id>generate-documentation</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>../../src/assemble/docgen.sh</executable>
             </configuration>
           </execution>
         </executions>
