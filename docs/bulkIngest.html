@@ -39,7 +39,7 @@ using map/reduce, the following high level steps should be taken.
 <ul>
 <li>Construct a <code>org.apache.accumulo.core.client.Connector</core> instance</li>
 <li>Call <code>connector.tableOperations().getSplits()</core></li>
-<li>Run a map/reduce job using <a href='apidocs/Accumulo/core/client/mapreduce/lib/partition/RangePartitioner.html'>RangePartitioner</a> with splits from the previous step</li>
+<li>Run a map/reduce job using <a href='apidocs/org/apache/accumulo/core/client/mapreduce/lib/partition/RangePartitioner.html'>RangePartitioner</a> with splits from the previous step</li>
 <li>Call <code>connector.tableOperations().importDirectory()</code> passing the output directory of the MapReduce job</li>
 </ul> 
 
