@@ -15,7 +15,7 @@ Run "mvn package && mvn assembly:single"
 
 Copy the accumulo tar file produced by "mvn package && mvn assembly:single" from the target/
 directory to the desired destination, then untar it (e.g. 
-tar xvzf accumulo-1.3.5-incubating-SNAPSHOT-dist.tar.gz).
+tar xvzf accumulo-1.3.5-incubating-dist.tar.gz).
 
 If you are using the RPM, install the RPM on every machine that will run
 accumulo.
@@ -32,7 +32,7 @@ found in the same location on every machine in the cluster.  You will need to
 have password-less ssh set up as described in the hadoop documentation. 
 
 You will need to have hadoop installed and configured on your system.
-Accumulo 1.3.5-incubating-SNAPSHOT has been tested with hadoop version 0.20.1 and 0.20.2.
+Accumulo 1.3.5-incubating has been tested with hadoop version 0.20.1 and 0.20.2.
 
 Create a "slaves" file in $ACCUMULO_HOME/conf/.  This is a list of machines
 where tablet servers and loggers will run.
@@ -98,7 +98,7 @@ scanned.
 
     Shell - Accumulo Interactive Shell
     - 
-    - version: 1.3.5-incubating-SNAPSHOT
+    - version: 1.3.5-incubating
     - instance name: acu13
     - instance id: f5947fe6-081e-41a8-9877-43730c4dfc6f
     - 
@@ -119,7 +119,7 @@ certain column.
 
     Shell - Accumulo Interactive Shell
     - 
-    - version: 1.3.5-incubating-SNAPSHOT
+    - version: 1.3.5-incubating
     - instance name: acu13
     - instance id: f5947fe6-081e-41a8-9877-43730c4dfc6f
     - 
