@@ -69,6 +69,7 @@ public class Constants {
   public static final String ZTRACERS = "/tracers";
   
   public static final String ZPROBLEMS = "/problems";
+  public static final String ZUSERS = "/users";
   
   public static final String BULK_ARBITRATOR_TYPE = "bulkTx";
   
