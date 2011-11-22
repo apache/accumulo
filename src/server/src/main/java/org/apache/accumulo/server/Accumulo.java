@@ -36,6 +36,7 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.FSConstants.SafeModeAction;
 import org.apache.log4j.Logger;
@@ -48,6 +49,23 @@ public class Accumulo {
   private static final Logger log = Logger.getLogger(Accumulo.class);
   private static Integer dataVersion = null;
   
+  public static synchronized void updateAccumuloVersion() {
+    Configuration conf = CachedConfiguration.getInstance();
+    try {
+      if (getAccumuloPersistentVersion() == Constants.PREV_DATA_VERSION) {
+        FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
+        
+        fs.create(new Path(ServerConstants.getDataVersionLocation() + "/" + Constants.DATA_VERSION));
+        fs.delete(new Path(ServerConstants.getDataVersionLocation() + "/" + Constants.PREV_DATA_VERSION), false);
+        
+        dataVersion = null;
+      }
+    } catch (IOException e) {
+      throw new RuntimeException("Unable to set accumulo version: an error occurred.", e);
+    }
+    
+  }
+
   public static synchronized int getAccumuloPersistentVersion() {
     if (dataVersion != null)
       return dataVersion;
@@ -113,7 +131,7 @@ public class Accumulo {
     
     int dataVersion = Accumulo.getAccumuloPersistentVersion();
     Version codeVersion = new Version(Constants.VERSION);
-    if (dataVersion != Constants.DATA_VERSION) {
+    if (dataVersion != Constants.DATA_VERSION && dataVersion != Constants.PREV_DATA_VERSION) {
       throw new RuntimeException("This version of accumulo (" + codeVersion + ") is not compatible with files stored using data version " + dataVersion);
     }
     

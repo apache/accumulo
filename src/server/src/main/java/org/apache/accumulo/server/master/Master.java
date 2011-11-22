@@ -35,6 +35,7 @@ import java.util.SortedMap;
 import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
@@ -52,7 +53,6 @@ import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -143,7 +143,6 @@ import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.accumulo.server.util.DefaultMap;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MetadataTable;
-import org.apache.accumulo.server.util.OfflineMetadataScanner;
 import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TablePropUtil;
@@ -156,6 +155,7 @@ import org.apache.accumulo.server.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -308,62 +308,85 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       }, 100l, 1000l);
     }
     
-    if (oldState != newState && (newState == MasterState.SAFE_MODE || newState == MasterState.NORMAL)) {
-      upgradeSettings();
+    if (oldState != newState && (newState == MasterState.HAVE_LOCK)) {
+      upgradeZookeeper();
+    }
+    
+    if (oldState != newState && (newState == MasterState.NORMAL)) {
+      upgradeMetadata();
     }
   }
   
-  private void upgradeSettings() {
-    AccumuloConfiguration conf = ServerConfiguration.getTableConfiguration(Constants.METADATA_TABLE_ID);
-    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    if (!conf.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED)) {
+  private void upgradeZookeeper() {
+    if (Accumulo.getAccumuloPersistentVersion() == Constants.PREV_DATA_VERSION) {
+      // TODO check if tablets are loaded, if so abort?
+      
       try {
-        // make sure the last shutdown was clean
-        OfflineMetadataScanner scanner = new OfflineMetadataScanner();
-        scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
-        boolean fail = false;
-        for (Entry<Key,Value> entry : scanner) {
-          log.error(String.format("Unable to upgrade: extent %s has log entry %s", entry.getKey().getRow(), entry.getValue()));
-          fail = true;
-        }
-        if (fail)
-          throw new Exception("Upgrade requires a clean shutdown");
+        // TODO compare zookeeper dump of 1.3 and 1.4 zookeeper init to make sure no more zookeeper updates are needed
+        // TODO need to update ACL in zookeeper
+        log.info("Upgrading zookeeper");
+
+        IZooReaderWriter zoo = ZooReaderWriter.getInstance();
         
-        // perform 1.2 -> 1.3 settings
-        zset(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
-            String.format("%s,%s", Constants.METADATA_TABLET_COLUMN_FAMILY.toString(), Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY.toString()));
-        zset(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server", String.format("%s,%s,%s,%s", Constants.METADATA_DATAFILE_COLUMN_FAMILY.toString(),
-            Constants.METADATA_LOG_COLUMN_FAMILY.toString(), Constants.METADATA_SERVER_COLUMN_FAMILY.toString(),
-            Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY.toString()));
-        zset(Property.TABLE_LOCALITY_GROUPS.getKey(), "tablet,server");
-        zset(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
-        zset(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
-        zset(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
-        for (String id : Tables.getIdToNameMap(instance).keySet())
-          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + "/state", "ONLINE".getBytes(), NodeExistsPolicy.OVERWRITE);
+        zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, new byte[0], NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS, new byte[0], NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZNEXT_FILE, new byte[] {'0'}, NodeExistsPolicy.SKIP);
+
+        for (String id : Tables.getIdToNameMap(instance).keySet()) {
+          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_FLUSH_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
+          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
+        }
       } catch (Exception ex) {
         log.fatal("Error performing upgrade", ex);
         System.exit(1);
       }
-      
     }
-    String zkInstanceRoot = ZooUtil.getRoot(instance);
-    try {
-      if (!zoo.exists(zkInstanceRoot + Constants.ZTABLE_LOCKS)) {
-        zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLE_LOCKS, new byte[0], NodeExistsPolicy.FAIL);
-        zoo.putPersistentData(zkInstanceRoot + Constants.ZHDFS_RESERVATIONS, new byte[0], NodeExistsPolicy.FAIL);
+  }
+  
+  private AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
+
+  private void upgradeMetadata() {
+    if (Accumulo.getAccumuloPersistentVersion() == Constants.PREV_DATA_VERSION) {
+      if (upgradeMetadataRunning.compareAndSet(false, true)) {
+        Runnable upgradeTask = new Runnable() {
+          @Override
+          public void run() {
+            try {
+              // add delete entries to metadata table for bulk dirs
+              
+              log.info("Adding bulk dir delete entries to !METADATA table for upgrade");
+
+              BatchWriter bw = getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 4);
+              
+              FileStatus[] tables = fs.globStatus(new Path(Constants.getTablesDir(ServerConfiguration.getSystemConfiguration()) + "/*"));
+              for (FileStatus tableDir : tables) {
+                FileStatus[] bulkDirs = fs.globStatus(new Path(tableDir.getPath() + "/bulk_*"));
+                for (FileStatus bulkDir : bulkDirs) {
+                  bw.addMutation(MetadataTable.createDeleteMutation(tableDir.getPath().getName(), "/" + bulkDir.getPath().getName()));
+                }
+              }
+              
+              bw.close();
+              
+              Accumulo.updateAccumuloVersion();
+              
+              log.info("Upgrade complete");
+
+            } catch (Exception ex) {
+              log.fatal("Error performing upgrade", ex);
+              System.exit(1);
+            }
+            
+          }
+        };
+        
+        // need to run this in a separate thread because a lock is held that prevents !METADATA tablets from being assigned and this task writes to the
+        // !METADATA table
+        new Thread(upgradeTask).start();
       }
-    } catch (Exception ex) {
-      log.fatal("Error performing upgrade", ex);
-      System.exit(1);
     }
-    
   }
-  
-  private static void zset(String property, String value) throws KeeperException, InterruptedException {
-    TablePropUtil.setTableProperty(Constants.METADATA_TABLE_ID, property, value);
-  }
-  
+
   private int assignedOrHosted(Text tableId) {
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
