@@ -23,9 +23,11 @@ import junit.framework.TestCase;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.filter.ColumnQualifierFilter;
 import org.apache.hadoop.io.Text;
 
+/**
+ * @deprecated since 1.4
+ */
 public class ColumnFilterTest extends TestCase {
   
   Key nk(String row, String cf, String cq) {

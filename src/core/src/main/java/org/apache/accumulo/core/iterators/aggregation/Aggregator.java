@@ -18,6 +18,10 @@ package org.apache.accumulo.core.iterators.aggregation;
 
 import org.apache.accumulo.core.data.Value;
 
+/**
+ * @deprecated since 1.4
+ * @use org.apache.accumulo.core.iterators.Combiner
+ */
 public interface Aggregator {
   void reset();
   

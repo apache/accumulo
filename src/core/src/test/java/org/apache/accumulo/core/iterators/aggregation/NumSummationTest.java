@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.core.iterators.aggregation;
 
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.aggregation.NumArraySummation;
-import org.apache.accumulo.core.iterators.aggregation.NumSummation;
-
 import junit.framework.TestCase;
 
+import org.apache.accumulo.core.data.Value;
+
+/**
+ * @deprecated since 1.4
+ */
 public class NumSummationTest extends TestCase {
   public byte[] init(int n) {
     byte[] b = new byte[n];

@@ -32,8 +32,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TableOperationsHelper;
-import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
@@ -189,6 +187,9 @@ public class TableOperationsHelperTest {
       Assert.assertEquals(expected, settings.get(tablename));
     }
     
+    /**
+     * @deprecated since 1.4 {@link #attachIterator(String, IteratorSetting)}
+     */
     @Override
     public void addAggregators(String tableName, List<? extends PerColumnIteratorConfig> aggregators) throws AccumuloSecurityException, TableNotFoundException,
         AccumuloException {}

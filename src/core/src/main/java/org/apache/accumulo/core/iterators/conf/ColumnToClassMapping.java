@@ -23,10 +23,10 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iterators.conf.ColumnUtil.ColFamHashKey;
 import org.apache.accumulo.core.iterators.conf.ColumnUtil.ColHashKey;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.io.Text;
 
-@SuppressWarnings("deprecation")
 public class ColumnToClassMapping<K> {
   
   private HashMap<ColFamHashKey,K> objectsCF;
@@ -48,14 +48,14 @@ public class ColumnToClassMapping<K> {
       String column = entry.getKey();
       String className = entry.getValue();
       
-      PerColumnIteratorConfig pcic = PerColumnIteratorConfig.decodeColumns(column, className);
+      Pair<Text,Text> pcic = ColumnSet.decodeColumns(column);
       
       Class<? extends K> clazz = AccumuloClassLoader.loadClass(className, c);
       
-      if (pcic.getColumnQualifier() == null) {
-        addObject(pcic.getColumnFamily(), clazz.newInstance());
+      if (pcic.getSecond() == null) {
+        addObject(pcic.getFirst(), clazz.newInstance());
       } else {
-        addObject(pcic.getColumnFamily(), pcic.getColumnQualifier(), clazz.newInstance());
+        addObject(pcic.getFirst(), pcic.getSecond(), clazz.newInstance());
       }
     }
   }

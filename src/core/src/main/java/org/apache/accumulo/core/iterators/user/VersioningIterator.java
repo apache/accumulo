@@ -32,7 +32,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
 
 public class VersioningIterator extends WrappingIterator implements OptionDescriber {
   

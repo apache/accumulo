@@ -25,6 +25,10 @@ import java.io.IOException;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.WritableUtils;
 
+/**
+ * @deprecated since 1.4
+ * @use org.apache.accumulo.core.iterators.user.SummingArrayCombiner with SummingArrayCombiner.Type.VARNUM
+ */
 public class NumArraySummation implements Aggregator {
   long[] sum = new long[0];
   

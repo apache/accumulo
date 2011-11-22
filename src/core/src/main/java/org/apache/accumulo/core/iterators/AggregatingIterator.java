@@ -35,8 +35,8 @@ import org.apache.log4j.Logger;
 /**
  * This iterator wraps another iterator. It automatically aggregates.
  * 
- * 
- * 
+ * @deprecated since 1.4
+ * @use org.apache.accumulo.core.iterators.Combiner
  */
 
 public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
