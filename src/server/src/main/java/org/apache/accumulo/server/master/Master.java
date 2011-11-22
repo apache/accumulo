@@ -167,6 +167,8 @@ import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.ZooDefs;
+import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 import cloudtrace.instrument.thrift.TraceWrap;
@@ -317,13 +319,13 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     }
   }
   
+
   private void upgradeZookeeper() {
     if (Accumulo.getAccumuloPersistentVersion() == Constants.PREV_DATA_VERSION) {
       // TODO check if tablets are loaded, if so abort?
       
       try {
         // TODO compare zookeeper dump of 1.3 and 1.4 zookeeper init to make sure no more zookeeper updates are needed
-        // TODO need to update ACL in zookeeper
         log.info("Upgrading zookeeper");
 
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
@@ -336,6 +338,9 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_FLUSH_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
           zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
         }
+        
+        setACLs(zoo, ZooUtil.getRoot(instance), ZooUtil.getRoot(instance) + Constants.ZUSERS);
+
       } catch (Exception ex) {
         log.fatal("Error performing upgrade", ex);
         System.exit(1);
@@ -343,6 +348,21 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     }
   }
   
+  private void setACLs(IZooReaderWriter zoo, String root, String users) throws Exception {
+    Stat stat = new Stat();
+    List<ACL> acls = zoo.getZooKeeper().getACL(root, stat);
+    if (acls.equals(ZooDefs.Ids.OPEN_ACL_UNSAFE)) {
+      if (root.startsWith(users)) {
+        zoo.getZooKeeper().setACL(root, ZooUtil.PRIVATE, -1);
+      } else {
+        zoo.getZooKeeper().setACL(root, ZooUtil.PUBLIC, -1);
+      }
+      for (String child : zoo.getChildren(root)) {
+        setACLs(zoo, root + "/" + child, users);
+      }
+    }
+  }
+
   private AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
 
   private void upgradeMetadata() {
