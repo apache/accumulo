@@ -525,7 +525,6 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   
   public static Mutation createDeleteMutation(String tableId, String pathToRemove) {
     Mutation delFlag;
-    ;
     if (pathToRemove.startsWith("../"))
       delFlag = new Mutation(new Text(Constants.METADATA_DELETE_FLAG_PREFIX + pathToRemove.substring(2)));
     else
