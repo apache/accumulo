@@ -30,6 +30,7 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.FindMax;
@@ -83,6 +84,9 @@ public class MockTableOperations extends TableOperationsHelper {
     acu.createTable(username, tableName, versioningIter, timeType);
   }
   
+  /**
+   * @deprecated since 1.4 {@link #attachIterator(String, IteratorSetting)}
+   */
   @Override
   public void addAggregators(String tableName, List<? extends PerColumnIteratorConfig> aggregators) throws AccumuloSecurityException, TableNotFoundException,
       AccumuloException {

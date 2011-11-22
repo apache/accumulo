@@ -21,6 +21,10 @@ import java.io.IOException;
 import org.apache.accumulo.core.data.Value;
 import org.apache.log4j.Logger;
 
+/**
+ * @deprecated since 1.4
+ * @use org.apache.accumulo.core.iterators.user.SummingCombiner with SummingCombiner.Type.LONG
+ */
 public class LongSummation implements Aggregator {
   private static final Logger log = Logger.getLogger(LongSummation.class);
   long sum = 0;

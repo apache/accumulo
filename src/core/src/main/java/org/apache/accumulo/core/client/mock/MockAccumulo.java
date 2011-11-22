@@ -59,6 +59,9 @@ public class MockAccumulo {
     return new MockBatchScanner(tables.get(tableName), authorizations);
   }
   
+  /**
+   * @deprecated since 1.4
+   */
   public void addAggregators(String tableName, List<? extends PerColumnIteratorConfig> aggregators) {
     tables.get(tableName).addAggregators(aggregators);
   }

@@ -19,8 +19,8 @@ package org.apache.accumulo.core.iterators;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import junit.framework.TestCase;
 
@@ -28,20 +28,20 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.aggregation.LongSummation;
+import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.hadoop.io.Text;
 
 public class VersioningIteratorTest extends TestCase {
   // add test for seek function
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Encoder<Long> encoder = new LongCombiner.LongEncoder();
   
   void createTestData(TreeMap<Key,Value> tm, Text colf, Text colq) {
     for (int i = 0; i < 2; i++) {
       for (long j = 0; j < 20; j++) {
         Key k = new Key(new Text(String.format("%03d", i)), colf, colq, j);
-        tm.put(k, new Value(LongSummation.longToBytes(j)));
+        tm.put(k, new Value(encoder.encode(j)));
       }
     }
     
@@ -74,7 +74,7 @@ public class VersioningIteratorTest extends TestCase {
       
       for (Entry<Key,Value> e : tmOut.entrySet()) {
         assertTrue(e.getValue().get().length == 8);
-        assertTrue(16 < LongSummation.bytesToLong(e.getValue().get()));
+        assertTrue(16 < encoder.decode(e.getValue().get()));
       }
       assertTrue("size after keeping 3 versions was " + tmOut.size(), tmOut.size() == 6);
     } catch (IOException e) {
@@ -106,7 +106,7 @@ public class VersioningIteratorTest extends TestCase {
       
       for (Entry<Key,Value> e : tmOut.entrySet()) {
         assertTrue(e.getValue().get().length == 8);
-        assertTrue(16 < LongSummation.bytesToLong(e.getValue().get()));
+        assertTrue(16 < encoder.decode(e.getValue().get()));
       }
       assertTrue("size after keeping 2 versions was " + tmOut.size(), tmOut.size() == 2);
     } catch (IOException e) {
@@ -136,7 +136,7 @@ public class VersioningIteratorTest extends TestCase {
       
       for (Entry<Key,Value> e : tmOut.entrySet()) {
         assertTrue(e.getValue().get().length == 8);
-        assertTrue(16 < LongSummation.bytesToLong(e.getValue().get()));
+        assertTrue(16 < encoder.decode(e.getValue().get()));
       }
       
       assertTrue("size after seeking past versions was " + tmOut.size(), tmOut.size() == 0);
@@ -149,7 +149,7 @@ public class VersioningIteratorTest extends TestCase {
       
       for (Entry<Key,Value> e : tmOut.entrySet()) {
         assertTrue(e.getValue().get().length == 8);
-        assertTrue(16 < LongSummation.bytesToLong(e.getValue().get()));
+        assertTrue(16 < encoder.decode(e.getValue().get()));
       }
       
       assertTrue("size after seeking past versions was " + tmOut.size(), tmOut.size() == 3);
