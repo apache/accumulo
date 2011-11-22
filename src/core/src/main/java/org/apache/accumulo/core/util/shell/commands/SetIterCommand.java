@@ -120,7 +120,7 @@ public class SetIterCommand extends Command {
     shellState.getConnector().tableOperations().attachIterator(tableName, setting);
   }
   
-  private static String setUpOptions(ConsoleReader reader, String className, Map<String,String> options) throws IOException {
+  private static String setUpOptions(ConsoleReader reader, String className, Map<String,String> options) throws IOException, ShellCommandException {
     String input;
     OptionDescriber skvi;
     Class<? extends OptionDescriber> clazz;
@@ -133,6 +133,9 @@ public class SetIterCommand extends Command {
       throw new IllegalArgumentException(e.getMessage());
     } catch (IllegalAccessException e) {
       throw new IllegalArgumentException(e.getMessage());
+    } catch (ClassCastException e) {
+      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Unable to load " + className + " as type " + OptionDescriber.class.getName()
+          + "; configure with 'config' instead");
     }
     
     IteratorOptions itopts = skvi.describeOptions();
