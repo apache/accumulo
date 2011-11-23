@@ -351,13 +351,10 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   private void setACLs(IZooReaderWriter zoo, String root, String users) throws Exception {
     Stat stat = new Stat();
     List<ACL> acls = zoo.getZooKeeper().getACL(root, stat);
-    log.debug("Got acl " + acls + " for " + root);
     if (acls.equals(ZooDefs.Ids.OPEN_ACL_UNSAFE)) {
       if (root.startsWith(users)) {
-        log.debug("Setting " + root + " to private");
         zoo.getZooKeeper().setACL(root, ZooUtil.PRIVATE, -1);
       } else {
-        log.debug("Setting " + root + " to public");
         zoo.getZooKeeper().setACL(root, ZooUtil.PUBLIC, -1);
       }
       for (String child : zoo.getChildren(root)) {
