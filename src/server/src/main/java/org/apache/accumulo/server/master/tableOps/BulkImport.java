@@ -371,7 +371,8 @@ class LoadFiles extends MasterRepo {
   @Override
   public Repo<Master> call(final long tid, Master master) throws Exception {
     
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
+    FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.FileUtil.getFileSystem(CachedConfiguration.getInstance(),
+        ServerConfiguration.getSiteConfiguration()));
     List<FileStatus> files = new ArrayList<FileStatus>();
     for (FileStatus entry : fs.listStatus(new Path(bulk))) {
       files.add(entry);
