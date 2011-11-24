@@ -114,6 +114,7 @@ public class FamilyIntersectingIteratorTest extends TestCase {
             sb.append(cf);
           }
         }
+        sb.append(" docID=").append(doc);
         Key k = new Key(row, docColf, new Text(String.format("%010d", docid).getBytes()));
         map.put(k, new Value(sb.toString().getBytes()));
       }
@@ -183,9 +184,13 @@ public class FamilyIntersectingIteratorTest extends TestCase {
     while (iter.hasTop()) {
       hitCount++;
       Key k = iter.getTopKey();
+      Value v = iter.getTopValue();
       // System.out.println(k.toString());
       // System.out.println(iter.getDocID(k));
+      
       assertTrue(docs.contains(iter.getDocID(k)));
+      assertTrue(new String(v.get()).endsWith(" docID="+iter.getDocID(k)));
+      
       iter.next();
     }
     assertEquals(hitCount, docs.size());
@@ -215,7 +220,9 @@ public class FamilyIntersectingIteratorTest extends TestCase {
     while (iter.hasTop()) {
       hitCount++;
       Key k = iter.getTopKey();
+      Value v = iter.getTopValue();
       assertTrue(docs.contains(iter.getDocID(k)));
+      assertTrue(new String(v.get()).endsWith(" docID="+iter.getDocID(k)));
       iter.next();
     }
     assertEquals(hitCount, docs.size());
@@ -253,7 +260,9 @@ public class FamilyIntersectingIteratorTest extends TestCase {
     while (iter.hasTop()) {
       hitCount++;
       Key k = iter.getTopKey();
+      Value v = iter.getTopValue();
       assertTrue(docs.contains(iter.getDocID(k)));
+      assertTrue(new String(v.get()).endsWith(" docID="+iter.getDocID(k)));
       iter.next();
     }
     assertEquals(hitCount, docs.size());
