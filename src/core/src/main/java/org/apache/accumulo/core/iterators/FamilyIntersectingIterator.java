@@ -151,7 +151,7 @@ public class FamilyIntersectingIterator extends IntersectingIterator {
     if (log.isTraceEnabled())
       log.trace(zeroIndex + " " + currentDocID.getLength());
     Text colq = new Text();
-    colq.set(currentDocID.getBytes(), zeroIndex + 1, currentDocID.getLength() - zeroIndex - 2);
+    colq.set(currentDocID.getBytes(), zeroIndex + 1, currentDocID.getLength() - zeroIndex - 1);
     Key k = new Key(currentPartition, colf, colq);
     if (log.isTraceEnabled())
       log.trace("built doc key for seek: " + k.toString());
