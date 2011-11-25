@@ -38,6 +38,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.aggregation.conf.AggregatorConfiguration;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -72,6 +73,16 @@ public class MockConnectorTest {
       count++;
     }
     assertEquals(100, count);
+  }
+  
+  @Test
+  public void testChangeAuths() throws Exception {
+    Connector c = new MockConnector("root");
+    c.securityOperations().createUser("greg", new byte[] {}, new Authorizations("A", "B", "C"));
+    assertTrue(c.securityOperations().getUserAuthorizations("greg").contains("A".getBytes()));
+    c.securityOperations().changeUserAuthorizations("greg", new Authorizations("X", "Y", "Z"));
+    assertTrue(c.securityOperations().getUserAuthorizations("greg").contains("X".getBytes()));
+    assertFalse(c.securityOperations().getUserAuthorizations("greg").contains("A".getBytes()));
   }
   
   @Test
