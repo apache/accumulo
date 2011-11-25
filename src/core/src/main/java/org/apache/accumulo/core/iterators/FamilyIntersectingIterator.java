@@ -51,6 +51,7 @@ public class FamilyIntersectingIterator extends IntersectingIterator {
     Text colq = new Text(term);
     colq.append(nullByte, 0, 1);
     colq.append(docID.getBytes(), 0, docID.getLength());
+    colq.append(nullByte, 0, 1);
     return new Key(partition, indexColf, colq);
   }
   
@@ -77,7 +78,7 @@ public class FamilyIntersectingIterator extends IntersectingIterator {
     }
     Text docID = new Text();
     try {
-      docID.set(colq.getBytes(), firstZeroIndex + 1, thirdZeroIndex - 1);
+      docID.set(colq.getBytes(), firstZeroIndex + 1, thirdZeroIndex - 1 - firstZeroIndex);
     } catch (ArrayIndexOutOfBoundsException e) {
       throw new IllegalArgumentException("bad indices for docid: " + key.toString() + " " + firstZeroIndex + " " + secondZeroIndex + " " + thirdZeroIndex);
     }
