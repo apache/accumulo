@@ -24,46 +24,54 @@
 		<fileSet>
 			<directory>../../logs</directory>
 			<directoryMode>0700</directoryMode>
+      <excludes>
+        <exclude>*</exclude>
+      </excludes>
 		</fileSet>
 		<fileSet>
 			<directory>../../walogs</directory>
 			<directoryMode>0700</directoryMode>
+      <excludes>
+        <exclude>*</exclude>
+      </excludes>
 		</fileSet>
+    <fileSet>
+      <directory>../../</directory>
+      <includes>
+        <include>*</include>
+        <include>**/*.py</include>
+        <include>**/*.pl</include>
+        <include>**/*.sh</include>
+      </includes>
+      <excludes>
+        <exclude>**/target</exclude>
+        <exclude>**/accumulo-env.sh</exclude>
+        <exclude>**/continuous-env.sh</exclude>
+        <exclude>**bin/**</exclude>
+        <exclude>**logs/**</exclude>
+        <exclude>**walogs/**</exclude>
+        <exclude>**.*</exclude>
+      </excludes>
+    </fileSet>
 		<fileSet>
-			<directory>../../</directory>
-			<includes>
-				<include>**/*.py</include>
-				<include>**/*.pl</include>
-				<include>**/*.sh</include>
-			</includes>
-			<excludes>
-				<exclude>**/target*/**</exclude>
-				<exclude>**/accumulo-env.sh</exclude>
-				<exclude>**/continuous-env.sh</exclude>
-        <exclude>../../bin/**</exclude>
-        <exclude>../../logs/**</exclude>
-        <exclude>../../walogs/**</exclude>
-			</excludes>
-			<fileMode>0755</fileMode>
-		</fileSet>
-		<fileSet>
-			<useDefaultExcludes>true</useDefaultExcludes>
 			<directory>../../</directory>
 			<excludes>
 				<!-- the following ignored because they were included above -->
-				<exclude>**/bin/**</exclude>
-				<exclude>**/*.sh</exclude>
-				<exclude>**/*.py</exclude>
-				<exclude>**/*.pl</exclude>
+        <exclude>*</exclude>
+        <exclude>**/*.py</exclude>
+        <exclude>**/*.pl</exclude>
+        <exclude>**/*.sh</exclude>
+        <exclude>walogs</exclude>
+        <exclude>logs</exclude>
+        <exclude>bin</exclude>
 
-				<!-- the following directories ignored because they should not be in 
-					the tarball -->
+				<!-- the following directories ignored because they should not be in the tarball -->
 				<exclude>**/.*/**</exclude>
-				<exclude>**/logs/**</exclude>
-				<exclude>**/walogs/**</exclude>
-				<exclude>**/target*/**</exclude>
+        <exclude>**/target</exclude>
 
 				<!-- the following files ignored because they should not be in the tarball -->
+        <exclude>**/accumulo-env.sh</exclude>
+        <exclude>**/continuous-env.sh</exclude>
 				<exclude>**/.*</exclude>
 				<exclude>**/accumulo-site.xml</exclude>
 				<exclude>**/accumulo-env.sh</exclude>
