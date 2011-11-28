@@ -38,8 +38,6 @@
     <fileSet>
       <directory>../../</directory>
       <includes>
-        <include>*</include>
-        <include>pom.xml</include>
         <include>**/*.py</include>
         <include>**/*.pl</include>
         <include>**/*.sh</include>
@@ -58,7 +56,6 @@
 			<directory>../../</directory>
 			<excludes>
 				<!-- the following ignored because they were included above -->
-        <exclude>*</exclude>
         <exclude>**/*.py</exclude>
         <exclude>**/*.pl</exclude>
         <exclude>**/*.sh</exclude>
@@ -71,11 +68,8 @@
         <exclude>**/target/**</exclude>
 
 				<!-- the following files ignored because they should not be in the tarball -->
-        <exclude>**/accumulo-env.sh</exclude>
-        <exclude>**/continuous-env.sh</exclude>
 				<exclude>**/.*</exclude>
 				<exclude>**/accumulo-site.xml</exclude>
-				<exclude>**/accumulo-env.sh</exclude>
 				<exclude>**/accumulo-metrics.xml</exclude>
 				<exclude>**/test-*</exclude>
 				<exclude>**/slaves</exclude>
@@ -85,7 +79,6 @@
 				<exclude>**/gc</exclude>
 				<exclude>**/walkers.txt</exclude>
 				<exclude>**/ingesters.txt</exclude>
-				<exclude>**/continuous-env.sh</exclude>
 				<exclude>**/*.pyc</exclude>
 				<exclude>**/randomwalk/conf/logger.xml</exclude>
 				<exclude>**/randomwalk/conf/randomwalk.conf</exclude>
