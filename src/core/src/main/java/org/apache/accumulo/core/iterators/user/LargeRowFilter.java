@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -48,7 +49,7 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[] {});
   
   /* key into hash map, value refers to the row supression limit (maxColumns) */
-  public static final String MAX_COLUMNS = "max_columns";
+  private static final String MAX_COLUMNS = "max_columns";
   
   private SortedKeyValueIterator<Key,Value> source;
   
@@ -275,4 +276,15 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
     return true;
   }
   
+  /**
+   * A convenience method for setting the maximum number of columns to keep.
+   * 
+   * @param is
+   *          IteratorSetting object to configure.
+   * @param maxColumns
+   *          number of columns to keep.
+   */
+  public static void setMaxColumns(IteratorSetting is, int maxColumns) {
+    is.addOption(MAX_COLUMNS, Integer.toString(maxColumns));
+  }
 }

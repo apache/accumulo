@@ -14,26 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.iterators;
+package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeMap;
 
+import junit.framework.TestCase;
+
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.RowDeletingIteratorTest;
+import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
-import org.apache.accumulo.core.iterators.user.LargeRowFilter;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-
-import junit.framework.TestCase;
 
 public class LargeRowFilterTest extends TestCase {
   
@@ -60,9 +60,9 @@ public class LargeRowFilterTest extends TestCase {
   private LargeRowFilter setupIterator(TreeMap<Key,Value> testData, int maxColumns, IteratorScope scope) throws IOException {
     SortedMapIterator smi = new SortedMapIterator(testData);
     LargeRowFilter lrfi = new LargeRowFilter();
-    HashMap<String,String> options = new HashMap<String,String>();
-    options.put(LargeRowFilter.MAX_COLUMNS, "" + maxColumns);
-    lrfi.init(new ColumnFamilySkippingIterator(smi), options, new RowDeletingIteratorTest.TestIE(scope, false));
+    IteratorSetting is = new IteratorSetting(1, LargeRowFilter.class);
+    LargeRowFilter.setMaxColumns(is, maxColumns);
+    lrfi.init(new ColumnFamilySkippingIterator(smi), is.getProperties(), new RowDeletingIteratorTest.TestIE(scope, false));
     return lrfi;
   }
   

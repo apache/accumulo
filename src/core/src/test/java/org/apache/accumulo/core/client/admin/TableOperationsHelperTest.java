@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.admin;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -198,36 +199,47 @@ public class TableOperationsHelperTest {
   public void testAttachIterator() throws Exception {
     Tester t = new Tester();
     Map<String,String> empty = Collections.emptyMap();
-    t.attachIterator("table", new IteratorSetting(10, "someName", "foo.bar", IteratorScope.scan, empty));
+    t.attachIterator("table", new IteratorSetting(10, "someName", "foo.bar", EnumSet.of(IteratorScope.scan), empty));
     t.check("table", new String[] {"table.iterator.scan.someName=10,foo.bar",});
-    t.removeIterator("table", "someName");
+    t.removeIterator("table", "someName", EnumSet.of(IteratorScope.scan));
     t.check("table", new String[] {});
+
     IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
-    setting.addOptions(IteratorScope.majc, Collections.singletonMap("key", "value"));
-    setting.addOptions(IteratorScope.scan, empty);
+    setting.setScopes(EnumSet.of(IteratorScope.majc));
+    setting.addOptions(Collections.singletonMap("key", "value"));
+    t.attachIterator("table", setting);
+    setting = new IteratorSetting(10, "someName", "foo.bar");
     t.attachIterator("table", setting);
     t.check("table", new String[] {"table.iterator.majc.someName=10,foo.bar", "table.iterator.majc.someName.opt.key=value",
         "table.iterator.scan.someName=10,foo.bar",});
+
     setting = new IteratorSetting(20, "otherName", "some.classname");
-    setting.addOptions(IteratorScope.majc, Collections.singletonMap("key", "value"));
-    setting.addOptions(IteratorScope.scan, empty);
+    setting.setScopes(EnumSet.of(IteratorScope.majc));
+    setting.addOptions(Collections.singletonMap("key", "value"));
     t.attachIterator("table", setting);
-    Set<String> two = t.getIterators("table");
+    setting = new IteratorSetting(20, "otherName", "some.classname");
+    t.attachIterator("table", setting);
+    Set<String> two = t.listIterators("table");
     Assert.assertEquals(2, two.size());
     Assert.assertTrue(two.contains("otherName"));
     Assert.assertTrue(two.contains("someName"));
-    t.removeIterator("table", "someName");
+    t.removeIterator("table", "someName", EnumSet.allOf(IteratorScope.class));
     t.check("table", new String[] {"table.iterator.majc.otherName=20,some.classname", "table.iterator.majc.otherName.opt.key=value",
         "table.iterator.scan.otherName=20,some.classname",});
-    setting = t.getIterator("table", "otherName");
+
+    setting = t.getIteratorSetting("table", "otherName", IteratorScope.scan);
     Assert.assertEquals(20, setting.getPriority());
     Assert.assertEquals("some.classname", setting.getIteratorClass());
-    Assert.assertEquals(0, setting.getOptionsByScope().get(IteratorScope.scan).size());
-    Assert.assertEquals(Collections.singletonMap("key", "value"), setting.getOptionsByScope().get(IteratorScope.majc));
-    setting.addOptions(IteratorScope.minc, Collections.singletonMap("a", "b"));
-    t.attachIterator("foo", setting);
-    t.check("foo", new String[] {"table.iterator.majc.otherName=20,some.classname", "table.iterator.majc.otherName.opt.key=value",
-        "table.iterator.minc.otherName=20,some.classname", "table.iterator.minc.otherName.opt.a=b", "table.iterator.scan.otherName=20,some.classname",});
+    Assert.assertFalse(setting.hasProperties());
+    setting = t.getIteratorSetting("table", "otherName", IteratorScope.majc);
+    Assert.assertEquals(20, setting.getPriority());
+    Assert.assertEquals("some.classname", setting.getIteratorClass());
+    Assert.assertTrue(setting.hasProperties());
+    Assert.assertEquals(Collections.singletonMap("key", "value"), setting.getProperties());
+    setting.setScopes(EnumSet.of(IteratorScope.minc));
+    t.attachIterator("table", setting);
+    t.check("table", new String[] {"table.iterator.majc.otherName=20,some.classname", "table.iterator.majc.otherName.opt.key=value",
+        "table.iterator.minc.otherName=20,some.classname", "table.iterator.minc.otherName.opt.key=value", "table.iterator.scan.otherName=20,some.classname",});
   }
   
 }

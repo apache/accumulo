@@ -20,13 +20,16 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.conf.ColumnSet;
 import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
-import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
+import org.apache.accumulo.core.util.Pair;
+import org.apache.hadoop.io.Text;
 
 /**
  * A filter that ages off key/value pairs based on the Key's column and timestamp. It removes an entry if its timestamp is less than currentTime - threshold.
@@ -36,8 +39,8 @@ public class ColumnAgeOffFilter extends Filter {
   
   public ColumnAgeOffFilter() {}
   
-  public ColumnAgeOffFilter(SortedKeyValueIterator<Key,Value> iterator, TTLSet ttls, long currentTime) {
-    super(iterator);
+  private ColumnAgeOffFilter(SortedKeyValueIterator<Key,Value> iterator, TTLSet ttls, long currentTime) {
+    setSource(iterator);
     this.ttls = ttls;
     this.currentTime = currentTime;
   }
@@ -51,12 +54,12 @@ public class ColumnAgeOffFilter extends Filter {
         String ttl = entry.getValue();
         Long l = Long.parseLong(ttl);
         
-        PerColumnIteratorConfig ac = PerColumnIteratorConfig.decodeColumns(column, ttl);
+        Pair<Text,Text> colPair = ColumnSet.decodeColumns(column);
         
-        if (ac.getColumnQualifier() == null) {
-          addObject(ac.getColumnFamily(), l);
+        if (colPair.getSecond() == null) {
+          addObject(colPair.getFirst(), l);
         } else {
-          addObject(ac.getColumnFamily(), ac.getColumnQualifier(), l);
+          addObject(colPair.getFirst(), colPair.getSecond(), l);
         }
       }
     }
@@ -96,7 +99,7 @@ public class ColumnAgeOffFilter extends Filter {
     IteratorOptions io = super.describeOptions();
     io.setName("colageoff");
     io.setDescription("ColumnAgeOffFilter ages off columns at different rates given a time to live in milliseconds for each column");
-    io.addUnnamedOption("<columnName> <Long>");
+    io.addUnnamedOption("<col fam>[:<col qual>] <Long> (escape non-alphanum chars using %<hex>)");
     return io;
   }
   
@@ -105,5 +108,31 @@ public class ColumnAgeOffFilter extends Filter {
     super.validateOptions(options);
     this.ttls = new TTLSet(options);
     return true;
+  }
+  
+  /**
+   * A convenience method for adding or changing an age off threshold for a column.
+   * 
+   * @param is
+   *          IteratorSetting object to configure.
+   * @param column
+   *          column to encode as a parameter name.
+   * @param ttl
+   *          age off threshold in milliseconds.
+   */
+  public static void addTTL(IteratorSetting is, IteratorSetting.Column column, Long ttl) {
+    is.addOption(ColumnSet.encodeColumns(column.getFirst(), column.getSecond()), Long.toString(ttl));
+  }
+
+  /**
+   * A convenience method for removing an age off threshold for a column.
+   * 
+   * @param is
+   *          IteratorSetting object to configure.
+   * @param column
+   *          column to encode as a parameter name.
+   */
+  public static void removeTTL(IteratorSetting is, IteratorSetting.Column column) {
+    is.removeOption(ColumnSet.encodeColumns(column.getFirst(), column.getSecond()));
   }
 }

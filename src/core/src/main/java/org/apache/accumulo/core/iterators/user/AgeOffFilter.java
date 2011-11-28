@@ -19,6 +19,7 @@ package org.apache.accumulo.core.iterators.user;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
@@ -32,6 +33,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  */
 public class AgeOffFilter extends Filter {
   private static final String TTL = "ttl";
+  private static final String CURRENT_TIME = "currentTime";
   private long threshold;
   private long currentTime;
   
@@ -49,8 +51,8 @@ public class AgeOffFilter extends Filter {
    * @param threshold
    *          Current time in milliseconds.
    */
-  public AgeOffFilter(SortedKeyValueIterator<Key,Value> iterator, long threshold, long currentTime) {
-    super(iterator);
+  private AgeOffFilter(SortedKeyValueIterator<Key,Value> iterator, long threshold, long currentTime) {
+    setSource(iterator);
     this.threshold = threshold;
     this.currentTime = currentTime;
   }
@@ -80,7 +82,7 @@ public class AgeOffFilter extends Filter {
     
     threshold = Long.parseLong(ttl);
     
-    String time = options.get("currentTime");
+    String time = options.get(CURRENT_TIME);
     if (time != null)
       currentTime = Long.parseLong(time);
     else
@@ -98,7 +100,7 @@ public class AgeOffFilter extends Filter {
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
     io.addNamedOption(TTL, "time to live (milliseconds)");
-    io.addNamedOption("currentTime", "if set, use the given value as the absolute time in milliseconds as the current time of day");
+    io.addNamedOption(CURRENT_TIME, "if set, use the given value as the absolute time in milliseconds as the current time of day");
     io.setName("ageoff");
     io.setDescription("AgeOffFilter removes entries with timestamps more than <ttl> milliseconds old");
     return io;
@@ -113,5 +115,29 @@ public class AgeOffFilter extends Filter {
       return false;
     }
     return true;
+  }
+  
+  /**
+   * A convenience method for setting the age off threshold.
+   * 
+   * @param is
+   *          IteratorSetting object to configure.
+   * @param ttl
+   *          age off threshold in milliseconds.
+   */
+  public static void setTTL(IteratorSetting is, Long ttl) {
+    is.addOption(TTL, Long.toString(ttl));
+  }
+  
+  /**
+   * A convenience method for setting the current time (from which to measure the age off threshold).
+   * 
+   * @param is
+   *          IteratorSetting object to configure.
+   * @param currentTime
+   *          time in milliseconds.
+   */
+  public static void setCurrentTime(IteratorSetting is, Long currentTime) {
+    is.addOption(CURRENT_TIME, Long.toString(currentTime));
   }
 }

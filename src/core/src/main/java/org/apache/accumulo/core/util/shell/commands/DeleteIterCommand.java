@@ -16,9 +16,10 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import java.util.EnumSet;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.util.shell.Shell;
@@ -45,29 +46,19 @@ public class DeleteIterCommand extends Command {
     }
     
     String name = cl.getOptionValue(nameOpt.getOpt());
-    if (!shellState.getConnector().tableOperations().getIterators(tableName).contains(name)) {
+    if (!shellState.getConnector().tableOperations().listIterators(tableName).contains(name)) {
       Shell.log.warn("no iterators found that match your criteria");
       return 0;
     }
-    IteratorSetting iterator = shellState.getConnector().tableOperations().getIterator(tableName, name);
-    if (iterator == null)
-      return 0;
-    boolean deleteAll = true;
-    if (cl.hasOption(mincScopeOpt.getOpt())) {
-      iterator.deleteOptions(IteratorScope.minc);
-      deleteAll = false;
-    }
-    if (cl.hasOption(majcScopeOpt.getOpt())) {
-      iterator.deleteOptions(IteratorScope.majc);
-      deleteAll = false;
-    }
-    if (cl.hasOption(scanScopeOpt.getOpt())) {
-      iterator.deleteOptions(IteratorScope.scan);
-      deleteAll = false;
-    }
-    shellState.getConnector().tableOperations().removeIterator(tableName, name);
-    if (!iterator.getProperties().isEmpty() && !deleteAll)
-      shellState.getConnector().tableOperations().attachIterator(tableName, iterator);
+    
+    EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
+    if (cl.hasOption(mincScopeOpt.getOpt()))
+      scopes.add(IteratorScope.minc);
+    if (cl.hasOption(majcScopeOpt.getOpt()))
+      scopes.add(IteratorScope.majc);
+    if (cl.hasOption(scanScopeOpt.getOpt()))
+      scopes.add(IteratorScope.scan);
+    shellState.getConnector().tableOperations().removeIterator(tableName, name, scopes);
     return 0;
   }
   
