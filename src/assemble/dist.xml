@@ -39,6 +39,7 @@
       <directory>../../</directory>
       <includes>
         <include>*</include>
+        <include>pom.xml</include>
         <include>**/*.py</include>
         <include>**/*.pl</include>
         <include>**/*.sh</include>
@@ -63,11 +64,11 @@
         <exclude>**/*.sh</exclude>
         <exclude>walogs</exclude>
         <exclude>logs</exclude>
-        <exclude>bin</exclude>
+        <exclude>bin/**</exclude>
 
-				<!-- the following directories ignored because they should not be in the tarball -->
+        <!-- the following directories ignored because they should not be in the tarball -->
 				<exclude>**/.*/**</exclude>
-        <exclude>**/target</exclude>
+        <exclude>**/target/**</exclude>
 
 				<!-- the following files ignored because they should not be in the tarball -->
         <exclude>**/accumulo-env.sh</exclude>
