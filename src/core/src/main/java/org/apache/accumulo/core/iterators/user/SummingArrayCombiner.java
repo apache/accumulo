@@ -43,11 +43,11 @@ import org.apache.hadoop.io.WritableUtils;
 public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   private static final String TYPE = "type";
   private static final String CLASS_PREFIX = "class:";
-
+  
   public static enum Type {
     VARNUM, LONG, STRING
   }
-
+  
   @Override
   public List<Long> typedReduce(Key key, Iterator<List<Long>> iter) {
     List<Long> sum = new ArrayList<Long>();
@@ -88,7 +88,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
             type.substring(CLASS_PREFIX.length()), Encoder.class);
         encoder = clazz.newInstance();
         List<Long> testList = encoder.decode(encoder.encode(Arrays.asList(0l, 1l)));
-        if (testList.size() != 3 || testList.get(0) != 0l || testList.get(1) != 1l) {
+        if (testList.size() != 2 || testList.get(0) != 0l || testList.get(1) != 1l) {
           throw new IllegalArgumentException("something wrong with " + type + " -- doesn't encode and decode a List<Long> properly");
         }
       } catch (ClassNotFoundException e) {
@@ -236,7 +236,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
    * @param is
    *          IteratorSetting object to configure.
    * @param encoderClass
-   *          Class<? extends Encoder<Long>> specifying the encoding type.
+   *          Class<? extends Encoder<List<Long>>> specifying the encoding type.
    */
   public static void setEncodingType(IteratorSetting is, Class<? extends Encoder<List<Long>>> encoderClass) {
     is.addOption(TYPE, CLASS_PREFIX + encoderClass.getName());

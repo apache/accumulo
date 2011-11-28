@@ -370,7 +370,7 @@ public class CombinerTest {
     IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
     LongCombiner.setEncodingType(is, StringEncoder.class);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
-
+    
     List<SortedKeyValueIterator<Key,Value>> sources = new ArrayList<SortedKeyValueIterator<Key,Value>>(3);
     sources.add(new SortedMapIterator(tm1));
     sources.add(new SortedMapIterator(tm2));
@@ -529,7 +529,10 @@ public class CombinerTest {
       assertEquals(a[i], b[i]);
   }
   
-  public static void sumArray(Encoder<List<Long>> encoder, String type) throws IOException {
+  public static void sumArray(Class<? extends Encoder<List<Long>>> encoderClass, String type) throws IOException, InstantiationException,
+      IllegalAccessException {
+    Encoder<List<Long>> encoder = encoderClass.newInstance();
+    
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
     
     // keys that aggregate
@@ -539,8 +542,38 @@ public class CombinerTest {
     
     Combiner ai = new SummingArrayCombiner();
     
-    IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
-    LongCombiner.setEncodingType(is, SummingCombiner.Type.valueOf(type));
+    IteratorSetting is = new IteratorSetting(1, SummingArrayCombiner.class);
+    SummingArrayCombiner.setEncodingType(is, SummingArrayCombiner.Type.valueOf(type));
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
+    
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
+    ai.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(ai.hasTop());
+    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertBytesEqual(encoder.encode(nal(4l, 6l, 5l)), ai.getTopValue().get());
+    
+    ai.next();
+    
+    assertFalse(ai.hasTop());
+    
+    is.clearOptions();
+    SummingArrayCombiner.setEncodingType(is, encoderClass);
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
+    
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
+    ai.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(ai.hasTop());
+    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertBytesEqual(encoder.encode(nal(4l, 6l, 5l)), ai.getTopValue().get());
+    
+    ai.next();
+    
+    assertFalse(ai.hasTop());
+    
+    is.clearOptions();
+    SummingArrayCombiner.setEncodingType(is, encoderClass.getName());
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
     ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
@@ -556,12 +589,9 @@ public class CombinerTest {
   }
   
   @Test
-  public void sumArrayTest() throws IOException {
-    Encoder<List<Long>> encoder = new SummingArrayCombiner.VarNumArrayEncoder();
-    sumArray(encoder, "VARNUM");
-    encoder = new SummingArrayCombiner.LongArrayEncoder();
-    sumArray(encoder, "LONG");
-    encoder = new SummingArrayCombiner.StringArrayEncoder();
-    sumArray(encoder, "STRING");
+  public void sumArrayTest() throws IOException, InstantiationException, IllegalAccessException {
+    sumArray(SummingArrayCombiner.VarNumArrayEncoder.class, "VARNUM");
+    sumArray(SummingArrayCombiner.LongArrayEncoder.class, "LONG");
+    sumArray(SummingArrayCombiner.StringArrayEncoder.class, "STRING");
   }
 }
