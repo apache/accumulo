@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -103,21 +104,23 @@ public class SetIterCommand extends Command {
   
   protected void setTableProperties(CommandLine cl, Shell shellState, String tableName, int priority, Map<String,String> options, String classname, String name)
       throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
-    IteratorSetting setting = new IteratorSetting(priority, name, classname);
     // remove empty values
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
       Entry<String,String> entry = i.next();
       if (entry.getValue() == null || entry.getValue().isEmpty())
         i.remove();
     }
+    EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
     if (cl.hasOption(mincScopeOpt.getOpt()))
-      setting.addOptions(IteratorScope.minc, options);
+      scopes.add(IteratorScope.minc);
     if (cl.hasOption(majcScopeOpt.getOpt()))
-      setting.addOptions(IteratorScope.majc, options);
+      scopes.add(IteratorScope.majc);
     if (cl.hasOption(scanScopeOpt.getOpt()))
-      setting.addOptions(IteratorScope.scan, options);
-    if (setting.getProperties().isEmpty())
+      scopes.add(IteratorScope.scan);
+    if (scopes.isEmpty())
       throw new IllegalArgumentException("You must select at least one scope to configure");
+    
+    IteratorSetting setting = new IteratorSetting(priority, name, classname, scopes, options);
     shellState.getConnector().tableOperations().attachIterator(tableName, setting);
   }
   

@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
-import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -34,25 +34,26 @@ public abstract class TableOperationsHelper implements TableOperations {
   
   @Override
   public void attachIterator(String tableName, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    removeIterator(tableName, setting.getName());
-    for (Entry<IteratorScope,Map<String,String>> entry : setting.getOptionsByScope().entrySet()) {
-      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, entry.getKey().name().toLowerCase(), setting.getName());
+    removeIterator(tableName, setting.getName(), setting.getScopes());
+    for (IteratorScope scope : setting.getScopes()) {
+      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
       this.setProperty(tableName, root, setting.getPriority() + "," + setting.getIteratorClass());
-      for (Entry<String,String> prop : entry.getValue().entrySet()) {
+      for (Entry<String,String> prop : setting.getProperties().entrySet()) {
         this.setProperty(tableName, root + ".opt." + prop.getKey(), prop.getValue());
       }
     }
   }
   
   @Override
-  public void removeIterator(String tableName, String name) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  public void removeIterator(String tableName, String name, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
+      TableNotFoundException {
     Map<String,String> copy = new HashMap<String,String>();
     for (Entry<String,String> property : this.getProperties(tableName)) {
       copy.put(property.getKey(), property.getValue());
     }
-    for (Entry<String,String> property : copy.entrySet()) {
-      for (IteratorScope scope : IteratorScope.values()) {
-        String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
+    for (IteratorScope scope : scopes) {
+      String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
+      for (Entry<String,String> property : copy.entrySet()) {
         if (property.getKey().equals(root) || property.getKey().startsWith(root + ".opt."))
           this.removeProperty(tableName, property.getKey());
       }
@@ -60,43 +61,34 @@ public abstract class TableOperationsHelper implements TableOperations {
   }
   
   @Override
-  public IteratorSetting getIterator(String tableName, String name) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  public IteratorSetting getIteratorSetting(String tableName, String name, IteratorScope scope) throws AccumuloSecurityException, AccumuloException,
+      TableNotFoundException {
     int priority = -1;
     String classname = null;
-    EnumMap<IteratorScope,Map<String,String>> settings = new EnumMap<IteratorScope,Map<String,String>>(IteratorScope.class);
+    Map<String,String> settings = new HashMap<String,String>();
     
+    String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
+    String opt = root + ".opt.";
     for (Entry<String,String> property : this.getProperties(tableName)) {
-      for (IteratorScope scope : IteratorScope.values()) {
-        String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
-        String opt = root + ".opt.";
-        if (property.getKey().equals(root)) {
-          String parts[] = property.getValue().split(",");
-          if (parts.length != 2) {
-            throw new AccumuloException("Bad value for iterator setting: " + property.getValue());
-          }
-          priority = Integer.parseInt(parts[0]);
-          classname = parts[1];
-          if (!settings.containsKey(scope))
-            settings.put(scope, new HashMap<String,String>());
-        } else if (property.getKey().startsWith(opt)) {
-          if (!settings.containsKey(scope))
-            settings.put(scope, new HashMap<String,String>());
-          settings.get(scope).put(property.getKey().substring(opt.length()), property.getValue());
+      if (property.getKey().equals(root)) {
+        String parts[] = property.getValue().split(",");
+        if (parts.length != 2) {
+          throw new AccumuloException("Bad value for iterator setting: " + property.getValue());
         }
+        priority = Integer.parseInt(parts[0]);
+        classname = parts[1];
+      } else if (property.getKey().startsWith(opt)) {
+        settings.put(property.getKey().substring(opt.length()), property.getValue());
       }
     }
-    if (priority < 0 || classname == null) {
+    if (priority <= 0 || classname == null) {
       return null;
     }
-    IteratorSetting result = new IteratorSetting(priority, name, classname);
-    for (Entry<IteratorScope,Map<String,String>> entry : settings.entrySet()) {
-      result.addOptions(entry.getKey(), entry.getValue());
-    }
-    return result;
+    return new IteratorSetting(priority, name, classname, EnumSet.of(scope), settings);
   }
   
   @Override
-  public Set<String> getIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  public Set<String> listIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     Set<String> result = new HashSet<String>();
     Set<String> lifecycles = new HashSet<String>();
     for (IteratorScope scope : IteratorScope.values())

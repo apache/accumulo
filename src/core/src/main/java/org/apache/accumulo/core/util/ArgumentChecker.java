@@ -55,4 +55,9 @@ public class ArgumentChecker {
       if (args[i] == null)
         throw new IllegalArgumentException(NULL_ARG_MSG + ":arg" + i + " is null");
   }
+  
+  public static final void strictlyPositive(final int i) {
+    if (i <= 0)
+      throw new IllegalArgumentException("integer should be > 0, was " + i);
+  }
 }

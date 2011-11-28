@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.admin;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.BulkImportHelper.AssignmentStats;
@@ -479,21 +481,26 @@ public interface TableOperations {
    *          the name of the table
    * @param name
    *          the name of the iterator
+   * @param scopes
+   *          the scopes of the iterator
    * @throws AccumuloSecurityException
    *           thrown if the user does not have the ability to set properties on the table
    * @throws AccumuloException
    * @throws TableNotFoundException
    *           throw if the table no longer exists
    */
-  public void removeIterator(String tableName, String name) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+  public void removeIterator(String tableName, String name, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
+      TableNotFoundException;
   
   /**
-   * Get the settings for an iterator
+   * Get the settings for an iterator.
    * 
    * @param tableName
    *          the name of the table
    * @param name
    *          the name of the iterator
+   * @param scope
+   *          the scope of the iterator
    * @return the settings for this iterator
    * @throws AccumuloSecurityException
    *           thrown if the user does not have the ability to set properties on the table
@@ -501,7 +508,8 @@ public interface TableOperations {
    * @throws TableNotFoundException
    *           throw if the table no longer exists
    */
-  public IteratorSetting getIterator(String tableName, String name) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+  public IteratorSetting getIteratorSetting(String tableName, String name, IteratorScope scope) throws AccumuloSecurityException, AccumuloException,
+      TableNotFoundException;
   
   /**
    * Get a list of iterators for this table.
@@ -513,5 +521,5 @@ public interface TableOperations {
    * @throws AccumuloException
    * @throws TableNotFoundException
    */
-  public Set<String> getIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+  public Set<String> listIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 }

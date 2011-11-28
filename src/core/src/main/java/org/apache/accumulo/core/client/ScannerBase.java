@@ -63,15 +63,13 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   
   /**
    * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.user.RegExFilter}
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
    */
   public void setScanIterators(int priority, String iteratorClass, String iteratorName);
   
   /**
    * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.user.RegExFilter}
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
    */
   public void setScanIteratorOption(String iteratorName, String key, String value);
   
@@ -86,7 +84,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    *           if an exception occurs reading from the iterator stack
    * 
    * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
    * @see {@link org.apache.accumulo.core.iterators.user.RegExFilter}
    */
   public void setupRegex(String iteratorName, int iteratorPriority) throws IOException;
@@ -99,7 +97,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    *          java regular expression to match
    * 
    * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
    * @see {@link org.apache.accumulo.core.iterators.user.RegExFilter#ROW_REGEX}
    * 
    *      <pre>
@@ -119,7 +117,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    *          java regular expression to match
    * 
    * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
    * @see {@link org.apache.accumulo.core.iterators.user.RegExFilter#COLF_REGEX}
    */
   public void setColumnFamilyRegex(String regex);
@@ -133,7 +131,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    *          java regular expression to match
    * 
    * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
    * @see {@link org.apache.accumulo.core.iterators.user.RegExFilter#COLQ_REGEX}.
    * 
    */
@@ -146,7 +144,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    *          java regular expression to match
    * 
    * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(int, IteratorSetting)}
+   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
    * @see {@link org.apache.accumulo.core.iterators.user.RegExFilter}
    */
   public void setValueRegex(String regex);

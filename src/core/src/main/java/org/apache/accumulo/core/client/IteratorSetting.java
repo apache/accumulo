@@ -16,8 +16,7 @@
  */
 package org.apache.accumulo.core.client;
 
-import java.util.Collections;
-import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -25,30 +24,34 @@ import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.accumulo.core.util.Pair;
+import org.apache.hadoop.io.Text;
 
 /**
- * Configure a scan-time iterator.
+ * Configure an iterator for minc, majc, and/or scan. By default, IteratorSetting will be configured for scan.
  * 
- * Every iterator has a priority, a name, a class and any number of named configuration parameters. The typical use case:
+ * Every iterator has a priority, a name, a class, a set of scopes, and configuration parameters.
+ * 
+ * A typical use case configured for scan:
  * 
  * <pre>
  * IteratorSetting cfg = new IteratorSetting(priority, &quot;myIter&quot;, MyIterator.class);
- * MyIterator.setOption(cfg, 42);
+ * MyIterator.addOption(cfg, 42);
  * scanner.addScanIterator(cfg);
  * </pre>
- * 
  */
 public class IteratorSetting {
   private int priority;
   private String name;
   private String iteratorClass;
-  private Map<IteratorScope,Map<String,String>> properties = new EnumMap<IteratorScope,Map<String,String>>(IteratorScope.class);
+  private EnumSet<IteratorScope> scopes;
+  private Map<String,String> properties;
   
   /**
-   * Set layer at which this iterator applies. See {@link #setPriority(int) for how the priority is used.}
+   * Get layer at which this iterator applies. See {@link #setPriority(int) for how the priority is used.}
    * 
    * @return the priority of this Iterator
    */
@@ -57,10 +60,14 @@ public class IteratorSetting {
   }
   
   /**
+   * Set layer at which this iterator applies.
+   * 
    * @param priority
-   *          determines the order in which iterators are applied (system iterators are always applied first, then per-table and scan-time, lowest first)
+   *          determines the order in which iterators are applied (system iterators are always applied first, then user-configured iterators, lowest priority
+   *          first)
    */
   public void setPriority(int priority) {
+    ArgumentChecker.strictlyPositive(priority);
     this.priority = priority;
   }
   
@@ -79,6 +86,7 @@ public class IteratorSetting {
    * @param name
    */
   public void setName(String name) {
+    ArgumentChecker.notNull(name);
     this.name = name;
   }
   
@@ -98,87 +106,162 @@ public class IteratorSetting {
    * @param iteratorClass
    */
   public void setIteratorClass(String iteratorClass) {
+    ArgumentChecker.notNull(iteratorClass);
     this.iteratorClass = iteratorClass;
   }
   
   /**
-   * Get any properties set on the iterator. Note that this will be a merged view of the settings for all scopes.
+   * Get the scopes under which this iterator will be configured.
    * 
-   * @return a read-only copy of the named options (for all scopes)
+   * @return the scopes
+   */
+  public EnumSet<IteratorScope> getScopes() {
+    return scopes;
+  }
+  
+  /**
+   * Set the scopes under which this iterator will be configured.
+   * 
+   * @param scopes
+   *          the scopes to set
+   */
+  public void setScopes(EnumSet<IteratorScope> scopes) {
+    ArgumentChecker.notNull(scopes);
+    if (scopes.isEmpty())
+      throw new IllegalArgumentException("empty scopes");
+    this.scopes = scopes;
+  }
+  
+  /**
+   * Get the configuration parameters for this iterator.
+   * 
+   * @return the properties
    */
   public Map<String,String> getProperties() {
-    Map<String,String> result = new HashMap<String,String>();
-    for (Map<String,String> props : properties.values()) {
-      result.putAll(props);
-    }
-    return result;
+    return properties;
   }
   
   /**
-   * Construct a basic iterator setting with all the required values.
+   * Set the configuration parameters for this iterator.
+   * 
+   * @param properties
+   *          the properties to set
+   */
+  public void setProperties(Map<String,String> properties) {
+    this.properties.clear();
+    addOptions(properties);
+  }
+
+  /**
+   * @return <tt>true</tt> if this iterator has configuration parameters.
+   */
+  public boolean hasProperties() {
+    return !properties.isEmpty();
+  }
+  
+  /**
+   * Constructs an iterator setting configured for the scan scope with no parameters. (Parameters can be added later.)
    * 
    * @param priority
    *          the priority for the iterator @see {@link #setPriority(int)}
    * @param name
-   *          the name for the iterator
+   *          the distinguishing name for the iterator
    * @param iteratorClass
-   *          the full class name for the iterator
+   *          the fully qualified class name for the iterator
    */
   public IteratorSetting(int priority, String name, String iteratorClass) {
-    ArgumentChecker.notNull(name, iteratorClass);
-    this.priority = priority;
-    this.name = name;
-    this.iteratorClass = iteratorClass;
+    this(priority, name, iteratorClass, EnumSet.of(IteratorScope.scan), new HashMap<String,String>());
   }
   
   /**
-   * Construct a basic iterator setting.
+   * Constructs an iterator setting configured for the specified scopes with the specified parameters.
    * 
    * @param priority
    *          the priority for the iterator @see {@link #setPriority(int)}
    * @param name
-   *          the name for the iterator
+   *          the distinguishing name for the iterator
    * @param iteratorClass
-   *          the full class name for the iterator
-   * @param scope
-   *          the scope of the iterator
+   *          the fully qualified class name for the iterator
+   * @param scopes
+   *          the scopes of the iterator
    * @param properties
    *          any properties for the iterator
    */
-  public IteratorSetting(int priority, String name, String iteratorClass, IteratorScope scope, Map<String,String> properties) {
-    ArgumentChecker.notNull(name, iteratorClass, scope);
-    this.priority = priority;
-    this.name = name;
-    this.iteratorClass = iteratorClass;
-    addOptions(scope, properties);
+  public IteratorSetting(int priority, String name, String iteratorClass, EnumSet<IteratorScope> scopes, Map<String,String> properties) {
+    setPriority(priority);
+    setName(name);
+    setIteratorClass(iteratorClass);
+    setScopes(scopes);
+    this.properties = new HashMap<String,String>();
+    setProperties(properties);
   }
   
   /**
-   * @param priority
-   *          the priority for the iterator @see {@link #setPriority(int)}
-   * @param name
-   *          the name for the iterator
-   * @param iteratorClass
-   *          the class to use for the class name
-   */
-  public IteratorSetting(int priority, String name, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) {
-    this(priority, name, iteratorClass.getName());
-  }
-  
-  /**
-   * Constructs an ScanIterator using the given class's SimpleName for the iterator name
+   * Constructs an iterator setting using the given class's SimpleName for the iterator name. The iterator setting will be configured for the scan scope with no
+   * parameters.
    * 
    * @param priority
-   *          the priority for the iterator
+   *          the priority for the iterator @see {@link #setPriority(int)}
    * @param iteratorClass
-   *          the class to use for the iterator
+   *          the class for the iterator
    */
   public IteratorSetting(int priority, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) {
     this(priority, iteratorClass.getSimpleName(), iteratorClass.getName());
   }
   
   /**
-   * Add another option to the iterator
+   * Constructs an iterator setting using the given class's SimpleName for the iterator name and configured for the specified scopes with the specified
+   * parameters.
+   * 
+   * @param priority
+   *          the priority for the iterator @see {@link #setPriority(int)}
+   * @param iteratorClass
+   *          the class for the iterator
+   * @param scopes
+   *          the scopes of the iterator
+   * @param properties
+   *          any properties for the iterator
+   */
+  public IteratorSetting(int priority, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, EnumSet<IteratorScope> scopes,
+      Map<String,String> properties) {
+    this(priority, iteratorClass.getSimpleName(), iteratorClass.getName(), scopes, properties);
+  }
+  
+  /**
+   * Constructs an iterator setting configured for the scan scope with no parameters.
+   * 
+   * @param priority
+   *          the priority for the iterator @see {@link #setPriority(int)}
+   * @param name
+   *          the distinguishing name for the iterator
+   * @param iteratorClass
+   *          the class for the iterator
+   */
+  public IteratorSetting(int priority, String name, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) {
+    this(priority, name, iteratorClass.getName());
+  }
+  
+  /**
+   * Constructs an iterator setting configured for the specified scopes with the specified parameters.
+   * 
+   * @param priority
+   *          the priority for the iterator @see {@link #setPriority(int)}
+   * @param name
+   *          the distinguishing name for the iterator
+   * @param iteratorClass
+   *          the class for the iterator
+   * @param scopes
+   *          the scopes of the iterator
+   * @param properties
+   *          any properties for the iterator
+   */
+  public IteratorSetting(int priority, String name, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, EnumSet<IteratorScope> scopes,
+      Map<String,String> properties) {
+    this(priority, name, iteratorClass.getName(), scopes, properties);
+  }
+  
+  /**
+   * Add another option to the iterator.
    * 
    * @param option
    *          the name of the option
@@ -187,61 +270,91 @@ public class IteratorSetting {
    */
   public void addOption(String option, String value) {
     ArgumentChecker.notNull(option, value);
-    for (IteratorScope scope : IteratorScope.values()) {
-      addOptions(scope, Collections.singletonMap(option, value));
-    }
+    properties.put(option, value);
   }
   
   /**
-   * Add many options to the iterator
+   * Remove an option from the iterator.
    * 
-   * @param keyValues
-   *          the values to add to the options
+   * @param option
+   *          the name of the option
+   * @return the value previously associated with the option, or null if no such option existed
    */
-  public void addOptions(Set<Entry<String,String>> keyValues) {
-    for (Entry<String,String> keyValue : keyValues) {
+  public String removeOption(String option) {
+    ArgumentChecker.notNull(option);
+    return properties.remove(option);
+  }
+  
+  /**
+   * Add many options to the iterator.
+   * 
+   * @param propertyEntries
+   *          a set of entries to add to the options
+   */
+  public void addOptions(Set<Entry<String,String>> propertyEntries) {
+    ArgumentChecker.notNull(propertyEntries);
+    for (Entry<String,String> keyValue : propertyEntries) {
       addOption(keyValue.getKey(), keyValue.getValue());
     }
   }
   
   /**
-   * Get the properties on the iterator by scope
+   * Add many options to the iterator.
    * 
-   * @return a mapping from scope to key/value settings
-   */
-  public Map<IteratorScope,Map<String,String>> getOptionsByScope() {
-    Map<IteratorScope,Map<String,String>> result = new EnumMap<IteratorScope,Map<String,String>>(IteratorScope.class);
-    for (Entry<IteratorScope,Map<String,String>> property : properties.entrySet()) {
-      result.put(property.getKey(), Collections.unmodifiableMap(property.getValue()));
-    }
-    return Collections.unmodifiableMap(result);
-  }
-  
-  /**
-   * Add many options to to the iterator for a scope
-   * 
-   * @param scope
-   *          the scope to put the properties
    * @param properties
-   *          key/value pairs
+   *          a map of entries to add to the options
    */
-  public void addOptions(IteratorScope scope, Map<String,String> properties) {
-    if (properties == null)
-      return;
-    if (!this.properties.containsKey(scope))
-      this.properties.put(scope, new HashMap<String,String>());
-    for (Entry<String,String> entry : properties.entrySet()) {
-      this.properties.get(scope).put(entry.getKey(), entry.getValue());
-    }
+  public void addOptions(Map<String,String> properties) {
+    ArgumentChecker.notNull(properties);
+    addOptions(properties.entrySet());
   }
   
   /**
-   * Delete the properties per-scope
-   * 
-   * @param scope
-   *          the scope to delete
+   * Remove all options from the iterator.
    */
-  public void deleteOptions(IteratorScope scope) {
-    this.properties.remove(scope);
+  public void clearOptions() {
+    properties.clear();
+  }
+  
+  /**
+   * @see java.lang.Object#toString()
+   */
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("name:");
+    sb.append(name);
+    sb.append(", priority:");
+    sb.append(Integer.toString(priority));
+    sb.append(", class:");
+    sb.append(iteratorClass);
+    sb.append(", scopes:");
+    sb.append(scopes);
+    sb.append(", properties:");
+    sb.append(properties);
+    return sb.toString();
+  }
+
+  /**
+   * A convenience class for passing column family and column qualifiers to iterator configuration methods.
+   */
+  public static class Column extends Pair<Text,Text> {
+    
+    public Column(Text columnFamily, Text columnQualifier) {
+      super(columnFamily, columnQualifier);
+    }
+    
+    public Column(Text columnFamily) {
+      super(columnFamily, null);
+    }
+    
+    public Column(String columnFamily, String columnQualifier) {
+      super(new Text(columnFamily), new Text(columnQualifier));
+    }
+    
+    public Column(String columnFamily) {
+      super(new Text(columnFamily), null);
+    }
+    
   }
 }
