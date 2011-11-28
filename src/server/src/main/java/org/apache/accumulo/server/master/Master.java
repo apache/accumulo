@@ -334,9 +334,17 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS, new byte[0], NodeExistsPolicy.SKIP);
         zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZNEXT_FILE, new byte[] {'0'}, NodeExistsPolicy.SKIP);
 
+        String[] tablePropsToDelete = new String[] {"table.scan.cache.size", "table.scan.cache.enable"};
+
         for (String id : Tables.getIdToNameMap(instance).keySet()) {
           zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_FLUSH_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
           zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
+          
+          for (String prop : tablePropsToDelete) {
+            String propPath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_CONF + "/" + prop;
+            if (zoo.exists(propPath))
+              zoo.delete(propPath, -1);
+          }
         }
         
         setACLs(zoo, ZooUtil.getRoot(instance), ZooUtil.getRoot(instance) + Constants.ZUSERS);
