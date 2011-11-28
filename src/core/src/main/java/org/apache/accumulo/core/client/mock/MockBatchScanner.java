@@ -49,8 +49,8 @@ public class MockBatchScanner extends MockScannerBase implements BatchScanner {
   static class RangesFilter extends Filter {
     List<Range> ranges;
     
-    public RangesFilter(SortedKeyValueIterator<Key,Value> iterator, List<Range> ranges) {
-      super(iterator);
+    RangesFilter(SortedKeyValueIterator<Key,Value> iterator, List<Range> ranges) {
+      setSource(iterator);
       this.ranges = ranges;
     }
     

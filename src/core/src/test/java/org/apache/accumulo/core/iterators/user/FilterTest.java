@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.iterators;
+package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
 import java.text.ParseException;
@@ -23,24 +23,23 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.TreeMap;
 
 import junit.framework.TestCase;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
-import org.apache.accumulo.core.iterators.user.AgeOffFilter;
-import org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter;
-import org.apache.accumulo.core.iterators.user.NoVisFilter;
-import org.apache.accumulo.core.iterators.user.TimestampFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
@@ -48,12 +47,9 @@ import org.apache.hadoop.io.Text;
 public class FilterTest extends TestCase {
   
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
+  private static final Map<String,String> EMPTY_OPTS = new HashMap<String,String>();
   
   public class SimpleFilter extends Filter {
-    public SimpleFilter(SortedKeyValueIterator<Key,Value> iterator) {
-      super(iterator);
-    }
-    
     public boolean accept(Key k, Value v) {
       // System.out.println(k.getRow());
       if (k.getRow().toString().endsWith("0"))
@@ -63,10 +59,6 @@ public class FilterTest extends TestCase {
   }
   
   public class SimpleFilter2 extends Filter {
-    public SimpleFilter2(SortedKeyValueIterator<Key,Value> iterator) {
-      super(iterator);
-    }
-    
     public boolean accept(Key k, Value v) {
       if (k.getColumnFamily().toString().equals("a"))
         return false;
@@ -96,31 +88,66 @@ public class FilterTest extends TestCase {
     }
     assertTrue(tm.size() == 1000);
     
-    Filter filter1 = new SimpleFilter(new SortedMapIterator(tm));
+    Filter filter1 = new SimpleFilter();
+    filter1.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
     filter1.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(filter1);
     assertTrue("size = " + size, size == 100);
     
-    try {
-      Filter fi = new SimpleFilter(new SortedMapIterator(tm));
-      Key k = new Key(new Text("500"));
-      fi.seek(new Range(k, null), EMPTY_COL_FAMS, false);
-      TreeMap<Key,Value> tmOut = new TreeMap<Key,Value>();
-      while (fi.hasTop()) {
-        tmOut.put(fi.getTopKey(), fi.getTopValue());
-        fi.next();
-      }
-      assertTrue(tmOut.size() == 50);
-    } catch (IOException e) {
-      assertFalse(true);
-    }
+    Filter fi = new SimpleFilter();
+    fi.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
+    Key k = new Key(new Text("500"));
+    fi.seek(new Range(k, null), EMPTY_COL_FAMS, false);
+    size = size(fi);
+    assertTrue("size = " + size, size == 50);
     
-    Filter filter2 = new SimpleFilter2(new SimpleFilter(new SortedMapIterator(tm)));
+    filter1 = new SimpleFilter();
+    filter1.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
+    Filter filter2 = new SimpleFilter2();
+    filter2.init(filter1, EMPTY_OPTS, null);
     filter2.seek(new Range(), EMPTY_COL_FAMS, false);
     size = size(filter2);
-    assertTrue("tmOut wasn't empty " + size, size == 0);
+    assertTrue("size = " + size, size == 0);
   }
   
+  public void test1neg() throws IOException {
+    Text colf = new Text("a");
+    Text colq = new Text("b");
+    Value dv = new Value();
+    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    
+    for (int i = 0; i < 1000; i++) {
+      Key k = new Key(new Text(String.format("%03d", i)), colf, colq);
+      tm.put(k, dv);
+    }
+    assertTrue(tm.size() == 1000);
+    
+    Filter filter1 = new SimpleFilter();
+    
+    IteratorSetting is = new IteratorSetting(1, SimpleFilter.class);
+    Filter.setNegate(is, true);
+    
+    filter1.init(new SortedMapIterator(tm), is.getProperties(), null);
+    filter1.seek(new Range(), EMPTY_COL_FAMS, false);
+    int size = size(filter1);
+    assertTrue("size = " + size, size == 900);
+    
+    Filter fi = new SimpleFilter();
+    fi.init(new SortedMapIterator(tm), is.getProperties(), null);
+    Key k = new Key(new Text("500"));
+    fi.seek(new Range(k, null), EMPTY_COL_FAMS, false);
+    size = size(fi);
+    assertTrue("size = " + size, size == 450);
+    
+    filter1 = new SimpleFilter();
+    filter1.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
+    Filter filter2 = new SimpleFilter2();
+    filter2.init(filter1, is.getProperties(), null);
+    filter2.seek(new Range(), EMPTY_COL_FAMS, false);
+    size = size(filter2);
+    assertTrue("size = " + size, size == 100);
+  }
+
   public void test2() throws IOException {
     Text colf = new Text("a");
     Text colq = new Text("b");
@@ -134,7 +161,11 @@ public class FilterTest extends TestCase {
     }
     assertTrue(tm.size() == 1000);
     
-    AgeOffFilter a = new AgeOffFilter(new SortedMapIterator(tm), 101, 1001);
+    AgeOffFilter a = new AgeOffFilter();
+    IteratorSetting is = new IteratorSetting(1, AgeOffFilter.class);
+    AgeOffFilter.setTTL(is, 101l);
+    AgeOffFilter.setCurrentTime(is, 1001l);
+    a.init(new SortedMapIterator(tm), is.getProperties(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 100);
   }
@@ -144,8 +175,8 @@ public class FilterTest extends TestCase {
     Text colq = new Text("b");
     Value dv = new Value();
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
-    HashMap<String,String> options = new HashMap<String,String>();
-    options.put("a", "901");
+    IteratorSetting is = new IteratorSetting(1, ColumnAgeOffFilter.class);
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a"), 901l);
     long ts = System.currentTimeMillis();
     
     for (long i = 0; i < 1000; i++) {
@@ -154,17 +185,23 @@ public class FilterTest extends TestCase {
     }
     assertTrue(tm.size() == 1000);
     
-    ColumnAgeOffFilter a = new ColumnAgeOffFilter(new SortedMapIterator(tm), null, 0l);
-    a.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
+    ColumnAgeOffFilter a = new ColumnAgeOffFilter();
+    a.init(new SortedMapIterator(tm), is.getProperties(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 902);
     
-    options.put("a:b", "101");
-    a.init(new SortedMapIterator(tm), options, new DefaultIteratorEnvironment());
+    ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101l);
+    a.init(new SortedMapIterator(tm), is.getProperties(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 102);
+    
+    ColumnAgeOffFilter.removeTTL(is, new IteratorSetting.Column("a", "b"));
+    a.init(new SortedMapIterator(tm), is.getProperties(), new DefaultIteratorEnvironment());
+    a.overrideCurrentTime(ts);
+    a.seek(new Range(), EMPTY_COL_FAMS, false);
+    assertEquals(size(a), 902);
   }
   
   public void test3() throws IOException {
@@ -275,7 +312,6 @@ public class FilterTest extends TestCase {
     
     size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null), new Column("b".getBytes(), null, null)));
     assertTrue(size == 3);
-    
   }
   
   public void testNoVisFilter() throws IOException {
@@ -287,7 +323,8 @@ public class FilterTest extends TestCase {
     }
     assertTrue(tm.size() == 1000);
     
-    Filter filter = new NoVisFilter(new SortedMapIterator(tm));
+    Filter filter = new NoVisFilter();
+    filter.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
     filter.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(filter);
     assertTrue("size = " + size, size == 100);
@@ -306,19 +343,6 @@ public class FilterTest extends TestCase {
     }
     assertTrue(tm.size() == 100);
     
-    TimestampFilter a = new TimestampFilter(new SortedMapIterator(tm), 11, true, 31, false);
-    a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 20);
-    a = new TimestampFilter(new SortedMapIterator(tm), 11, true, 31, true);
-    a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 21);
-    a = new TimestampFilter(new SortedMapIterator(tm), 11, false, 31, false);
-    a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 19);
-    a = new TimestampFilter(new SortedMapIterator(tm), 11, false, 31, true);
-    a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 20);
-    
     SimpleDateFormat dateParser = new SimpleDateFormat("yyyyMMddHHmmssz");
     long baseTime = dateParser.parse("19990101000000GMT").getTime();
     tm.clear();
@@ -328,27 +352,48 @@ public class FilterTest extends TestCase {
       tm.put(k, dv);
     }
     assertTrue(tm.size() == 100);
-    a = new TimestampFilter();
-    TreeMap<String,String> opts = new TreeMap<String,String>();
-    opts.put(TimestampFilter.START, "19990101000011GMT");
-    opts.put(TimestampFilter.END, "19990101000031GMT");
-    a.init(new SortedMapIterator(tm), opts, null);
+    TimestampFilter a = new TimestampFilter();
+    IteratorSetting is = new IteratorSetting(1, TimestampFilter.class);
+    TimestampFilter.setRange(is, "19990101000011GMT", "19990101000031GMT");
+    a.init(new SortedMapIterator(tm), is.getProperties(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 21);
     
-    opts.put(TimestampFilter.END_INCL, "false");
-    a.init(new SortedMapIterator(tm), opts, null);
+    TimestampFilter.setEnd(is, "19990101000031GMT", false);
+    a.init(new SortedMapIterator(tm), is.getProperties(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 20);
     
-    opts.put(TimestampFilter.START_INCL, "false");
-    a.init(new SortedMapIterator(tm), opts, null);
+    TimestampFilter.setStart(is, "19990101000011GMT", false);
+    a.init(new SortedMapIterator(tm), is.getProperties(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 19);
     
-    opts.put(TimestampFilter.END_INCL, "true");
-    a.init(new SortedMapIterator(tm), opts, null);
+    TimestampFilter.setEnd(is, "19990101000031GMT", true);
+    a.init(new SortedMapIterator(tm), is.getProperties(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 20);
+    
+    is.clearOptions();
+    TimestampFilter.setStart(is, "19990101000011GMT", true);
+    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.seek(new Range(), EMPTY_COL_FAMS, false);
+    assertEquals(size(a), 89);
+    
+    TimestampFilter.setStart(is, "19990101000011GMT", false);
+    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.seek(new Range(), EMPTY_COL_FAMS, false);
+    assertEquals(size(a), 88);
+    
+    is.clearOptions();
+    TimestampFilter.setEnd(is, "19990101000031GMT", true);
+    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.seek(new Range(), EMPTY_COL_FAMS, false);
+    assertEquals(size(a), 32);
+    
+    TimestampFilter.setEnd(is, "19990101000031GMT", false);
+    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.seek(new Range(), EMPTY_COL_FAMS, false);
+    assertEquals(size(a), 31);
   }
 }

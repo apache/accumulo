@@ -21,30 +21,26 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.TreeMap;
 
+import junit.framework.TestCase;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.RowDeletingIterator;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.hadoop.io.Text;
 
-import junit.framework.TestCase;
-
 public class RowDeletingIteratorTest extends TestCase {
   
-  static class TestIE implements IteratorEnvironment {
+  public static class TestIE implements IteratorEnvironment {
     
     private IteratorScope scope;
     private boolean fmc;
     
-    TestIE(IteratorScope scope, boolean fmc) {
+    public TestIE(IteratorScope scope, boolean fmc) {
       this.scope = scope;
       this.fmc = fmc;
     }

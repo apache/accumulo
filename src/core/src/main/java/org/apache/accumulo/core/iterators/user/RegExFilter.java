@@ -37,19 +37,14 @@ public class RegExFilter extends Filter {
   
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    RegExFilter result = new RegExFilter(getSource().deepCopy(env));
+    RegExFilter result = new RegExFilter();
+    result.setSource(getSource().deepCopy(env));
     result.rowMatcher = rowMatcher.pattern().matcher("");
     result.colfMatcher = colfMatcher.pattern().matcher("");
     result.colqMatcher = colqMatcher.pattern().matcher("");
     result.valueMatcher = valueMatcher.pattern().matcher("");
     result.orFields = orFields;
     return result;
-  }
-  
-  public RegExFilter() {}
-  
-  public RegExFilter(SortedKeyValueIterator<Key,Value> iterator) {
-    super(iterator);
   }
   
   public static final String ROW_REGEX = "rowRegex";

@@ -115,7 +115,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     return new IntersectingIterator(this, env);
   }
   
-  public IntersectingIterator(IntersectingIterator other, IteratorEnvironment env) {
+  private IntersectingIterator(IntersectingIterator other, IteratorEnvironment env) {
     if (other.sources != null) {
       sourcesCount = other.sourcesCount;
       sources = new TermSource[sourcesCount];

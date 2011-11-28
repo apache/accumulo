@@ -38,7 +38,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Combiner;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
@@ -93,10 +92,9 @@ public class MockConnectorTest {
     Connector c = mockInstance.getConnector("root", new byte[] {});
     String table = "perDayCounts";
     c.tableOperations().create(table);
-    Class<? extends SortedKeyValueIterator<Key,Value>> clazz = SummingCombiner.class;
-    IteratorSetting is = new IteratorSetting(10, "String Summation", clazz);
-    Combiner.setColumns(is, Collections.singletonList(new Combiner.Column("day")));
-    is.addOption(SummingCombiner.TYPE, SummingCombiner.Type.STRING.name());
+    IteratorSetting is = new IteratorSetting(10, "String Summation", SummingCombiner.class);
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("day")));
+    SummingCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
     c.tableOperations().attachIterator(table, is);
     String keys[][] = { {"foo", "day", "20080101"}, {"foo", "day", "20080101"}, {"foo", "day", "20080103"}, {"bar", "day", "20080101"},
         {"bar", "day", "20080101"},};

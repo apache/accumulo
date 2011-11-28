@@ -37,13 +37,13 @@ public class ColumnQualifierFilter extends Filter {
   public ColumnQualifierFilter() {}
   
   public ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator, HashSet<Column> columns) {
-    super(iterator);
+    setSource(iterator);
     init(columns);
   }
   
   public ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator, HashSet<ByteSequence> columnFamilies,
       HashMap<ByteSequence,HashSet<ByteSequence>> columnsQualifiers, boolean scanColumns) {
-    super(iterator);
+    setSource(iterator);
     this.columnFamilies = columnFamilies;
     this.columnsQualifiers = columnsQualifiers;
     this.scanColumns = scanColumns;

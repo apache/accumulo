@@ -22,9 +22,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
 import junit.framework.TestCase;
 
@@ -34,9 +34,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.RFileTest;
 import org.apache.accumulo.core.file.rfile.RFileTest.TestRFile;
-import org.apache.accumulo.core.iterators.FamilyIntersectingIterator;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.user.IntersectingIterator;
 import org.apache.hadoop.io.Text;
@@ -158,8 +155,8 @@ public class FamilyIntersectingIteratorTest extends TestCase {
     Logger.getRootLogger().setLevel(Level.ERROR);
   }
   
-  private static final int NUM_ROWS = 10;
-  private static final int NUM_DOCIDS = 1000;
+  private static final int NUM_ROWS = 5;
+  private static final int NUM_DOCIDS = 200;
   
   public void test1() throws IOException {
     columnFamilies = new Text[2];

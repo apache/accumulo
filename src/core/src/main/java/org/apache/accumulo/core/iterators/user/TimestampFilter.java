@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
@@ -40,25 +41,30 @@ public class TimestampFilter extends Filter {
   private long end;
   private boolean startInclusive;
   private boolean endInclusive;
+  private boolean hasStart;
+  private boolean hasEnd;
   
   public TimestampFilter() {}
   
-  public TimestampFilter(SortedKeyValueIterator<Key,Value> iterator, long start, boolean startInclusive, long end, boolean endInclusive) {
-    super(iterator);
+  private TimestampFilter(SortedKeyValueIterator<Key,Value> iterator, boolean hasStart, long start, boolean startInclusive, boolean hasEnd, long end,
+      boolean endInclusive) {
+    setSource(iterator);
     this.start = start;
     this.startInclusive = startInclusive;
+    this.hasStart = true;
     this.end = end;
     this.endInclusive = endInclusive;
+    this.hasEnd = true;
   }
   
   @Override
   public boolean accept(Key k, Value v) {
     long ts = k.getTimestamp();
-    if (ts < start || ts > end)
+    if ((hasStart && (ts < start)) || (hasEnd && (ts > end)))
       return false;
-    if (!startInclusive && ts == start)
+    if (hasStart && !startInclusive && ts == start)
       return false;
-    if (!endInclusive && ts == end)
+    if (hasEnd && !endInclusive && ts == end)
       return false;
     return true;
   }
@@ -68,13 +74,25 @@ public class TimestampFilter extends Filter {
     super.init(source, options, env);
     
     if (options == null)
-      throw new IllegalArgumentException("ttl must be set for AgeOffFilter");
+      throw new IllegalArgumentException("start and/or end must be set for " + TimestampFilter.class.getName());
     
+    hasStart = false;
+    hasEnd = false;
     startInclusive = true;
     endInclusive = true;
+    
+    if (options.containsKey(START))
+      hasStart = true;
+    if (options.containsKey(END))
+      hasEnd = true;
+    if (!hasStart && !hasEnd)
+      throw new IllegalArgumentException("must have either start or end for " + TimestampFilter.class.getName());
+
     try {
-      start = dateParser.parse(options.get(START)).getTime();
-      end = dateParser.parse(options.get(END)).getTime();
+      if (hasStart)
+        start = dateParser.parse(options.get(START)).getTime();
+      if (hasEnd)
+        end = dateParser.parse(options.get(END)).getTime();
     } catch (Exception e) {
       throw new IllegalArgumentException(e);
     }
@@ -86,7 +104,7 @@ public class TimestampFilter extends Filter {
   
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new TimestampFilter(getSource(), start, startInclusive, end, endInclusive);
+    return new TimestampFilter(getSource(), hasStart, start, startInclusive, hasEnd, end, endInclusive);
   }
   
   @Override
@@ -105,8 +123,10 @@ public class TimestampFilter extends Filter {
   public boolean validateOptions(Map<String,String> options) {
     super.validateOptions(options);
     try {
-      dateParser.parse(options.get(START));
-      dateParser.parse(options.get(END));
+      if (options.containsKey(START))
+        dateParser.parse(options.get(START));
+      if (options.containsKey(END))
+        dateParser.parse(options.get(END));
       if (options.get(START_INCL) != null)
         Boolean.parseBoolean(options.get(START_INCL));
       if (options.get(END_INCL) != null)
@@ -115,5 +135,68 @@ public class TimestampFilter extends Filter {
       return false;
     }
     return true;
+  }
+  
+  /**
+   * A convenience method for setting the range of timestamps accepted by the timestamp filter.
+   * 
+   * @param is
+   *          the iterator setting object to configure
+   * @param start
+   *          the start timestamp, inclusive (yyyyMMddHHmmssz)
+   * @param end
+   *          the end timestamp, inclusive (yyyyMMddHHmmssz)
+   */
+  public static void setRange(IteratorSetting is, String start, String end) {
+    setRange(is, start, true, end, true);
+  }
+  
+  /**
+   * A convenience method for setting the range of timestamps accepted by the timestamp filter.
+   * 
+   * @param is
+   *          the iterator setting object to configure
+   * @param start
+   *          the start timestamp (yyyyMMddHHmmssz)
+   * @param startInclusive
+   *          boolean indicating whether the start is inclusive
+   * @param end
+   *          the end timestamp (yyyyMMddHHmmssz)
+   * @param endInclusive
+   *          boolean indicating whether the end is inclusive
+   */
+  public static void setRange(IteratorSetting is, String start, boolean startInclusive, String end, boolean endInclusive) {
+    setStart(is, start, startInclusive);
+    setEnd(is, end, endInclusive);
+  }
+  
+  /**
+   * A convenience method for setting the start timestamp accepted by the timestamp filter.
+   * 
+   * @param is
+   *          the iterator setting object to configure
+   * @param start
+   *          the start timestamp (yyyyMMddHHmmssz)
+   * @param startInclusive
+   *          boolean indicating whether the start is inclusive
+   */
+  public static void setStart(IteratorSetting is, String start, boolean startInclusive) {
+    is.addOption(START, start);
+    is.addOption(START_INCL, Boolean.toString(startInclusive));
+  }
+  
+  /**
+   * A convenience method for setting the end timestamp accepted by the timestamp filter.
+   * 
+   * @param is
+   *          the iterator setting object to configure
+   * @param end
+   *          the end timestamp (yyyyMMddHHmmssz)
+   * @param endInclusive
+   *          boolean indicating whether the end is inclusive
+   */
+  public static void setEnd(IteratorSetting is, String end, boolean endInclusive) {
+    is.addOption(END, end);
+    is.addOption(END_INCL, Boolean.toString(endInclusive));
   }
 }

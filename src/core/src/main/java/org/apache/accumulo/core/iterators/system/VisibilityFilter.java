@@ -41,7 +41,7 @@ public class VisibilityFilter extends Filter {
   public VisibilityFilter() {}
   
   public VisibilityFilter(SortedKeyValueIterator<Key,Value> iterator, Authorizations authorizations, byte[] defaultVisibility) {
-    super(iterator);
+    setSource(iterator);
     this.ve = new VisibilityEvaluator(authorizations);
     this.defaultVisibility = new Text(defaultVisibility);
     this.cache = new LRUMap(1000);

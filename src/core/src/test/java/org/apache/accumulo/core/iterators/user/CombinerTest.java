@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.iterators;
+package org.apache.accumulo.core.iterators.user;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -23,22 +23,26 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.Combiner.ValueIterator;
+import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
+import org.apache.accumulo.core.iterators.LongCombiner;
+import org.apache.accumulo.core.iterators.LongCombiner.LongEncoder;
+import org.apache.accumulo.core.iterators.LongCombiner.StringEncoder;
+import org.apache.accumulo.core.iterators.LongCombiner.VarNumEncoder;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
-import org.apache.accumulo.core.iterators.user.MaxCombiner;
-import org.apache.accumulo.core.iterators.user.MinCombiner;
-import org.apache.accumulo.core.iterators.user.SummingArrayCombiner;
-import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
@@ -91,12 +95,11 @@ public class CombinerTest {
     
     Combiner ai = new SummingCombiner();
     
-    Map<String,String> opts = new HashMap<String,String>();
+    IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
+    LongCombiner.setEncodingType(is, SummingCombiner.Type.VARNUM);
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("2")));
     
-    opts.put(SummingCombiner.TYPE, SummingCombiner.Type.VARNUM.name());
-    opts.put(Combiner.COLUMNS_OPTION, "2");
-    
-    ai.init(new SortedMapIterator(tm1), opts, null);
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
     
     assertTrue(ai.hasTop());
@@ -157,12 +160,11 @@ public class CombinerTest {
     
     Combiner ai = new SummingCombiner();
     
-    Map<String,String> opts = new HashMap<String,String>();
+    IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
+    LongCombiner.setEncodingType(is, VarNumEncoder.class);
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
-    opts.put(Combiner.COLUMNS_OPTION, "cf001");
-    opts.put(SummingCombiner.TYPE, SummingCombiner.Type.VARNUM.name());
-    
-    ai.init(new SortedMapIterator(tm1), opts, null);
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
     
     assertTrue(ai.hasTop());
@@ -224,12 +226,11 @@ public class CombinerTest {
     
     Combiner ai = new SummingCombiner();
     
-    Map<String,String> opts = new HashMap<String,String>();
+    IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
+    LongCombiner.setEncodingType(is, LongEncoder.class.getName());
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
-    opts.put(Combiner.COLUMNS_OPTION, "cf001");
-    opts.put(SummingCombiner.TYPE, SummingCombiner.Type.LONG.name());
-    
-    ai.init(new SortedMapIterator(tm1), opts, null);
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
     
     assertTrue(ai.hasTop());
@@ -294,12 +295,11 @@ public class CombinerTest {
     
     Combiner ai = new SummingCombiner();
     
-    Map<String,String> opts = new HashMap<String,String>();
+    IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
+    LongCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
-    opts.put(Combiner.COLUMNS_OPTION, "cf001");
-    opts.put(SummingCombiner.TYPE, SummingCombiner.Type.STRING.name());
-    
-    ai.init(new SortedMapIterator(tm1), opts, null);
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
     
     assertTrue(ai.hasTop());
@@ -366,17 +366,18 @@ public class CombinerTest {
     nkv(tm3, 1, 1, 1, 1, false, 4l, encoder);
     
     Combiner ai = new SummingCombiner();
-    Map<String,String> opts = new HashMap<String,String>();
-    opts.put(Combiner.COLUMNS_OPTION, "cf001");
-    opts.put(SummingCombiner.TYPE, SummingCombiner.Type.STRING.name());
     
+    IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
+    LongCombiner.setEncodingType(is, StringEncoder.class);
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
+
     List<SortedKeyValueIterator<Key,Value>> sources = new ArrayList<SortedKeyValueIterator<Key,Value>>(3);
     sources.add(new SortedMapIterator(tm1));
     sources.add(new SortedMapIterator(tm2));
     sources.add(new SortedMapIterator(tm3));
     
     MultiIterator mi = new MultiIterator(sources, true);
-    ai.init(mi, opts, null);
+    ai.init(mi, is.getProperties(), null);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
     
     assertTrue(ai.hasTop());
@@ -396,12 +397,11 @@ public class CombinerTest {
     
     Combiner ai = new SummingCombiner();
     
-    Map<String,String> opts = new HashMap<String,String>();
+    IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
+    LongCombiner.setEncodingType(is, VarNumEncoder.class.getName());
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
-    opts.put(Combiner.COLUMNS_OPTION, "cf001");
-    opts.put(SummingCombiner.TYPE, SummingCombiner.Type.VARNUM.name());
-    
-    ai.init(new SortedMapIterator(tm1), opts, new DefaultIteratorEnvironment());
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), new DefaultIteratorEnvironment());
     
     // try seeking to the beginning of a key that aggregates
     
@@ -425,12 +425,11 @@ public class CombinerTest {
     
     Combiner ai = new SummingCombiner();
     
-    Map<String,String> opts = new HashMap<String,String>();
+    IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
+    LongCombiner.setEncodingType(is, SummingCombiner.Type.LONG);
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
-    opts.put(Combiner.COLUMNS_OPTION, "cf001");
-    opts.put(SummingCombiner.TYPE, SummingCombiner.Type.LONG.name());
-    
-    ai.init(new SortedMapIterator(tm1), opts, new DefaultIteratorEnvironment());
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), new DefaultIteratorEnvironment());
     
     ai.seek(nr(1, 1, 1, 4, true), EMPTY_COL_FAMS, false);
     
@@ -449,7 +448,7 @@ public class CombinerTest {
     tm1 = new TreeMap<Key,Value>();
     nkv(tm1, 1, 1, 1, 2, true, 0l, encoder);
     ai = new SummingCombiner();
-    ai.init(new SortedMapIterator(tm1), opts, new DefaultIteratorEnvironment());
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), new DefaultIteratorEnvironment());
     
     ai.seek(nr(1, 1, 1, 4, true), EMPTY_COL_FAMS, false);
     
@@ -487,12 +486,11 @@ public class CombinerTest {
     
     Combiner ai = new MaxCombiner();
     
-    Map<String,String> opts = new HashMap<String,String>();
+    IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
+    LongCombiner.setEncodingType(is, SummingCombiner.Type.VARNUM);
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
-    opts.put(Combiner.COLUMNS_OPTION, "cf001");
-    opts.put(SummingCombiner.TYPE, SummingCombiner.Type.VARNUM.name());
-    
-    ai.init(new SortedMapIterator(tm1), opts, null);
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
     
     assertTrue(ai.hasTop());
@@ -505,7 +503,7 @@ public class CombinerTest {
     
     ai = new MinCombiner();
     
-    ai.init(new SortedMapIterator(tm1), opts, null);
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
     
     assertTrue(ai.hasTop());
@@ -541,12 +539,11 @@ public class CombinerTest {
     
     Combiner ai = new SummingArrayCombiner();
     
-    Map<String,String> opts = new HashMap<String,String>();
+    IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
+    LongCombiner.setEncodingType(is, SummingCombiner.Type.valueOf(type));
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
-    opts.put(Combiner.COLUMNS_OPTION, "cf001");
-    opts.put(SummingCombiner.TYPE, type);
-    
-    ai.init(new SortedMapIterator(tm1), opts, null);
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
     ai.seek(new Range(), EMPTY_COL_FAMS, false);
     
     assertTrue(ai.hasTop());

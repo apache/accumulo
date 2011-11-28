@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -50,14 +51,7 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
   }
   
   private static final String NEGATE = "negate";
-  boolean negate;
-  
-  public Filter() {}
-  
-  public Filter(SortedKeyValueIterator<Key,Value> iterator) {
-    setSource(iterator);
-    negate = false;
-  }
+  boolean negate = false;
   
   @Override
   public void next() throws IOException {
@@ -110,5 +104,17 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
       Boolean.parseBoolean(options.get(NEGATE));
     }
     return true;
+  }
+  
+  /**
+   * A convenience method for setting the negation option on a filter.
+   * 
+   * @param is
+   *          IteratorSetting object to configure.
+   * @param negate
+   *          if false, filter accepts k/v for which the accept method returns true; if true, filter accepts k/v for which the accept method returns false.
+   */
+  public static void setNegate(IteratorSetting is, boolean negate) {
+    is.addOption(NEGATE, Boolean.toString(negate));
   }
 }

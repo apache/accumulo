@@ -78,8 +78,8 @@ public class MockScanner extends MockScannerBase implements Scanner {
   static class RangeFilter extends Filter {
     Range range;
     
-    public RangeFilter(SortedKeyValueIterator<Key,Value> i, Range range) {
-      super(i);
+    RangeFilter(SortedKeyValueIterator<Key,Value> i, Range range) {
+      setSource(i);
       this.range = range;
     }
     

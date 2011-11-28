@@ -23,8 +23,10 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
@@ -38,7 +40,8 @@ import org.apache.hadoop.io.WritableUtils;
  * VARNUM, LONG, and STRING which indicate the VarNumEncoder, LongEncoder, and StringEncoder respectively.
  */
 public abstract class LongCombiner extends TypedValueCombiner<Long> {
-  public static final String TYPE = "type";
+  protected static final String TYPE = "type";
+  protected static final String CLASS_PREFIX = "class:";
   
   public static enum Type {
     VARNUM, LONG, STRING
@@ -47,20 +50,44 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    if (options.get(TYPE) == null)
+    setEncoder(options);
+  }
+  
+  private void setEncoder(Map<String,String> options) {
+    String type = options.get(TYPE);
+    if (type == null)
       throw new IllegalArgumentException("no type specified");
-    switch (Type.valueOf(options.get(TYPE))) {
-      case VARNUM:
-        encoder = new VarNumEncoder();
-        return;
-      case LONG:
-        encoder = new LongEncoder();
-        return;
-      case STRING:
-        encoder = new StringEncoder();
-        return;
-      default:
-        throw new IllegalArgumentException();
+    if (type.startsWith(CLASS_PREFIX)) {
+      try {
+        @SuppressWarnings("unchecked")
+        Class<? extends Encoder<Long>> clazz = (Class<? extends Encoder<Long>>) AccumuloClassLoader.loadClass(type.substring(CLASS_PREFIX.length()),
+            Encoder.class);
+        encoder = clazz.newInstance();
+        if (encoder.decode(encoder.encode(42l)) != 42l) {
+          throw new IllegalArgumentException("something wrong with " + type + " -- doesn't encode and decode a Long properly");
+        }
+      } catch (ClassNotFoundException e) {
+        throw new IllegalArgumentException(e);
+      } catch (InstantiationException e) {
+        throw new IllegalArgumentException(e);
+      } catch (IllegalAccessException e) {
+        throw new IllegalArgumentException(e);
+      }
+    }
+    else {
+      switch (Type.valueOf(type)) {
+        case VARNUM:
+          encoder = new VarNumEncoder();
+          return;
+        case LONG:
+          encoder = new LongEncoder();
+          return;
+        case STRING:
+          encoder = new StringEncoder();
+          return;
+        default:
+          throw new IllegalArgumentException();
+      }
     }
   }
   
@@ -76,13 +103,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   @Override
   public boolean validateOptions(Map<String,String> options) {
     super.validateOptions(options);
-    if (options.get(TYPE) == null)
-      return false;
-    try {
-      Type.valueOf(options.get(TYPE));
-    } catch (Exception e) {
-      return false;
-    }
+    setEncoder(options);
     return true;
   }
   
@@ -174,5 +195,41 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
       }
     }
     return a + b;
+  }
+  
+  /**
+   * A convenience method for setting the long encoding type.
+   * 
+   * @param is
+   *          IteratorSetting object to configure.
+   * @param type
+   *          LongCombiner.Type specifying the encoding type.
+   */
+  public static void setEncodingType(IteratorSetting is, LongCombiner.Type type) {
+    is.addOption(TYPE, type.toString());
+  }
+  
+  /**
+   * A convenience method for setting the long encoding type.
+   * 
+   * @param is
+   *          IteratorSetting object to configure.
+   * @param encoderClass
+   *          Class<? extends Encoder<Long>> specifying the encoding type.
+   */
+  public static void setEncodingType(IteratorSetting is, Class<? extends Encoder<Long>> encoderClass) {
+    is.addOption(TYPE, CLASS_PREFIX + encoderClass.getName());
+  }
+  
+  /**
+   * A convenience method for setting the long encoding type.
+   * 
+   * @param is
+   *          IteratorSetting object to configure.
+   * @param encoderClassName
+   *          name of a class specifying the encoding type.
+   */
+  public static void setEncodingType(IteratorSetting is, String encoderClassName) {
+    is.addOption(TYPE, CLASS_PREFIX + encoderClassName);
   }
 }

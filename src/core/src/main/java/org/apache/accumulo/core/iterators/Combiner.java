@@ -26,14 +26,13 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.conf.ColumnSet;
-import org.apache.accumulo.core.util.Pair;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 /**
@@ -46,7 +45,7 @@ import org.apache.log4j.Logger;
  */
 public abstract class Combiner extends WrappingIterator implements OptionDescriber {
   static final Logger log = Logger.getLogger(Combiner.class);
-  public static final String COLUMNS_OPTION = "columns";
+  protected static final String COLUMNS_OPTION = "columns";
   
   /**
    * A Java Iterator that iterates over the Values for a given Key from a source SortedKeyValueIterator.
@@ -114,8 +113,6 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   
   Key topKey;
   Value topValue;
-  
-  public Combiner() {}
   
   @Override
   public Key getTopKey() {
@@ -231,7 +228,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
         Collections
             .singletonMap(
                 COLUMNS_OPTION,
-        "<col fam>[:<col qual>]{,<col fam>[:<col qual>]} escape non aplhanum chars using %<hex>."),
+        "<col fam>[:<col qual>]{,<col fam>[:<col qual>]} escape non-alphanum chars using %<hex>."),
         null);
   }
   
@@ -253,38 +250,15 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   }
   
   /**
-   * A convenience class for passing column family and column qualifiers
-   */
-  public static class Column extends Pair<Text,Text> {
-    
-    public Column(Text columnFamily, Text columnQualifier) {
-      super(columnFamily, columnQualifier);
-    }
-    
-    public Column(Text columnFamily) {
-      super(columnFamily, null);
-    }
-    
-    public Column(String columnFamily, String columnQualifier) {
-      super(new Text(columnFamily), new Text(columnQualifier));
-    }
-    
-    public Column(String columnFamily) {
-      super(new Text(columnFamily), null);
-    }
-    
-  }
-
-  /**
    * A convenience method to set which columns a combiner should be applied to.
    * 
    * @param is
    *          iterator settings object to configure
    * @param columns
-   *          a list columns to encode as the value for the combiner column configuration
+   *          a list of columns to encode as the value for the combiner column configuration
    */
   
-  public static void setColumns(IteratorSetting is, List<Column> columns) {
+  public static void setColumns(IteratorSetting is, List<IteratorSetting.Column> columns) {
     String sep = "";
     StringBuilder sb = new StringBuilder();
     

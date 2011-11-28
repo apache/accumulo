@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.iterators;
+package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,12 +24,14 @@ import java.util.TreeMap;
 
 import junit.framework.TestCase;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.LongCombiner;
+import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
-import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.hadoop.io.Text;
 
 public class VersioningIteratorTest extends TestCase {
@@ -67,7 +69,10 @@ public class VersioningIteratorTest extends TestCase {
     createTestData(tm, colf, colq);
     
     try {
-      VersioningIterator it = new VersioningIterator(new SortedMapIterator(tm), 3);
+      VersioningIterator it = new VersioningIterator();
+      IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
+      VersioningIterator.setMaxVersions(is, 3);
+      it.init(new SortedMapIterator(tm), is.getProperties(), null);
       it.seek(new Range(), EMPTY_COL_FAMS, false);
       
       TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
@@ -126,7 +131,10 @@ public class VersioningIteratorTest extends TestCase {
     createTestData(tm, colf, colq);
     
     try {
-      VersioningIterator it = new VersioningIterator(new SortedMapIterator(tm), 3);
+      VersioningIterator it = new VersioningIterator();
+      IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
+      VersioningIterator.setMaxVersions(is, 3);
+      it.init(new SortedMapIterator(tm), is.getProperties(), null);
       
       // after doing this seek, should get zero keys for row 1
       Key seekKey = new Key(new Text(String.format("%03d", 1)), colf, colq, 15);
@@ -172,7 +180,10 @@ public class VersioningIteratorTest extends TestCase {
     
     for (int i = 1; i <= 30; i++) {
       try {
-        VersioningIterator it = new VersioningIterator(new SortedMapIterator(tm), i);
+        VersioningIterator it = new VersioningIterator();
+        IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
+        VersioningIterator.setMaxVersions(is, i);
+        it.init(new SortedMapIterator(tm), is.getProperties(), null);
         it.seek(new Range(), EMPTY_COL_FAMS, false);
         
         TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
@@ -195,7 +206,10 @@ public class VersioningIteratorTest extends TestCase {
     
     createTestData(tm, colf, colq);
     
-    VersioningIterator it = new VersioningIterator(new SortedMapIterator(tm), 3);
+    VersioningIterator it = new VersioningIterator();
+    IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
+    VersioningIterator.setMaxVersions(is, 3);
+    it.init(new SortedMapIterator(tm), is.getProperties(), null);
     
     Key seekKey = new Key(new Text(String.format("%03d", 1)), colf, colq, 19);
     it.seek(new Range(seekKey, false, null, true), EMPTY_COL_FAMS, false);
