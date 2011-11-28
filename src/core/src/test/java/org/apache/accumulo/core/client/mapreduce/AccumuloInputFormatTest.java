@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.WholeRowIterator;
+import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.conf.Configuration;
@@ -120,7 +120,7 @@ public class AccumuloInputFormatTest {
     // Walk the list and make sure our settings are correct
     AccumuloIterator setting = list.get(0);
     assertEquals(1, setting.getPriority());
-    assertEquals("org.apache.accumulo.core.iterators.WholeRowIterator", setting.getIteratorClass());
+    assertEquals("org.apache.accumulo.core.iterators.user.WholeRowIterator", setting.getIteratorClass());
     assertEquals("WholeRow", setting.getIteratorName());
     
     setting = list.get(1);

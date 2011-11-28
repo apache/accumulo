@@ -28,8 +28,8 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.RowDeletingIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.user.RowDeletingIterator;
 import org.apache.accumulo.core.util.UtilWaitThread;
 
 public class RowDeleteTest extends FunctionalTest {
