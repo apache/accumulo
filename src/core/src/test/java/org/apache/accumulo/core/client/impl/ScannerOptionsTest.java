@@ -19,7 +19,7 @@ package org.apache.accumulo.core.client.impl;
 import static org.junit.Assert.assertEquals;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.iterators.WholeRowIterator;
+import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.junit.Test;
 
 /**
