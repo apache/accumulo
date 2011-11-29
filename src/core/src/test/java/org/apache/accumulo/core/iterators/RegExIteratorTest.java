@@ -22,19 +22,18 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.TreeMap;
 
+import junit.framework.TestCase;
+
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.FilteringIterator;
-import org.apache.accumulo.core.iterators.RegExIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.filter.RegExFilter;
 import org.apache.hadoop.io.Text;
 
-import junit.framework.TestCase;
-
-@SuppressWarnings("deprecation")
+/**
+ * @deprecated since 1.4
+ */
 public class RegExIteratorTest extends TestCase {
   
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();

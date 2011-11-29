@@ -31,6 +31,21 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.IntersectingIterator;
 import org.apache.hadoop.io.Text;
 
+/**
+ * This iterator facilitates document-partitioned indexing. It is an example of extending the IntersectingIterator to customize the placement of the term and
+ * docID. It expects a table structure of the following form:
+ * 
+ * row: shardID, colfam: docColf\0type, colqual: docID, value: doc
+ * 
+ * row: shardID, colfam: indexColf, colqual: term\0type\0docID\0info, value: (empty)
+ * 
+ * When you configure this iterator with a set of terms, it will return only the docIDs and docs that appear with all of the specified terms. The result will
+ * have the following form:
+ * 
+ * row: shardID, colfam: indexColf, colqual: type\0docID\0info, value: doc
+ * 
+ * This iterator is commonly used with BatchScanner or AccumuloInputFormat, to parallelize the search over all shardIDs.
+ */
 public class FamilyIntersectingIterator extends IntersectingIterator {
   public static final Text DEFAULT_INDEX_COLF = new Text("i");
   public static final Text DEFAULT_DOC_COLF = new Text("e");

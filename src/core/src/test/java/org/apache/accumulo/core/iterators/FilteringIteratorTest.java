@@ -31,8 +31,6 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.FilteringIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.filter.AgeOffFilter;
 import org.apache.accumulo.core.iterators.filter.ColumnAgeOffFilter;
 import org.apache.accumulo.core.iterators.filter.ColumnQualifierFilter;
@@ -42,7 +40,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
-@SuppressWarnings("deprecation")
+/**
+ * @deprecated since 1.4
+ */
 public class FilteringIteratorTest extends TestCase {
   
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();

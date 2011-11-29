@@ -50,7 +50,7 @@ The following command queries the index to find all files containing 'foo' and '
     /local/username/workspace/accumulo/src/server/src/test/java/accumulo/server/util/DefaultMapTest.java
     /local/username/workspace/accumulo/src/server/src/test/java/accumulo/server/tabletserver/InMemoryMapTest.java
 
-Inorder to run ContinuousQuery, we need to run Reverse.java to populate doc2term
+In order to run ContinuousQuery, we need to run Reverse.java to populate doc2term.
 
     $ ./bin/accumulo org.apache.accumulo.examples.shard.Reverse instance zookeepers shard doc2term username password
 

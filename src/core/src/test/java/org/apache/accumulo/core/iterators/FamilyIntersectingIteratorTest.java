@@ -19,15 +19,14 @@ package org.apache.accumulo.core.iterators;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeMap;
 
 import junit.framework.TestCase;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -65,11 +64,20 @@ public class FamilyIntersectingIteratorTest extends TestCase {
   static float hitRatio = 0.1f;
   
   private synchronized static TreeMap<Key,Value> createSortedMap(int numRows, int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies,
-      HashSet<Text> docs) {
+      HashSet<Text> docs, Text[] negatedColumns) {
     StringBuilder sb = new StringBuilder();
     Random r = new Random();
     Value v = new Value(new byte[0]);
     TreeMap<Key,Value> map = new TreeMap<Key,Value>();
+    boolean[] negateMask = new boolean[columnFamilies.length];
+    
+    for (int i = 0; i < columnFamilies.length; i++) {
+      negateMask[i] = false;
+      if (negatedColumns.length > 0)
+        for (Text ng : negatedColumns)
+          if (columnFamilies[i].equals(ng))
+            negateMask[i] = true;
+    }
     for (int i = 0; i < numRows; i++) {
       Text row = new Text(String.format("%06d", i));
       for (int startDocID = docid; docid - startDocID < numDocsPerRow; docid++) {
@@ -79,9 +87,9 @@ public class FamilyIntersectingIteratorTest extends TestCase {
         Text doc = new Text("type");
         doc.append(nullByte, 0, 1);
         doc.append(String.format("%010d", docid).getBytes(), 0, 10);
-        for (Text cf : columnFamilies) {
+        for (int j = 0; j < columnFamilies.length; j++) {
           if (r.nextFloat() < hitRatio) {
-            Text colq = new Text(cf);
+            Text colq = new Text(columnFamilies[j]);
             colq.append(nullByte, 0, 1);
             colq.append(doc.getBytes(), 0, doc.getLength());
             colq.append(nullByte, 0, 1);
@@ -89,9 +97,12 @@ public class FamilyIntersectingIteratorTest extends TestCase {
             Key k = new Key(row, FamilyIntersectingIterator.DEFAULT_INDEX_COLF, colq);
             map.put(k, v);
             sb.append(" ");
-            sb.append(cf);
+            sb.append(columnFamilies[j]);
+            if (negateMask[j])
+              docHits = false;
           } else {
-            docHits = false;
+            if (!negateMask[j])
+              docHits = false;
           }
         }
         if (docHits) {
@@ -122,10 +133,16 @@ public class FamilyIntersectingIteratorTest extends TestCase {
   
   private synchronized static SortedKeyValueIterator<Key,Value> createIteratorStack(int numRows, int numDocsPerRow, Text[] columnFamilies,
       Text[] otherColumnFamilies, HashSet<Text> docs) throws IOException {
+    Text nullText[] = new Text[0];
+    return createIteratorStack(numRows, numDocsPerRow, columnFamilies, otherColumnFamilies, docs, nullText);
+  }
+  
+  private synchronized static SortedKeyValueIterator<Key,Value> createIteratorStack(int numRows, int numDocsPerRow, Text[] columnFamilies,
+      Text[] otherColumnFamilies, HashSet<Text> docs, Text[] negatedColumns) throws IOException {
     // write a map file
     trf.openWriter(false);
     
-    TreeMap<Key,Value> inMemoryMap = createSortedMap(numRows, numDocsPerRow, columnFamilies, otherColumnFamilies, docs);
+    TreeMap<Key,Value> inMemoryMap = createSortedMap(numRows, numDocsPerRow, columnFamilies, otherColumnFamilies, docs, negatedColumns);
     trf.writer.startNewLocalityGroup("docs", RFileTest.ncfs(docColf.toString()));
     for (Entry<Key,Value> entry : inMemoryMap.entrySet()) {
       if (entry.getKey().getColumnFamily().equals(docColf))
@@ -171,10 +188,10 @@ public class FamilyIntersectingIteratorTest extends TestCase {
     hitRatio = 0.5f;
     HashSet<Text> docs = new HashSet<Text>();
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
-    Map<String,String> options = new HashMap<String,String>();
-    options.put(FamilyIntersectingIterator.columnFamiliesOptionName, FamilyIntersectingIterator.encodeColumns(columnFamilies));
+    IteratorSetting is = new IteratorSetting(1, FamilyIntersectingIterator.class);
+    FamilyIntersectingIterator.setColumnFamilies(is, columnFamilies);
     FamilyIntersectingIterator iter = new FamilyIntersectingIterator();
-    iter.init(source, options, env);
+    iter.init(source, is.getProperties(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {
@@ -185,7 +202,7 @@ public class FamilyIntersectingIteratorTest extends TestCase {
       // System.out.println(iter.getDocID(k));
       
       assertTrue(docs.contains(iter.getDocID(k)));
-      assertTrue(new String(v.get()).endsWith(" docID="+iter.getDocID(k)));
+      assertTrue(new String(v.get()).endsWith(" docID=" + iter.getDocID(k)));
       
       iter.next();
     }
@@ -207,10 +224,10 @@ public class FamilyIntersectingIteratorTest extends TestCase {
     hitRatio = 0.5f;
     HashSet<Text> docs = new HashSet<Text>();
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
-    Map<String,String> options = new HashMap<String,String>();
-    options.put(FamilyIntersectingIterator.columnFamiliesOptionName, FamilyIntersectingIterator.encodeColumns(columnFamilies));
+    IteratorSetting is = new IteratorSetting(1, FamilyIntersectingIterator.class);
+    FamilyIntersectingIterator.setColumnFamilies(is, columnFamilies);
     FamilyIntersectingIterator iter = new FamilyIntersectingIterator();
-    iter.init(source, options, env);
+    iter.init(source, is.getProperties(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {
@@ -218,7 +235,7 @@ public class FamilyIntersectingIteratorTest extends TestCase {
       Key k = iter.getTopKey();
       Value v = iter.getTopValue();
       assertTrue(docs.contains(iter.getDocID(k)));
-      assertTrue(new String(v.get()).endsWith(" docID="+iter.getDocID(k)));
+      assertTrue(new String(v.get()).endsWith(" docID=" + iter.getDocID(k)));
       iter.next();
     }
     assertEquals(hitCount, docs.size());
@@ -247,10 +264,10 @@ public class FamilyIntersectingIteratorTest extends TestCase {
     sourceIters.add(source);
     sourceIters.add(source2);
     MultiIterator mi = new MultiIterator(sourceIters, false);
-    Map<String,String> options = new HashMap<String,String>();
-    options.put(FamilyIntersectingIterator.columnFamiliesOptionName, FamilyIntersectingIterator.encodeColumns(columnFamilies));
+    IteratorSetting is = new IteratorSetting(1, FamilyIntersectingIterator.class);
+    FamilyIntersectingIterator.setColumnFamilies(is, columnFamilies);
     FamilyIntersectingIterator iter = new FamilyIntersectingIterator();
-    iter.init(mi, options, env);
+    iter.init(mi, is.getProperties(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {
@@ -258,10 +275,49 @@ public class FamilyIntersectingIteratorTest extends TestCase {
       Key k = iter.getTopKey();
       Value v = iter.getTopValue();
       assertTrue(docs.contains(iter.getDocID(k)));
-      assertTrue(new String(v.get()).endsWith(" docID="+iter.getDocID(k)));
+      assertTrue(new String(v.get()).endsWith(" docID=" + iter.getDocID(k)));
       iter.next();
     }
     assertEquals(hitCount, docs.size());
+    cleanup();
+  }
+  
+  public void test4() throws IOException {
+    columnFamilies = new Text[3];
+    boolean[] notFlags = new boolean[3];
+    columnFamilies[0] = new Text("A");
+    notFlags[0] = true;
+    columnFamilies[1] = new Text("E");
+    notFlags[1] = false;
+    columnFamilies[2] = new Text("G");
+    notFlags[2] = true;
+    Text[] negatedColumns = new Text[2];
+    negatedColumns[0] = new Text("A");
+    negatedColumns[1] = new Text("G");
+    otherColumnFamilies = new Text[4];
+    otherColumnFamilies[0] = new Text("B");
+    otherColumnFamilies[1] = new Text("C");
+    otherColumnFamilies[2] = new Text("D");
+    otherColumnFamilies[3] = new Text("F");
+    
+    hitRatio = 0.5f;
+    HashSet<Text> docs = new HashSet<Text>();
+    SortedKeyValueIterator<Key,Value> source = createIteratorStack(NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs, negatedColumns);
+    IteratorSetting is = new IteratorSetting(1, FamilyIntersectingIterator.class);
+    FamilyIntersectingIterator.setColumnFamilies(is, columnFamilies, notFlags);
+    FamilyIntersectingIterator iter = new FamilyIntersectingIterator();
+    iter.init(source, is.getProperties(), env);
+    iter.seek(new Range(), EMPTY_COL_FAMS, false);
+    int hitCount = 0;
+    while (iter.hasTop()) {
+      hitCount++;
+      Key k = iter.getTopKey();
+      Value v = iter.getTopValue();
+      assertTrue(docs.contains(iter.getDocID(k)));
+      assertTrue(new String(v.get()).endsWith(" docID=" + iter.getDocID(k)));
+      iter.next();
+    }
+    assertTrue(hitCount == docs.size());
     cleanup();
   }
 }

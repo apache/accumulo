@@ -19,21 +19,17 @@ package org.apache.accumulo.core.iterators;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
 import junit.framework.TestCase;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.user.IntersectingIterator;
 import org.apache.hadoop.io.Text;
@@ -144,10 +140,10 @@ public class IntersectingIteratorTest extends TestCase {
     
     hitRatio = 0.5f;
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
-    Map<String,String> options = new HashMap<String,String>();
-    options.put(IntersectingIterator.columnFamiliesOptionName, IntersectingIterator.encodeColumns(columnFamilies));
+    IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
+    IntersectingIterator.setColumnFamilies(is, columnFamilies);
     IntersectingIterator iter = new IntersectingIterator();
-    iter.init(source, options, env);
+    iter.init(source, is.getProperties(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {
@@ -173,10 +169,10 @@ public class IntersectingIteratorTest extends TestCase {
     
     hitRatio = 0.5f;
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
-    Map<String,String> options = new HashMap<String,String>();
-    options.put(IntersectingIterator.columnFamiliesOptionName, IntersectingIterator.encodeColumns(columnFamilies));
+    IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
+    IntersectingIterator.setColumnFamilies(is, columnFamilies);
     IntersectingIterator iter = new IntersectingIterator();
-    iter.init(source, options, env);
+    iter.init(source, is.getProperties(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {
@@ -210,10 +206,10 @@ public class IntersectingIteratorTest extends TestCase {
     sourceIters.add(source);
     sourceIters.add(source2);
     MultiIterator mi = new MultiIterator(sourceIters, false);
-    Map<String,String> options = new HashMap<String,String>();
-    options.put(IntersectingIterator.columnFamiliesOptionName, IntersectingIterator.encodeColumns(columnFamilies));
+    IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
+    IntersectingIterator.setColumnFamilies(is, columnFamilies);
     IntersectingIterator iter = new IntersectingIterator();
-    iter.init(mi, options, env);
+    iter.init(mi, is.getProperties(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {
@@ -246,11 +242,10 @@ public class IntersectingIteratorTest extends TestCase {
     
     hitRatio = 0.5f;
     SortedKeyValueIterator<Key,Value> source = createIteratorStack(NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs, negatedColumns);
-    Map<String,String> options = new HashMap<String,String>();
-    options.put(IntersectingIterator.columnFamiliesOptionName, IntersectingIterator.encodeColumns(columnFamilies));
-    options.put(IntersectingIterator.notFlagOptionName, IntersectingIterator.encodeBooleans(notFlags));
+    IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
+    IntersectingIterator.setColumnFamilies(is, columnFamilies, notFlags);
     IntersectingIterator iter = new IntersectingIterator();
-    iter.init(source, options, env);
+    iter.init(source, is.getProperties(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {
