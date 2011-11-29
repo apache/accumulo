@@ -54,9 +54,9 @@
      <appender-ref ref="GUI" />
   </logger>
 
-  <!-- Log non-accumulo messages to debug, noraml logs. -->
+  <!-- Log non-accumulo messages to debug, normal logs. -->
   <root>
-     <level value="DEBUG"/>
+     <level value="INFO"/>
      <appender-ref ref="A2" />
      <appender-ref ref="A3" />
   </root>

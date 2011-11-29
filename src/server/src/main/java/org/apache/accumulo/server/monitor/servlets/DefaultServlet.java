@@ -54,6 +54,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.FSConstants.DatanodeReportType;
+import org.apache.hadoop.ipc.RemoteException;
 import org.apache.hadoop.mapred.ClusterStatus;
 import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobTracker;
@@ -265,24 +266,25 @@ public class DefaultServlet extends BasicServlet {
       String consumed = "Unknown";
       String diskUsed = "Unknown";
       try {
-        ContentSummary all = fs.getContentSummary(new Path("/"));
-        ContentSummary acu = fs.getContentSummary(new Path(ServerConfiguration.getSystemConfiguration().get(Property.INSTANCE_DFS_DIR)));
-        consumed = String.format("%.2f%%", acu.getSpaceConsumed() * 100. / all.getSpaceConsumed());
+        Path path = new Path(ServerConfiguration.getSystemConfiguration().get(Property.INSTANCE_DFS_DIR));
+        log.debug("Reading the content summary for " + path);
+        ContentSummary acu = fs.getContentSummary(path);
+        consumed = String.format("%.2f%%", acu.getSpaceConsumed() * 100. / fs.getUsed());
         diskUsed = bytes(acu.getSpaceConsumed());
+        
+        boolean highlight = false;
+        tableRow(sb, (highlight = !highlight), "Disk&nbsp;Used", diskUsed);
+        tableRow(sb, (highlight = !highlight), "%&nbsp;of&nbsp;Used&nbsp;DFS", consumed);
+        tableRow(sb, (highlight = !highlight), "<a href='/tables'>Tables</a>", NumberType.commas(Monitor.getTotalTables()));
+        tableRow(sb, (highlight = !highlight), "<a href='/tservers'>Tablet&nbsp;Servers</a>", NumberType.commas(info.tServerInfo.size()));
+        tableRow(sb, (highlight = !highlight), "<a href='/tservers'>Dead&nbsp;Tablet&nbsp;Servers</a>", NumberType.commas(info.deadTabletServers.size()));
+        tableRow(sb, (highlight = !highlight), "Tablets", NumberType.commas(Monitor.getTotalTabletCount()));
+        tableRow(sb, (highlight = !highlight), "Entries", NumberType.commas(Monitor.getTotalEntries()));
+        tableRow(sb, (highlight = !highlight), "Lookups", NumberType.commas(Monitor.getTotalLookups()));
+        tableRow(sb, (highlight = !highlight), "Uptime", Duration.format(System.currentTimeMillis() - Monitor.getStartTime()));
       } catch (Exception e) {
         log.debug(e, e);
       }
-      
-      boolean highlight = false;
-      tableRow(sb, (highlight = !highlight), "Disk&nbsp;Used", diskUsed);
-      tableRow(sb, (highlight = !highlight), "%&nbsp;of&nbsp;Used&nbsp;DFS", consumed);
-      tableRow(sb, (highlight = !highlight), "<a href='/tables'>Tables</a>", NumberType.commas(Monitor.getTotalTables()));
-      tableRow(sb, (highlight = !highlight), "<a href='/tservers'>Tablet&nbsp;Servers</a>", NumberType.commas(info.tServerInfo.size()));
-      tableRow(sb, (highlight = !highlight), "<a href='/tservers'>Dead&nbsp;Tablet&nbsp;Servers</a>", NumberType.commas(info.deadTabletServers.size()));
-      tableRow(sb, (highlight = !highlight), "Tablets", NumberType.commas(Monitor.getTotalTabletCount()));
-      tableRow(sb, (highlight = !highlight), "Entries", NumberType.commas(Monitor.getTotalEntries()));
-      tableRow(sb, (highlight = !highlight), "Lookups", NumberType.commas(Monitor.getTotalLookups()));
-      tableRow(sb, (highlight = !highlight), "Uptime", Duration.format(System.currentTimeMillis() - Monitor.getStartTime()));
     }
     sb.append("</table>\n");
   }
@@ -311,8 +313,10 @@ public class DefaultServlet extends BasicServlet {
       for (DatanodeInfo stat : liveNodes)
         count += stat.getXceiverCount();
       tableRow(sb, (highlight = !highlight), "Xceivers", NumberType.commas(count));
+    } catch (RemoteException ex) {
+      sb.append("<tr><td colspan='2'>Permission&nbsp;Denied</td></tr>\n");
     } catch (Exception ex) {
-      sb.append("<tr><td colspan='2'><span class='error'>Name Node is Down</span></td></tr>\n");
+      sb.append("<tr><td colspan='2'><span class='error'>Down</span></td></tr>\n");
     }
     sb.append("</table>\n");
   }
