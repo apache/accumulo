@@ -87,7 +87,7 @@
       <artifactId>commons-collections</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.apache.thrift</groupId>
+      <groupId>org.apache.accumulo.thrift</groupId>
       <artifactId>libthrift</artifactId>
     </dependency>
     <dependency>
