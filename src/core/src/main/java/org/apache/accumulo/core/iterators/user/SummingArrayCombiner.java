@@ -49,7 +49,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   private static final String CLASS_PREFIX = "class:";
   
   public static enum Type {
-    VARNUM, LONG, STRING
+    VARLEN, FIXEDLEN, STRING
   }
   
   @Override
@@ -104,10 +104,10 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
       }
     } else {
       switch (Type.valueOf(options.get(TYPE))) {
-        case VARNUM:
+        case VARLEN:
           encoder = new VarLongArrayEncoder();
           return;
-        case LONG:
+        case FIXEDLEN:
           encoder = new FixedLongArrayEncoder();
           return;
         case STRING:
@@ -122,9 +122,9 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
-    io.setName("typedcombiner");
-    io.setDescription("TypedValueCombiner can interpret Values as a variety of number encodings (VLong, Long, or String) before combining");
-    io.addNamedOption(TYPE, "<VARNUM|LONG|STRING>");
+    io.setName("summingarraycombiner");
+    io.setDescription("SummingArrayCombiner can interpret Values as arrays of Longs using a variety of encodings (arrays of variable length longs or fixed length longs, or comma-separated strings) before combining");
+    io.addNamedOption(TYPE, "<VARLEN|FIXEDLEN|STRING|fullClassName>");
     return io;
   }
   
