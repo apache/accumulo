@@ -48,7 +48,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   protected static final String CLASS_PREFIX = "class:";
   
   public static enum Type {
-    VARNUM, LONG, STRING
+    VARLEN, FIXEDLEN, STRING
   }
   
   @Override
@@ -79,10 +79,10 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
       }
     } else {
       switch (Type.valueOf(type)) {
-        case VARNUM:
+        case VARLEN:
           encoder = VAR_LEN_ENCODER;
           return;
-        case LONG:
+        case FIXEDLEN:
           encoder = FIXED_LEN_ENCODER;
           return;
         case STRING:
@@ -97,9 +97,9 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
-    io.setName("typedcombiner");
-    io.setDescription("TypedValueCombiner can interpret Values as a variety of number encodings (VLong, Long, or String) before combining");
-    io.addNamedOption(TYPE, "<VARNUM|LONG|STRING>");
+    io.setName("longcombiner");
+    io.setDescription("LongCombiner can interpret Values as Longs in a variety of encodings (variable length, fixed length, or string) before combining");
+    io.addNamedOption(TYPE, "<VARLEN|FIXEDLEN|STRING|fullClassName>");
     return io;
   }
   

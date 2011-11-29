@@ -92,7 +92,7 @@ public class CombinerTest {
     Combiner ai = new SummingCombiner();
     
     IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
-    LongCombiner.setEncodingType(is, SummingCombiner.Type.VARNUM);
+    LongCombiner.setEncodingType(is, SummingCombiner.Type.VARLEN);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("2")));
     
     ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
@@ -422,7 +422,7 @@ public class CombinerTest {
     Combiner ai = new SummingCombiner();
     
     IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
-    LongCombiner.setEncodingType(is, SummingCombiner.Type.LONG);
+    LongCombiner.setEncodingType(is, SummingCombiner.Type.FIXEDLEN);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
     ai.init(new SortedMapIterator(tm1), is.getProperties(), new DefaultIteratorEnvironment());
@@ -483,7 +483,7 @@ public class CombinerTest {
     Combiner ai = new MaxCombiner();
     
     IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
-    LongCombiner.setEncodingType(is, SummingCombiner.Type.VARNUM);
+    LongCombiner.setEncodingType(is, SummingCombiner.Type.VARLEN);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
     ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
@@ -525,7 +525,7 @@ public class CombinerTest {
       assertEquals(a[i], b[i]);
   }
   
-  public static void sumArray(Class<? extends Encoder<List<Long>>> encoderClass, String type) throws IOException, InstantiationException,
+  public static void sumArray(Class<? extends Encoder<List<Long>>> encoderClass, SummingArrayCombiner.Type type) throws IOException, InstantiationException,
       IllegalAccessException {
     Encoder<List<Long>> encoder = encoderClass.newInstance();
     
@@ -539,7 +539,7 @@ public class CombinerTest {
     Combiner ai = new SummingArrayCombiner();
     
     IteratorSetting is = new IteratorSetting(1, SummingArrayCombiner.class);
-    SummingArrayCombiner.setEncodingType(is, SummingArrayCombiner.Type.valueOf(type));
+    SummingArrayCombiner.setEncodingType(is, type);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
     ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
@@ -586,8 +586,8 @@ public class CombinerTest {
   
   @Test
   public void sumArrayTest() throws IOException, InstantiationException, IllegalAccessException {
-    sumArray(SummingArrayCombiner.VarLongArrayEncoder.class, "VARNUM");
-    sumArray(SummingArrayCombiner.FixedLongArrayEncoder.class, "LONG");
-    sumArray(SummingArrayCombiner.StringArrayEncoder.class, "STRING");
+    sumArray(SummingArrayCombiner.VarLongArrayEncoder.class, SummingArrayCombiner.Type.VARLEN);
+    sumArray(SummingArrayCombiner.FixedLongArrayEncoder.class, SummingArrayCombiner.Type.FIXEDLEN);
+    sumArray(SummingArrayCombiner.StringArrayEncoder.class, SummingArrayCombiner.Type.STRING);
   }
 }
