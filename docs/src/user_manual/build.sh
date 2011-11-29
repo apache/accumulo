@@ -37,6 +37,6 @@ pdflatex accumulo_user_manual.tex
 pdflatex accumulo_user_manual.tex 
 pdflatex accumulo_user_manual.tex && (
 find . -name '*.aux' -print | xargs rm -f 
-rm -f *.log
+rm -f *.log *.toc *.out
 mv accumulo_user_manual.pdf ../..
 )
