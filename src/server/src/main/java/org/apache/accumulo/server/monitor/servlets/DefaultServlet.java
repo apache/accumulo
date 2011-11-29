@@ -274,7 +274,8 @@ public class DefaultServlet extends BasicServlet {
         
         boolean highlight = false;
         tableRow(sb, (highlight = !highlight), "Disk&nbsp;Used", diskUsed);
-        tableRow(sb, (highlight = !highlight), "%&nbsp;of&nbsp;Used&nbsp;DFS", consumed);
+        if (fs.getUsed() != 0)
+          tableRow(sb, (highlight = !highlight), "%&nbsp;of&nbsp;Used&nbsp;DFS", consumed);
         tableRow(sb, (highlight = !highlight), "<a href='/tables'>Tables</a>", NumberType.commas(Monitor.getTotalTables()));
         tableRow(sb, (highlight = !highlight), "<a href='/tservers'>Tablet&nbsp;Servers</a>", NumberType.commas(info.tServerInfo.size()));
         tableRow(sb, (highlight = !highlight), "<a href='/tservers'>Dead&nbsp;Tablet&nbsp;Servers</a>", NumberType.commas(info.deadTabletServers.size()));
