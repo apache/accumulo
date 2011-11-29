@@ -63,7 +63,7 @@ public class Query {
       columns[i - 5] = new Text(args[i]);
     }
     IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
-    ii.addOption(IntersectingIterator.columnFamiliesOptionName, IntersectingIterator.encodeColumns(columns));
+    IntersectingIterator.setColumnFamilies(ii, columns);
     bs.addScanIterator(ii);
     bs.setRanges(Collections.singleton(new Range()));
     for (Entry<Key,Value> entry : bs) {

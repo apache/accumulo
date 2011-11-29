@@ -41,6 +41,10 @@ import org.apache.hadoop.io.WritableUtils;
  * A Combiner that interprets Values as arrays of Longs and returns an array of element-wise sums.
  */
 public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
+  public static final Encoder<List<Long>> FIXED_LONG_ARRAY_ENCODER = new FixedLongArrayEncoder();
+  public static final Encoder<List<Long>> VAR_LONG_ARRAY_ENCODER = new VarLongArrayEncoder();
+  public static final Encoder<List<Long>> STRING_ARRAY_ENCODER = new StringArrayEncoder();
+  
   private static final String TYPE = "type";
   private static final String CLASS_PREFIX = "class:";
   
@@ -101,10 +105,10 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     } else {
       switch (Type.valueOf(options.get(TYPE))) {
         case VARNUM:
-          encoder = new VarNumArrayEncoder();
+          encoder = new VarLongArrayEncoder();
           return;
         case LONG:
-          encoder = new LongArrayEncoder();
+          encoder = new FixedLongArrayEncoder();
           return;
         case STRING:
           encoder = new StringArrayEncoder();
@@ -167,7 +171,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     }
   }
   
-  public static class VarNumArrayEncoder extends DOSArrayEncoder<Long> {
+  public static class VarLongArrayEncoder extends DOSArrayEncoder<Long> {
     @Override
     public void write(DataOutputStream dos, Long v) throws IOException {
       WritableUtils.writeVLong(dos, v);
@@ -179,7 +183,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     }
   }
   
-  public static class LongArrayEncoder extends DOSArrayEncoder<Long> {
+  public static class FixedLongArrayEncoder extends DOSArrayEncoder<Long> {
     @Override
     public void write(DataOutputStream dos, Long v) throws IOException {
       dos.writeLong(v);

@@ -36,9 +36,9 @@ import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.Combiner.ValueIterator;
 import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.LongCombiner;
-import org.apache.accumulo.core.iterators.LongCombiner.LongEncoder;
+import org.apache.accumulo.core.iterators.LongCombiner.FixedLenEncoder;
 import org.apache.accumulo.core.iterators.LongCombiner.StringEncoder;
-import org.apache.accumulo.core.iterators.LongCombiner.VarNumEncoder;
+import org.apache.accumulo.core.iterators.LongCombiner.VarLenEncoder;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
@@ -78,13 +78,9 @@ public class CombinerTest {
     return new Text(String.format("r%03d", row));
   }
   
-  Encoder<Long> varNumEncoder = new LongCombiner.VarNumEncoder();
-  Encoder<Long> longEncoder = new LongCombiner.LongEncoder();
-  Encoder<Long> stringEncoder = new LongCombiner.StringEncoder();
-  
   @Test
   public void test1() throws IOException {
-    Encoder<Long> encoder = varNumEncoder;
+    Encoder<Long> encoder = LongCombiner.VAR_LEN_ENCODER;
     
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
     
@@ -149,7 +145,7 @@ public class CombinerTest {
   
   @Test
   public void test2() throws IOException {
-    Encoder<Long> encoder = varNumEncoder;
+    Encoder<Long> encoder = LongCombiner.VAR_LEN_ENCODER;
     
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
     
@@ -161,7 +157,7 @@ public class CombinerTest {
     Combiner ai = new SummingCombiner();
     
     IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
-    LongCombiner.setEncodingType(is, VarNumEncoder.class);
+    LongCombiner.setEncodingType(is, VarLenEncoder.class);
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
     ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
@@ -211,7 +207,7 @@ public class CombinerTest {
   
   @Test
   public void test3() throws IOException {
-    Encoder<Long> encoder = longEncoder;
+    Encoder<Long> encoder = LongCombiner.FIXED_LEN_ENCODER;
     
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
     
@@ -227,7 +223,7 @@ public class CombinerTest {
     Combiner ai = new SummingCombiner();
     
     IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
-    LongCombiner.setEncodingType(is, LongEncoder.class.getName());
+    LongCombiner.setEncodingType(is, FixedLenEncoder.class.getName());
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
     ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
@@ -277,7 +273,7 @@ public class CombinerTest {
   
   @Test
   public void test4() throws IOException {
-    Encoder<Long> encoder = stringEncoder;
+    Encoder<Long> encoder = LongCombiner.STRING_ENCODER;
     
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
     
@@ -352,7 +348,7 @@ public class CombinerTest {
   
   @Test
   public void test5() throws IOException {
-    Encoder<Long> encoder = stringEncoder;
+    Encoder<Long> encoder = LongCombiner.STRING_ENCODER;
     // try aggregating across multiple data sets that contain
     // the exact same keys w/ different values
     
@@ -387,7 +383,7 @@ public class CombinerTest {
   
   @Test
   public void test6() throws IOException {
-    Encoder<Long> encoder = varNumEncoder;
+    Encoder<Long> encoder = LongCombiner.VAR_LEN_ENCODER;
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
     
     // keys that aggregate
@@ -398,7 +394,7 @@ public class CombinerTest {
     Combiner ai = new SummingCombiner();
     
     IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
-    LongCombiner.setEncodingType(is, VarNumEncoder.class.getName());
+    LongCombiner.setEncodingType(is, VarLenEncoder.class.getName());
     Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
     
     ai.init(new SortedMapIterator(tm1), is.getProperties(), new DefaultIteratorEnvironment());
@@ -413,7 +409,7 @@ public class CombinerTest {
   
   @Test
   public void test7() throws IOException {
-    Encoder<Long> encoder = longEncoder;
+    Encoder<Long> encoder = LongCombiner.FIXED_LEN_ENCODER;
     
     // test that delete is not aggregated
     
@@ -475,7 +471,7 @@ public class CombinerTest {
   
   @Test
   public void maxMinTest() throws IOException {
-    Encoder<Long> encoder = varNumEncoder;
+    Encoder<Long> encoder = LongCombiner.VAR_LEN_ENCODER;
     
     TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
     
@@ -590,8 +586,8 @@ public class CombinerTest {
   
   @Test
   public void sumArrayTest() throws IOException, InstantiationException, IllegalAccessException {
-    sumArray(SummingArrayCombiner.VarNumArrayEncoder.class, "VARNUM");
-    sumArray(SummingArrayCombiner.LongArrayEncoder.class, "LONG");
+    sumArray(SummingArrayCombiner.VarLongArrayEncoder.class, "VARNUM");
+    sumArray(SummingArrayCombiner.FixedLongArrayEncoder.class, "LONG");
     sumArray(SummingArrayCombiner.StringArrayEncoder.class, "STRING");
   }
 }

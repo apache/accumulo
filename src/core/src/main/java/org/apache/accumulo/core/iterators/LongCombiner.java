@@ -40,6 +40,10 @@ import org.apache.hadoop.io.WritableUtils;
  * VARNUM, LONG, and STRING which indicate the VarNumEncoder, LongEncoder, and StringEncoder respectively.
  */
 public abstract class LongCombiner extends TypedValueCombiner<Long> {
+  public static final Encoder<Long> FIXED_LEN_ENCODER = new FixedLenEncoder();
+  public static final Encoder<Long> VAR_LEN_ENCODER = new VarLenEncoder();
+  public static final Encoder<Long> STRING_ENCODER = new StringEncoder();
+  
   protected static final String TYPE = "type";
   protected static final String CLASS_PREFIX = "class:";
   
@@ -73,17 +77,16 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
       } catch (IllegalAccessException e) {
         throw new IllegalArgumentException(e);
       }
-    }
-    else {
+    } else {
       switch (Type.valueOf(type)) {
         case VARNUM:
-          encoder = new VarNumEncoder();
+          encoder = VAR_LEN_ENCODER;
           return;
         case LONG:
-          encoder = new LongEncoder();
+          encoder = FIXED_LEN_ENCODER;
           return;
         case STRING:
-          encoder = new StringEncoder();
+          encoder = STRING_ENCODER;
           return;
         default:
           throw new IllegalArgumentException();
@@ -110,7 +113,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   /**
    * An Encoder that uses a variable-length encoding for Longs. It uses WritableUtils.writeVLong and WritableUtils.readVLong for encoding and decoding.
    */
-  public static class VarNumEncoder implements Encoder<Long> {
+  public static class VarLenEncoder implements Encoder<Long> {
     @Override
     public byte[] encode(Long v) {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -139,7 +142,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   /**
    * An Encoder that uses an 8-byte encoding for Longs.
    */
-  public static class LongEncoder implements Encoder<Long> {
+  public static class FixedLenEncoder implements Encoder<Long> {
     @Override
     public byte[] encode(Long l) {
       byte[] b = new byte[8];

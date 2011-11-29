@@ -34,7 +34,10 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 /**
- * This iterator facilitates document-partitioned indexing. It expects a table structure of the following form:
+ * This iterator facilitates document-partitioned indexing. It involves grouping a set of documents together and indexing those documents into a single row of
+ * an Accumulo table. This allows a tablet server to perform boolean AND operations on terms in the index.
+ * 
+ * The table structure should have the following form:
  * 
  * row: shardID, colfam: term, colqual: docID
  * 
@@ -375,8 +378,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     return "";
   }
   
-  public static final String columnFamiliesOptionName = "columnFamilies";
-  public static final String notFlagOptionName = "notFlag";
+  private static final String columnFamiliesOptionName = "columnFamilies";
+  private static final String notFlagOptionName = "notFlag";
   
   /**
    * to be made protected
