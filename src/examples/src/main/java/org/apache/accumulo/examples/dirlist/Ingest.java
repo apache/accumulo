@@ -26,7 +26,8 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.aggregation.LongSummation;
+import org.apache.accumulo.core.iterators.LongCombiner;
+import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.examples.filedata.FileDataIngest;
@@ -39,6 +40,7 @@ public class Ingest {
   public static final String EXEC_CQ = "exec";
   public static final String LASTMOD_CQ = "lastmod";
   public static final String HASH_CQ = "md5";
+  public static final Encoder<Long> encoder = LongCombiner.FIXED_LEN_ENCODER;
   
   public static Mutation buildMutation(ColumnVisibility cv, String path, boolean isDir, boolean isHidden, boolean canExec, long length, long lastmod,
       String hash) {
@@ -49,7 +51,7 @@ public class Ingest {
     if (isDir)
       colf = QueryUtil.DIR_COLF;
     else
-      colf = new Text(LongSummation.longToBytes(Long.MAX_VALUE - lastmod));
+      colf = new Text(encoder.encode(Long.MAX_VALUE - lastmod));
     m.put(colf, new Text(LENGTH_CQ), cv, new Value(Long.toString(length).getBytes()));
     m.put(colf, new Text(HIDDEN_CQ), cv, new Value(Boolean.toString(isHidden).getBytes()));
     m.put(colf, new Text(EXEC_CQ), cv, new Value(Boolean.toString(canExec).getBytes()));

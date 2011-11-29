@@ -33,6 +33,23 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+/**
+ * This iterator facilitates document-partitioned indexing. It involves grouping a set of documents together and indexing those documents into a single row of
+ * an Accumulo table. This allows a tablet server to perform boolean AND operations on terms in the index.
+ * 
+ * The table structure should have the following form:
+ * 
+ * row: shardID, colfam: term, colqual: docID
+ * 
+ * When you configure this iterator with a set of terms (column families), it will return only the docIDs that appear with all of the specified terms. The
+ * result will have an empty column family, as follows:
+ * 
+ * row: shardID, colfam: (empty), colqual: docID
+ * 
+ * This iterator is commonly used with BatchScanner or AccumuloInputFormat, to parallelize the search over all shardIDs.
+ * 
+ * README.shard in docs/examples shows an example of using the IntersectingIterator.
+ */
 public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   
   protected Text nullText = new Text();
@@ -361,11 +378,16 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     return "";
   }
   
-  public static final String columnFamiliesOptionName = "columnFamilies";
-  public static final String notFlagOptionName = "notFlag";
+  private static final String columnFamiliesOptionName = "columnFamilies";
+  private static final String notFlagOptionName = "notFlag";
   
-  // to be made private
-  // @see setColumnFamilies
+  /**
+   * to be made protected
+   * 
+   * @param columns
+   * @return encoded columns
+   * @deprecated since 1.4 {@link #setColumnFamilies(IteratorSetting, Text[] columns)}
+   */
   public static String encodeColumns(Text[] columns) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < columns.length; i++) {
@@ -375,6 +397,13 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     return sb.toString();
   }
   
+  /**
+   * to be made protected
+   * 
+   * @param flags
+   * @return encoded flags
+   * @deprecated since 1.4 {@link #setColumnFamilies(IteratorSetting, Text[] columns, boolean[] flags)}
+   */
   public static String encodeBooleans(boolean[] flags) {
     byte[] bytes = new byte[flags.length];
     for (int i = 0; i < flags.length; i++) {
@@ -386,7 +415,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     return new String(Base64.encodeBase64(bytes));
   }
   
-  private static Text[] decodeColumns(String columns) {
+  protected static Text[] decodeColumns(String columns) {
     String[] columnStrings = columns.split("\n");
     Text[] columnTexts = new Text[columnStrings.length];
     for (int i = 0; i < columnStrings.length; i++) {
@@ -395,6 +424,13 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     return columnTexts;
   }
   
+  /**
+   * to be made protected
+   * 
+   * @param flags
+   * @return decoded flags
+   * @deprecated since 1.4
+   */
   public static boolean[] decodeBooleans(String flags) {
     // return null of there were no flags
     if (flags == null)
@@ -506,5 +542,19 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    */
   public static void setColumnFamilies(IteratorSetting cfg, Text[] columns) {
     cfg.addOption(IntersectingIterator.columnFamiliesOptionName, IntersectingIterator.encodeColumns(columns));
+  }
+  
+  /**
+   * Encode columns and NOT flags indicating which columns should be negated (docIDs will be excluded if matching negated columns, instead of included).
+   * 
+   * @param cfg
+   * @param columns
+   * @param notFlags
+   */
+  public static void setColumnFamilies(IteratorSetting cfg, Text[] columns, boolean[] notFlags) {
+    if (columns.length != notFlags.length)
+      throw new IllegalArgumentException("columns and notFlags arrays must be the same length");
+    setColumnFamilies(cfg, columns);
+    cfg.addOption(IntersectingIterator.notFlagOptionName, IntersectingIterator.encodeBooleans(notFlags));
   }
 }

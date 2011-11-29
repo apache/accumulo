@@ -24,12 +24,10 @@ This example stores filesystem information in accumulo.  The example stores the 
 
 This example shows how to use Accumulo to store a file system history.  It has the following classes:
 
- * Ingest.java - Recursively lists the files and directories under a given path, ingests their names and file info (not the file data!) into a Accumulo table, and indexes the file names in a separate table.
+ * Ingest.java - Recursively lists the files and directories under a given path, ingests their names and file info (not the file data!) into an Accumulo table, and indexes the file names in a separate table.
  * QueryUtil.java - Provides utility methods for getting the info for a file, listing the contents of a directory, and performing single wild card searches on file or directory names.
  * Viewer.java - Provides a GUI for browsing the file system information stored in Accumulo.
- * FileCountMR.java - Runs MR over the file system information and writes out recursive counts to a Accumulo table.
- * FileCount.java - Accomplishes the same thing as FileCountMR, but in a different way.  Computes recursive counts and stores them back into table.
- * StringArraySummation.java - Aggregates counts for the FileCountMR reducer.
+ * FileCount.java - Computes recursive counts over file system information and stores them back into the same Accumulo table.
  
 To begin, ingest some data with Ingest.java.
 
@@ -56,12 +54,10 @@ To perform searches on file or directory names, also use QueryUtil.java.  Search
     $ ./bin/accumulo org.apache.accumulo.examples.dirlist.QueryUtil instance zookeepers username password indexTable exampleVis '*jar' -search
     $ ./bin/accumulo org.apache.accumulo.examples.dirlist.QueryUtil instance zookeepers username password indexTable exampleVis filename*jar -search
 
-To count the number of direct children (directories and files) and descendants (children and children's descendents, directories and files), run the FileCountMR over the dirTable table.
-The results can be written back to the same table.
+To count the number of direct children (directories and files) and descendants (children and children's descendents, directories and files), run the FileCount over the dirTable table.
+The results are written back to the same table.
 
-    $ ./bin/tool.sh lib/accumulo-examples-*[^c].jar org.apache.accumulo.examples.dirlist.FileCountMR instance zookeepers username password dirTable dirTable exampleVis exampleVis
-
-Alternatively, you can run FileCount.java which performs the same counts but is not a MapReduce.  FileCount will be faster for small data sets.
+    $ ./bin/accumulo org.apache.accumulo.examples.dirlist.FileCount instance zookeepers username password dirTable exampleVis exampleVis
 
 ## Directory Table
 

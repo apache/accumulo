@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.examples.dirlist;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -31,7 +30,6 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.aggregation.LongSummation;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
@@ -93,11 +91,7 @@ public class QueryUtil {
   public static String getType(Text colf) {
     if (colf.equals(DIR_COLF))
       return colf.toString() + ":";
-    try {
-      return Long.toString(LongSummation.bytesToLong(colf.getBytes())) + ":";
-    } catch (IOException e) {
-      return colf.toString() + ":";
-    }
+    return Long.toString(Ingest.encoder.decode(colf.getBytes())) + ":";
   }
   
   public Map<String,String> getData(String path) throws TableNotFoundException {

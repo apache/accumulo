@@ -16,40 +16,21 @@
  */
 package org.apache.accumulo.examples.dirlist;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TreeMap;
 
 import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
-import org.apache.accumulo.core.client.mapreduce.InputFormatBase.RangeInputSplit;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.examples.dirlist.FileCount;
-import org.apache.accumulo.examples.dirlist.FileCountMR;
-import org.apache.accumulo.examples.dirlist.Ingest;
-import org.apache.accumulo.examples.dirlist.QueryUtil;
-import org.apache.accumulo.examples.dirlist.StringArraySummation;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.JobID;
-import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.RecordWriter;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskAttemptID;
 
 public class CountTest extends TestCase {
   {
@@ -74,65 +55,7 @@ public class CountTest extends TestCase {
     }
   }
   
-  public static class AggregatingMap extends TreeMap<Key,Value> {
-    private static final long serialVersionUID = -6644406149713336633L;
-    private Aggregator agg;
-    
-    public AggregatingMap(Aggregator agg) {
-      this.agg = agg;
-    }
-    
-    @Override
-    public Value put(Key key, Value value) {
-      if (!this.containsKey(key))
-        return super.put(key, value);
-      agg.reset();
-      agg.collect(value);
-      agg.collect(this.get(key));
-      return super.put(key, agg.aggregate());
-    }
-  }
-  
   public void test() throws Exception {
-    JobContext job = new JobContext(new Configuration(), new JobID());
-    AccumuloInputFormat.setInputInfo(job, "root", "".getBytes(), "dirlisttable", new Authorizations());
-    AccumuloInputFormat.setMockInstance(job, "counttest");
-    AccumuloInputFormat cif = new AccumuloInputFormat();
-    RangeInputSplit ris = new RangeInputSplit();
-    TaskAttemptContext tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());
-    RecordReader<Key,Value> rr = cif.createRecordReader(ris, tac);
-    rr.initialize(ris, tac);
-    FileCountMR.FileCountMapper mapper = new FileCountMR.FileCountMapper();
-    RecordWriter<Key,Value> rw = new RecordWriter<Key,Value>() {
-      Map<Key,Value> aggmap = new AggregatingMap(new StringArraySummation());
-      
-      @Override
-      public void write(Key key, Value value) throws IOException, InterruptedException {
-        aggmap.put(key, value);
-      }
-      
-      @Override
-      public void close(TaskAttemptContext context) throws IOException, InterruptedException {
-        ArrayList<Pair<String,String>> expected = new ArrayList<Pair<String,String>>();
-        expected.add(new Pair<String,String>("", "1,0,3,3"));
-        expected.add(new Pair<String,String>("/local", "2,1,2,3"));
-        expected.add(new Pair<String,String>("/local/user1", "0,2,0,2"));
-        
-        int i = 0;
-        for (Entry<Key,Value> e : aggmap.entrySet()) {
-          assertEquals(e.getKey().getRow().toString(), expected.get(i).getFirst());
-          assertEquals(e.getValue().toString(), expected.get(i).getSecond());
-          i++;
-        }
-        assertEquals(aggmap.entrySet().size(), expected.size());
-      }
-    };
-    Mapper<Key,Value,Key,Value>.Context context = mapper.new Context(job.getConfiguration(), new TaskAttemptID(), rr, rw, null, null, ris);
-    mapper.run(context);
-    rw.close(context);
-  }
-  
-  public void test2() throws Exception {
     Scanner scanner = new MockInstance("counttest").getConnector("root", "".getBytes()).createScanner("dirlisttable", new Authorizations());
     scanner.fetchColumn(new Text("dir"), new Text("counts"));
     assertFalse(scanner.iterator().hasNext());

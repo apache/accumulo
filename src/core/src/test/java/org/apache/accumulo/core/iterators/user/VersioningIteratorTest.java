@@ -37,7 +37,7 @@ import org.apache.hadoop.io.Text;
 public class VersioningIteratorTest extends TestCase {
   // add test for seek function
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
-  private static final Encoder<Long> encoder = new LongCombiner.LongEncoder();
+  private static final Encoder<Long> encoder = LongCombiner.FIXED_LEN_ENCODER;
   
   void createTestData(TreeMap<Key,Value> tm, Text colf, Text colq) {
     for (int i = 0; i < 2; i++) {
