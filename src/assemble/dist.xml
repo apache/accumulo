@@ -83,7 +83,8 @@
 				<exclude>**/randomwalk/conf/logger.xml</exclude>
 				<exclude>**/randomwalk/conf/randomwalk.conf</exclude>
 				<exclude>**/randomwalk/conf/walkers</exclude>
-				<exclude>src/**/*.so</exclude>
+        		<exclude>${extraInclude}</exclude>
+        		<exclude>${extraInclude2}</exclude>
 			</excludes>
 			<fileMode>0644</fileMode>
 			<directoryMode>0755</directoryMode>
