@@ -335,7 +335,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @deprecated since 1.4, see {@link #addIterator(JobContext, IteratorSetting)}
    */
   public static void setIteratorOption(JobContext job, String iteratorName, String key, String value) {
-    if (value == null)
+    if (iteratorName == null || key == null || value == null)
       return;
     
     String iteratorOptions = job.getConfiguration().get(ITERATORS_OPTIONS);
@@ -836,8 +836,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     public AccumuloIteratorOption(String iteratorOption) {
       StringTokenizer tokenizer = new StringTokenizer(iteratorOption, FIELD_SEP);
       this.iteratorName = tokenizer.nextToken();
-      this.key = tokenizer.nextToken();
       try {
+        this.key = URLDecoder.decode(tokenizer.nextToken(), "UTF-8");
         this.value = URLDecoder.decode(tokenizer.nextToken(), "UTF-8");
       } catch (UnsupportedEncodingException e) {
         throw new RuntimeException(e);
@@ -859,7 +859,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     @Override
     public String toString() {
       try {
-        return new String(iteratorName + FIELD_SEP + key + FIELD_SEP + URLEncoder.encode(value, "UTF-8"));
+        return new String(iteratorName + FIELD_SEP + URLEncoder.encode(key, "UTF-8") + FIELD_SEP + URLEncoder.encode(value, "UTF-8"));
       } catch (UnsupportedEncodingException e) {
         throw new RuntimeException(e);
       }
