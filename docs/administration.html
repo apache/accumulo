@@ -28,8 +28,8 @@
 <p>For the most part, accumulo is ready to go out of the box. To start it, first you must distribute and install
 the accumulo software to each machine in the cloud that you wish to run on. The software should be installed
 in the same directory on each machine and configured identically (or at least similarly... see the configuration
-sections for more details). Select one machine to be your boostrap machine, the one that you will start accumulo
-with. Note that you must have passphraseless ssh access to each machine from your bootstrap machine. On this machine,
+sections for more details). Select one machine to be your bootstrap machine, the one that you will start accumulo
+with. Note that you must have passphrase-less ssh access to each machine from your bootstrap machine. On this machine,
 create a conf/masters and conf/slaves file. In the masters file, type the hostname of the machine you wish to run the master on (probably localhost).
 In the slaves file, type the hostnames, separated by newlines of each machine you wish to participate in accumulo as a tablet server. If you neglect
 to create these files, the startup scripts will assume you are trying to run on localhost only, and will instantiate a single-node instance only.
@@ -88,7 +88,7 @@ servers use.  In accumulo-env.sh there is a setting called
 ACCUMULO_TSERVER_OPTS.  By default this is set to something like "-Xmx512m
 -Xms512m".  These are Java jvm options asking Java to use 512 megabytes of
 memory.  By default accumulo stores data written to it outside of the Java
-memory space inorder to avoid pauses caused by the Java garbage collector.  The
+memory space in order to avoid pauses caused by the Java garbage collector.  The
 amount of memory it uses for this data is determined by the accumulo setting
 "tserver.memory.maps.max".  Since this memory is outside of the Java managed
 memory, the process can grow larger than the -Xmx setting.  So if -Xmx is set

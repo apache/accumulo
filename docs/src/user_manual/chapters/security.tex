@@ -126,7 +126,7 @@ config -t table -s table.constraint.1=org.apache.accumulo.core.security.Visibili
 
 Any user with the alter table permission can add or remove this constraint.
 This constraint is not applied to bulk imported data, if this a concern then
-disable the bulk import pesmission.
+disable the bulk import permission.
 
 \section{Secure Authorizations Handling}
 
@@ -134,7 +134,7 @@ For applications serving many users, it is not expected that a accumulo user
 will be created for each application user.  In this case a accumulo user with
 all authorizations needed by any of the applications users must be created.  To
 service queries, the application should create a scanner with the application
-users authorizations.  These authorizations could be obtined from a trusted 3rd
+users authorizations.  These authorizations could be obtained from a trusted 3rd
 party.
 
 Often production systems will integrate with Public-Key Infrastructure (PKI) and
