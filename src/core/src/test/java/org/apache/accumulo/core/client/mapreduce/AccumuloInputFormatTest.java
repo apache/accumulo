@@ -145,6 +145,42 @@ public class AccumuloInputFormatTest {
   }
   
   /**
+   * Test adding iterator options where the keys and values contain both the FIELD_SEPARATOR character (':') and ITERATOR_SEPARATOR (',') characters. There
+   * should be no exceptions thrown when trying to parse these types of option entries.
+   * 
+   * This test makes sure that the expected raw values, as appears in the Job, are equal to what's expected.
+   */
+  @Test
+  public void testIteratorOptionEncoding() throws Throwable {
+    String key = "colon:delimited:key";
+    String value = "comma,delimited,value";
+    IteratorSetting someSetting = new IteratorSetting(1, "iterator", "Iterator.class");
+    someSetting.addOption(key, value);
+    Job job = new Job();
+    AccumuloInputFormat.addIterator(job, someSetting);
+    
+    final String rawConfigOpt = new AccumuloIteratorOption("iterator", key, value).toString();
+    
+    assertEquals(rawConfigOpt, job.getConfiguration().get("AccumuloInputFormat.iterators.options"));
+    
+    List<AccumuloIteratorOption> opts = AccumuloInputFormat.getIteratorOptions(job);
+    assertEquals(1, opts.size());
+    assertEquals(opts.get(0).getKey(), key);
+    assertEquals(opts.get(0).getValue(), value);
+    
+    someSetting.addOption(key + "2", value);
+    someSetting.setPriority(2);
+    someSetting.setName("it2");
+    AccumuloInputFormat.addIterator(job, someSetting);
+    opts = AccumuloInputFormat.getIteratorOptions(job);
+    assertEquals(3, opts.size());
+    for (AccumuloIteratorOption opt : opts) {
+      assertEquals(opt.getKey().substring(0, key.length()), key);
+      assertEquals(opt.getValue(), value);
+    }
+  }
+  
+  /**
    * Test getting iterator settings for multiple iterators set
    */
   @SuppressWarnings("deprecation")
