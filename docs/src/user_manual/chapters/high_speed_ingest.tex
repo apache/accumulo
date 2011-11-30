@@ -122,7 +122,7 @@ file is imported, but whenever it is read by scans or compactions. At import, a
 time is obtained and always used by the specialized system iterator to set that
 time.
 
-The timestamp asigned by accumulo will be the same for every key in the file.
+The timestamp assigned by accumulo will be the same for every key in the file.
 This could cause problems if the file contains multiple keys that are identical
 except for the timestamp.  In this case, the sort order of the keys will be
 undefined. This could occur if an insert and an update were in the same bulk

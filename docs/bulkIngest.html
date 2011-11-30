@@ -57,7 +57,7 @@ when range partitioning using a tables splits each tablet should only
 get one map file.
 
 <P>Any set of cut points for range partitioning can be used in a map
-reduce job, but using Accumulos current splits is probably the most
+reduce job, but using Accumulo's current splits is probably the most
 optimal thing to do.  However in some case there may be too many
 splits.  For example if there are 2000 splits, you would need to run
 2001 reducers.  To overcome this problem use the
