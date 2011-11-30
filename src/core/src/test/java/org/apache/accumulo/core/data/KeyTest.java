@@ -16,10 +16,9 @@
  */
 package org.apache.accumulo.core.data;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.hadoop.io.Text;
-
 import junit.framework.TestCase;
+
+import org.apache.hadoop.io.Text;
 
 public class KeyTest extends TestCase {
   public void testDeletedCompare() {
@@ -92,5 +91,10 @@ public class KeyTest extends TestCase {
     k2 = new Key(new Text("r1"), new Text("cf2"), new Text("cq2"), 89);
     assertEquals(k2, k1);
     
+  }
+  
+  public void testVisibilityFollowingKey() {
+    Key k = new Key("r", "f", "q", "v");
+    assertEquals(k.followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS).toString(), "r f:q [v%00;] " + Long.MAX_VALUE + " false");
   }
 }
