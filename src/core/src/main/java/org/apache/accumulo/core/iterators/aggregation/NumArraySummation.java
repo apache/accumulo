@@ -27,7 +27,7 @@ import org.apache.hadoop.io.WritableUtils;
 
 /**
  * @deprecated since 1.4
- * @use org.apache.accumulo.core.iterators.user.SummingArrayCombiner with SummingArrayCombiner.Type.VARNUM
+ * @use org.apache.accumulo.core.iterators.user.SummingArrayCombiner with SummingArrayCombiner.Type.VARLONG
  */
 public class NumArraySummation implements Aggregator {
   long[] sum = new long[0];

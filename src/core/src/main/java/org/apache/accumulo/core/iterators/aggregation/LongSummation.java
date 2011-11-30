@@ -23,7 +23,7 @@ import org.apache.log4j.Logger;
 
 /**
  * @deprecated since 1.4
- * @use org.apache.accumulo.core.iterators.user.SummingCombiner with SummingCombiner.Type.LONG
+ * @use org.apache.accumulo.core.iterators.user.SummingCombiner with SummingCombiner.Type.FIXEDLEN
  */
 public class LongSummation implements Aggregator {
   private static final Logger log = Logger.getLogger(LongSummation.class);
