@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -42,10 +43,14 @@ import org.apache.accumulo.core.iterators.LongCombiner.VarLenEncoder;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
+import org.apache.accumulo.core.iterators.aggregation.LongSummation;
+import org.apache.accumulo.core.iterators.aggregation.NumArraySummation;
+import org.apache.accumulo.core.iterators.aggregation.NumSummation;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class CombinerTest {
   
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
@@ -589,5 +594,35 @@ public class CombinerTest {
     sumArray(SummingArrayCombiner.VarLongArrayEncoder.class, SummingArrayCombiner.Type.VARLEN);
     sumArray(SummingArrayCombiner.FixedLongArrayEncoder.class, SummingArrayCombiner.Type.FIXEDLEN);
     sumArray(SummingArrayCombiner.StringArrayEncoder.class, SummingArrayCombiner.Type.STRING);
+  }
+  
+  /**
+   * @throws IOException
+   * @deprecated since 1.4
+   */
+  public void testCombinerCompatibility() throws IOException {
+    long[] la = {1l, 2l, 3l};
+    List<Long> ll = new ArrayList<Long>(Arrays.asList((Long) 1l, (Long) 2l, (Long) 3l));
+    assertEquals(ll, SummingArrayCombiner.VAR_LONG_ARRAY_ENCODER.decode(NumArraySummation.longArrayToBytes(la)));
+    assertEquals(la, NumArraySummation.bytesToLongArray(SummingArrayCombiner.VAR_LONG_ARRAY_ENCODER.encode(ll)));
+    testLongEncoding(42l);
+    testLongEncoding(Long.MAX_VALUE);
+    testLongEncoding(Long.MIN_VALUE);
+    testLongEncoding(0l);
+  }
+  
+  /**
+   * @throws IOException
+   * @deprecated since 1.4
+   */
+  public void testLongEncoding(long l) throws IOException {
+    assertEquals((Long) l, SummingCombiner.FIXED_LEN_ENCODER.decode(LongSummation.longToBytes(l)));
+    assertEquals(l, LongSummation.bytesToLong(SummingCombiner.FIXED_LEN_ENCODER.encode(l)));
+    
+    assertEquals((Long) l, SummingCombiner.VAR_LEN_ENCODER.decode(NumSummation.longToBytes(l)));
+    assertEquals(l, NumSummation.bytesToLong(SummingCombiner.VAR_LEN_ENCODER.encode(l)));
+    
+    assertEquals((Long) l, SummingCombiner.STRING_ENCODER.decode(Long.toString(l).getBytes()));
+    assertEquals(l, Long.parseLong(new String(SummingCombiner.STRING_ENCODER.encode(l))));
   }
 }
