@@ -147,7 +147,7 @@ public class FilterTest extends TestCase {
     size = size(filter2);
     assertTrue("size = " + size, size == 100);
   }
-
+  
   public void test2() throws IOException {
     Text colf = new Text("a");
     Text colq = new Text("b");
@@ -354,7 +354,11 @@ public class FilterTest extends TestCase {
     assertTrue(tm.size() == 100);
     TimestampFilter a = new TimestampFilter();
     IteratorSetting is = new IteratorSetting(1, TimestampFilter.class);
-    TimestampFilter.setRange(is, "19990101000011GMT", "19990101000031GMT");
+    TimestampFilter.setRange(is, "19990101010011GMT+01:00", "19990101010031GMT+01:00");
+    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.seek(new Range(), EMPTY_COL_FAMS, false);
+    assertEquals(size(a), 21);
+    TimestampFilter.setRange(is, baseTime + 11000, baseTime + 31000);
     a.init(new SortedMapIterator(tm), is.getProperties(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 21);

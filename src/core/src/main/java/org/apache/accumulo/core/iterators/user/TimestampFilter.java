@@ -18,7 +18,9 @@ package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
@@ -31,7 +33,13 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  * A Filter that matches entries whose timestamps fall within a range.
  */
 public class TimestampFilter extends Filter {
-  private final SimpleDateFormat dateParser = new SimpleDateFormat("yyyyMMddHHmmssz");
+  private final SimpleDateFormat dateParser = initDateParser();
+  
+  private static SimpleDateFormat initDateParser() {
+    SimpleDateFormat dateParser = new SimpleDateFormat("yyyyMMddHHmmssz");
+    dateParser.setTimeZone(TimeZone.getTimeZone("GMT"));
+    return dateParser;
+  }
   
   public static final String START = "start";
   public static final String START_INCL = "startInclusive";
@@ -87,7 +95,7 @@ public class TimestampFilter extends Filter {
       hasEnd = true;
     if (!hasStart && !hasEnd)
       throw new IllegalArgumentException("must have either start or end for " + TimestampFilter.class.getName());
-
+    
     try {
       if (hasStart)
         start = dateParser.parse(options.get(START)).getTime();
@@ -197,6 +205,71 @@ public class TimestampFilter extends Filter {
    */
   public static void setEnd(IteratorSetting is, String end, boolean endInclusive) {
     is.addOption(END, end);
+    is.addOption(END_INCL, Boolean.toString(endInclusive));
+  }
+  
+  /**
+   * A convenience method for setting the range of timestamps accepted by the timestamp filter.
+   * 
+   * @param is
+   *          the iterator setting object to configure
+   * @param start
+   *          the start timestamp, inclusive
+   * @param end
+   *          the end timestamp, inclusive
+   */
+  public static void setRange(IteratorSetting is, long start, long end) {
+    setRange(is, start, true, end, true);
+  }
+  
+  /**
+   * A convenience method for setting the range of timestamps accepted by the timestamp filter.
+   * 
+   * @param is
+   *          the iterator setting object to configure
+   * @param start
+   *          the start timestamp
+   * @param startInclusive
+   *          boolean indicating whether the start is inclusive
+   * @param end
+   *          the end timestamp
+   * @param endInclusive
+   *          boolean indicating whether the end is inclusive
+   */
+  public static void setRange(IteratorSetting is, long start, boolean startInclusive, long end, boolean endInclusive) {
+    setStart(is, start, startInclusive);
+    setEnd(is, end, endInclusive);
+  }
+  
+  /**
+   * A convenience method for setting the start timestamp accepted by the timestamp filter.
+   * 
+   * @param is
+   *          the iterator setting object to configure
+   * @param start
+   *          the start timestamp
+   * @param startInclusive
+   *          boolean indicating whether the start is inclusive
+   */
+  public static void setStart(IteratorSetting is, long start, boolean startInclusive) {
+    SimpleDateFormat dateParser = initDateParser();
+    is.addOption(START, dateParser.format(new Date(start)));
+    is.addOption(START_INCL, Boolean.toString(startInclusive));
+  }
+  
+  /**
+   * A convenience method for setting the end timestamp accepted by the timestamp filter.
+   * 
+   * @param is
+   *          the iterator setting object to configure
+   * @param end
+   *          the end timestamp
+   * @param endInclusive
+   *          boolean indicating whether the end is inclusive
+   */
+  public static void setEnd(IteratorSetting is, long end, boolean endInclusive) {
+    SimpleDateFormat dateParser = initDateParser();
+    is.addOption(END, dateParser.format(new Date(end)));
     is.addOption(END_INCL, Boolean.toString(endInclusive));
   }
 }
