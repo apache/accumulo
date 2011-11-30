@@ -15,4 +15,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-java -cp ../../lib/accumulo-core-1.5.0-incubating-SNAPSHOT.jar:../../lib/log4j-1.2.16.jar  org.apache.accumulo.core.conf.DefaultConfiguration --generate-doc | grep -v ^STANDALONE > ../../docs/config.html
+java -cp ../../src/core/target/classes/:../../src/core/src/main/resources/org/apache/accumulo/core/conf/:../../lib/log4j-1.2.16.jar  org.apache.accumulo.core.conf.DefaultConfiguration --generate-doc > ../../docs/config.html
