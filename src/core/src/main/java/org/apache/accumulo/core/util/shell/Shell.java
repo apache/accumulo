@@ -81,13 +81,13 @@ import org.apache.accumulo.core.iterators.AggregatingIterator;
 import org.apache.accumulo.core.iterators.FilteringIterator;
 import org.apache.accumulo.core.iterators.GrepIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.NoLabelIterator;
 import org.apache.accumulo.core.iterators.OptionDescriber;
+import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
 import org.apache.accumulo.core.iterators.RegExIterator;
 import org.apache.accumulo.core.iterators.SortedKeyIterator;
 import org.apache.accumulo.core.iterators.VersioningIterator;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
 import org.apache.accumulo.core.iterators.aggregation.conf.AggregatorConfiguration;
 import org.apache.accumulo.core.iterators.filter.AgeOffFilter;
 import org.apache.accumulo.core.iterators.filter.RegExFilter;
@@ -99,15 +99,16 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.trace.TraceDump;
 import org.apache.accumulo.core.trace.TraceDump.Printer;
 import org.apache.accumulo.core.util.BadArgumentException;
+import org.apache.accumulo.core.util.BulkImportHelper.AssignmentStats;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Duration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.BulkImportHelper.AssignmentStats;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.DeleterFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
@@ -134,8 +135,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import cloudtrace.instrument.Trace;
-import cloudtrace.instrument.Tracer;
-import cloudtrace.instrument.receivers.ZooSpanClient;
 
 /**
  * A convenient console interface to perform basic accumulo functions Includes auto-complete, help, and quoted strings with escape sequences
@@ -290,9 +289,7 @@ public class Shell {
     byte[] pass;
     try {
       if (!cl.hasOption(fakeOption.getLongOpt())) {
-        String localhost = InetAddress.getLocalHost().getHostName();
-        String path = ZooUtil.getRoot(instance) + Constants.ZTRACERS;
-        Tracer.getInstance().addReceiver(new ZooSpanClient(instance.getZooKeepers(), path, localhost, "shell", 1000));
+        DistributedTrace.enable(instance, "shell", InetAddress.getLocalHost().getHostName());
       }
       
       this.reader = new ConsoleReader();
