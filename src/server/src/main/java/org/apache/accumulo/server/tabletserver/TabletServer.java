@@ -2922,7 +2922,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       
       if (args.length > 0)
         conf.set("tabletserver.hostname", args[0]);
-      Accumulo.enableTracing(local.getHostAddress(), "tserver");
+      Accumulo.enableTracing(local.getHostName(), "tserver");
     } catch (IOException e) {
       log.fatal("couldn't get a reference to the filesystem. quitting");
       throw new RuntimeException(e);

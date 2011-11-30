@@ -23,9 +23,6 @@ import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.server.fate.TStore.TStatus;
 import org.apache.log4j.Logger;
 
-import cloudtrace.instrument.Span;
-import cloudtrace.instrument.Trace;
-import cloudtrace.instrument.TraceRunnable;
 
 /**
  * Fault tolerant executor
@@ -54,12 +51,9 @@ public class Fate<T> {
       while (true) {
         long deferTime = 0;
         long tid = store.reserve();
-        Span span = null;
         try {
           TStatus status = store.getStatus(tid);
           Repo<T> op = store.top(tid);
-          span = Trace.on(op.getDescription());
-          span.data("tid", Long.toHexString(tid));
           if (status == TStatus.FAILED_IN_PROGRESS) {
             processFailed(tid, op);
           } else {
@@ -97,8 +91,6 @@ public class Fate<T> {
           }
         } finally {
           store.unreserve(tid, deferTime);
-          if (span != null)
-            span.stop();
         }
         
       }
@@ -150,7 +142,7 @@ public class Fate<T> {
     
     for (int i = 0; i < numTreads; i++) {
       // TODO: use a ExecutorService, maybe a utility to do these steps throughout the server packages
-      Thread thread = new Daemon(new TraceRunnable(new LoggingRunnable(log, new TransactionRunner())), "Repo runner " + i);
+      Thread thread = new Daemon(new LoggingRunnable(log, new TransactionRunner()), "Repo runner " + i);
       thread.start();
     }
   }
@@ -179,7 +171,7 @@ public class Fate<T> {
         if (autoCleanUp)
           store.setProperty(tid, AUTO_CLEAN_PROP, new Boolean(autoCleanUp));
         
-        store.setProperty(tid, DEBUG_PROP, repo.getClass().getName());
+        store.setProperty(tid, DEBUG_PROP, repo.getDescription());
         
         store.setStatus(tid, TStatus.IN_PROGRESS);
       }
