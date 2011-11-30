@@ -22,6 +22,8 @@ package org.apache.accumulo.core.data;
  * 
  */
 
+import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -37,8 +39,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.io.WritableUtils;
-
-import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 public class Key implements WritableComparable<Key>, Cloneable {
   
@@ -444,8 +444,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
   
   public static String toPrintableString(byte ba[], int offset, int len, int maxLen) {
-    StringBuilder sb = new StringBuilder();
-    
+    return appendPrintableString(ba, offset, len, maxLen, new StringBuilder()).toString();
+  }
+  
+  public static StringBuilder appendPrintableString(byte ba[], int offset, int len, int maxLen, StringBuilder sb) {
     int plen = Math.min(len, maxLen);
     
     for (int i = 0; i < plen; i++) {
@@ -460,26 +462,33 @@ public class Key implements WritableComparable<Key>, Cloneable {
       sb.append("... TRUNCATED");
     }
     
-    return sb.toString();
+    return sb;
+  }
+  
+  private StringBuilder rowColumnStringBuilder() {
+    StringBuilder sb = new StringBuilder();
+    appendPrintableString(row, 0, row.length, Constants.MAX_DATA_TO_PRINT, sb);
+    sb.append(" ");
+    appendPrintableString(colFamily, 0, colFamily.length, Constants.MAX_DATA_TO_PRINT, sb);
+    sb.append(":");
+    appendPrintableString(colQualifier, 0, colQualifier.length, Constants.MAX_DATA_TO_PRINT, sb);
+    sb.append(" [");
+    appendPrintableString(colVisibility, 0, colVisibility.length, Constants.MAX_DATA_TO_PRINT, sb);
+    sb.append("]");
+    return sb;
   }
   
   public String toString() {
-    String labelString = new ColumnVisibility(colVisibility).toString();
-    
-    String s = toPrintableString(row, 0, row.length, Constants.MAX_DATA_TO_PRINT) + " "
-        + toPrintableString(colFamily, 0, colFamily.length, Constants.MAX_DATA_TO_PRINT) + ":"
-        + toPrintableString(colQualifier, 0, colQualifier.length, Constants.MAX_DATA_TO_PRINT) + " " + labelString + " " + Long.toString(timestamp) + " "
-        + deleted;
-    return s;
+    StringBuilder sb = rowColumnStringBuilder();
+    sb.append(" ");
+    sb.append(Long.toString(timestamp));
+    sb.append(" ");
+    sb.append(deleted);
+    return sb.toString();
   }
   
   public String toStringNoTime() {
-    
-    String labelString = new ColumnVisibility(colVisibility).toString();
-    
-    String s = new String(row, 0, row.length) + " " + new String(colFamily, 0, colFamily.length) + ":" + new String(colQualifier, 0, colQualifier.length) + " "
-        + labelString;
-    return s;
+    return rowColumnStringBuilder().toString();
   }
   
   public int getLength() {
