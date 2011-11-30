@@ -131,6 +131,7 @@ import org.apache.accumulo.server.master.tableOps.CreateTable;
 import org.apache.accumulo.server.master.tableOps.DeleteTable;
 import org.apache.accumulo.server.master.tableOps.RenameTable;
 import org.apache.accumulo.server.master.tableOps.TableRangeOp;
+import org.apache.accumulo.server.master.tableOps.TraceRepo;
 import org.apache.accumulo.server.master.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.security.Authenticator;
@@ -831,7 +832,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       }
       
       long tid = fate.startTransaction();
-      fate.seedTransaction(tid, new ShutdownTServer(doomed, force), false);
+      fate.seedTransaction(tid, new TraceRepo<Master>(new ShutdownTServer(doomed, force)), false);
       fate.waitForCompletion(tid);
       fate.delete(tid);
     }
@@ -938,7 +939,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           
           org.apache.accumulo.core.client.admin.TimeType timeType = org.apache.accumulo.core.client.admin.TimeType.valueOf(ByteBufferUtil.toString(arguments
               .get(1)));
-          fate.seedTransaction(opid, new CreateTable(c.user, tableName, timeType, options), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new CreateTable(c.user, tableName, timeType, options)), autoCleanup);
           
           break;
         }
@@ -952,7 +953,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           checkTableName(newTableName, TableOperation.RENAME);
           verify(c, tableId, TableOperation.RENAME, check(c, tableId, TablePermission.ALTER_TABLE) || check(c, SystemPermission.ALTER_TABLE));
           
-          fate.seedTransaction(opid, new RenameTable(tableId, oldTableName, newTableName), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new RenameTable(tableId, oldTableName, newTableName)), autoCleanup);
           
           break;
         }
@@ -981,7 +982,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
             propertiesToSet.put(entry.getKey(), entry.getValue());
           }
           
-          fate.seedTransaction(opid, new CloneTable(c.user, srcTableId, tableName, propertiesToSet, propertiesToExclude), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new CloneTable(c.user, srcTableId, tableName, propertiesToSet, propertiesToExclude)), autoCleanup);
           
           break;
         }
@@ -991,7 +992,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           checkNotMetadataTable(tableName, TableOperation.DELETE);
           verify(c, tableId, TableOperation.DELETE, check(c, SystemPermission.DROP_TABLE) || check(c, tableId, TablePermission.DROP_TABLE));
           
-          fate.seedTransaction(opid, new DeleteTable(tableId), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new DeleteTable(tableId)), autoCleanup);
           break;
         }
         case ONLINE: {
@@ -1001,7 +1002,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           verify(c, tableId, TableOperation.ONLINE,
               check(c, SystemPermission.SYSTEM) || check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
           
-          fate.seedTransaction(opid, new ChangeTableState(tableId, TableOperation.ONLINE), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new ChangeTableState(tableId, TableOperation.ONLINE)), autoCleanup);
           break;
         }
         case OFFLINE: {
@@ -1011,7 +1012,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           verify(c, tableId, TableOperation.OFFLINE,
               check(c, SystemPermission.SYSTEM) || check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
           
-          fate.seedTransaction(opid, new ChangeTableState(tableId, TableOperation.OFFLINE), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new ChangeTableState(tableId, TableOperation.OFFLINE)), autoCleanup);
           break;
         }
         case MERGE: {
@@ -1024,7 +1025,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           verify(c, tableId, TableOperation.MERGE,
               check(c, SystemPermission.SYSTEM) || check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
           
-          fate.seedTransaction(opid, new TableRangeOp(MergeInfo.Operation.MERGE, tableId, startRow, endRow), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new TableRangeOp(MergeInfo.Operation.MERGE, tableId, startRow, endRow)), autoCleanup);
           break;
         }
         case DELETE_RANGE: {
@@ -1036,7 +1037,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           checkNotMetadataTable(tableName, TableOperation.DELETE_RANGE);
           verify(c, tableId, TableOperation.DELETE_RANGE, check(c, SystemPermission.SYSTEM) || check(c, tableId, TablePermission.WRITE));
           
-          fate.seedTransaction(opid, new TableRangeOp(MergeInfo.Operation.DELETE, tableId, startRow, endRow), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new TableRangeOp(MergeInfo.Operation.DELETE, tableId, startRow, endRow)), autoCleanup);
           break;
         }
         case BULK_IMPORT: {
@@ -1049,7 +1050,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           checkNotMetadataTable(tableName, TableOperation.BULK_IMPORT);
           verify(c, tableId, TableOperation.BULK_IMPORT, check(c, tableId, TablePermission.BULK_IMPORT));
           
-          fate.seedTransaction(opid, new BulkImport(tableId, dir, failDir, setTime), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new BulkImport(tableId, dir, failDir, setTime)), autoCleanup);
           break;
         }
         case COMPACT: {
@@ -1060,7 +1061,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           verify(c, tableId, TableOperation.COMPACT,
               check(c, tableId, TablePermission.WRITE) || check(c, tableId, TablePermission.ALTER_TABLE) || check(c, SystemPermission.ALTER_TABLE));
           
-          fate.seedTransaction(opid, new CompactRange(tableId, startRow, endRow), autoCleanup);
+          fate.seedTransaction(opid, new TraceRepo<Master>(new CompactRange(tableId, startRow, endRow)), autoCleanup);
           break;
         }
         default:
