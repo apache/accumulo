@@ -37,7 +37,7 @@
     <property>
       <name>logger.dir.walog</name>
       <value>walogs</value>
-      <description>A local file system to store recovery logs</description>
+      <description>The directory used to store write-ahead logs on the local filesystem. It is possible to specify a comma-separated list of directories.</description>
     </property>
     
     <property>

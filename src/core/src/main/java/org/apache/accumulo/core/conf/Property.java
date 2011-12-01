@@ -153,7 +153,8 @@ public enum Property {
   LOGGER_PORT("logger.port.client", "11224", PropertyType.PORT, "The port used for write-ahead logger services"),
   LOGGER_COPY_THREADPOOL_SIZE("logger.copy.threadpool.size", "2", PropertyType.COUNT,
       "size of the thread pool used to copy files from the local log area to HDFS"),
-  LOGGER_DIR("logger.dir.walog", "walogs", PropertyType.PATH, "The directory used to store write-ahead logs on the local filesystem"),
+  LOGGER_DIR("logger.dir.walog", "walogs", PropertyType.PATH,
+      "The directory used to store write-ahead logs on the local filesystem. It is possible to specify a comma-separated list of directories."),
   LOGGER_PORTSEARCH("logger.port.search", "false", PropertyType.BOOLEAN, "if the port above is in use, search higher ports until one is available"),
   LOGGER_ARCHIVE("logger.archive", "false", PropertyType.BOOLEAN, "determines if logs are archived in hdfs"),
   LOGGER_MONITOR_FS(
@@ -239,7 +240,10 @@ public enum Property {
           + "map files bloom filter is loaded. Set this to zero to initiate loading of bloom " + "filters when a map file opened."),
   TABLE_BLOOM_SIZE("table.bloom.size", "1048576", PropertyType.COUNT, "Bloom filter size, as number of keys."),
   TABLE_BLOOM_ERRORRATE("table.bloom.error.rate", "0.5%", PropertyType.FRACTION, "Bloom filter error rate."),
-  TABLE_BLOOM_KEY_FUNCTOR("table.bloom.key.functor", "org.apache.accumulo.core.file.keyfunctor.RowFunctor", PropertyType.CLASSNAME,
+  TABLE_BLOOM_KEY_FUNCTOR(
+      "table.bloom.key.functor",
+      "org.apache.accumulo.core.file.keyfunctor.RowFunctor",
+      PropertyType.CLASSNAME,
       "A function that can transform the key prior to insertion and check of bloom filter.  org.apache.accumulo.core.file.keyfunctor.RowFunctor,"
           + ",org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor, and org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor are allowable values."
           + " One can extend any of the above mentioned classes to perform specialized parsing of the key. "),

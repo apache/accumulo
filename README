@@ -76,11 +76,13 @@ Create conf/accumulo-site.xml.  You must set the zookeeper servers in this
 file (instance.zookeeper.host).  Look at docs/config.html to see what
 additional variables you can modify and what the defaults are.
 
-* Some recommended modifications for the accumulo site are:
-
-logger.dir.walog
-	- a local directory that will be used to log updates which 
-          will be used in the event of tablet server failure
+Create the write-ahead log directory on all slaves.  The directory is set in 
+the accumulo-site.xml as the "logger.dir.walog" parameter.  It is a local 
+directory that will be used to log updates which will be used in the event of
+tablet server failure, so it is important that it have sufficient space and
+reliability.  It is possible to specify a comma-separated list of directories 
+to use for write-ahead logs, in which case each directory in the list must be
+created on all slaves.
 
 Synchronize your accumulo conf directory across the cluster.  As a precaution
 against mis-configured systems, servers using different configuration files
