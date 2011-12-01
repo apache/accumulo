@@ -77,6 +77,7 @@ public class CreateTableCommand extends Command {
     boolean decode = cl.hasOption(base64Opt.getOpt());
     
     if (cl.hasOption(createTableOptAgg.getOpt())) {
+      Shell.log.warn("aggregators are deprecated");
       String agg = cl.getOptionValue(createTableOptAgg.getOpt());
       
       EscapeTokenizer st = new EscapeTokenizer(agg, "=,");

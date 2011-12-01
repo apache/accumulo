@@ -76,6 +76,7 @@ public class SetIterCommand extends Command {
     Map<String,String> options = new HashMap<String,String>();
     String classname = cl.getOptionValue(classnameTypeOpt.getOpt());
     if (cl.hasOption(aggTypeOpt.getOpt())) {
+      Shell.log.warn("aggregators are deprecated");
       classname = AggregatingIterator.class.getName();
     } else if (cl.hasOption(regexTypeOpt.getOpt()))
       classname = RegExFilter.class.getName();
@@ -149,7 +150,7 @@ public class SetIterCommand extends Command {
     String shortClassName = className;
     if (className.contains("."))
       shortClassName = className.substring(className.lastIndexOf('.') + 1);
-
+    
     Map<String,String> localOptions = new HashMap<String,String>();
     do {
       // clean up the overall options that caused things to fail
@@ -235,7 +236,7 @@ public class SetIterCommand extends Command {
     aggTypeOpt = new Option("agg", "aggregator", false, "an aggregating type");
     regexTypeOpt = new Option("regex", "regular-expression", false, "a regex matching type");
     versionTypeOpt = new Option("vers", "version", false, "a versioning type");
-    nolabelTypeOpt = new Option("nolabel", "no-label", false, "a no-labeling type");
+    nolabelTypeOpt = new Option("nolabel", "no-label", false, "a blank visibility omitting type");
     ageoffTypeOpt = new Option("ageoff", "ageoff", false, "an aging off type");
     
     typeGroup.addOption(classnameTypeOpt);
