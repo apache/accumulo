@@ -64,9 +64,12 @@ public class ScannerOptions implements ScannerBase {
     if (serverSideIteratorList.size() == 0)
       serverSideIteratorList = new ArrayList<IterInfo>();
     
-    for (IterInfo ii : serverSideIteratorList)
+    for (IterInfo ii : serverSideIteratorList) {
       if (ii.iterName.equals(si.getName()))
         throw new IllegalArgumentException("Iterator name is already in use " + si.getName());
+      if (ii.getPriority() == si.getPriority())
+        throw new IllegalArgumentException("Iterator priority is already in use " + si.getPriority());
+    }
     
     serverSideIteratorList.add(new IterInfo(si.getPriority(), si.getIteratorClass(), si.getName()));
     

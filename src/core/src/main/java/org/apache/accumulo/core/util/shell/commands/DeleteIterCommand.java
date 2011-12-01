@@ -58,6 +58,8 @@ public class DeleteIterCommand extends Command {
       scopes.add(IteratorScope.majc);
     if (cl.hasOption(scanScopeOpt.getOpt()))
       scopes.add(IteratorScope.scan);
+    if (scopes.isEmpty())
+      throw new IllegalArgumentException("You must select at least one scope to configure");
     shellState.getConnector().tableOperations().removeIterator(tableName, name, scopes);
     return 0;
   }

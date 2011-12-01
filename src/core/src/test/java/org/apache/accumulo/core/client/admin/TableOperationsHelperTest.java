@@ -204,7 +204,7 @@ public class TableOperationsHelperTest {
     t.check("table", new String[] {"table.iterator.scan.someName=10,foo.bar",});
     t.removeIterator("table", "someName", EnumSet.of(IteratorScope.scan));
     t.check("table", new String[] {});
-
+    
     IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
     setting.setScopes(EnumSet.of(IteratorScope.majc));
     setting.addOptions(Collections.singletonMap("key", "value"));
@@ -213,7 +213,7 @@ public class TableOperationsHelperTest {
     t.attachIterator("table", setting);
     t.check("table", new String[] {"table.iterator.majc.someName=10,foo.bar", "table.iterator.majc.someName.opt.key=value",
         "table.iterator.scan.someName=10,foo.bar",});
-
+    
     setting = new IteratorSetting(20, "otherName", "some.classname");
     setting.setScopes(EnumSet.of(IteratorScope.majc));
     setting.addOptions(Collections.singletonMap("key", "value"));
@@ -227,7 +227,7 @@ public class TableOperationsHelperTest {
     t.removeIterator("table", "someName", EnumSet.allOf(IteratorScope.class));
     t.check("table", new String[] {"table.iterator.majc.otherName=20,some.classname", "table.iterator.majc.otherName.opt.key=value",
         "table.iterator.scan.otherName=20,some.classname",});
-
+    
     setting = t.getIteratorSetting("table", "otherName", IteratorScope.scan);
     Assert.assertEquals(20, setting.getPriority());
     Assert.assertEquals("some.classname", setting.getIteratorClass());
@@ -241,6 +241,18 @@ public class TableOperationsHelperTest {
     t.attachIterator("table", setting);
     t.check("table", new String[] {"table.iterator.majc.otherName=20,some.classname", "table.iterator.majc.otherName.opt.key=value",
         "table.iterator.minc.otherName=20,some.classname", "table.iterator.minc.otherName.opt.key=value", "table.iterator.scan.otherName=20,some.classname",});
+    
+    try {
+      t.attachIterator("table", setting);
+      Assert.fail();
+    } catch (IllegalArgumentException e) {}
+    setting.setName("thirdName");
+    try {
+      t.attachIterator("table", setting);
+      Assert.fail();
+    } catch (IllegalArgumentException e) {}
+    setting.setPriority(10);
+    t.attachIterator("table", setting);
   }
   
 }
