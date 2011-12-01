@@ -22,9 +22,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.util.shell.Shell;
+import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.Token;
-import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -49,12 +49,11 @@ public class HelpCommand extends Command {
     
     // print help for every command on command line
     for (String cmd : cl.getArgs()) {
-      try {
-        shellState.commandFactory.get(cmd).printHelp();
-      } catch (Exception e) {
-        Shell.printException(e);
-        return 1;
-      }
+      Command c = shellState.commandFactory.get(cmd);
+      if (c == null)
+        shellState.getReader().printString(String.format("Unknown command \"%s\".  Enter \"help\" for a list possible commands.\n", cmd));
+      else
+        c.printHelp();
     }
     return 0;
   }
