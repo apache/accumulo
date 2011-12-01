@@ -36,6 +36,7 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         TestUtilsMixin.setUp(self)
         
     def runTest(self):
+        self.setIterTest()
         self.aggTest()
         self.iteratorsTest()
         self.createtableTestSplits()
@@ -56,8 +57,37 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         self.getauthsTest()
         
         
+    def setIterTest(self):
+        input = 'setiter -t setitertest -n mymax -scan -p 10 -class org.apache.accumulo.core.iterators.user.MaxCombiner\ncf\nSTRING\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.failUnless(out.find("TableNotFoundException") >= 0,
+                        "Was able to setiter a table that didn't exist")
+        input = 'createtable setitertest\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        input = 'setiter -t setitertest -n mymax -scan -p 10 -class org.apache.accumulo.core.iterators.user.MaxCombiner\ncf1\nSTRING\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        input = 'setiter -t setitertest -n mymax -scan -p 10 -class org.apache.accumulo.core.iterators.user.MinCombiner\ncf2\nSTRING\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.failUnless(out.find("IllegalArgumentException") >= 0,
+                        "Was able to configure same iter name twice")
+        input = 'setiter -t setitertest -n mymin -scan -p 10 -class org.apache.accumulo.core.iterators.user.MinCombiner\ncf2\nSTRING\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.failUnless(out.find("IllegalArgumentException") >= 0,
+                        "Was able to configure same prioritytwice")
+        input = 'setiter -t setitertest -n mymin -scan -p 11 -class org.apache.accumulo.core.iterators.user.MinCombiner\ncf2\nSTRING\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        input = 'table setitertest\ninsert row1 cf1 cq 10\ninsert row1 cf1 cq 30\ninsert row1 cf1 cq 20\ninsert row1 cf2 cq 10\ninsert row1 cf2 cq 30\nscan -np\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        self.failIf(out.find("row1 cf1:cq []    30") == -1 or out.find("row1 cf2:cq []    10") == -1,
+                        "Config Failed:  combining failed")
+
+        
     def aggTest(self):
-        input = 'createtable aggtest\nsetiter -t aggtest -agg -n myagg -scan -p 10\ns org.apache.accumulo.core.iterators.aggregation.StringSummation\n\nquit\n'
+        input = 'createtable aggtest\nsetiter -t aggtest -n myagg -scan -p 10 -class org.apache.accumulo.core.iterators.user.SummingCombiner\ns\nSTRING\n\nquit\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
         input = 'table aggtest\ninsert row1 s c 10\ninsert row1 s c 30\nscan -np\n'
