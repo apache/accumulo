@@ -35,7 +35,8 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @param cfg
    *          fully specified scan-time iterator, including all options for the iterator. Any changes to the iterator setting after this call are not propagated
    *          to the stored iterator.
-   * 
+   * @throws IllegalArgumentException
+   *           if the setting conflicts with existing iterators
    */
   public void addScanIterator(IteratorSetting cfg);
   

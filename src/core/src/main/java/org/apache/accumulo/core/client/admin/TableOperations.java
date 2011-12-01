@@ -470,6 +470,8 @@ public interface TableOperations {
    * @throws AccumuloException
    * @throws TableNotFoundException
    *           throw if the table no longer exists
+   * @throws IllegalArgumentException
+   *           if the setting conflicts with any existing iterators
    */
   public void attachIterator(String tableName, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
   
@@ -521,4 +523,19 @@ public interface TableOperations {
    * @throws TableNotFoundException
    */
   public Set<String> listIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+  
+  /**
+   * Check whether a given iterator configuration conflicts with existing configuration; in particular, determine if the name or priority are already in use for
+   * the specified scopes.
+   * 
+   * @param tableName
+   *          the name of the table
+   * @param setting
+   *          object specifying the properties of the iterator
+   * @throws AccumuloException
+   * @throws TableNotFoundException
+   * @throws IllegalStateException
+   *           if the setting conflicts with any existing iterators
+   */
+  public void checkIteratorConflicts(String tableName, IteratorSetting setting) throws AccumuloException, TableNotFoundException;
 }
