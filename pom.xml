@@ -34,6 +34,18 @@
   </modules>
 
   <build>
+    <resources>
+      <resource>
+        <directory>${basedir}/../../</directory>
+        <targetPath>META-INF</targetPath>
+	<includes>
+	  <include>CHANGES</include>
+	  <include>LICENSE</include>
+	  <include>DISCLAIMER</include>
+	  <include>NOTICE</include>
+	</includes>
+      </resource>
+    </resources>
     <defaultGoal>package</defaultGoal>
     <plugins>
       <plugin>
@@ -123,6 +135,7 @@
             <include>web/**</include>
             <include>randomwalk/**</include>
             <include>*.*</include>
+	    <include>**/META-INF/*</include>
           </includes>
         </configuration>
       </plugin>
