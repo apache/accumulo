@@ -248,8 +248,12 @@ For the src/server/src/main/resources/web/flot/*.js files:
 
     The MIT License
 
-    Copyright (c) 2008, Three Dub Media (threedubmedia@gmail.com)
+    Copyright (c) 2008, Three Dub Media (http://threedubmedia.com)  
     Copyright (c) 2009 Brandon Aaron (http://brandonaaron.net)
+    Copyright (c) 2010 "Cowboy" Ben Alman
+    Copyright 2011, John Resig
+    Copyright 2011, The Dojo Foundation
+    Copyright (c) 2007-2009 IOLA and Ole Laursen
     
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
