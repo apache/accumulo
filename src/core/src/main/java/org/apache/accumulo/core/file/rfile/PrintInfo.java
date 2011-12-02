@@ -43,9 +43,17 @@ public class PrintInfo {
     Options opts = new Options();
     Option dumpKeys = new Option("d", "dump", false, "dump the key/value pairs");
     opts.addOption(dumpKeys);
+    Option histogramOption = new Option("h", "histogram", false, "print a histogram of the key-value sizes");
+    opts.addOption(histogramOption);
     
     CommandLine commandLine = new BasicParser().parse(opts, args);
     
+    boolean dump = commandLine.hasOption(dumpKeys.getOpt());
+    boolean doHistogram = commandLine.hasOption(histogramOption.getOpt());
+    long countBuckets[] = new long[11];
+    long sizeBuckets[] = new long[countBuckets.length];
+    long totalSize = 0;
+
     for (String arg : commandLine.getArgs()) {
       
       Path path = new Path(arg);
@@ -56,17 +64,30 @@ public class PrintInfo {
       System.out.println();
       org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(new String[] {arg});
       
-      if (commandLine.hasOption(dumpKeys.getOpt())) {
+      if (doHistogram || dump) {
         iter.seek(new Range((Key) null, (Key) null), new ArrayList<ByteSequence>(), false);
         while (iter.hasTop()) {
           Key key = iter.getTopKey();
           Value value = iter.getTopValue();
-          System.out.println(key + " -> " + value);
+          if (dump)
+            System.out.println(key + " -> " + value);
+          if (doHistogram) {
+            long size = key.getSize() + value.getSize();
+            int bucket = (int) Math.log10(size);
+            countBuckets[bucket]++;
+            sizeBuckets[bucket] += size;
+            totalSize += size;
+          }
           iter.next();
         }
       }
-      
       iter.close();
+      if (doHistogram) {
+        System.out.println("Up to size      count      %-age");
+        for (int i = 1; i < countBuckets.length; i++) {
+          System.out.println(String.format("%11.0f : %10d %6.2f%%", Math.pow(10, i), countBuckets[i], sizeBuckets[i] * 100. / totalSize));
+        }
+      }
     }
   }
 }
