@@ -529,11 +529,9 @@
         <version>3.2</version>
       </dependency>
       <dependency>
-        <groupId>org.apache.thrift</groupId>
+        <groupId>org.apache.accumulo.thrift</groupId>
         <artifactId>libthrift</artifactId>
         <version>0.3</version>
-        <scope>system</scope>
-        <systemPath>${basedir}/${project.parent.relativePath}/contrib/libthrift-0.3.jar</systemPath>
       </dependency>
       <dependency>
         <groupId>jline</groupId>
@@ -590,6 +588,13 @@
       <artifactId>junit</artifactId>
     </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <id>legacy-releases</id>
+      <url>http://incubator.apache.org/accumulo/mvn_repo</url>
+    </repository>
+  </repositories>
 
   <distributionManagement>
     <repository>
