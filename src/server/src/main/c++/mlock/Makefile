@@ -15,7 +15,7 @@
 
 LIB=MLock
 SRCS=$(filter-out test.cc,$(wildcard *.cc))
-HDRS=$(wildcard *.h) accumulo_server_tabletserver_$(LIB).h
+HDRS=$(wildcard *.h) org_apache_accumulo_server_tabletserver_$(LIB).h
 CXX=g++
 
 ifeq ($(shell uname),Linux)
@@ -36,7 +36,7 @@ all : $(INSTALLED_LIBS)
 clean:
 	rm -f $(INSTALLED_LIBS) $(LIBS)
 
-accumulo_server_tabletserver_$(LIB).h : ../../java/org/apache/accumulo/server/tabletserver/$(LIB).java
+org_apache_accumulo_server_tabletserver_$(LIB).h : ../../java/org/apache/accumulo/server/tabletserver/$(LIB).java
 	javah -classpath ../../../../../../lib/accumulo-server-1.4.0-incubating-SNAPSHOT.jar org.apache.accumulo.server.tabletserver.$(LIB)
 
 $(INSTALLED_LIBS) : $(INSTALL_DIR) $(LIBS)
