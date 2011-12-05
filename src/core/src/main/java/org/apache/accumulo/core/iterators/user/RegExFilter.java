@@ -39,10 +39,10 @@ public class RegExFilter extends Filter {
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     RegExFilter result = new RegExFilter();
     result.setSource(getSource().deepCopy(env));
-    result.rowMatcher = rowMatcher.pattern().matcher("");
-    result.colfMatcher = colfMatcher.pattern().matcher("");
-    result.colqMatcher = colqMatcher.pattern().matcher("");
-    result.valueMatcher = valueMatcher.pattern().matcher("");
+    result.rowMatcher = copyMatcher(rowMatcher);
+    result.colfMatcher = copyMatcher(colfMatcher);
+    result.colqMatcher = copyMatcher(colqMatcher);
+    result.valueMatcher = copyMatcher(valueMatcher);
     result.orFields = orFields;
     return result;
   }
@@ -60,6 +60,14 @@ public class RegExFilter extends Filter {
   private boolean orFields = false;
   
   private ByteArrayBackedCharSequence babcs = new ByteArrayBackedCharSequence();
+  
+  private Matcher copyMatcher(Matcher m)
+  {
+	  if(m == null)
+		  return m;
+	  else
+		  return m.pattern().matcher("");
+  }
   
   private boolean matches(Matcher matcher, ByteSequence bs) {
     if (matcher != null) {
