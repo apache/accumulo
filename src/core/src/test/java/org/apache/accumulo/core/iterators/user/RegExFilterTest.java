@@ -192,5 +192,12 @@ public class RegExFilterTest extends TestCase {
     assertTrue(rei.getTopKey().equals(k2));
     rei.next();
     assertFalse(rei.hasTop());
+    
+    is.clearOptions();
+    
+    RegExFilter.setRegexs(is, null, "ya.*", "hamster", null, true);
+    rei.init(new SortedMapIterator(tm), is.getProperties(), new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    rei.deepCopy(new DefaultIteratorEnvironment());
   }
 }
