@@ -38,22 +38,6 @@ import java.util.TreeSet;
 import normalizer.LcNoDiacriticsNormalizer;
 import normalizer.Normalizer;
 
-import org.apache.commons.jexl2.parser.ParserTreeConstants;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.time.StopWatch;
-import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
-
-import parser.EventFields;
-import parser.EventFields.FieldValue;
-import parser.JexlOperatorConstants;
-import parser.FieldIndexQueryReWriter;
-import parser.QueryParser;
-import parser.QueryParser.QueryTerm;
-import parser.RangeCalculator;
-import sample.Document;
-import sample.Field;
-import sample.Results;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -62,9 +46,24 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.RegExIterator;
-import org.apache.accumulo.core.iterators.filter.RegExFilter;
+import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.jexl2.parser.ParserTreeConstants;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.StopWatch;
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
+
+import parser.EventFields;
+import parser.EventFields.FieldValue;
+import parser.FieldIndexQueryReWriter;
+import parser.JexlOperatorConstants;
+import parser.QueryParser;
+import parser.QueryParser.QueryTerm;
+import parser.RangeCalculator;
+import sample.Document;
+import sample.Field;
+import sample.Results;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.google.common.collect.HashMultimap;
@@ -846,8 +845,8 @@ public abstract class AbstractQueryLogic {
           }
           if (log.isDebugEnabled())
             log.debug("Setting colf regex iterator to: " + buf.toString());
-          IteratorSetting ri = new IteratorSetting(21, "typeFilter", RegExIterator.class);
-          ri.addOption(RegExFilter.COLF_REGEX, buf.toString());
+          IteratorSetting ri = new IteratorSetting(21, "typeFilter", RegExFilter.class);
+          RegExFilter.setRegexs(ri, null, buf.toString(), null, null, false);
           bs.addScanIterator(ri);
         }
         if (log.isDebugEnabled()) {
