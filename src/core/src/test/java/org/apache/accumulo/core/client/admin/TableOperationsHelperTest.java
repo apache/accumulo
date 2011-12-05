@@ -252,7 +252,12 @@ public class TableOperationsHelperTest {
       Assert.fail();
     } catch (IllegalArgumentException e) {}
     setting.setPriority(10);
+    t.setProperty("table", "table.iterator.minc.thirdName.opt.key", "value");
+    try {
+      t.attachIterator("table", setting);
+      Assert.fail();
+    } catch (IllegalArgumentException e) {}
+    t.removeProperty("table", "table.iterator.minc.thirdName.opt.key");
     t.attachIterator("table", setting);
   }
-  
 }
