@@ -14,7 +14,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-#include "accumulo_server_tabletserver_MLock.h"
+#include "org_apache_accumulo_server_tabletserver_MLock.h"
 
 #include <unistd.h>
 
