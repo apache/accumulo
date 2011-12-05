@@ -12,3 +12,9 @@ This product includes JLine (http://jline.sourceforge.net/), which is licensed
 under the BSD License.
 Copyright (c) 2002-2006, Marc Prud'hommeaux <mwp1@cornell.edu>, All rights 
 reserved.
+
+Files in src/core/src/main/java/org/apache/accumulo/core/bloomfilter
+derived from sources
+Copyright (c) 2005, European Commission project OneLab under contract
+034819 (http://www.one-lab.org)
+All rights reserved.
