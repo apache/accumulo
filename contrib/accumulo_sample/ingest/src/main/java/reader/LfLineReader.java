@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package reader;
 
 import java.io.IOException;
@@ -34,24 +34,27 @@ public class LfLineReader {
   private int bufferLength = 0;
   // the current position in the buffer
   private int bufferPosn = 0;
-
+  
   private static final byte LF = '\n';
-
+  
   /**
-   * Create a line reader that reads from the given stream using the
-   * default buffer-size (64k).
-   * @param in The input stream
+   * Create a line reader that reads from the given stream using the default buffer-size (64k).
+   * 
+   * @param in
+   *          The input stream
    * @throws IOException
    */
   public LfLineReader(InputStream in) {
     this(in, DEFAULT_BUFFER_SIZE);
   }
-
+  
   /**
-   * Create a line reader that reads from the given stream using the
-   * given buffer-size.
-   * @param in The input stream
-   * @param bufferSize Size of the read buffer
+   * Create a line reader that reads from the given stream using the given buffer-size.
+   * 
+   * @param in
+   *          The input stream
+   * @param bufferSize
+   *          Size of the read buffer
    * @throws IOException
    */
   public LfLineReader(InputStream in, int bufferSize) {
@@ -59,67 +62,63 @@ public class LfLineReader {
     this.bufferSize = bufferSize;
     this.buffer = new byte[this.bufferSize];
   }
-
+  
   /**
-   * Create a line reader that reads from the given stream using the
-   * <code>io.file.buffer.size</code> specified in the given
-   * <code>Configuration</code>.
-   * @param in input stream
-   * @param conf configuration
+   * Create a line reader that reads from the given stream using the <code>io.file.buffer.size</code> specified in the given <code>Configuration</code>.
+   * 
+   * @param in
+   *          input stream
+   * @param conf
+   *          configuration
    * @throws IOException
    */
   public LfLineReader(InputStream in, Configuration conf) throws IOException {
     this(in, conf.getInt("io.file.buffer.size", DEFAULT_BUFFER_SIZE));
   }
-
+  
   /**
    * Close the underlying stream.
+   * 
    * @throws IOException
    */
   public void close() throws IOException {
     in.close();
   }
-
+  
   /**
-   * Read one line from the InputStream into the given Text.  A line
-   * can be terminated by '\n' (LF).  EOF also terminates an
-   * otherwise unterminated line.
-   *
-   * @param str the object to store the given line (without newline)
-   * @param maxLineLength the maximum number of bytes to store into str;
-   *  the rest of the line is silently discarded.
-   * @param maxBytesToConsume the maximum number of bytes to consume
-   *  in this call.  This is only a hint, because if the line cross
-   *  this threshold, we allow it to happen.  It can overshoot
-   *  potentially by as much as one buffer length.
-   *
-   * @return the number of bytes read including the (longest) newline
-   * found.
-   *
-   * @throws IOException if the underlying stream throws
+   * Read one line from the InputStream into the given Text. A line can be terminated by '\n' (LF). EOF also terminates an otherwise unterminated line.
+   * 
+   * @param str
+   *          the object to store the given line (without newline)
+   * @param maxLineLength
+   *          the maximum number of bytes to store into str; the rest of the line is silently discarded.
+   * @param maxBytesToConsume
+   *          the maximum number of bytes to consume in this call. This is only a hint, because if the line cross this threshold, we allow it to happen. It can
+   *          overshoot potentially by as much as one buffer length.
+   * 
+   * @return the number of bytes read including the (longest) newline found.
+   * 
+   * @throws IOException
+   *           if the underlying stream throws
    */
-  public int readLine(Text str, int maxLineLength,
-                      int maxBytesToConsume) throws IOException {
-    /* We're reading data from in, but the head of the stream may be
-     * already buffered in buffer, so we have several cases:
-     * 1. No newline characters are in the buffer, so we need to copy
-     *    everything and read another buffer from the stream.
-     * 2. An unambiguously terminated line is in buffer, so we just
-     *    copy to str.
+  public int readLine(Text str, int maxLineLength, int maxBytesToConsume) throws IOException {
+    /*
+     * We're reading data from in, but the head of the stream may be already buffered in buffer, so we have several cases: 1. No newline characters are in the
+     * buffer, so we need to copy everything and read another buffer from the stream. 2. An unambiguously terminated line is in buffer, so we just copy to str.
      */
     str.clear();
-    int txtLength = 0; //tracks str.getLength(), as an optimization
-    int newlineLength = 0; //length of terminating newline
+    int txtLength = 0; // tracks str.getLength(), as an optimization
+    int newlineLength = 0; // length of terminating newline
     long bytesConsumed = 0;
     do {
-      int startPosn = bufferPosn; //starting from where we left off the last time
+      int startPosn = bufferPosn; // starting from where we left off the last time
       if (bufferPosn >= bufferLength) {
         startPosn = bufferPosn = 0;
         bufferLength = in.read(buffer);
         if (bufferLength <= 0)
           break; // EOF
       }
-      for (; bufferPosn < bufferLength; ++bufferPosn) { //search for newline
+      for (; bufferPosn < bufferLength; ++bufferPosn) { // search for newline
         if (buffer[bufferPosn] == LF) {
           newlineLength = 1;
           ++bufferPosn; // at next invocation proceed from following byte
@@ -137,31 +136,38 @@ public class LfLineReader {
         txtLength += appendLength;
       }
     } while (newlineLength == 0 && bytesConsumed < maxBytesToConsume);
-
+    
     if (bytesConsumed > Integer.MAX_VALUE)
       throw new IOException("Too many bytes before newline: " + bytesConsumed);
-    return (int)bytesConsumed;
+    return (int) bytesConsumed;
   }
-
+  
   /**
    * Read from the InputStream into the given Text.
-   * @param str the object to store the given line
-   * @param maxLineLength the maximum number of bytes to store into str.
+   * 
+   * @param str
+   *          the object to store the given line
+   * @param maxLineLength
+   *          the maximum number of bytes to store into str.
    * @return the number of bytes read including the newline
-   * @throws IOException if the underlying stream throws
+   * @throws IOException
+   *           if the underlying stream throws
    */
   public int readLine(Text str, int maxLineLength) throws IOException {
     return readLine(str, maxLineLength, Integer.MAX_VALUE);
-}
-
+  }
+  
   /**
    * Read from the InputStream into the given Text.
-   * @param str the object to store the given line
+   * 
+   * @param str
+   *          the object to store the given line
    * @return the number of bytes read including the newline
-   * @throws IOException if the underlying stream throws
+   * @throws IOException
+   *           if the underlying stream throws
    */
   public int readLine(Text str) throws IOException {
     return readLine(str, Integer.MAX_VALUE, Integer.MAX_VALUE);
   }
-
+  
 }

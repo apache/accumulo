@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package sample.query;
 
 import javax.ws.rs.Consumes;
@@ -29,44 +29,44 @@ import sample.Results;
 
 @Path("/Query")
 public interface IQuery {
-	
-	@GET
-	@POST
-	@Path("/html")
-	@Consumes("*/*")
-	@GZIP
-	public String html(@QueryParam("query") String query, @QueryParam("auths") String auths);
-
-	@GET
-	@POST
-	@Path("/xml")
-	@Consumes("*/*")
-	@Produces("application/xml")
-	@GZIP
-	public Results xml(@QueryParam("query") String query, @QueryParam("auths") String auths);
-
-	@GET
-	@POST
-	@Path("/json")
-	@Consumes("*/*")
-	@Produces("application/json")
-	@GZIP
-	public Results json(@QueryParam("query") String query, @QueryParam("auths")  String auths);
-
-	@GET
-	@POST
-	@Path("/yaml")
-	@Consumes("*/*")
-	@Produces("text/x-yaml")
-	@GZIP	
-	public Results yaml(@QueryParam("query") String query, @QueryParam("auths")  String auths);
-
-	@GET
-	@POST
-	@Path("/content")
-	@Consumes("*/*")
-	@Produces("application/xml")
-	@GZIP	
-	public Results content(@QueryParam("query") String query, @QueryParam("auths")  String auths);
-
+  
+  @GET
+  @POST
+  @Path("/html")
+  @Consumes("*/*")
+  @GZIP
+  public String html(@QueryParam("query") String query, @QueryParam("auths") String auths);
+  
+  @GET
+  @POST
+  @Path("/xml")
+  @Consumes("*/*")
+  @Produces("application/xml")
+  @GZIP
+  public Results xml(@QueryParam("query") String query, @QueryParam("auths") String auths);
+  
+  @GET
+  @POST
+  @Path("/json")
+  @Consumes("*/*")
+  @Produces("application/json")
+  @GZIP
+  public Results json(@QueryParam("query") String query, @QueryParam("auths") String auths);
+  
+  @GET
+  @POST
+  @Path("/yaml")
+  @Consumes("*/*")
+  @Produces("text/x-yaml")
+  @GZIP
+  public Results yaml(@QueryParam("query") String query, @QueryParam("auths") String auths);
+  
+  @GET
+  @POST
+  @Path("/content")
+  @Consumes("*/*")
+  @Produces("application/xml")
+  @GZIP
+  public Results content(@QueryParam("query") String query, @QueryParam("auths") String auths);
+  
 }

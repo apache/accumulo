@@ -1,19 +1,19 @@
 /*
-* Licensed to the Apache Software Foundation (ASF) under one or more
-* contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
-* The ASF licenses this file to You under the Apache License, Version 2.0
-* (the "License"); you may not use this file except in compliance with
-* the License.  You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package ingest;
 
 import java.io.IOException;
@@ -54,158 +54,156 @@ import org.apache.accumulo.core.iterators.aggregation.NumSummation;
 import org.apache.accumulo.core.iterators.aggregation.conf.AggregatorConfiguration;
 
 public class WikipediaIngester extends Configured implements Tool {
-	
-	public final static String INGEST_LANGUAGE = "wikipedia.ingest_language";
-	public final static String SPLIT_FILE = "wikipedia.split_file";
-	public final static String TABLE_NAME = "wikipedia.table";
-	
-
-	public static void main(String[] args) throws Exception {
-		int res = ToolRunner.run(new Configuration(), new WikipediaIngester(), args);
-		System.exit(res);
-	}
-		
-	private void createTables(TableOperations tops, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException {
-		//Create the shard table
-		String indexTableName = tableName + "Index";
-		String reverseIndexTableName = tableName + "ReverseIndex";
-		String metadataTableName = tableName + "Metadata";
-
-		//create the shard table
-		if (!tops.exists(tableName)) {
-            // Set a text index aggregator on the given field names. No aggregator is set if the option is not supplied 
-            String textIndexFamilies = WikipediaMapper.TOKENS_FIELD_NAME;
-            
-            if (textIndexFamilies.length() > 0) {
-                System.out.println("Adding content aggregator on the fields: " + textIndexFamilies);
-                
-                // Create and set the aggregators in one shot
-                List<AggregatorConfiguration> aggregators = new ArrayList<AggregatorConfiguration>();
-
-                for (String family : StringUtils.split(textIndexFamilies, ',')) {
-                    aggregators.add(new AggregatorConfiguration(new Text("fi\0" + family), aggregator.TextIndexAggregator.class.getName()));
-                }
-                
-                tops.create(tableName);
-		tops.addAggregators(tableName, aggregators);
-            } else {
-                tops.create(tableName);
-            }
-            
-            // Set the locality group for the full content column family
-            tops.setLocalityGroups(tableName,
-                    Collections.singletonMap("WikipediaDocuments", 
-                            Collections.singleton(new Text(WikipediaMapper.DOCUMENT_COLUMN_FAMILY))));
-			
-		}
-		
-		if (!tops.exists(indexTableName)) {
-            tops.create(indexTableName);
-            //Add the UID aggregator
-            for (IteratorScope scope : IteratorScope.values()) {
-                String stem = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name(), "UIDAggregator");
-                tops.setProperty(indexTableName, stem, "19,iterator.TotalAggregatingIterator");
-                stem += ".opt.";
-                tops.setProperty(indexTableName, stem + "*", "aggregator.GlobalIndexUidAggregator");
-              
-            }    
-		}
-
-		if (!tops.exists(reverseIndexTableName)) {
-            tops.create(reverseIndexTableName);
-            //Add the UID aggregator
-            for (IteratorScope scope : IteratorScope.values()) {
-                String stem = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name(), "UIDAggregator");
-                tops.setProperty(reverseIndexTableName, stem, "19,iterator.TotalAggregatingIterator");
-                stem += ".opt.";
-                tops.setProperty(reverseIndexTableName, stem + "*", "aggregator.GlobalIndexUidAggregator");
-              
-            }    
-		}
-
-		if (!tops.exists(metadataTableName)) {
-        	//Add the NumSummation aggregator for the frequency column
-            List<AggregatorConfiguration> aggregators = new ArrayList<AggregatorConfiguration>();
-            aggregators.add(new AggregatorConfiguration(new Text("f"), NumSummation.class.getName()));
-        	tops.create(metadataTableName);
-        	tops.addAggregators(metadataTableName, aggregators);
-		}
-	}
-
-	@Override
-	public int run(String[] args) throws Exception {
-		Job job = new Job(getConf(), "Ingest Wikipedia");
-		Configuration conf = job.getConfiguration();
-
-
-		String tablename = WikipediaConfiguration.getTableName(conf);
-
-		String zookeepers = WikipediaConfiguration.getZookeepers(conf);
-		String instanceName = WikipediaConfiguration.getInstanceName(conf);
-		
-		String user = WikipediaConfiguration.getUser(conf);
-		byte[] password = WikipediaConfiguration.getPassword(conf);
-		Connector connector = WikipediaConfiguration.getConnector(conf);
-		
-		TableOperations tops = connector.tableOperations();
-		
-		createTables(tops, tablename);
-		
-		configureJob(job);
-
-		List<Path> inputPaths = new ArrayList<Path>();
-		SortedSet<String> languages = new TreeSet<String>();
-		FileSystem fs = FileSystem.get(conf);
-		Path parent = new Path(conf.get("wikipedia.input"));
-		listFiles(parent, fs, inputPaths, languages);
-		
-		System.out.println("Input files in " + parent + ":" +  inputPaths.size());
-		Path[] inputPathsArray = new Path[inputPaths.size()];
-		inputPaths.toArray(inputPathsArray);
-		
-		System.out.println("Languages:" +  languages.size());
-						
-		FileInputFormat.setInputPaths(job, inputPathsArray);
-		
-		job.setMapperClass(WikipediaMapper.class);		
-		job.setNumReduceTasks(0);
-		job.setMapOutputKeyClass(Text.class);
-		job.setMapOutputValueClass(Mutation.class);
-		job.setOutputFormatClass(AccumuloOutputFormat.class);
-		AccumuloOutputFormat.setOutputInfo(job, user, password, true, tablename);
-		AccumuloOutputFormat.setZooKeeperInstance(job, instanceName, zookeepers);
-		
-		return job.waitForCompletion(true) ? 0 : 1;
-	}
-
-	public final static PathFilter partFilter = new PathFilter() {
-		@Override
-		public boolean accept(Path path) {
-			return path.getName().startsWith("part");
-		};
-	};
-
-	protected void configureJob(Job job) {
-		Configuration conf = job.getConfiguration();
-		job.setJarByClass(WikipediaIngester.class);
-		job.setInputFormatClass(WikipediaInputFormat.class);
-		conf.set(AggregatingRecordReader.START_TOKEN, "<page>");
-		conf.set(AggregatingRecordReader.END_TOKEN, "</page>");
-	}
-	
-	protected static final Pattern filePattern = Pattern.compile("([a-z_]+).*.xml(.bz2)?");
-	protected void listFiles(Path path, FileSystem fs, List<Path> files, Set<String> languages) throws IOException {
-		for (FileStatus status : fs.listStatus(path)) {
-			if (status.isDir()) {
-				listFiles(status.getPath(), fs, files, languages);
-			} else {
-				Path p = status.getPath();
-				Matcher matcher = filePattern.matcher(p.getName());
-				if (matcher.matches()) {
-					languages.add(matcher.group(1));
-					files.add(p);
-				}
-			}
-		}
-	}
+  
+  public final static String INGEST_LANGUAGE = "wikipedia.ingest_language";
+  public final static String SPLIT_FILE = "wikipedia.split_file";
+  public final static String TABLE_NAME = "wikipedia.table";
+  
+  public static void main(String[] args) throws Exception {
+    int res = ToolRunner.run(new Configuration(), new WikipediaIngester(), args);
+    System.exit(res);
+  }
+  
+  private void createTables(TableOperations tops, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      TableExistsException {
+    // Create the shard table
+    String indexTableName = tableName + "Index";
+    String reverseIndexTableName = tableName + "ReverseIndex";
+    String metadataTableName = tableName + "Metadata";
+    
+    // create the shard table
+    if (!tops.exists(tableName)) {
+      // Set a text index aggregator on the given field names. No aggregator is set if the option is not supplied
+      String textIndexFamilies = WikipediaMapper.TOKENS_FIELD_NAME;
+      
+      if (textIndexFamilies.length() > 0) {
+        System.out.println("Adding content aggregator on the fields: " + textIndexFamilies);
+        
+        // Create and set the aggregators in one shot
+        List<AggregatorConfiguration> aggregators = new ArrayList<AggregatorConfiguration>();
+        
+        for (String family : StringUtils.split(textIndexFamilies, ',')) {
+          aggregators.add(new AggregatorConfiguration(new Text("fi\0" + family), aggregator.TextIndexAggregator.class.getName()));
+        }
+        
+        tops.create(tableName);
+        tops.addAggregators(tableName, aggregators);
+      } else {
+        tops.create(tableName);
+      }
+      
+      // Set the locality group for the full content column family
+      tops.setLocalityGroups(tableName, Collections.singletonMap("WikipediaDocuments", Collections.singleton(new Text(WikipediaMapper.DOCUMENT_COLUMN_FAMILY))));
+      
+    }
+    
+    if (!tops.exists(indexTableName)) {
+      tops.create(indexTableName);
+      // Add the UID aggregator
+      for (IteratorScope scope : IteratorScope.values()) {
+        String stem = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name(), "UIDAggregator");
+        tops.setProperty(indexTableName, stem, "19,iterator.TotalAggregatingIterator");
+        stem += ".opt.";
+        tops.setProperty(indexTableName, stem + "*", "aggregator.GlobalIndexUidAggregator");
+        
+      }
+    }
+    
+    if (!tops.exists(reverseIndexTableName)) {
+      tops.create(reverseIndexTableName);
+      // Add the UID aggregator
+      for (IteratorScope scope : IteratorScope.values()) {
+        String stem = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name(), "UIDAggregator");
+        tops.setProperty(reverseIndexTableName, stem, "19,iterator.TotalAggregatingIterator");
+        stem += ".opt.";
+        tops.setProperty(reverseIndexTableName, stem + "*", "aggregator.GlobalIndexUidAggregator");
+        
+      }
+    }
+    
+    if (!tops.exists(metadataTableName)) {
+      // Add the NumSummation aggregator for the frequency column
+      List<AggregatorConfiguration> aggregators = new ArrayList<AggregatorConfiguration>();
+      aggregators.add(new AggregatorConfiguration(new Text("f"), NumSummation.class.getName()));
+      tops.create(metadataTableName);
+      tops.addAggregators(metadataTableName, aggregators);
+    }
+  }
+  
+  @Override
+  public int run(String[] args) throws Exception {
+    Job job = new Job(getConf(), "Ingest Wikipedia");
+    Configuration conf = job.getConfiguration();
+    
+    String tablename = WikipediaConfiguration.getTableName(conf);
+    
+    String zookeepers = WikipediaConfiguration.getZookeepers(conf);
+    String instanceName = WikipediaConfiguration.getInstanceName(conf);
+    
+    String user = WikipediaConfiguration.getUser(conf);
+    byte[] password = WikipediaConfiguration.getPassword(conf);
+    Connector connector = WikipediaConfiguration.getConnector(conf);
+    
+    TableOperations tops = connector.tableOperations();
+    
+    createTables(tops, tablename);
+    
+    configureJob(job);
+    
+    List<Path> inputPaths = new ArrayList<Path>();
+    SortedSet<String> languages = new TreeSet<String>();
+    FileSystem fs = FileSystem.get(conf);
+    Path parent = new Path(conf.get("wikipedia.input"));
+    listFiles(parent, fs, inputPaths, languages);
+    
+    System.out.println("Input files in " + parent + ":" + inputPaths.size());
+    Path[] inputPathsArray = new Path[inputPaths.size()];
+    inputPaths.toArray(inputPathsArray);
+    
+    System.out.println("Languages:" + languages.size());
+    
+    FileInputFormat.setInputPaths(job, inputPathsArray);
+    
+    job.setMapperClass(WikipediaMapper.class);
+    job.setNumReduceTasks(0);
+    job.setMapOutputKeyClass(Text.class);
+    job.setMapOutputValueClass(Mutation.class);
+    job.setOutputFormatClass(AccumuloOutputFormat.class);
+    AccumuloOutputFormat.setOutputInfo(job, user, password, true, tablename);
+    AccumuloOutputFormat.setZooKeeperInstance(job, instanceName, zookeepers);
+    
+    return job.waitForCompletion(true) ? 0 : 1;
+  }
+  
+  public final static PathFilter partFilter = new PathFilter() {
+    @Override
+    public boolean accept(Path path) {
+      return path.getName().startsWith("part");
+    };
+  };
+  
+  protected void configureJob(Job job) {
+    Configuration conf = job.getConfiguration();
+    job.setJarByClass(WikipediaIngester.class);
+    job.setInputFormatClass(WikipediaInputFormat.class);
+    conf.set(AggregatingRecordReader.START_TOKEN, "<page>");
+    conf.set(AggregatingRecordReader.END_TOKEN, "</page>");
+  }
+  
+  protected static final Pattern filePattern = Pattern.compile("([a-z_]+).*.xml(.bz2)?");
+  
+  protected void listFiles(Path path, FileSystem fs, List<Path> files, Set<String> languages) throws IOException {
+    for (FileStatus status : fs.listStatus(path)) {
+      if (status.isDir()) {
+        listFiles(status.getPath(), fs, files, languages);
+      } else {
+        Path p = status.getPath();
+        Matcher matcher = filePattern.matcher(p.getName());
+        if (matcher.matches()) {
+          languages.add(matcher.group(1));
+          files.add(p);
+        }
+      }
+    }
+  }
 }
