@@ -106,16 +106,16 @@
   </build>
 
   <properties>
-    <extraInclude>src/**/*.so</extraInclude>
-    <extraInclude2>src/**/*.jnilib</extraInclude2>
+    <so>**/*.so</so>
+    <jnilib>**/*.jnilib</jnilib>
   </properties>
 
   <profiles>
     <profile>
       <id>dist</id>
       <properties>
-        <extraInclude></extraInclude>
-        <extraInclude2></extraInclude2>
+        <so></so>
+        <jnilib></jnilib>
       </properties>
     </profile>
     <profile>
