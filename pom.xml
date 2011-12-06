@@ -328,6 +328,8 @@
                 <exclude>conf/monitor*</exclude>
                 <exclude>conf/tracers*</exclude>
                 <exclude>conf/gc*</exclude>
+                <exclude>logs/*</exclude>
+                <exclude>walogs/*</exclude>
                 <exclude>contrib/accumulo_sample/*/src/test/resources/enwiki-20110901-001.xml</exclude>
                 <exclude>**/MANIFEST.MF</exclude>
                 <exclude>**/__init__.py</exclude>

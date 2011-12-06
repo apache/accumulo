@@ -47,8 +47,8 @@
         <exclude>**/accumulo-env.sh</exclude>
         <exclude>**/continuous-env.sh</exclude>
         <exclude>**bin/**</exclude>
-        <exclude>**logs/**</exclude>
-        <exclude>**walogs/**</exclude>
+        <exclude>logs/**</exclude>
+        <exclude>walogs/**</exclude>
         <exclude>**.*</exclude>
       </excludes>
     </fileSet>
@@ -59,8 +59,8 @@
         <exclude>**/*.py</exclude>
         <exclude>**/*.pl</exclude>
         <exclude>**/*.sh</exclude>
-        <exclude>walogs</exclude>
-        <exclude>logs</exclude>
+        <exclude>walogs/**</exclude>
+        <exclude>logs/**</exclude>
         <exclude>bin/**</exclude>
 
         <!-- the following directories ignored because they should not be in the tarball -->
