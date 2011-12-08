@@ -1406,6 +1406,7 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
           } catch (Exception e) {
             log.info("error talking to troublesome tablet server ", e);
           }
+          badServers.remove(server);
           tserverSet.remove(server);
         }
       }
