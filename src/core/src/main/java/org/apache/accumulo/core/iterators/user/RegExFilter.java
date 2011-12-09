@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,7 +29,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.util.ByteArrayBackedCharSequence;
 
 /**
  * A Filter that matches entries based on Java regular expressions.
@@ -52,6 +52,9 @@ public class RegExFilter extends Filter {
   public static final String COLQ_REGEX = "colqRegex";
   public static final String VALUE_REGEX = "valueRegex";
   public static final String OR_FIELDS = "orFields";
+  public static final String ENCODING = "encoding";
+  
+  public static final String ENCODING_DEFAULT = "UTF-8";
   
   private Matcher rowMatcher;
   private Matcher colfMatcher;
@@ -59,33 +62,36 @@ public class RegExFilter extends Filter {
   private Matcher valueMatcher;
   private boolean orFields = false;
   
-  private ByteArrayBackedCharSequence babcs = new ByteArrayBackedCharSequence();
+  private String encoding = ENCODING_DEFAULT;
   
-  private Matcher copyMatcher(Matcher m)
-  {
-	  if(m == null)
-		  return m;
-	  else
-		  return m.pattern().matcher("");
+  private Matcher copyMatcher(Matcher m) {
+    if (m == null)
+      return m;
+    else
+      return m.pattern().matcher("");
   }
   
   private boolean matches(Matcher matcher, ByteSequence bs) {
     if (matcher != null) {
-      babcs.set(bs);
-      matcher.reset(babcs);
-      return matcher.matches();
+      try {
+        matcher.reset(new String(bs.getBackingArray(), encoding));
+        return matcher.matches();
+      } catch (UnsupportedEncodingException e) {
+        e.printStackTrace();
+      }
     }
-    
     return !orFields;
   }
   
   private boolean matches(Matcher matcher, byte data[], int offset, int len) {
     if (matcher != null) {
-      babcs.set(data, offset, len);
-      matcher.reset(babcs);
-      return matcher.matches();
+      try {
+        matcher.reset(new String(data, offset, len, encoding));
+        return matcher.matches();
+      } catch (UnsupportedEncodingException e) {
+        e.printStackTrace();
+      }
     }
-    
     return !orFields;
   }
   
@@ -130,6 +136,10 @@ public class RegExFilter extends Filter {
     } else {
       orFields = false;
     }
+    
+    if (options.containsKey(ENCODING)) {
+      encoding = options.get(ENCODING);
+    }
   }
   
   @Override
@@ -142,6 +152,7 @@ public class RegExFilter extends Filter {
     io.addNamedOption(RegExFilter.COLQ_REGEX, "regular expression on column qualifier");
     io.addNamedOption(RegExFilter.VALUE_REGEX, "regular expression on value");
     io.addNamedOption(RegExFilter.OR_FIELDS, "use OR instread of AND when multiple regexes given");
+    io.addNamedOption(RegExFilter.ENCODING, "character encoding of byte array value (default is " + ENCODING_DEFAULT + ")");
     return io;
   }
   
@@ -159,6 +170,17 @@ public class RegExFilter extends Filter {
     
     if (options.containsKey(VALUE_REGEX))
       Pattern.compile(options.get(VALUE_REGEX)).matcher("");
+    
+    if (options.containsKey(ENCODING)) {
+      try {
+        this.encoding = options.get(ENCODING);
+        @SuppressWarnings("unused")
+        String test = new String("test".getBytes(), encoding);
+      } catch (UnsupportedEncodingException e) {
+        e.printStackTrace();
+        return false;
+      }
+    }
     
     return true;
   }
@@ -190,6 +212,21 @@ public class RegExFilter extends Filter {
       si.addOption(RegExFilter.VALUE_REGEX, valueTerm);
     if (orFields) {
       si.addOption(RegExFilter.OR_FIELDS, "true");
+    }
+  }
+  
+  /**
+   * Set the encoding string to use when interpreting characters
+   * 
+   * @param si
+   *          ScanIterator config to be updated
+   * @param encoding
+   *          the encoding string to use for character interpretation.
+   * 
+   */
+  public static void setEncoding(IteratorSetting si, String encoding) {
+    if (!encoding.isEmpty()) {
+      si.addOption(RegExFilter.ENCODING, encoding);
     }
   }
 }

@@ -199,5 +199,25 @@ public class RegExFilterTest extends TestCase {
     rei.init(new SortedMapIterator(tm), is.getProperties(), new DefaultIteratorEnvironment());
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
     rei.deepCopy(new DefaultIteratorEnvironment());
+    
+    // -----------------------------------------------------
+    String multiByteText = new String("\u6d67" + "\u6F68" + "\u7067");
+    String multiByteRegex = new String(".*" + "\u6F68" + ".*");
+    
+    Key k4 = new Key("boo4".getBytes(), "hoo".getBytes(), "20080203".getBytes(), "".getBytes(), 1l);
+    Value inVal = new Value(multiByteText.getBytes("UTF-8"));
+    tm.put(k4, inVal);
+    
+    is.clearOptions();
+    
+    RegExFilter.setRegexs(is, null, null, null, multiByteRegex, true);
+    rei.init(new SortedMapIterator(tm), is.getProperties(), new DefaultIteratorEnvironment());
+    rei.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(rei.hasTop());
+    Value outValue = rei.getTopValue();
+    String outVal = new String(outValue.get(), "UTF-8");
+    assertTrue(outVal.equals(multiByteText));
+    
   }
 }
