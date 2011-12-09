@@ -66,7 +66,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @deprecated since 1.4
    * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
    */
-  public void setScanIterators(int priority, String iteratorClass, String iteratorName);
+  public void setScanIterators(int priority, String iteratorClass, String iteratorName) throws IOException;
   
   /**
    * @deprecated since 1.4
