@@ -74,7 +74,7 @@ public class RegExFilter extends Filter {
   private boolean matches(Matcher matcher, ByteSequence bs) {
     if (matcher != null) {
       try {
-        matcher.reset(new String(bs.getBackingArray(), encoding));
+        matcher.reset(new String(bs.getBackingArray(), bs.offset(), bs.length(), encoding));
         return matcher.matches();
       } catch (UnsupportedEncodingException e) {
         e.printStackTrace();
