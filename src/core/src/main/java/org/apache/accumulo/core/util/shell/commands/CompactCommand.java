@@ -45,9 +45,9 @@ public class CompactCommand extends TableOperation {
       if (wait)
         Shell.log.info("Compacting table ...");
       
-      shellState.getConnector().tableOperations().compact(shellState.getTableName(), startRow, endRow, flush, wait);
+      shellState.getConnector().tableOperations().compact(tableName, startRow, endRow, flush, wait);
       
-      Shell.log.info("Compaction of table " + shellState.getTableName() + " " + (wait ? "completed" : "started") + " for given range");
+      Shell.log.info("Compaction of table " + tableName + " " + (wait ? "completed" : "started") + " for given range");
     } catch (Exception ex) {
       throw new AccumuloException(ex);
     }
