@@ -43,12 +43,12 @@ import javax.xml.transform.stream.StreamSource;
 import logic.ContentLogic;
 import logic.QueryLogic;
 
-import org.apache.log4j.Logger;
-
-import sample.Results;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.log4j.Logger;
+
+import sample.Results;
 
 @Stateless
 @Local(IQuery.class)
@@ -78,7 +78,7 @@ public class Query implements IQuery {
   @Resource(name = "threads")
   private int threads;
   
-  private static final String XSL = "http://localhost:8080/accumulo-sample/style.xsl";
+  private static final String XSL = "/accumulo-sample/style.xsl";
   
   @PostConstruct
   public void init() {
@@ -99,7 +99,7 @@ public class Query implements IQuery {
     log.info("HTML query: " + query);
     URL u;
     try {
-      u = new URL(XSL);
+      u = new URL("http://" + System.getProperty("jboss.bind.address") + ":" + System.getProperty("jboss.web.http.port") + XSL);
     } catch (MalformedURLException e1) {
       throw new EJBException("Unable to load XSL stylesheet", e1);
     }

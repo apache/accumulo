@@ -58,6 +58,7 @@ import parser.EventFields;
 import parser.EventFields.FieldValue;
 import parser.FieldIndexQueryReWriter;
 import parser.JexlOperatorConstants;
+import parser.JexlOperatorConstants;
 import parser.QueryParser;
 import parser.QueryParser.QueryTerm;
 import parser.RangeCalculator;
