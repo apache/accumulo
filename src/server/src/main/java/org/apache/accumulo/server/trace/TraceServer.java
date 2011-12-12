@@ -63,8 +63,10 @@ public class TraceServer implements Watcher {
   final private static Logger log = Logger.getLogger(TraceServer.class);
   final private AccumuloConfiguration conf;
   final private TServer server;
-  final private BatchWriter writer;
-  
+  private BatchWriter writer = null;
+  private Connector connector;
+  final String table;
+
   private static void put(Mutation m, String cf, String cq, byte[] bytes, int len) {
     m.put(new Text(cf), new Text(cq), new Value(bytes, 0, len));
   }
@@ -125,6 +127,10 @@ public class TraceServer implements Watcher {
         put(timeMutation, "id", idString, transport.get(), transport.len());
       }
       try {
+        if (writer == null)
+          resetWriter();
+        if (writer == null)
+          return;
         writer.addMutation(spanMutation);
         writer.addMutation(indexMutation);
         if (timeMutation != null)
@@ -139,8 +145,7 @@ public class TraceServer implements Watcher {
   public TraceServer(String args[]) throws Exception {
     Accumulo.init("tracer");
     conf = ServerConfiguration.getSystemConfiguration();
-    final String table = conf.get(Property.TRACE_TABLE);
-    Connector connector;
+    table = conf.get(Property.TRACE_TABLE);
     while (true) {
       try {
         connector = HdfsZooInstance.getInstance().getConnector(conf.get(Property.TRACE_USER), conf.get(Property.TRACE_PASSWORD).getBytes());
@@ -183,9 +188,27 @@ public class TraceServer implements Watcher {
       writer.flush();
     } catch (MutationsRejectedException e) {
       log.error("Error flushing traces", e);
+      resetWriter();
     }
   }
   
+  synchronized private void resetWriter() {
+    try {
+      if (writer != null)
+        writer.close();
+    } catch (Exception ex) {
+      log.error("Error closing batch writer", ex);
+    } finally {
+      writer = null;
+      try {
+        writer = connector.createBatchWriter(table, 100l * 1024 * 1024, 5 * 1000l, 10);
+      } catch (Exception ex) {
+        log.error("Unable to create a batch writer: " + ex);
+      }
+    }
+  }
+  
+
   private void registerInZooKeeper(String name) throws Exception {
     String root = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTRACERS;
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
