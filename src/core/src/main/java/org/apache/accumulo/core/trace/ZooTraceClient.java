@@ -47,7 +47,7 @@ public class ZooTraceClient extends SendSpansViaThrift implements Watcher {
     super(host, service, millis);
     this.path = path;
     this.zoo = zoo;
-    zoo.getChildren(path, this);
+    updateHosts(path, zoo.getChildren(path, this));
   }
   
   @Override
