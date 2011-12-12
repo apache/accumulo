@@ -16,8 +16,10 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import java.util.Map;
+import java.util.Iterator;
+import java.util.List;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -44,20 +46,30 @@ public class DeleteScanIterCommand extends Command {
     }
     
     if (cl.hasOption(allOpt.getOpt())) {
-      Map<String,Map<String,String>> tableIterators = shellState.scanIteratorOptions.remove(tableName);
-      if (tableIterators == null)
+      List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.remove(tableName);
+      if (tableScanIterators == null)
         Shell.log.info("No scan iterators set on table " + tableName);
       else
-        Shell.log.info("Removed the following scan iterators from table " + tableName + ":" + tableIterators.keySet());
+        Shell.log.info("Removed the following scan iterators from table " + tableName + ":" + tableScanIterators);
     } else if (cl.hasOption(nameOpt.getOpt())) {
       String name = cl.getOptionValue(nameOpt.getOpt());
-      Map<String,Map<String,String>> tableIterators = shellState.scanIteratorOptions.get(tableName);
-      if (tableIterators != null) {
-        Map<String,String> options = tableIterators.remove(name);
-        if (options == null)
+      List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(tableName);
+      if (tableScanIterators != null) {
+        boolean found = false;
+        for (Iterator<IteratorSetting> iter = tableScanIterators.iterator(); iter.hasNext();) {
+          if (iter.next().getName().equals(name)) {
+            iter.remove();
+            found = true;
+            break;
+          }
+        }
+        if (!found)
           Shell.log.info("No iterator named " + name + " found for table " + tableName);
-        else
-          Shell.log.info("Removed scan iterator " + name + " from table " + tableName);
+        else {
+          Shell.log.info("Removed scan iterator " + name + " from table " + tableName + " (" + shellState.scanIteratorOptions.get(tableName).size() + " left)");
+          if (shellState.scanIteratorOptions.get(tableName).size() == 0)
+            shellState.scanIteratorOptions.remove(tableName);
+        }
       } else {
         Shell.log.info("No iterator named " + name + " found for table " + tableName);
       }

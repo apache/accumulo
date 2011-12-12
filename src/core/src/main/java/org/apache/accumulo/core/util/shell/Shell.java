@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -44,6 +45,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -163,7 +165,7 @@ public class Shell {
   private AuthInfo credentials;
   private Class<? extends Formatter> formatterClass = DefaultFormatter.class;
   private Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
-  public Map<String,Map<String,Map<String,String>>> scanIteratorOptions = new HashMap<String,Map<String,Map<String,String>>>();
+  public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
   
   private Token rootToken;
   public final Map<String,Command> commandFactory = new TreeMap<String,Command>();
@@ -458,11 +460,13 @@ public class Shell {
       sb.append("- Active formatter class: ").append(formatterClass.getSimpleName()).append("\n");
     }
     if (!scanIteratorOptions.isEmpty()) {
-      for (Entry<String,Map<String,Map<String,String>>> entry : scanIteratorOptions.entrySet()) {
+      for (Entry<String,List<IteratorSetting>> entry : scanIteratorOptions.entrySet()) {
         sb.append("- Session scan iterators for table ").append(entry.getKey()).append(":\n");
-        for (Entry<String,Map<String,String>> namedEntry : entry.getValue().entrySet()) {
-          sb.append("-    Iterator ").append(namedEntry.getKey()).append(" options:\n");
-          for (Entry<String,String> optEntry : namedEntry.getValue().entrySet()) {
+        for (IteratorSetting setting : entry.getValue()) {
+          sb.append("-    Iterator ").append(setting.getName()).append(" options:\n");
+          sb.append("-        ").append("iteratorPriority").append(" = ").append(setting.getPriority()).append("\n");
+          sb.append("-        ").append("iteratorClassName").append(" = ").append(setting.getIteratorClass()).append("\n");
+          for (Entry<String,String> optEntry : setting.getProperties().entrySet()) {
             sb.append("-        ").append(optEntry.getKey()).append(" = ").append(optEntry.getValue()).append("\n");
           }
         }

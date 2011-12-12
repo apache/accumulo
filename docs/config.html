@@ -253,7 +253,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>2</pre></td>
-    <td>The miniumum number of threads to use to handle incoming requests.</td>
+    <td>The minimum number of threads to use to handle incoming requests.</td>
    </tr>
    <tr >
     <td>master.tablet.balancer</td>
@@ -466,7 +466,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>16</pre></td>
-    <td>The maximum number of concurrent read ahead that will execute.  This effectivelylimits the number of long running scans that can run concurrently per tserver.</td>
+    <td>The maximum number of concurrent read ahead that will execute.  This effectively limits the number of long running scans that can run concurrently per tserver.</td>
    </tr>
    <tr >
     <td>tserver.scan.files.open.max</td>
@@ -487,7 +487,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>2</pre></td>
-    <td>The miniumum number of threads to use to handle incoming requests.</td>
+    <td>The minimum number of threads to use to handle incoming requests.</td>
    </tr>
    <tr class='highlight'>
     <td>tserver.session.idle.max</td>
@@ -532,7 +532,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td><b><a href='#PATH'>path</a></b></td>
     <td>yes</td>
     <td><pre>walogs</pre></td>
-    <td>The directory used to store write-ahead logs on the local filesystem</td>
+    <td>The directory used to store write-ahead logs on the local filesystem. It is possible to specify a comma-separated list of directories.</td>
    </tr>
    <tr >
     <td>logger.monitor.fs</td>
@@ -740,7 +740,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td><b><a href='#FRACTION'>fraction/percentage</a></b></td>
     <td>yes</td>
     <td><pre>3</pre></td>
-    <td>minimum ratio of total input size to maximum input file size for running a major compaction.   When adjusting this property you may want to also adjust table.file.max.  Want to avoid the situation where only merging minor compactions occurr.</td>
+    <td>minimum ratio of total input size to maximum input file size for running a major compaction.   When adjusting this property you may want to also adjust table.file.max.  Want to avoid the situation where only merging minor compactions occur.</td>
    </tr>
    <tr >
     <td>table.compaction.minor.idle</td>
@@ -782,7 +782,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td><b><a href='#MEMORY'>memory</a></b></td>
     <td>yes</td>
     <td><pre>128K</pre></td>
-    <td>Determines how large index blocks can be in files that support multilevel indexesThe maximum value for this is 2147483647</td>
+    <td>Determines how large index blocks can be in files that support multilevel indexes. The maximum value for this is 2147483647</td>
    </tr>
    <tr >
     <td>table.file.compress.type</td>
@@ -838,7 +838,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td><b><a href='#MEMORY'>memory</a></b></td>
     <td>yes</td>
     <td><pre>1G</pre></td>
-    <td>When combined size of mapfiles exceeds this amount a tablet is split.</td>
+    <td>When combined size of files exceeds this amount a tablet is split.</td>
    </tr>
    <tr >
     <td>table.walog.enabled</td>

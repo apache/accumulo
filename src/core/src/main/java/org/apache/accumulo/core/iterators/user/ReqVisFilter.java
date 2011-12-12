@@ -24,7 +24,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 /**
  * A Filter that matches entries with a non-empty ColumnVisibility.
  */
-public class NoVisFilter extends Filter {
+public class ReqVisFilter extends Filter {
   
   @Override
   public boolean accept(Key k, Value v) {
@@ -35,8 +35,8 @@ public class NoVisFilter extends Filter {
   @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = super.describeOptions();
-    io.setName("novis");
-    io.setDescription("NoVisFilter hides entries without a visibility label");
+    io.setName("reqvis");
+    io.setDescription("ReqVisFilter hides entries without a visibility label");
     return io;
   }
 }
