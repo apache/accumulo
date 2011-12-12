@@ -72,13 +72,8 @@
       <artifactId>protobuf-java</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.jboss</groupId>
-      <artifactId>jboss-common-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.jboss.logging</groupId>
-      <artifactId>jboss-logging-spi</artifactId>
-      <scope>runtime</scope>
+    	<groupId>com.sun.jersey</groupId>
+    	<artifactId>jersey-server</artifactId>
     </dependency>
   </dependencies>
 
@@ -97,7 +92,7 @@
             <configuration>
               <outputDirectory>lib</outputDirectory>
               <!-- just grab the non-provided runtime dependencies -->
-              <includeArtifactIds>commons-lang,google-collections,lucene-core,lucene-analyzers,lucene-wikipedia,protobuf-java,jboss-common-core,jboss-logging-spi</includeArtifactIds>
+              <includeArtifactIds>commons-lang,google-collections,lucene-core,lucene-analyzers,lucene-wikipedia,protobuf-java</includeArtifactIds>
               <excludeTransitive>true</excludeTransitive>
             </configuration>
           </execution>

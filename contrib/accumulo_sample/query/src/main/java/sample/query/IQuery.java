@@ -23,8 +23,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 
-import org.jboss.resteasy.annotations.GZIP;
-
 import sample.Results;
 
 @Path("/Query")
@@ -34,7 +32,6 @@ public interface IQuery {
   @POST
   @Path("/html")
   @Consumes("*/*")
-  @GZIP
   public String html(@QueryParam("query") String query, @QueryParam("auths") String auths);
   
   @GET
@@ -42,7 +39,6 @@ public interface IQuery {
   @Path("/xml")
   @Consumes("*/*")
   @Produces("application/xml")
-  @GZIP
   public Results xml(@QueryParam("query") String query, @QueryParam("auths") String auths);
   
   @GET
@@ -50,7 +46,6 @@ public interface IQuery {
   @Path("/json")
   @Consumes("*/*")
   @Produces("application/json")
-  @GZIP
   public Results json(@QueryParam("query") String query, @QueryParam("auths") String auths);
   
   @GET
@@ -58,7 +53,6 @@ public interface IQuery {
   @Path("/yaml")
   @Consumes("*/*")
   @Produces("text/x-yaml")
-  @GZIP
   public Results yaml(@QueryParam("query") String query, @QueryParam("auths") String auths);
   
   @GET
@@ -66,7 +60,6 @@ public interface IQuery {
   @Path("/content")
   @Consumes("*/*")
   @Produces("application/xml")
-  @GZIP
   public Results content(@QueryParam("query") String query, @QueryParam("auths") String auths);
   
 }

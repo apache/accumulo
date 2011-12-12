@@ -23,13 +23,6 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-import org.jboss.util.Base64;
-
-import sample.Document;
-import sample.Field;
-import sample.Results;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -37,6 +30,13 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
+
+import sample.Document;
+import sample.Field;
+import sample.Results;
 
 /**
  * This query table implementation returns a Results object that contains documents from the wiki table. The query will contain the partition id, wikitype, and
@@ -95,7 +95,7 @@ public class ContentLogic {
           doc.setId(id);
           Field val = new Field();
           val.setFieldName("DOCUMENT");
-          val.setFieldValue(new String(Base64.decode(entry.getValue().toString())));
+          val.setFieldValue(new String(Base64.decodeBase64(entry.getValue().toString())));
           doc.getFields().add(val);
           results.getResults().add(doc);
         }

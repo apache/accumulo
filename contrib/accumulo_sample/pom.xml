@@ -37,6 +37,27 @@
     <module>ingest</module>
     <module>query-war</module>
   </modules>
+  
+  <repositories>
+    <repository>
+      <id>central</id>
+      <name>Maven Repository Switchboard</name>
+      <layout>default</layout>
+      <url>http://repo1.maven.org/maven2</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>java.net</id>
+      <name>java.net</name>
+      <layout>default</layout>
+      <url>https://maven.java.net/content/groups/public</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
 
   <build>
     <defaultGoal>package</defaultGoal>
@@ -158,8 +179,6 @@
     <version.commons-codec>1.5</version.commons-codec>
     <version.ejb-spec-api>1.0.1.Final</version.ejb-spec-api>
     <version.jaxrs>2.1.0.GA</version.jaxrs>
-    <version.jboss-common-core>2.2.17.GA</version.jboss-common-core>
-    <version.jboss-logging>2.0.5.GA</version.jboss-logging>
     <version.kryo>1.04</version.kryo>
     <version.log4j>1.2.16</version.log4j>
     <version.log4j-extras>1.0</version.log4j-extras>
@@ -241,51 +260,16 @@
         <version>${version.commons-jexl}</version>
       </dependency>
       <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>jaxrs-api</artifactId>
-        <version>${version.jaxrs}</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-jaxrs</artifactId>
-        <version>${version.jaxrs}</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.resteasy</groupId>
-        <artifactId>resteasy-jaxb-provider</artifactId>
-        <version>${version.jaxrs}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.spec.javax.ejb</groupId>
-        <artifactId>jboss-ejb-api_3.1_spec</artifactId>
-        <version>${version.ejb-spec-api}</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss</groupId>
-        <artifactId>jboss-common-core</artifactId>
-        <version>${version.jboss-common-core}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.jboss.logging</groupId>
-        <artifactId>jboss-logging-spi</artifactId>
-        <version>${version.jboss-logging}</version>
-      </dependency>
-      <dependency>
         <groupId>com.googlecode</groupId>
         <artifactId>minlog</artifactId>
         <version>${version.minlog}</version>
       </dependency>
+      <dependency>
+      	<groupId>com.sun.jersey</groupId>
+      	<artifactId>jersey-server</artifactId>
+      	<version>1.11</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
-
-  <repositories>
-    <repository>
-      <id>jboss-public</id>
-      <url>https://repository.jboss.org/nexus/content/groups/public-jboss</url>
-    </repository>
-  </repositories>
 
 </project>

@@ -35,6 +35,10 @@ import java.util.regex.Pattern;
 
 import normalizer.LcNoDiacriticsNormalizer;
 
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
@@ -54,13 +58,9 @@ import org.apache.lucene.analysis.fr.FrenchAnalyzer;
 import org.apache.lucene.analysis.nl.DutchAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.TermAttribute;
 import org.apache.lucene.wikipedia.analysis.WikipediaTokenizer;
-import org.jboss.util.Base64;
 
 import protobuf.Uid;
 import protobuf.Uid.List.Builder;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.ColumnVisibility;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -210,8 +210,7 @@ public class WikipediaMapper extends Mapper<LongWritable,Text,Text,Mutation> {
       }
       // Add the entire text to the document section of the table.
       // row is the partition, colf is 'd', colq is language\0articleid, value is Base64 encoded GZIP'd document
-      m.put(DOCUMENT_COLUMN_FAMILY, colfPrefix + article.getId(), cv, article.getTimestamp(),
-          new Value(Base64.encodeBytes(article.getText().getBytes(), Base64.GZIP).getBytes()));
+      m.put(DOCUMENT_COLUMN_FAMILY, colfPrefix + article.getId(), cv, article.getTimestamp(), new Value(Base64.encodeBase64(article.getText().getBytes())));
       context.write(tablename, m);
       
     } else {
