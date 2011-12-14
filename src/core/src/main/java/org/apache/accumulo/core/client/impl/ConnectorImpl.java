@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.InstanceOperationsImpl;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperationsImpl;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -165,7 +166,7 @@ public class ConnectorImpl extends Connector {
   @Override
   public synchronized InstanceOperations instanceOperations() {
     if (instanceops == null)
-      instanceops = new InstanceOperations(instance, credentials);
+      instanceops = new InstanceOperationsImpl(instance, credentials);
     
     return instanceops;
   }
