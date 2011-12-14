@@ -25,7 +25,7 @@ import org.apache.accumulo.server.test.FastFormat;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
 /**
- * Allocates unique names for a accumulo instance. The names are unique for the lifetime of the instance.
+ * Allocates unique names for an accumulo instance. The names are unique for the lifetime of the instance.
  * 
  * This is useful for filenames because it makes caching easy.
  * 

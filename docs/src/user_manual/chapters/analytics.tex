@@ -23,7 +23,7 @@ MapReduce and Iterators in conjunction with Accumulo tables.
 \section{MapReduce}
 
 Accumulo tables can be used as the source and destination of MapReduce jobs. To
-use a Accumulo table with a MapReduce job (specifically with the new Hadoop API
+use an Accumulo table with a MapReduce job (specifically with the new Hadoop API
 as of version 0.20), configure the job parameters to use the AccumuloInputFormat
 and AccumuloOutputFormat. Accumulo specific parameters can be set via these
 two format classes to do the following:
@@ -35,7 +35,7 @@ two format classes to do the following:
 
 \subsection{Mapper and Reducer classes}
 
-To read from a Accumulo table create a Mapper with the following class
+To read from an Accumulo table create a Mapper with the following class
 parameterization and be sure to configure the AccumuloInputFormat.
 
 \small
@@ -48,7 +48,7 @@ class MyMapper extends Mapper<Key,Value,WritableComparable,Writable> {
 \end{verbatim}
 \normalsize
 
-To write to a Accumulo table, create a Reducer with the following class
+To write to an Accumulo table, create a Reducer with the following class
 parameterization and be sure to configure the AccumuloOutputFormat. The key
 emitted from the Reducer identifies the table to which the mutation is sent. This
 allows a single Reducer to write to more than one table if desired. A default table
@@ -174,18 +174,18 @@ values in the aggregation such as when calculating an average, for example.
 
 \subsection{Feature Vectors}
 
-An interesting use of combining iterators within a Accumulo table is to store
+An interesting use of combining iterators within an Accumulo table is to store
 feature vectors for use in machine learning algorithms. For example, many
 algorithms such as k-means clustering, support vector machines, anomaly detection,
 etc. use the concept of a feature vector and the calculation of distance metrics to
-learn a particular model. The columns in a Accumulo table can be used to efficiently
+learn a particular model. The columns in an Accumulo table can be used to efficiently
 store sparse features and their weights to be incrementally updated via the use of an
 combining iterator.
 
 \section{Statistical Modeling}
 
 Statistical models that need to be updated by many machines in parallel could be
-similarly stored within a Accumulo table. For example, a MapReduce job that is
+similarly stored within an Accumulo table. For example, a MapReduce job that is
 iteratively updating a global statistical model could have each map or reduce worker
 reference the parts of the model to be read and updated through an embedded
 Accumulo client.

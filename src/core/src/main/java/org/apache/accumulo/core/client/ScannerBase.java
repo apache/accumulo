@@ -177,7 +177,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   public void clearScanIterators();
   
   /**
-   * Returns an iterator over a accumulo table. This iterator uses the options that are currently set for its lifetime. So setting options will have no effect
+   * Returns an iterator over an accumulo table. This iterator uses the options that are currently set for its lifetime. So setting options will have no effect
    * on existing iterators.
    * 
    * Keys returned by the iterator are not guaranteed to be in sorted order.

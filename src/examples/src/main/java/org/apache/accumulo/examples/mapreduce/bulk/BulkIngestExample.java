@@ -45,7 +45,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 /**
- * Example map reduce job that bulk ingest data into a accumulo table. The expected input is text files containing tab separated key value pairs on each line.
+ * Example map reduce job that bulk ingest data into an accumulo table. The expected input is text files containing tab separated key value pairs on each line.
  */
 public class BulkIngestExample extends Configured implements Tool {
   public static class MapClass extends Mapper<LongWritable,Text,Text,Text> {

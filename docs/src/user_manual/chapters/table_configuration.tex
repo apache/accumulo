@@ -122,7 +122,7 @@ An example of constraints can be found in\\
 \texttt{accumulo/src/examples/main/java/accumulo/examples/constraints} .
 
 \section{Bloom Filters}
-As mutations are applied to a Accumulo table, several files are created per tablet. If
+As mutations are applied to an Accumulo table, several files are created per tablet. If
 bloom filters are enabled, Accumulo will create and load a small data structure into
 memory to determine whether a file contains a given key before opening the file.
 This can speed up lookups considerably.

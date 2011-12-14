@@ -32,7 +32,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
 /**
- * A scanner that presents a row isolated view of a accumulo table. Rows are buffered in memory on the client side. If you think your rows may not fit into
+ * A scanner that presents a row isolated view of an accumulo table. Rows are buffered in memory on the client side. If you think your rows may not fit into
  * memory, then you can provide an alternative row buffer factory to the constructor. This would allow rows to be buffered to disk for example.
  * 
  */

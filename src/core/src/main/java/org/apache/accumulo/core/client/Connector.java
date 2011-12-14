@@ -22,7 +22,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
- * Connector facilitates connecting to a Accumulo instance. One of the main purposes of this class is to make it easy to connect to multiple Accumulo instances
+ * Connector facilitates connecting to an Accumulo instance. One of the main purposes of this class is to make it easy to connect to multiple Accumulo instances
  * within the same JVM.
  * 
  * Additionally, the Connector object enforces security on the client side, by forcing all API calls to be accompanied by user credentials.

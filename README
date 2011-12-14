@@ -103,7 +103,7 @@ to also configure the initial root password. Only do this once.
 
 Start accumulo using the bin/start-all.sh script.
 
-Use the "bin/accumulo shell -u <username>" command to run a accumulo shell
+Use the "bin/accumulo shell -u <username>" command to run an accumulo shell
 interpreter.  Within this interpreter, run "createtable <tablename>" to create
 a table, and run "table <tablename>" followed by "scan" to scan a table.
 
