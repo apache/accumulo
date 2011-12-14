@@ -122,7 +122,7 @@ scanning.  There are three possible ways that a row could change in accumulo :
 
 Isolation guarantees that either all or none of the changes made by these
 operations on a row are seen.  Use the IsolatedScanner to obtain an isolated
-view of a accumulo table.  When using the regular scanner it is possible to see
+view of an accumulo table.  When using the regular scanner it is possible to see
 a non isolated view of a row.  For example if a mutation modifies three
 columns, it is possible that you will only see two of those modifications.
 With the isolated scanner either all three of the changes are seen or none.

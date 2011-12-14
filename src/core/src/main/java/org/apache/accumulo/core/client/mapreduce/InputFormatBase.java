@@ -123,7 +123,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   
   private static final String LOCAL_ITERATORS = PREFIX + ".localiters";
   
-  // Used to specify the maximum # of versions of a Accumulo cell value to return
+  // Used to specify the maximum # of versions of an Accumulo cell value to return
   private static final String MAX_VERSIONS = PREFIX + ".maxVersions";
   
   // Used for specifying the iterators to be applied
@@ -290,7 +290,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
-   * Specify a Accumulo iterator type to manage the behavior of the underlying table scan this InputFormat's Record Reader will conduct, w/ priority dictating
+   * Specify an Accumulo iterator type to manage the behavior of the underlying table scan this InputFormat's Record Reader will conduct, w/ priority dictating
    * the order in which specified iterators are applied. Repeat calls to specify multiple iterators are allowed.
    * 
    * @param job
@@ -670,7 +670,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
-   * The Class RangeInputSplit. Encapsulates a Accumulo range for use in Map Reduce jobs.
+   * The Class RangeInputSplit. Encapsulates an Accumulo range for use in Map Reduce jobs.
    */
   public static class RangeInputSplit extends InputSplit implements Writable {
     private Range range;
@@ -817,7 +817,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
-   * The Class AccumuloIteratorOption. Encapsulates specifics for a Accumulo iterator's optional configuration details - associated via the iteratorName.
+   * The Class AccumuloIteratorOption. Encapsulates specifics for an Accumulo iterator's optional configuration details - associated via the iteratorName.
    */
   static class AccumuloIteratorOption {
     private static final String FIELD_SEP = ":";

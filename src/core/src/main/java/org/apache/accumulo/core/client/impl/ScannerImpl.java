@@ -112,7 +112,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   }
   
   /**
-   * Returns an iterator over a accumulo table. This iterator uses the options that are currently set on the scanner for its lifetime. So setting options on a
+   * Returns an iterator over an accumulo table. This iterator uses the options that are currently set on the scanner for its lifetime. So setting options on a
    * Scanner object will have no effect on existing iterators.
    */
   public synchronized Iterator<Entry<Key,Value>> iterator() {

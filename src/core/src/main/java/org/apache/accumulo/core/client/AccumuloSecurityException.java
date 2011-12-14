@@ -20,7 +20,7 @@ import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 
 /**
- * A Accumulo Exception for security violations, authentication failures, authorization failures, etc.
+ * An Accumulo Exception for security violations, authentication failures, authorization failures, etc.
  * 
  */
 public class AccumuloSecurityException extends Exception {

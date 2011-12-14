@@ -16,7 +16,7 @@
 from xml.sax import make_parser, handler
 
 def parse(filename):
-    'Read a accumulo config file and return it as a dictionary string -> string'
+    'Read an accumulo config file and return it as a dictionary string -> string'
     result = {}
     class Handler(handler.ContentHandler):
         name = None
