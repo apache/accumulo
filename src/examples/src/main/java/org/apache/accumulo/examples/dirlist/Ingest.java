@@ -18,8 +18,6 @@ package org.apache.accumulo.examples.dirlist;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -28,7 +26,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.examples.filedata.FileDataIngest;
 import org.apache.hadoop.io.Text;
@@ -126,7 +123,6 @@ public class Ingest {
     String nameTable = args[4];
     String indexTable = args[5];
     String dataTable = args[6];
-    byte[] visibility = args[7].getBytes();
     ColumnVisibility colvis = new ColumnVisibility(args[7]);
     int chunkSize = Integer.parseInt(args[8]);
     
@@ -137,17 +133,7 @@ public class Ingest {
       conn.tableOperations().create(indexTable);
     if (!conn.tableOperations().exists(dataTable))
       conn.tableOperations().create(dataTable);
-    Authorizations auths = conn.securityOperations().getUserAuthorizations(user);
-    if (!auths.contains(visibility)) {
-      List<byte[]> copy = new ArrayList<byte[]>(auths.getAuthorizations());
-      copy.add(visibility);
-      try {
-        conn.securityOperations().changeUserAuthorizations(user, new Authorizations(copy));
-      } catch (Exception ex) {
-        System.out.println("Unable to add visiblity to user " + user + ": " + ex);
-        System.exit(1);
-      }
-    }
+    
     BatchWriter dirBW = conn.createBatchWriter(nameTable, 50000000, 300000l, 4);
     BatchWriter indexBW = conn.createBatchWriter(indexTable, 50000000, 300000l, 4);
     BatchWriter dataBW = conn.createBatchWriter(dataTable, 50000000, 300000l, 4);
