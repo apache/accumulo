@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 
 public class MockSecurityOperations implements SecurityOperations {
   
@@ -58,6 +59,8 @@ public class MockSecurityOperations implements SecurityOperations {
     MockUser user = acu.users.get(name);
     if (user != null)
       user.password = Arrays.copyOf(password, password.length);
+    else
+      throw new AccumuloSecurityException(name, SecurityErrorCode.USER_DOESNT_EXIST);
   }
   
   @Override
@@ -65,6 +68,8 @@ public class MockSecurityOperations implements SecurityOperations {
     MockUser user = acu.users.get(name);
     if (user != null)
       user.authorizations = authorizations;
+    else
+      throw new AccumuloSecurityException(name, SecurityErrorCode.USER_DOESNT_EXIST);
   }
   
   @Override
@@ -72,7 +77,8 @@ public class MockSecurityOperations implements SecurityOperations {
     MockUser user = acu.users.get(name);
     if (user != null)
       return user.authorizations;
-    return new Authorizations();
+    else
+      throw new AccumuloSecurityException(name, SecurityErrorCode.USER_DOESNT_EXIST);
   }
   
   @Override
@@ -80,14 +86,15 @@ public class MockSecurityOperations implements SecurityOperations {
     MockUser user = acu.users.get(name);
     if (user != null)
       return user.permissions.contains(perm);
-    return false;
+    else
+      throw new AccumuloSecurityException(name, SecurityErrorCode.USER_DOESNT_EXIST);
   }
   
   @Override
   public boolean hasTablePermission(String name, String tableName, TablePermission perm) throws AccumuloException, AccumuloSecurityException {
     MockTable table = acu.tables.get(tableName);
     if (table == null)
-      return false;
+      throw new AccumuloSecurityException(tableName, SecurityErrorCode.TABLE_DOESNT_EXIST);
     EnumSet<TablePermission> perms = table.userPermissions.get(name);
     if (perms == null)
       return false;
@@ -99,15 +106,17 @@ public class MockSecurityOperations implements SecurityOperations {
     MockUser user = acu.users.get(name);
     if (user != null)
       user.permissions.add(permission);
+    else
+      throw new AccumuloSecurityException(name, SecurityErrorCode.USER_DOESNT_EXIST);
   }
   
   @Override
   public void grantTablePermission(String name, String tableName, TablePermission permission) throws AccumuloException, AccumuloSecurityException {
     if (acu.users.get(name) == null)
-      return;
+      throw new AccumuloSecurityException(name, SecurityErrorCode.USER_DOESNT_EXIST);
     MockTable table = acu.tables.get(tableName);
     if (table == null)
-      return;
+      throw new AccumuloSecurityException(tableName, SecurityErrorCode.TABLE_DOESNT_EXIST);
     EnumSet<TablePermission> perms = table.userPermissions.get(name);
     if (perms == null)
       table.userPermissions.put(name, EnumSet.of(permission));
@@ -120,15 +129,17 @@ public class MockSecurityOperations implements SecurityOperations {
     MockUser user = acu.users.get(name);
     if (user != null)
       user.permissions.remove(permission);
+    else
+      throw new AccumuloSecurityException(name, SecurityErrorCode.USER_DOESNT_EXIST);
   }
   
   @Override
   public void revokeTablePermission(String name, String tableName, TablePermission permission) throws AccumuloException, AccumuloSecurityException {
     if (acu.users.get(name) == null)
-      return;
+      throw new AccumuloSecurityException(name, SecurityErrorCode.USER_DOESNT_EXIST);
     MockTable table = acu.tables.get(tableName);
     if (table == null)
-      return;
+      throw new AccumuloSecurityException(tableName, SecurityErrorCode.TABLE_DOESNT_EXIST);
     EnumSet<TablePermission> perms = table.userPermissions.get(name);
     if (perms != null)
       perms.remove(permission);

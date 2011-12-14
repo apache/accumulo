@@ -27,7 +27,9 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
@@ -85,12 +87,14 @@ public class MockInstance implements Instance {
   
   @Override
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    return new MockConnector(user, acu);
+    Connector conn = new MockConnector(user, acu);
+    conn.securityOperations().createUser(user, pass, new Authorizations());
+    return conn;
   }
   
   @Override
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
-    return new MockConnector(user, acu);
+    return getConnector(user, ByteBufferUtil.toBytes(pass));
   }
   
   @Override
