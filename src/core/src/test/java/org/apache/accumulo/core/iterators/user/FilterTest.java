@@ -323,7 +323,7 @@ public class FilterTest extends TestCase {
     }
     assertTrue(tm.size() == 1000);
     
-    Filter filter = new NoVisFilter();
+    Filter filter = new ReqVisFilter();
     filter.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
     filter.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(filter);

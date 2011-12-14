@@ -37,6 +37,7 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         
     def runTest(self):
         self.setIterTest()
+        self.setScanIterTest()
         self.aggTest()
         self.iteratorsTest()
         self.createtableTestSplits()
@@ -75,7 +76,7 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         input = 'setiter -t setitertest -n mymin -scan -p 10 -class org.apache.accumulo.core.iterators.user.MinCombiner\ncf2\nSTRING\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.failUnless(out.find("IllegalArgumentException") >= 0,
-                        "Was able to configure same prioritytwice")
+                        "Was able to configure same priority twice")
         input = 'setiter -t setitertest -n mymin -scan -p 11 -class org.apache.accumulo.core.iterators.user.MinCombiner\ncf2\nSTRING\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
@@ -83,8 +84,42 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
         self.failIf(out.find("row1 cf1:cq []    30") == -1 or out.find("row1 cf2:cq []    10") == -1,
-                        "Config Failed:  combining failed")
-
+                        "SetIter Failed:  combining failed")
+        
+    def setScanIterTest(self):
+        input = 'createtable setscanitertest\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        input = 'table setscanitertest\ninsert row cf cq val1\ninsert row cf cq val2\nscan -np\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        self.failIf(out.find("row cf:cq []    val1") == 1 or out.find("row cf:cq []    val2") == -1,
+                        "SetScanIter Failed:  default versioning failed")
+        input = 'setscaniter -t setscanitertest -n vers -p 20 -class org.apache.accumulo.core.iterators.user.VersioningIterator\n2\ntable setscanitertest\nscan -np\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        self.failIf(out.find("row cf:cq []    val1") == -1 or out.find("row cf:cq []    val2") == -1,
+                        "SetScanIter Failed:  versioning override failed")
+        input = 'setscaniter -t setscanitertest -n vers -p 20 -class org.apache.accumulo.core.iterators.user.VersioningIterator\n2\ndeletescaniter -t setscanitertest -n vers\ntable setscanitertest\nscan -np\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        self.failIf(out.find("row cf:cq []    val1") == 1 or out.find("row cf:cq []    val2") == -1,
+                        "SetScanIter Failed:  deletescaniter (single) failed")
+        input = 'setscaniter -t setscanitertest -n vers -p 20 -class org.apache.accumulo.core.iterators.user.VersioningIterator\n2\ndeletescaniter -t setscanitertest -a\ntable setscanitertest\nscan -np\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        self.failIf(out.find("row cf:cq []    val1") == 1 or out.find("row cf:cq []    val2") == -1,
+                        "SetScanIter Failed:  deletescaniter (all) failed")
+        input = 'setscaniter -t setscanitertest -n vers -p 20 -class org.apache.accumulo.core.iterators.user.VersioningIterator\n2\nsetscaniter -t setscanitertest -n vers -p 10 -class org.apache.accumulo.core.iterators.user.VersioningIterator\n2\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        self.failUnless(out.find("IllegalArgumentException") >= 0,
+                        "Was able to configure same iter name twice")
+        input = 'setscaniter -t setscanitertest -n vers -p 20 -class org.apache.accumulo.core.iterators.user.VersioningIterator\n2\nsetscaniter -t setscanitertest -n vers2 -p 20 -class org.apache.accumulo.core.iterators.user.VersioningIterator\n2\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        self.failUnless(out.find("IllegalArgumentException") >= 0,
+                        "Was able to configure same priority twice")
         
     def aggTest(self):
         input = 'createtable aggtest\nsetiter -t aggtest -n myagg -scan -p 10 -class org.apache.accumulo.core.iterators.user.SummingCombiner\ns\nSTRING\n\nquit\n'

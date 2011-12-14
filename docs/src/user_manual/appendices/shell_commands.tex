@@ -1,4 +1,3 @@
-
 % Licensed to the Apache Software Foundation (ASF) under one or more
 % contributor license agreements.  See the NOTICE file distributed with
 % this work for additional information regarding copyright ownership.
@@ -248,19 +247,23 @@
 
     usage: egrep <regex>{ <regex>} [-?] [-b <start-row>] [-c
     	      <{<columnfamily>[:<columnqualifier>]}>] [-e <end-row>] [-f <int>]
-    	      [-np] [-s <comma-separated-authorizations>] [-st] [-t <arg>]
+    	      [-np] [-nt <arg>] [-s <comma-separated-authorizations>] [-st] [-t
+    	      <table>]
     description: searches each row, column family, column qualifier and value, in
-    	      parallel, on the server side (using a java regular expression)
+    	      parallel, on the server side (using a java Matcher, so put .*
+    	      before and after your term if you're not matching the whole
+    	      element)
       -?,--help  display this help
       -b,--begin-row <start-row>  begin row (inclusive)
       -c,--columns <{<columnfamily>[:<columnqualifier>]}>  comma-separated columns
       -e,--end-row <end-row>  end row (inclusive)
       -f,--show few <int>  Only shows certain amount of characters
       -np,--no-pagination  disables pagination of output
+      -nt,--num-threads <arg>  num threads
       -s,--scan-authorizations <comma-separated-authorizations>  scan authorizations
     	      (all user auths are used if this argument is not specified)
       -st,--show-timestamps  enables displaying timestamps
-      -t,--num-threads <arg>  num threads
+      -t,--tableName <table>  table to grep through
 
 \textbf{execfile}
 
@@ -334,7 +337,8 @@
 
     usage: grep <term>{ <term>} [-?] [-b <start-row>] [-c
     	      <{<columnfamily>[:<columnqualifier>]}>] [-e <end-row>] [-f <int>]
-    	      [-np] [-s <comma-separated-authorizations>] [-st] [-t <arg>]
+    	      [-np] [-nt <arg>] [-s <comma-separated-authorizations>] [-st] [-t
+    	      <table>]
     description: searches each row, column family, column qualifier and value in a
     	      table for a substring (not a regular expression), in parallel, on
     	      the server side
@@ -344,10 +348,11 @@
       -e,--end-row <end-row>  end row (inclusive)
       -f,--show few <int>  Only shows certain amount of characters
       -np,--no-pagination  disables pagination of output
+      -nt,--num-threads <arg>  num threads
       -s,--scan-authorizations <comma-separated-authorizations>  scan authorizations
     	      (all user auths are used if this argument is not specified)
       -st,--show-timestamps  enables displaying timestamps
-      -t,--num-threads <arg>  num threads
+      -t,--tableName <table>  table to grep through
 
 \textbf{help}
 
@@ -390,7 +395,7 @@
 
     usage: listscans [-?] [-np] [-ts <tablet server>]
     description: list what scans are currently running in accumulo. See the
-    	      org.apache.accumulo.core.client.admin.ActiveScan javadoc for more information
+    	      accumulo.core.client.admin.ActiveScan javadoc for more information
     	      about columns.
       -?,--help  display this help
       -np,--no-pagination  disables pagination of output
@@ -540,8 +545,8 @@
 
 \textbf{setiter}
 
-    usage: setiter [-?] -ageoff | -agg | -class <name> | -nolabel | -regex | -vers 
-    	      [-majc] [-minc] [-n <itername>]  -p <pri>  [-scan] [-t <table>]
+    usage: setiter [-?] -ageoff | -agg | -class <name> | -regex | -reqvis | -vers 
+    	      [-majc] [-minc] [-n <itername>] -p <pri>	[-scan] [-t <table>]
     description: sets a table-specific iterator
       -?,--help  display this help
       -ageoff,--ageoff  an aging off type
@@ -550,26 +555,26 @@
       -majc,--major-compaction  applied at major compaction
       -minc,--minor-compaction  applied at minor compaction
       -n,--name <itername>	iterator to set
-      -nolabel,--no-label  a no-labeling type
       -p,--priority <pri>  the order in which the iterator is applied
       -regex,--regular-expression  a regex matching type
+      -reqvis,--require-visibility	a type that omits entries with empty visibilities
       -scan,--scan-time  applied at scan time
       -t,--table <table>  tableName
       -vers,--version  a versioning type
 
 \textbf{setscaniter}
 
-    usage: setscaniter [-?] -ageoff | -agg | -class <name> | -nolabel | -regex |
-    	      -vers  [-n <itername>]  -p <pri>	[-t <table>]
+    usage: setscaniter [-?] -ageoff | -agg | -class <name> | -regex | -reqvis | -vers
+    	       [-n <itername>] -p <pri>  [-t <table>]
     description: sets a table-specific scan iterator for this shell session
       -?,--help  display this help
       -ageoff,--ageoff  an aging off type
       -agg,--aggregator  an aggregating type
       -class,--class-name <name>  a java class type
       -n,--name <itername>	iterator to set
-      -nolabel,--no-label  a no-labeling type
       -p,--priority <pri>  the order in which the iterator is applied
       -regex,--regular-expression  a regex matching type
+      -reqvis,--require-visibility	a type that omits entries with empty visibilities
       -t,--table <table>  tableName
       -vers,--version  a versioning type
 

@@ -17,8 +17,10 @@
 package org.apache.accumulo.core.client.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.iterators.DebugIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.junit.Test;
 
@@ -39,5 +41,19 @@ public class ScannerOptionsTest {
     assertEquals(1, options.serverSideIteratorList.size());
     options.removeScanIterator("NAME");
     assertEquals(0, options.serverSideIteratorList.size());
+  }
+  
+  @Test
+  public void testIteratorConflict() {
+    ScannerOptions options = new ScannerOptions();
+    options.addScanIterator(new IteratorSetting(1, "NAME", DebugIterator.class));
+    try {
+      options.addScanIterator(new IteratorSetting(2, "NAME", DebugIterator.class));
+      fail();
+    } catch (IllegalArgumentException e) {}
+    try {
+      options.addScanIterator(new IteratorSetting(1, "NAME2", DebugIterator.class));
+      fail();
+    } catch (IllegalArgumentException e) {}
   }
 }

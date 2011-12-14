@@ -36,7 +36,7 @@ import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
-import org.apache.accumulo.core.iterators.user.NoVisFilter;
+import org.apache.accumulo.core.iterators.user.ReqVisFilter;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.util.shell.Shell;
@@ -52,7 +52,7 @@ import org.apache.commons.cli.Options;
 public class SetIterCommand extends Command {
   
   private Option tableOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt, priorityOpt;
-  private Option aggTypeOpt, ageoffTypeOpt, regexTypeOpt, versionTypeOpt, nolabelTypeOpt, classnameTypeOpt;
+  private Option aggTypeOpt, ageoffTypeOpt, regexTypeOpt, versionTypeOpt, reqvisTypeOpt, classnameTypeOpt;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ShellCommandException {
@@ -83,8 +83,8 @@ public class SetIterCommand extends Command {
       classname = AgeOffFilter.class.getName();
     else if (cl.hasOption(versionTypeOpt.getOpt()))
       classname = VersioningIterator.class.getName();
-    else if (cl.hasOption(nolabelTypeOpt.getOpt()))
-      classname = NoVisFilter.class.getName();
+    else if (cl.hasOption(reqvisTypeOpt.getOpt()))
+      classname = ReqVisFilter.class.getName();
     
     if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName()))
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
@@ -235,14 +235,14 @@ public class SetIterCommand extends Command {
     aggTypeOpt = new Option("agg", "aggregator", false, "an aggregating type");
     regexTypeOpt = new Option("regex", "regular-expression", false, "a regex matching type");
     versionTypeOpt = new Option("vers", "version", false, "a versioning type");
-    nolabelTypeOpt = new Option("nolabel", "no-label", false, "a blank visibility omitting type");
+    reqvisTypeOpt = new Option("reqvis", "require-visibility", false, "a type that omits entries with empty visibilities");
     ageoffTypeOpt = new Option("ageoff", "ageoff", false, "an aging off type");
     
     typeGroup.addOption(classnameTypeOpt);
     typeGroup.addOption(aggTypeOpt);
     typeGroup.addOption(regexTypeOpt);
     typeGroup.addOption(versionTypeOpt);
-    typeGroup.addOption(nolabelTypeOpt);
+    typeGroup.addOption(reqvisTypeOpt);
     typeGroup.addOption(ageoffTypeOpt);
     typeGroup.setRequired(true);
     

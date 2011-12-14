@@ -17,16 +17,20 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.ShellCommandException.ErrorCode;
@@ -44,20 +48,31 @@ public class SetScanIterCommand extends SetIterCommand {
   
   @Override
   protected void setTableProperties(CommandLine cl, Shell shellState, String tableName, int priority, Map<String,String> options, String classname, String name)
-      throws AccumuloException, AccumuloSecurityException, ShellCommandException {
-    // instead of setting table properties, just put the options
-    // in a map to use at scan time
+      throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
+    // instead of setting table properties, just put the options in a list to use at scan time
     if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName()))
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
           + SortedKeyValueIterator.class.getName());
-    options.put("iteratorClassName", classname);
-    options.put("iteratorPriority", Integer.toString(priority));
-    Map<String,Map<String,String>> tableIterators = shellState.scanIteratorOptions.get(tableName);
-    if (tableIterators == null) {
-      tableIterators = new HashMap<String,Map<String,String>>();
-      shellState.scanIteratorOptions.put(tableName, tableIterators);
+    List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(tableName);
+    if (tableScanIterators == null) {
+      tableScanIterators = new ArrayList<IteratorSetting>();
+      shellState.scanIteratorOptions.put(tableName, tableScanIterators);
     }
-    tableIterators.put(name, options);
+    IteratorSetting setting = new IteratorSetting(priority, name, classname);
+    setting.addOptions(options);
+    
+    // initialize a scanner to ensure the new setting does not conflict with existing settings
+    String user = shellState.getConnector().whoami();
+    Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
+    Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
+    for (IteratorSetting s : tableScanIterators) {
+      scanner.addScanIterator(s);
+    }
+    scanner.addScanIterator(setting);
+    
+    // if no exception has been thrown, it's safe to add it to the list
+    tableScanIterators.add(setting);
+    Shell.log.debug("Scan iterators :" + shellState.scanIteratorOptions.get(tableName));
   }
   
   @Override

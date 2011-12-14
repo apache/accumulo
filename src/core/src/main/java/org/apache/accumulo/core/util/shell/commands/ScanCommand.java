@@ -17,8 +17,7 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -96,23 +95,20 @@ public class ScanCommand extends Command {
   }
   
   protected void addScanIterators(Shell shellState, Scanner scanner, String tableName) {
-    Map<String,Map<String,String>> tableIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
-    if (tableIterators == null)
+    List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
+    if (tableScanIterators == null) {
+      Shell.log.debug("Found no scan iterators to set");
       return;
+    }
+    Shell.log.debug("Found " + tableScanIterators.size() + " scan iterators to set");
     
-    for (Entry<String,Map<String,String>> entry : tableIterators.entrySet()) {
-      Map<String,String> options = new HashMap<String,String>(entry.getValue());
-      String className = options.remove("iteratorClassName");
-      int priority = Integer.parseInt(options.remove("iteratorPriority"));
-      String name = entry.getKey();
-      
-      Shell.log.debug("Setting scan iterator " + name + " at priority " + priority + " using class name " + className);
-      IteratorSetting si = new IteratorSetting(priority, name, className);
-      for (Entry<String,String> option : options.entrySet()) {
-        Shell.log.debug("Setting option for " + name + ": " + option.getKey() + "=" + option.getValue());
+    for (IteratorSetting setting : tableScanIterators) {
+      Shell.log.debug("Setting scan iterator " + setting.getName() + " at priority " + setting.getPriority() + " using class name "
+          + setting.getIteratorClass());
+      for (Entry<String,String> option : setting.getProperties().entrySet()) {
+        Shell.log.debug("Setting option for " + setting.getName() + ": " + option.getKey() + "=" + option.getValue());
       }
-      si.addOptions(options.entrySet());
-      scanner.addScanIterator(si);
+      scanner.addScanIterator(setting);
     }
   }
   
