@@ -18,10 +18,10 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
 
 This example shows how to use Accumulo to store a file system history.  It has three classes:
 
- * Ingest.java - Recursively lists the files and directories under a given path, ingests their names and file info (not the file data!) into a Accumulo table, and indexes the file names in a separate table.
+ * Ingest.java - Recursively lists the files and directories under a given path, ingests their names and file info (not the file data!) into an Accumulo table, and indexes the file names in a separate table.
  * QueryUtil.java - Provides utility methods for getting the info for a file, listing the contents of a directory, and performing single wild card searches on file or directory names.
  * Viewer.java - Provides a GUI for browsing the file system information stored in Accumulo.
- * FileCountMR.java - Runs MR over the file system information and writes out counts to a Accumulo table.
+ * FileCountMR.java - Runs MR over the file system information and writes out counts to an Accumulo table.
  * FileCount.java - Accomplishes the same thing as FileCountMR, but in a different way.  Computes recursive counts and stores them back into table.
  * StringArraySummation.java - Aggregates counts for the FileCountMR reducer.
  

@@ -45,7 +45,7 @@ public interface BatchScanner extends ScannerBase, Iterable<Entry<Key,Value>> {
   void setRanges(Collection<Range> ranges);
   
   /**
-   * Returns an iterator over a accumulo table. This iterator uses the options that are currently set for its lifetime. So setting options will have no effect
+   * Returns an iterator over an accumulo table. This iterator uses the options that are currently set for its lifetime. So setting options will have no effect
    * on existing iterators.
    * 
    * Keys returned by the iterator are not guaranteed to be in sorted order.

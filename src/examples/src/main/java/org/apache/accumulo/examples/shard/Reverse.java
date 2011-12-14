@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 /**
- * The program reads a accumulo table written by Index.java and writes out to another table. It writes out a mapping of documents to terms. The document to term
+ * The program reads an accumulo table written by Index.java and writes out to another table. It writes out a mapping of documents to terms. The document to term
  * mapping is used by ContinuousQuery.java
  * 
  */

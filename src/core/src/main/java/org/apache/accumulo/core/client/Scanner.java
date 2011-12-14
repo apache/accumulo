@@ -74,7 +74,7 @@ public interface Scanner extends ScannerBase, Iterable<Entry<Key,Value>> {
   void disableIsolation();
   
   /**
-   * Returns an iterator over a accumulo table. This iterator uses the options that are currently set on the scanner for its lifetime. So setting options on a
+   * Returns an iterator over an accumulo table. This iterator uses the options that are currently set on the scanner for its lifetime. So setting options on a
    * Scanner object will have no effect on existing iterators.
    * 
    * Keys are returned in sorted order by the iterator.
