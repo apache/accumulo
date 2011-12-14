@@ -95,7 +95,7 @@ public class MockConnector extends Connector {
   
   @Override
   public InstanceOperations instanceOperations() {
-    return null;
+    return new MockInstanceOperations(acu);
   }
   
 }

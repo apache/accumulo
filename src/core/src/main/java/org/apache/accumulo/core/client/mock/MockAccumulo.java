@@ -47,6 +47,10 @@ public class MockAccumulo {
     systemProperties.put(key, value);
   }
   
+  String removeProperty(String key) {
+    return systemProperties.remove(key);
+  }
+  
   void createTable(String user, String table) {
     createTable(user, table, true, TimeType.MILLIS);
   }
