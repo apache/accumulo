@@ -19,6 +19,13 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.apache</groupId>
+    <artifactId>apache</artifactId>
+    <version>10</version>
+  </parent>
+  
+  
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo</artifactId>
   <packaging>pom</packaging>
@@ -35,16 +42,6 @@
 
   <build>
     <resources>
-      <resource>
-        <directory>${basedir}/../../</directory>
-        <targetPath>META-INF</targetPath>
-	<includes>
-	  <include>CHANGES</include>
-	  <include>LICENSE</include>
-	  <include>DISCLAIMER</include>
-	  <include>NOTICE</include>
-	</includes>
-      </resource>
       <resource>
         <directory>${basedir}/src/main/resources</directory>
       </resource>
@@ -125,6 +122,7 @@
           <archive>
             <manifest>
               <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
             </manifest>
             <manifestEntries>
               <Implementation-Build>${buildNumber}</Implementation-Build>
@@ -137,7 +135,7 @@
             <include>web/**</include>
             <include>randomwalk/**</include>
             <include>*.*</include>
-	    <include>**/META-INF/*</include>
+	           <include>**/META-INF/*</include>
           </includes>
         </configuration>
       </plugin>
