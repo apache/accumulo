@@ -31,13 +31,14 @@ This example shows how to use Accumulo to store a file system history.  It has t
  
 To begin, ingest some data with Ingest.java.
 
-    $ ./bin/accumulo org.apache.accumulo.examples.dirlist.Ingest instance zookeepers username password dirTable indexTable dataTable visibility 100000 /local/username/workspace
+    $ ./bin/accumulo org.apache.accumulo.examples.dirlist.Ingest instance zookeepers username password dirTable indexTable dataTable exampleVis 100000 /local/username/workspace
 
 This may take some time if there are large files in the /local/username/workspace directory.  If you use 0 instead of 100000 on the command line, the ingest will run much faster, but it will not put any file data into Accumulo (the dataTable will be empty).
 Note that running this example will create tables dirTable, indexTable, and dataTable in Accumulo that you should delete when you have completed the example.
 If you modify a file or add new files in the directory ingested (e.g. /local/username/workspace), you can run Ingest again to add new information into the Accumulo tables.
 
-To browse the data ingested, use Viewer.java.  Be sure to give the "username" user the authorizations to see the data.
+To browse the data ingested, use Viewer.java.  Be sure to give the "username" user the authorizations to see the data (in this case, run "setauths -u username -s exampleVis" in the shell, and use the string "exampleVis" as the "auths" in command lines below)
+.
 
     $ ./bin/accumulo org.apache.accumulo.examples.dirlist.Viewer instance zookeepers username password dirTable dataTable auths /local/username/workspace
 
