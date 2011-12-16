@@ -182,8 +182,9 @@ public enum Property {
   MONITOR_PORT("monitor.port.client", "50095", PropertyType.PORT, "The listening port for the monitor's http service"),
   MONITOR_LOG4J_PORT("monitor.port.log4j", "4560", PropertyType.PORT, "The listening port for the monitor's log4j logging collection."),
   MONITOR_BANNER_TEXT("monitor.banner.text", "", PropertyType.STRING, "The banner text displayed on the monitor page."),
-  MONITOR_BANNER_COLOR("monitor.banner.color", "black", PropertyType.STRING, "The color of the banner text displayed on the monitor page."),
-  MONITOR_BANNER_BACKGROUND("monitor.banner.background", "white", PropertyType.STRING, "The background color of the banner text displayed on the monitor page."),
+  MONITOR_BANNER_COLOR("monitor.banner.color", "#c4c4c4", PropertyType.STRING, "The color of the banner text displayed on the monitor page."),
+  MONITOR_BANNER_BACKGROUND("monitor.banner.background", "#304065", PropertyType.STRING,
+      "The background color of the banner text displayed on the monitor page."),
   
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of distributed tracing."),
   TRACE_PORT("trace.port.client", "12234", PropertyType.PORT, "The listening port for the trace server"),
