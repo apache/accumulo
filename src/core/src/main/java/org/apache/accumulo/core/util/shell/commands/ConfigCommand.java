@@ -33,8 +33,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.Token;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -104,7 +104,7 @@ public class ConfigCommand extends Command {
         Shell.log.debug("Successfully set table configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property))
-          throw new BadArgumentException("Property cannot be modified in zookeepr", fullCommand, fullCommand.indexOf(property));
+          throw new BadArgumentException("Property cannot be modified in zookeeper", fullCommand, fullCommand.indexOf(property));
         
         shellState.getConnector().instanceOperations().setProperty(property, value);
         Shell.log.debug("Successfully set system configuration option");

@@ -52,17 +52,37 @@ html,body {
 	height: 8.0em;
 	color: #c4c4c4;
 	background-color: #304065;
+	text-align: center;
+}
+
+#banner {
+	height: 1.5em;
+	font-size: 1.0em;
+}
+
+#headertitle {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
 }
 
 #subheader {
 	position: absolute;
-	top: 4.5em;
+	bottom: 0;
 	left: 0;
 	right: 0;
-	color: #c4c4c4;
 	font-size: .92em;
-	text-align: center;
+}
+
+#footer {
+	position: absolute;
+	bottom: 0;
+	left: 0;
 	right: 0;
+	padding: 0;
+	height: 1.5em;
+	font-size: 1.0em;
 }
 
 #main {
@@ -70,7 +90,7 @@ html,body {
 	top: 8.0em;
 	left: 11em;
 	right: 0;
-	bottom: 0;
+	bottom: 1.5em;
 	padding: 0.6em;
 	overflow: scroll;
 }

@@ -32,7 +32,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -43,6 +45,9 @@ abstract public class BasicServlet extends HttpServlet {
   private static final long serialVersionUID = 1L;
   protected static final Logger log = Logger.getLogger(BasicServlet.class);
   static String cachedInstanceName = null;
+  private String bannerText;
+  private String bannerColor;
+  private String bannerBackground;
   
   abstract protected String getTitle(HttpServletRequest req);
   
@@ -50,6 +55,9 @@ abstract public class BasicServlet extends HttpServlet {
     StringBuilder sb = new StringBuilder();
     try {
       Monitor.fetchData();
+      bannerText = sanitize(ServerConfiguration.getSystemConfiguration().get(Property.MONITOR_BANNER_TEXT));
+      bannerColor = ServerConfiguration.getSystemConfiguration().get(Property.MONITOR_BANNER_COLOR).replace("'", "&#39;");
+      bannerBackground = ServerConfiguration.getSystemConfiguration().get(Property.MONITOR_BANNER_BACKGROUND).replace("'", "&#39;");
       pageStart(req, resp, sb);
       pageBody(req, resp, sb);
       pageEnd(req, resp, sb);
@@ -132,11 +140,19 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("\n<body>\n");
     sb.append("<div id='content-wrapper'>\n");
     sb.append("<div id='content'>\n");
-    sb.append("<div id='header'><h1>").append(getTitle(req)).append("</h1></div>\n");
+    sb.append("<div id='header'>");
+    if (!bannerText.isEmpty()) {
+      sb.append("<div id='banner' style='color:").append(bannerColor).append(";background:").append(bannerBackground).append("'>").append(bannerText)
+          .append("</div>\n");
+    }
+    sb.append("<div id='headertitle'>");
+    sb.append("<h1>").append(getTitle(req)).append("</h1></div>\n");
     sb.append("<div id='subheader'>Instance&nbsp;Name:&nbsp;").append(cachedInstanceName).append("&nbsp;&nbsp;&nbsp;Version:&nbsp;").append(Constants.VERSION)
         .append("\n");
     sb.append("<br><span class='smalltext'>Instance&nbsp;ID:&nbsp;").append(HdfsZooInstance.getInstance().getInstanceID()).append("</span>\n");
-    sb.append("<br><span class='smalltext'>").append(new Date().toString().replace(" ", "&nbsp;")).append("</span></div>\n");
+    sb.append("<br><span class='smalltext'>").append(new Date().toString().replace(" ", "&nbsp;")).append("</span>");
+    sb.append("</div>\n"); // end <div id='subheader'>
+    sb.append("</div>\n"); // end <div id='header'>
     
     // BEGIN LEFT SIDE
     sb.append("<div id='nav'>\n");
@@ -162,7 +178,10 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append(refresh < 1 ? "en" : "dis").append("able&nbsp;auto-refresh</a>]</div>\n");
     sb.append("</div>\n"); // end <div id='nav'>
     
-    sb.append("<div id='main'>\n");
+    sb.append("<div id='main'");
+    if (bannerText.isEmpty())
+      sb.append(" style='bottom:0'");
+    sb.append(">\n");
     sb.append("<!-- BEGIN MAIN BODY CONTENT -->\n\n");
   }
   
@@ -177,6 +196,10 @@ abstract public class BasicServlet extends HttpServlet {
     // BEGIN FOOTER
     sb.append("</div>\n"); // end <div id='content'>
     sb.append("</div>\n"); // end <div id='content-wrapper'>
+    if (!bannerText.isEmpty()) {
+      sb.append("<div id='footer' style='color:").append(bannerColor).append(";background:").append(bannerBackground).append("'>").append(bannerText)
+          .append("</div>\n");
+    }
     sb.append("</body>\n");
     sb.append("</html>\n");
   }

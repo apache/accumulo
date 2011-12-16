@@ -618,13 +618,34 @@ $HADOOP_HOME/lib/[^.].*.jar,
    <tr><td colspan='5'><i>Properties in this category affect the behavior of the monitor web server.</i></td></tr>
    <tr><th>Property</th><th>Type</th><th>Zookeeper Mutable</th><th>Default Value</th><th>Description</th></tr>
    <tr class='highlight'>
+    <td>monitor.banner.background</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>white</pre></td>
+    <td>The background color of the banner text displayed on the monitor page.</td>
+   </tr>
+   <tr >
+    <td>monitor.banner.color</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>black</pre></td>
+    <td>The color of the banner text displayed on the monitor page.</td>
+   </tr>
+   <tr class='highlight'>
+    <td>monitor.banner.text</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>&nbsp;</pre></td>
+    <td>The banner text displayed on the monitor page.</td>
+   </tr>
+   <tr >
     <td>monitor.port.client</td>
     <td><b><a href='#PORT'>port</a></b></td>
     <td>no</td>
     <td><pre>50095</pre></td>
     <td>The listening port for the monitor's http service</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>monitor.port.log4j</td>
     <td><b><a href='#PORT'>port</a></b></td>
     <td>no</td>
