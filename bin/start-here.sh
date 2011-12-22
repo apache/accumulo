@@ -39,6 +39,7 @@ for host in $HOSTS
 do
     if grep -q "^${host}\$" $ACCUMULO_HOME/conf/masters
     then
+       ${bin}/accumulo org.apache.accumulo.server.master.state.SetGoalState NORMAL
        ${bin}/start-server.sh $host master
        break
     fi
