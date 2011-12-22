@@ -1204,16 +1204,10 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
   }
   
   private String getEventKeyUid(Key k) {
-    String uid = null;
     if (k == null || k.getColumnFamily() == null) {
-      return uid;
+      return null;
     } else {
-      String[] parts = k.getColumnFamily().toString().split("\0");
-      if (parts.length < 2) {
-        return uid;
-      } else {
-        return parts[parts.length - 1];
-      }
+      return k.getColumnFamily().toString();
     }
   }
   
@@ -1221,7 +1215,7 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
     try {
       int idx = 0;
       String sKey = k.getColumnQualifier().toString();
-      idx = sKey.lastIndexOf("\0");
+      idx = sKey.indexOf("\0");
       return sKey.substring(idx + 1);
     } catch (Exception e) {
       return null;
@@ -1865,6 +1859,8 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
         }
       }
       
+      log.debug("overallRange " + overallRange + " topKey " + this.root.getTopKey() + " contains " + overallRange.contains(this.root.getTopKey()));
+
       if (overallRange.contains(this.root.getTopKey())) {
         setTopKey(this.root.getTopKey());
       } else {

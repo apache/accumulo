@@ -23,9 +23,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.PriorityQueue;
 
-import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
-
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -33,6 +30,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 /**
  * An iterator that handles "OR" query constructs on the server side. This code has been adapted/merged from Heap and Multi Iterators.
@@ -206,7 +205,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
       int idx = 0;
       String sKey = key.getColumnQualifier().toString();
       
-      idx = sKey.lastIndexOf("\0");
+      idx = sKey.indexOf("\0");
       return sKey.substring(idx + 1);
     } catch (Exception e) {
       return null;

@@ -22,15 +22,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
-
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.log4j.Logger;
 
 /**
  * This iterator internally uses the BooleanLogicIterator to find event UIDs in the field index portion of the partition and uses the EvaluatingIterator to
@@ -44,6 +44,7 @@ public class OptimizedQueryIterator implements SortedKeyValueIterator<Key,Value>
   private Key key = null;
   private Value value = null;
   private boolean eventSpecificRange = false;
+  private long seekTime = 0;
   
   public IteratorOptions describeOptions() {
     Map<String,String> options = new HashMap<String,String>();
@@ -139,7 +140,9 @@ public class OptimizedQueryIterator implements SortedKeyValueIterator<Key,Value>
         // If the index has a match, then seek the event to the key
         if (index.hasTop()) {
           Key eventKey = index.getTopKey();
-          Range eventRange = new Range(eventKey.getRow());
+          Key endKey = eventKey.followingKey(PartialKey.ROW_COLFAM);
+          Key startKey = new Key(eventKey.getRow(), eventKey.getColumnFamily());
+          Range eventRange = new Range(startKey, endKey);
           HashSet<ByteSequence> cf = new HashSet<ByteSequence>();
           cf.add(eventKey.getColumnFamilyData());
           event.seek(eventRange, cf, true);
@@ -164,7 +167,7 @@ public class OptimizedQueryIterator implements SortedKeyValueIterator<Key,Value>
       log.debug("seek, range:" + range);
     }
     // Test the range to see if it is event specific.
-    if (null != range.getStartKey() && range.getStartKey().getColumnFamily() != null && !range.getStartKey().getColumnFamily().toString().equals("")) {
+    if (null != range.getEndKey() && range.getEndKey().getColumnFamily() != null && range.getEndKey().getColumnFamily().getLength() != 0) {
       if (log.isDebugEnabled()) {
         log.debug("Jumping straight to the event");
       }

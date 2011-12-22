@@ -187,7 +187,7 @@
     <version.lucene-wikipedia>3.0.2</version.lucene-wikipedia>
     <version.protobuf>2.3.0</version.protobuf>
     <version.googlecollections>1.0</version.googlecollections>
-    <version.libthrift>0.8.0</version.libthrift>
+    <version.libthrift>0.6.1</version.libthrift>
     <version.zookeeper>3.3.1</version.zookeeper>
     <version.minlog>1.2</version.minlog>
   </properties>

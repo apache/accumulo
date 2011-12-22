@@ -140,7 +140,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
     int idx = 0;
     String sKey = key.getColumnQualifier().toString();
     
-    idx = sKey.lastIndexOf("\0");
+    idx = sKey.indexOf("\0");
     return sKey.substring(idx + 1);
   }
   
@@ -781,15 +781,16 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
       Key sourceKey;
       if (range.getStartKey() != null) {
         // Build a key with the DocID if one is given
-        if (range.getStartKey().getColumnQualifier() != null) {
+        if (range.getStartKey().getColumnFamily() != null) {
           sourceKey = buildKey(getPartition(range.getStartKey()), (sources[i].dataLocation == null) ? nullText : sources[i].dataLocation,
-              (sources[i].term == null) ? nullText : new Text(sources[i].term + "\0" + range.getStartKey().getColumnQualifier()));
+              (sources[i].term == null) ? nullText : new Text(sources[i].term + "\0" + range.getStartKey().getColumnFamily()));
         } // Build a key with just the term.
         else {
           sourceKey = buildKey(getPartition(range.getStartKey()), (sources[i].dataLocation == null) ? nullText : sources[i].dataLocation,
               (sources[i].term == null) ? nullText : sources[i].term);
         }
-        
+        if (!range.isStartKeyInclusive())
+          sourceKey = sourceKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL);
         sources[i].iter.seek(new Range(sourceKey, true, null, false), seekColumnFamilies, inclusive);
       } else {
         sources[i].iter.seek(range, seekColumnFamilies, inclusive);
@@ -889,7 +890,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
         return hasTop();
       } else {
         // need to check uid
-        String myUid = getUID(this.topKey);
+        String myUid = this.topKey.getColumnQualifier().toString();
         String jumpUid = getUID(jumpKey);
         if (log.isDebugEnabled()) {
           if (myUid == null) {

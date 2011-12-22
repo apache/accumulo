@@ -192,9 +192,12 @@ public class Query implements IQuery {
     
     // Create list of auths
     List<String> authorizations = new ArrayList<String>();
-    for (String a : auths.split(","))
-      authorizations.add(a);
-    
+    if (auths == null || "".equals(auths)) {
+      authorizations.add("all");
+    } else {
+      for (String a : auths.split(","))
+        authorizations.add(a);
+    }
     ContentLogic table = new ContentLogic();
     table.setTableName(tableName);
     return table.runQuery(connector, query, authorizations);

@@ -58,7 +58,6 @@ import parser.EventFields;
 import parser.EventFields.FieldValue;
 import parser.FieldIndexQueryReWriter;
 import parser.JexlOperatorConstants;
-import parser.JexlOperatorConstants;
 import parser.QueryParser;
 import parser.QueryParser.QueryTerm;
 import parser.RangeCalculator;
@@ -460,7 +459,8 @@ public abstract class AbstractQueryLogic {
     
     Set<Range> ranges = new HashSet<Range>();
     Set<String> typeFilter = types;
-    Authorizations auths = new Authorizations(StringUtils.join(authorizations, "|"));
+    String array[] = authorizations.toArray(new String[0]);
+    Authorizations auths = new Authorizations(array);
     Results results = new Results();
     
     // Get the query string
@@ -785,9 +785,6 @@ public abstract class AbstractQueryLogic {
           long count = 0;
           for (Entry<Key,Value> entry : bs) {
             count++;
-            if (log.isDebugEnabled()) {
-              log.debug("Key: " + entry.getKey());// + "\nValue: " + entry.getValue() + "\n");
-            }
             // The key that is returned by the EvaluatingIterator is not the same key that is in
             // the table. The value that is returned by the EvaluatingIterator is a kryo
             // serialized EventFields object.

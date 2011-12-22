@@ -25,11 +25,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.jexl2.parser.ParseException;
-import org.apache.log4j.Logger;
-
-import parser.EventFields;
-import parser.QueryEvaluator;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -38,6 +33,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.commons.jexl2.parser.ParseException;
+import org.apache.log4j.Logger;
+
+import parser.EventFields;
+import parser.QueryEvaluator;
 
 import com.esotericsoftware.kryo.Kryo;
 
@@ -66,7 +66,7 @@ public abstract class AbstractEvaluatingIterator implements SortedKeyValueIterat
   public static final String UNEVALUTED_EXPRESSIONS = "unevaluated.expressions";
   
   private PartialKey comparator = null;
-  private SortedKeyValueIterator<Key,Value> iterator;
+  protected SortedKeyValueIterator<Key,Value> iterator;
   private Key currentKey = new Key();
   private Key returnKey;
   private Value returnValue;
@@ -118,8 +118,9 @@ public abstract class AbstractEvaluatingIterator implements SortedKeyValueIterat
    * 
    * @param key
    * @return
+   * @throws IOException
    */
-  public abstract boolean isKeyAccepted(Key key);
+  public abstract boolean isKeyAccepted(Key key) throws IOException;
   
   /**
    * Reset state.

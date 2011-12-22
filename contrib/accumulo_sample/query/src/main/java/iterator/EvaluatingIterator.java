@@ -16,14 +16,22 @@
  */
 package iterator;
 
-import parser.EventFields;
-import parser.EventFields.FieldValue;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.hadoop.io.Text;
+
+import parser.EventFields;
+import parser.EventFields.FieldValue;
 
 public class EvaluatingIterator extends AbstractEvaluatingIterator {
   
@@ -77,9 +85,14 @@ public class EvaluatingIterator extends AbstractEvaluatingIterator {
    * Don't accept this key if the colf starts with 'fi'
    */
   @Override
-  public boolean isKeyAccepted(Key key) {
+  public boolean isKeyAccepted(Key key) throws IOException {
     if (key.getColumnFamily().toString().startsWith("fi")) {
-      return false;
+      Key copy = new Key(key.getRow(), new Text("fi\01"));
+      Collection<ByteSequence> columnFamilies = Collections.emptyList();
+      this.iterator.seek(new Range(copy, copy), columnFamilies, true);
+      if (this.iterator.hasTop())
+        return isKeyAccepted(this.iterator.getTopKey());
+      return true;
     }
     return true;
   }
