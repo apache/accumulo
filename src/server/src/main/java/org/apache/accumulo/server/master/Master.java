@@ -443,7 +443,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
       for (TableCounts counts : watcher.getStats().values()) {
-        result += counts.assigned() + counts.unassigned() + counts.assignedToDeadServers();
+        result += counts.assigned() + counts.assignedToDeadServers();
       }
     }
     return result;
