@@ -23,18 +23,20 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.file.map.MyMapFile;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.map.MySequenceFile;
 import org.apache.accumulo.core.file.map.MySequenceFile.Reader;
+import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparable;
 
 class MultipleIndexIterator2 {
   
@@ -83,12 +85,12 @@ class MultipleIndexIterator2 {
     return currentMin >= 0;
   }
   
-  WritableComparable<?> next() {
+  Key next() {
     if (currentMin < 0) {
       throw new RuntimeException("There is no next");
     }
     
-    WritableComparable<?> ret = nextKey[currentMin];
+    Key ret = nextKey[currentMin];
     
     try {
       nextKey[currentMin] = (Key) readers[currentMin].getKeyClass().newInstance();
@@ -214,16 +216,16 @@ public class MidPointPerfTest2 {
       
       start = end;
       
-      Path outFile = new Path(String.format("%s/index_%04d", newDir, count++));
-      outFiles.add(outFile);
+      String outFile = String.format("%s/index_%04d", newDir, count++);
+      outFiles.add(new Path(outFile));
       
       long t1 = System.currentTimeMillis();
       
-      MySequenceFile.Writer writer = MySequenceFile.createWriter(fs, conf, outFile, Key.class, LongWritable.class, MySequenceFile.CompressionType.BLOCK);
+      FileSKVWriter writer = new RFileOperations().openWriter(outFile, fs, conf, AccumuloConfiguration.getDefaultConfiguration());
       MultipleIndexIterator2 mii = new MultipleIndexIterator2(conf, fs, inFiles);
       
       while (mii.hasNext()) {
-        writer.append(mii.next(), new LongWritable(0));
+        writer.append(mii.next(), new Value(new byte[0]));
       }
       
       mii.close();
@@ -254,7 +256,7 @@ public class MidPointPerfTest2 {
     FileSystem fs = FileSystem.get(conf);
     
     for (int i = 0; i < numFiles; i++) {
-      String newDir = String.format("%s/" + MyMapFile.EXTENSION + "_%06d", dir, i);
+      String newDir = String.format("%s/" + RFile.EXTENSION + "_%06d", dir, i);
       fs.mkdirs(new Path(newDir));
       
       List<Key> keys = new ArrayList<Key>();
@@ -267,13 +269,12 @@ public class MidPointPerfTest2 {
       
       Collections.sort(keys, new CompareKeys());
       
-      MySequenceFile.Writer writer = MySequenceFile.createWriter(fs, conf, new Path(newDir + "/index"), Key.class, LongWritable.class,
-          MySequenceFile.CompressionType.BLOCK);
+      FileSKVWriter writer = new RFileOperations().openWriter(newDir, fs, conf, AccumuloConfiguration.getDefaultConfiguration());
       
       System.out.println(new Path(newDir + "/index"));
       
       for (Key key : keys) {
-        writer.append(key, new LongWritable(0));
+        writer.append(key, new Value(new byte[0]));
       }
       
       writer.close();

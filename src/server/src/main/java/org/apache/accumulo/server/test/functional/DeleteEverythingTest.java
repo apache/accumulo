@@ -60,7 +60,7 @@ public class DeleteEverythingTest extends FunctionalTest {
     
     getConnector().tableOperations().flush("de", null, null, true);
     
-    checkMapFiles("de", 1, 1, 1, 1);
+    checkRFiles("de", 1, 1, 1, 1);
     
     m = new Mutation(new Text("foo"));
     m.putDelete(new Text("bar"), new Text("1910"));
@@ -84,7 +84,7 @@ public class DeleteEverythingTest extends FunctionalTest {
     getConnector().tableOperations().setProperty("de", Property.TABLE_MAJC_RATIO.getKey(), "1.0");
     UtilWaitThread.sleep(4000);
     
-    checkMapFiles("de", 1, 1, 0, 0);
+    checkRFiles("de", 1, 1, 0, 0);
     
     bw.close();
     

@@ -65,7 +65,7 @@ public class BadIteratorMincTest extends FunctionalTest {
     UtilWaitThread.sleep(1000);
     
     // minc should fail, so there should be no files
-    checkMapFiles("foo", 1, 1, 0, 0);
+    checkRFiles("foo", 1, 1, 0, 0);
     
     // try to scan table
     Scanner scanner = getConnector().createScanner("foo", Constants.NO_AUTHS);
@@ -85,7 +85,7 @@ public class BadIteratorMincTest extends FunctionalTest {
     UtilWaitThread.sleep(5000);
     
     // minc should complete
-    checkMapFiles("foo", 1, 1, 1, 1);
+    checkRFiles("foo", 1, 1, 1, 1);
     
     count = 0;
     for (@SuppressWarnings("unused")

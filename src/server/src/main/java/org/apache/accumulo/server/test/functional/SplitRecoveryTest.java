@@ -34,7 +34,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileUtil;
-import org.apache.accumulo.core.file.map.MyMapFile;
+import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -48,9 +48,9 @@ import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.server.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.io.Text;
 
 public class SplitRecoveryTest extends FunctionalTest {
@@ -128,7 +128,7 @@ public class SplitRecoveryTest extends FunctionalTest {
       String tdir = "/dir_" + i;
       MetadataTable.addTablet(extent, tdir, SecurityConstants.getSystemCredentials(), TabletTime.LOGICAL_TIME_ID, zl);
       SortedMap<String,DataFileValue> mapFiles = new TreeMap<String,DataFileValue>();
-      mapFiles.put(tdir + "/" + MyMapFile.EXTENSION + "_000_000", new DataFileValue(1000017 + i, 10000 + i));
+      mapFiles.put(tdir + "/" + RFile.EXTENSION + "_000_000", new DataFileValue(1000017 + i, 10000 + i));
       
       if (i == extentToSplit) {
         splitMapFiles = mapFiles;

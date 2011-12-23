@@ -83,10 +83,10 @@ public class BloomFilterTest extends FunctionalTest {
     getConnector().tableOperations().flush("bt4", null, null, true);
     
     // ensure minor compactions are finished
-    super.checkMapFiles("bt1", 1, 1, 1, 1);
-    super.checkMapFiles("bt2", 1, 1, 1, 1);
-    super.checkMapFiles("bt3", 1, 1, 1, 1);
-    super.checkMapFiles("bt4", 1, 1, 1, 1);
+    super.checkRFiles("bt1", 1, 1, 1, 1);
+    super.checkRFiles("bt2", 1, 1, 1, 1);
+    super.checkRFiles("bt3", 1, 1, 1, 1);
+    super.checkRFiles("bt4", 1, 1, 1, 1);
     
     // these queries should only run quickly if bloom
     // filters are working

@@ -20,24 +20,19 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Random;
 import java.util.Map.Entry;
+import java.util.Random;
 
 import junit.framework.TestCase;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.map.MyMapFile;
-import org.apache.accumulo.core.file.map.MySequenceFile;
-import org.apache.accumulo.core.file.map.MySequenceFile.CompressionType;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -55,7 +50,7 @@ public class MapFileTest extends TestCase {
       /*****************************
        * write out the test map file
        */
-      MyMapFile.Writer mfw = new MyMapFile.Writer(conf, fs, "/tmp/testMapFileIndexingMap", Key.class, Value.class, CompressionType.BLOCK);
+      MapFile.Writer mfw = new MapFile.Writer(conf, fs, "/tmp/testMapFileIndexingMap", Key.class, Value.class);
       Value value = new Value(new byte[10]);
       for (int i = 0; i < 10; i++) {
         Text row = new Text(String.format("%08d", i));
@@ -101,7 +96,7 @@ public class MapFileTest extends TestCase {
       /*****************************
        * write out the test map file
        */
-      MyMapFile.Writer mfw = new MyMapFile.Writer(conf, fs, "/tmp/testMapFileIndexingMap", Text.class, BytesWritable.class, CompressionType.BLOCK);
+      MapFile.Writer mfw = new MapFile.Writer(conf, fs, "/tmp/testMapFileIndexingMap", Text.class, BytesWritable.class);
       Text key = new Text();
       BytesWritable value;
       Random r = new Random();
@@ -229,73 +224,11 @@ public class MapFileTest extends TestCase {
     }
   }
   
-  public void testMapFileFix() {
-    try {
-      Configuration conf = CachedConfiguration.getInstance();
-      FileSystem fs = FileSystem.get(conf);
-      conf.setInt("io.seqfile.compress.blocksize", 4000);
-      
-      for (CompressionType compressionType : CompressionType.values()) {
-        /*****************************
-         * write out the test map file
-         */
-        MyMapFile.Writer mfw = new MyMapFile.Writer(conf, fs, "/tmp/testMapFileIndexingMap", Text.class, BytesWritable.class, compressionType);
-        BytesWritable value;
-        Random r = new Random();
-        byte[] bytes = new byte[1024];
-        for (int i = 0; i < 1000; i++) {
-          String keyString = Integer.toString(i + 1000000);
-          Text key = new Text(keyString);
-          r.nextBytes(bytes);
-          value = new BytesWritable(bytes);
-          mfw.append(key, value);
-        }
-        mfw.close();
-        
-        /************************************
-         * move the index file
-         */
-        fs.rename(new Path("/tmp/testMapFileIndexingMap/index"), new Path("/tmp/testMapFileIndexingMap/oldIndex"));
-        
-        /************************************
-         * recreate the index
-         */
-        MyMapFile.fix(fs, new Path("/tmp/testMapFileIndexingMap"), Text.class, BytesWritable.class, false, conf);
-        
-        /************************************
-         * compare old and new indices
-         */
-        MySequenceFile.Reader oldIndexReader = new MySequenceFile.Reader(fs, new Path("/tmp/testMapFileIndexingMap/oldIndex"), conf);
-        MySequenceFile.Reader newIndexReader = new MySequenceFile.Reader(fs, new Path("/tmp/testMapFileIndexingMap/index"), conf);
-        
-        Text oldKey = new Text();
-        Text newKey = new Text();
-        LongWritable oldValue = new LongWritable();
-        LongWritable newValue = new LongWritable();
-        while (true) {
-          boolean moreKeys = false;
-          // check for the same number of records
-          assertTrue((moreKeys = oldIndexReader.next(oldKey, oldValue)) == newIndexReader.next(newKey, newValue));
-          if (!moreKeys)
-            break;
-          assertTrue(oldKey.compareTo(newKey) == 0);
-          assertTrue(oldValue.compareTo(newValue) == 0);
-        }
-        oldIndexReader.close();
-        newIndexReader.close();
-        
-        fs.delete(new Path("/tmp/testMapFileIndexingMap"), true);
-      }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
-  }
-  
   public static void main(String[] args) {
     try {
       Configuration conf = CachedConfiguration.getInstance();
       FileSystem fs = FileSystem.get(conf);
-      MyMapFile.Writer mfw = new MyMapFile.Writer(conf, fs, "/tmp/testMapFileIndexingMap", Text.class, BytesWritable.class, CompressionType.BLOCK);
+      MapFile.Writer mfw = new MapFile.Writer(conf, fs, "/tmp/testMapFileIndexingMap", Text.class, BytesWritable.class);
       Text key = new Text();
       BytesWritable value;
       Random r = new Random();

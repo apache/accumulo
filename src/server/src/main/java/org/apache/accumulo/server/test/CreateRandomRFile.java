@@ -20,17 +20,17 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.map.MyMapFile;
-import org.apache.accumulo.core.file.map.MyMapFile.Writer;
-import org.apache.accumulo.core.file.map.MySequenceFile.CompressionType;
+import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
-public class CreateRandomMapFile {
+public class CreateRandomRFile {
   private static int num;
   private static String file;
   
@@ -62,10 +62,10 @@ public class CreateRandomMapFile {
     Arrays.sort(rands);
     
     Configuration conf = CachedConfiguration.getInstance();
-    Writer mfw;
+    FileSKVWriter mfw;
     try {
       FileSystem fs = FileSystem.get(conf);
-      mfw = new MyMapFile.Writer(conf, fs, file, Key.class, Value.class, CompressionType.BLOCK);
+      mfw = new RFileOperations().openWriter(file, fs, conf, AccumuloConfiguration.getDefaultConfiguration());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

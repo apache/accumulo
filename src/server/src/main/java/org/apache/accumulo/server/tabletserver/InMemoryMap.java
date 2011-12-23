@@ -40,9 +40,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.file.map.MapFileOperations;
-import org.apache.accumulo.core.file.map.MyMapFile;
-import org.apache.accumulo.core.file.map.MySequenceFile;
+import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -71,7 +71,7 @@ class MemKeyComparator implements Comparator<Key> {
     if (cmp == 0) {
       if (k1 instanceof MemKey)
         if (k2 instanceof MemKey)
-          cmp = ((MemKey) k2).mutationCount - ((MemKey) k1).mutationCount;
+          cmp = ((MemKey) k2).kvCount - ((MemKey) k1).kvCount;
         else
           cmp = 1;
       else if (k2 instanceof MemKey)
@@ -84,22 +84,22 @@ class MemKeyComparator implements Comparator<Key> {
 
 class PartialMutationSkippingIterator extends SkippingIterator implements InterruptibleIterator {
   
-  int maxMutationCount;
+  int kvCount;
   
-  public PartialMutationSkippingIterator(SortedKeyValueIterator<Key,Value> source, int maxMutationCount) {
+  public PartialMutationSkippingIterator(SortedKeyValueIterator<Key,Value> source, int maxKVCount) {
     setSource(source);
-    this.maxMutationCount = maxMutationCount;
+    this.kvCount = maxKVCount;
   }
   
   @Override
   protected void consume() throws IOException {
-    while (getSource().hasTop() && ((MemKey) getSource().getTopKey()).mutationCount > maxMutationCount)
+    while (getSource().hasTop() && ((MemKey) getSource().getTopKey()).kvCount > kvCount)
       getSource().next();
   }
   
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new PartialMutationSkippingIterator(getSource().deepCopy(env), maxMutationCount);
+    return new PartialMutationSkippingIterator(getSource().deepCopy(env), kvCount);
   }
   
   @Override
@@ -107,6 +107,77 @@ class PartialMutationSkippingIterator extends SkippingIterator implements Interr
     ((InterruptibleIterator) getSource()).setInterruptFlag(flag);
   }
   
+}
+
+class MemKeyConversionIterator extends SkippingIterator implements InterruptibleIterator {
+  MemKey currKey = null;
+  Value currVal = null;
+
+  public MemKeyConversionIterator(SortedKeyValueIterator<Key,Value> source) {
+    super();
+    setSource(source);
+  }
+
+  public MemKeyConversionIterator(SortedKeyValueIterator<Key,Value> source, MemKey startKey) {
+    this(source);
+    try {
+      if (currKey != null)
+        currKey = (MemKey) startKey.clone();
+    } catch (CloneNotSupportedException e) {
+      // MemKey is supported
+    }
+  }
+
+  @Override
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    return new MemKeyConversionIterator(getSource().deepCopy(env), currKey);
+  }
+  
+  @Override
+  public Key getTopKey() {
+    return currKey;
+  }
+  
+  @Override
+  public Value getTopValue() {
+    return currVal;
+  }
+  
+  private void getTopKeyVal() {
+    Key k = super.getTopKey();
+    Value v = super.getTopValue();
+    if (k instanceof MemKey || k == null) {
+      currKey = (MemKey) k;
+      currVal = v;
+      return;
+    }
+    currVal = new Value(v);
+    int mc = MemValue.splitKVCount(currVal);
+    currKey = new MemKey(k, mc);
+
+  }
+  
+  public void next() throws IOException {
+    super.next();
+    getTopKeyVal();
+  }
+
+  @Override
+  protected void consume() throws IOException {
+    MemKey stopPoint = currKey;
+    if (hasTop())
+      getTopKeyVal();
+    if (stopPoint == null)
+      return;
+    while (getSource().hasTop() && currKey.compareTo(stopPoint) <= 0)
+      next();
+  }
+
+  @Override
+  public void setInterruptFlag(AtomicBoolean flag) {
+    ((InterruptibleIterator) getSource()).setInterruptFlag(flag);
+  }
+
 }
 
 public class InMemoryMap {
@@ -152,7 +223,7 @@ public class InMemoryMap {
     
     public long getMemoryUsed();
     
-    public void mutate(List<Mutation> mutations, int mutationCount);
+    public void mutate(List<Mutation> mutations, int kvCount);
   }
   
   private static class DefaultMap implements SimpleMap {
@@ -203,15 +274,14 @@ public class InMemoryMap {
     }
     
     @Override
-    public void mutate(List<Mutation> mutations, int mutationCount) {
+    public void mutate(List<Mutation> mutations, int kvCount) {
       for (Mutation m : mutations) {
         for (ColumnUpdate cvp : m.getUpdates()) {
           Key newKey = new MemKey(m.getRow(), cvp.getColumnFamily(), cvp.getColumnQualifier(), cvp.getColumnVisibility(), cvp.getTimestamp(), cvp.isDeleted(),
-              false, mutationCount);
+              false, kvCount++);
           Value value = new Value(cvp.getValue());
           put(newKey, value);
         }
-        mutationCount++;
       }
     }
     
@@ -253,22 +323,25 @@ public class InMemoryMap {
     }
     
     @Override
-    public void mutate(List<Mutation> mutations, int mutationCount) {
-      nativeMap.mutate(mutations, mutationCount);
+    public void mutate(List<Mutation> mutations, int kvCount) {
+      nativeMap.mutate(mutations, kvCount);
     }
   }
   
-  private AtomicInteger nextMutationCount = new AtomicInteger(1);
-  private AtomicInteger mutationCount = new AtomicInteger(0);
+  private AtomicInteger nextKVCount = new AtomicInteger(1);
+  private AtomicInteger kvCount = new AtomicInteger(0);
   
   /**
    * Applies changes to a row in the InMemoryMap
    * 
    */
   public void mutate(List<Mutation> mutations) {
-    int mc = nextMutationCount.getAndAdd(mutations.size());
+    int numKVs = 0;
+    for (int i = 0; i < mutations.size(); i++)
+      numKVs += mutations.get(i).size();
+    int kv = nextKVCount.getAndAdd(numKVs);
     try {
-      map.mutate(mutations, mc);
+      map.mutate(mutations, kv);
     } finally {
       synchronized (this) {
         // Can not update mutationCount while writes that started before
@@ -277,14 +350,14 @@ public class InMemoryMap {
         // a read may not see a successful write. Therefore writes must
         // wait for writes that started before to finish.
         
-        while (mutationCount.get() != mc - 1) {
+        while (kvCount.get() != kv - 1) {
           try {
             wait();
           } catch (InterruptedException ex) {
             // ignored
           }
         }
-        mutationCount.set(mc + mutations.size() - 1);
+        kvCount.set(kv + numKVs - 1);
         notifyAll();
       }
     }
@@ -357,8 +430,8 @@ public class InMemoryMap {
           Configuration conf = CachedConfiguration.getInstance();
           FileSystem fs = TraceFileSystem.wrap(FileSystem.getLocal(conf));
           
-          FileSKVIterator reader = new MapFileOperations.RangeIterator(new MyMapFile.Reader(fs, memDumpFile, conf));
-          
+          FileSKVIterator reader = new RFileOperations().openReader(memDumpFile, true, fs, conf, ServerConfiguration.getSiteConfiguration());
+
           readers.add(reader);
           
           iter = reader;
@@ -447,10 +520,10 @@ public class InMemoryMap {
     if (deleted)
       throw new IllegalStateException("Can not obtain iterator after map deleted");
     
-    int mc = mutationCount.get();
+    int mc = kvCount.get();
     MemoryDataSource mds = new MemoryDataSource();
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(new MemoryDataSource());
-    MemoryIterator mi = new MemoryIterator(new ColumnFamilySkippingIterator(new PartialMutationSkippingIterator(ssi, mc)));
+    MemoryIterator mi = new MemoryIterator(new ColumnFamilySkippingIterator(new PartialMutationSkippingIterator(new MemKeyConversionIterator(ssi), mc)));
     mi.setSSI(ssi);
     mi.setMDS(mds);
     activeIters.add(mi);
@@ -459,9 +532,9 @@ public class InMemoryMap {
   
   public SortedKeyValueIterator<Key,Value> compactionIterator() {
     
-    if (nextMutationCount.get() - 1 != mutationCount.get())
-      throw new IllegalStateException("Memory map in unexpected state : nextMutationCount = " + nextMutationCount.get() + " mutationCount = "
-          + mutationCount.get());
+    if (nextKVCount.get() - 1 != kvCount.get())
+      throw new IllegalStateException("Memory map in unexpected state : nextKVCount = " + nextKVCount.get() + " kvCount = "
+          + kvCount.get());
     
     return new ColumnFamilySkippingIterator(map.skvIterator());
   }
@@ -489,17 +562,21 @@ public class InMemoryMap {
         Configuration conf = CachedConfiguration.getInstance();
         FileSystem fs = TraceFileSystem.wrap(FileSystem.getLocal(conf));
         
-        String tmpFile = memDumpDir + "/memDump" + UUID.randomUUID() + ".map";
+        String tmpFile = memDumpDir + "/memDump" + UUID.randomUUID() + "." + RFile.EXTENSION;
         
         Configuration newConf = new Configuration(conf);
         newConf.setInt("io.seqfile.compress.blocksize", 100000);
         
-        MyMapFile.Writer out = new MyMapFile.Writer(newConf, fs, tmpFile, MemKey.class, Value.class, MySequenceFile.CompressionType.BLOCK);
+        FileSKVWriter out = new RFileOperations().openWriter(tmpFile, fs, newConf, ServerConfiguration.getSiteConfiguration());
+        out.startDefaultLocalityGroup();
         InterruptibleIterator iter = map.skvIterator();
         iter.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
         
         while (iter.hasTop() && activeIters.size() > 0) {
-          out.append(iter.getTopKey(), iter.getTopValue());
+          // RFile does not support MemKey, so we move the kv count into the value only for the RFile.
+          // There is no need to change the MemKey to a normal key because the kvCount info gets lost when it is written
+          Value newValue = new MemValue(iter.getTopValue(), ((MemKey) iter.getTopKey()).kvCount);
+          out.append(iter.getTopKey(), newValue);
           iter.next();
         }
         

@@ -68,7 +68,7 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
     bulkImport(fs, TABLE_NAME, "/testmf");
     
     checkSplits(TABLE_NAME, 0, 0);
-    checkMapFiles(TABLE_NAME, 1, 1, 100, 100);
+    checkRFiles(TABLE_NAME, 1, 1, 100, 100);
     
     // initiate splits
     getConnector().tableOperations().setProperty(TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "100K");
@@ -85,6 +85,6 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
     VerifyIngest.main(new String[] {"-timestamp", "1", "-size", "50", "-random", "56", "100000", "0", "1"});
     
     // ensure each tablet does not have all map files
-    checkMapFiles(TABLE_NAME, 50, 100, 1, 4);
+    checkRFiles(TABLE_NAME, 50, 100, 1, 4);
   }
 }

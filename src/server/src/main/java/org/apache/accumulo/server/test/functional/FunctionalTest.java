@@ -218,11 +218,11 @@ public abstract class FunctionalTest {
   }
   
   /**
-   * A utility function that checks that each tablet has an expected number of map files.
+   * A utility function that checks that each tablet has an expected number of rfiles.
    * 
    */
   
-  protected void checkMapFiles(String tableName, int minTablets, int maxTablets, int minMapFiles, int maxMapFiles) throws Exception {
+  protected void checkRFiles(String tableName, int minTablets, int maxTablets, int minRFiles, int maxRFiles) throws Exception {
     Scanner scanner = getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     String tableId = Tables.getNameToIdMap(getInstance()).get(tableName);
     scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
@@ -251,7 +251,7 @@ public abstract class FunctionalTest {
     
     Set<Entry<Text,Integer>> es = tabletFileCounts.entrySet();
     for (Entry<Text,Integer> entry : es) {
-      if (entry.getValue() > maxMapFiles || entry.getValue() < minMapFiles) {
+      if (entry.getValue() > maxRFiles || entry.getValue() < minRFiles) {
         throw new Exception("tablet " + entry.getKey() + " has " + entry.getValue() + " map files");
       }
     }

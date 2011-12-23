@@ -21,13 +21,13 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.file.map.MapFileOperations;
-import org.apache.accumulo.core.file.map.MyMapFile;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.hadoop.conf.Configuration;
@@ -41,7 +41,7 @@ class DispatchingFileFactory extends FileOperations {
     Path p = new Path(file);
     String name = p.getName();
     
-    if (name.startsWith(MyMapFile.EXTENSION + "_")) {
+    if (name.startsWith(Constants.MAPFILE_EXTENSION + "_")) {
       return new MapFileOperations();
     }
     
@@ -53,7 +53,7 @@ class DispatchingFileFactory extends FileOperations {
     
     String extension = sp[1];
     
-    if (extension.equals(MyMapFile.EXTENSION) || extension.equals(MyMapFile.EXTENSION + "_tmp")) {
+    if (extension.equals(Constants.MAPFILE_EXTENSION) || extension.equals(Constants.MAPFILE_EXTENSION + "_tmp")) {
       return new MapFileOperations();
     } else if (extension.equals(RFile.EXTENSION) || extension.equals(RFile.EXTENSION + "_tmp")) {
       return new RFileOperations();
@@ -140,7 +140,7 @@ class DispatchingFileFactory extends FileOperations {
 
 public abstract class FileOperations {
   
-  private static final HashSet<String> validExtensions = new HashSet<String>(Arrays.asList(MyMapFile.EXTENSION, RFile.EXTENSION));
+  private static final HashSet<String> validExtensions = new HashSet<String>(Arrays.asList(Constants.MAPFILE_EXTENSION, RFile.EXTENSION));
   
   public static Set<String> getValidExtensions() {
     return validExtensions;

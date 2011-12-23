@@ -25,10 +25,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -37,8 +37,8 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.map.MyMapFile;
-import org.apache.accumulo.core.file.map.MySequenceFile;
+import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.file.rfile.RFileOperations;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -46,7 +46,6 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.log4j.Logger;
@@ -120,13 +119,13 @@ public class FileUtil {
       
       start = end;
       
-      String newMapFile = String.format("%s/" + MyMapFile.EXTENSION + "_%04d", newDir, count++);
+      String newMapFile = String.format("%s/" + RFile.EXTENSION + "_%04d", newDir, count++);
       fs.mkdirs(new Path(newMapFile));
       
-      Path outFile = new Path(String.format("%s/index", newMapFile));
+      String outFile = String.format("%s/index", newMapFile);
       outFiles.add(newMapFile);
       
-      MySequenceFile.Writer writer = MySequenceFile.createWriter(fs, conf, outFile, Key.class, LongWritable.class, MySequenceFile.CompressionType.BLOCK);
+      FileSKVWriter writer = new RFileOperations().openWriter(outFile, fs, conf, acuConf);
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(inFiles.size());
       
       FileSKVIterator reader = null;
@@ -145,7 +144,7 @@ public class FileUtil {
           boolean lteEndRow = endRow == null || key.compareRow(endRow) <= 0;
           
           if (gtPrevEndRow && lteEndRow)
-            writer.append(key, new LongWritable(0));
+            writer.append(key, new Value(new byte[0]));
           
           if (!lteEndRow)
             break;
@@ -181,7 +180,7 @@ public class FileUtil {
     
     return reduceFiles(acuConf, conf, fs, prevEndRow, endRow, outFiles, maxFiles, tmpDir, pass + 1);
   }
-  
+
   public static SortedMap<Double,Key> findMidPoint(FileSystem fs, AccumuloConfiguration acuConf, Text prevEndRow, Text endRow, Collection<String> mapFiles,
       double minSplit) throws IOException {
     return findMidPoint(fs, acuConf, prevEndRow, endRow, mapFiles, minSplit, true);

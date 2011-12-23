@@ -38,7 +38,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.file.map.MyMapFile;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -295,7 +294,7 @@ public class TestIngest {
       if (ingestArgs.outputToMapFile) {
         Configuration conf = CachedConfiguration.getInstance();
         FileSystem fs = FileSystem.get(conf);
-        writer = FileOperations.getInstance().openWriter(ingestArgs.outputFile + "." + MyMapFile.EXTENSION, fs, conf,
+        writer = FileOperations.getInstance().openWriter(ingestArgs.outputFile + "." + RFile.EXTENSION, fs, conf,
             AccumuloConfiguration.getDefaultConfiguration());
         writer.startDefaultLocalityGroup();
       } else if (ingestArgs.outputToRFile) {

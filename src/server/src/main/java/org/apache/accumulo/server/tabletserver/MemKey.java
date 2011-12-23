@@ -24,25 +24,25 @@ import org.apache.accumulo.core.data.Key;
 
 class MemKey extends Key {
   
-  int mutationCount;
+  int kvCount;
   
   public MemKey(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean del, boolean copy, int mc) {
     super(row, cf, cq, cv, ts, del, copy);
-    this.mutationCount = mc;
+    this.kvCount = mc;
   }
   
   public MemKey() {
     super();
-    this.mutationCount = Integer.MAX_VALUE;
+    this.kvCount = Integer.MAX_VALUE;
   }
   
   public MemKey(Key key, int mc) {
     super(key);
-    this.mutationCount = mc;
+    this.kvCount = mc;
   }
   
   public String toString() {
-    return super.toString() + " mc=" + mutationCount;
+    return super.toString() + " mc=" + kvCount;
   }
   
   @Override
@@ -53,13 +53,13 @@ class MemKey extends Key {
   @Override
   public void write(DataOutput out) throws IOException {
     super.write(out);
-    out.writeInt(mutationCount);
+    out.writeInt(kvCount);
   }
   
   @Override
   public void readFields(DataInput in) throws IOException {
     super.readFields(in);
-    mutationCount = in.readInt();
+    kvCount = in.readInt();
   }
   
   @Override
@@ -68,7 +68,7 @@ class MemKey extends Key {
     int cmp = super.compareTo(k);
     
     if (cmp == 0 && k instanceof MemKey) {
-      cmp = ((MemKey) k).mutationCount - mutationCount;
+      cmp = ((MemKey) k).kvCount - kvCount;
     }
     
     return cmp;

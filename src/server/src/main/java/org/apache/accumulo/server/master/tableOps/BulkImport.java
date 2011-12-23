@@ -208,10 +208,10 @@ public class BulkImport extends MasterRepo {
         }
       } else {
         // assume it is a map file
-        extension = MyMapFile.EXTENSION;
+        extension = Constants.MAPFILE_EXTENSION;
       }
       
-      if (extension.equals(MyMapFile.EXTENSION)) {
+      if (extension.equals(Constants.MAPFILE_EXTENSION)) {
         if (!fileStatus.isDir()) {
           log.warn(fileStatus.getPath() + " is not a map file, ignoring");
           continue;

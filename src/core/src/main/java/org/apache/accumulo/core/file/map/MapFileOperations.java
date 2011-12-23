@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.file.map;
 
 import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -146,44 +145,9 @@ public class MapFileOperations extends FileOperations {
   
   @Override
   public FileSKVWriter openWriter(final String file, final FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    final MyMapFile.Writer mfw = MapFileUtil.openMapFileWriter(acuconf, conf, fs, file);
-    return new FileSKVWriter() {
-      
-      boolean secondCall = false;
-      
-      @Override
-      public void append(Key key, Value value) throws IOException {
-        mfw.append(new Key(key), value);
-      }
-      
-      @Override
-      public void close() throws IOException {
-        mfw.close();
-      }
-      
-      @Override
-      public DataOutputStream createMetaStore(String name) throws IOException {
-        return fs.create(new Path(file, name), false);
-      }
-      
-      @Override
-      public void startDefaultLocalityGroup() throws IOException {
-        if (secondCall)
-          throw new IllegalStateException("Start default locality group called twice");
-        
-        secondCall = true;
-      }
-      
-      @Override
-      public void startNewLocalityGroup(String name, Set<ByteSequence> columnFamilies) throws IOException {
-        throw new UnsupportedOperationException();
-      }
-      
-      @Override
-      public boolean supportsLocalityGroups() {
-        return false;
-      }
-    };
+    
+    throw new UnsupportedOperationException();
+
   }
   
   @Override

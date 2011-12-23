@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
@@ -217,7 +218,7 @@ public class MapFilePerformanceTest {
             System.out.println("Thread " + Thread.currentThread().getName() + " creating map files blocksize = " + blocksize + " num = " + num);
             String[] filenames;
             try {
-              filenames = createMapFiles(args[0], args[1] + "/" + MyMapFile.EXTENSION + "_" + blocksize, blocksize, num);
+              filenames = createMapFiles(args[0], args[1] + "/" + Constants.MAPFILE_EXTENSION + "_" + blocksize, blocksize, num);
               
               synchronized (tests) {
                 Map<Integer,String[]> map = tests.get(num);

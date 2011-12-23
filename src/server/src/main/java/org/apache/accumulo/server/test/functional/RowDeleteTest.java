@@ -62,7 +62,7 @@ public class RowDeleteTest extends FunctionalTest {
     bw.flush();
     getConnector().tableOperations().flush("rdel1", null, null, true);
     
-    checkMapFiles("rdel1", 1, 1, 1, 1);
+    checkRFiles("rdel1", 1, 1, 1, 1);
     
     int count = 0;
     Scanner scanner = getConnector().createScanner("rdel1", Constants.NO_AUTHS);
@@ -81,7 +81,7 @@ public class RowDeleteTest extends FunctionalTest {
     // Wait for the files in HDFS to be older than the future compaction date
     UtilWaitThread.sleep(2000);
     
-    checkMapFiles("rdel1", 1, 1, 2, 2);
+    checkRFiles("rdel1", 1, 1, 2, 2);
     
     count = 0;
     scanner = getConnector().createScanner("rdel1", Constants.NO_AUTHS);
@@ -94,7 +94,7 @@ public class RowDeleteTest extends FunctionalTest {
     
     getConnector().tableOperations().compact("rdel1", null, null, false, true);
     
-    checkMapFiles("rdel1", 1, 1, 0, 0);
+    checkRFiles("rdel1", 1, 1, 0, 0);
     
     count = 0;
     scanner = getConnector().createScanner("rdel1", Constants.NO_AUTHS);

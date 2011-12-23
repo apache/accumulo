@@ -44,7 +44,7 @@ class CompactionTest(SimpleBulkTest):
         handle = self.runClassOn(
             self.masterHost(),
             'org.apache.accumulo.server.test.CreateMapFiles',
-            "testmf 4 0 500000 59".split())
+            "testrf 4 0 500000 59".split())
         out, err = handle.communicate()
         self.assert_(handle.returncode == 0)
 
@@ -52,8 +52,8 @@ class CompactionTest(SimpleBulkTest):
 
         # initialize the database
         self.createTable('test_ingest')
-        self.execute(self.masterHost(), 'hadoop dfs -rmr /testmf'.split())
-        self.execute(self.masterHost(), 'hadoop dfs -rmr /testmfFail'.split())
+        self.execute(self.masterHost(), 'hadoop dfs -rmr /testrf'.split())
+        self.execute(self.masterHost(), 'hadoop dfs -rmr /testrfFail'.split())
 
         # insert some data
         self.createMapFiles(self.masterHost())

@@ -34,7 +34,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.NoSuchMetaStoreException;
-import org.apache.accumulo.core.file.map.MySequenceFile.CompressionType;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -45,17 +44,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.io.WritableName;
-import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.DefaultCodec;
-import org.apache.hadoop.util.Progressable;
-import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.log4j.Logger;
 
 /**
@@ -75,8 +68,6 @@ import org.apache.log4j.Logger;
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class MyMapFile {
   
-  public static final String EXTENSION = "map";
-  
   private static final Logger log = Logger.getLogger(MyMapFile.class);
   
   /** The name of the index file. */
@@ -94,161 +85,6 @@ public class MyMapFile {
   public static final Stat mapFileSeekScanCompareTime = new Stat();
   
   protected MyMapFile() {} // no public ctor
-  
-  /** Writes a new map. */
-  public static class Writer {
-    private MySequenceFile.Writer data;
-    private MySequenceFile.Writer index;
-    
-    final private static String INDEX_INTERVAL = "io.map.index.interval";
-    private int indexInterval = 128;
-    
-    private long size;
-    private LongWritable position = new LongWritable();
-    
-    // the following fields are used only for checking key order
-    private WritableComparator comparator;
-    private DataInputBuffer inBuf = new DataInputBuffer();
-    private DataOutputBuffer outBuf = new DataOutputBuffer();
-    private WritableComparable lastKey;
-    
-    /** Create the named map for keys of the named class. */
-    public Writer(Configuration conf, FileSystem fs, String dirName, Class keyClass, Class valClass) throws IOException {
-      this(conf, fs, dirName, WritableComparator.get(keyClass), valClass, MySequenceFile.getCompressionType(conf));
-    }
-    
-    /** Create the named map for keys of the named class. */
-    public Writer(Configuration conf, FileSystem fs, String dirName, Class keyClass, Class valClass, CompressionType compress, Progressable progress)
-        throws IOException {
-      this(conf, fs, dirName, WritableComparator.get(keyClass), valClass, compress, progress);
-    }
-    
-    /** Create the named map for keys of the named class. */
-    public Writer(Configuration conf, FileSystem fs, String dirName, Class keyClass, Class valClass, CompressionType compress, CompressionCodec codec,
-        Progressable progress) throws IOException {
-      this(conf, fs, dirName, WritableComparator.get(keyClass), valClass, compress, codec, progress);
-    }
-    
-    /** Create the named map for keys of the named class. */
-    public Writer(Configuration conf, FileSystem fs, String dirName, Class keyClass, Class valClass, CompressionType compressionType) throws IOException {
-      this(conf, fs, dirName, WritableComparator.get(keyClass), valClass, compressionType);
-    }
-    
-    /** Create the named map using the named key comparator. */
-    public Writer(Configuration conf, FileSystem fs, String dirName, WritableComparator comparator, Class valClass) throws IOException {
-      this(conf, fs, dirName, comparator, valClass, MySequenceFile.getCompressionType(conf));
-    }
-    
-    /** Create the named map using the named key comparator. */
-    public Writer(Configuration conf, FileSystem fs, String dirName, WritableComparator comparator, Class valClass, MySequenceFile.CompressionType compress)
-        throws IOException {
-      this(conf, fs, dirName, comparator, valClass, compress, null);
-    }
-    
-    /** Create the named map using the named key comparator. */
-    public Writer(Configuration conf, FileSystem fs, String dirName, WritableComparator comparator, Class valClass, MySequenceFile.CompressionType compress,
-        Progressable progress) throws IOException {
-      this(conf, fs, dirName, comparator, valClass, compress, new DefaultCodec(), progress);
-    }
-    
-    /** Create the named map using the named key comparator. */
-    public Writer(Configuration conf, FileSystem fs, String dirName, WritableComparator comparator, Class valClass, MySequenceFile.CompressionType compress,
-        CompressionCodec codec, Progressable progress) throws IOException {
-      
-      // LOG.debug("Opening map file "+dirName+" for write");
-      
-      this.indexInterval = conf.getInt(INDEX_INTERVAL, this.indexInterval);
-      
-      this.comparator = comparator;
-      this.lastKey = comparator.newKey();
-      
-      Path dir = new Path(dirName);
-      if (!fs.mkdirs(dir)) {
-        throw new IOException("Mkdirs failed to create directory " + dir.toString());
-      }
-      Path dataFile = new Path(dir, DATA_FILE_NAME);
-      Path indexFile = new Path(dir, INDEX_FILE_NAME);
-      
-      Class keyClass = comparator.getKeyClass();
-      this.data = MySequenceFile.createWriter(fs, conf, dataFile, keyClass, valClass, compress, codec, progress);
-      this.index = MySequenceFile.createWriter(fs, conf, indexFile, keyClass, LongWritable.class, CompressionType.BLOCK, progress);
-    }
-    
-    /** The number of entries that are added before an index entry is added. */
-    public int getIndexInterval() {
-      return indexInterval;
-    }
-    
-    /**
-     * Sets the index interval.
-     * 
-     * @see #getIndexInterval()
-     */
-    public void setIndexInterval(int interval) {
-      indexInterval = interval;
-    }
-    
-    /**
-     * Sets the index interval and stores it in conf
-     * 
-     * @see #getIndexInterval()
-     */
-    public static void setIndexInterval(Configuration conf, int interval) {
-      conf.setInt(INDEX_INTERVAL, interval);
-    }
-    
-    /** Close the map. */
-    public synchronized void close() throws IOException {
-      
-      // LOG.debug("Closing map file "+myDir+" for write");
-      
-      data.close();
-      index.close();
-    }
-    
-    /**
-     * Append a key/value pair to the map. The key must be greater or equal to the previous key added to the map.
-     */
-    public synchronized void append(WritableComparable key, Writable val) throws IOException {
-      
-      checkKey(key);
-      
-      /*******************************************************************
-       * Instead of storing index values for every 128th key that all point back to the same compressed block, we can store one key for each compressed block.
-       */
-      if (data.isBlockCompressed()) {
-        // add an index entry when the data size changes, indicating a
-        // new compressed block is added
-        // also add an index entry for the first value
-        if (size == 0 || position.get() != data.getLength()) {
-          position.set(data.getLength());
-          index.append(key, position);
-        }
-      } else {
-        if (size % indexInterval == 0) { // add an index entry
-          position.set(data.getLength()); // point to current eof
-          index.append(key, position);
-        }
-      }
-      
-      data.append(key, val); // append key/value to data
-      size++;
-    }
-    
-    private void checkKey(WritableComparable key) throws IOException {
-      // check that keys are well-ordered
-      if (size != 0 && comparator.compare(lastKey, key) > 0)
-        throw new IOException("key out of order: " + key + " after " + lastKey);
-      
-      // update lastKey with a copy of key by writing and reading
-      outBuf.reset();
-      key.write(outBuf); // write new key
-      
-      inBuf.reset(outBuf.getData(), outBuf.getLength());
-      lastKey.readFields(inBuf); // read into lastKey
-    }
-    
-  }
   
   /** Provide access to an existing map. */
   public static class Reader implements FileSKVIterator {
@@ -914,134 +750,6 @@ public class MyMapFile {
       indexInterval = conf.getInt("io.map.index.interval", 128);
     }
     return indexInterval;
-  }
-  
-  /**
-   * This method attempts to fix a corrupt MapFile by re-creating its index.
-   * 
-   * Code copied from hadoop (0.18.0) because it was broken there. This is a fixed version. Do not want to loose changes if MyMapFile is updated.
-   * 
-   * @param fs
-   *          filesystem
-   * @param dir
-   *          directory containing the MapFile data and index
-   * @param keyClass
-   *          key class (has to be a subclass of Writable)
-   * @param valueClass
-   *          value class (has to be a subclass of Writable)
-   * @param dryrun
-   *          do not perform any changes, just report what needs to be done
-   * @return number of valid entries in this MapFile, or -1 if no fixing was needed
-   */
-  public static long fix(FileSystem fs, Path dir, Class<? extends WritableComparable> keyClass, Class<? extends Writable> valueClass, boolean dryrun,
-      Configuration conf) throws Exception {
-    String dr = (dryrun ? "[DRY RUN ] " : "");
-    Path data = new Path(dir, DATA_FILE_NAME);
-    Path index = new Path(dir, INDEX_FILE_NAME);
-    int indexInterval = getIndexInterval();
-    if (!fs.exists(data)) {
-      // there's nothing we can do to fix this!
-      throw new Exception(dr + "Missing data file in " + dir + ", impossible to fix this.");
-    }
-    if (fs.exists(index)) {
-      // no fixing needed
-      return -1;
-    }
-    MySequenceFile.Reader dataReader = null;
-    MySequenceFile.Writer indexWriter = null;
-    long cnt = 0L;
-    try {
-      dataReader = new MySequenceFile.Reader(fs, data, conf);
-      if (!dataReader.getKeyClass().equals(keyClass)) {
-        throw new Exception(dr + "Wrong key class in " + dir + ", expected" + keyClass.getName() + ", got " + dataReader.getKeyClass().getName());
-      }
-      if (!dataReader.getValueClass().equals(valueClass)) {
-        throw new Exception(dr + "Wrong value class in " + dir + ", expected" + valueClass.getName() + ", got " + dataReader.getValueClass().getName());
-      }
-      Writable key = ReflectionUtils.newInstance(keyClass, conf);
-      Writable value = ReflectionUtils.newInstance(valueClass, conf);
-      if (!dryrun)
-        indexWriter = MySequenceFile.createWriter(fs, conf, index, keyClass, LongWritable.class);
-      long currentPos = 0L;
-      long lastPos = 0L;
-      
-      LongWritable position = new LongWritable();
-      lastPos = dataReader.getPosition();
-      
-      boolean blockCompressed = dataReader.isBlockCompressed();
-      
-      if (!blockCompressed) {
-        currentPos = lastPos;
-      }
-      
-      while (dataReader.next(key, value)) {
-        if (blockCompressed) {
-          if (cnt == 0) {
-            currentPos = dataReader.getPosition();
-          } else {
-            long pos = dataReader.getPosition();
-            if (pos != currentPos) {
-              lastPos = currentPos;
-              currentPos = pos;
-            }
-          }
-          // write an index entry at position 0 and whenever the position changes
-          if (cnt == 0 || position.get() != lastPos) {
-            position.set(lastPos);
-            if (!dryrun)
-              indexWriter.append(key, position);
-          }
-        } else {
-          if (cnt % indexInterval == 0) {
-            position.set(currentPos);
-            if (!dryrun)
-              indexWriter.append(key, position);
-          }
-          long pos = dataReader.getPosition();
-          if (pos != currentPos) {
-            lastPos = currentPos;
-            currentPos = pos;
-          }
-        }
-        cnt++;
-        
-      }
-    } catch (Throwable t) {
-      // truncated data file. swallow it.
-      log.error("Exception when trying to fix map file " + dir, t);
-    } finally {
-      if (dataReader != null)
-        dataReader.close();
-      if (indexWriter != null)
-        indexWriter.close();
-    }
-    return cnt;
-  }
-  
-  public static void main(String[] args) throws Exception {
-    String usage = "Usage: MapFile inFile outFile";
-    
-    if (args.length != 2) {
-      System.err.println(usage);
-      System.exit(1);
-    }
-    
-    String in = args[0];
-    String out = args[1];
-    
-    Configuration conf = CachedConfiguration.getInstance();
-    FileSystem fs = FileSystem.getLocal(conf);
-    MyMapFile.Reader reader = new MyMapFile.Reader(fs, in, conf);
-    MyMapFile.Writer writer = new MyMapFile.Writer(conf, fs, out, reader.getKeyClass(), reader.getValueClass());
-    
-    WritableComparable key = (WritableComparable) ReflectionUtils.newInstance(reader.getKeyClass(), conf);
-    Writable value = (Writable) ReflectionUtils.newInstance(reader.getValueClass(), conf);
-    
-    while (reader.next(key, value))
-      // copy all entries
-      writer.append(key, value);
-    
-    writer.close();
   }
   
 }
