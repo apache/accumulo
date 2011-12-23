@@ -232,7 +232,8 @@ public class InMemoryMap {
     private AtomicInteger size = new AtomicInteger();
     
     public void put(Key key, Value value) {
-      bytesInMemory.addAndGet(key.getLength());
+      // Always a MemKey, so account for the kvCount int
+      bytesInMemory.addAndGet(key.getLength() + 4);
       bytesInMemory.addAndGet(value.getSize());
       if (map.put(key, value) == null)
         size.incrementAndGet();
