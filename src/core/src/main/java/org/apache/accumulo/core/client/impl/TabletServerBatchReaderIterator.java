@@ -174,7 +174,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     synchronized (nextLock) {
       // check if one was cached
       if (nextEntry != null)
-        return true;
+        return nextEntry.getKey() != null && nextEntry.getValue() != null;
       
       // don't have one cached, try to cache one and return success
       try {
