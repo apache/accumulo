@@ -44,7 +44,6 @@ public class OptimizedQueryIterator implements SortedKeyValueIterator<Key,Value>
   private Key key = null;
   private Value value = null;
   private boolean eventSpecificRange = false;
-  private long seekTime = 0;
   
   public IteratorOptions describeOptions() {
     Map<String,String> options = new HashMap<String,String>();

@@ -29,7 +29,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.commons.jexl2.Expression;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -48,13 +47,9 @@ public class UniqFieldNameValueIterator extends WrappingIterator {
   private Range overallRange = null;
   private Range currentSubRange;
   private Text fieldName = null;
-  private String fieldNameString = null;
   private Text fieldValueLowerBound = null;
   private Text fieldValueUpperBound = null;
-  private String operator = null;
-  private Expression expr = null;
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
-  private static final String NULL_BYTE = "\0";
   private static final String ONE_BYTE = "\1";
   private boolean multiRow = false;
   private boolean seekInclusive = false;
@@ -69,7 +64,6 @@ public class UniqFieldNameValueIterator extends WrappingIterator {
   // ------------- Constructors
   public UniqFieldNameValueIterator(Text fName, Text fValLower, Text fValUpper) {
     this.fieldName = fName;
-    this.fieldNameString = fieldName.toString();
     this.fieldValueLowerBound = fValLower;
     this.fieldValueUpperBound = fValUpper;
     keyParser = createDefaultKeyParser();

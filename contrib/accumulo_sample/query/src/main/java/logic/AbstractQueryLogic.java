@@ -599,7 +599,6 @@ public abstract class AbstractQueryLogic {
       // TODO: Should we cache indexed term information or does that not make sense since we are always loading data
       queryGlobalIndex.start();
       IndexRanges termIndexInfo;
-      Set<String> indexedColumns;
       try {
         // If fields is null or zero, then it's probably the case that the user entered a value
         // to search for with no fields. Check for the value in index.
@@ -629,8 +628,6 @@ public abstract class AbstractQueryLogic {
               log.debug("Rewrote query for non-fielded single term query: " + queryString + " to " + buf.toString());
             }
             queryString = buf.toString();
-            // We also need to set the set of indexed terms since we found these in the index.
-            indexedColumns = union.getFieldNamesAndValues().keySet();
           } else {
             throw new RuntimeException("Unexpected IndexRanges implementation");
           }
@@ -651,7 +648,6 @@ public abstract class AbstractQueryLogic {
             // foo is a placeholder and is ignored.
             termIndexInfo.add("foo", r);
           }
-          indexedColumns = termIndexInfo.getFieldNamesAndValues().keySet();
         }
       } catch (TableNotFoundException e) {
         log.error(this.getIndexTableName() + "not found", e);

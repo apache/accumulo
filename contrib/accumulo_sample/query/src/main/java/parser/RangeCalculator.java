@@ -28,6 +28,13 @@ import java.util.TreeSet;
 import logic.AbstractQueryLogic;
 import normalizer.Normalizer;
 
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.jexl2.parser.ASTAndNode;
 import org.apache.commons.jexl2.parser.ASTEQNode;
 import org.apache.commons.jexl2.parser.ASTERNode;
@@ -50,13 +57,6 @@ import org.apache.log4j.Logger;
 
 import protobuf.Uid;
 import util.TextUtil;
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -597,7 +597,6 @@ public class RangeCalculator extends QueryParser {
       bs.fetchColumnFamily(new Text(specificFieldName));
     }
     
-    long indexEntries = 0;
     for (Entry<Key,Value> entry : bs) {
       if (log.isDebugEnabled()) {
         log.debug("Index entry: " + entry.getKey().toString());
@@ -658,7 +657,6 @@ public class RangeCalculator extends QueryParser {
           results.get(new MapKey(fieldName, fieldValue)).add(new Range(shard));
         else
           results.get(override).add(new Range(shard));
-        indexEntries++;
       } else {
         // We should have UUIDs, create event ranges
         for (String uuid : uidList.getUIDList()) {
@@ -671,7 +669,6 @@ public class RangeCalculator extends QueryParser {
             results.get(new MapKey(fieldName, fieldValue)).add(eventRange);
           else
             results.get(override).add(eventRange);
-          indexEntries++;
         }
       }
     }

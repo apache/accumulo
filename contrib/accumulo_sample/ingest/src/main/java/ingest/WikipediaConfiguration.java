@@ -18,18 +18,17 @@ package ingest;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.SimpleAnalyzer;
-
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 
 public class WikipediaConfiguration {
   public final static String INSTANCE_NAME = "wikipedia.accumulo.instance_name";
@@ -100,7 +99,7 @@ public class WikipediaConfiguration {
   }
   
   public static Connector getConnector(Configuration conf) throws AccumuloException, AccumuloSecurityException {
-    return new Connector(getInstance(conf), getUser(conf), getPassword(conf));
+    return getInstance(conf).getConnector(getUser(conf), getPassword(conf));
   }
   
   public static Instance getInstance(Configuration conf) {

@@ -95,7 +95,7 @@ public class FieldIndexQueryReWriter {
    * @throws Exception
    */
   public String removeNonIndexedTermsAndInvalidRanges(String query, Map<String,String> options) throws ParseException, Exception {
-    Multimap indexedTerms = parseIndexedTerms(options);
+    Multimap<String,String> indexedTerms = parseIndexedTerms(options);
     RewriterTreeNode node = parseJexlQuery(query);
     if (log.isDebugEnabled()) {
       log.debug("Tree: " + node.getContents());
@@ -123,7 +123,7 @@ public class FieldIndexQueryReWriter {
     if (log.isDebugEnabled()) {
       log.debug("applyNormalizedTerms, query: " + query);
     }
-    Multimap normalizedTerms = parseIndexedTerms(options);
+    Multimap<String,String> normalizedTerms = parseIndexedTerms(options);
     RewriterTreeNode node = parseJexlQuery(query);
     if (log.isDebugEnabled()) {
       log.debug("applyNormalizedTerms, Tree: " + node.getContents());
@@ -387,7 +387,7 @@ public class FieldIndexQueryReWriter {
     return returnNode;
   }
   
-  private RewriterTreeNode removeNonIndexedTerms(RewriterTreeNode root, Multimap indexedTerms) throws Exception {
+  private RewriterTreeNode removeNonIndexedTerms(RewriterTreeNode root, Multimap<String,String> indexedTerms) throws Exception {
     // public void removeNonIndexedTerms(BooleanLogicTreeNodeJexl myroot, String indexedTerms) throws Exception {
     if (indexedTerms.isEmpty()) {
       throw new Exception("removeNonIndexedTerms, indexed Terms empty");
@@ -451,7 +451,7 @@ public class FieldIndexQueryReWriter {
     return root;
   }
   
-  private RewriterTreeNode orNormalizedTerms(RewriterTreeNode myroot, Multimap indexedTerms) throws Exception {
+  private RewriterTreeNode orNormalizedTerms(RewriterTreeNode myroot, Multimap<String,String> indexedTerms) throws Exception {
     // we have multimap of FieldName to multiple FieldValues
     if (indexedTerms.isEmpty()) {
       throw new Exception("indexed Terms empty");
@@ -532,7 +532,7 @@ public class FieldIndexQueryReWriter {
    * If there is an HEAD-AND[x,OR[b,AND[range]]], and you remove the range, this turns the tree into HEAD-AND[X,OR[B]] which becomes HEAD-AND[X,B] which will
    * miss entries, so you need to cut out the entire OR at this point and let the positive side of the AND pick it up.
    */
-  private RewriterTreeNode removeTreeConflicts(RewriterTreeNode root, Multimap indexedTerms) {
+  private RewriterTreeNode removeTreeConflicts(RewriterTreeNode root, Multimap<String,String> indexedTerms) {
     if (log.isDebugEnabled()) {
       log.debug("removeTreeConflicts");
     }
@@ -869,8 +869,6 @@ public class FieldIndexQueryReWriter {
   
   private Map<Text,RangeBounds> getBoundedRangeMap(RewriterTreeNode node) {
     
-    boolean upper = false;
-    boolean lower = false;
     if (node.getType() == ParserTreeConstants.JJTANDNODE || node.getType() == ParserTreeConstants.JJTORNODE) {
       Enumeration<?> children = node.children();
       Map<Text,RangeBounds> rangeMap = new HashMap<Text,RangeBounds>();

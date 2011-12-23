@@ -551,7 +551,6 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
     }
     
     boolean cursorChanged = true;
-    int numSeeks = 0;
     while (cursorChanged) {
       // seek all of the sources to at least the highest seen column qualifier in the current row
       cursorChanged = false;
@@ -560,7 +559,6 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
           topKey = null;
           return;
         }
-        numSeeks++;
         if (seekOneSource(ts)) {
           cursorChanged = true;
           break;

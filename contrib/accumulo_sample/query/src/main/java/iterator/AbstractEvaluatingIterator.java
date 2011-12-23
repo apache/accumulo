@@ -188,7 +188,7 @@ public abstract class AbstractEvaluatingIterator implements SortedKeyValueIterat
           }
         }
       } else {
-        log.info("Iterator.hasTop() == false");
+        log.debug("Iterator.hasTop() == false");
       }
     } while (returnValue == null && iterator.hasTop());
     

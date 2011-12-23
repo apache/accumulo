@@ -464,7 +464,7 @@ public class BooleanLogicTreeNode extends DefaultMutableTreeNode {
   }
   
   public Key getMinUniqueID() {
-    Iterator iter = uids.iterator();
+    Iterator<Key> iter = uids.iterator();
     Key min = null;
     while (iter.hasNext()) {
       Key t = (Key) iter.next();
