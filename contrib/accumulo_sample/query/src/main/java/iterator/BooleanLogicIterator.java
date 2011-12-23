@@ -82,9 +82,8 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
   private SortedKeyValueIterator<Key,Value> sourceIterator;
   private BooleanLogicTreeNode root;
   private PriorityQueue<BooleanLogicTreeNode> positives;
-  private ArrayList<BooleanLogicTreeNode> negatives;
+  private ArrayList<BooleanLogicTreeNode> negatives = new ArrayList<BooleanLogicTreeNode>();
   private ArrayList<BooleanLogicTreeNode> rangerators;
-  private String originalQuery;
   private String updatedQuery;
   private Map<String,Long> termCardinalities = new HashMap<String,Long>();
   private Range overallRange = null;
@@ -312,9 +311,9 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
     Map<String,String> options = new HashMap<String,String>();
     iter.init(sourceIterator.deepCopy(env), options, env);
     if (log.isDebugEnabled()) {
-      iter.setLogLevel(Level.DEBUG);
+      FieldIndexIterator.setLogLevel(Level.DEBUG);
     } else {
-      iter.setLogLevel(Level.OFF);
+      FieldIndexIterator.setLogLevel(Level.OFF);
     }
     
     return iter;
@@ -685,7 +684,6 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
           }
           String fValue = t.getValue().toString();
           fValue = fValue.replaceAll("'", "");
-          String fullquery = fName + ":" + fValue;
           boolean negated = t.getOperator().equals("!=");
           
           if (!fName.startsWith(FIELD_NAME_PREFIX)) {
@@ -711,7 +709,6 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
           }
           String fValue = t.getValue().toString();
           fValue = fValue.replaceAll("'", "");
-          String fullquery = fName + ":" + fValue;
           boolean negated = node.getType().equals(ASTNRNode.class);
           
           if (!fName.startsWith(FIELD_NAME_PREFIX)) {
@@ -739,7 +736,6 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
           }
           String fValue = t.getValue().toString();
           fValue = fValue.replaceAll("'", "").toLowerCase();
-          String fullquery = fName + ":" + fValue;
           boolean negated = false; // to be negated, must be child of Not, which is handled elsewhere.
           int mytype = JexlOperatorConstants.getJJTNodeType(t.getOperator());
           
@@ -773,7 +769,6 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
             }
             String fValue = t.getValue().toString();
             fValue = fValue.replaceAll("'", "");
-            String fullquery = fName + ":" + fValue;
             boolean negated = t.getOperator().equals("!=");
             int mytype = JexlOperatorConstants.getJJTNodeType(t.getOperator());
             BooleanLogicTreeNode child = new BooleanLogicTreeNode(mytype, fName, fValue, negated);
@@ -806,7 +801,6 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
             }
             String fValue = t.getValue().toString();
             fValue = fValue.replaceAll("'", "").toLowerCase();
-            String fullquery = fName + ":" + fValue;
             boolean negated = !t.getOperator().equals("!=");
             int mytype = JexlOperatorConstants.getJJTNodeType(t.getOperator());
             
@@ -840,7 +834,6 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
             }
             String fValue = t.getValue().toString();
             fValue = fValue.replaceAll("'", "").toLowerCase();
-            String fullquery = fName + ":" + fValue;
             boolean negated = t.getOperator().equals("!=");
             int mytype = JexlOperatorConstants.getJJTNodeType(t.getOperator());
             
@@ -1147,7 +1140,7 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
     }
     positives = new PriorityQueue<BooleanLogicTreeNode>(10, new BooleanLogicTreeNodeComparator());
     // positives = new ArrayList<BooleanLogicTreeNodeJexl>();
-    negatives = new ArrayList<BooleanLogicTreeNode>();
+    negatives.clear();
     
     Enumeration<?> dfe = node.depthFirstEnumeration();
     while (dfe.hasMoreElements()) {
@@ -1163,6 +1156,18 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
     }
   }
   
+  private void reHeapPriorityQueue(BooleanLogicTreeNode node) {
+    positives.clear();
+    Enumeration<?> dfe = node.depthFirstEnumeration();
+    BooleanLogicTreeNode elem;
+    while (dfe.hasMoreElements()) {
+      elem = (BooleanLogicTreeNode) dfe.nextElement();
+      if (elem.isLeaf() && !elem.isNegated()) {
+        positives.add(elem);
+      }
+    }
+  }
+
   /* *************************************************************************
    * The iterator interface methods.
    */
@@ -1652,8 +1657,9 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
         // Regular next block
       } else {
         
-        BooleanLogicTreeNode node = positives.poll(); // pops min
-        positives.add(node);
+        reHeapPriorityQueue(this.root);
+        BooleanLogicTreeNode node;
+
         while (true) {
           node = positives.poll();
           if (!node.isDone() && node.hasTop()) {
@@ -1665,7 +1671,6 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
             return;
           }
         }
-        // node = positives.poll();
         
         if (log.isDebugEnabled()) {
           if (jumpKey == null) {
@@ -1819,7 +1824,7 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
     // pulled nodes out of the positives priority queue. On a call to seek
     // it is usually jumping rows, so everything needs to become possibly
     // valid again.
-    splitLeaves(this.root);
+    reHeapPriorityQueue(this.root);
     for (BooleanLogicTreeNode node : positives) {
       node.setDone(false);
       node.seek(range, columnFamilies, inclusive);
@@ -1832,16 +1837,8 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
       }
     }
     
-    // The common practice upon creating an iterator is to call seek() to set it at the beginning of a
-    // data range. In this iterator, the 'positives' priority queue is created before any of its
-    // KNODEs have their topKeys's set, so the priority queue has nodes with no set priorities.
-    // To get these set, we need to pop and push a node off of the queue to get the priority queue
-    // set correctly.
-    // all nodes have seeked, perform operation.
-    // pop and push a node to get the heap set correctly.
-    BooleanLogicTreeNode temp = positives.poll();
-    positives.add(temp);
-    
+    // Now that all nodes have been seek'd recreate the priorityQueue to sort them properly.
+    splitLeaves(this.root);
     resetNegatives();
     
     // test Tree, if it's not valid, call next
@@ -1986,7 +1983,6 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
     if (!options.containsKey(FIELD_INDEX_QUERY)) {
       return false;
     }
-    this.originalQuery = options.get(QUERY_OPTION);
     this.updatedQuery = options.get(FIELD_INDEX_QUERY);
     return true;
   }
