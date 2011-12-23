@@ -283,8 +283,11 @@ public class QueryParser implements ParserVisitor {
     // Check to see if its in the cache
     Hash hash = MurmurHash.getInstance();
     this.hashVal = hash.hash(query.getBytes(), SEED);
-    if (cache.containsKey(hashVal)) {
-      CacheEntry entry = (CacheEntry) cache.get(hashVal);
+    CacheEntry entry = null;
+    synchronized (cache) {
+      entry = (CacheEntry) cache.get(hashVal);
+    }
+    if (entry != null) {
       this.negatedTerms = entry.getNegatedTerms();
       this.andTerms = entry.getAndTerms();
       this.orTerms = entry.getOrTerms();
@@ -298,14 +301,12 @@ public class QueryParser implements ParserVisitor {
       rootNode.childrenAccept(this, null);
       TreeBuilder builder = new TreeBuilder(rootNode);
       tree = builder.getRootNode();
-      CacheEntry entry = new CacheEntry(this.negatedTerms, this.andTerms, this.orTerms, this.literals, this.terms, rootNode, tree);
-      cache.put(hashVal, entry);
+      entry = new CacheEntry(this.negatedTerms, this.andTerms, this.orTerms, this.literals, this.terms, rootNode, tree);
+      synchronized (cache) {
+        cache.put(hashVal, entry);
+      }
     }
     
-  }
-  
-  public static void clearCache() {
-    cache.clear();
   }
   
   /**
