@@ -2063,8 +2063,8 @@ public class Shell {
           log.debug("Successfully set table configuration option.");
         } else {
           if (!Property.isValidZooPropertyKey(property))
-            throw new BadArgumentException("Property cannot be modified in zookeepr", fullCommand, fullCommand.indexOf(property));
-          
+            throw new BadArgumentException("Property cannot be modified in zookeeper", fullCommand, fullCommand.indexOf(property));
+
           shellState.connector.instanceOperations().setProperty(property, value);
           log.debug("Successfully set system configuration option");
         }
@@ -2126,11 +2126,11 @@ public class Shell {
               printed = true;
             }
             if (!defaults.containsKey(key) || !defaults.get(key).equals(siteVal)) {
-              printConfLine(output, "site", printed ? "   @override" : key, siteVal);
+              printConfLine(output, "site", printed ? "   @override" : key, siteVal == null ? "" : siteVal);
               printed = true;
             }
             if (!siteConfig.containsKey(key) || !siteVal.equals(sysVal)) {
-              printConfLine(output, "system", printed ? "   @override" : key, sysVal);
+              printConfLine(output, "system", printed ? "   @override" : key, sysVal == null ? "" : sysVal);
               printed = true;
             }
           }
