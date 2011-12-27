@@ -45,7 +45,6 @@ import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransport;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -65,7 +64,6 @@ public class LiveTServerSet implements Watcher {
   class TServerConnection {
     private final InetSocketAddress address;
     
-    TTransport transport = null;
     TabletClientService.Iface client = null;
     
     public TServerConnection(InetSocketAddress addr) {
@@ -84,14 +82,14 @@ public class LiveTServerSet implements Watcher {
     }
     
     synchronized public void connectIfNeeded() throws TException {
-      if (transport == null) {
-        try {
-          close();
-          client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, AccumuloConfiguration.getSystemConfiguration());
-        } catch (TException iox) {
-          log.error("Could not connect to tablet server " + address + " : " + iox.getMessage());
-          throw iox;
-        }
+      if (client != null)
+        return;
+      try {
+        close();
+        client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, AccumuloConfiguration.getSystemConfiguration());
+      } catch (TException iox) {
+        log.error("Could not connect to tablet server " + address + " : " + iox.getMessage());
+        throw iox;
       }
     }
     
