@@ -21,14 +21,17 @@ import java.util.List;
 import java.util.UUID;
 
 import junit.framework.TestCase;
-import protobuf.Uid;
-import protobuf.Uid.List.Builder;
+
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 
+import protobuf.Uid;
+import protobuf.Uid.List.Builder;
+
+@SuppressWarnings("deprecation")
 public class GlobalIndexUidAggregatorTest extends TestCase {
 	
-	Aggregator agg = new GlobalIndexUidAggregator();
+  Aggregator agg = new GlobalIndexUidAggregator();
 	
 
 	private Uid.List.Builder createNewUidList() {

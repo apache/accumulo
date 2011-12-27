@@ -18,11 +18,11 @@ package aggregator;
 
 import java.util.HashSet;
 
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.log4j.Logger;
 
 import protobuf.Uid;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -32,6 +32,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * index for low cardinality terms (Low in this case being less than 20). 
  *
  */
+@SuppressWarnings("deprecation")
 public class GlobalIndexUidAggregator implements Aggregator {
 
 	private static final Logger log = Logger.getLogger(GlobalIndexUidAggregator.class);

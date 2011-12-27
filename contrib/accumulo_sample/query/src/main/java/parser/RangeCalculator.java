@@ -28,6 +28,13 @@ import java.util.TreeSet;
 import logic.AbstractQueryLogic;
 import normalizer.Normalizer;
 
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.jexl2.parser.ASTAndNode;
 import org.apache.commons.jexl2.parser.ASTEQNode;
 import org.apache.commons.jexl2.parser.ASTERNode;
@@ -50,13 +57,6 @@ import org.apache.log4j.Logger;
 
 import protobuf.Uid;
 import util.TextUtil;
-import org.apache.accumulo.core.client.BatchScanner;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -758,66 +758,171 @@ public class RangeCalculator extends QueryParser {
         	rightCardinality = 0L;
         TermRange rightRange = ctx.lastRange;
         if (log.isDebugEnabled())
-        	log.debug("[AND-right] term: " + ctx.lastProcessedTerm + ", cardinality: " + rightCardinality + ", ranges: " + rightRange.getRanges().size());
-        
-        //reset the state
-        if (null != data && !previouslyInAndContext)
-        	ctx.inAndContext = false;
-        
-        long card = 0L;
-        TermRange andRange = new TermRange("AND_RESULT", "foo");
-        if ((leftCardinality > 0 && leftCardinality <= rightCardinality) || rightCardinality == 0) {
-        	card = leftCardinality;
-        	andRange.addAll(leftRange.getRanges());
-        } else if ((rightCardinality > 0 && rightCardinality <= leftCardinality) || leftCardinality == 0) {
-        	card = rightCardinality;
-        	andRange.addAll(rightRange.getRanges());
-        } 
-        if (log.isDebugEnabled())
-        	log.debug("[AND] results: " + andRange.getRanges().toString());        
-        ctx.lastRange = andRange;
-        ctx.lastProcessedTerm = "AND_RESULT";
-        this.termCardinalities.put("AND_RESULT", card);
-        
-		return null;
-	}
-
-	@Override
-	public Object visit(ASTEQNode node, Object data) {
-		StringBuilder fieldName = new StringBuilder();
-		ObjectHolder value = new ObjectHolder();
-		//Process both sides of this node.
-        Object left = node.jjtGetChild(0).jjtAccept(this, data);
-        Object right = node.jjtGetChild(1).jjtAccept(this, data);
-        //Ignore functions in the query
-        if (left instanceof FunctionResult || right instanceof FunctionResult)
-        	return null;
-        decodeResults(left, right, fieldName, value);
-        //We need to check to see if we are in a NOT context. If so,
-        //then we need to reverse the negation.
-        boolean negated = false;
-        if (null != data && data instanceof EvaluationContext) {
-        	EvaluationContext ctx = (EvaluationContext) data;
-        	if (ctx.inNotContext)
-        		negated = !negated;
-        }
-        QueryTerm term = new QueryTerm(negated, JexlOperatorConstants.getOperator(node.getClass()), value.getObject());
-        termsCopy.put(fieldName.toString(), term);
-        //Get the terms from the global index
-        //Remove the begin and end ' marks
-        String termValue = null;
-        if (((String) term.getValue()).startsWith("'") && ((String) term.getValue()).endsWith("'"))
-        	termValue = ((String) term.getValue()).substring(1, ((String) term.getValue()).length() - 1);
+          log.debug("Ranges for Global Index query: " + m.toString());
+        this.globalIndexResults.putAll(queryGlobalIndex(m, equals.getKey().getFieldName(), this.indexTableName, false, equals.getKey(), typeFilter));
+      }
+    } catch (TableNotFoundException e) {
+      log.error("index table not found", e);
+      throw new RuntimeException(" index table not found", e);
+    }
+    
+    if (log.isDebugEnabled())
+      log.debug("Ranges from Global Index query: " + globalIndexResults.toString());
+    
+    // Now traverse the AST
+    EvaluationContext ctx = new EvaluationContext();
+    this.getAST().childrenAccept(this, ctx);
+    
+    if (ctx.lastRange.getRanges().size() == 0) {
+      log.debug("No resulting range set");
+    } else {
+      if (log.isDebugEnabled())
+        log.debug("Setting range results to: " + ctx.lastRange.getRanges().toString());
+      this.result = ctx.lastRange.getRanges();
+    }
+  }
+  
+  /**
+   * 
+   * @return set of ranges to use for the shard table
+   */
+  public Set<Range> getResult() {
+    return result;
+  }
+  
+  /**
+   * 
+   * @return map of field names to index field values
+   */
+  public Multimap<String,String> getIndexEntries() {
+    return indexEntries;
+  }
+  
+  public Map<String,String> getIndexValues() {
+    return indexValues;
+  }
+  
+  /**
+   * 
+   * @return Cardinality for each field name.
+   */
+  public Map<String,Long> getTermCardinalities() {
+    return termCardinalities;
+  }
+  
+  /**
+   * 
+   * @param indexRanges
+   * @param tableName
+   * @param isReverse
+   *          switch that determines whether or not to reverse the results
+   * @param override
+   *          mapKey for wildcard and range queries that specify which mapkey to use in the results
+   * @param typeFilter
+   *          - optional list of datatypes
+   * @return
+   * @throws TableNotFoundException
+   */
+  protected Map<MapKey,TermRange> queryGlobalIndex(Map<MapKey,Set<Range>> indexRanges, String specificFieldName, String tableName, boolean isReverse,
+      MapKey override, Set<String> typeFilter) throws TableNotFoundException {
+    
+    // The results map where the key is the field name and field value and the
+    // value is a set of ranges. The mapkey will always be the field name
+    // and field value that was passed in the original query. The TermRange
+    // will contain the field name and field value found in the index.
+    Map<MapKey,TermRange> results = new HashMap<MapKey,TermRange>();
+    
+    // Seed the results map and create the range set for the batch scanner
+    Set<Range> rangeSuperSet = new HashSet<Range>();
+    for (Entry<MapKey,Set<Range>> entry : indexRanges.entrySet()) {
+      rangeSuperSet.addAll(entry.getValue());
+      TermRange tr = new TermRange(entry.getKey().getFieldName(), entry.getKey().getFieldValue());
+      if (null == override)
+        results.put(entry.getKey(), tr);
+      else
+        results.put(override, tr);
+    }
+    
+    if (log.isDebugEnabled())
+      log.debug("Querying global index table: " + tableName + ", range: " + rangeSuperSet.toString() + " colf: " + specificFieldName);
+    BatchScanner bs = this.c.createBatchScanner(tableName, this.auths, this.queryThreads);
+    bs.setRanges(rangeSuperSet);
+    if (null != specificFieldName) {
+      bs.fetchColumnFamily(new Text(specificFieldName));
+    }
+    
+    for (Entry<Key,Value> entry : bs) {
+      if (log.isDebugEnabled()) {
+        log.debug("Index entry: " + entry.getKey().toString());
+      }
+      String fieldValue = null;
+      if (!isReverse) {
+        fieldValue = entry.getKey().getRow().toString();
+      } else {
+        StringBuilder buf = new StringBuilder(entry.getKey().getRow().toString());
+        fieldValue = buf.reverse().toString();
+      }
+      
+      String fieldName = entry.getKey().getColumnFamily().toString();
+      // Get the shard id and datatype from the colq
+      String colq = entry.getKey().getColumnQualifier().toString();
+      int separator = colq.indexOf(EvaluatingIterator.NULL_BYTE_STRING);
+      String shardId = null;
+      String datatype = null;
+      if (separator != -1) {
+        shardId = colq.substring(0, separator);
+        datatype = colq.substring(separator + 1);
+      } else {
+        shardId = colq;
+      }
+      // Skip this entry if the type is not correct
+      if (null != datatype && null != typeFilter && !typeFilter.contains(datatype))
+        continue;
+      // Parse the UID.List object from the value
+      Uid.List uidList = null;
+      try {
+        uidList = Uid.List.parseFrom(entry.getValue().get());
+      } catch (InvalidProtocolBufferException e) {
+        // Don't add UID information, at least we know what shards
+        // it is located in.
+      }
+      
+      // Add the count for this shard to the total count for the term.
+      long count = 0;
+      Long storedCount = termCardinalities.get(fieldName);
+      if (null == storedCount || 0 == storedCount) {
+        count = uidList.getCOUNT();
+      } else {
+        count = uidList.getCOUNT() + storedCount;
+      }
+      termCardinalities.put(fieldName, count);
+      this.indexEntries.put(fieldName, fieldValue);
+      
+      if (null == override)
+        this.indexValues.put(fieldValue, fieldValue);
+      else
+        this.indexValues.put(fieldValue, override.getOriginalQueryValue());
+      
+      // Create the keys
+      Text shard = new Text(shardId);
+      if (uidList.getIGNORE()) {
+        // Then we create a scan range that is the entire shard
+        if (null == override)
+          results.get(new MapKey(fieldName, fieldValue)).add(new Range(shard));
         else
-        	termValue = (String) term.getValue();
-        //Get the values found in the index for this query term
-        TermRange ranges = null;
-        for (MapKey key : this.originalQueryValues.get(termValue)) {
-        	if (key.getFieldName().equalsIgnoreCase(fieldName.toString())) {
-        		ranges = this.globalIndexResults.get(key);
-        		if (log.isDebugEnabled())
-        			log.debug("Results for cached index ranges for key: " + key + " are " + ranges);
-        	}
+          results.get(override).add(new Range(shard));
+      } else {
+        // We should have UUIDs, create event ranges
+        for (String uuid : uidList.getUIDList()) {
+          Text cf = new Text(datatype);
+          TextUtil.textAppend(cf, uuid);
+          Key startKey = new Key(shard, cf);
+          Key endKey = new Key(shard, new Text(cf.toString() + EvaluatingIterator.NULL_BYTE_STRING));
+          Range eventRange = new Range(startKey, true, endKey, false);
+          if (null == override)
+            results.get(new MapKey(fieldName, fieldValue)).add(eventRange);
+          else
+            results.get(override).add(eventRange);
         }
 		//If no result for this field name and value, then add empty range
 		if (null == ranges)

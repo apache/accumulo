@@ -20,11 +20,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.log4j.Logger;
 
 import protobuf.TermWeight;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -32,6 +32,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
  * An Aggregator to merge together a list of term offsets and one normalized term frequency
  *
  */
+@SuppressWarnings("deprecation")
 public class TextIndexAggregator implements Aggregator {
     private static final Logger log = Logger.getLogger(TextIndexAggregator.class);
     
