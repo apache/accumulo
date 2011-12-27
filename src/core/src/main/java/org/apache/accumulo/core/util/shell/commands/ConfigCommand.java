@@ -170,11 +170,11 @@ public class ConfigCommand extends Command {
             printed = true;
           }
           if (!defaults.containsKey(key) || !defaults.get(key).equals(siteVal)) {
-            printConfLine(output, "site", printed ? "   @override" : key, siteVal);
+            printConfLine(output, "site", printed ? "   @override" : key, siteVal == null ? "" : siteVal);
             printed = true;
           }
           if (!siteConfig.containsKey(key) || !siteVal.equals(sysVal)) {
-            printConfLine(output, "system", printed ? "   @override" : key, sysVal);
+            printConfLine(output, "system", printed ? "   @override" : key, sysVal == null ? "" : sysVal);
             printed = true;
           }
         }
