@@ -32,7 +32,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ZooConfiguration;
-import org.apache.accumulo.server.tabletserver.InMemoryMap;
 import org.apache.accumulo.server.tabletserver.InMemoryMap.MemoryIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
@@ -257,5 +256,23 @@ public class InMemoryMapTest extends TestCase {
     assertFalse(ski1.hasTop());
     
     ski1.close();
+  }
+  
+  public void testSeekBackWards() throws Exception {
+    InMemoryMap imm = new InMemoryMap(false, "/tmp");
+    
+    mutate(imm, "r1", "foo:cq1", 3, "bar1");
+    mutate(imm, "r1", "foo:cq2", 3, "bar2");
+    mutate(imm, "r1", "foo:cq3", 3, "bar3");
+    mutate(imm, "r1", "foo:cq4", 3, "bar4");
+    
+    MemoryIterator skvi1 = imm.skvIterator();
+    
+    skvi1.seek(new Range(nk("r1", "foo:cq3", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ae(skvi1, "r1", "foo:cq3", 3, "bar3");
+    
+    skvi1.seek(new Range(nk("r1", "foo:cq1", 3), null), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ae(skvi1, "r1", "foo:cq1", 3, "bar1");
+    
   }
 }

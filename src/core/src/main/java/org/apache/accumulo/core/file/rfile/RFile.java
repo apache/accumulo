@@ -717,9 +717,7 @@ public class RFile {
           IndexEntry indexEntry = iiter.next();
           entriesLeft = indexEntry.getNumEntries();
           currBlock = getDataBlock(indexEntry);
-          
-          val = new Value();
-          
+
           MByteSequence valbs = new MByteSequence(new byte[64], 0, 0);
           RelativeKey tmpRk = new RelativeKey();
           fastSkipped = tmpRk.fastSkip(currBlock, startKey, valbs, prevKey, null);

@@ -18,6 +18,7 @@ package org.apache.accumulo.server.tabletserver;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -34,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -109,7 +111,7 @@ class PartialMutationSkippingIterator extends SkippingIterator implements Interr
   
 }
 
-class MemKeyConversionIterator extends SkippingIterator implements InterruptibleIterator {
+class MemKeyConversionIterator extends WrappingIterator implements InterruptibleIterator {
   MemKey currKey = null;
   Value currVal = null;
 
@@ -159,18 +161,20 @@ class MemKeyConversionIterator extends SkippingIterator implements Interruptible
   
   public void next() throws IOException {
     super.next();
-    getTopKeyVal();
-  }
-
-  @Override
-  protected void consume() throws IOException {
-    MemKey stopPoint = currKey;
     if (hasTop())
       getTopKeyVal();
-    if (stopPoint == null)
-      return;
-    while (getSource().hasTop() && currKey.compareTo(stopPoint) <= 0)
-      next();
+  }
+
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+    super.seek(range, columnFamilies, inclusive);
+    if (hasTop())
+      getTopKeyVal();
+
+    Key k = range.getStartKey();
+    if (k instanceof MemKey && hasTop()) {
+      while (hasTop() && currKey.compareTo(k) < 0)
+        next();
+    }
   }
 
   @Override
@@ -435,7 +439,7 @@ public class InMemoryMap {
 
           readers.add(reader);
           
-          iter = reader;
+          iter = new MemKeyConversionIterator(reader);
         }
       
       return iter;
@@ -524,7 +528,7 @@ public class InMemoryMap {
     int mc = kvCount.get();
     MemoryDataSource mds = new MemoryDataSource();
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(new MemoryDataSource());
-    MemoryIterator mi = new MemoryIterator(new ColumnFamilySkippingIterator(new PartialMutationSkippingIterator(new MemKeyConversionIterator(ssi), mc)));
+    MemoryIterator mi = new MemoryIterator(new ColumnFamilySkippingIterator(new PartialMutationSkippingIterator(ssi, mc)));
     mi.setSSI(ssi);
     mi.setMDS(mds);
     activeIters.add(mi);
