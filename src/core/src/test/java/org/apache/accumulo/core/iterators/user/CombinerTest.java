@@ -42,12 +42,14 @@ import org.apache.accumulo.core.iterators.LongCombiner.StringEncoder;
 import org.apache.accumulo.core.iterators.LongCombiner.VarLenEncoder;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
+import org.apache.accumulo.core.iterators.TypedValueCombiner;
 import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
 import org.apache.accumulo.core.iterators.aggregation.LongSummation;
 import org.apache.accumulo.core.iterators.aggregation.NumArraySummation;
 import org.apache.accumulo.core.iterators.aggregation.NumSummation;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.hadoop.io.Text;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class CombinerTest {
@@ -586,6 +588,37 @@ public class CombinerTest {
     ai.next();
     
     assertFalse(ai.hasTop());
+    
+    is.clearOptions();
+    SummingArrayCombiner.setEncodingType(is, SummingCombiner.VAR_LEN_ENCODER.getClass().getName());
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
+    
+    try {
+      ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
+      Assert.fail();
+    } catch (IllegalArgumentException e) {}
+    
+    is.clearOptions();
+    SummingArrayCombiner.setEncodingType(is, BadEncoder.class.getName());
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
+    
+    try {
+      ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
+      Assert.fail();
+    } catch (IllegalArgumentException e) {}
+  }
+  
+  public static class BadEncoder implements Encoder<List<Long>> {
+    @Override
+    public byte[] encode(List<Long> v) {
+      return new byte[0];
+    }
+    
+    @Override
+    public List<Long> decode(byte[] b) {
+      return new ArrayList<Long>();
+    }
+    
   }
   
   @Test
@@ -593,6 +626,37 @@ public class CombinerTest {
     sumArray(SummingArrayCombiner.VarLongArrayEncoder.class, SummingArrayCombiner.Type.VARLEN);
     sumArray(SummingArrayCombiner.FixedLongArrayEncoder.class, SummingArrayCombiner.Type.FIXEDLEN);
     sumArray(SummingArrayCombiner.StringArrayEncoder.class, SummingArrayCombiner.Type.STRING);
+  }
+  
+  @Test
+  public void testEncoders() {
+    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, Long.MAX_VALUE);
+    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, Long.MIN_VALUE);
+    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, 42l);
+    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, -42l);
+    TypedValueCombiner.testEncoder(SummingCombiner.FIXED_LEN_ENCODER, 0l);
+    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, Long.MAX_VALUE);
+    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, Long.MIN_VALUE);
+    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, 42l);
+    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, -42l);
+    TypedValueCombiner.testEncoder(SummingCombiner.VAR_LEN_ENCODER, 0l);
+    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, Long.MAX_VALUE);
+    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, Long.MIN_VALUE);
+    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, 42l);
+    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, -42l);
+    TypedValueCombiner.testEncoder(SummingCombiner.STRING_ENCODER, 0l);
+    
+    TypedValueCombiner.testEncoder(SummingArrayCombiner.FIXED_LONG_ARRAY_ENCODER, Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));
+    TypedValueCombiner.testEncoder(SummingArrayCombiner.VAR_LONG_ARRAY_ENCODER, Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));
+    TypedValueCombiner.testEncoder(SummingArrayCombiner.STRING_ARRAY_ENCODER, Arrays.asList(0l, -1l, 10l, Long.MAX_VALUE, Long.MIN_VALUE));
+  }
+  
+  @Test
+  public void testAdds() {
+    assertEquals(LongCombiner.safeAdd(Long.MIN_VALUE + 5, -10), Long.MIN_VALUE);
+    assertEquals(LongCombiner.safeAdd(Long.MAX_VALUE - 5, 10), Long.MAX_VALUE);
+    assertEquals(LongCombiner.safeAdd(Long.MIN_VALUE + 5, -5), Long.MIN_VALUE);
+    assertEquals(LongCombiner.safeAdd(Long.MAX_VALUE - 5, 5), Long.MAX_VALUE);
   }
   
   /**
