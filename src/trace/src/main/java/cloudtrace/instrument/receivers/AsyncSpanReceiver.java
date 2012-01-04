@@ -59,7 +59,11 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
     timer.schedule(new TimerTask() {
       @Override
       public void run() {
-        sendSpans();
+        try {
+          sendSpans();
+        } catch (Exception ex) {
+          log.warn("Exception sending spans to destination", ex);
+        }
       }
       
     }, 0, millis);
