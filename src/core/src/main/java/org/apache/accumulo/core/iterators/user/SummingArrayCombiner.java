@@ -34,7 +34,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
@@ -86,32 +85,18 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
     if (type == null)
       throw new IllegalArgumentException("no type specified");
     if (type.startsWith(CLASS_PREFIX)) {
-      try {
-        @SuppressWarnings("unchecked")
-        Class<? extends Encoder<List<Long>>> clazz = (Class<? extends Encoder<List<Long>>>) AccumuloClassLoader.loadClass(
-            type.substring(CLASS_PREFIX.length()), Encoder.class);
-        encoder = clazz.newInstance();
-        List<Long> testList = encoder.decode(encoder.encode(Arrays.asList(0l, 1l)));
-        if (testList.size() != 2 || testList.get(0) != 0l || testList.get(1) != 1l) {
-          throw new IllegalArgumentException("something wrong with " + type + " -- doesn't encode and decode a List<Long> properly");
-        }
-      } catch (ClassNotFoundException e) {
-        throw new IllegalArgumentException(e);
-      } catch (InstantiationException e) {
-        throw new IllegalArgumentException(e);
-      } catch (IllegalAccessException e) {
-        throw new IllegalArgumentException(e);
-      }
+      setEncoder(type.substring(CLASS_PREFIX.length()));
+      testEncoder(Arrays.asList(0l, 1l));
     } else {
       switch (Type.valueOf(options.get(TYPE))) {
         case VARLEN:
-          encoder = new VarLongArrayEncoder();
+          setEncoder(VAR_LONG_ARRAY_ENCODER);
           return;
         case FIXEDLEN:
-          encoder = new FixedLongArrayEncoder();
+          setEncoder(FIXED_LONG_ARRAY_ENCODER);
           return;
         case STRING:
-          encoder = new StringArrayEncoder();
+          setEncoder(STRING_ARRAY_ENCODER);
           return;
         default:
           throw new IllegalArgumentException();

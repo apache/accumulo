@@ -26,7 +26,6 @@ import java.util.Map;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
@@ -62,31 +61,18 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     if (type == null)
       throw new IllegalArgumentException("no type specified");
     if (type.startsWith(CLASS_PREFIX)) {
-      try {
-        @SuppressWarnings("unchecked")
-        Class<? extends Encoder<Long>> clazz = (Class<? extends Encoder<Long>>) AccumuloClassLoader.loadClass(type.substring(CLASS_PREFIX.length()),
-            Encoder.class);
-        encoder = clazz.newInstance();
-        if (encoder.decode(encoder.encode(42l)) != 42l) {
-          throw new IllegalArgumentException("something wrong with " + type + " -- doesn't encode and decode a Long properly");
-        }
-      } catch (ClassNotFoundException e) {
-        throw new IllegalArgumentException(e);
-      } catch (InstantiationException e) {
-        throw new IllegalArgumentException(e);
-      } catch (IllegalAccessException e) {
-        throw new IllegalArgumentException(e);
-      }
+        setEncoder(type.substring(CLASS_PREFIX.length()));
+        testEncoder(42l);
     } else {
       switch (Type.valueOf(type)) {
         case VARLEN:
-          encoder = VAR_LEN_ENCODER;
+          setEncoder(VAR_LEN_ENCODER);
           return;
         case FIXEDLEN:
-          encoder = FIXED_LEN_ENCODER;
+          setEncoder(FIXED_LEN_ENCODER);
           return;
         case STRING:
-          encoder = STRING_ENCODER;
+          setEncoder(STRING_ENCODER);
           return;
         default:
           throw new IllegalArgumentException();

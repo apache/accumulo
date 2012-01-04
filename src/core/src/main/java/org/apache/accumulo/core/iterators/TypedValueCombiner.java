@@ -21,6 +21,7 @@ import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 
 /**
  * A Combiner that decodes each Value to type V before reducing, then encodes the result of typedReduce back to Value.
@@ -32,7 +33,7 @@ import org.apache.accumulo.core.data.Value;
  * Subclasses may implement a switch on the "type" variable to choose an Encoder in their init method.
  */
 public abstract class TypedValueCombiner<V> extends Combiner {
-  protected Encoder<V> encoder;
+  private Encoder<V> encoder = null;
   
   /**
    * A Java Iterator that translates an Iterator<Value> to an Iterator<V> using the decode method of an Encoder.
@@ -80,6 +81,68 @@ public abstract class TypedValueCombiner<V> extends Combiner {
     public byte[] encode(V v);
     
     public V decode(byte[] b);
+  }
+  
+  /**
+   * Sets the Encoder<V> used to translate Values to V and back.
+   * 
+   * @param encoder
+   */
+  protected void setEncoder(Encoder<V> encoder) {
+    this.encoder = encoder;
+  }
+  
+  /**
+   * Instantiates and sets the Encoder<V> used to translate Values to V and back.
+   * 
+   * @param encoderClass
+   * @throws IllegalArgumentException
+   *           if ClassNotFoundException, InstantiationException, or IllegalAccessException occurs
+   */
+  protected void setEncoder(String encoderClass) {
+    try {
+      @SuppressWarnings("unchecked")
+      Class<? extends Encoder<V>> clazz = (Class<? extends Encoder<V>>) AccumuloClassLoader.loadClass(encoderClass, Encoder.class);
+      encoder = clazz.newInstance();
+    } catch (ClassNotFoundException e) {
+      throw new IllegalArgumentException(e);
+    } catch (InstantiationException e) {
+      throw new IllegalArgumentException(e);
+    } catch (IllegalAccessException e) {
+      throw new IllegalArgumentException(e);
+    }
+  }
+  
+  /**
+   * Tests whether v remains the same when encoded and decoded with the current encoder.
+   * 
+   * @param v
+   * @throws IllegalStateException
+   *           if an encoder has not been set.
+   * @throws IllegalArgumentException
+   *           if the test fails.
+   */
+  protected void testEncoder(V v) {
+    if (encoder == null)
+      throw new IllegalStateException("encoder has not been initialized");
+    testEncoder(encoder, v);
+  }
+  
+  /**
+   * Tests whether v remains the same when encoded and decoded with the given encoder.
+   * 
+   * @param encoder
+   * @param v
+   * @throws IllegalArgumentException
+   *           if the test fails.
+   */
+  public static <V> void testEncoder(Encoder<V> encoder, V v) {
+    try {
+      if (!v.equals(encoder.decode(encoder.encode(v))))
+        throw new IllegalArgumentException("something wrong with " + encoder.getClass().getName() + " -- doesn't encode and decode " + v + " properly");
+    } catch (ClassCastException e) {
+      throw new IllegalArgumentException(encoder.getClass().getName() + " doesn't encode " + v.getClass().getName());
+    }
   }
   
   @Override
