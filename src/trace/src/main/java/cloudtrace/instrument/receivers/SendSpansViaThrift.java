@@ -43,6 +43,8 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
   
   @Override
   protected Client createDestination(String destination) throws Exception {
+    if (destination == null)
+      return null;
     try {
       String[] hostAddr = destination.split(":", 2);
       log.debug("Connecting to " + hostAddr[0] + ":" + hostAddr[1]);
@@ -60,7 +62,14 @@ public class SendSpansViaThrift extends AsyncSpanReceiver<String,Client> {
   
   @Override
   protected void send(Client client, RemoteSpan s) throws Exception {
-    client.span(s);
+    if (client != null) {
+      try {
+        client.span(s);
+      } catch (Exception ex) {
+        client.getInputProtocol().getTransport().close();
+        client = null;
+      }
+    }
   }
   
   protected String getSpanKey(Map<String,String> data) {
