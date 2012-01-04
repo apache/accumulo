@@ -278,6 +278,7 @@ public class MockConnectorTest {
     assertEquals(value, next.getValue().toString());
   }
   
+  @Test
   public void testMockMultiTableBatchWriter() throws Exception {
     Connector c = new MockConnector("root");
     c.tableOperations().create("a");
@@ -299,12 +300,35 @@ public class MockConnectorTest {
       count++;
     }
     assertEquals(1, count);
+    count = 0;
     scanner = c.createScanner("b", Constants.NO_AUTHS);
     for (@SuppressWarnings("unused")
     Entry<Key,Value> entry : scanner) {
       count++;
     }
     assertEquals(1, count);
+
+  }
+  
+  @Test
+  public void testUpdate() throws Exception {
+    Connector c = new MockConnector("root");
+    c.tableOperations().create("test");
+    BatchWriter bw = c.createBatchWriter("test", 1000, 1000l, 1);
+    
+    for (int i = 0; i < 10; i++) {
+      Mutation m = new Mutation("r1");
+      m.put("cf1", "cq1", "" + i);
+      bw.addMutation(m);
+    }
+    
+    bw.close();
+    
+    Scanner scanner = c.createScanner("test", Constants.NO_AUTHS);
+    
+    Entry<Key,Value> entry = scanner.iterator().next();
+    
+    assertEquals("9", entry.getValue().toString());
 
   }
 
