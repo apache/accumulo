@@ -71,6 +71,37 @@ public class ZooSpanClient extends SendSpansViaThrift {
     zoo.getChildren(path, true);
   }
   
+  /*
+   * (non-Javadoc)
+   * 
+   * @see cloudtrace.instrument.receivers.AsyncSpanReceiver#flush()
+   */
+  @Override
+  public void flush() {
+    if (!hosts.isEmpty())
+      super.flush();
+  }
+  
+  /*
+   * (non-Javadoc)
+   * 
+   * @see cloudtrace.instrument.receivers.AsyncSpanReceiver#sendSpans()
+   */
+  @Override
+  void sendSpans() {
+    if (hosts.isEmpty()) {
+      if (!sendQueue.isEmpty()) {
+        log.error("No hosts to send data to, dropping queued spans");
+        synchronized (sendQueue) {
+          sendQueue.clear();
+          sendQueue.notifyAll();
+        }
+      }
+    } else {
+      super.sendSpans();
+    }
+  }
+
   synchronized private void updateHosts(String path, List<String> children) {
     log.debug("Scanning trace hosts in zookeeper: " + path);
     try {
