@@ -66,9 +66,9 @@ public class Connector {
    * @param tableName
    *          the name of the table to query
    * @param authorizations
-   *          A set of authorization labels that will be checked against the column visibility of each key inorder to filter data. The authorizations passed in
-   *          for scanning are intersected with the accumulo users set of authorizations. So if the accumulo user has authorizations (A1, A2) and authorizations
-   *          (A2,A3) are passed, then (A2) will be used for the scan.
+   *          A set of authorization labels that will be checked against the column visibility of each key in order to filter data. The authorizations passed in
+   *          must be a subset of the accumulo user's set of authorizations. If the accumulo user has authorizations (A1, A2) and authorizations (A2, A3) are
+   *          passed, then an exception will be thrown.
    * @param numQueryThreads
    *          the number of concurrent threads to spawn for querying
    * 
@@ -86,9 +86,9 @@ public class Connector {
    * @param tableName
    *          the name of the table to query and delete from
    * @param authorizations
-   *          A set of authorization labels that will be checked against the column visibility of each key inorder to filter data. The authorizations passed in
-   *          for scanning are intersected with the accumulo users set of authorizations. So if the accumulo user has authorizations (A1, A2) and authorizations
-   *          (A2,A3) are passed, then (A2) will be used for the scan.
+   *          A set of authorization labels that will be checked against the column visibility of each key in order to filter data. The authorizations passed in
+   *          must be a subset of the accumulo user's set of authorizations. If the accumulo user has authorizations (A1, A2) and authorizations (A2, A3) are
+   *          passed, then an exception will be thrown.
    * @param numQueryThreads
    *          the number of concurrent threads to spawn for querying
    * @param maxMemory
@@ -150,9 +150,9 @@ public class Connector {
    * @param tableName
    *          the name of the table to query data from
    * @param authorizations
-   *          A set of authorization labels that will be checked against the column visibility of each key inorder to filter data. The authorizations passed in
-   *          for scanning are intersected with the accumulo users set of authorizations. So if the accumulo user has authorizations (A1, A2) and authorizations
-   *          (A2,A3) are passed, then (A2) will be used for the scan.
+   *          A set of authorization labels that will be checked against the column visibility of each key in order to filter data. The authorizations passed in
+   *          must be a subset of the accumulo user's set of authorizations. If the accumulo user has authorizations (A1, A2) and authorizations (A2, A3) are
+   *          passed, then an exception will be thrown.
    * 
    * @return Scanner object for configuring and querying data with
    * @throws TableNotFoundException
