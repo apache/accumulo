@@ -44,15 +44,6 @@ initialized with the seed 7.
 Below the table is flushed:
 
     $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test -w'
-    Shell - Accumulo Interactive Shell
-    - 
-    - version: 1.4.0-incubating-SNAPSHOT
-    - instance name: test
-    - instance id: 54e9b81f-bf36-4a66-a020-f93d98f151a6
-    - 
-    - type 'help' for a list of available commands
-    - 
-    root@test> flush -t bloom_test -w
     05 10:40:06,069 [shell.Shell] INFO : Flush of table bloom_test completed.
 
 After the flush completes, 500 random queries are done against the table.  The
