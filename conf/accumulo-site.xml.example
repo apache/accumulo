@@ -51,5 +51,21 @@
       <name>tserver.memory.maps.max</name>
       <value>1G</value>
     </property>
+
+    <property>
+      <name>trace.password</name>
+      <value>secret</value>
+      <description>The password for the trace user to store distributed traces.</description>
+    </property>
+
+    <property>
+      <name>trace.user</name>
+      <value>root</value>
+      <description>
+         The name of the user to store distributed traces. This user needs the ability to 
+         create the trace table, if it does not already exist.
+      </description>
+    </property>
+    
     
 </configuration>
