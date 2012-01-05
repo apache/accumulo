@@ -107,6 +107,6 @@ if [ -f "$ACCUMULO_HOME/conf/monitor" ]; then
     MONITOR=`grep -v '^#' "$ACCUMULO_HOME/conf/monitor" | head -1`
 fi
 if [ ! -f "$ACCUMULO_HOME/conf/tracers" ]; then
-    echo "$MASTER1" > "$ACCUMULO_HOME/conf/tracers"
+    echo > "$ACCUMULO_HOME/conf/tracers"
 fi
 SSH='ssh -qnf'
