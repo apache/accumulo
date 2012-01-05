@@ -345,6 +345,7 @@ public class Shell {
     }
     if (cl.hasOption(execCommandOpt.getOpt())) {
       execCommand = cl.getOptionValue(execCommandOpt.getOpt());
+      verbose = false;
     }
     
     rootToken = new Token();
@@ -362,18 +363,6 @@ public class Shell {
         new WhoAmICommand(),};
     for (Command cmd : external) {
       commandFactory.put(cmd.getName(), cmd);
-    }
-    for (Class<?> subclass : Shell.class.getClasses()) {
-      Object t;
-      try {
-        t = subclass.newInstance();
-      } catch (Exception e) {
-        continue;
-      }
-      if (t instanceof Command) {
-        Command sci = (Command) t;
-        commandFactory.put(sci.getName(), sci);
-      }
     }
   }
   
