@@ -323,10 +323,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
 
   private void upgradeZookeeper() {
     if (Accumulo.getAccumuloPersistentVersion() == Constants.PREV_DATA_VERSION) {
-      // TODO check if tablets are loaded, if so abort?
-      
       try {
-        // TODO compare zookeeper dump of 1.3 and 1.4 zookeeper init to make sure no more zookeeper updates are needed
         log.info("Upgrading zookeeper");
 
         IZooReaderWriter zoo = ZooReaderWriter.getInstance();
