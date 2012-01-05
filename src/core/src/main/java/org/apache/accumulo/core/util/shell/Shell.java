@@ -182,6 +182,8 @@ public class Shell {
   
   // file to execute commands from
   private String execFile = null;
+  // single command to execute from the command line
+  private String execCommand = null;
   private boolean verbose = true;
   
   private boolean tabCompletion;
@@ -214,6 +216,9 @@ public class Shell {
     Option helpOpt = new Option(helpOption, helpLongOption, false, "display this help");
     opts.addOption(helpOpt);
     
+    Option execCommandOpt = new Option("e", "execute-command", true, "executes a command, and then exits");
+    opts.addOption(execCommandOpt);
+
     OptionGroup execFileGroup = new OptionGroup();
     
     Option execfileOption = new Option("f", "execute-file", true, "executes commands from a file at startup");
@@ -335,8 +340,12 @@ public class Shell {
     if (cl.hasOption(execfileOption.getOpt())) {
       execFile = cl.getOptionValue(execfileOption.getOpt());
       verbose = false;
-    } else if (cl.hasOption(execfileVerboseOption.getOpt()))
+    } else if (cl.hasOption(execfileVerboseOption.getOpt())) {
       execFile = cl.getOptionValue(execfileVerboseOption.getOpt());
+    }
+    if (cl.hasOption(execCommandOpt.getOpt())) {
+      execCommand = cl.getOptionValue(execCommandOpt.getOpt());
+    }
     
     rootToken = new Token();
     Command external[] = {new AboutCommand(), new AddSplitsCommand(), new AuthenticateCommand(), new ByeCommand(), new ClasspathCommand(), new ClearCommand(),
@@ -415,6 +424,11 @@ public class Shell {
       java.util.Scanner scanner = new java.util.Scanner(new File(execFile));
       while (scanner.hasNextLine())
         execCommand(scanner.nextLine(), true, isVerbose());
+    } else if (execCommand != null) {
+      for (String command : execCommand.split("\n")) {
+        execCommand(command, true, isVerbose());
+      }
+      return exitCode;
     }
     
     while (true) {
