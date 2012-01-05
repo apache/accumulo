@@ -96,7 +96,7 @@ Authorizations are specified as a comma-separated list of tokens the user posses
 \small
 \begin{verbatim}
 // user possess both admin and system level access
-Authorization auths = new Authorization("admin,system");
+Authorization auths = new Authorization("admin","system");
 
 Scanner s = connector.createScanner("table", auths);
 \end{verbatim}
