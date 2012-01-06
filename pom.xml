@@ -633,9 +633,9 @@
   </distributionManagement>
 
   <scm>
-    <connection>https://svn.apache.org/repos/asf/incubator/accumulo/trunk</connection>
-    <developerConnection>https://svn.apache.org/repos/asf/incubator/accumulo/trunk</developerConnection>
-    <url>https://svn.apache.org/repos/asf/incubator/accumulo/</url>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/incubator/accumulo/branches/1.4</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/incubator/accumulo/branches/1.4</developerConnection>
+    <url>http://svn.apache.org/viewvc/incubator/accumulo/branches/1.4</url>
   </scm>
 
   <ciManagement>
