@@ -1,0 +1,28 @@
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// compile with protoc --java_out ../java
+// compile extra builder util with java accumulo.data.protobuf.builder.ProtoBufBuilder -d ../java accumulo.data.protobuf.UidList
+//      classpath for compile command should include ../../../target/classes and protobuf-java-2.2.0.jar
+
+package protobuf;
+
+option java_package = "protobuf";
+option optimize_for = SPEED;
+
+message Info {
+	required float normalizedTermFrequency = 1;
+	repeated uint32 wordOffset = 2;
+}

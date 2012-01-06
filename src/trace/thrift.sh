@@ -18,6 +18,8 @@
 
 thrift0.6 -o target -gen java src/main/thrift/cloudtrace.thrift
 
+find target/gen-java -name '*.java' -print | xargs sed -i.orig -e 's/public class /@SuppressWarnings("all") public class /'
+
 mkdir -p src/main/java/cloudtrace/thrift
 for f in target/gen-java/cloudtrace/thrift/*
 do
