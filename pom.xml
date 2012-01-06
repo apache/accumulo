@@ -621,17 +621,6 @@
     </dependency>
   </dependencies>
 
-  <distributionManagement>
-    <repository>
-      <id>${accumulo-releases-repo}</id>
-      <url>${accumulo-releases-url}</url>
-    </repository>
-    <snapshotRepository>
-      <id>${accumulo-snapshots-repo}</id>
-      <url>${accumulo-snapshots-url}</url>
-    </snapshotRepository>
-  </distributionManagement>
-
   <scm>
     <connection>scm:svn:http://svn.apache.org/repos/asf/incubator/accumulo/branches/1.4</connection>
     <developerConnection>scm:svn:https://svn.apache.org/repos/asf/incubator/accumulo/branches/1.4</developerConnection>
