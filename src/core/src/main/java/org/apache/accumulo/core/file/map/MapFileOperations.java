@@ -36,10 +36,12 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.blockfile.cache.BlockCache;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.system.MapFileIterator;
 import org.apache.accumulo.core.iterators.system.SequenceFileIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.MapFile;
 
 public class MapFileOperations extends FileOperations {
   
@@ -135,7 +137,7 @@ public class MapFileOperations extends FileOperations {
   
   @Override
   public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    FileSKVIterator iter = new FileCFSkippingIterator(new RangeIterator(MapFileUtil.openMapFile(acuconf, fs, file, conf)));
+    FileSKVIterator iter = new FileCFSkippingIterator(new RangeIterator(new MapFileIterator(acuconf, fs, file, conf)));
     
     if (seekToBeginning)
       iter.seek(new Range(new Key(), null), new ArrayList<ByteSequence>(), false);
@@ -157,13 +159,13 @@ public class MapFileOperations extends FileOperations {
   
   @Override
   public long getFileSize(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    return fs.getFileStatus(new Path(file + "/" + MyMapFile.DATA_FILE_NAME)).getLen();
+    return fs.getFileStatus(new Path(file + "/" + MapFile.DATA_FILE_NAME)).getLen();
   }
   
   @Override
   public FileSKVIterator openReader(String file, Range range, Set<ByteSequence> columnFamilies, boolean inclusive, FileSystem fs, Configuration conf,
       AccumuloConfiguration tableConf) throws IOException {
-    MyMapFile.Reader mfIter = MapFileUtil.openMapFile(tableConf, fs, file, conf);
+    MapFileIterator mfIter = new MapFileIterator(tableConf, fs, file, conf);
     
     FileSKVIterator iter = new RangeIterator(mfIter);
     
@@ -172,7 +174,6 @@ public class MapFileOperations extends FileOperations {
     }
     
     iter.seek(range, columnFamilies, inclusive);
-    mfIter.dropIndex();
     
     return iter;
   }

@@ -22,23 +22,25 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.MapFile;
+import org.apache.hadoop.io.SequenceFile;
 
 public class MapFileUtil {
-  public static MyMapFile.Reader openMapFile(AccumuloConfiguration acuconf, FileSystem fs, String dirName, Configuration conf) throws IOException {
-    MyMapFile.Reader mfr = null;
+  public static MapFile.Reader openMapFile(AccumuloConfiguration acuconf, FileSystem fs, String dirName, Configuration conf) throws IOException {
+    MapFile.Reader mfr = null;
     try {
-      mfr = new MyMapFile.Reader(fs, dirName, conf);
+      mfr = new MapFile.Reader(fs, dirName, conf);
       return mfr;
     } catch (IOException e) {
       throw e;
     }
   }
   
-  public static MySequenceFile.Reader openIndex(Configuration conf, FileSystem fs, Path mapFile) throws IOException {
-    Path indexPath = new Path(mapFile, MyMapFile.INDEX_FILE_NAME);
-    MySequenceFile.Reader index = null;
+  public static SequenceFile.Reader openIndex(Configuration conf, FileSystem fs, Path mapFile) throws IOException {
+    Path indexPath = new Path(mapFile, MapFile.INDEX_FILE_NAME);
+    SequenceFile.Reader index = null;
     try {
-      index = new MySequenceFile.Reader(fs, indexPath, conf);
+      index = new SequenceFile.Reader(fs, indexPath, conf);
       return index;
     } catch (IOException e) {
       throw e;

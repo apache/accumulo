@@ -27,10 +27,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.file.map.MySequenceFile;
-import org.apache.accumulo.core.file.map.MySequenceFile.Reader;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.hadoop.io.SequenceFile;
+import org.apache.hadoop.io.SequenceFile.Reader;
 
 public class SequenceFileIterator implements FileSKVIterator {
   
@@ -48,7 +48,7 @@ public class SequenceFileIterator implements FileSKVIterator {
     throw new UnsupportedOperationException();
   }
   
-  public SequenceFileIterator(MySequenceFile.Reader reader, boolean readValue) throws IOException {
+  public SequenceFileIterator(SequenceFile.Reader reader, boolean readValue) throws IOException {
     this.reader = reader;
     this.readValue = readValue;
     

@@ -283,6 +283,7 @@ public class TestIngest {
       if (ingestArgs.outputToRFile) {
         Configuration conf = CachedConfiguration.getInstance();
         FileSystem fs = FileSystem.get(conf);
+        System.out.println(ingestArgs.outputFile);
         writer = FileOperations.getInstance().openWriter(ingestArgs.outputFile + "." + RFile.EXTENSION, fs, conf,
             AccumuloConfiguration.getDefaultConfiguration());
         writer.startDefaultLocalityGroup();

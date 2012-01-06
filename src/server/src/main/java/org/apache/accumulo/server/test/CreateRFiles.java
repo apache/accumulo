@@ -20,7 +20,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class CreateMapFiles {
+public class CreateRFiles {
   
   public static void main(String[] args) {
     String dir = args[0];
@@ -39,7 +39,7 @@ public class CreateMapFiles {
     int count = 0;
     while (currEnd <= end && currStart < currEnd) {
       
-      final String tia = String.format("-mapFile /%s/mf%05d -timestamp 1 -size 50 -random 56 %d %d 1", dir, count, currEnd - currStart, currStart);
+      final String tia = String.format("-rFile /%s/mf%05d -timestamp 1 -size 50 -random 56 %d %d 1", dir, count, currEnd - currStart, currStart);
       
       Runnable r = new Runnable() {
         

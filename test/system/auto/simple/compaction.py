@@ -40,10 +40,10 @@ class CompactionTest(SimpleBulkTest):
         'tserver.compaction.major.concurrent.max':1,
         })
 
-    def createMapFiles(self, host):
+    def createRFiles(self, host):
         handle = self.runClassOn(
             self.masterHost(),
-            'org.apache.accumulo.server.test.CreateMapFiles',
+            'org.apache.accumulo.server.test.CreateRFiles',
             "testrf 4 0 500000 59".split())
         out, err = handle.communicate()
         self.assert_(handle.returncode == 0)
@@ -56,8 +56,8 @@ class CompactionTest(SimpleBulkTest):
         self.execute(self.masterHost(), 'hadoop dfs -rmr /testrfFail'.split())
 
         # insert some data
-        self.createMapFiles(self.masterHost())
-        self.bulkLoad(self.masterHost())
+        self.createRFiles(self.masterHost())
+        self.bulkLoad(self.masterHost(), '/testrf')
 
         out, err, code = self.shell(self.masterHost(), "table !METADATA\nscan -b ! -c ~tab,file\n")
         self.assert_(code == 0)

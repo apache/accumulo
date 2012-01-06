@@ -23,7 +23,7 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.test.CreateMapFiles;
+import org.apache.accumulo.server.test.CreateRFiles;
 import org.apache.accumulo.server.test.VerifyIngest;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -42,8 +42,8 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
   @Override
   public void cleanup() throws Exception {
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    fs.delete(new Path("/testmf"), true);
-    fs.delete(new Path("/testmf_failures"), true);
+    fs.delete(new Path("/testrf"), true);
+    fs.delete(new Path("/testrf_failures"), true);
   }
   
   @Override
@@ -61,11 +61,11 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
   public void run() throws Exception {
     
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    fs.delete(new Path("/testmf"), true);
+    fs.delete(new Path("/testrf"), true);
     
-    CreateMapFiles.main(new String[] {"testmf", "8", "0", "100000", "99"});
+    CreateRFiles.main(new String[] {"testrf", "8", "0", "100000", "99"});
     
-    bulkImport(fs, TABLE_NAME, "/testmf");
+    bulkImport(fs, TABLE_NAME, "/testrf");
     
     checkSplits(TABLE_NAME, 0, 0);
     checkRFiles(TABLE_NAME, 1, 1, 100, 100);

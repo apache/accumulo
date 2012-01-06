@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.file.map.MyMapFile;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
@@ -64,6 +63,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.MapFile;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
@@ -222,7 +222,7 @@ public class BulkImport extends MasterRepo {
           continue;
         }
         try {
-          FileStatus dataStatus = fs.getFileStatus(new Path(fileStatus.getPath(), MyMapFile.DATA_FILE_NAME));
+          FileStatus dataStatus = fs.getFileStatus(new Path(fileStatus.getPath(), MapFile.DATA_FILE_NAME));
           if (dataStatus.isDir()) {
             log.warn(fileStatus.getPath() + " is not a map file, ignoring");
             continue;
