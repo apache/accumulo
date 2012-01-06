@@ -37,33 +37,33 @@ class SimpleBulkTest(TestUtilsMixin, unittest.TestCase):
                              args,
                              **kwargs)
 
-    def bulkLoad(self, host):
+    def bulkLoad(self, host, dir):
         handle = self.runClassOn(
             self.masterHost(),
             'org.apache.accumulo.server.test.BulkImportDirectory',
             [ROOT, ROOT_PASSWORD,
-             'test_ingest', '/testmf', '/testmfFail'])
+             'test_ingest', dir, '/testBulkFail'])
         self.wait(handle)
         self.assert_(handle.returncode == 0)
         
 
-    def createMapFiles(self):
-        args = '-mapFile /testmf/mf%02d -timestamp 1 -size 50 -random 56 %1d %ld 1'
-        log.info('creating map files')
+    def createRFiles(self):
+        args = '-rFile /testrf/rf%02d -timestamp 1 -size 50 -random 56 %1d %ld 1'
+        log.info('creating rfiles')
         handles = []
         for i in range(COUNT):
             handles.append(self.testIngest(
                 self.hosts[i%len(self.hosts)],
                 (args % (i, N, (N * i))).split()))
         
-        #create a map file with one entry, there was a bug with this
+        #create a rfile with one entry, there was a bug with this
         handles.append(self.testIngest(self.hosts[0], (args % (COUNT, 1, COUNT * N)).split()))
         log.info('waiting to finish')
         for h in handles:
             h.communicate()
             self.assert_(h.returncode == 0)
         log.info('done')
-
+        
     def execute(self, host, cmd, **opts):
         handle = self.runOn(host, cmd, **opts)
         out, err = handle.communicate()
@@ -73,14 +73,14 @@ class SimpleBulkTest(TestUtilsMixin, unittest.TestCase):
 
         # initialize the database
         self.createTable('test_ingest')
-        self.execute(self.masterHost(), 'hadoop dfs -rmr /testmf'.split())
-        self.execute(self.masterHost(), 'hadoop dfs -rmr /testmfFail'.split())
-        self.execute(self.masterHost(), 'hadoop dfs -mkdir /testmfFail'.split())
+        self.execute(self.masterHost(), 'hadoop dfs -rmr /testrf'.split())
+        self.execute(self.masterHost(), 'hadoop dfs -rmr /testBulkFail'.split())
+        self.execute(self.masterHost(), 'hadoop dfs -mkdir /testBulkFail'.split())
 
         # insert some data
-        self.createMapFiles()
-        self.bulkLoad(self.masterHost())
-
+        self.createRFiles()
+        self.bulkLoad(self.masterHost(), '/testrf')
+        
         log.info("Verifying Ingestion")
         handles = []
         for i in range(COUNT):

@@ -21,6 +21,7 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.server.tabletserver.InMemoryMap;
 import org.apache.hadoop.io.Text;
 
@@ -130,20 +131,23 @@ class InMemoryMapMemoryUsageTest extends MemoryUsageTest {
   private int keyLen;
   private int colFamLen;
   private int colQualLen;
+  private int colVisLen;
   private int dataLen;
   
   private InMemoryMap imm;
   private Text key;
   private Text colf;
   private Text colq;
+  private ColumnVisibility colv;
   private int passes;
   
-  InMemoryMapMemoryUsageTest(int passes, int keyLen, int colFamLen, int colQualLen, int dataLen) {
+  InMemoryMapMemoryUsageTest(int passes, int keyLen, int colFamLen, int colQualLen, int colVisLen, int dataLen) {
     this.keyLen = keyLen;
     this.colFamLen = colFamLen;
     this.colQualLen = colQualLen;
     this.dataLen = dataLen;
     this.passes = passes;
+    this.colVisLen = colVisLen;
     
   }
   
@@ -153,6 +157,7 @@ class InMemoryMapMemoryUsageTest extends MemoryUsageTest {
     
     colf = new Text(String.format("%0" + colFamLen + "d", 0));
     colq = new Text(String.format("%0" + colQualLen + "d", 0));
+    colv = new ColumnVisibility(String.format("%0" + colVisLen + "d", 0));
   }
   
   public void addEntry(int i) {
@@ -166,14 +171,14 @@ class InMemoryMapMemoryUsageTest extends MemoryUsageTest {
     }
     Value idata = new Value(data);
     
-    m.put(colf, colq, idata);
+    m.put(colf, colq, colv, idata);
     
     imm.mutate(Collections.singletonList(m));
     
   }
   
   public int getEstimatedBytesPerEntry() {
-    return keyLen + colFamLen + colQualLen + dataLen;
+    return keyLen + colFamLen + colQualLen + dataLen + 4 + colVisLen;
   }
   
   public void clear() {
@@ -307,31 +312,31 @@ class IntObjectMemoryUsageTest extends MemoryUsageTest {
 
 public class EstimateInMemMapOverhead {
   
-  private static void runTest(int numEntries, int keyLen, int colFamLen, int colQualLen, int dataLen) {
+  private static void runTest(int numEntries, int keyLen, int colFamLen, int colQualLen, int colVisLen, int dataLen) {
     new IntObjectMemoryUsageTest(numEntries).run();
-    new InMemoryMapMemoryUsageTest(numEntries, keyLen, colFamLen, colQualLen, dataLen).run();
+    new InMemoryMapMemoryUsageTest(numEntries, keyLen, colFamLen, colQualLen, colVisLen, dataLen).run();
     new TextMemoryUsageTest(numEntries, keyLen, colFamLen, colQualLen, dataLen).run();
     new MutationMemoryUsageTest(numEntries, keyLen, colFamLen, colQualLen, dataLen).run();
   }
   
   public static void main(String[] args) {
-    runTest(10000, 10, 4, 4, 20);
-    runTest(100000, 10, 4, 4, 20);
-    runTest(500000, 10, 4, 4, 20);
-    runTest(1000000, 10, 4, 4, 20);
-    runTest(2000000, 10, 4, 4, 20);
+    runTest(10000, 10, 4, 4, 4, 20);
+    runTest(100000, 10, 4, 4, 4, 20);
+    runTest(500000, 10, 4, 4, 4, 20);
+    runTest(1000000, 10, 4, 4, 4, 20);
+    runTest(2000000, 10, 4, 4, 4, 20);
     
-    runTest(10000, 20, 5, 5, 500);
-    runTest(100000, 20, 5, 5, 500);
-    runTest(500000, 20, 5, 5, 500);
-    runTest(1000000, 20, 5, 5, 500);
-    runTest(2000000, 20, 5, 5, 500);
+    runTest(10000, 20, 5, 5, 5, 500);
+    runTest(100000, 20, 5, 5, 5, 500);
+    runTest(500000, 20, 5, 5, 5, 500);
+    runTest(1000000, 20, 5, 5, 5, 500);
+    runTest(2000000, 20, 5, 5, 5, 500);
     
-    runTest(10000, 40, 10, 10, 1000);
-    runTest(100000, 40, 10, 10, 1000);
-    runTest(500000, 40, 10, 10, 1000);
-    runTest(1000000, 40, 10, 10, 1000);
-    runTest(2000000, 40, 10, 10, 1000);
+    runTest(10000, 40, 10, 10, 10, 1000);
+    runTest(100000, 40, 10, 10, 10, 1000);
+    runTest(500000, 40, 10, 10, 10, 1000);
+    runTest(1000000, 40, 10, 10, 10, 1000);
+    runTest(2000000, 40, 10, 10, 10, 1000);
   }
   
 }

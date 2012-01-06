@@ -123,7 +123,6 @@ public class TestIngest {
     
     public boolean unique;
     
-    boolean outputToMapFile = false;
     boolean outputToRFile = false;
     String outputFile;
     
@@ -147,9 +146,8 @@ public class TestIngest {
     opts.addOption(new Option("tsbw", "tsbw", false, "tsbw"));
     opts.addOption(new Option("username", "username", true, "username"));
     opts.addOption(new Option("password", "password", true, "password"));
-    opts.addOption(new Option("mapFile", "mapFile", true, "map file"));
     opts.addOption(new Option("trace", "trace", false, "turn on distributed tracing"));
-    opts.addOption(new Option("rfile", "rfile", true, "relative-key file"));
+    opts.addOption(new Option("rFile", "rFile", true, "relative-key file"));
     return opts;
   }
   
@@ -184,18 +182,9 @@ public class TestIngest {
       ia.timestamp = Long.parseLong(cl.getOptionValue("timestamp"));
       ia.hasTimestamp = true;
     }
-    if (cl.hasOption("mapFile")) {
-      ia.outputToMapFile = true;
-      ia.outputFile = cl.getOptionValue("mapFile");
-    }
-    if (cl.hasOption("rfile")) {
+    if (cl.hasOption("rFile")) {
       ia.outputToRFile = true;
-      ia.outputFile = cl.getOptionValue("rfile");
-    }
-    if (ia.outputToMapFile && ia.outputToRFile) {
-      HelpFormatter hf = new HelpFormatter();
-      hf.printHelp("Cannot output to both an rfile and a map file", getOptions());
-      throw new RuntimeException();
+      ia.outputFile = cl.getOptionValue("rFile");
     }
     ia.delete = cl.hasOption("delete");
     ia.useGet = cl.hasOption("useGet");
@@ -291,13 +280,7 @@ public class TestIngest {
       FileSKVWriter writer = null;
       
       rootCredentials = new AuthInfo(username, ByteBuffer.wrap(passwd.getBytes()), instance.getInstanceID());
-      if (ingestArgs.outputToMapFile) {
-        Configuration conf = CachedConfiguration.getInstance();
-        FileSystem fs = FileSystem.get(conf);
-        writer = FileOperations.getInstance().openWriter(ingestArgs.outputFile + "." + RFile.EXTENSION, fs, conf,
-            AccumuloConfiguration.getDefaultConfiguration());
-        writer.startDefaultLocalityGroup();
-      } else if (ingestArgs.outputToRFile) {
+      if (ingestArgs.outputToRFile) {
         Configuration conf = CachedConfiguration.getInstance();
         FileSystem fs = FileSystem.get(conf);
         writer = FileOperations.getInstance().openWriter(ingestArgs.outputFile + "." + RFile.EXTENSION, fs, conf,

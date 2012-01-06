@@ -275,7 +275,7 @@ public class InMemoryMap {
       // and is in bytes.. the estimates were obtained by running
       // java 6_16 in 64 bit server mode
       
-      return 270;
+      return 200;
     }
     
     @Override
