@@ -632,7 +632,7 @@
     </repository>
   </repositories>
 
-  <distributionManagement>
+  <!--distributionManagement>
     <repository>
       <id>accumulo-releases-repo</id>
       <url>http://incubator.apache.org/accumulo</url>
@@ -641,7 +641,7 @@
       <id>accumulo-snapshots-repo</id>
       <url>http://incubator.apache.org/accumulo</url>
     </snapshotRepository>
-  </distributionManagement>
+  </distributionManagement-->
 
   <issueManagement>
     <url>https://issues.apache.org/jira/browse/ACCUMULO</url>
