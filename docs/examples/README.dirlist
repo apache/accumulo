@@ -37,8 +37,7 @@ This may take some time if there are large files in the /local/username/workspac
 Note that running this example will create tables dirTable, indexTable, and dataTable in Accumulo that you should delete when you have completed the example.
 If you modify a file or add new files in the directory ingested (e.g. /local/username/workspace), you can run Ingest again to add new information into the Accumulo tables.
 
-To browse the data ingested, use Viewer.java.  Be sure to give the "username" user the authorizations to see the data (in this case, run "setauths -u username -s exampleVis" in the shell, and use the string "exampleVis" as the "auths" in command lines below)
-.
+To browse the data ingested, use Viewer.java.  Be sure to give the "username" user the authorizations to see the data (in this case, run "setauths -u username -s exampleVis" in the shell, and use the string "exampleVis" as the "auths" in command lines below).
 
     $ ./bin/accumulo org.apache.accumulo.examples.dirlist.Viewer instance zookeepers username password dirTable dataTable auths /local/username/workspace
 
@@ -56,7 +55,8 @@ To perform searches on file or directory names, also use QueryUtil.java.  Search
     $ ./bin/accumulo org.apache.accumulo.examples.dirlist.QueryUtil instance zookeepers username password indexTable exampleVis filename*jar -search
 
 To count the number of direct children (directories and files) and descendants (children and children's descendants, directories and files), run the FileCount over the dirTable table.
-The results are written back to the same table.
+The results are written back to the same table.  FileCount reads from and writes to Accumulo.  This requires scan authorizations for the read and a visibility for the data written.
+In this example, the authorizations and visibility are set to the same value, exampleVis.  See README.visibility for more information on visibility and authorizations.
 
     $ ./bin/accumulo org.apache.accumulo.examples.dirlist.FileCount instance zookeepers username password dirTable exampleVis exampleVis
 
