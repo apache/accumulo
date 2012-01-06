@@ -518,9 +518,9 @@
   </distributionManagement>
 
   <scm>
-    <connection>https://svn.apache.org/repos/asf/incubator/accumulo/trunk</connection>
-    <developerConnection>https://svn.apache.org/repos/asf/incubator/accumulo/trunk</developerConnection>
-    <url>https://svn.apache.org/repos/asf/incubator/accumulo/</url>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/incubator/accumulo/trunk</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/incubator/accumulo/trunk</developerConnection>
+    <url>http://svn.apache.org/viewvc/incubator/accumulo</url>
   </scm>
 
   <ciManagement>
