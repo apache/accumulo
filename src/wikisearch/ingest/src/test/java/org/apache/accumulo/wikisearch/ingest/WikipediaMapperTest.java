@@ -24,6 +24,17 @@ import java.util.Map.Entry;
 
 import junit.framework.Assert;
 
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.wikisearch.reader.AggregatingRecordReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -38,21 +49,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.junit.Before;
-import org.junit.Test;
-
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.mock.MockInstance;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.wikisearch.ingest.WikipediaConfiguration;
-import org.apache.accumulo.wikisearch.ingest.WikipediaMapper;
-import org.apache.accumulo.wikisearch.reader.AggregatingRecordReader;
 
 /**
  * Load some data into mock accumulo
@@ -158,7 +154,6 @@ public class WikipediaMapperTest {
       System.out.println(entry.getKey().toString() + " " + entry.getValue().toString());
   }
   
-  @Test
   public void testViewAllData() throws Exception {
     debugQuery(METADATA_TABLE_NAME);
     debugQuery(TABLE_NAME);

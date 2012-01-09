@@ -177,6 +177,8 @@ public class TestQueryLogic {
   
   @Test
   public void testTitle() {
+    Logger.getLogger(AbstractQueryLogic.class).setLevel(Level.OFF);
+    Logger.getLogger(RangeCalculator.class).setLevel(Level.OFF);
     List<String> auths = new ArrayList<String>();
     auths.add("enwiki");
     Results results = table.runQuery(c, auths, "TITLE == 'afghanistanhistory'", null, null, null);

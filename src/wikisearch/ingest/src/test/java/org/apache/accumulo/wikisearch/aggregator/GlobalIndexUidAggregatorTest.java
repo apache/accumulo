@@ -24,9 +24,10 @@ import junit.framework.TestCase;
 
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.aggregation.Aggregator;
-import org.apache.accumulo.wikisearch.aggregator.GlobalIndexUidAggregator;
 import org.apache.accumulo.wikisearch.protobuf.Uid;
 import org.apache.accumulo.wikisearch.protobuf.Uid.List.Builder;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 
 @SuppressWarnings("deprecation")
@@ -141,6 +142,7 @@ public class GlobalIndexUidAggregatorTest extends TestCase {
   }
   
   public void testInvalidValueType() throws Exception {
+    Logger.getLogger(GlobalIndexUidAggregator.class).setLevel(Level.OFF);
     agg.reset();
     Value val = new Value(UUID.randomUUID().toString().getBytes());
     agg.collect(val);
