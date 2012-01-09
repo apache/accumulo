@@ -1747,12 +1747,12 @@ public class Shell {
       for (IteratorScope scope : scopes) {
         String stem = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name(), name);
         log.debug("setting property " + stem + " to " + priority + "," + classname);
-        shellState.connector.tableOperations().setProperty(tableName, stem, priority + "," + classname);
         stem += ".opt.";
         for (Entry<String,String> e : options.entrySet()) {
           log.debug("setting property " + stem + e.getKey() + " to " + e.getValue());
           shellState.connector.tableOperations().setProperty(tableName, stem + e.getKey(), e.getValue());
         }
+        shellState.connector.tableOperations().setProperty(tableName, stem, priority + "," + classname);
       }
     }
     
@@ -2064,7 +2064,7 @@ public class Shell {
         } else {
           if (!Property.isValidZooPropertyKey(property))
             throw new BadArgumentException("Property cannot be modified in zookeeper", fullCommand, fullCommand.indexOf(property));
-
+          
           shellState.connector.instanceOperations().setProperty(property, value);
           log.debug("Successfully set system configuration option");
         }
