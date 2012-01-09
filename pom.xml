@@ -625,6 +625,13 @@
     </dependency>
   </dependencies>
 
+  <repositories>
+    <repository>
+      <id>legacy-releases</id>
+      <url>http://incubator.apache.org/accumulo/mvn_repo</url>
+    </repository>
+  </repositories>
+
   <issueManagement>
     <url>https://issues.apache.org/jira/browse/ACCUMULO</url>
     <system>Apache's JIRA issue tracker</system>
