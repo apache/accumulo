@@ -204,7 +204,7 @@ public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
   
   @Override
   public boolean hasTop() {
-    return topKey != null || sourceIter.hasTop();
+    return topKey != null;
   }
   
   @Override
