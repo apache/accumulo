@@ -55,7 +55,7 @@ public class TableOperationsHelperTest {
     
     @Override
     public boolean exists(String tableName) {
-      return false;
+      return true;
     }
     
     @Override
