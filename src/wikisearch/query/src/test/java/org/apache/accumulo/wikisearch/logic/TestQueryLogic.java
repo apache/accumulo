@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -114,10 +115,22 @@ public class TestQueryLogic {
     
     MockInstance i = new MockInstance();
     c = i.getConnector("root", "pass");
-    c.tableOperations().delete(METADATA_TABLE_NAME);
-    c.tableOperations().delete(TABLE_NAME);
-    c.tableOperations().delete(INDEX_TABLE_NAME);
-    c.tableOperations().delete(RINDEX_TABLE_NAME);
+    try{
+      c.tableOperations().delete(METADATA_TABLE_NAME);
+    } catch (TableNotFoundException tnfe) {}
+    ;
+    try{
+      c.tableOperations().delete(TABLE_NAME);
+    } catch (TableNotFoundException tnfe) {}
+    ;
+    try{
+      c.tableOperations().delete(INDEX_TABLE_NAME);
+    } catch (TableNotFoundException tnfe) {}
+    ;
+    try{
+      c.tableOperations().delete(RINDEX_TABLE_NAME);
+    } catch (TableNotFoundException tnfe) {}
+    ;
     c.tableOperations().create(METADATA_TABLE_NAME);
     c.tableOperations().create(TABLE_NAME);
     c.tableOperations().create(INDEX_TABLE_NAME);
