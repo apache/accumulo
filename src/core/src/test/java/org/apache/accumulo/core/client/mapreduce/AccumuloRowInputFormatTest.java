@@ -27,7 +27,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.mapreduce.AccumuloRowInputFormat;
 import org.apache.accumulo.core.client.mapreduce.InputFormatBase.RangeInputSplit;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
@@ -102,8 +101,8 @@ public class AccumuloRowInputFormatTest {
     bw.close();
     
     JobContext job = new JobContext(new Configuration(), new JobID());
-    AccumuloRowInputFormat.setInputInfo(job, "root", "".getBytes(), "test", new Authorizations());
-    AccumuloRowInputFormat.setMockInstance(job, "instance1");
+    AccumuloRowInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "test", new Authorizations());
+    AccumuloRowInputFormat.setMockInstance(job.getConfiguration(), "instance1");
     AccumuloRowInputFormat crif = new AccumuloRowInputFormat();
     RangeInputSplit ris = new RangeInputSplit();
     TaskAttemptContext tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());

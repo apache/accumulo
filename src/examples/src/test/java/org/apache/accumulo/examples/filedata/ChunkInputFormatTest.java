@@ -37,8 +37,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.examples.filedata.ChunkInputFormat;
-import org.apache.accumulo.examples.filedata.ChunkInputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
@@ -90,8 +88,8 @@ public class ChunkInputFormatTest extends TestCase {
     bw.close();
     
     JobContext job = new JobContext(new Configuration(), new JobID());
-    ChunkInputFormat.setInputInfo(job, "root", "".getBytes(), "test", new Authorizations("A", "B", "C", "D"));
-    ChunkInputFormat.setMockInstance(job, "instance1");
+    ChunkInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "test", new Authorizations("A", "B", "C", "D"));
+    ChunkInputFormat.setMockInstance(job.getConfiguration(), "instance1");
     ChunkInputFormat cif = new ChunkInputFormat();
     RangeInputSplit ris = new RangeInputSplit();
     TaskAttemptContext tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());
@@ -141,8 +139,8 @@ public class ChunkInputFormatTest extends TestCase {
     bw.close();
     
     JobContext job = new JobContext(new Configuration(), new JobID());
-    ChunkInputFormat.setInputInfo(job, "root", "".getBytes(), "test", new Authorizations("A", "B", "C", "D"));
-    ChunkInputFormat.setMockInstance(job, "instance2");
+    ChunkInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "test", new Authorizations("A", "B", "C", "D"));
+    ChunkInputFormat.setMockInstance(job.getConfiguration(), "instance2");
     ChunkInputFormat cif = new ChunkInputFormat();
     RangeInputSplit ris = new RangeInputSplit();
     TaskAttemptContext tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());
@@ -180,8 +178,8 @@ public class ChunkInputFormatTest extends TestCase {
     bw.close();
     
     JobContext job = new JobContext(new Configuration(), new JobID());
-    ChunkInputFormat.setInputInfo(job, "root", "".getBytes(), "test", new Authorizations("A", "B", "C", "D"));
-    ChunkInputFormat.setMockInstance(job, "instance3");
+    ChunkInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "test", new Authorizations("A", "B", "C", "D"));
+    ChunkInputFormat.setMockInstance(job.getConfiguration(), "instance3");
     ChunkInputFormat cif = new ChunkInputFormat();
     RangeInputSplit ris = new RangeInputSplit();
     TaskAttemptContext tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());

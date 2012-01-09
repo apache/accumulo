@@ -58,15 +58,15 @@ public class RowHash extends Configured implements Tool {
     job.setJarByClass(this.getClass());
     
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setZooKeeperInstance(job, args[0], args[1]);
-    AccumuloInputFormat.setInputInfo(job, args[2], args[3].getBytes(), args[4], new Authorizations());
+    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
+    AccumuloInputFormat.setInputInfo(job.getConfiguration(), args[2], args[3].getBytes(), args[4], new Authorizations());
     
     String col = args[5];
     int idx = col.indexOf(":");
     Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
     Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
     if (cf.getLength() > 0)
-      AccumuloInputFormat.fetchColumns(job, Collections.singleton(new Pair<Text,Text>(cf, cq)));
+      AccumuloInputFormat.fetchColumns(job.getConfiguration(), Collections.singleton(new Pair<Text,Text>(cf, cq)));
     
     // AccumuloInputFormat.setLogLevel(job, Level.TRACE);
     

@@ -45,12 +45,12 @@ public class RegexExample extends Configured implements Tool {
     job.setJarByClass(this.getClass());
     
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setZooKeeperInstance(job, args[0], args[1]);
-    AccumuloInputFormat.setInputInfo(job, args[2], args[3].getBytes(), args[4], new Authorizations());
+    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
+    AccumuloInputFormat.setInputInfo(job.getConfiguration(), args[2], args[3].getBytes(), args[4], new Authorizations());
     
     IteratorSetting regex = new IteratorSetting(50, "regex", RegExFilter.class);
     RegExFilter.setRegexs(regex, args[5], args[6], args[7], args[8], false);
-    AccumuloInputFormat.addIterator(job, regex);
+    AccumuloInputFormat.addIterator(job.getConfiguration(), regex);
     
     job.setMapperClass(RegexMapper.class);
     job.setMapOutputKeyClass(Key.class);
