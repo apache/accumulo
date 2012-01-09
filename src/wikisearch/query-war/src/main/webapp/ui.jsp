@@ -46,8 +46,8 @@
     </head>
     <body>
     	<div id="comments">
-    		<h1>Wiki Search using ACCUMULO</h1>
-    		<p>This sample application demonstrates the ability to use search documents using ACCUMULO. The associated ingest software
+    		<h1>Wiki Search using Apache Accumulo</h1>
+    		<p>This sample application demonstrates the ability to use search documents using Apache Accumulo. The associated ingest software
     		extracts the id, title, timestamp, and comments from each wikipedia article. In addition, the wikipedia text has been tokenized
     		and is available for searching. You can enter a boolean expression into the search box below and select the particular set of
     		wikipedia languages you want to search.</p>

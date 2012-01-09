@@ -16,5 +16,5 @@
   limitations under the License.
 -->
 <jboss-web>
-  <context-root>/accumulo-sample</context-root>
+  <context-root>/accumulo-wikisearch</context-root>
 </jboss-web>
