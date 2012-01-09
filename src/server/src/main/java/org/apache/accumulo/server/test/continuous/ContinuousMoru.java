@@ -128,16 +128,14 @@ public class ContinuousMoru extends Configured implements Tool {
     job.setJarByClass(this.getClass());
     
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setInputInfo(job, user, pass.getBytes(), table, new Authorizations());
-    AccumuloInputFormat.setZooKeeperInstance(job, instance, zookeepers);
+    AccumuloInputFormat.setInputInfo(job.getConfiguration(), user, pass.getBytes(), table, new Authorizations());
+    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), instance, zookeepers);
     
     // set up ranges
     try {
-      AccumuloInputFormat.setRanges(
-          job,
-          new ZooKeeperInstance(instance, zookeepers).getConnector(user, pass.getBytes()).tableOperations()
-              .splitRangeByTablets(table, new Range(), Integer.parseInt(maxMaps)));
-      AccumuloInputFormat.disableAutoAdjustRanges(job);
+      AccumuloInputFormat.setRanges(job.getConfiguration(), new ZooKeeperInstance(instance, zookeepers).getConnector(user, pass.getBytes()).tableOperations()
+          .splitRangeByTablets(table, new Range(), Integer.parseInt(maxMaps)));
+      AccumuloInputFormat.disableAutoAdjustRanges(job.getConfiguration());
     } catch (Exception e) {
       throw new IOException(e);
     }

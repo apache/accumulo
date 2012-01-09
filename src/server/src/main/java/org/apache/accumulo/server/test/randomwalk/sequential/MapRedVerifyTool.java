@@ -84,8 +84,8 @@ public class MapRedVerifyTool extends Configured implements Tool {
     }
     
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setInputInfo(job, args[0], args[1].getBytes(), args[2], new Authorizations());
-    AccumuloInputFormat.setZooKeeperInstance(job, args[3], args[4]);
+    AccumuloInputFormat.setInputInfo(job.getConfiguration(), args[0], args[1].getBytes(), args[2], new Authorizations());
+    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), args[3], args[4]);
     
     job.setMapperClass(SeqMapClass.class);
     job.setMapOutputKeyClass(NullWritable.class);

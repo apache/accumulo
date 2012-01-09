@@ -76,8 +76,8 @@ public class TableToFile extends Configured implements Tool {
     job.setJarByClass(this.getClass());
     
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setZooKeeperInstance(job, args[0], args[1]);
-    AccumuloInputFormat.setInputInfo(job, args[2], args[3].getBytes(), args[4], new Authorizations());
+    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
+    AccumuloInputFormat.setInputInfo(job.getConfiguration(), args[2], args[3].getBytes(), args[4], new Authorizations());
     
     HashSet<Pair<Text,Text>> columnsToFetch = new HashSet<Pair<Text,Text>>();
     for (String col : args[5].split(",")) {
@@ -88,7 +88,7 @@ public class TableToFile extends Configured implements Tool {
         columnsToFetch.add(new Pair<Text,Text>(cf, cq));
     }
     if (!columnsToFetch.isEmpty())
-      AccumuloInputFormat.fetchColumns(job, columnsToFetch);
+      AccumuloInputFormat.fetchColumns(job.getConfiguration(), columnsToFetch);
     
     job.setMapperClass(TTFMapper.class);
     job.setMapOutputKeyClass(NullWritable.class);
