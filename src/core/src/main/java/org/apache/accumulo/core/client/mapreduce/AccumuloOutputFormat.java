@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -72,6 +73,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   
   private static final String INSTANCE_NAME = PREFIX + ".instanceName";
   private static final String ZOOKEEPERS = PREFIX + ".zooKeepers";
+  private static final String MOCK = ".useMockInstance";
   
   private static final String CREATETABLES = PREFIX + ".createtables";
   private static final String LOGLEVEL = PREFIX + ".loglevel";
@@ -125,6 +127,13 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     conf.set(ZOOKEEPERS, zooKeepers);
   }
   
+  public static void setMockInstance(JobContext job, String instanceName) {
+    Configuration conf = job.getConfiguration();
+    conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
+    conf.setBoolean(MOCK, true);
+    conf.set(INSTANCE_NAME, instanceName);
+  }
+  
   public static void setMaxMutationBufferSize(JobContext job, long numberOfBytes) {
     job.getConfiguration().setLong(MAX_MUTATION_BUFFER_SIZE, numberOfBytes);
   }
@@ -168,6 +177,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   
   protected static Instance getInstance(JobContext job) {
     Configuration conf = job.getConfiguration();
+    if (conf.getBoolean(MOCK, false))
+      return new MockInstance(conf.get(INSTANCE_NAME));
     return new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS));
   }
   
