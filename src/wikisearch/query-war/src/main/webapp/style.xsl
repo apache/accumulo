@@ -29,7 +29,7 @@
 				<td><xsl:value-of select="field[@name = 'COMMENTS']/text()" /></td>
 				<xsl:variable name="pointer" select="field[@name ='DOCUMENT']/text()" />
 				<xsl:variable name="href">
-					<xsl:text>/accumulo-sample/rest/Query/content?query=</xsl:text><xsl:copy-of select="$pointer"/><xsl:text>&amp;auths=all</xsl:text>
+					<xsl:text>/accumulo-wikisearch/rest/Query/content?query=</xsl:text><xsl:copy-of select="$pointer"/><xsl:text>&amp;auths=all</xsl:text>
 				</xsl:variable>
 				<xsl:variable name="link">
 					<xsl:element name="a">

@@ -116,7 +116,7 @@
 	    			}
 	    		}
 	    		//Build the new query
-				var existingAction = "/accumulo-sample/rest/Query/html";
+				var existingAction = "/accumulo-wikisearch/rest/Query/html";
 	    		var query = f.query.value;
 	    		
 	    		var newAction = existingAction + "?query=" + query + "&auths=" + authString;

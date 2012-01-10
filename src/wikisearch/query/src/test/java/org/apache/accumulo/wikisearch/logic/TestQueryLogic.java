@@ -30,7 +30,6 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -71,6 +70,8 @@ public class TestQueryLogic {
   private static final String INDEX_TABLE_NAME = "wikiIndex";
   
   private static final String RINDEX_TABLE_NAME = "wikiReverseIndex";
+  
+  private static final String TABLE_NAMES[] = {METADATA_TABLE_NAME, TABLE_NAME, RINDEX_TABLE_NAME, INDEX_TABLE_NAME};
   
   private class MockAccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     @Override
@@ -115,31 +116,13 @@ public class TestQueryLogic {
     
     MockInstance i = new MockInstance();
     c = i.getConnector("root", "pass");
-    try{
-      c.tableOperations().delete(METADATA_TABLE_NAME);
-    } catch (TableNotFoundException tnfe) {}
-    ;
-    try{
-      c.tableOperations().delete(TABLE_NAME);
-    } catch (TableNotFoundException tnfe) {}
-    ;
-    try{
-      c.tableOperations().delete(INDEX_TABLE_NAME);
-    } catch (TableNotFoundException tnfe) {}
-    ;
-    try{
-      c.tableOperations().delete(RINDEX_TABLE_NAME);
-    } catch (TableNotFoundException tnfe) {}
-    ;
-    c.tableOperations().create(METADATA_TABLE_NAME);
-    c.tableOperations().create(TABLE_NAME);
-    c.tableOperations().create(INDEX_TABLE_NAME);
-    c.tableOperations().create(RINDEX_TABLE_NAME);
-    
-    writerMap.put(new Text(METADATA_TABLE_NAME), c.createBatchWriter(METADATA_TABLE_NAME, 1000L, 1000L, 1));
-    writerMap.put(new Text(TABLE_NAME), c.createBatchWriter(TABLE_NAME, 1000L, 1000L, 1));
-    writerMap.put(new Text(INDEX_TABLE_NAME), c.createBatchWriter(INDEX_TABLE_NAME, 1000L, 1000L, 1));
-    writerMap.put(new Text(RINDEX_TABLE_NAME), c.createBatchWriter(RINDEX_TABLE_NAME, 1000L, 1000L, 1));
+    for (String table : TABLE_NAMES) {
+      try {
+        c.tableOperations().delete(table);
+      } catch (Exception ex) {}
+      c.tableOperations().create(table);
+      writerMap.put(new Text(table), c.createBatchWriter(table, 1000L, 1000L, 1));
+    }
     
     TaskAttemptID id = new TaskAttemptID();
     TaskAttemptContext context = new TaskAttemptContext(conf, id);

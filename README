@@ -8,7 +8,7 @@ However, if you only have source code, or you wish to make changes, you need to
 have maven configured to get Accumulo prerequisites from repositories.  See
 the pom.xml file for the necessary components.
 
-Run "mvn package && mvn assembly:single"
+Run "mvn package && mvn assembly:single -N"
 
 If you are running on another Unix-like operating system (OSX, etc) then
 you may wish to build the native libraries.  They are not strictly necessary
@@ -19,7 +19,7 @@ but having them available suppresses a runtime warning:
 ******************************************************************************
 2. Deployment
 
-Copy the accumulo tar file produced by "mvn package && mvn assembly:single" 
+Copy the accumulo tar file produced by "mvn package && mvn assembly:single -N" 
 from the target/ directory to the desired destination, then untar it (e.g. 
 tar xvzf accumulo-1.4.0-incubating-SNAPSHOT-dist.tar.gz).
 
@@ -60,6 +60,8 @@ conf/accumulo-env.sh.example.  Set JAVA_HOME, HADOOP_HOME, and ZOOKEEPER_HOME.
 These directories must be at the same location on every node in the cluster.
 Note that zookeeper must be installed on every machine, but it should not be 
 run on every machine.
+
+Create the $ACCUMULO_LOG_DIR on every machine in the slaves file.
 
 * Note that you will be specifying the Java heap space in accumulo-env.sh.  
 You should make sure that the total heap space used for the accumulo tserver,

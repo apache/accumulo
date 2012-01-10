@@ -30,12 +30,5 @@
       </excludes>
       <fileMode>0644</fileMode>
     </fileSet>
-    <fileSet>
-      <directory>target</directory>
-      <outputDirectory>deploy</outputDirectory>
-      <includes>
-        <include>${project.name}-${project.version}.jar</include>
-      </includes>
-    </fileSet>
   </fileSets>
 </assembly>

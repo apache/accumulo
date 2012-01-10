@@ -80,6 +80,7 @@
     <fileSet>
       <includes>
         <include>[A-Z]*</include>
+        <include>pom.xml</include>
         <include>contrib/**</include>
         <include>docs/**</include>
         <include>lib/**</include>
@@ -94,6 +95,7 @@
         <!-- the following files ignored because they should not be in the tarball -->
         <exclude>**/.*</exclude>
         <exclude>**/test-*</exclude>
+        <exclude>**/wikipedia.xml</exclude>
         <exclude>**/walkers.txt</exclude>
         <exclude>**/ingesters.txt</exclude>
         <exclude>**/continuous-env.sh</exclude>
