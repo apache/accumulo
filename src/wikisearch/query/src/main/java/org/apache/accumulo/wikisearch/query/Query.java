@@ -78,7 +78,7 @@ public class Query implements IQuery {
   @Resource(name = "threads")
   private int threads;
   
-  private static final String XSL = "/accumulo-sample/style.xsl";
+  private static final String XSL = "/accumulo-wikisearch/style.xsl";
   
   @PostConstruct
   public void init() {

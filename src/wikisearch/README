@@ -35,8 +35,12 @@
 	1. Modify the query/src/main/resources/META-INF/ejb-jar.xml file with the same information that you put into the wikipedia.xml
 	   file from the Ingest step above. 
 	2. Re-build the query distribution by running 'mvn assembly:single' in the top-level directory. 
-	3. Untar the resulting file in the $JBOSS_HOME/server/default directory. This will place the dependent jars in the lib 
-	   directory and the EJB jar into the deploy directory. 
+        3. Untar the resulting file in the $JBOSS_HOME/server/default directory.
+
+              $ cd $JBOSS_HOME/server/default
+              $ tar -xzf $ACCUMULO_HOME/src/wikisearch/query/target/wikisearch-query*.tar.gz
+ 
+           This will place the dependent jars in the lib directory and the EJB jar into the deploy directory.
 	4. Next, copy the wikisearch*.war file in the query-war/target directory to $JBOSS_HOME/server/default/deploy. 
 	5. Start JBoss ($JBOSS_HOME/bin/run.sh)
 	6. Use the Accumulo shell and give the user permissions for the wikis that you loaded, for example: 
@@ -46,8 +50,6 @@
 		commons-lang*.jar
 		kryo*.jar
 		minlog*.jar
-		reflectasm*.jar
-		asm*.jar
 		commons-jexl*.jar
 		google-collections*.jar
 		
@@ -56,7 +58,7 @@
 
 	9. At this point you should be able to open a browser and view the page: http://localhost:8080/accumulo-wikisearch/ui/ui.jsp.
 	You can issue the queries using this user interface or via the following REST urls: <host>/accumulo-wikisearch/rest/Query/xml,
-	<host>/accumulo-wikisearch/rest/Query/html, <host>/accumulo-sample/rest/Query/yaml, or <host>/accumulo-wikisearch/rest/Query/json.
+	<host>/accumulo-wikisearch/rest/Query/html, <host>/accumulo-wikisearch/rest/Query/yaml, or <host>/accumulo-wikisearch/rest/Query/json.
 	There are two parameters to the REST service, query and auths. The query parameter is the same string that you would type
 	into the search box at ui.jsp, and the auths parameter is a comma-separated list of wikis that you want to search (i.e.
 	enwiki,frwiki,dewiki, etc. Or you can use all) 

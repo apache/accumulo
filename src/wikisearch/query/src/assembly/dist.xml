@@ -31,4 +31,10 @@
       <fileMode>0644</fileMode>
     </fileSet>
   </fileSets>
+  <files>
+    <file>
+      <source>target/${project.name}-${project.version}.jar</source>
+      <outputDirectory>deploy</outputDirectory>
+    </file>
+ </files>
 </assembly>
