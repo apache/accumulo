@@ -208,6 +208,15 @@ public final class ZKAuthenticator implements Authenticator {
     if (!hasSystemPermission(credentials, credentials.user, SystemPermission.CREATE_USER))
       throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
+    if (!hasSystemPermission(credentials, credentials.user, SystemPermission.ALTER_USER)) {
+      Authorizations creatorAuths = getUserAuthorizations(credentials, credentials.user);
+      for (byte[] auth : authorizations.getAuthorizations())
+        if (!creatorAuths.contains(auth)) {
+          log.info("User " + credentials.user + " attempted to create a user " + user + " with authorization " + new String(auth) + " they did not have");
+          throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.BAD_AUTHORIZATIONS);
+        }
+    }
+    
     // don't allow creating a user with the same name as system user
     if (user.equals(SecurityConstants.SYSTEM_USERNAME))
       throw new AccumuloSecurityException(user, SecurityErrorCode.PERMISSION_DENIED);
