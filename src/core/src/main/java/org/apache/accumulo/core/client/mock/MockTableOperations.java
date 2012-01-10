@@ -81,6 +81,8 @@ public class MockTableOperations extends TableOperationsHelper {
     if (!tableName.matches(Constants.VALID_TABLE_NAME_REGEX)) {
       throw new IllegalArgumentException();
     }
+    if (exists(tableName))
+      throw new TableExistsException(tableName, tableName, "");
     acu.createTable(username, tableName, versioningIter, timeType);
   }
   
@@ -90,30 +92,42 @@ public class MockTableOperations extends TableOperationsHelper {
   @Override
   public void addAggregators(String tableName, List<? extends PerColumnIteratorConfig> aggregators) throws AccumuloSecurityException, TableNotFoundException,
       AccumuloException {
+    if (!exists(tableName))
+      throw new TableNotFoundException(tableName, tableName, "");
     acu.addAggregators(tableName, aggregators);
   }
   
   @Override
-  public void addSplits(String tableName, SortedSet<Text> partitionKeys) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {}
+  public void addSplits(String tableName, SortedSet<Text> partitionKeys) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    throw new NotImplementedException();
+  }
   
   @Override
-  public Collection<Text> getSplits(String tableName) {
+  public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
+    if (!exists(tableName))
+      throw new TableNotFoundException(tableName, tableName, "");
     return Collections.emptyList();
   }
   
   @Override
-  public Collection<Text> getSplits(String tableName, int maxSplits) {
-    return Collections.emptyList();
+  public Collection<Text> getSplits(String tableName, int maxSplits) throws TableNotFoundException {
+    return getSplits(tableName);
   }
   
   @Override
   public void delete(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    if (!exists(tableName))
+      throw new TableNotFoundException(tableName, tableName, "");
     acu.tables.remove(tableName);
   }
   
   @Override
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
+    if (!exists(oldTableName))
+      throw new TableNotFoundException(oldTableName, oldTableName, "");
+    if (exists(newTableName))
+      throw new TableExistsException(newTableName, newTableName, "");
     MockTable t = acu.tables.remove(oldTableName);
     acu.tables.put(newTableName, t);
   }
@@ -133,15 +147,19 @@ public class MockTableOperations extends TableOperationsHelper {
   
   @Override
   public Iterable<Entry<String,String>> getProperties(String tableName) throws TableNotFoundException {
+    if (!exists(tableName))
+      throw new TableNotFoundException(tableName, tableName, "");
     return acu.tables.get(tableName).settings.entrySet();
   }
   
   @Override
-  public void setLocalityGroups(String tableName, Map<String,Set<Text>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {}
+  public void setLocalityGroups(String tableName, Map<String,Set<Text>> groups) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    throw new NotImplementedException();
+  }
   
   @Override
   public Map<String,Set<Text>> getLocalityGroups(String tableName) throws AccumuloException, TableNotFoundException {
-    return null;
+    throw new NotImplementedException();
   }
   
   @Override
@@ -163,13 +181,17 @@ public class MockTableOperations extends TableOperationsHelper {
   }
   
   @Override
-  public void offline(String tableName) throws AccumuloSecurityException, AccumuloException {}
+  public void offline(String tableName) throws AccumuloSecurityException, AccumuloException {
+    throw new NotImplementedException();
+  }
   
   @Override
   public void online(String tableName) throws AccumuloSecurityException, AccumuloException {}
   
   @Override
-  public void clearLocatorCache(String tableName) throws TableNotFoundException {}
+  public void clearLocatorCache(String tableName) throws TableNotFoundException {
+    throw new NotImplementedException();
+  }
   
   @Override
   public Map<String,String> tableIdMap() {
