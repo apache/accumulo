@@ -43,7 +43,7 @@ import org.apache.hadoop.io.Text;
 public class ContinuousQuery {
   public static void main(String[] args) throws Exception {
     
-    if (args.length < 7) {
+    if (args.length != 7 && args.length != 8) {
       System.err.println("Usage : " + ContinuousQuery.class.getName()
           + " <instance> <zoo keepers> <shard table> <doc2word table> <user> <pass> <num query terms> [iterations]");
       System.exit(-1);
@@ -57,7 +57,7 @@ public class ContinuousQuery {
     String pass = args[5];
     int numTerms = Integer.parseInt(args[6]);
     long iterations = Long.MAX_VALUE;
-    if (args.length >= 7)
+    if (args.length > 7)
       iterations = Long.parseLong(args[7]);
     
     ZooKeeperInstance zki = new ZooKeeperInstance(instance, zooKeepers);
@@ -67,10 +67,14 @@ public class ContinuousQuery {
     
     Random rand = new Random();
     
+    BatchScanner bs = conn.createBatchScanner(table, Constants.NO_AUTHS, 20);
+
     for (long i = 0; i < iterations; i += 1) {
       Text[] columns = randTerms.get(rand.nextInt(randTerms.size()));
       
-      BatchScanner bs = conn.createBatchScanner(table, Constants.NO_AUTHS, 20);
+      bs.clearScanIterators();
+      bs.clearColumns();
+
       IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
       IntersectingIterator.setColumnFamilies(ii, columns);
       bs.addScanIterator(ii);
@@ -85,9 +89,10 @@ public class ContinuousQuery {
       long t2 = System.currentTimeMillis();
       
       System.out.printf("  %s %,d %6.3f\n", Arrays.asList(columns), count, (t2 - t1) / 1000.0);
-      
     }
     
+    bs.close();
+
   }
   
   private static ArrayList<Text[]> findRandomTerms(Scanner scanner, int numTerms) {
