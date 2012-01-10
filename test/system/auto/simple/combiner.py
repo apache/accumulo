@@ -44,6 +44,7 @@ class CombinerTest(TestUtilsMixin, unittest.TestCase):
         # initialize the database
         out, err, code = self.rootShell(self.masterHost(),"createtable test\n"
                      "setiter -t test -minc -majc -scan -p 10 -n mycombiner -class org.apache.accumulo.core.iterators.user.SummingCombiner\n"
+                     "\n"
                      "cf\n"
                      "STRING\n")
         self.assert_(code == 0)

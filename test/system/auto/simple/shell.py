@@ -59,25 +59,25 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         
         
     def setIterTest(self):
-        input = 'setiter -t setitertest -n mymax -scan -p 10 -class org.apache.accumulo.core.iterators.user.MaxCombiner\ncf\nSTRING\n'
+        input = 'setiter -t setitertest -n mymax -scan -p 10 -class org.apache.accumulo.core.iterators.user.MaxCombiner\n\ncf\nSTRING\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.failUnless(out.find("TableNotFoundException") >= 0,
                         "Was able to setiter a table that didn't exist")
         input = 'createtable setitertest\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
-        input = 'setiter -t setitertest -n mymax -scan -p 10 -class org.apache.accumulo.core.iterators.user.MaxCombiner\ncf1\nSTRING\n'
+        input = 'setiter -t setitertest -n mymax -scan -p 10 -class org.apache.accumulo.core.iterators.user.MaxCombiner\n\ncf1\nSTRING\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
-        input = 'setiter -t setitertest -n mymax -scan -p 10 -class org.apache.accumulo.core.iterators.user.MinCombiner\ncf2\nSTRING\n'
+        input = 'setiter -t setitertest -n mymax -scan -p 10 -class org.apache.accumulo.core.iterators.user.MinCombiner\n\ncf2\nSTRING\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.failUnless(out.find("IllegalArgumentException") >= 0,
                         "Was able to configure same iter name twice")
-        input = 'setiter -t setitertest -n mymin -scan -p 10 -class org.apache.accumulo.core.iterators.user.MinCombiner\ncf2\nSTRING\n'
+        input = 'setiter -t setitertest -n mymin -scan -p 10 -class org.apache.accumulo.core.iterators.user.MinCombiner\n\ncf2\nSTRING\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.failUnless(out.find("IllegalArgumentException") >= 0,
                         "Was able to configure same priority twice")
-        input = 'setiter -t setitertest -n mymin -scan -p 11 -class org.apache.accumulo.core.iterators.user.MinCombiner\ncf2\nSTRING\n'
+        input = 'setiter -t setitertest -n mymin -scan -p 11 -class org.apache.accumulo.core.iterators.user.MinCombiner\n\ncf2\nSTRING\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
         input = 'table setitertest\ninsert row1 cf1 cq 10\ninsert row1 cf1 cq 30\ninsert row1 cf1 cq 20\ninsert row1 cf2 cq 10\ninsert row1 cf2 cq 30\nscan -np\n'
@@ -122,7 +122,7 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
                         "Was able to configure same priority twice")
         
     def aggTest(self):
-        input = 'createtable aggtest\nsetiter -t aggtest -n myagg -scan -p 10 -class org.apache.accumulo.core.iterators.user.SummingCombiner\ns\nSTRING\n\nquit\n'
+        input = 'createtable aggtest\nsetiter -t aggtest -n myagg -scan -p 10 -class org.apache.accumulo.core.iterators.user.SummingCombiner\n\ns\nSTRING\n\nquit\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
         input = 'table aggtest\ninsert row1 s c 10\ninsert row1 s c 30\nscan -np\n'
