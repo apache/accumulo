@@ -39,16 +39,15 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.ContextFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.log4j.Level;
 import org.junit.After;
 import org.junit.Assert;
@@ -67,7 +66,7 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testMaxVersions() throws IOException {
-    JobContext job = new JobContext(new Configuration(), new JobID());
+    JobContext job = ContextFactory.createJobContext();
     AccumuloInputFormat.setMaxVersions(job.getConfiguration(), 1);
     int version = AccumuloInputFormat.getMaxVersions(job.getConfiguration());
     assertEquals(1, version);
@@ -81,7 +80,7 @@ public class AccumuloInputFormatTest {
    */
   @Test(expected = IOException.class)
   public void testMaxVersionsLessThan1() throws IOException {
-    JobContext job = new JobContext(new Configuration(), new JobID());
+    JobContext job = ContextFactory.createJobContext();
     AccumuloInputFormat.setMaxVersions(job.getConfiguration(), 0);
   }
 
@@ -90,7 +89,7 @@ public class AccumuloInputFormatTest {
    */
   @Test
   public void testNoMaxVersion() {
-    JobContext job = new JobContext(new Configuration(), new JobID());
+    JobContext job = ContextFactory.createJobContext();
     assertEquals(-1, AccumuloInputFormat.getMaxVersions(job.getConfiguration()));
   }
 
@@ -100,8 +99,8 @@ public class AccumuloInputFormatTest {
   @SuppressWarnings("deprecation")
   @Test
   public void testSetIterator() {
-    JobContext job = new JobContext(new Configuration(), new JobID());
-
+    JobContext job = ContextFactory.createJobContext();
+    
     AccumuloInputFormat.setIterator(job, 1, "org.apache.accumulo.core.iterators.WholeRowIterator", "WholeRow");
     Configuration conf = job.getConfiguration();
     String iterators = conf.get("AccumuloInputFormat.iterators");
@@ -110,8 +109,8 @@ public class AccumuloInputFormatTest {
 
   @Test
   public void testAddIterator() {
-    JobContext job = new JobContext(new Configuration(), new JobID());
-
+    JobContext job = ContextFactory.createJobContext();
+    
     AccumuloInputFormat.addIterator(job.getConfiguration(), new IteratorSetting(1, "WholeRow", WholeRowIterator.class));
     AccumuloInputFormat.addIterator(job.getConfiguration(), new IteratorSetting(2, "Versions", "org.apache.accumulo.core.iterators.VersioningIterator"));
     IteratorSetting iter = new IteratorSetting(3, "Count", "org.apache.accumulo.core.iterators.CountingIterator");
@@ -192,8 +191,8 @@ public class AccumuloInputFormatTest {
   @SuppressWarnings("deprecation")
   @Test
   public void testGetIteratorSettings() {
-    JobContext job = new JobContext(new Configuration(), new JobID());
-
+    JobContext job = ContextFactory.createJobContext();
+    
     AccumuloInputFormat.setIterator(job, 1, "org.apache.accumulo.core.iterators.WholeRowIterator", "WholeRow");
     AccumuloInputFormat.setIterator(job, 2, "org.apache.accumulo.core.iterators.VersioningIterator", "Versions");
     AccumuloInputFormat.setIterator(job, 3, "org.apache.accumulo.core.iterators.CountingIterator", "Count");
@@ -227,7 +226,7 @@ public class AccumuloInputFormatTest {
   @SuppressWarnings("deprecation")
   @Test
   public void testSetIteratorOption() {
-    JobContext job = new JobContext(new Configuration(), new JobID());
+    JobContext job = ContextFactory.createJobContext();
     AccumuloInputFormat.setIteratorOption(job, "someIterator", "aKey", "aValue");
 
     Configuration conf = job.getConfiguration();
@@ -241,8 +240,8 @@ public class AccumuloInputFormatTest {
   @SuppressWarnings("deprecation")
   @Test
   public void testGetIteratorOption() {
-    JobContext job = new JobContext(new Configuration(), new JobID());
-
+    JobContext job = ContextFactory.createJobContext();
+    
     AccumuloInputFormat.setIteratorOption(job, "iterator1", "key1", "value1");
     AccumuloInputFormat.setIteratorOption(job, "iterator2", "key2", "value2");
     AccumuloInputFormat.setIteratorOption(job, "iterator3", "key3", "value3");
@@ -272,8 +271,8 @@ public class AccumuloInputFormatTest {
   @SuppressWarnings("deprecation")
   @Test
   public void testSetRegex() {
-    JobContext job = new JobContext(new Configuration(), new JobID());
-
+    JobContext job = ContextFactory.createJobContext();
+    
     String regex = ">\"*%<>\'\\";
 
     AccumuloInputFormat.setRegex(job, RegexType.ROW, regex);
@@ -329,10 +328,9 @@ public class AccumuloInputFormatTest {
       Assert.assertEquals(new Authorizations(), risplit.getAuths());
       Assert.assertEquals("testmapinstance", risplit.getInstanceName());
       
-      TaskAttemptID id = new TaskAttemptID();
-      TaskAttemptContext attempt = new TaskAttemptContext(job.getConfiguration(), id);
-      RecordReader<Key,Value> reader = input.createRecordReader(split, attempt);
-      Mapper<Key,Value,Key,Value>.Context context = mapper.new Context(job.getConfiguration(), id, reader, null, null, null, split);
+      TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
+      RecordReader<Key,Value> reader = input.createRecordReader(split, tac);
+      Mapper<Key,Value,Key,Value>.Context context = ContextFactory.createMapContext(mapper, tac, reader, null, split);
       reader.initialize(split, context);
       mapper.run(context);
     }
@@ -350,20 +348,21 @@ public class AccumuloInputFormatTest {
       bw.addMutation(m);
     }
     bw.close();
-
-    JobContext job = new JobContext(new Configuration(), new JobID());
+    
+    JobContext job = ContextFactory.createJobContext();
     AccumuloInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "testtable2", new Authorizations());
     AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmapinstance");
     AccumuloInputFormat input = new AccumuloInputFormat();
     RangeInputSplit ris = new RangeInputSplit();
-    TaskAttemptContext tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());
+    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
     RecordReader<Key,Value> rr = input.createRecordReader(ris, tac);
     rr.initialize(ris, tac);
 
     TestMapper mapper = new TestMapper();
-    Mapper<Key,Value,Key,Value>.Context context = mapper.new Context(job.getConfiguration(), tac.getTaskAttemptID(), rr, null, null, null, ris);
+    Mapper<Key,Value,Key,Value>.Context context = ContextFactory.createMapContext(mapper, tac, rr, null, ris);
+    rr.initialize(ris, tac);
     while (rr.nextKeyValue()) {
-      mapper.map(rr.getCurrentKey(), rr.getCurrentValue(), context);
+      mapper.map(rr.getCurrentKey(), rr.getCurrentValue(), (TestMapper.Context) context);
     }
   }
 
@@ -380,15 +379,15 @@ public class AccumuloInputFormatTest {
       bw.addMutation(m);
     }
     bw.close();
-
-    JobContext job = new JobContext(new Configuration(), new JobID());
+    
+    JobContext job = ContextFactory.createJobContext();
     AccumuloInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "testtable3", new Authorizations());
     AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmapinstance");
     final String regex = ".*1.*";
     AccumuloInputFormat.setRegex(job, RegexType.ROW, regex);
     AccumuloInputFormat input = new AccumuloInputFormat();
     RangeInputSplit ris = new RangeInputSplit();
-    TaskAttemptContext tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());
+    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
     RecordReader<Key,Value> rr = input.createRecordReader(ris, tac);
     rr.initialize(ris, tac);
 
@@ -401,7 +400,7 @@ public class AccumuloInputFormatTest {
   @SuppressWarnings("deprecation")
   @Test
   public void testCorrectRangeInputSplits() throws Exception {
-    JobContext job = new JobContext(new Configuration(), new JobID());
+    JobContext job = ContextFactory.createJobContext();
 
     String username = "user", table = "table", rowRegex = "row.*", colfRegex = "colf.*", colqRegex = "colq.*";
     String valRegex = "val.*", instance = "instance";
@@ -485,10 +484,9 @@ public class AccumuloInputFormatTest {
     RangeInputSplit emptySplit = new RangeInputSplit();
     
     // Using an empty split should fall back to the information in the Job's Configuration
-    TaskAttemptID id = new TaskAttemptID();
-    TaskAttemptContext attempt = new TaskAttemptContext(job.getConfiguration(), id);
-    RecordReader<Key,Value> reader = input.createRecordReader(emptySplit, attempt);
-    Mapper<Key,Value,Key,Value>.Context context = mapper.new Context(job.getConfiguration(), id, reader, null, null, null, emptySplit);
+    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
+    RecordReader<Key,Value> reader = input.createRecordReader(emptySplit, tac);
+    Mapper<Key,Value,Key,Value>.Context context = ContextFactory.createMapContext(mapper, tac, reader, null, emptySplit);
     reader.initialize(emptySplit, context);
     mapper.run(context);
   }
@@ -524,10 +522,9 @@ public class AccumuloInputFormatTest {
     emptySplit.setPassword("anythingelse".getBytes());
     
     // Using an empty split should fall back to the information in the Job's Configuration
-    TaskAttemptID id = new TaskAttemptID();
-    TaskAttemptContext attempt = new TaskAttemptContext(job.getConfiguration(), id);
-    RecordReader<Key,Value> reader = input.createRecordReader(emptySplit, attempt);
-    Mapper<Key,Value,Key,Value>.Context context = mapper.new Context(job.getConfiguration(), id, reader, null, null, null, emptySplit);
+    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
+    RecordReader<Key,Value> reader = input.createRecordReader(emptySplit, tac);
+    Mapper<Key,Value,Key,Value>.Context context = ContextFactory.createMapContext(mapper, tac, reader, null, emptySplit);
     reader.initialize(emptySplit, context);
     mapper.run(context);
   }

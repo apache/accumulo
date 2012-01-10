@@ -20,13 +20,12 @@ import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.core.util.ContextFactory;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
@@ -46,16 +45,15 @@ public class InsertWithOutputFormat extends Configured implements Tool {
     }
     Text tableName = new Text(args[4]);
     Job job = new Job(getConf());
-    Configuration conf = job.getConfiguration();
-    AccumuloOutputFormat.setZooKeeperInstance(conf, args[0], args[1]);
-    AccumuloOutputFormat.setOutputInfo(conf, args[2], args[3].getBytes(), true, null);
+    AccumuloOutputFormat.setZooKeeperInstance(job, args[0], args[1]);
+    AccumuloOutputFormat.setOutputInfo(job, args[3], args[4].getBytes(), true, null);
     job.setOutputFormatClass(AccumuloOutputFormat.class);
     
     // when running a mapreduce, you won't need to instantiate the output
     // format and record writer
     // mapreduce will do that for you, and you will just use
     // output.collect(tableName, mutation)
-    TaskAttemptContext context = new TaskAttemptContext(conf, new TaskAttemptID());
+    TaskAttemptContext context = ContextFactory.createTaskAttemptContext(job);
     RecordWriter<Text,Mutation> rw = new AccumuloOutputFormat().getRecordWriter(context);
     
     Text colf = new Text("colfam");
