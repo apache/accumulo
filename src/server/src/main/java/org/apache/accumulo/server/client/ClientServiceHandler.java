@@ -62,9 +62,14 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
   
   protected String checkTableId(String tableName, TableOperation operation) throws ThriftTableOperationException {
-    final String tableId = Tables.getNameToIdMap(HdfsZooInstance.getInstance()).get(tableName);
-    if (tableId == null)
-      throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.NOTFOUND, null);
+    String tableId = Tables.getNameToIdMap(HdfsZooInstance.getInstance()).get(tableName);
+    if (tableId == null) {
+      // maybe the table exist, but the cache was not updated yet... so try to clear the cache and check again
+      Tables.clearCache(HdfsZooInstance.getInstance());
+      tableId = Tables.getNameToIdMap(HdfsZooInstance.getInstance()).get(tableName);
+      if (tableId == null)
+        throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.NOTFOUND, null);
+    }
     return tableId;
   }
   
