@@ -87,6 +87,7 @@
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
+          <finalName>${parent.artifactId}-${version}</finalName>
           <descriptors>
             <descriptor>src/assemble/dist.xml</descriptor>
           </descriptors>

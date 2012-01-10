@@ -24,48 +24,49 @@
 		<fileSet>
 			<directory>../../logs</directory>
 			<directoryMode>0700</directoryMode>
-      <excludes>
-        <exclude>*</exclude>
-      </excludes>
+			<excludes>
+				<exclude>*</exclude>
+			</excludes>
 		</fileSet>
 		<fileSet>
 			<directory>../../walogs</directory>
 			<directoryMode>0700</directoryMode>
-      <excludes>
-        <exclude>*</exclude>
-      </excludes>
+			<excludes>
+				<exclude>*</exclude>
+			</excludes>
 		</fileSet>
-    <fileSet>
-      <directory>../../</directory>
-      <includes>
-        <include>**/*.py</include>
-        <include>**/*.pl</include>
-        <include>**/*.sh</include>
-      </includes>
-      <excludes>
-        <exclude>**/target</exclude>
-        <exclude>**/accumulo-env.sh</exclude>
-        <exclude>**/continuous-env.sh</exclude>
-        <exclude>**bin/**</exclude>
-        <exclude>logs/**</exclude>
-        <exclude>walogs/**</exclude>
-        <exclude>**.*</exclude>
-      </excludes>
-    </fileSet>
+		<fileSet>
+			<directory>../../</directory>
+			<includes>
+				<include>**/*.py</include>
+				<include>**/*.pl</include>
+				<include>**/*.sh</include>
+			</includes>
+			<excludes>
+				<exclude>**/target</exclude>
+				<exclude>**/accumulo-env.sh</exclude>
+				<exclude>**/continuous-env.sh</exclude>
+				<exclude>**bin/**</exclude>
+				<exclude>logs/**</exclude>
+				<exclude>walogs/**</exclude>
+				<exclude>**.*</exclude>
+			</excludes>
+		</fileSet>
 		<fileSet>
 			<directory>../../</directory>
 			<excludes>
 				<!-- the following ignored because they were included above -->
-        <exclude>**/*.py</exclude>
-        <exclude>**/*.pl</exclude>
-        <exclude>**/*.sh</exclude>
-        <exclude>walogs/**</exclude>
-        <exclude>logs/**</exclude>
-        <exclude>bin/**</exclude>
+				<exclude>**/*.py</exclude>
+				<exclude>**/*.pl</exclude>
+				<exclude>**/*.sh</exclude>
+				<exclude>walogs/**</exclude>
+				<exclude>logs/**</exclude>
+				<exclude>bin/**</exclude>
 
-        <!-- the following directories ignored because they should not be in the tarball -->
+				<!-- the following directories ignored because they should not be in 
+					the tarball -->
 				<exclude>**/.*/**</exclude>
-        <exclude>**/target/**</exclude>
+				<exclude>**/target/**</exclude>
 
 				<!-- the following files ignored because they should not be in the tarball -->
 				<exclude>**/.*</exclude>
@@ -83,8 +84,8 @@
 				<exclude>**/randomwalk/conf/logger.xml</exclude>
 				<exclude>**/randomwalk/conf/randomwalk.conf</exclude>
 				<exclude>**/randomwalk/conf/walkers</exclude>
-        <exclude>${so}</exclude>
-        <exclude>${jnilib}</exclude>
+				<exclude>${so}</exclude>
+				<exclude>${jnilib}</exclude>
 			</excludes>
 			<fileMode>0644</fileMode>
 			<directoryMode>0755</directoryMode>
