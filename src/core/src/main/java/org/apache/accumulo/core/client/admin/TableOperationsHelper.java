@@ -38,17 +38,17 @@ public abstract class TableOperationsHelper implements TableOperations {
     checkIteratorConflicts(tableName, setting);
     for (IteratorScope scope : setting.getScopes()) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
-      this.setProperty(tableName, root, setting.getPriority() + "," + setting.getIteratorClass());
       for (Entry<String,String> prop : setting.getProperties().entrySet()) {
         this.setProperty(tableName, root + ".opt." + prop.getKey(), prop.getValue());
       }
+      this.setProperty(tableName, root, setting.getPriority() + "," + setting.getIteratorClass());
     }
   }
   
   @Override
   public void removeIterator(String tableName, String name, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException {
-    Map<String,String> copy = new HashMap<String,String>();
+    Map<String,String> copy = new TreeMap<String,String>();
     for (Entry<String,String> property : this.getProperties(tableName)) {
       copy.put(property.getKey(), property.getValue());
     }
