@@ -541,6 +541,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    * @param columns
    */
   public static void setColumnFamilies(IteratorSetting cfg, Text[] columns) {
+    if (columns.length < 2)
+      throw new IllegalArgumentException("Must supply at least two terms to intersect");
     cfg.addOption(IntersectingIterator.columnFamiliesOptionName, IntersectingIterator.encodeColumns(columns));
   }
   
@@ -552,6 +554,8 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
    * @param notFlags
    */
   public static void setColumnFamilies(IteratorSetting cfg, Text[] columns, boolean[] notFlags) {
+    if (columns.length < 2)
+      throw new IllegalArgumentException("Must supply at least two terms to intersect");
     if (columns.length != notFlags.length)
       throw new IllegalArgumentException("columns and notFlags arrays must be the same length");
     setColumnFamilies(cfg, columns);
