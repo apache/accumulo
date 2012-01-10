@@ -57,4 +57,8 @@ public interface Authenticator {
   public void revokeTablePermission(AuthInfo credentials, String user, String table, TablePermission permission) throws AccumuloSecurityException;
   
   public void deleteTable(AuthInfo credentials, String table) throws AccumuloSecurityException;
+  
+  public void clearCache(String user);
+  
+  public void clearCache(String user, String tableId);
 }

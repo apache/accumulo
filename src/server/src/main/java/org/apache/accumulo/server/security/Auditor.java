@@ -221,4 +221,14 @@ public class Auditor implements Authenticator {
       throw ex;
     }
   }
+  
+  @Override
+  public void clearCache(String user) {
+    impl.clearCache(user);
+  }
+  
+  @Override
+  public void clearCache(String user, String tableId) {
+    impl.clearCache(user, tableId);
+  }
 }

@@ -683,4 +683,14 @@ public final class ZKAuthenticator implements Authenticator {
       return toReturn;
     }
   }
+  
+  @Override
+  public void clearCache(String user) {
+    zooCache.clear(ZKUserPath + "/" + user);
+  }
+  
+  @Override
+  public void clearCache(String user, String tableId) {
+    zooCache.clear(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + tableId);
+  }
 }

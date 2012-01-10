@@ -516,6 +516,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   
   private boolean check(AuthInfo credentials, SystemPermission permission) throws ThriftSecurityException {
     try {
+      // clear the cache so the check is done using current info
+      authenticator.clearCache(credentials.user);
       return authenticator.hasSystemPermission(credentials, credentials.user, permission);
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
@@ -524,6 +526,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   
   private boolean check(AuthInfo credentials, String tableId, TablePermission permission) throws ThriftSecurityException {
     try {
+      // clear the cache so the check is done using current info
+      authenticator.clearCache(credentials.user, tableId);
       return authenticator.hasTablePermission(credentials, credentials.user, tableId, permission);
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
