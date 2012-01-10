@@ -93,8 +93,55 @@ prevent the files from being compacted into one file.
  * Flush the table using the shell
 
 After following the above steps, each table will have a tablet with three map
-files.  Each map file will contain 1 million entries generated with a different
-seed. 
+files.  Flushing the table after each batch of inserts will create a map file.
+Each map file will contain 1 million entries generated with a different seed.
+This is assuming that Accumulo is configured with enough memory to hold 1
+million inserts.  If not, then more map files will be created. 
+
+The commands for creating the first table without bloom filters are below.
+
+    $ ./accumulo shell -u username -p password
+    Shell - Accumulo Interactive Shell
+    - version: 1.4.x-incubating
+    - instance name: instance
+    - instance id: 00000000-0000-0000-0000-000000000000
+    - 
+    - type 'help' for a list of available commands
+    - 
+    username@instance> setauths -u username -s exampleVis
+    username@instance> createtable bloom_test1
+    username@instance bloom_test1> config -t bloom_test1 -s table.compaction.major.ratio=7
+    username@instance bloom_test1> exit
+
+    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 7 instance zookeepers username password bloom_test1 1000000 0 1000000000 50 2000000 60000 3 exampleVis
+    $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test1 -w'
+    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 8 instance zookeepers username password bloom_test1 1000000 0 1000000000 50 2000000 60000 3 exampleVis
+    $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test1 -w'
+    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 9 instance zookeepers username password bloom_test1 1000000 0 1000000000 50 2000000 60000 3 exampleVis
+    $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test1 -w'
+
+The commands for creating the second table with bloom filers are below.
+
+    $ ./accumulo shell -u username -p password
+    Shell - Accumulo Interactive Shell
+    - version: 1.4.x-incubating
+    - instance name: instance
+    - instance id: 00000000-0000-0000-0000-000000000000
+    - 
+    - type 'help' for a list of available commands
+    - 
+    username@instance> setauths -u username -s exampleVis
+    username@instance> createtable bloom_test2
+    username@instance bloom_test2> config -t bloom_test2 -s table.compaction.major.ratio=7
+    username@instance bloom_test2> config -t bloom_test2 -s table.bloom.enabled=true
+    username@instance bloom_test2> exit
+
+    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 7 instance zookeepers username password bloom_test2 1000000 0 1000000000 50 2000000 60000 3 exampleVis
+    $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test2 -w'
+    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 8 instance zookeepers username password bloom_test2 1000000 0 1000000000 50 2000000 60000 3 exampleVis
+    $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test2 -w'
+    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 9 instance zookeepers username password bloom_test2 1000000 0 1000000000 50 2000000 60000 3 exampleVis
+    $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test2 -w'
 
 Below 500 lookups are done against the table without bloom filters using random
 NG seed 7.  Even though only one map file will likely contain entries for this
@@ -119,3 +166,60 @@ map files existed.
     Generating 500 random queries...finished
     101.15 lookups/sec   4.94 secs
     num results : 500
+
+You can verify the table has three files by looking in HDFS.  To look in HDFS
+you will need the table ID, because this is used in HDFS instead of the table
+name.  The following command will show table ids.
+
+    $ ./accumulo shell -u username -p password
+    Shell - Accumulo Interactive Shell
+    - version: 1.4.x-incubating
+    - instance name: instance
+    - instance id: 00000000-0000-0000-0000-000000000000
+    - 
+    - type 'help' for a list of available commands
+    - 
+    username@instance> tables -l
+    !METADATA       =>         !0
+    bloom_test1     =>         o7
+    bloom_test2     =>         o8
+    trace           =>          1
+    username@instance> quit
+
+So the table id for bloom_test2 is o8.  The command below shows what files this
+table has in HDFS.  This assumes Accumulo is at the default location in HDFS. 
+
+    $ hadoop fs -lsr /accumulo/tables/o8
+    drwxr-xr-x   - username supergroup          0 2012-01-10 14:02 /accumulo/tables/o8/default_tablet
+    -rw-r--r--   3 username supergroup   52672650 2012-01-10 14:01 /accumulo/tables/o8/default_tablet/F00000dj.rf
+    -rw-r--r--   3 username supergroup   52436176 2012-01-10 14:01 /accumulo/tables/o8/default_tablet/F00000dk.rf
+    -rw-r--r--   3 username supergroup   52850173 2012-01-10 14:02 /accumulo/tables/o8/default_tablet/F00000dl.rf
+
+Running the PrintInfo command shows that one of the files has a bloom filter
+and its 1.5MB.
+
+    $ ./bin/accumulo org.apache.accumulo.core.file.rfile.PrintInfo /accumulo/tables/o8/default_tablet/F00000dj.rf
+    Locality group         : <DEFAULT>
+	Start block          : 0
+	Num   blocks         : 752
+	Index level 0        : 43,598 bytes  1 blocks
+	First key            : row_0000001169 foo:1 [exampleVis] 1326222052539 false
+	Last key             : row_0999999421 foo:1 [exampleVis] 1326222052058 false
+	Num entries          : 999,536
+	Column families      : [foo]
+
+    Meta block     : BCFile.index
+      Raw size             : 4 bytes
+      Compressed size      : 12 bytes
+      Compression type     : gz
+
+    Meta block     : RFile.index
+      Raw size             : 43,696 bytes
+      Compressed size      : 15,592 bytes
+      Compression type     : gz
+
+    Meta block     : acu_bloom
+      Raw size             : 1,540,292 bytes
+      Compressed size      : 1,433,115 bytes
+      Compression type     : gz
+
