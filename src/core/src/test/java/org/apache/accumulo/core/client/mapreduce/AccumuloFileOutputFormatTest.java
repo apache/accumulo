@@ -26,13 +26,11 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.core.util.ContextFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,13 +42,13 @@ public class AccumuloFileOutputFormatTest {
   
   @Before
   public void setup() {
-    job = new JobContext(new Configuration(), new JobID());
+    job = ContextFactory.createJobContext();
     
     Path file = new Path(System.getenv("ACCUMULO_HOME") + "/target/");
     f = new Path(file, "_temporary");
     job.getConfiguration().set("mapred.output.dir", file.toString());
     
-    tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());
+    tac = ContextFactory.createTaskAttemptContext(job);
   }
   
   @After

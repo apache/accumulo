@@ -31,9 +31,9 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapFile;
+import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.mapreduce.Job;
@@ -81,8 +81,8 @@ public class LogSort extends Configured implements Tool {
     
     @Override
     public void abortTask(TaskAttemptContext context) {
-      super.abortTask(context);
       try {
+        super.abortTask(context);
         outputFileSystem.delete(outputPath, true);
       } catch (IOException ex) {
         throw new RuntimeException(ex);

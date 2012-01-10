@@ -35,14 +35,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.util.ContextFactory;
 import org.apache.accumulo.core.util.PeekingIterator;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.junit.Test;
 
 public class AccumuloRowInputFormatTest {
@@ -100,12 +98,12 @@ public class AccumuloRowInputFormatTest {
     insertList(bw, row3);
     bw.close();
     
-    JobContext job = new JobContext(new Configuration(), new JobID());
+    JobContext job = ContextFactory.createJobContext();
     AccumuloRowInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "test", new Authorizations());
     AccumuloRowInputFormat.setMockInstance(job.getConfiguration(), "instance1");
     AccumuloRowInputFormat crif = new AccumuloRowInputFormat();
     RangeInputSplit ris = new RangeInputSplit();
-    TaskAttemptContext tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());
+    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
     RecordReader<Text,PeekingIterator<Entry<Key,Value>>> rr = crif.createRecordReader(ris, tac);
     rr.initialize(ris, tac);
     

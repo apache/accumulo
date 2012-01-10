@@ -241,7 +241,7 @@ public class CoordinateRecoveryTask implements Runnable {
         return new RecoveryStatus(logFile.server, logFile.file, (sortJob == null ? 0. : sortJob.mapProgress()), (sortJob == null ? 0.
             : sortJob.reduceProgress()), (int) (System.currentTimeMillis() - copyStartTime), (sortJob != null) ? 1. : (copySize == 0 ? 0 : copiedSoFar()
             / (double) copySize));
-      } catch (NullPointerException npe) {
+      } catch (Exception e) {
         return new RecoveryStatus(logFile.server, logFile.file, 1.0, 1.0, (int) (System.currentTimeMillis() - copyStartTime), 1.0);
       }
     }

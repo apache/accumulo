@@ -18,11 +18,9 @@ package org.apache.accumulo.core.client.mapreduce.lib.partition;
 
 import static org.junit.Assert.assertTrue;
 
-import org.apache.accumulo.core.client.mapreduce.lib.partition.RangePartitioner;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.core.util.ContextFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.JobID;
 import org.junit.Test;
 
 public class RangePartitionerTest {
@@ -54,7 +52,7 @@ public class RangePartitionerTest {
   }
   
   private RangePartitioner prepPartitioner(int numSubBins) {
-    JobContext job = new JobContext(new Configuration(), new JobID());
+    JobContext job = ContextFactory.createJobContext();
     RangePartitioner.setNumSubBins(job, numSubBins);
     RangePartitioner rp = new RangePartitioner();
     rp.setConf(job.getConfiguration());
