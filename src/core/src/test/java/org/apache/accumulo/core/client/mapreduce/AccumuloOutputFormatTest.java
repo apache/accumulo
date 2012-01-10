@@ -33,7 +33,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.core.util.ContextFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -41,7 +41,6 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.junit.Test;
 
 /**
@@ -94,11 +93,10 @@ public class AccumuloOutputFormatTest {
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Mutation.class);
     job.setNumReduceTasks(0);
-    Configuration conf = job.getConfiguration();
-    AccumuloInputFormat.setInputInfo(conf, "root", "".getBytes(), "testtable1", new Authorizations());
-    AccumuloInputFormat.setMockInstance(conf, "testmrinstance");
-    AccumuloOutputFormat.setOutputInfo(conf, "root", "".getBytes(), false, "testtable2");
-    AccumuloOutputFormat.setMockInstance(conf, "testmrinstance");
+    AccumuloInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "testtable1", new Authorizations());
+    AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmrinstance");
+    AccumuloOutputFormat.setOutputInfo(job, "root", "".getBytes(), false, "testtable2");
+    AccumuloOutputFormat.setMockInstance(job, "testmrinstance");
     
     AccumuloInputFormat input = new AccumuloInputFormat();
     List<InputSplit> splits = input.getSplits(job);
@@ -108,11 +106,10 @@ public class AccumuloOutputFormatTest {
     
     TestMapper mapper = (TestMapper) job.getMapperClass().newInstance();
     for (InputSplit split : splits) {
-      TaskAttemptID id = new TaskAttemptID();
-      TaskAttemptContext tac = new TaskAttemptContext(job.getConfiguration(), id);
+      TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
       RecordReader<Key,Value> reader = input.createRecordReader(split, tac);
       RecordWriter<Text,Mutation> writer = output.getRecordWriter(tac);
-      Mapper<Key,Value,Text,Mutation>.Context context = mapper.new Context(job.getConfiguration(), id, reader, writer, null, null, split);
+      Mapper<Key,Value,Text,Mutation>.Context context = ContextFactory.createMapContext(mapper, tac, reader, writer, split);
       reader.initialize(split, context);
       mapper.run(context);
       writer.close(context);
