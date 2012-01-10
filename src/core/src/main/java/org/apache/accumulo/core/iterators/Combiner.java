@@ -19,7 +19,6 @@ package org.apache.accumulo.core.iterators;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +45,7 @@ import org.apache.log4j.Logger;
 public abstract class Combiner extends WrappingIterator implements OptionDescriber {
   static final Logger log = Logger.getLogger(Combiner.class);
   protected static final String COLUMNS_OPTION = "columns";
+  protected static final String ALL_OPTION = "all";
   
   /**
    * A Java Iterator that iterates over the Values for a given Key from a source SortedKeyValueIterator.
@@ -156,7 +156,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     // check if aggregation is needed
     if (super.hasTop()) {
       workKey.set(super.getTopKey());
-      if (combiners.contains(workKey)) {
+      if (combineAllColumns || combiners.contains(workKey)) {
         if (workKey.isDeleted())
           return;
         topKey = workKey;
@@ -205,11 +205,18 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   public abstract Value reduce(Key key, Iterator<Value> iter);
   
   private ColumnSet combiners;
+  private boolean combineAllColumns;
   
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     
+    combineAllColumns = false;
+    if (options.containsKey(ALL_OPTION)) {
+      combineAllColumns = Boolean.parseBoolean(options.get(ALL_OPTION));
+      if (combineAllColumns)
+        return;
+    }
     if (!options.containsKey(COLUMNS_OPTION))
       throw new IllegalArgumentException("Must specify " + COLUMNS_OPTION + " option");
     
@@ -222,30 +229,32 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   
   @Override
   public IteratorOptions describeOptions() {
-    return new IteratorOptions(
-        "comb",
-        "Combiners apply reduce functions to values with identical keys",
-        Collections
-            .singletonMap(
-                COLUMNS_OPTION,
-        "<col fam>[:<col qual>]{,<col fam>[:<col qual>]} escape non-alphanum chars using %<hex>."),
-        null);
+    IteratorOptions io = new IteratorOptions("comb", "Combiners apply reduce functions to values with identical keys", null, null);
+    io.addNamedOption(ALL_OPTION, "set to true to apply Combiner to every column, otherwise leave blank. if true, " + COLUMNS_OPTION
+        + " option will be ignored.");
+    io.addNamedOption(COLUMNS_OPTION, "<col fam>[:<col qual>]{,<col fam>[:<col qual>]} escape non-alphanum chars using %<hex>.");
+    return io;
   }
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
+    if (options.containsKey(ALL_OPTION)) {
+      combineAllColumns = Boolean.parseBoolean(options.get(ALL_OPTION));
+      if (combineAllColumns)
+        return true;
+    }
     if (!options.containsKey(COLUMNS_OPTION))
       return false;
     
     String encodedColumns = options.get(COLUMNS_OPTION);
     if (encodedColumns.length() == 0)
       return false;
-
+    
     for (String columns : encodedColumns.split(",")) {
       if (!ColumnSet.isValidEncoding(columns))
         return false;
     }
-
+    
     return true;
   }
   
@@ -269,5 +278,18 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     }
     
     is.addOption(COLUMNS_OPTION, sb.toString());
+  }
+  
+  /**
+   * A convenience method to set the "all columns" option on a Combiner. If true, the columns option will be ignored and the Combiner will be applied to all
+   * columns.
+   * 
+   * @param is
+   *          iterator settings object to configure
+   * @param enableAllColumns
+   *          if true the combiner will be applied to all columns
+   */
+  public static void setCombineAllColumns(IteratorSetting is, boolean combineAllColumns) {
+    is.addOption(ALL_OPTION, Boolean.toString(combineAllColumns));
   }
 }

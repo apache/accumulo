@@ -350,6 +350,34 @@ public class CombinerTest {
     assertEquals(nk(2, 2, 1, 2), ai.getTopKey());
     assertEquals("3", encoder.decode(ai.getTopValue().get()).toString());
     
+    // combine all columns
+    
+    is = new IteratorSetting(1, SummingCombiner.class);
+    LongCombiner.setEncodingType(is, SummingCombiner.Type.STRING);
+    Combiner.setCombineAllColumns(is, true);
+    
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
+    ai.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(ai.hasTop());
+    assertEquals(nk(0, 0, 1, 1), ai.getTopKey());
+    assertEquals("7", encoder.decode(ai.getTopValue().get()).toString());
+    
+    ai.next();
+    
+    assertTrue(ai.hasTop());
+    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals("9", encoder.decode(ai.getTopValue().get()).toString());
+    
+    ai.next();
+    
+    assertTrue(ai.hasTop());
+    assertEquals(nk(2, 2, 1, 2), ai.getTopKey());
+    assertEquals("5", encoder.decode(ai.getTopValue().get()).toString());
+    
+    ai.next();
+    
+    assertFalse(ai.hasTop());
   }
   
   @Test
