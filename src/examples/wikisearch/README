@@ -32,8 +32,9 @@
 	
 	INSTRUCTIONS
 	-------------
-	1. Modify the query/src/main/resources/META-INF/ejb-jar.xml file with the same information that you put into the wikipedia.xml
-	   file from the Ingest step above. 
+	1. Copy the query/src/main/resources/META-INF/ejb-jar.xml.example file to 
+	   query/src/main/resources/META-INF/ejb-jar.xml. Modify to the file to contain the same 
+	   information that you put into the wikipedia.xml file from the Ingest step above. 
 	2. Re-build the query distribution by running 'mvn package assembly:single' in the top-level directory. 
         3. Untar the resulting file in the $JBOSS_HOME/server/default directory.
 
