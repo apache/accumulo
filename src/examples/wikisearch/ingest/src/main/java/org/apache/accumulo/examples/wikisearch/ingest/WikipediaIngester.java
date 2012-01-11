@@ -103,9 +103,9 @@ public class WikipediaIngester extends Configured implements Tool {
       // Add the UID aggregator
       for (IteratorScope scope : IteratorScope.values()) {
         String stem = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name(), "UIDAggregator");
-        tops.setProperty(indexTableName, stem, "19,org.apache.accumulo.wikisearch.iterator.TotalAggregatingIterator");
+        tops.setProperty(indexTableName, stem, "19,org.apache.accumulo.examples.wikisearch.iterator.TotalAggregatingIterator");
         stem += ".opt.";
-        tops.setProperty(indexTableName, stem + "*", "org.apache.accumulo.wikisearch.aggregator.GlobalIndexUidAggregator");
+        tops.setProperty(indexTableName, stem + "*", "org.apache.accumulo.examples.wikisearch.aggregator.GlobalIndexUidAggregator");
         
       }
     }
@@ -115,9 +115,9 @@ public class WikipediaIngester extends Configured implements Tool {
       // Add the UID aggregator
       for (IteratorScope scope : IteratorScope.values()) {
         String stem = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name(), "UIDAggregator");
-        tops.setProperty(reverseIndexTableName, stem, "19,org.apache.accumulo.wikisearch.iterator.TotalAggregatingIterator");
+        tops.setProperty(reverseIndexTableName, stem, "19,org.apache.accumulo.examples.wikisearch.iterator.TotalAggregatingIterator");
         stem += ".opt.";
-        tops.setProperty(reverseIndexTableName, stem + "*", "org.apache.accumulo.wikisearch.aggregator.GlobalIndexUidAggregator");
+        tops.setProperty(reverseIndexTableName, stem + "*", "org.apache.accumulo.examples.wikisearch.aggregator.GlobalIndexUidAggregator");
         
       }
     }

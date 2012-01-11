@@ -30,7 +30,9 @@
         <include>**/run.py</include>
       </includes>
       <excludes>
-        <exclude>conf/*.sh</exclude>
+        <exclude>**/target/**</exclude>
+        <exclude>**/accumulo-env.sh</exclude>
+        <exclude>**/continuous-env.sh</exclude>
       </excludes>
       <fileMode>0755</fileMode>
       <directoryMode>0755</directoryMode>
@@ -65,20 +67,6 @@
     </fileSet>
     <fileSet>
       <includes>
-        <include>**/*.py</include>
-        <include>**/*.pl</include>
-        <include>**/*.sh</include>
-      </includes>
-      <excludes>
-        <exclude>**/target/**</exclude>
-        <exclude>**/accumulo-env.sh</exclude>
-        <exclude>**/continuous-env.sh</exclude>
-        <exclude>bin/**</exclude>
-      </excludes>
-      <fileMode>0755</fileMode>
-    </fileSet>
-    <fileSet>
-      <includes>
         <include>[A-Z]*</include>
         <include>pom.xml</include>
         <include>contrib/**</include>
@@ -104,7 +92,7 @@
         <exclude>**/randomwalk/conf/randomwalk.conf</exclude>
         <exclude>**/randomwalk/conf/walkers</exclude>
         <exclude>**/*.py</exclude>
-        <exclude>**/*.py</exclude>
+        <exclude>**/*.pl</exclude>
         <exclude>**/*.sh</exclude>
         <exclude>bin/**</exclude>
       </excludes>

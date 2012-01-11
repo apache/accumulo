@@ -110,7 +110,7 @@
             <configuration>
               <outputDirectory>lib</outputDirectory>
               <!-- just grab the non-provided runtime dependencies -->
-              <includeArtifactIds>commons-lang,protobuf-java,libthrift,zookeeper,hadoop-core,commons-jexl,google-collections,kryo,asm,minlog,reflectasm,wikisearch-ingest</includeArtifactIds>
+              <includeArtifactIds>commons-lang,commons-codec,protobuf-java,libthrift,zookeeper,hadoop-core,commons-jexl,google-collections,kryo,asm,minlog,reflectasm,wikisearch-ingest,accumulo-core,cloudtrace</includeArtifactIds>
               <excludeTransitive>true</excludeTransitive>
             </configuration>
           </execution>
