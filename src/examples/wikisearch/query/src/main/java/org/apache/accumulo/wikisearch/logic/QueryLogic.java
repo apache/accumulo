@@ -30,13 +30,13 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.examples.wikisearch.normalizer.LcNoDiacriticsNormalizer;
+import org.apache.accumulo.examples.wikisearch.normalizer.Normalizer;
+import org.apache.accumulo.examples.wikisearch.protobuf.Uid;
+import org.apache.accumulo.examples.wikisearch.util.TextUtil;
 import org.apache.accumulo.wikisearch.iterator.EvaluatingIterator;
-import org.apache.accumulo.wikisearch.normalizer.LcNoDiacriticsNormalizer;
-import org.apache.accumulo.wikisearch.normalizer.Normalizer;
 import org.apache.accumulo.wikisearch.parser.QueryParser.QueryTerm;
 import org.apache.accumulo.wikisearch.parser.RangeCalculator;
-import org.apache.accumulo.wikisearch.protobuf.Uid;
-import org.apache.accumulo.wikisearch.util.TextUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 

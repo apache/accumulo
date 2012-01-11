@@ -14,14 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.wikisearch.logic;
+package org.apache.accumulo.examples.wikisearch.ingest;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map.Entry;
 
 import junit.framework.Assert;
@@ -39,10 +37,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaConfiguration;
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaMapper;
 import org.apache.accumulo.examples.wikisearch.reader.AggregatingRecordReader;
-import org.apache.accumulo.wikisearch.parser.RangeCalculator;
-import org.apache.accumulo.wikisearch.sample.Document;
-import org.apache.accumulo.wikisearch.sample.Field;
-import org.apache.accumulo.wikisearch.sample.Results;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -56,12 +50,12 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.junit.Before;
-import org.junit.Test;
 
-public class TestQueryLogic {
+/**
+ * Load some data into mock accumulo
+ */
+public class WikipediaMapperTest {
   
   private static final String METADATA_TABLE_NAME = "wikiMetadata";
   
@@ -70,8 +64,6 @@ public class TestQueryLogic {
   private static final String INDEX_TABLE_NAME = "wikiIndex";
   
   private static final String RINDEX_TABLE_NAME = "wikiReverseIndex";
-  
-  private static final String TABLE_NAMES[] = {METADATA_TABLE_NAME, TABLE_NAME, RINDEX_TABLE_NAME, INDEX_TABLE_NAME};
   
   private class MockAccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     @Override
@@ -100,14 +92,9 @@ public class TestQueryLogic {
   private Connector c = null;
   private Configuration conf = new Configuration();
   private HashMap<Text,BatchWriter> writerMap = new HashMap<Text,BatchWriter>();
-  private QueryLogic table = null;
   
   @Before
   public void setup() throws Exception {
-    
-    Logger.getLogger(AbstractQueryLogic.class).setLevel(Level.DEBUG);
-    Logger.getLogger(QueryLogic.class).setLevel(Level.DEBUG);
-    Logger.getLogger(RangeCalculator.class).setLevel(Level.DEBUG);
     
     conf.set(AggregatingRecordReader.START_TOKEN, "<page>");
     conf.set(AggregatingRecordReader.END_TOKEN, "</page>");
@@ -116,13 +103,19 @@ public class TestQueryLogic {
     
     MockInstance i = new MockInstance();
     c = i.getConnector("root", "pass");
-    for (String table : TABLE_NAMES) {
-      try {
-        c.tableOperations().delete(table);
-      } catch (Exception ex) {}
-      c.tableOperations().create(table);
-      writerMap.put(new Text(table), c.createBatchWriter(table, 1000L, 1000L, 1));
-    }
+    c.tableOperations().delete(METADATA_TABLE_NAME);
+    c.tableOperations().delete(TABLE_NAME);
+    c.tableOperations().delete(INDEX_TABLE_NAME);
+    c.tableOperations().delete(RINDEX_TABLE_NAME);
+    c.tableOperations().create(METADATA_TABLE_NAME);
+    c.tableOperations().create(TABLE_NAME);
+    c.tableOperations().create(INDEX_TABLE_NAME);
+    c.tableOperations().create(RINDEX_TABLE_NAME);
+    
+    writerMap.put(new Text(METADATA_TABLE_NAME), c.createBatchWriter(METADATA_TABLE_NAME, 1000L, 1000L, 1));
+    writerMap.put(new Text(TABLE_NAME), c.createBatchWriter(TABLE_NAME, 1000L, 1000L, 1));
+    writerMap.put(new Text(INDEX_TABLE_NAME), c.createBatchWriter(INDEX_TABLE_NAME, 1000L, 1000L, 1));
+    writerMap.put(new Text(RINDEX_TABLE_NAME), c.createBatchWriter(RINDEX_TABLE_NAME, 1000L, 1000L, 1));
     
     TaskAttemptID id = new TaskAttemptID();
     TaskAttemptContext context = new TaskAttemptContext(conf, id);
@@ -153,36 +146,20 @@ public class TestQueryLogic {
     // Flush and close record writers.
     rw.close(context);
     
-    table = new QueryLogic();
-    table.setMetadataTableName(METADATA_TABLE_NAME);
-    table.setTableName(TABLE_NAME);
-    table.setIndexTableName(INDEX_TABLE_NAME);
-    table.setReverseIndexTableName(RINDEX_TABLE_NAME);
-    table.setUseReadAheadIterator(false);
-    table.setNumPartitions(1);
-    
   }
   
   private void debugQuery(String tableName) throws Exception {
-    Scanner s = c.createScanner(tableName, new Authorizations());
+    Scanner s = c.createScanner(tableName, new Authorizations("all"));
     Range r = new Range();
     s.setRange(r);
     for (Entry<Key,Value> entry : s)
       System.out.println(entry.getKey().toString() + " " + entry.getValue().toString());
   }
   
-  @Test
-  public void testTitle() {
-    Logger.getLogger(AbstractQueryLogic.class).setLevel(Level.OFF);
-    Logger.getLogger(RangeCalculator.class).setLevel(Level.OFF);
-    List<String> auths = new ArrayList<String>();
-    auths.add("enwiki");
-    Results results = table.runQuery(c, auths, "TITLE == 'afghanistanhistory'", null, null, null);
-    for (Document doc : results.getResults()) {
-      System.out.println("id: " + doc.getId());
-      for (Field field : doc.getFields())
-        System.out.println(field.getFieldName() + " -> " + field.getFieldValue());
-    }
+  public void testViewAllData() throws Exception {
+    debugQuery(METADATA_TABLE_NAME);
+    debugQuery(TABLE_NAME);
+    debugQuery(INDEX_TABLE_NAME);
+    debugQuery(RINDEX_TABLE_NAME);
   }
-  
 }

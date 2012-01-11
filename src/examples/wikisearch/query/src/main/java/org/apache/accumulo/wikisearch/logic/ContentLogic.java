@@ -28,7 +28,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.wikisearch.ingest.WikipediaMapper;
+import org.apache.accumulo.examples.wikisearch.ingest.WikipediaMapper;
 import org.apache.accumulo.wikisearch.sample.Document;
 import org.apache.accumulo.wikisearch.sample.Field;
 import org.apache.accumulo.wikisearch.sample.Results;
