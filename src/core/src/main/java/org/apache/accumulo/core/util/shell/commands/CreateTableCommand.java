@@ -36,8 +36,11 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.accumulo.core.security.VisibilityConstraint;
 import org.apache.accumulo.core.util.BadArgumentException;
+import org.apache.accumulo.core.util.format.DefaultFormatter;
+import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -56,10 +59,11 @@ public class CreateTableCommand extends Command {
   private Option createTableNoDefaultIters;
   private Option createTableOptEVC;
   private Option base64Opt;
+  private Option createTableOptFormatter;
   public static String testTable;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableExistsException,
-      TableNotFoundException, IOException {
+      TableNotFoundException, IOException, ClassNotFoundException {
     
     String testTableName = cl.getArgs()[0];
     
@@ -128,11 +132,13 @@ public class CreateTableCommand extends Command {
     TimeType timeType = TimeType.MILLIS;
     if (cl.hasOption(createTableOptTimeLogical.getOpt()))
       timeType = TimeType.LOGICAL;
+
     
     // create table
     shellState.getConnector().tableOperations().create(tableName, true, timeType);
     shellState.getConnector().tableOperations().addSplits(tableName, partitions);
     shellState.getConnector().tableOperations().addAggregators(tableName, aggregators);
+    
     shellState.setTableName(tableName); // switch shell to new table
     // context
     
@@ -173,6 +179,15 @@ public class CreateTableCommand extends Command {
         shellState.getConnector().tableOperations()
             .setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.getKey() + (max + 1), VisibilityConstraint.class.getName());
     }
+
+    // Load custom formatter if set
+    if (cl.hasOption(createTableOptFormatter.getOpt())) {
+        String formatterClass = cl.getOptionValue(createTableOptFormatter.getOpt());
+        
+        shellState.setFormatterClass(tableName, AccumuloClassLoader.loadClass(formatterClass, Formatter.class));
+        
+        shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.toString(), formatterClass);   
+    }    
     
     return 0;
   }
@@ -200,6 +215,7 @@ public class CreateTableCommand extends Command {
     createTableNoDefaultIters = new Option("ndi", "no-default-iterators", false, "prevents creation of the normal default iterator set");
     createTableOptEVC = new Option("evc", "enable-visibility-constraint", false,
         "prevents users from writing data they can not read.  When enabling this may want to consider disabling bulk import and alter table");
+    createTableOptFormatter = new Option("f", "formatter", false, "default formatter to set");
     
     createTableOptCopyConfig.setArgName("table");
     createTableOptCopySplits.setArgName("table");
@@ -226,6 +242,7 @@ public class CreateTableCommand extends Command {
     o.addOption(createTableOptCopyConfig);
     o.addOption(createTableNoDefaultIters);
     o.addOption(createTableOptEVC);
+    o.addOption(createTableOptFormatter);
     
     return o;
   }
