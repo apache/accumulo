@@ -286,7 +286,9 @@ public enum Property {
           + "with the category prefix, followed by a name, followed by a period, and followed by a property for that group.<br />"
           + "For example table.group.group1=x,y,z sets the column families for a group called group1. Once configured, "
           + "group1 can be enabled by adding it to the list of groups in the " + TABLE_LOCALITY_GROUPS.getKey() + " property.<br />"
-          + "Additional group options may be specified for a named group by setting table.group.&lt;name&gt;.opt.&lt;key&gt;=&lt;value&gt;."), ;
+          + "Additional group options may be specified for a named group by setting table.group.&lt;name&gt;.opt.&lt;key&gt;=&lt;value&gt;."),
+  TABLE_FORMATTER_CLASS("table.formatter", "org.apache.accumulo.core.util.format.DefaultFormatter", PropertyType.STRING,
+      "The Formatter class to apply on results in the shell");
   
   private String key, defaultValue, description;
   private PropertyType type;

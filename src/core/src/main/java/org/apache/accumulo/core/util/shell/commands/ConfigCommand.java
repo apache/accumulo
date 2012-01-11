@@ -32,9 +32,11 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.BadArgumentException;
+import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.Token;
+import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -59,7 +61,7 @@ public class ConfigCommand extends Command {
   }
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      IOException {
+  IOException, ClassNotFoundException {
     reader = shellState.getReader();
     
     String tableName = cl.getOptionValue(tableOpt.getOpt());
@@ -74,6 +76,12 @@ public class ConfigCommand extends Command {
       if (tableName != null) {
         if (!Property.isValidTablePropertyKey(property))
           Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if its there.");
+        
+        // Fall back to the default formatter
+        if (property.equals(Property.TABLE_FORMATTER_CLASS.getKey())) {
+          shellState.setFormatterClass(tableName, AccumuloClassLoader.loadClass(Property.TABLE_FORMATTER_CLASS.getDefaultValue(), Formatter.class));
+        }
+        
         shellState.getConnector().tableOperations().removeProperty(tableName, property);
         Shell.log.debug("Successfully deleted table configuration option.");
       } else {
@@ -99,6 +107,11 @@ public class ConfigCommand extends Command {
         if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey()))
           new ColumnVisibility(value); // validate that it is a valid
         // expression
+        
+        // Load the formatter before setting the parameter
+        if (property.equals(Property.TABLE_FORMATTER_CLASS.getKey())) {
+          shellState.setFormatterClass(tableName, AccumuloClassLoader.loadClass(value, Formatter.class));
+        }
         
         shellState.getConnector().tableOperations().setProperty(tableName, property, value);
         Shell.log.debug("Successfully set table configuration option.");

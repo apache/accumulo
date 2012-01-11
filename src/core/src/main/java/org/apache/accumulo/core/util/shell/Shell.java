@@ -163,8 +163,9 @@ public class Shell {
   private Connector connector;
   private ConsoleReader reader;
   private AuthInfo credentials;
-  private Class<? extends Formatter> formatterClass = DefaultFormatter.class;
+  private Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   private Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
+  private Map<String, Class<? extends Formatter>> tableFormatters = new HashMap<String, Class<? extends Formatter>>();
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
   
   private Token rootToken;
@@ -218,7 +219,7 @@ public class Shell {
     
     Option execCommandOpt = new Option("e", "execute-command", true, "executes a command, and then exits");
     opts.addOption(execCommandOpt);
-
+    
     OptionGroup execFileGroup = new OptionGroup();
     
     Option execfileOption = new Option("f", "execute-file", true, "executes commands from a file at startup");
@@ -460,8 +461,13 @@ public class Shell {
     else
       sb.append("- Authorization timeout: ").append(String.format("%.2fs\n", authTimeout / 1000.0));
     sb.append("- Debug: ").append(isDebuggingEnabled() ? "on" : "off").append("\n");
-    if (formatterClass != null && formatterClass != DefaultFormatter.class) {
-      sb.append("- Active formatter class: ").append(formatterClass.getSimpleName()).append("\n");
+    if (!tableFormatters.isEmpty()) {
+      sb.append("- Active Formatters");
+      for (Entry<String, Class<? extends Formatter>> entry : tableFormatters.entrySet()) {
+        if (null != entry.getValue()) {
+          sb.append("-    Table: ").append(entry.getKey()).append(", ").append(entry.getValue().getName()).append("\n");
+        }
+      }
     }
     if (!scanIteratorOptions.isEmpty()) {
       for (Entry<String,List<IteratorSetting>> entry : scanIteratorOptions.entrySet()) {
@@ -906,6 +912,8 @@ public class Shell {
   }
   
   public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate) throws IOException {
+    Class<? extends Formatter> formatterClass = getFormatterClass(this.tableName);
+    
     printLines(FormatterFactory.getFormatter(formatterClass, scanner, printTimestamps), paginate);
   }
   
@@ -990,12 +998,27 @@ public class Shell {
     return credentials;
   }
   
-  public void setFormatterClass(Class<? extends Formatter> formatterClass) {
-    this.formatterClass = formatterClass;
+  public void setFormatterClass(String tableName, Class<? extends Formatter> formatter) {
+    this.tableFormatters.put(tableName, formatter);
   }
   
-  public Class<? extends Formatter> getFormatterClass() {
-    return formatterClass;
+  /**
+   * Pull the current formatter for the given table and cache it.
+   * @param tableName
+   * @return The formatter class for the given table
+   */
+  public Class<? extends Formatter> getFormatterClass(String tableName) {
+    if (this.tableFormatters.containsKey(tableName) && null != this.tableFormatters.get(tableName)) {
+      return this.tableFormatters.get(tableName);
+    } else {
+      Class<? extends Formatter> formatter = FormatterCommand.getCurrentFormatter(tableName, this);
+      
+      if (null == formatter) {
+        return this.defaultFormatterClass;
+      } else {
+        return formatter;
+      }
+    }
   }
   
 }
