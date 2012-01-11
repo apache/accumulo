@@ -275,4 +275,18 @@ public class InMemoryMapTest extends TestCase {
     ae(skvi1, "r1", "foo:cq1", 3, "bar1");
     
   }
+  
+  public void testDuplicateKey() throws Exception {
+    InMemoryMap imm = new InMemoryMap(false, "/tmp");
+    
+    Mutation m = new Mutation(new Text("r1"));
+    m.put(new Text("foo"), new Text("cq"), 3, new Value("v1".getBytes()));
+    m.put(new Text("foo"), new Text("cq"), 3, new Value("v2".getBytes()));
+    imm.mutate(Collections.singletonList(m));
+    
+    MemoryIterator skvi1 = imm.skvIterator();
+    skvi1.seek(new Range(), LocalityGroupUtil.EMPTY_CF_SET, false);
+    ae(skvi1, "r1", "foo:cq", 3, "v2");
+    ae(skvi1, "r1", "foo:cq", 3, "v1");
+  }
 }
