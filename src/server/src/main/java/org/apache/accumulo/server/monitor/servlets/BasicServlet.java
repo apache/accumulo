@@ -126,7 +126,7 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<meta http-equiv='Content-Type' content='").append(DEFAULT_CONTENT_TYPE).append("' />\n");
     sb.append("<meta http-equiv='Content-Script-Type' content='text/javascript' />\n");
     sb.append("<meta http-equiv='Content-Style-Type' content='text/css' />\n");
-    sb.append("<link rel='shortcut icon' type='image/jpg' href='/web/ac.jpg' />\n");
+    sb.append("<link rel='shortcut icon' type='image/jpg' href='/web/favicon.png' />\n");
     sb.append("<link rel='stylesheet' type='text/css' href='/web/screen.css' media='screen' />\n");
     sb.append("<script src='/web/functions.js' type='text/javascript'></script>\n");
     
