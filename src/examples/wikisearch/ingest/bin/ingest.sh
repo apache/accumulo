@@ -70,5 +70,5 @@ JAR=$SCRIPT_DIR/../lib/wikisearch-ingest-1.4.0-incubating-SNAPSHOT.jar
 CONF=$SCRIPT_DIR/../conf/wikipedia.xml
 HDFS_DATA_DIR=$1
 export HADOOP_CLASSPATH=$CLASSPATH
-echo "hadoop jar $JAR org.apache.accumulo.wikisearch.ingest.WikipediaIngester -libjars $LIBJARS -conf $CONF -Dwikipedia.input=${HDFS_DATA_DIR}"
-hadoop jar $JAR org.apache.accumulo.wikisearch.ingest.WikipediaIngester -libjars $LIBJARS -conf $CONF -Dwikipedia.input=${HDFS_DATA_DIR}
+echo "hadoop jar $JAR org.apache.accumulo.examples.wikisearch.ingest.WikipediaIngester -libjars $LIBJARS -conf $CONF -Dwikipedia.input=${HDFS_DATA_DIR}"
+hadoop jar $JAR org.apache.accumulo.examples.wikisearch.ingest.WikipediaIngester -libjars $LIBJARS -conf $CONF -Dwikipedia.input=${HDFS_DATA_DIR}

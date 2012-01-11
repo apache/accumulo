@@ -38,7 +38,7 @@
         3. Untar the resulting file in the $JBOSS_HOME/server/default directory.
 
               $ cd $JBOSS_HOME/server/default
-              $ tar -xzf $ACCUMULO_HOME/src/wikisearch/query/target/wikisearch-query*.tar.gz
+              $ tar -xzf $ACCUMULO_HOME/src/examples/wikisearch/query/target/wikisearch-query*.tar.gz
  
            This will place the dependent jars in the lib directory and the EJB jar into the deploy directory.
 	4. Next, copy the wikisearch*.war file in the query-war/target directory to $JBOSS_HOME/server/default/deploy. 
