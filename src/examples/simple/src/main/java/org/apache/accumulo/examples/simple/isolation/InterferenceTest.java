@@ -98,7 +98,7 @@ public class InterferenceTest {
     
     @Override
     public void run() {
-      while (stop) {
+      while (!stop) {
         ByteSequence row = null;
         int count = 0;
         
