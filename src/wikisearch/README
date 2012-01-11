@@ -15,9 +15,9 @@
  
  	INSTRUCTIONS
  	------------
-	1. Copy the conf/wikipedia.xml.example to conf/wikipedia.xml and change it to specify Accumulo information. 
-	2. Copy the lib/wikisearch-*.jar and lib/protobuf*.jar to $ACCUMULO_HOME/lib/ext
-	3. Then run bin/ingest.sh with one argument (the name of the directory in HDFS where the wikipedia XML 
+	1. Copy the ingest/conf/wikipedia.xml.example to ingest/conf/wikipedia.xml and change it to specify Accumulo information. 
+	2. Copy the ingest/lib/wikisearch-*.jar and ingest/lib/protobuf*.jar to $ACCUMULO_HOME/lib/ext
+	3. Then run ingest/bin/ingest.sh with one argument (the name of the directory in HDFS where the wikipedia XML 
            files reside) and this will kick off a MapReduce job to ingest the data into Accumulo.
    
  Query
@@ -34,7 +34,7 @@
 	-------------
 	1. Modify the query/src/main/resources/META-INF/ejb-jar.xml file with the same information that you put into the wikipedia.xml
 	   file from the Ingest step above. 
-	2. Re-build the query distribution by running 'mvn assembly:single' in the top-level directory. 
+	2. Re-build the query distribution by running 'mvn package assembly:single' in the top-level directory. 
         3. Untar the resulting file in the $JBOSS_HOME/server/default directory.
 
               $ cd $JBOSS_HOME/server/default

@@ -135,7 +135,8 @@ public class WikipediaIngester extends Configured implements Tool {
   public int run(String[] args) throws Exception {
     Job job = new Job(getConf(), "Ingest Wikipedia");
     Configuration conf = job.getConfiguration();
-    
+    conf.set("mapred.map.tasks.speculative.execution", "false");
+
     String tablename = WikipediaConfiguration.getTableName(conf);
     
     String zookeepers = WikipediaConfiguration.getZookeepers(conf);
