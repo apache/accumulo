@@ -14,6 +14,8 @@
 # limitations under the License.
 
 import os
+import sys
+import shutil
 
 import logging
 import unittest
@@ -61,7 +63,51 @@ class CombinerTest(TestUtilsMixin, unittest.TestCase):
         self.start_accumulo()
         self.checkSum()
 
+class ClassLoaderTest(TestUtilsMixin, unittest.TestCase):
+    "Start a clean accumulo, ingest one data, read it, set a combiner, read it again, change the combiner jar, read it again" 
+    order = 26
+
+    def checkSum(self, val):
+        # check the scan
+        out, err, code = self.shell(self.masterHost(), "table test\nscan\n")
+        self.assert_(code == 0)
+        for line in out.split('\n'):
+            if line.find('row1') == 0:
+                self.assert_(line.split()[-1] == val)
+                break
+        else:
+            self.fail("Unable to find needed output in %r" % out)
+
+    def runTest(self):
+        jarPath = os.environ['ACCUMULO_HOME']+"/lib/ext/TestCombiner.jar"
+        # make sure the combiner is not there
+        if os.path.exists(jarPath):
+            os.remove(jarPath)
+        # initialize the database
+        out, err, code = self.rootShell(self.masterHost(), "createtable test\n")
+        self.assert_(code == 0)
+
+        # insert some rows
+        log.info("Starting Test Ingester")
+        
+        out, err, code = self.rootShell(self.masterHost(), "table test\ninsert row1 cf col1 Test\n")
+        self.assert_(code == 0)
+        self.checkSum("Test")
+        
+        shutil.copy(sys.path[0]+"/TestCombinerX.jar", jarPath)
+        out, err, code = self.rootShell(self.masterHost(), "setiter -t test -scan -p 10 -n TestCombiner -class org.apache.accumulo.server.test.functional.TestCombiner\ncf\n")
+        self.assert_(code == 0)
+        self.checkSum("TestX")
+        
+        shutil.copy(sys.path[0]+"/TestCombinerY.jar", jarPath)
+        time.sleep(1)
+        self.checkSum("TestY")
+        
+        os.remove(jarPath)
+        
+
 def suite():
     result = unittest.TestSuite()
     result.addTest(CombinerTest())
+    result.addTest(ClassLoaderTest())
     return result
