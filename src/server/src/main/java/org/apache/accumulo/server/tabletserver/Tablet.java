@@ -3131,6 +3131,9 @@ public class Tablet {
           
           copy.keySet().retainAll(smallestFiles);
           
+          log.debug("Starting MajC " + extent + " " + datafileManager.abs2rel(datafileManager.string2path(copy.keySet())) + " --> "
+              + datafileManager.abs2rel(new Path(compactTmpName)));
+
           Compactor compactor = new Compactor(conf, fs, copy, null, compactTmpName, filesToCompact.size() == 0 ? propogateDeletes : true, // always
                                                                                                                                           // propagate
                                                                                                                                           // deletes,
