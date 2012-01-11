@@ -20,14 +20,14 @@
 
   <parent>
     <groupId>org.apache.accumulo</groupId>
-    <artifactId>accumulo</artifactId>
+    <artifactId>accumulo-examples</artifactId>
     <version>1.4.0-incubating-SNAPSHOT</version>
-    <relativePath>../../</relativePath>
+    <relativePath>../</relativePath>
   </parent>
 
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>accumulo-examples</artifactId>
-  <name>accumulo-examples</name>
+  <artifactId>examples-simple</artifactId>
+  <name>examples-simple</name>
 
   <dependencies>
     <dependency>
@@ -39,5 +39,30 @@
       <artifactId>accumulo-core</artifactId>
     </dependency>
   </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <outputDirectory>../../../lib</outputDirectory>
+          <archive>
+            <manifest>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+            </manifest>
+            <manifestEntries>
+              <Implementation-Build>${buildNumber}</Implementation-Build>
+              <Implementation-Timestamp>${timestamp}</Implementation-Timestamp>
+            </manifestEntries>
+          </archive>
+          <includes>
+            <include>org/apache/accumulo**/**</include>
+            <include>**/META-INF/*</include>
+          </includes>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

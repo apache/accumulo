@@ -36,7 +36,6 @@
     <module>src/server</module>
     <module>src/start</module>
     <module>src/examples</module>
-    <module>src/wikisearch</module>
   </modules>
 
   <build>
