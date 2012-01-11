@@ -1,0 +1,114 @@
+
+# /
+/logs
+/walogs
+/target
+/.project
+/.settings
+/.pydevproject
+
+# /conf/
+/conf/accumulo-metrics.xml
+/conf/masters
+/conf/slaves
+/conf/tracers
+/conf/test-*
+/conf/gc
+/conf/monitor
+/conf/accumulo-env.sh
+/conf/accumulo-site.xml
+/conf/accumulo_user_manual.pdf
+
+# /contrib/accumulo_sample/
+/contrib/accumulo_sample/.settings
+/contrib/accumulo_sample/.project
+/contrib/accumulo_sample/target
+
+# /contrib/accumulo_sample/ingest/
+/contrib/accumulo_sample/ingest/target
+/contrib/accumulo_sample/ingest/.settings
+/contrib/accumulo_sample/ingest/.classpath
+/contrib/accumulo_sample/ingest/.project
+/contrib/accumulo_sample/ingest/lib
+
+# /contrib/accumulo_sample/query/
+/contrib/accumulo_sample/query/target
+/contrib/accumulo_sample/query/.settings
+/contrib/accumulo_sample/query/.classpath
+/contrib/accumulo_sample/query/.project
+/contrib/accumulo_sample/query/lib
+
+# /contrib/accumulo_sample/query-war/
+/contrib/accumulo_sample/query-war/target
+/contrib/accumulo_sample/query-war/.settings
+/contrib/accumulo_sample/query-war/.classpath
+/contrib/accumulo_sample/query-war/.project
+
+# /docs/
+/docs/config.html
+/docs/accumulo_user_manual.pdf
+
+# /docs/src/user_manual/
+/docs/src/user_manual/accumulo_user_manual.toc
+/docs/src/user_manual/accumulo_user_manual.out
+
+# /lib/
+/lib/native
+/lib/*.jar
+
+# /src/assemble/
+/src/assemble/target
+/src/assemble/.settings
+/src/assemble/.project
+
+# /src/core/
+/src/core/target
+/src/core/.settings
+/src/core/.project
+/src/core/.classpath
+
+# /src/examples/
+/src/examples/target
+/src/examples/.settings
+/src/examples/.classpath
+/src/examples/.project
+
+# /src/server/
+/src/server/target
+/src/server/.project
+/src/server/.settings
+/src/server/.classpath
+
+# /src/server/src/main/c++/mlock/
+/src/server/src/main/c++/mlock/*.jnilib
+/src/server/src/main/c++/mlock/org_apache_accumulo_server_tabletserver_MLock.h
+
+# /src/server/src/main/c++/nativeMap/
+/src/server/src/main/c++/nativeMap/*.jnilib
+
+# /src/start/
+/src/start/target
+/src/start/.classpath
+/src/start/.project
+/src/start/.settings
+
+# /src/trace/
+/src/trace/target
+/src/trace/.classpath
+/src/trace/.project
+/src/trace/.settings
+
+# /test/system/auto/
+/test/system/auto/*.pyc
+/test/system/auto/fake_disk_failure.so
+
+# /test/system/auto/simple/
+/test/system/auto/simple/*.pyc
+
+# /test/system/auto/stress/
+/test/system/auto/stress/*.pyc
+
+# /test/system/continuous/
+/test/system/continuous/continuous-env.sh
+/test/system/continuous/walkers.txt
+/test/system/continuous/ingesters.txt
