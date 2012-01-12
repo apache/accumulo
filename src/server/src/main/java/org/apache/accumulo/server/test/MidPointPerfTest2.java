@@ -36,6 +36,9 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
+/**
+ * @deprecated since 1.4
+ */
 class MultipleIndexIterator2 {
   
   private MySequenceFile.Reader[] readers;
@@ -119,6 +122,9 @@ class MultipleIndexIterator2 {
   }
 }
 
+/**
+ * @deprecated since 1.4
+ */
 public class MidPointPerfTest2 {
   private static String dir;
   private static int numFiles;

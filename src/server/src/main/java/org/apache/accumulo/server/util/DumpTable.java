@@ -29,6 +29,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
+/**
+ * @deprecated since 1.4
+ */
 public class DumpTable {
   private static final Logger log = Logger.getLogger(DumpTable.class);
   

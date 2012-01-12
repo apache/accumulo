@@ -41,6 +41,7 @@ import org.apache.accumulo.core.iterators.system.SequenceFileIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.MapFile;
 
 public class MapFileOperations extends FileOperations {
   
@@ -144,7 +145,10 @@ public class MapFileOperations extends FileOperations {
     return iter;
   }
   
-  @Override
+  /**
+   * @deprecated since 1.4
+   * @use org.apache.hadoop.io.MapFile.Writer
+   */
   public FileSKVWriter openWriter(final String file, final FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
     final MyMapFile.Writer mfw = MapFileUtil.openMapFileWriter(acuconf, conf, fs, file);
     return new FileSKVWriter() {
@@ -193,9 +197,10 @@ public class MapFileOperations extends FileOperations {
   
   @Override
   public long getFileSize(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    return fs.getFileStatus(new Path(file + "/" + MyMapFile.DATA_FILE_NAME)).getLen();
+    return fs.getFileStatus(new Path(file + "/" + MapFile.DATA_FILE_NAME)).getLen();
   }
   
+  @SuppressWarnings("deprecation")
   @Override
   public FileSKVIterator openReader(String file, Range range, Set<ByteSequence> columnFamilies, boolean inclusive, FileSystem fs, Configuration conf,
       AccumuloConfiguration tableConf) throws IOException {

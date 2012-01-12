@@ -62,6 +62,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 
+@SuppressWarnings("deprecation")
 class MemKeyComparator implements Comparator<Key> {
   
   @Override
@@ -357,6 +358,7 @@ public class InMemoryMap {
           Configuration conf = CachedConfiguration.getInstance();
           FileSystem fs = TraceFileSystem.wrap(FileSystem.getLocal(conf));
           
+          @SuppressWarnings("deprecation")
           FileSKVIterator reader = new MapFileOperations.RangeIterator(new MyMapFile.Reader(fs, memDumpFile, conf));
           
           readers.add(reader);
@@ -468,6 +470,7 @@ public class InMemoryMap {
   
   private boolean deleted = false;
   
+  @SuppressWarnings("deprecation")
   public void delete(long waitTime) {
     
     synchronized (this) {

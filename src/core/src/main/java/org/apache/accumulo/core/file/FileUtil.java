@@ -25,11 +25,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -37,7 +38,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.map.MyMapFile;
 import org.apache.accumulo.core.file.map.MySequenceFile;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
@@ -51,6 +51,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.log4j.Logger;
 
+@SuppressWarnings("deprecation")
 public class FileUtil {
   
   public static class FileInfo {
@@ -120,7 +121,7 @@ public class FileUtil {
       
       start = end;
       
-      String newMapFile = String.format("%s/" + MyMapFile.EXTENSION + "_%04d", newDir, count++);
+      String newMapFile = String.format("%s/" + Constants.MAPFILE_EXTENSION + "_%04d", newDir, count++);
       fs.mkdirs(new Path(newMapFile));
       
       Path outFile = new Path(String.format("%s/index", newMapFile));

@@ -30,6 +30,13 @@ import org.apache.log4j.Logger;
 public class MapFileUtil {
   private static final Logger log = Logger.getLogger(MapFileUtil.class);
   
+  /**
+   * @deprecated since 1.4
+   * @param conf
+   * @param fs
+   * @param dirName
+   * @return
+   */
   public static boolean attemptToFixMapFile(Configuration conf, FileSystem fs, String dirName) {
     boolean fixed = true;
     try {
@@ -49,6 +56,7 @@ public class MapFileUtil {
     return fixed;
   }
   
+  @SuppressWarnings("deprecation")
   public static MyMapFile.Reader openMapFile(AccumuloConfiguration acuconf, FileSystem fs, String dirName, Configuration conf) throws IOException {
     MyMapFile.Reader mfr = null;
     try {
@@ -64,6 +72,7 @@ public class MapFileUtil {
     }
   }
   
+  @SuppressWarnings("deprecation")
   public static MySequenceFile.Reader openIndex(Configuration conf, FileSystem fs, Path mapFile) throws IOException {
     Path indexPath = new Path(mapFile, MyMapFile.INDEX_FILE_NAME);
     MySequenceFile.Reader index = null;
@@ -80,6 +89,16 @@ public class MapFileUtil {
     }
   }
   
+  /**
+   * @deprecated sicne 1.4
+   * 
+   * @param acuTableConf
+   * @param conf
+   * @param fs
+   * @param dirname
+   * @return
+   * @throws IOException
+   */
   public static MyMapFile.Writer openMapFileWriter(AccumuloConfiguration acuTableConf, Configuration conf, FileSystem fs, String dirname) throws IOException {
     MyMapFile.Writer mfw = null;
     int hbs = conf.getInt("io.seqfile.compress.blocksize", -1);

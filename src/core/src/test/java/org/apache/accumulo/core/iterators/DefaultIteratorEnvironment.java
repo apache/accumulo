@@ -23,13 +23,12 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.map.MyMapFile;
 import org.apache.accumulo.core.file.map.MyMapFile.Reader;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 
+@SuppressWarnings("deprecation")
 public class DefaultIteratorEnvironment implements IteratorEnvironment {
   
   AccumuloConfiguration conf;

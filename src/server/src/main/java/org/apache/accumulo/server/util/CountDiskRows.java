@@ -30,6 +30,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+/**
+ * @deprecated since 1.4
+ */
 public class CountDiskRows {
   
   private static final Logger log = Logger.getLogger(CountDiskRows.class);

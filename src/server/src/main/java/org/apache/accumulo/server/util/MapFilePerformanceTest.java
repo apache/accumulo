@@ -43,6 +43,9 @@ import org.apache.hadoop.io.MapFile;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 
+/**
+ * @deprecated since 1.4
+ */
 public class MapFilePerformanceTest {
   
   public static String[] createMapFiles(String input, String output, int blocksize, int mapFiles) throws IOException {

@@ -71,10 +71,18 @@ import org.apache.log4j.Logger;
  * <p>
  * Map files are created by adding entries in-order. To maintain a large database, perform updates by copying the previous version of a database and merging in
  * a sorted change list, to create a new version of the database in a new file. Sorting large change lists can be done with {@link MySequenceFile.Sorter}.
+ * 
+ * 
+ * @deprecated since 1.4
+ * @use org.apache.accumulo.core.file.rfile.RFile
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class MyMapFile {
   
+  /**
+   * @deprecated since 1.4
+   * @use org.apache.accumulo.core.Constants.MAPFILE_EXTENSION
+   */
   public static final String EXTENSION = "map";
   
   private static final Logger log = Logger.getLogger(MyMapFile.class);
@@ -113,7 +121,6 @@ public class MyMapFile {
     private WritableComparable lastKey;
     
     /** Create the named map for keys of the named class. */
-    @SuppressWarnings("deprecation")
     public Writer(Configuration conf, FileSystem fs, String dirName, Class keyClass, Class valClass) throws IOException {
       this(conf, fs, dirName, WritableComparator.get(keyClass), valClass, MySequenceFile.getCompressionType(conf));
     }
@@ -136,7 +143,6 @@ public class MyMapFile {
     }
     
     /** Create the named map using the named key comparator. */
-    @SuppressWarnings("deprecation")
     public Writer(Configuration conf, FileSystem fs, String dirName, WritableComparator comparator, Class valClass) throws IOException {
       this(conf, fs, dirName, comparator, valClass, MySequenceFile.getCompressionType(conf));
     }

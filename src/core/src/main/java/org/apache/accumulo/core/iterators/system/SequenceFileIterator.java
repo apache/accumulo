@@ -32,6 +32,7 @@ import org.apache.accumulo.core.file.map.MySequenceFile.Reader;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
+@SuppressWarnings("deprecation")
 public class SequenceFileIterator implements FileSKVIterator {
   
   private Reader reader;

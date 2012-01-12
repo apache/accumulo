@@ -29,7 +29,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.FileUtil;
-import org.apache.accumulo.core.file.map.MyMapFile;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.trace.TraceFileSystem;
@@ -62,14 +61,16 @@ public class BulkFileTest extends FunctionalTest {
     
     fs.delete(new Path(dir), true);
     
-    FileSKVWriter writer1 = FileOperations.getInstance().openWriter(dir + "/f1." + MyMapFile.EXTENSION, fs, conf, ServerConfiguration.getSystemConfiguration());
+    FileSKVWriter writer1 = FileOperations.getInstance().openWriter(dir + "/f1." + Constants.MAPFILE_EXTENSION, fs, conf,
+        ServerConfiguration.getSystemConfiguration());
     writer1.startDefaultLocalityGroup();
     writeData(writer1, 0, 333);
     writer1.close();
     
-    fs.rename(new Path(dir + "/f1." + MyMapFile.EXTENSION), new Path(dir + "/f1"));
+    fs.rename(new Path(dir + "/f1." + Constants.MAPFILE_EXTENSION), new Path(dir + "/f1"));
     
-    FileSKVWriter writer2 = FileOperations.getInstance().openWriter(dir + "/f2." + MyMapFile.EXTENSION, fs, conf, ServerConfiguration.getSystemConfiguration());
+    FileSKVWriter writer2 = FileOperations.getInstance().openWriter(dir + "/f2." + Constants.MAPFILE_EXTENSION, fs, conf,
+        ServerConfiguration.getSystemConfiguration());
     writer2.startDefaultLocalityGroup();
     writeData(writer2, 334, 999);
     writer2.close();

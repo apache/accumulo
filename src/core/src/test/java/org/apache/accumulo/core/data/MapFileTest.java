@@ -20,14 +20,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Random;
 import java.util.Map.Entry;
+import java.util.Random;
 
 import junit.framework.TestCase;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.map.MyMapFile;
 import org.apache.accumulo.core.file.map.MySequenceFile;
 import org.apache.accumulo.core.file.map.MySequenceFile.CompressionType;
@@ -41,6 +38,9 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+/**
+ * @deprecated since 1.4
+ */
 public class MapFileTest extends TestCase {
   private static final Logger log = Logger.getLogger(MapFileTest.class);
   

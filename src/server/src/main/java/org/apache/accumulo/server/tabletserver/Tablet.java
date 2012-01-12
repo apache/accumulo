@@ -134,6 +134,7 @@ import cloudtrace.instrument.Trace;
  * 
  */
 
+@SuppressWarnings("deprecation")
 public class Tablet {
   
   enum MajorCompactionReason {
