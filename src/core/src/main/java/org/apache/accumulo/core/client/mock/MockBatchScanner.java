@@ -34,7 +34,7 @@ import org.apache.accumulo.core.security.Authorizations;
 
 public class MockBatchScanner extends MockScannerBase implements BatchScanner {
   
-  final List<Range> ranges = new ArrayList<Range>();
+  List<Range> ranges = null;
   
   public MockBatchScanner(MockTable mockTable, Authorizations authorizations) {
     super(mockTable, authorizations);
@@ -42,8 +42,11 @@ public class MockBatchScanner extends MockScannerBase implements BatchScanner {
   
   @Override
   public void setRanges(Collection<Range> ranges) {
-    this.ranges.clear();
-    this.ranges.addAll(ranges);
+    if (ranges == null || ranges.size() == 0) {
+      throw new IllegalArgumentException("ranges must be non null and contain at least 1 range");
+    }
+    
+    this.ranges = new ArrayList<Range>(ranges);
   }
   
   static class RangesFilter extends Filter {
@@ -66,6 +69,10 @@ public class MockBatchScanner extends MockScannerBase implements BatchScanner {
   
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
+    if (ranges == null) {
+      throw new IllegalStateException("ranges not set");
+    }
+
     SortedKeyValueIterator<Key,Value> i = new SortedMapIterator(table.table);
     try {
       i = new RangesFilter(createFilter(i), ranges);
