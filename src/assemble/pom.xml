@@ -42,7 +42,12 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-examples</artifactId>
+      <artifactId>examples-simple</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>wikisearch-query-war</artifactId>
+      <type>war</type>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
@@ -87,7 +92,7 @@
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
-          <finalName>${parent.artifactId}-${version}</finalName>
+          <finalName>${project.parent.artifactId}-${project.version}</finalName>
           <descriptors>
             <descriptor>src/assemble/dist.xml</descriptor>
           </descriptors>

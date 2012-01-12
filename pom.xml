@@ -168,6 +168,27 @@
           </environmentVariables>
         </configuration>
       </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <inherited>false</inherited>
+        <configuration>
+          <executable>bash</executable>
+          <arguments>
+            <argument>docs/src/user_manual/build.sh</argument>
+          </arguments>
+        </configuration>
+        <executions>
+          <execution>
+            <id>user-manual</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
 
 
@@ -199,7 +220,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <ignore />
+                    <ignore/>
                   </action>
                 </pluginExecution>
                 <pluginExecution>
@@ -225,7 +246,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <ignore />
+                    <ignore/>
                   </action>
                 </pluginExecution>
                 <pluginExecution>
@@ -410,7 +431,13 @@
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-examples</artifactId>
+        <artifactId>examples-simple</artifactId>
+        <version>1.5.0-incubating-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>wikisearch-query-war</artifactId>
+        <type>war</type>
         <version>1.5.0-incubating-SNAPSHOT</version>
       </dependency>
 
