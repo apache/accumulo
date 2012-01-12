@@ -62,8 +62,8 @@ public class CopyTool extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setOutputInfo(job, args[0], args[1].getBytes(), true, args[5]);
-    AccumuloOutputFormat.setZooKeeperInstance(job, args[3], args[4]);
+    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), args[0], args[1].getBytes(), true, args[5]);
+    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[3], args[4]);
     
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

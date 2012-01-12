@@ -104,8 +104,8 @@ public class WordCount extends Configured implements Tool {
     job.setOutputFormatClass(AccumuloOutputFormat.class);
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Mutation.class);
-    AccumuloOutputFormat.setOutputInfo(job, username, password.getBytes(), true, args[3]);
-    AccumuloOutputFormat.setZooKeeperInstance(job, args[0], args[1]);
+    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), username, password.getBytes(), true, args[3]);
+    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
     job.waitForCompletion(true);
     return 0;
   }

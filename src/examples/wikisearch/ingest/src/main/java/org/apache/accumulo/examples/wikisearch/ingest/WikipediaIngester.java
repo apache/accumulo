@@ -171,8 +171,8 @@ public class WikipediaIngester extends Configured implements Tool {
     job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(Mutation.class);
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setOutputInfo(job, user, password, true, tablename);
-    AccumuloOutputFormat.setZooKeeperInstance(job, instanceName, zookeepers);
+    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), user, password, true, tablename);
+    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), instanceName, zookeepers);
     
     return job.waitForCompletion(true) ? 0 : 1;
   }

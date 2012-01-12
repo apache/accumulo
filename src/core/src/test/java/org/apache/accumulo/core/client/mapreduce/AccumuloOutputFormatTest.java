@@ -95,8 +95,8 @@ public class AccumuloOutputFormatTest {
     job.setNumReduceTasks(0);
     AccumuloInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "testtable1", new Authorizations());
     AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmrinstance");
-    AccumuloOutputFormat.setOutputInfo(job, "root", "".getBytes(), false, "testtable2");
-    AccumuloOutputFormat.setMockInstance(job, "testmrinstance");
+    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), "root", "".getBytes(), false, "testtable2");
+    AccumuloOutputFormat.setMockInstance(job.getConfiguration(), "testmrinstance");
     
     AccumuloInputFormat input = new AccumuloInputFormat();
     List<InputSplit> splits = input.getSplits(job);

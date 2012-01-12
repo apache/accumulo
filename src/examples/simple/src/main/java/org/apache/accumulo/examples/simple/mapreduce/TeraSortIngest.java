@@ -356,9 +356,9 @@ public class TeraSortIngest extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setZooKeeperInstance(job, args[6], args[7]);
-    AccumuloOutputFormat.setOutputInfo(job, args[8], args[9].getBytes(), true, null);
-    AccumuloOutputFormat.setMaxMutationBufferSize(job, 10L * 1000 * 1000);
+    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[6], args[7]);
+    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), args[8], args[9].getBytes(), true, null);
+    AccumuloOutputFormat.setMaxMutationBufferSize(job.getConfiguration(), 10L * 1000 * 1000);
     
     Configuration conf = job.getConfiguration();
     conf.setLong(NUMROWS, Long.parseLong(args[0]));

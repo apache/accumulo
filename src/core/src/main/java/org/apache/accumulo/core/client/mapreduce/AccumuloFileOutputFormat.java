@@ -27,7 +27,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.JobContext;
@@ -62,7 +61,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
     if (extension == null || extension.isEmpty())
       extension = RFile.EXTENSION;
     
-    handleBlockSize(job);
+    handleBlockSize(job.getConfiguration());
     final Path file = this.getDefaultWorkFile(job, "." + extension);
     
     final FileSKVWriter out = FileOperations.getInstance().openWriter(file.toString(), file.getFileSystem(conf), conf,
@@ -87,17 +86,11 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
     };
   }
   
-  /**
-   * @deprecated Use {@link #handleBlockSize(Configuration)} instead
-   */
-  protected static void handleBlockSize(JobContext job) {
-    handleBlockSize(job.getConfiguration());
-  }
-
   protected static void handleBlockSize(Configuration conf) {
     int blockSize;
     if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) {
-      blockSize = (int) getInstance(conf).getConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
+      blockSize = (int) new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS)).getConfiguration().getMemoryInBytes(
+          Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
     } else {
       blockSize = getBlockSize(conf);
     }
@@ -105,24 +98,10 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
     
   }
   
-  /**
-   * @deprecated Use {@link #setFileType(Configuration,String)} instead
-   */
-  public static void setFileType(JobContext job, String type) {
-    setFileType(job.getConfiguration(), type);
-  }
-
   public static void setFileType(Configuration conf, String type) {
     conf.set(FILE_TYPE, type);
   }
   
-  /**
-   * @deprecated Use {@link #setBlockSize(Configuration,int)} instead
-   */
-  public static void setBlockSize(JobContext job, int blockSize) {
-    setBlockSize(job.getConfiguration(), blockSize);
-  }
-
   public static void setBlockSize(Configuration conf, int blockSize) {
     conf.setInt(BLOCK_SIZE, blockSize);
   }
@@ -130,34 +109,6 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   private static int getBlockSize(Configuration conf) {
     return conf.getInt(BLOCK_SIZE,
         (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
-  }
-  
-  /**
-   * 
-   * @param job
-   * @param instanceName
-   * @param zooKeepers
-   * @deprecated since 1.4, use {@link #setBlockSize(Configuration, int)} to set block size no other configurations are used by OutputFormat
-   */
-  public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
-    setZooKeeperInstance(job.getConfiguration(), instanceName, zooKeepers);
-  }
-
-  /**
-   * 
-   * @param conf
-   * @param instanceName
-   * @param zooKeepers
-   * @deprecated since 1.4, use {@link #setBlockSize(Configuration, int)} to set block size no other configurations are used by OutputFormat
-   */
-  public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
-    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
-      throw new IllegalStateException("Instance info can only be set once per job");
-    conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
-    
-    ArgumentChecker.notNull(instanceName, zooKeepers);
-    conf.set(INSTANCE_NAME, instanceName);
-    conf.set(ZOOKEEPERS, zooKeepers);
   }
   
   /**
