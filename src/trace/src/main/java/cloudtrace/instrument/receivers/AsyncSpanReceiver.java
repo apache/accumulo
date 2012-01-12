@@ -66,7 +66,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
         }
       }
       
-    }, 0, millis);
+    }, millis, millis);
   }
   
   void sendSpans() {
