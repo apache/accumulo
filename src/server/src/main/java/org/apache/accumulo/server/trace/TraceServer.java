@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.server.trace;
 
-import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.nio.channels.ServerSocketChannel;
 import java.util.TimerTask;
 
 import org.apache.accumulo.core.Constants;
@@ -27,13 +29,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.util.TServerUtils;
-import org.apache.accumulo.server.util.TServerUtils.ServerPort;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -43,6 +44,9 @@ import org.apache.thrift.TByteArrayOutputStream;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;
+import org.apache.thrift.server.TThreadPoolServer;
+import org.apache.thrift.transport.TServerSocket;
+import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.WatchedEvent;
@@ -156,10 +160,16 @@ public class TraceServer implements Watcher {
     }
     
     int port = conf.getPort(Property.TRACE_PORT);
-    ServerPort serverPort = TServerUtils.startTServer(port, new SpanReceiver.Processor(new Receiver()), "tracer", "tracer", 4, 1000l);
-    server = serverPort.server;
-    InetAddress address = Accumulo.getLocalAddress(args);
-    registerInZooKeeper(address.getHostAddress() + ":" + serverPort.port);
+    final ServerSocket sock = ServerSocketChannel.open().socket();
+    sock.setReuseAddress(true);
+    sock.bind(new InetSocketAddress(port));
+    final TServerTransport transport = new TServerSocket(sock);
+    TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
+    options.processor(new SpanReceiver.Processor(new Receiver()));
+    server = new TThreadPoolServer(options);
+    final InetSocketAddress address = new InetSocketAddress(Accumulo.getLocalAddress(args), sock.getLocalPort());
+    registerInZooKeeper(AddressUtil.toString(address));
+    
     writer = connector.createBatchWriter(table, 100l * 1024 * 1024, 5 * 1000l, 10);
   }
   
