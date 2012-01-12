@@ -155,6 +155,7 @@ public class Constants {
   public static final String CORE_PACKAGE_NAME = "org.apache.accumulo.core";
   public static final String OLD_PACKAGE_NAME = "cloudbase";
   public static final String VALID_TABLE_NAME_REGEX = "^\\w+$";
+  public static final String MAPFILE_EXTENSION = "map";
   
   public static String getBaseDir(AccumuloConfiguration conf) {
     return conf.get(Property.INSTANCE_DFS_DIR);
