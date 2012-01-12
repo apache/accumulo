@@ -38,8 +38,8 @@ You must also create the table, batchtest1, ahead of time. (In the shell, use "c
     $ ./bin/accumulo shell -u username
     > createtable batchtest1
     > exit
-    $ ./bin/accumulo org.apache.accumulo.examples.client.SequentialBatchWriter instance zookeepers username password batchtest1 0 10000 50 20000000 500 20 exampleVis
-    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchScanner instance zookeepers username password batchtest1 100 0 10000 50 20 exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.SequentialBatchWriter instance zookeepers username password batchtest1 0 10000 50 20000000 500 20 exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchScanner instance zookeepers username password batchtest1 100 0 10000 50 20 exampleVis
     07 11:33:11,103 [client.CountingVerifyingReceiver] INFO : Generating 100 random queries...
     07 11:33:11,112 [client.CountingVerifyingReceiver] INFO : finished
     07 11:33:11,260 [client.CountingVerifyingReceiver] INFO : 694.44 lookups/sec   0.14 secs

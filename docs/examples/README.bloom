@@ -39,7 +39,7 @@ Below 1 million random values are inserted into accumulo.  The randomly
 generated rows range between 0 and 1 billion.  The random number generator is
 initialized with the seed 7.
 
-    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 7 instance zookeepers username password bloom_test 1000000 0 1000000000 50 2000000 60000 3 exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchWriter -s 7 instance zookeepers username password bloom_test 1000000 0 1000000000 50 2000000 60000 3 exampleVis
 
 Below the table is flushed:
 
@@ -50,7 +50,7 @@ After the flush completes, 500 random queries are done against the table.  The
 same seed is used to generate the queries, therefore everything is found in the
 table.
 
-    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchScanner -s 7 instance zookeepers username password bloom_test 500 0 1000000000 50 20 exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchScanner -s 7 instance zookeepers username password bloom_test 500 0 1000000000 50 20 exampleVis
     Generating 500 random queries...finished
     96.19 lookups/sec   5.20 secs
     num results : 500
@@ -62,7 +62,7 @@ Below another 500 queries are performed, using a different seed which results
 in nothing being found.  In this case the lookups are much faster because of
 the bloom filters.
 
-    $ ../bin/accumulo org.apache.accumulo.examples.client.RandomBatchScanner -s 8 instance zookeepers username password bloom_test 500 0 1000000000 50 20 exampleVis
+    $ ../bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchScanner -s 8 instance zookeepers username password bloom_test 500 0 1000000000 50 20 exampleVis
     Generating 500 random queries...finished
     2212.39 lookups/sec   0.23 secs
     num results : 0
@@ -113,11 +113,11 @@ The commands for creating the first table without bloom filters are below.
     username@instance bloom_test1> config -t bloom_test1 -s table.compaction.major.ratio=7
     username@instance bloom_test1> exit
 
-    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 7 instance zookeepers username password bloom_test1 1000000 0 1000000000 50 2000000 60000 3 exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchWriter -s 7 instance zookeepers username password bloom_test1 1000000 0 1000000000 50 2000000 60000 3 exampleVis
     $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test1 -w'
-    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 8 instance zookeepers username password bloom_test1 1000000 0 1000000000 50 2000000 60000 3 exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchWriter -s 8 instance zookeepers username password bloom_test1 1000000 0 1000000000 50 2000000 60000 3 exampleVis
     $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test1 -w'
-    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 9 instance zookeepers username password bloom_test1 1000000 0 1000000000 50 2000000 60000 3 exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchWriter -s 9 instance zookeepers username password bloom_test1 1000000 0 1000000000 50 2000000 60000 3 exampleVis
     $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test1 -w'
 
 The commands for creating the second table with bloom filers are below.
@@ -136,18 +136,18 @@ The commands for creating the second table with bloom filers are below.
     username@instance bloom_test2> config -t bloom_test2 -s table.bloom.enabled=true
     username@instance bloom_test2> exit
 
-    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 7 instance zookeepers username password bloom_test2 1000000 0 1000000000 50 2000000 60000 3 exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchWriter -s 7 instance zookeepers username password bloom_test2 1000000 0 1000000000 50 2000000 60000 3 exampleVis
     $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test2 -w'
-    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 8 instance zookeepers username password bloom_test2 1000000 0 1000000000 50 2000000 60000 3 exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchWriter -s 8 instance zookeepers username password bloom_test2 1000000 0 1000000000 50 2000000 60000 3 exampleVis
     $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test2 -w'
-    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchWriter -s 9 instance zookeepers username password bloom_test2 1000000 0 1000000000 50 2000000 60000 3 exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchWriter -s 9 instance zookeepers username password bloom_test2 1000000 0 1000000000 50 2000000 60000 3 exampleVis
     $ ./bin/accumulo shell -u username -p password -e 'flush -t bloom_test2 -w'
 
 Below 500 lookups are done against the table without bloom filters using random
 NG seed 7.  Even though only one map file will likely contain entries for this
 seed, all map files will be interrogated.
 
-    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchScanner -s 7 instance zookeepers username password bloom_test1 500 0 1000000000 50 20 exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchScanner -s 7 instance zookeepers username password bloom_test1 500 0 1000000000 50 20 exampleVis
     Generating 500 random queries...finished
     35.09 lookups/sec  14.25 secs
     num results : 500
@@ -159,7 +159,7 @@ Below the same lookups are done against the table with bloom filters.  The
 lookups were 2.86 times faster because only one map file was used, even though three
 map files existed.
 
-    $ ./bin/accumulo org.apache.accumulo.examples.client.RandomBatchScanner -s 7 instance zookeepers username password bloom_test2 500 0 1000000000 50 20 exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchScanner -s 7 instance zookeepers username password bloom_test2 500 0 1000000000 50 20 exampleVis
     Generating 500 random queries...finished
     99.03 lookups/sec   5.05 secs
     num results : 500
