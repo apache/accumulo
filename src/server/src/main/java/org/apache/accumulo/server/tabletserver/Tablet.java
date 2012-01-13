@@ -2625,8 +2625,10 @@ public class Tablet {
           UtilWaitThread.sleep(500);
         }
       }
-      if (err != null)
-        throw err;
+      if (err != null) {
+        ProblemReports.getInstance().report(new ProblemReport(extent.getTableId().toString(), ProblemType.TABLET_LOAD, this.extent.toString(), err));
+        log.error("Tablet closed consistency check has failed for " + this.extent + " giving up and closing");
+      }
     }
     
     try {
