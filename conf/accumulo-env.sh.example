@@ -28,10 +28,10 @@
 ### on a single machine.
 ###
 
-test -z "$JAVA_HOME"             && export JAVA_HOME=$JAVA_HOME
-test -z "$HADOOP_HOME"           && export HADOOP_HOME=$HADOOP_LOCATION
+test -z "$JAVA_HOME"             && export JAVA_HOME=/path/to/java
+test -z "$HADOOP_HOME"           && export HADOOP_HOME=/path/to/hadoop
+test -z "$ZOOKEEPER_HOME"        && export ZOOKEEPER_HOME=/path/to/zookeeper
 test -z "$ACCUMULO_LOG_DIR"      && export ACCUMULO_LOG_DIR=$ACCUMULO_HOME/logs
-test -z "$ZOOKEEPER_HOME"        && export ZOOKEEPER_HOME="$ZOOKEEPER_HOME"
 if [ -f ${ACCUMULO_HOME}/conf/accumulo.policy ]
 then
    POLICY="-Djava.security.manager -Djava.security.policy=${ACCUMULO_HOME}/conf/accumulo.policy"
