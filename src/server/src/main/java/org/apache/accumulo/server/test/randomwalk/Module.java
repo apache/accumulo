@@ -24,6 +24,7 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -189,7 +190,16 @@ public class Module extends Node {
     }
     
     Node initNode = getNode(initNodeId);
+    
+    boolean test = false;
+    if (initNode instanceof Test) {
+      startTimer(initNode.toString());
+      test = true;
+    }
     initNode.visit(state, getProps(initNodeId));
+    if (test)
+      stopTimer(initNode.toString());
+
     state.visitedNode();
     // update aliases
     Set<String> aliases;
@@ -231,7 +241,14 @@ public class Module extends Node {
         nextNode = ((Alias) nextNode).get();
       }
       try {
+        test = false;
+        if (nextNode instanceof Test) {
+          startTimer(nextNode.toString());
+          test = true;
+        }
         nextNode.visit(state, getProps(nextNodeId));
+        if (test)
+          stopTimer(nextNode.toString());
       } catch (Exception e) {
         throw new Exception("Error running node " + nextNodeId, e);
       }
@@ -252,6 +269,53 @@ public class Module extends Node {
     }
   }
   
+  Thread timer = null;
+  final int time = 5 * 1000 * 60;
+  AtomicBoolean runningLong = new AtomicBoolean(false);
+  long systemTime;
+
+  /**
+   * 
+   */
+  private void startTimer(final String nodeName) {
+    runningLong.set(false);
+    timer = new Thread(new Runnable() {
+
+      @Override
+      public void run() {
+        try {
+          systemTime = System.currentTimeMillis();
+          synchronized (timer) {
+            timer.wait(time);
+          }
+        } catch (InterruptedException ie) {
+          return;
+        }
+        log.warn("Node " + nodeName + " has been running for " + time / 1000.0 + " seconds. You may want to look into it.");
+        runningLong.set(true);
+      }
+      
+    });
+    timer.start();
+  }
+  
+  /**
+   * 
+   */
+  private void stopTimer(String nodeName) {
+    synchronized (timer) {
+      timer.interrupt();
+      try {
+        timer.join();
+      } catch (InterruptedException e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    }
+    if (runningLong.get())
+      log.warn("Node " + nodeName + ", which was running long, has now completed after " + (System.currentTimeMillis() - systemTime) / 1000.0 + " seconds");
+  }
+
   @Override
   public String toString() {
     return xmlFile.toString();
