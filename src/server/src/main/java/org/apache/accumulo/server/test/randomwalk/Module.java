@@ -284,7 +284,6 @@ public class Module extends Node {
       @Override
       public void run() {
         try {
-          log.debug("Starting timer for " + nodeName);
           systemTime = System.currentTimeMillis();
           synchronized (timer) {
             timer.wait(time);
