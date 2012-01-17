@@ -2742,6 +2742,11 @@ public class Tablet {
         timer.incrementStatusMajor();
         start = System.currentTimeMillis();
         majCStats = majorCompact(reason);
+        
+        // if there is more work to be done, queue another major compaction
+        if (needsMajorCompaction(reason))
+          initiateMajorCompaction(reason);
+
       } catch (RuntimeException E) {
         failed = true;
       } finally {
