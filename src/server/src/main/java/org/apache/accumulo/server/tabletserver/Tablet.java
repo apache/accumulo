@@ -2746,8 +2746,10 @@ public class Tablet {
         majCStats = majorCompact(reason);
         
         // if there is more work to be done, queue another major compaction
-        if (needsMajorCompaction(reason))
-          initiateMajorCompaction(reason);
+        synchronized (Tablet.this) {
+          if (reason == MajorCompactionReason.NORMAL && needsMajorCompaction(reason))
+            initiateMajorCompaction(reason);
+        }
 
       } catch (RuntimeException E) {
         failed = true;
