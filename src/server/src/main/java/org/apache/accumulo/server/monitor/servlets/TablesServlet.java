@@ -153,6 +153,7 @@ public class TablesServlet extends BasicServlet {
         }
       }
     }
+    scanner.close();
     log.debug("Locs: " + locs);
     
     List<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
