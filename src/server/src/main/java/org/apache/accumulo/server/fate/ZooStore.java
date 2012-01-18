@@ -409,4 +409,17 @@ public class ZooStore<T> implements TStore<T> {
       throw new RuntimeException(e);
     }
   }
+  
+  public List<Long> list() {
+    try {
+      ArrayList<Long> l = new ArrayList<Long>();
+      List<String> transactions = zk.getChildren(path);
+      for (String txid : transactions) {
+        l.add(parseTid(txid));
+      }
+      return l;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
 }
