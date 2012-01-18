@@ -89,7 +89,7 @@ public class Tables {
   }
   
   public static void clearCache(Instance instance) {
-    getZooCache(instance).clear();
+    getZooCache(instance).clear(ZooUtil.getRoot(instance) + Constants.ZTABLES);
   }
   
   public static String getPrintableTableNameFromId(Map<String,String> tidToNameMap, String tableId) {

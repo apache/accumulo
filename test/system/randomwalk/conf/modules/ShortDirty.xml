@@ -30,6 +30,7 @@
   <edge id="Shard.xml" weight="1"/>
   <edge id="Concurrent.xml" weight="1"/>
   <edge id="Security.xml" weight="1"/>
+  <edge id="Bulk.xml" weight="1"/>
 </node>
 
 <node id="Sequential.xml" maxSec="300" teardown="false">
@@ -49,6 +50,10 @@
 </node>
 
 <node id="Security.xml" maxSec="300" teardown="false">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="Bulk.xml" maxSec="300" teardown="false">
   <edge id="dummy.ToAll" weight="1"/>
 </node>
 
