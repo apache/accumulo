@@ -845,7 +845,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       }
       for (TServerInstance instance : tserverSet.getCurrentServers()) {
         if (serverName.equals(instance.hostPort())) {
-          nextEvent.event("%s reported split %s, %s", serverName, new KeyExtent(split.newTablets.get(0)), new KeyExtent(split.newTablets.get(0)));
+          nextEvent.event("%s reported split %s, %s", serverName, new KeyExtent(split.newTablets.get(0)), new KeyExtent(split.newTablets.get(1)));
           return;
         }
       }
@@ -1654,6 +1654,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         BatchDeleter bd = conn.createBatchDeleter(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS, 4, 100000l, 1000l, 4);
         bd.setRanges(Collections.singleton(deleteRange));
         bd.delete();
+        bd.close();
         
         if (followingTablet != null) {
           log.debug("Updating prevRow of " + followingTablet + " to " + range.getPrevEndRow());

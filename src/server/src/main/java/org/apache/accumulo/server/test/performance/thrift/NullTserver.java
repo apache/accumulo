@@ -215,6 +215,7 @@ public class NullTserver {
       TabletLocationState next = s.next();
       assignments.add(new Assignment(next.extent, instance));
     }
+    s.close();
     // point them to this server
     MetaDataStateStore store = new MetaDataStateStore(null);
     store.setLocations(assignments);

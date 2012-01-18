@@ -123,16 +123,20 @@ class CleanUp extends MasterRepo {
       // look for other tables that references this tables files
       Connector conn = instance.getConnector(SecurityConstants.getSystemCredentials());
       BatchScanner bs = conn.createBatchScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS, 8);
-      bs.setRanges(Collections.singleton(Constants.NON_ROOT_METADATA_KEYSPACE));
-      bs.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
-      IteratorSetting cfg = new IteratorSetting(40, "grep", GrepIterator.class);
-      GrepIterator.setTerm(cfg, "../" + tableId + "/");
-      bs.addScanIterator(cfg);
-      
-      for (Entry<Key,Value> entry : bs) {
-        if (entry.getKey().getColumnQualifier().toString().startsWith("../" + tableId + "/")) {
-          refCount++;
+      try {
+        bs.setRanges(Collections.singleton(Constants.NON_ROOT_METADATA_KEYSPACE));
+        bs.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
+        IteratorSetting cfg = new IteratorSetting(40, "grep", GrepIterator.class);
+        GrepIterator.setTerm(cfg, "../" + tableId + "/");
+        bs.addScanIterator(cfg);
+        
+        for (Entry<Key,Value> entry : bs) {
+          if (entry.getKey().getColumnQualifier().toString().startsWith("../" + tableId + "/")) {
+            refCount++;
+          }
         }
+      } finally {
+        bs.close();
       }
       
     } catch (Exception e) {

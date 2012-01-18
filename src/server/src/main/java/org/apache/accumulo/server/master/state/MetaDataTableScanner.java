@@ -80,8 +80,10 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   }
   
   public void close() {
-    mdScanner.close();
-    iter = null;
+    if (iter != null) {
+      mdScanner.close();
+      iter = null;
+    }
   }
   
   public void finalize() {
@@ -90,15 +92,27 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   
   @Override
   public boolean hasNext() {
+    if (iter == null)
+      return false;
     boolean result = iter.hasNext();
-    if (!result)
-      mdScanner.close();
+    if (!result) {
+      close();
+    }
     return result;
   }
   
   @Override
   public TabletLocationState next() {
-    return fetch();
+    try {
+      return fetch();
+    } catch (RuntimeException ex) {
+      try {
+        close();
+      } catch (Exception e) {
+        log.error(e, e);
+      }
+      throw ex;
+    }
   }
   
   public static TabletLocationState createTabletLocationState(SortedMap<Key,Value> decodedRow) {
