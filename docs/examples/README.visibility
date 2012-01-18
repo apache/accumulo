@@ -109,3 +109,23 @@ The default authorizations for a scan are the user's entire set of authorization
     row f3:q3 [(apple&carrot)|broccoli|spinach]    v3
     username@instance vistest> scan -s B
     username@instance vistest> 
+    
+If you want, you can limit a user to only be able to insert data which they can read themselves.
+It can be set with the following constraint.
+
+    username@instance vistest> user root
+    Enter password for user root: ******
+    root@instance vistest> config -t vistest -s table.constraint.1=org.apache.accumulo.core.security.VisibilityConstraint    
+    root@instance vistest> user username
+    Enter password for user username: ********
+    username@instance vistest> insert row f4 q4 v4 -l spinach                                                                
+        Constraint Failures:
+            ConstraintViolationSummary(constrainClass:org.apache.accumulo.core.security.VisibilityConstraint, violationCode:2, violationDescription:User does not have authorization on column visibility, numberOfViolatingMutations:1)
+    username@instance vistest> insert row f4 q4 v4 -l spinach|broccoli
+    username@instance vistest> scan
+    row f1:q1 [A]    v1
+    row f2:q2 [A&B]    v2
+    row f3:q3 [(apple&carrot)|broccoli|spinach]    v3
+    row f4:q4 [spinach|broccoli]    v4
+    username@instance vistest> 
+    
