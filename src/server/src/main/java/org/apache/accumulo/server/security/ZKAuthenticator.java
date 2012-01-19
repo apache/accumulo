@@ -338,7 +338,11 @@ public final class ZKAuthenticator implements Authenticator {
       return Constants.NO_AUTHS;
     
     if (userExists(user))
-      return Tool.convertAuthorizations(zooCache.get(ZKUserPath + "/" + user + ZKUserAuths));
+      try {
+        return Tool.convertAuthorizations(zooCache.get(ZKUserPath + "/" + user + ZKUserAuths));
+      } catch (IllegalArgumentException iae) {
+        // User was deleted between checking existance and grabbing auths.
+      }
     throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
   
@@ -400,14 +404,18 @@ public final class ZKAuthenticator implements Authenticator {
     // Don't let nonexistant users scan
     if (!userExists(user))
       throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
-      
+
     // allow anybody to read the METADATA table
     if (table.equals(Constants.METADATA_TABLE_ID) && permission.equals(TablePermission.READ))
       return true;
     
     byte[] serializedPerms = zooCache.get(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table);
     if (serializedPerms != null) {
-      return Tool.convertTablePermissions(serializedPerms).contains(permission);
+      try {
+        return Tool.convertTablePermissions(serializedPerms).contains(permission);
+      } catch (IllegalArgumentException iae) {
+        throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
+      }
     }
     return false;
   }
@@ -425,8 +433,8 @@ public final class ZKAuthenticator implements Authenticator {
       throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.GRANT_INVALID);
     
     if (userExists(user)) {
-      Set<SystemPermission> perms = Tool.convertSystemPermissions(zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms));
       try {
+        Set<SystemPermission> perms = Tool.convertSystemPermissions(zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms));
         if (perms.add(permission)) {
           synchronized (zooCache) {
             zooCache.clear();
@@ -435,6 +443,10 @@ public final class ZKAuthenticator implements Authenticator {
           }
         }
         log.info("Granted system permission " + permission + " for user " + user + " at the request of user " + credentials.user);
+        return;
+      } catch (IllegalArgumentException iae) {
+        // User was deleted between checking existance and grabbing auths.
+        // Exception at end handles this
       } catch (KeeperException e) {
         log.error(e, e);
         throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
@@ -442,10 +454,10 @@ public final class ZKAuthenticator implements Authenticator {
         log.error(e, e);
         throw new RuntimeException(e);
       }
-    } else
-      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
+    }
+    throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
-  
+
   @Override
   public void grantTablePermission(AuthInfo credentials, String user, String table, TablePermission permission) throws AccumuloSecurityException {
     if (!hasSystemPermission(credentials, credentials.user, SystemPermission.ALTER_USER)
@@ -483,7 +495,7 @@ public final class ZKAuthenticator implements Authenticator {
     } else
       throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
-  
+
   @Override
   public void revokeSystemPermission(AuthInfo credentials, String user, SystemPermission permission) throws AccumuloSecurityException {
     if (!hasSystemPermission(credentials, credentials.user, SystemPermission.GRANT))
@@ -495,10 +507,10 @@ public final class ZKAuthenticator implements Authenticator {
     
     if (permission.equals(SystemPermission.GRANT))
       throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.GRANT_INVALID);
-    
+
     if (userExists(user)) {
-      Set<SystemPermission> sysPerms = Tool.convertSystemPermissions(zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms));
       try {
+        Set<SystemPermission> sysPerms = Tool.convertSystemPermissions(zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms));
         if (sysPerms.remove(permission)) {
           synchronized (zooCache) {
             zooCache.clear();
@@ -507,6 +519,10 @@ public final class ZKAuthenticator implements Authenticator {
           }
         }
         log.info("Revoked system permission " + permission + " for user " + user + " at the request of user " + credentials.user);
+      } catch (IllegalArgumentException iae) {
+        // User was deleted between checking and pulling from the zooCache
+        throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST);
+
       } catch (KeeperException e) {
         log.error(e, e);
         throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
@@ -517,7 +533,7 @@ public final class ZKAuthenticator implements Authenticator {
     } else
       throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST);
   }
-  
+
   @Override
   public void revokeTablePermission(AuthInfo credentials, String user, String table, TablePermission permission) throws AccumuloSecurityException {
     if (!hasSystemPermission(credentials, credentials.user, SystemPermission.ALTER_USER)
@@ -555,7 +571,7 @@ public final class ZKAuthenticator implements Authenticator {
     } else
       throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST);
   }
-  
+
   @Override
   public void deleteTable(AuthInfo credentials, String table) throws AccumuloSecurityException {
     if (!hasSystemPermission(credentials, credentials.user, SystemPermission.DROP_TABLE)
@@ -577,7 +593,7 @@ public final class ZKAuthenticator implements Authenticator {
       throw new RuntimeException(e);
     }
   }
-  
+
   /**
    * All the static too methods used for this class, so that we can separate out stuff that isn't using ZooKeeper. That way, we can check the synchronization
    * model more easily, as we only need to check to make sure zooCache is cleared when things are written to ZooKeeper in methods that might use it. These
@@ -644,7 +660,7 @@ public final class ZKAuthenticator implements Authenticator {
     public static byte[] convertAuthorizations(Authorizations authorizations) {
       return authorizations.getAuthorizationsArray();
     }
-    
+
     public static byte[] convertSystemPermissions(Set<SystemPermission> systempermissions) {
       ByteArrayOutputStream bytes = new ByteArrayOutputStream(systempermissions.size());
       DataOutputStream out = new DataOutputStream(bytes);
@@ -692,12 +708,12 @@ public final class ZKAuthenticator implements Authenticator {
       return toReturn;
     }
   }
-  
+
   @Override
   public void clearCache(String user) {
     zooCache.clear(ZKUserPath + "/" + user);
   }
-  
+
   @Override
   public void clearCache(String user, String tableId) {
     zooCache.clear(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + tableId);
