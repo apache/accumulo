@@ -29,6 +29,8 @@ public class VersioningIterator extends org.apache.accumulo.core.iterators.user.
   public VersioningIterator() {}
   
   public VersioningIterator(SortedKeyValueIterator<Key,Value> iterator, int maxVersions) {
-    super(iterator, maxVersions);
+    super();
+    this.setSource(iterator);
+    this.maxVersions = maxVersions;
   }
 }

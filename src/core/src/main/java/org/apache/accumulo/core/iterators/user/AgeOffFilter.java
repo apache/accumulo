@@ -37,26 +37,6 @@ public class AgeOffFilter extends Filter {
   private long threshold;
   private long currentTime;
   
-  public AgeOffFilter() {}
-  
-  /**
-   * Constructs a filter that omits entries read from a source iterator if the Key's timestamp is less than currentTime - threshold.
-   * 
-   * @param iterator
-   *          The source iterator.
-   * 
-   * @param threshold
-   *          Maximum age in milliseconds of data to keep.
-   * 
-   * @param threshold
-   *          Current time in milliseconds.
-   */
-  private AgeOffFilter(SortedKeyValueIterator<Key,Value> iterator, long threshold, long currentTime) {
-    setSource(iterator);
-    this.threshold = threshold;
-    this.currentTime = currentTime;
-  }
-  
   /**
    * Accepts entries whose timestamps are less than currentTime - threshold.
    * 
@@ -93,7 +73,10 @@ public class AgeOffFilter extends Filter {
   
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new AgeOffFilter(getSource(), threshold, currentTime);
+    AgeOffFilter copy = (AgeOffFilter) super.deepCopy(env);
+    copy.currentTime = currentTime;
+    copy.threshold = threshold;
+    return copy;
   }
   
   @Override

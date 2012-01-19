@@ -279,6 +279,74 @@ public class CombinerTest {
   }
   
   @Test
+  public void testDeepCopy() throws IOException {
+    Encoder<Long> encoder = LongCombiner.FIXED_LEN_ENCODER;
+    
+    TreeMap<Key,Value> tm1 = new TreeMap<Key,Value>();
+    
+    // keys that aggregate
+    nkv(tm1, 1, 1, 1, 1, false, 2l, encoder);
+    nkv(tm1, 1, 1, 1, 2, false, 3l, encoder);
+    nkv(tm1, 1, 1, 1, 3, false, 4l, encoder);
+    
+    // keys that do not aggregate
+    nkv(tm1, 2, 2, 1, 1, false, 2l, encoder);
+    nkv(tm1, 2, 2, 1, 2, false, 3l, encoder);
+    
+    Combiner ai = new SummingCombiner();
+    
+    IteratorSetting is = new IteratorSetting(1, SummingCombiner.class);
+    LongCombiner.setEncodingType(is, FixedLenEncoder.class.getName());
+    Combiner.setColumns(is, Collections.singletonList(new IteratorSetting.Column("cf001")));
+    
+    ai.init(new SortedMapIterator(tm1), is.getProperties(), null);
+    
+    SortedKeyValueIterator<Key,Value> ai2 = ai.deepCopy(null);
+    SortedKeyValueIterator<Key,Value> ai3 = ai.deepCopy(null);
+    ai.seek(new Range(), EMPTY_COL_FAMS, false);
+    
+    assertTrue(ai.hasTop());
+    assertEquals(nk(1, 1, 1, 3), ai.getTopKey());
+    assertEquals("9", encoder.decode(ai.getTopValue().get()).toString());
+    
+    ai.next();
+    
+    assertTrue(ai.hasTop());
+    assertEquals(nk(2, 2, 1, 2), ai.getTopKey());
+    assertEquals("3", encoder.decode(ai.getTopValue().get()).toString());
+    
+    ai.next();
+    
+    assertTrue(ai.hasTop());
+    assertEquals(nk(2, 2, 1, 1), ai.getTopKey());
+    assertEquals("2", encoder.decode(ai.getTopValue().get()).toString());
+    
+    ai.next();
+    
+    assertFalse(ai.hasTop());
+    
+    // seek after key that aggregates
+    ai2.seek(nr(1, 1, 1, 2), EMPTY_COL_FAMS, false);
+    
+    assertTrue(ai2.hasTop());
+    assertEquals(nk(2, 2, 1, 2), ai2.getTopKey());
+    assertEquals("3", encoder.decode(ai2.getTopValue().get()).toString());
+    
+    // seek before key that aggregates
+    ai3.seek(nr(1, 1, 1, 4), EMPTY_COL_FAMS, false);
+    
+    assertTrue(ai3.hasTop());
+    assertEquals(nk(1, 1, 1, 3), ai3.getTopKey());
+    assertEquals("9", encoder.decode(ai3.getTopValue().get()).toString());
+    
+    ai3.next();
+    
+    assertTrue(ai3.hasTop());
+    assertEquals(nk(2, 2, 1, 2), ai3.getTopKey());
+    assertEquals("3", encoder.decode(ai3.getTopValue().get()).toString());
+  }
+  
+  @Test
   public void test4() throws IOException {
     Encoder<Long> encoder = LongCombiner.STRING_ENCODER;
     

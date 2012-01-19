@@ -145,6 +145,14 @@ public abstract class TypedValueCombiner<V> extends Combiner {
     }
   }
   
+  @SuppressWarnings("unchecked")
+  @Override
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    TypedValueCombiner<V> newInstance = (TypedValueCombiner<V>) super.deepCopy(env);
+    newInstance.setEncoder(encoder);
+    return newInstance;
+  }
+  
   @Override
   public Value reduce(Key key, Iterator<Value> iter) {
     return new Value(encoder.encode(typedReduce(key, new VIterator<V>(iter, encoder))));
