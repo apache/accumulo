@@ -337,12 +337,11 @@ public final class ZKAuthenticator implements Authenticator {
     if (user.equals(SecurityConstants.SYSTEM_USERNAME))
       return Constants.NO_AUTHS;
     
-    if (userExists(user))
-      try {
-        return Tool.convertAuthorizations(zooCache.get(ZKUserPath + "/" + user + ZKUserAuths));
-      } catch (IllegalArgumentException iae) {
-        // User was deleted between checking existance and grabbing auths.
-      }
+    if (userExists(user)) {
+      byte[] authsBytes = zooCache.get(ZKUserPath + "/" + user + ZKUserAuths);
+      if (authsBytes != null)
+        return Tool.convertAuthorizations(authsBytes);
+    }
     throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
   
@@ -411,11 +410,7 @@ public final class ZKAuthenticator implements Authenticator {
     
     byte[] serializedPerms = zooCache.get(ZKUserPath + "/" + user + ZKUserTablePerms + "/" + table);
     if (serializedPerms != null) {
-      try {
-        return Tool.convertTablePermissions(serializedPerms).contains(permission);
-      } catch (IllegalArgumentException iae) {
-        throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
-      }
+      return Tool.convertTablePermissions(serializedPerms).contains(permission);
     }
     return false;
   }
@@ -434,7 +429,12 @@ public final class ZKAuthenticator implements Authenticator {
     
     if (userExists(user)) {
       try {
-        Set<SystemPermission> perms = Tool.convertSystemPermissions(zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms));
+        byte[] permBytes = zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms);
+        if (permBytes == null) {
+          throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
+        }
+
+        Set<SystemPermission> perms = Tool.convertSystemPermissions(permBytes);
         if (perms.add(permission)) {
           synchronized (zooCache) {
             zooCache.clear();
@@ -443,10 +443,6 @@ public final class ZKAuthenticator implements Authenticator {
           }
         }
         log.info("Granted system permission " + permission + " for user " + user + " at the request of user " + credentials.user);
-        return;
-      } catch (IllegalArgumentException iae) {
-        // User was deleted between checking existance and grabbing auths.
-        // Exception at end handles this
       } catch (KeeperException e) {
         log.error(e, e);
         throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
@@ -454,8 +450,8 @@ public final class ZKAuthenticator implements Authenticator {
         log.error(e, e);
         throw new RuntimeException(e);
       }
-    }
-    throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
+    } else
+      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }
 
   @Override
@@ -509,8 +505,13 @@ public final class ZKAuthenticator implements Authenticator {
       throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.GRANT_INVALID);
 
     if (userExists(user)) {
+      byte[] sysPermBytes = zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms);
+      if (sysPermBytes == null)
+        throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST);
+
+      Set<SystemPermission> sysPerms = Tool.convertSystemPermissions(sysPermBytes);
+
       try {
-        Set<SystemPermission> sysPerms = Tool.convertSystemPermissions(zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms));
         if (sysPerms.remove(permission)) {
           synchronized (zooCache) {
             zooCache.clear();
@@ -519,10 +520,6 @@ public final class ZKAuthenticator implements Authenticator {
           }
         }
         log.info("Revoked system permission " + permission + " for user " + user + " at the request of user " + credentials.user);
-      } catch (IllegalArgumentException iae) {
-        // User was deleted between checking and pulling from the zooCache
-        throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.USER_DOESNT_EXIST);
-
       } catch (KeeperException e) {
         log.error(e, e);
         throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
