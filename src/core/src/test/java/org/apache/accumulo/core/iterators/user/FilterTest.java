@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -25,8 +28,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.TreeMap;
-
-import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -43,13 +44,14 @@ import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
+import org.junit.Test;
 
-public class FilterTest extends TestCase {
+public class FilterTest {
   
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
   private static final Map<String,String> EMPTY_OPTS = new HashMap<String,String>();
   
-  public class SimpleFilter extends Filter {
+  public static class SimpleFilter extends Filter {
     public boolean accept(Key k, Value v) {
       // System.out.println(k.getRow());
       if (k.getRow().toString().endsWith("0"))
@@ -58,7 +60,7 @@ public class FilterTest extends TestCase {
     }
   }
   
-  public class SimpleFilter2 extends Filter {
+  public static class SimpleFilter2 extends Filter {
     public boolean accept(Key k, Value v) {
       if (k.getColumnFamily().toString().equals("a"))
         return false;
@@ -76,6 +78,7 @@ public class FilterTest extends TestCase {
     return size;
   }
   
+  @Test
   public void test1() throws IOException {
     Text colf = new Text("a");
     Text colq = new Text("b");
@@ -110,6 +113,7 @@ public class FilterTest extends TestCase {
     assertTrue("size = " + size, size == 0);
   }
   
+  @Test
   public void test1neg() throws IOException {
     Text colf = new Text("a");
     Text colq = new Text("b");
@@ -122,32 +126,59 @@ public class FilterTest extends TestCase {
     }
     assertTrue(tm.size() == 1000);
     
-    Filter filter1 = new SimpleFilter();
+    Filter filter = new SimpleFilter();
     
     IteratorSetting is = new IteratorSetting(1, SimpleFilter.class);
     Filter.setNegate(is, true);
     
-    filter1.init(new SortedMapIterator(tm), is.getProperties(), null);
-    filter1.seek(new Range(), EMPTY_COL_FAMS, false);
-    int size = size(filter1);
+    filter.init(new SortedMapIterator(tm), is.getProperties(), null);
+    filter.seek(new Range(), EMPTY_COL_FAMS, false);
+    int size = size(filter);
     assertTrue("size = " + size, size == 900);
     
-    Filter fi = new SimpleFilter();
-    fi.init(new SortedMapIterator(tm), is.getProperties(), null);
+    filter.init(new SortedMapIterator(tm), is.getProperties(), null);
     Key k = new Key(new Text("500"));
-    fi.seek(new Range(k, null), EMPTY_COL_FAMS, false);
-    size = size(fi);
+    filter.seek(new Range(k, null), EMPTY_COL_FAMS, false);
+    size = size(filter);
     assertTrue("size = " + size, size == 450);
     
-    filter1 = new SimpleFilter();
-    filter1.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
+    filter.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
     Filter filter2 = new SimpleFilter2();
-    filter2.init(filter1, is.getProperties(), null);
+    filter2.init(filter, is.getProperties(), null);
     filter2.seek(new Range(), EMPTY_COL_FAMS, false);
     size = size(filter2);
     assertTrue("size = " + size, size == 100);
   }
   
+  @Test
+  public void testDeepCopy() throws IOException {
+    Text colf = new Text("a");
+    Text colq = new Text("b");
+    Value dv = new Value();
+    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    
+    for (int i = 0; i < 1000; i++) {
+      Key k = new Key(new Text(String.format("%03d", i)), colf, colq);
+      tm.put(k, dv);
+    }
+    assertTrue(tm.size() == 1000);
+    
+    SimpleFilter filter = new SimpleFilter();
+    
+    IteratorSetting is = new IteratorSetting(1, SimpleFilter.class);
+    Filter.setNegate(is, true);
+    
+    filter.init(new SortedMapIterator(tm), is.getProperties(), null);
+    SortedKeyValueIterator<Key,Value> copy = filter.deepCopy(null);
+    filter.seek(new Range(), EMPTY_COL_FAMS, false);
+    int size = size(filter);
+    assertTrue("size = " + size, size == 900);
+    copy.seek(new Range(), EMPTY_COL_FAMS, false);
+    size = size(copy);
+    assertTrue("size = " + size, size == 900);
+  }
+  
+  @Test
   public void test2() throws IOException {
     Text colf = new Text("a");
     Text colq = new Text("b");
@@ -161,15 +192,21 @@ public class FilterTest extends TestCase {
     }
     assertTrue(tm.size() == 1000);
     
-    AgeOffFilter a = new AgeOffFilter();
+    SortedKeyValueIterator<Key,Value> a = new AgeOffFilter();
     IteratorSetting is = new IteratorSetting(1, AgeOffFilter.class);
     AgeOffFilter.setTTL(is, 101l);
     AgeOffFilter.setCurrentTime(is, 1001l);
+    AgeOffFilter.setNegate(is, true);
     a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a = a.deepCopy(null);
+    SortedKeyValueIterator<Key,Value> copy = a.deepCopy(null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
-    assertEquals(size(a), 100);
+    assertEquals(size(a), 900);
+    copy.seek(new Range(), EMPTY_COL_FAMS, false);
+    assertEquals(size(copy), 900);
   }
   
+  @Test
   public void test2a() throws IOException {
     Text colf = new Text("a");
     Text colq = new Text("b");
@@ -199,11 +236,13 @@ public class FilterTest extends TestCase {
     
     ColumnAgeOffFilter.removeTTL(is, new IteratorSetting.Column("a", "b"));
     a.init(new SortedMapIterator(tm), is.getProperties(), new DefaultIteratorEnvironment());
+    a = (ColumnAgeOffFilter) a.deepCopy(null);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 902);
   }
   
+  @Test
   public void test3() throws IOException {
     Value dv = new Value();
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
@@ -248,6 +287,7 @@ public class FilterTest extends TestCase {
     assertTrue("size was " + size, size == 1000);
   }
   
+  @Test
   public void test4() throws IOException {
     Value dv = new Value();
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
@@ -283,6 +323,7 @@ public class FilterTest extends TestCase {
     return a;
   }
   
+  @Test
   public void test5() throws IOException {
     Value dv = new Value();
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
@@ -314,6 +355,7 @@ public class FilterTest extends TestCase {
     assertTrue(size == 3);
   }
   
+  @Test
   public void testNoVisFilter() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
     Value v = new Value();
@@ -330,6 +372,7 @@ public class FilterTest extends TestCase {
     assertTrue("size = " + size, size == 100);
   }
   
+  @Test
   public void testTimestampFilter() throws IOException, ParseException {
     Text colf = new Text("a");
     Text colq = new Text("b");
@@ -356,6 +399,7 @@ public class FilterTest extends TestCase {
     IteratorSetting is = new IteratorSetting(1, TimestampFilter.class);
     TimestampFilter.setRange(is, "19990101010011GMT+01:00", "19990101010031GMT+01:00");
     a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a = (TimestampFilter) a.deepCopy(null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 21);
     TimestampFilter.setRange(is, baseTime + 11000, baseTime + 31000);

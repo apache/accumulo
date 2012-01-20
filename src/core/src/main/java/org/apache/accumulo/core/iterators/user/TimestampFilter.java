@@ -54,17 +54,6 @@ public class TimestampFilter extends Filter {
   
   public TimestampFilter() {}
   
-  private TimestampFilter(SortedKeyValueIterator<Key,Value> iterator, boolean hasStart, long start, boolean startInclusive, boolean hasEnd, long end,
-      boolean endInclusive) {
-    setSource(iterator);
-    this.start = start;
-    this.startInclusive = startInclusive;
-    this.hasStart = true;
-    this.end = end;
-    this.endInclusive = endInclusive;
-    this.hasEnd = true;
-  }
-  
   @Override
   public boolean accept(Key k, Value v) {
     long ts = k.getTimestamp();
@@ -112,7 +101,14 @@ public class TimestampFilter extends Filter {
   
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new TimestampFilter(getSource(), hasStart, start, startInclusive, hasEnd, end, endInclusive);
+    TimestampFilter copy = (TimestampFilter) super.deepCopy(env);
+    copy.hasStart = hasStart;
+    copy.start = start;
+    copy.startInclusive = startInclusive;
+    copy.hasEnd = hasEnd;
+    copy.end = end;
+    copy.endInclusive = endInclusive;
+    return copy;
   }
   
   @Override

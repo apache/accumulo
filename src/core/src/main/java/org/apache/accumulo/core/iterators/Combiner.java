@@ -228,6 +228,20 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   }
   
   @Override
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    Combiner newInstance;
+    try {
+      newInstance = this.getClass().newInstance();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    newInstance.setSource(getSource().deepCopy(env));
+    newInstance.combiners = combiners;
+    newInstance.combineAllColumns = combineAllColumns;
+    return newInstance;
+  }
+  
+  @Override
   public IteratorOptions describeOptions() {
     IteratorOptions io = new IteratorOptions("comb", "Combiners apply reduce functions to values with identical keys", null, null);
     io.addNamedOption(ALL_OPTION, "set to true to apply Combiner to every column, otherwise leave blank. if true, " + COLUMNS_OPTION

@@ -16,8 +16,11 @@
  */
 package org.apache.accumulo.server.test.randomwalk.bulk;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -34,7 +37,7 @@ import org.apache.log4j.Logger;
 
 public class BulkPlusOne extends BulkTest {
   
-  public static final long LOTS = 100000;
+  public static final int LOTS = 100000;
   public static final int COLS = 10;
   public static final int HEX_SIZE = (int) Math.ceil(Math.log(LOTS) / Math.log(16));
   public static final String FMT = "r%0" + HEX_SIZE + "x";
@@ -47,25 +50,36 @@ public class BulkPlusOne extends BulkTest {
     FileSystem fs = (FileSystem) state.get("fs");
     fs.mkdirs(fail);
     int parts = rand.nextInt(10) + 1;
-    long ctr = 0;
-    log.debug("preparing bulk file with " + parts + " parts");
+    
+    TreeSet<Integer> startRows = new TreeSet<Integer>();
+    startRows.add(0);
+    while (startRows.size() < parts)
+      startRows.add(rand.nextInt(LOTS));
+    
+    List<String> printRows = new ArrayList<String>(startRows.size());
+    for (Integer row : startRows)
+      printRows.add(String.format(FMT, row));
+    
+    log.debug("preparing bulk files with start rows " + printRows + " last row " + String.format(FMT, LOTS - 1));
     String cols[] = new String[COLS];
     for (int i = 0; i < cols.length; i++) {
       cols[i] = String.format("%03d", i);
     }
     
+    List<Integer> rows = new ArrayList<Integer>(startRows);
+    rows.add(LOTS);
+
     for (int i = 0; i < parts; i++) {
       FileSKVWriter f = FileOperations.getInstance().openWriter(dir + "/" + String.format("part_%d.", i) + RFile.EXTENSION, fs, fs.getConf(),
           AccumuloConfiguration.getDefaultConfiguration());
       f.startDefaultLocalityGroup();
-      int end = (int) LOTS / parts;
-      if (i == parts - 1)
-        end = (int) (LOTS - ctr);
-      for (int j = 0; j < end; j++) {
+      int start = rows.get(i);
+      int end = rows.get(i + 1);
+      for (int j = start; j < end; j++) {
+        String row = String.format(FMT, j);
         for (String col : cols) {
-          f.append(new Key(String.format(FMT, ctr), "cf", col), value);
+          f.append(new Key(row, "cf", col), value);
         }
-        ctr++;
       }
       f.close();
     }
