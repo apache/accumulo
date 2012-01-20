@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.test.randomwalk.bulk;
 
+import java.net.InetAddress;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -46,7 +47,9 @@ public class Setup extends Test {
   @Override
   public void visit(State state, Properties props) throws Exception {
     Random rand = new Random();
-    tableName = Integer.toHexString(Math.abs(rand.nextInt()));
+    String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
+    String pid = state.getPid();
+    tableName = String.format("bulk_%s_%s_%d", hostname, pid, System.currentTimeMillis());
     log.info("Starting bulk test on " + tableName);
     
     List<PerColumnIteratorConfig> aggregators = Collections.singletonList(new PerColumnIteratorConfig(new Text("cf".getBytes()), null,

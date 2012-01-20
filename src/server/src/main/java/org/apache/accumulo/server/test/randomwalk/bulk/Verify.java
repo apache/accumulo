@@ -51,6 +51,7 @@ public class Verify extends Test {
         throw new Exception("Bad key at " + entry);
     }
     log.info("Test successful on table " + Setup.getTableName());
+    state.getConnector().tableOperations().delete(Setup.getTableName());
   }
   
 }
