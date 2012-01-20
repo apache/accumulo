@@ -36,7 +36,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.accumulo.core.security.VisibilityConstraint;
 import org.apache.accumulo.core.util.BadArgumentException;
-import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -132,12 +131,13 @@ public class CreateTableCommand extends Command {
     TimeType timeType = TimeType.MILLIS;
     if (cl.hasOption(createTableOptTimeLogical.getOpt()))
       timeType = TimeType.LOGICAL;
-
     
     // create table
     shellState.getConnector().tableOperations().create(tableName, true, timeType);
-    shellState.getConnector().tableOperations().addSplits(tableName, partitions);
-    shellState.getConnector().tableOperations().addAggregators(tableName, aggregators);
+    if (partitions.size() > 0)
+      shellState.getConnector().tableOperations().addSplits(tableName, partitions);
+    if (aggregators.size() > 0)
+      shellState.getConnector().tableOperations().addAggregators(tableName, aggregators);
     
     shellState.setTableName(tableName); // switch shell to new table
     // context
@@ -179,15 +179,15 @@ public class CreateTableCommand extends Command {
         shellState.getConnector().tableOperations()
             .setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.getKey() + (max + 1), VisibilityConstraint.class.getName());
     }
-
+    
     // Load custom formatter if set
     if (cl.hasOption(createTableOptFormatter.getOpt())) {
-        String formatterClass = cl.getOptionValue(createTableOptFormatter.getOpt());
-        
-        shellState.setFormatterClass(tableName, AccumuloClassLoader.loadClass(formatterClass, Formatter.class));
-        
-        shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.toString(), formatterClass);   
-    }    
+      String formatterClass = cl.getOptionValue(createTableOptFormatter.getOpt());
+      
+      shellState.setFormatterClass(tableName, AccumuloClassLoader.loadClass(formatterClass, Formatter.class));
+      
+      shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.toString(), formatterClass);
+    }
     
     return 0;
   }

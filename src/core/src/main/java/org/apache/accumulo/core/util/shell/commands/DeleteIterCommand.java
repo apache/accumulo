@@ -46,7 +46,7 @@ public class DeleteIterCommand extends Command {
     }
     
     String name = cl.getOptionValue(nameOpt.getOpt());
-    if (!shellState.getConnector().tableOperations().listIterators(tableName).contains(name)) {
+    if (!shellState.getConnector().tableOperations().listIterators(tableName).containsKey(name)) {
       Shell.log.warn("no iterators found that match your criteria");
       return 0;
     }
