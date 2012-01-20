@@ -522,7 +522,7 @@ public interface TableOperations {
    * @throws AccumuloException
    * @throws TableNotFoundException
    */
-  public Set<String> listIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+  public Map<String,EnumSet<IteratorScope>> listIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
   
   /**
    * Check whether a given iterator configuration conflicts with existing configuration; in particular, determine if the name or priority are already in use for

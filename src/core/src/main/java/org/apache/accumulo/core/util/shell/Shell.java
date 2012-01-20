@@ -102,6 +102,7 @@ import org.apache.accumulo.core.util.shell.commands.HistoryCommand;
 import org.apache.accumulo.core.util.shell.commands.ImportDirectoryCommand;
 import org.apache.accumulo.core.util.shell.commands.InfoCommand;
 import org.apache.accumulo.core.util.shell.commands.InsertCommand;
+import org.apache.accumulo.core.util.shell.commands.ListIterCommand;
 import org.apache.accumulo.core.util.shell.commands.ListScansCommand;
 import org.apache.accumulo.core.util.shell.commands.MasterStateCommand;
 import org.apache.accumulo.core.util.shell.commands.MaxRowCommand;
@@ -165,7 +166,7 @@ public class Shell {
   private AuthInfo credentials;
   private Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   private Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
-  private Map<String, Class<? extends Formatter>> tableFormatters = new HashMap<String, Class<? extends Formatter>>();
+  private Map<String,Class<? extends Formatter>> tableFormatters = new HashMap<String,Class<? extends Formatter>>();
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
   
   private Token rootToken;
@@ -356,12 +357,12 @@ public class Shell {
         new DeleteTableCommand(), new DeleteUserCommand(), new DropTableCommand(), new DropUserCommand(), new DUCommand(), new EGrepCommand(),
         new ExecfileCommand(), new ExitCommand(), new FlushCommand(), new FormatterCommand(), new GetAuthsCommand(), new GetGroupsCommand(),
         new GetSplitsCommand(), new GrantCommand(), new GrepCommand(), new HelpCommand(), new HiddenCommand(), new HistoryCommand(),
-        new ImportDirectoryCommand(), new InfoCommand(), new InsertCommand(), new ListScansCommand(), new MasterStateCommand(), new MaxRowCommand(),
-        new MergeCommand(), new NoTableCommand(), new OfflineCommand(), new OnlineCommand(), new PasswdCommand(), new QuestionCommand(), new QuitCommand(),
-        new RenameTableCommand(), new RevokeCommand(), new ScanCommand(), new SelectCommand(), new SelectrowCommand(), new SetAuthsCommand(),
-        new SetGroupsCommand(), new SetIterCommand(), new SetScanIterCommand(), new SleepCommand(), new SystemPermissionsCommand(), new TableCommand(),
-        new TablePermissionsCommand(), new TablesCommand(), new TraceCommand(), new UserCommand(), new UserPermissionsCommand(), new UsersCommand(),
-        new WhoAmICommand(),};
+        new ImportDirectoryCommand(), new InfoCommand(), new InsertCommand(), new ListIterCommand(), new ListScansCommand(), new MasterStateCommand(),
+        new MaxRowCommand(), new MergeCommand(), new NoTableCommand(), new OfflineCommand(), new OnlineCommand(), new PasswdCommand(), new QuestionCommand(),
+        new QuitCommand(), new RenameTableCommand(), new RevokeCommand(), new ScanCommand(), new SelectCommand(), new SelectrowCommand(),
+        new SetAuthsCommand(), new SetGroupsCommand(), new SetIterCommand(), new SetScanIterCommand(), new SleepCommand(), new SystemPermissionsCommand(),
+        new TableCommand(), new TablePermissionsCommand(), new TablesCommand(), new TraceCommand(), new UserCommand(), new UserPermissionsCommand(),
+        new UsersCommand(), new WhoAmICommand(),};
     for (Command cmd : external) {
       commandFactory.put(cmd.getName(), cmd);
     }
@@ -463,7 +464,7 @@ public class Shell {
     sb.append("- Debug: ").append(isDebuggingEnabled() ? "on" : "off").append("\n");
     if (!tableFormatters.isEmpty()) {
       sb.append("- Active Formatters");
-      for (Entry<String, Class<? extends Formatter>> entry : tableFormatters.entrySet()) {
+      for (Entry<String,Class<? extends Formatter>> entry : tableFormatters.entrySet()) {
         if (null != entry.getValue()) {
           sb.append("-    Table: ").append(entry.getKey()).append(", ").append(entry.getValue().getName()).append("\n");
         }
@@ -1004,6 +1005,7 @@ public class Shell {
   
   /**
    * Pull the current formatter for the given table and cache it.
+   * 
    * @param tableName
    * @return The formatter class for the given table
    */

@@ -213,16 +213,22 @@ public class TableOperationsHelperTest {
     t.check("table", new String[] {"table.iterator.majc.someName=10,foo.bar", "table.iterator.majc.someName.opt.key=value",
         "table.iterator.scan.someName=10,foo.bar",});
     
+    t.removeIterator("table", "someName", EnumSet.of(IteratorScope.scan));
     setting = new IteratorSetting(20, "otherName", "some.classname");
     setting.setScopes(EnumSet.of(IteratorScope.majc));
     setting.addOptions(Collections.singletonMap("key", "value"));
     t.attachIterator("table", setting);
     setting = new IteratorSetting(20, "otherName", "some.classname");
     t.attachIterator("table", setting);
-    Set<String> two = t.listIterators("table");
+    Map<String,EnumSet<IteratorScope>> two = t.listIterators("table");
     Assert.assertEquals(2, two.size());
-    Assert.assertTrue(two.contains("otherName"));
-    Assert.assertTrue(two.contains("someName"));
+    Assert.assertTrue(two.containsKey("otherName"));
+    Assert.assertTrue(two.get("otherName").size() == 2);
+    Assert.assertTrue(two.get("otherName").contains(IteratorScope.majc));
+    Assert.assertTrue(two.get("otherName").contains(IteratorScope.scan));
+    Assert.assertTrue(two.containsKey("someName"));
+    Assert.assertTrue(two.get("someName").size() == 1);
+    Assert.assertTrue(two.get("someName").contains(IteratorScope.majc));
     t.removeIterator("table", "someName", EnumSet.allOf(IteratorScope.class));
     t.check("table", new String[] {"table.iterator.majc.otherName=20,some.classname", "table.iterator.majc.otherName.opt.key=value",
         "table.iterator.scan.otherName=20,some.classname",});

@@ -18,10 +18,8 @@ package org.apache.accumulo.core.client.admin;
 
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -93,19 +91,20 @@ public abstract class TableOperationsHelper implements TableOperations {
   }
   
   @Override
-  public Set<String> listIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+  public Map<String,EnumSet<IteratorScope>> listIterators(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(null, tableName, null);
-    Set<String> result = new HashSet<String>();
-    Set<String> lifecycles = new HashSet<String>();
-    for (IteratorScope scope : IteratorScope.values())
-      lifecycles.add(scope.name().toLowerCase());
+    Map<String,EnumSet<IteratorScope>> result = new TreeMap<String,EnumSet<IteratorScope>>();
     for (Entry<String,String> property : this.getProperties(tableName)) {
       String name = property.getKey();
       String[] parts = name.split("\\.");
       if (parts.length == 4) {
-        if (parts[0].equals("table") && parts[1].equals("iterator") && lifecycles.contains(parts[2]))
-          result.add(parts[3]);
+        if (parts[0].equals("table") && parts[1].equals("iterator")) {
+          IteratorScope scope = IteratorScope.valueOf(parts[2]);
+          if (!result.containsKey(parts[3]))
+            result.put(parts[3], EnumSet.noneOf(IteratorScope.class));
+          result.get(parts[3]).add(scope);
+        }
       }
     }
     return result;
