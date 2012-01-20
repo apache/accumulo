@@ -224,7 +224,6 @@ public class TableOperationsHelperTest {
     Map<String,EnumSet<IteratorScope>> two = t.listIterators("table");
     Assert.assertEquals(2, two.size());
     Assert.assertTrue(two.containsKey("otherName"));
-    System.out.println(two.get("otherName"));
     Assert.assertTrue(two.get("otherName").size() == 2);
     Assert.assertTrue(two.get("otherName").contains(IteratorScope.majc));
     Assert.assertTrue(two.get("otherName").contains(IteratorScope.scan));
