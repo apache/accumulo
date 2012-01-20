@@ -45,10 +45,11 @@ class CombinerTest(TestUtilsMixin, unittest.TestCase):
 
         # initialize the database
         out, err, code = self.rootShell(self.masterHost(),"createtable test\n"
-                     "setiter -t test -minc -majc -scan -p 10 -n mycombiner -class org.apache.accumulo.core.iterators.user.SummingCombiner\n"
+                     "setiter -t test -scan -p 10 -n mycombiner -class org.apache.accumulo.core.iterators.user.SummingCombiner\n"
                      "\n"
                      "cf\n"
-                     "STRING\n")
+                     "STRING\n"
+                     "deleteiter -t test -n vers -minc -majc -scan\n")
         self.assert_(code == 0)
 
         # insert some rows
@@ -57,6 +58,9 @@ class CombinerTest(TestUtilsMixin, unittest.TestCase):
         for i in range(10):
             cmd += 'insert row1 cf col1 %d\n' % i
         out, err, code = self.rootShell(self.masterHost(), cmd)
+        self.assert_(code == 0)
+        self.checkSum()
+        out, err, code = self.rootShell(self.masterHost(), "flush -t test -w\n")
         self.assert_(code == 0)
         self.checkSum()
         self.shutdown_accumulo()
