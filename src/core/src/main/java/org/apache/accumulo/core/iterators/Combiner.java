@@ -90,7 +90,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     public Value next() {
       if (!hasNext)
         throw new NoSuchElementException();
-      Value topValue = source.getTopValue();
+      Value topValue = new Value(source.getTopValue());
       try {
         source.next();
         hasNext = _hasNext();
