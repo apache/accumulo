@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.core.iterators;
 
+import java.io.IOException;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.data.Key;
@@ -34,13 +36,17 @@ import org.apache.accumulo.start.classloader.AccumuloClassLoader;
  */
 public abstract class TypedValueCombiner<V> extends Combiner {
   private Encoder<V> encoder = null;
+  private boolean lossy = false;
   
+  protected static final String LOSSY = "lossy";
+
   /**
    * A Java Iterator that translates an Iterator<Value> to an Iterator<V> using the decode method of an Encoder.
    */
   private static class VIterator<V> implements Iterator<V> {
     private Iterator<Value> source;
     private Encoder<V> encoder;
+    private boolean lossy;
     
     /**
      * Constructs an Iterator<V> from an Iterator<Value>
@@ -50,22 +56,44 @@ public abstract class TypedValueCombiner<V> extends Combiner {
      * 
      * @param encoder
      *          The Encoder whose decode method is used to translate from Value to V
+     * 
+     * @param lossy
+     *          Determines whether to error on failure to decode or ignore and move on
      */
-    VIterator(Iterator<Value> iter, Encoder<V> encoder) {
+    VIterator(Iterator<Value> iter, Encoder<V> encoder, boolean lossy) {
       this.source = iter;
       this.encoder = encoder;
+      this.lossy = lossy;
     }
     
+    V next = null;
     @Override
     public boolean hasNext() {
-      return source.hasNext();
+      if (next != null)
+        return true;
+
+      while (true)
+      {
+        if (!source.hasNext())
+          return false;
+        try
+        {
+          next = encoder.decode(source.next().get());
+          return true;
+        } catch (ValueFormatException vfe) {
+          if (!lossy)
+            throw vfe;
+        }
+      }
     }
     
     @Override
     public V next() {
-      if (!source.hasNext())
+      if (!hasNext())
         throw new NoSuchElementException();
-      return encoder.decode(source.next().get());
+      V toRet = next;
+      next = null;
+      return toRet;
     }
     
     @Override
@@ -80,7 +108,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   public static interface Encoder<V> {
     public byte[] encode(V v);
     
-    public V decode(byte[] b);
+    public V decode(byte[] b) throws ValueFormatException;
   }
   
   /**
@@ -155,9 +183,37 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   
   @Override
   public Value reduce(Key key, Iterator<Value> iter) {
-    return new Value(encoder.encode(typedReduce(key, new VIterator<V>(iter, encoder))));
+    return new Value(encoder.encode(typedReduce(key, new VIterator<V>(iter, encoder, lossy))));
   }
   
+  @Override
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    super.init(source, options, env);
+    setLossyness(options);
+  }
+
+  private void setLossyness(Map<String,String> options) {
+    String loss = options.get(LOSSY);
+    if (loss == null)
+      lossy = false;
+    else
+      lossy = Boolean.parseBoolean(loss);
+  }
+  
+  @Override
+  public IteratorOptions describeOptions() {
+    IteratorOptions io = super.describeOptions();
+    io.addNamedOption(LOSSY, "if true, failed decodes are ignored. Otherwise combiner will error on failed decodes (default false): <TRUE|FALSE>");
+    return io;
+  }
+  
+  @Override
+  public boolean validateOptions(Map<String,String> options) {
+    super.validateOptions(options);
+    setLossyness(options);
+    return true;
+  }
+
   /**
    * Reduces a list of V into a single V.
    * 

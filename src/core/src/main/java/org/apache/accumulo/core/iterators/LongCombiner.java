@@ -120,7 +120,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
       try {
         return WritableUtils.readVLong(dis);
       } catch (IOException e) {
-        throw new NumberFormatException(e.getMessage());
+        throw new ValueFormatException(e);
       }
     }
   }
@@ -150,7 +150,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     
     public static long decode(byte[] b, int offset) {
       if (b.length < offset + 8)
-        throw new NumberFormatException("trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8) + " found " + b.length);
+        throw new ValueFormatException("trying to convert to long, but byte array isn't long enough, wanted " + (offset + 8) + " found " + b.length);
       return (((long) b[offset + 0] << 56) + ((long) (b[offset + 1] & 255) << 48) + ((long) (b[offset + 2] & 255) << 40) + ((long) (b[offset + 3] & 255) << 32)
           + ((long) (b[offset + 4] & 255) << 24) + ((b[offset + 5] & 255) << 16) + ((b[offset + 6] & 255) << 8) + ((b[offset + 7] & 255) << 0));
     }
@@ -167,7 +167,11 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     
     @Override
     public Long decode(byte[] b) {
-      return Long.parseLong(new String(b));
+      try {
+        return Long.parseLong(new String(b));
+      } catch (NumberFormatException nfe) {
+        throw new ValueFormatException(nfe);
+      }
     }
   }
   

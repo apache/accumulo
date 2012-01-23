@@ -34,6 +34,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.TypedValueCombiner;
+import org.apache.accumulo.core.iterators.ValueFormatException;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
@@ -151,7 +152,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
         }
         return vl;
       } catch (IOException e) {
-        throw new NumberFormatException(e.getMessage());
+        throw new ValueFormatException(e);
       }
     }
   }
@@ -201,7 +202,11 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
         if (s.length() == 0)
           la.add(0l);
         else
-          la.add(Long.parseLong(s));
+          try {
+            la.add(Long.parseLong(s));
+          } catch (NumberFormatException nfe) {
+            throw new ValueFormatException(nfe);
+          }
       }
       return la;
     }
