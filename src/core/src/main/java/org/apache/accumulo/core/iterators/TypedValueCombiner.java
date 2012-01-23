@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
@@ -214,6 +215,19 @@ public abstract class TypedValueCombiner<V> extends Combiner {
     return true;
   }
 
+  /**
+   * A convenience method to set the "lossy" option on a TypedValueCombiner. If true, the combiner will ignore any values which fail to decode. Otherwise, the
+   * combiner will throw an error which will interrupt the action (and prevent potential data loss). False is the default behavior.
+   * 
+   * @param is
+   *          iterator settings object to configure
+   * @param lossy
+   *          if true the combiner will ignored values which fail to decode; otherwise error.
+   */
+  public static void setLossyness(IteratorSetting is, boolean lossy) {
+    is.addOption(LOSSY, Boolean.toString(lossy));
+  }
+  
   /**
    * Reduces a list of V into a single V.
    * 
