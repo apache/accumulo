@@ -15,16 +15,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-bin=`dirname "$0"`
+#copied below from hadoop-config.sh
+this="$0"
+while [ -h "$this" ]; do
+    ls=`ls -ld "$this"`
+    link=`expr "$ls" : '.*-> \(.*\)$'`
+    if expr "$link" : '.*/.*' > /dev/null; then
+        this="$link"
+    else
+        this=`dirname "$this"`/"$link"
+    fi
+done
+bin=`dirname "$this"`
+script=`basename "$this"`
 bin=`cd "$bin"; pwd`
+this="$bin/$script"
 
-. "$bin"/../../../../conf/accumulo-env.sh
-
-if [ -z $ACCUMULO_HOME ] ; then
-    echo "ACCUMULO_HOME is not set.  Please make sure it's set globally."
-    exit 1
-fi
+ACCUMULO_HOME=`dirname "$this"`/../../../..
+export ACCUMULO_HOME=`cd $ACCUMULO_HOME; pwd`
 
 RW_HOME=$ACCUMULO_HOME/test/system/randomwalk
 

@@ -31,7 +31,7 @@ RW_HOME=$ACCUMULO_HOME/test/system/randomwalk
 cd $RW_HOME
 
 tar czf config.tgz conf
-$HADOOP_HOME/bin/hadoop fs -rmr /randomwalk
+$HADOOP_HOME/bin/hadoop fs -rmr /randomwalk 2>/dev/null
 $HADOOP_HOME/bin/hadoop fs -mkdir /randomwalk
 $HADOOP_HOME/bin/hadoop fs -put config.tgz /randomwalk
 $HADOOP_HOME/bin/hadoop fs -setrep 3 /randomwalk/config.tgz
