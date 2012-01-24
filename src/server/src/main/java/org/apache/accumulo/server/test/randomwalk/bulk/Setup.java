@@ -17,8 +17,6 @@
 package org.apache.accumulo.server.test.randomwalk.bulk;
 
 import java.net.InetAddress;
-import java.util.Collections;
-import java.util.List;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
@@ -27,17 +25,18 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
+import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.iterators.LongCombiner;
+import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.io.Text;
 
-@SuppressWarnings("deprecation")
 public class Setup extends Test {
   
   private static final int CORE_POOL_SIZE = 8;
@@ -52,12 +51,14 @@ public class Setup extends Test {
     tableName = String.format("bulk_%s_%s_%d", hostname, pid, System.currentTimeMillis());
     log.info("Starting bulk test on " + tableName);
     
-    List<PerColumnIteratorConfig> aggregators = Collections.singletonList(new PerColumnIteratorConfig(new Text("cf".getBytes()), null,
-        org.apache.accumulo.core.iterators.aggregation.StringSummation.class.getName()));
+    TableOperations tableOps = state.getConnector().tableOperations();
     try {
-      if (!state.getConnector().tableOperations().exists(getTableName())) {
-        state.getConnector().tableOperations().create(getTableName());
-        state.getConnector().tableOperations().addAggregators(getTableName(), aggregators);
+      if (!tableOps.exists(getTableName())) {
+        tableOps.create(getTableName());
+        IteratorSetting is = new IteratorSetting(10, org.apache.accumulo.core.iterators.user.SummingCombiner.class);
+        SummingCombiner.setEncodingType(is, LongCombiner.Type.STRING);
+        SummingCombiner.setColumns(is, BulkPlusOne.COLNAMES);
+        tableOps.attachIterator(getTableName(), is);
       }
     } catch (TableExistsException ex) {
       // expected if there are multiple walkers
@@ -73,7 +74,6 @@ public class Setup extends Test {
       }
     };
     ThreadPoolExecutor e = new ThreadPoolExecutor(CORE_POOL_SIZE, MAX_POOL_SIZE, 1, TimeUnit.SECONDS, q, factory);
-    
     state.set("pool", e);
   }
   

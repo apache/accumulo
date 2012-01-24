@@ -33,6 +33,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Job;
@@ -93,10 +94,11 @@ public class AccumuloOutputFormatTest {
     job.setOutputKeyClass(Text.class);
     job.setOutputValueClass(Mutation.class);
     job.setNumReduceTasks(0);
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "testtable1", new Authorizations());
-    AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmrinstance");
-    AccumuloOutputFormat.setOutputInfo(job, "root", "".getBytes(), false, "testtable2");
-    AccumuloOutputFormat.setMockInstance(job, "testmrinstance");
+    Configuration conf = job.getConfiguration();
+    AccumuloInputFormat.setInputInfo(conf, "root", "".getBytes(), "testtable1", new Authorizations());
+    AccumuloInputFormat.setMockInstance(conf, "testmrinstance");
+    AccumuloOutputFormat.setOutputInfo(conf, "root", "".getBytes(), false, "testtable2");
+    AccumuloOutputFormat.setMockInstance(conf, "testmrinstance");
     
     AccumuloInputFormat input = new AccumuloInputFormat();
     List<InputSplit> splits = input.getSplits(job);

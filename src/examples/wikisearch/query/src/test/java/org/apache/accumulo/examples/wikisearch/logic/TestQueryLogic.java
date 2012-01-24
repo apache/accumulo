@@ -38,8 +38,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaConfiguration;
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaMapper;
-import org.apache.accumulo.examples.wikisearch.logic.AbstractQueryLogic;
-import org.apache.accumulo.examples.wikisearch.logic.QueryLogic;
 import org.apache.accumulo.examples.wikisearch.parser.RangeCalculator;
 import org.apache.accumulo.examples.wikisearch.reader.AggregatingRecordReader;
 import org.apache.accumulo.examples.wikisearch.sample.Document;
@@ -165,7 +163,7 @@ public class TestQueryLogic {
     
   }
   
-  private void debugQuery(String tableName) throws Exception {
+  void debugQuery(String tableName) throws Exception {
     Scanner s = c.createScanner(tableName, new Authorizations());
     Range r = new Range();
     s.setRange(r);

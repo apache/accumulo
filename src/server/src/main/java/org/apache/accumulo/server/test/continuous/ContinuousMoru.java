@@ -145,13 +145,13 @@ public class ContinuousMoru extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setOutputInfo(job, user, pass.getBytes(), false, table);
-    AccumuloOutputFormat.setZooKeeperInstance(job, instance, zookeepers);
-    AccumuloOutputFormat.setMaxLatency(job, (int) (Integer.parseInt(maxLatency) / 1000.0));
-    AccumuloOutputFormat.setMaxMutationBufferSize(job, Long.parseLong(maxMem));
-    AccumuloOutputFormat.setMaxWriteThreads(job, Integer.parseInt(numThreads));
-    
     Configuration conf = job.getConfiguration();
+    AccumuloOutputFormat.setOutputInfo(conf, user, pass.getBytes(), false, table);
+    AccumuloOutputFormat.setZooKeeperInstance(conf, instance, zookeepers);
+    AccumuloOutputFormat.setMaxLatency(conf, (int) (Integer.parseInt(maxLatency) / 1000.0));
+    AccumuloOutputFormat.setMaxMutationBufferSize(conf, Long.parseLong(maxMem));
+    AccumuloOutputFormat.setMaxWriteThreads(conf, Integer.parseInt(numThreads));
+    
     conf.setLong(MIN, Long.parseLong(min));
     conf.setLong(MAX, Long.parseLong(max));
     conf.setInt(MAX_CF, Integer.parseInt(max_cf));

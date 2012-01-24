@@ -16,12 +16,15 @@
  */
 package org.apache.accumulo.core.client.mock;
 
+import java.util.EnumSet;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -41,7 +44,7 @@ public class MockTableOperationsTest {
       Assert.fail();
     } catch (TableNotFoundException e) {}
     try {
-      conn.tableOperations().checkIteratorConflicts(t, null);
+      conn.tableOperations().checkIteratorConflicts(t, null, EnumSet.allOf(IteratorScope.class));
       Assert.fail();
     } catch (TableNotFoundException e) {}
     try {

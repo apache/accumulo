@@ -40,6 +40,7 @@ public class ConsistencyCheck extends BulkTest {
     Scanner scanner = state.getConnector().createScanner(Setup.getTableName(), auths);
     scanner = new IsolatedScanner(scanner);
     scanner.setRange(new Range(row));
+    scanner.fetchColumnFamily(BulkPlusOne.CHECK_COLUMN_FAMILY);
     Value v = null;
     Key first = null;
     for (Entry<Key,Value> entry : scanner) {

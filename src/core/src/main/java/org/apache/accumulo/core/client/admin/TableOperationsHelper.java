@@ -30,11 +30,17 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 
 public abstract class TableOperationsHelper implements TableOperations {
-  
+
   @Override
   public void attachIterator(String tableName, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    checkIteratorConflicts(tableName, setting);
-    for (IteratorScope scope : setting.getScopes()) {
+    attachIterator(tableName, setting, EnumSet.allOf(IteratorScope.class));
+  }
+
+  @Override
+  public void attachIterator(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
+      TableNotFoundException {
+    checkIteratorConflicts(tableName, setting, scopes);
+    for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
       for (Entry<String,String> prop : setting.getProperties().entrySet()) {
         this.setProperty(tableName, root + ".opt." + prop.getKey(), prop.getValue());
@@ -87,7 +93,7 @@ public abstract class TableOperationsHelper implements TableOperations {
     if (priority <= 0 || classname == null) {
       return null;
     }
-    return new IteratorSetting(priority, name, classname, EnumSet.of(scope), settings);
+    return new IteratorSetting(priority, name, classname, settings);
   }
   
   @Override
@@ -111,10 +117,10 @@ public abstract class TableOperationsHelper implements TableOperations {
   }
   
   @Override
-  public void checkIteratorConflicts(String tableName, IteratorSetting setting) throws AccumuloException, TableNotFoundException {
+  public void checkIteratorConflicts(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(null, tableName, null);
-    for (IteratorScope scope : setting.getScopes()) {
+    for (IteratorScope scope : scopes) {
       String scopeStr = String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
       String nameStr = String.format("%s.%s", scopeStr, setting.getName());
       String optStr = String.format("%s.opt.", nameStr);

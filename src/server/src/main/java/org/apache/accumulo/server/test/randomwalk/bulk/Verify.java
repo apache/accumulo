@@ -22,12 +22,18 @@ import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
+import org.apache.hadoop.io.Text;
 
 public class Verify extends Test {
   
@@ -45,13 +51,68 @@ public class Verify extends Test {
     String user = state.getConnector().whoami();
     Authorizations auths = state.getConnector().securityOperations().getUserAuthorizations(user);
     Scanner scanner = state.getConnector().createScanner(Setup.getTableName(), auths);
+    scanner.fetchColumnFamily(BulkPlusOne.CHECK_COLUMN_FAMILY);
     for (Entry<Key,Value> entry : scanner) {
       byte[] value = entry.getValue().get();
-      if (!Arrays.equals(value, zero))
+      if (!Arrays.equals(value, zero)) {
         throw new Exception("Bad key at " + entry);
+      }
     }
     log.info("Test successful on table " + Setup.getTableName());
     state.getConnector().tableOperations().delete(Setup.getTableName());
+  }
+    
+  public static void main(String args[]) throws Exception {
+    int i = 0;
+    String instance = args[i++];
+    String keepers = args[i++];
+    String username = args[i++];
+    String passwd = args[i++];
+    String tablename = args[i++];
+    int timeout = (int) DefaultConfiguration.getInstance().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    Instance inst = new ZooKeeperInstance(instance, keepers, timeout);
+    Connector conn = inst.getConnector(username, passwd.getBytes());
+    Scanner scanner = conn.createScanner(tablename, conn.securityOperations().getUserAuthorizations(username));
+    scanner.fetchColumnFamily(BulkPlusOne.CHECK_COLUMN_FAMILY);
+    Text startBadRow = null;
+    Text lastBadRow = null;
+    Value currentBadValue = null;
+    for (Entry<Key,Value> entry : scanner) {
+      // System.out.println("Entry: " + entry);
+      byte[] value = entry.getValue().get();
+      if (!Arrays.equals(value, zero)) {
+        if (currentBadValue == null || entry.getValue().equals(currentBadValue)) {
+          // same value, keep skipping ahead
+          lastBadRow = new Text(entry.getKey().getRow());
+          if (startBadRow == null)
+            startBadRow = lastBadRow;
+        } else {
+          // new bad value, report
+          report(startBadRow, lastBadRow, currentBadValue);
+          startBadRow = lastBadRow = new Text(entry.getKey().getRow());
+        }
+        currentBadValue = new Value(entry.getValue());
+      } else {
+        // end of bad range, report
+        if (startBadRow != null) {
+          report(startBadRow, lastBadRow, currentBadValue);
+        }
+        startBadRow = lastBadRow = null;
+        currentBadValue = null;
+      }
+    }
+    if (startBadRow != null) {
+      report(startBadRow, lastBadRow, currentBadValue);
+    }
+  }
+  
+  /**
+   * @param startBadEntry
+   * @param lastBadEntry
+   */
+  private static void report(Text startBadRow, Text lastBadRow, Value value) {
+    System.out.println("Bad value " + new String(value.get()));
+    System.out.println(" Range [" + startBadRow + " -> " + lastBadRow + "]");
   }
   
 }

@@ -834,34 +834,41 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td>Change the type of file a table writes</td>
    </tr>
    <tr >
+    <td>table.formatter</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>yes</td>
+    <td><pre>org.apache.accumulo.core.util.format.DefaultFormatter</pre></td>
+    <td>The Formatter class to apply on results in the shell</td>
+   </tr>
+   <tr class='highlight'>
     <td>table.groups.enabled</td>
     <td><b><a href='#STRING'>string</a></b></td>
     <td>yes</td>
     <td><pre>&nbsp;</pre></td>
     <td>A comma separated list of locality group names to enable for this table.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>table.scan.max.memory</td>
     <td><b><a href='#MEMORY'>memory</a></b></td>
     <td>yes</td>
     <td><pre>1M</pre></td>
     <td>The maximum amount of memory that will be used to cache results of a client query/scan. Once this limit is reached, the buffered data is sent to the client.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>table.security.scan.visibility.default</td>
     <td><b><a href='#STRING'>string</a></b></td>
     <td>yes</td>
     <td><pre>&nbsp;</pre></td>
     <td>The security label that will be assumed at scan time if an entry does not have a visibility set.<br />Note: An empty security label is displayed as []. The scan results will show an empty visibility even if the visibility from this setting is applied to the entry.<br />CAUTION: If a particular key has an empty security label AND its table's default visibility is also empty, access will ALWAYS be granted for users with permission to that table. Additionally, if this field is changed, all existing data with an empty visibility label will be interpreted with the new label on the next scan.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>table.split.threshold</td>
     <td><b><a href='#MEMORY'>memory</a></b></td>
     <td>yes</td>
     <td><pre>1G</pre></td>
     <td>When combined size of files exceeds this amount a tablet is split.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>table.walog.enabled</td>
     <td><b><a href='#BOOLEAN'>boolean</a></b></td>
     <td>yes</td>

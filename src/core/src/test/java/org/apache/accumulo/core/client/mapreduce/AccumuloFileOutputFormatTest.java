@@ -62,7 +62,7 @@ public class AccumuloFileOutputFormatTest {
   
   @Test
   public void testSet() throws IOException, InterruptedException {
-    AccumuloFileOutputFormat.setBlockSize(job, 300);
+    AccumuloFileOutputFormat.setBlockSize(job.getConfiguration(), 300);
     validate(300);
   }
   
@@ -100,7 +100,7 @@ public class AccumuloFileOutputFormatTest {
   }
   
   public void validate(int size) throws IOException, InterruptedException {
-    AccumuloFileOutputFormat.handleBlockSize(job);
+    AccumuloFileOutputFormat.handleBlockSize(job.getConfiguration());
     int detSize = job.getConfiguration().getInt("io.seqfile.compress.blocksize", -1);
     assertEquals(size, detSize);
   }

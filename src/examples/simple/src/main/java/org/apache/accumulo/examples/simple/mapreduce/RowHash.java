@@ -77,8 +77,8 @@ public class RowHash extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setZooKeeperInstance(job, args[0], args[1]);
-    AccumuloOutputFormat.setOutputInfo(job, args[2], args[3].getBytes(), true, args[6]);
+    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
+    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), args[2], args[3].getBytes(), true, args[6]);
     // AccumuloOutputFormat.setLogLevel(job, Level.TRACE);
     
     job.waitForCompletion(true);

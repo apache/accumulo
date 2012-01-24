@@ -200,27 +200,25 @@ public class TableOperationsHelperTest {
   public void testAttachIterator() throws Exception {
     Tester t = new Tester();
     Map<String,String> empty = Collections.emptyMap();
-    t.attachIterator("table", new IteratorSetting(10, "someName", "foo.bar", EnumSet.of(IteratorScope.scan), empty));
+    t.attachIterator("table", new IteratorSetting(10, "someName", "foo.bar", empty), EnumSet.of(IteratorScope.scan));
     t.check("table", new String[] {"table.iterator.scan.someName=10,foo.bar",});
     t.removeIterator("table", "someName", EnumSet.of(IteratorScope.scan));
     t.check("table", new String[] {});
     
     IteratorSetting setting = new IteratorSetting(10, "someName", "foo.bar");
-    setting.setScopes(EnumSet.of(IteratorScope.majc));
     setting.addOptions(Collections.singletonMap("key", "value"));
-    t.attachIterator("table", setting);
+    t.attachIterator("table", setting, EnumSet.of(IteratorScope.majc));
     setting = new IteratorSetting(10, "someName", "foo.bar");
-    t.attachIterator("table", setting);
+    t.attachIterator("table", setting, EnumSet.of(IteratorScope.scan));
     t.check("table", new String[] {"table.iterator.majc.someName=10,foo.bar", "table.iterator.majc.someName.opt.key=value",
         "table.iterator.scan.someName=10,foo.bar",});
     
     t.removeIterator("table", "someName", EnumSet.of(IteratorScope.scan));
     setting = new IteratorSetting(20, "otherName", "some.classname");
-    setting.setScopes(EnumSet.of(IteratorScope.majc));
     setting.addOptions(Collections.singletonMap("key", "value"));
-    t.attachIterator("table", setting);
+    t.attachIterator("table", setting, EnumSet.of(IteratorScope.majc));
     setting = new IteratorSetting(20, "otherName", "some.classname");
-    t.attachIterator("table", setting);
+    t.attachIterator("table", setting, EnumSet.of(IteratorScope.scan));
     Map<String,EnumSet<IteratorScope>> two = t.listIterators("table");
     Assert.assertEquals(2, two.size());
     Assert.assertTrue(two.containsKey("otherName"));
@@ -243,8 +241,7 @@ public class TableOperationsHelperTest {
     Assert.assertEquals("some.classname", setting.getIteratorClass());
     Assert.assertTrue(setting.hasProperties());
     Assert.assertEquals(Collections.singletonMap("key", "value"), setting.getProperties());
-    setting.setScopes(EnumSet.of(IteratorScope.minc));
-    t.attachIterator("table", setting);
+    t.attachIterator("table", setting, EnumSet.of(IteratorScope.minc));
     t.check("table", new String[] {"table.iterator.majc.otherName=20,some.classname", "table.iterator.majc.otherName.opt.key=value",
         "table.iterator.minc.otherName=20,some.classname", "table.iterator.minc.otherName.opt.key=value", "table.iterator.scan.otherName=20,some.classname",});
     
