@@ -210,10 +210,8 @@ public class IteratorUtil {
       Collection<IterInfo> iters, Map<String,Map<String,String>> iterOpts, IteratorEnvironment env) throws IOException {
     SortedKeyValueIterator<K,V> prev = source;
     
-    log.debug("Iterator options: " + iterOpts);
     try {
       for (IterInfo iterInfo : iters) {
-        log.debug("Loading " + iterInfo.className + " " + iterInfo.iterName + " " + iterInfo.priority);
         @SuppressWarnings("unchecked")
         Class<? extends SortedKeyValueIterator<K,V>> clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloClassLoader.loadClass(iterInfo.className,
             SortedKeyValueIterator.class);
