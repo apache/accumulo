@@ -36,8 +36,8 @@ import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
-import org.apache.accumulo.core.iterators.user.ReqVisFilter;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
+import org.apache.accumulo.core.iterators.user.ReqVisFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -120,8 +120,8 @@ public class SetIterCommand extends Command {
     if (scopes.isEmpty())
       throw new IllegalArgumentException("You must select at least one scope to configure");
     
-    IteratorSetting setting = new IteratorSetting(priority, name, classname, scopes, options);
-    shellState.getConnector().tableOperations().attachIterator(tableName, setting);
+    IteratorSetting setting = new IteratorSetting(priority, name, classname, options);
+    shellState.getConnector().tableOperations().attachIterator(tableName, setting, scopes);
   }
   
   private static String setUpOptions(ConsoleReader reader, String className, Map<String,String> options) throws IOException, ShellCommandException {

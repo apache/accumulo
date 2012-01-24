@@ -47,7 +47,6 @@ public class IteratorSetting {
   private int priority;
   private String name;
   private String iteratorClass;
-  private EnumSet<IteratorScope> scopes;
   private Map<String,String> properties;
   
   /**
@@ -111,28 +110,6 @@ public class IteratorSetting {
   }
   
   /**
-   * Get the scopes under which this iterator will be configured.
-   * 
-   * @return the scopes
-   */
-  public EnumSet<IteratorScope> getScopes() {
-    return scopes;
-  }
-  
-  /**
-   * Set the scopes under which this iterator will be configured.
-   * 
-   * @param scopes
-   *          the scopes to set
-   */
-  public void setScopes(EnumSet<IteratorScope> scopes) {
-    ArgumentChecker.notNull(scopes);
-    if (scopes.isEmpty())
-      throw new IllegalArgumentException("empty scopes");
-    this.scopes = scopes;
-  }
-  
-  /**
    * Get the configuration parameters for this iterator.
    * 
    * @return the properties
@@ -170,7 +147,7 @@ public class IteratorSetting {
    *          the fully qualified class name for the iterator
    */
   public IteratorSetting(int priority, String name, String iteratorClass) {
-    this(priority, name, iteratorClass, EnumSet.of(IteratorScope.scan), new HashMap<String,String>());
+    this(priority, name, iteratorClass, new HashMap<String,String>());
   }
   
   /**
@@ -187,11 +164,10 @@ public class IteratorSetting {
    * @param properties
    *          any properties for the iterator
    */
-  public IteratorSetting(int priority, String name, String iteratorClass, EnumSet<IteratorScope> scopes, Map<String,String> properties) {
+  public IteratorSetting(int priority, String name, String iteratorClass, Map<String,String> properties) {
     setPriority(priority);
     setName(name);
     setIteratorClass(iteratorClass);
-    setScopes(scopes);
     this.properties = new HashMap<String,String>();
     setProperties(properties);
   }
@@ -222,9 +198,9 @@ public class IteratorSetting {
    * @param properties
    *          any properties for the iterator
    */
-  public IteratorSetting(int priority, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, EnumSet<IteratorScope> scopes,
+  public IteratorSetting(int priority, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
       Map<String,String> properties) {
-    this(priority, iteratorClass.getSimpleName(), iteratorClass.getName(), scopes, properties);
+    this(priority, iteratorClass.getSimpleName(), iteratorClass.getName(), properties);
   }
   
   /**
@@ -257,7 +233,7 @@ public class IteratorSetting {
    */
   public IteratorSetting(int priority, String name, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, EnumSet<IteratorScope> scopes,
       Map<String,String> properties) {
-    this(priority, name, iteratorClass.getName(), scopes, properties);
+    this(priority, name, iteratorClass.getName(), properties);
   }
   
   /**
@@ -328,8 +304,6 @@ public class IteratorSetting {
     sb.append(Integer.toString(priority));
     sb.append(", class:");
     sb.append(iteratorClass);
-    sb.append(", scopes:");
-    sb.append(scopes);
     sb.append(", properties:");
     sb.append(properties);
     return sb.toString();
@@ -356,5 +330,13 @@ public class IteratorSetting {
       super(new Text(columnFamily), null);
     }
     
+    public Text getColumnFamily() {
+      return getFirst();
+    }
+    
+    public Text getColumnQualifierf() {
+      return getSecond();
+    }
+
   }
 }

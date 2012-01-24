@@ -15,18 +15,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-bin=`dirname "$0"`
+#copied below from hadoop-config.sh
+this="$0"
+while [ -h "$this" ]; do
+    ls=`ls -ld "$this"`
+    link=`expr "$ls" : '.*-> \(.*\)$'`
+    if expr "$link" : '.*/.*' > /dev/null; then
+        this="$link"
+    else
+        this=`dirname "$this"`/"$link"
+    fi
+done
+bin=`dirname "$this"`
+script=`basename "$this"`
 bin=`cd "$bin"; pwd`
+this="$bin/$script"
 
-. "$bin"/../../../../conf/accumulo-env.sh
+ACCUMULO_HOME=`dirname "$this"`/../../../..
+export ACCUMULO_HOME=`cd $ACCUMULO_HOME; pwd`
 
-if [ -z $HADOOP_HOME ] ; then
-    echo "HADOOP_HOME is not set.  Please make sure it's set globally."
-    exit 1
+if [ -f $ACCUMULO_HOME/conf/accumulo-env.sh ] ; then
+. $ACCUMULO_HOME/conf/accumulo-env.sh
 fi
 
-if [ -z $ACCUMULO_HOME ] ; then
-    echo "ACCUMULO_HOME is not set.  Please make sure it's set globally."
+
+if [ -z "$HADOOP_HOME" ] ; then
+    echo "HADOOP_HOME is not set.  Please make sure it's set globally."
     exit 1
 fi
 
@@ -35,10 +49,10 @@ if [ "$1" = "" ] ; then
      exit 1
 fi
 
-RW_HOME=$ACCUMULO_HOME/test/system/randomwalk
+RW_HOME="$ACCUMULO_HOME/test/system/randomwalk"
 
 echo 'copying randomwalk config to HDFS'
-$RW_HOME/bin/copy-config.sh
+"$RW_HOME/bin/copy-config.sh"
 
 echo 'starting walkers'
-pssh -i -h $RW_HOME/conf/walkers "$RW_HOME/bin/start-local.sh $1" < /dev/null
+pssh -i -h "$RW_HOME/conf/walkers" "$RW_HOME/bin/start-local.sh $1" < /dev/null

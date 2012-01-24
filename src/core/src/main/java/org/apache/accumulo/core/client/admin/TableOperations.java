@@ -459,7 +459,7 @@ public interface TableOperations {
   public Map<String,String> tableIdMap();
   
   /**
-   * Add an iterator to a table.
+   * Add an iterator to a table on all scopes.
    * 
    * @param tableName
    *          the name of the table
@@ -474,6 +474,24 @@ public interface TableOperations {
    *           if the setting conflicts with any existing iterators
    */
   public void attachIterator(String tableName, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+  
+  /**
+   * Add an iterator to a table on the given scopes.
+   * 
+   * @param tableName
+   *          the name of the table
+   * @param setting
+   *          object specifying the properties of the iterator
+   * @throws AccumuloSecurityException
+   *           thrown if the user does not have the ability to set properties on the table
+   * @throws AccumuloException
+   * @throws TableNotFoundException
+   *           throw if the table no longer exists
+   * @throws IllegalArgumentException
+   *           if the setting conflicts with any existing iterators
+   */
+  public void attachIterator(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
+      TableNotFoundException;
   
   /**
    * Remove an iterator from a table by name.
@@ -537,5 +555,5 @@ public interface TableOperations {
    * @throws IllegalStateException
    *           if the setting conflicts with any existing iterators
    */
-  public void checkIteratorConflicts(String tableName, IteratorSetting setting) throws AccumuloException, TableNotFoundException;
+  public void checkIteratorConflicts(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException;
 }
