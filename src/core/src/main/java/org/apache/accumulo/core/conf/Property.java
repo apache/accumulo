@@ -157,6 +157,8 @@ public enum Property {
       "The directory used to store write-ahead logs on the local filesystem. It is possible to specify a comma-separated list of directories."),
   LOGGER_PORTSEARCH("logger.port.search", "false", PropertyType.BOOLEAN, "if the port above is in use, search higher ports until one is available"),
   LOGGER_ARCHIVE("logger.archive", "false", PropertyType.BOOLEAN, "determines if logs are archived in hdfs"),
+  LOGGER_ARCHIVE_REPLICATION("logger.archive.replication", "0", PropertyType.COUNT,
+      "determines the replication factor for walogs archived in hdfs, set to zero to use default"),
   LOGGER_MONITOR_FS(
       "logger.monitor.fs",
       "true",

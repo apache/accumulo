@@ -43,6 +43,7 @@ public class LogArchiver {
   private FileSystem dest;
   private String destDir;
   private final boolean archive;
+  private short replication;
   
   static Path archiveName(String fullPath) {
     if (isArchive(fullPath))
@@ -82,7 +83,8 @@ public class LogArchiver {
         dest.delete(new Path(destDir, name + ".gz_tmp"), false);
         
         FSDataInputStream in = src.open(srcPath);
-        GZIPOutputStream out = new GZIPOutputStream(dest.create(new Path(destDir, name + ".gz_tmp"), false));
+        GZIPOutputStream out = new GZIPOutputStream(dest.create(new Path(destDir, name + ".gz_tmp"), false, dest.getConf().getInt("io.file.buffer.size", 4096),
+            replication == 0 ? dest.getDefaultReplication() : replication, dest.getDefaultBlockSize()));
         
         byte buf[] = new byte[1 << 20];
         int numRead;
@@ -112,6 +114,7 @@ public class LogArchiver {
     this.threadPool = Executors.newSingleThreadExecutor();
     this.destDir = conf.get(Property.INSTANCE_DFS_DIR) + "/walogArchive";
     this.archive = archive;
+    this.replication = (short) conf.getCount(Property.LOGGER_ARCHIVE_REPLICATION);
     dest.mkdirs(new Path(destDir));
     
     if (archive) {
