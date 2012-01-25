@@ -101,6 +101,7 @@ public class BulkPlusOne extends BulkTest {
     FileStatus[] failures = fs.listStatus(fail);
     if (failures != null && failures.length > 0)
       throw new Exception("Failures " + Arrays.asList(failures) + " found importing files from " + dir);
+    log.debug("Finished bulk import, start rows " + printRows + " last row " + String.format(FMT, LOTS - 1) + " marker " + markerColumnFamily);
   }
   
   @Override
