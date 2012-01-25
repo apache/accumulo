@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.client;
 
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -24,7 +23,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.Pair;
@@ -128,7 +126,7 @@ public class IteratorSetting {
     this.properties.clear();
     addOptions(properties);
   }
-
+  
   /**
    * @return <tt>true</tt> if this iterator has configuration parameters.
    */
@@ -159,8 +157,6 @@ public class IteratorSetting {
    *          the distinguishing name for the iterator
    * @param iteratorClass
    *          the fully qualified class name for the iterator
-   * @param scopes
-   *          the scopes of the iterator
    * @param properties
    *          any properties for the iterator
    */
@@ -186,6 +182,7 @@ public class IteratorSetting {
   }
   
   /**
+
    * Constructs an iterator setting using the given class's SimpleName for the iterator name and configured for the specified scopes with the specified
    * parameters.
    * 
@@ -193,8 +190,6 @@ public class IteratorSetting {
    *          the priority for the iterator @see {@link #setPriority(int)}
    * @param iteratorClass
    *          the class for the iterator
-   * @param scopes
-   *          the scopes of the iterator
    * @param properties
    *          any properties for the iterator
    */
@@ -215,25 +210,6 @@ public class IteratorSetting {
    */
   public IteratorSetting(int priority, String name, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) {
     this(priority, name, iteratorClass.getName());
-  }
-  
-  /**
-   * Constructs an iterator setting configured for the specified scopes with the specified parameters.
-   * 
-   * @param priority
-   *          the priority for the iterator @see {@link #setPriority(int)}
-   * @param name
-   *          the distinguishing name for the iterator
-   * @param iteratorClass
-   *          the class for the iterator
-   * @param scopes
-   *          the scopes of the iterator
-   * @param properties
-   *          any properties for the iterator
-   */
-  public IteratorSetting(int priority, String name, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, EnumSet<IteratorScope> scopes,
-      Map<String,String> properties) {
-    this(priority, name, iteratorClass.getName(), properties);
   }
   
   /**
@@ -308,7 +284,7 @@ public class IteratorSetting {
     sb.append(properties);
     return sb.toString();
   }
-
+  
   /**
    * A convenience class for passing column family and column qualifiers to iterator configuration methods.
    */
@@ -334,7 +310,7 @@ public class IteratorSetting {
       return getFirst();
     }
     
-    public Text getColumnQualifierf() {
+    public Text getColumnQualifier() {
       return getSecond();
     }
 

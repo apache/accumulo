@@ -79,7 +79,7 @@ public class BulkPlusOne extends BulkTest {
     
     List<Integer> rows = new ArrayList<Integer>(startRows);
     rows.add(LOTS);
-
+    
     for (int i = 0; i < parts; i++) {
       String fileName = dir + "/" + String.format("part_%d.", i) + RFile.EXTENSION;
       FileSKVWriter f = FileOperations.getInstance().openWriter(fileName, fs, fs.getConf(), defaultConfiguration);
@@ -89,7 +89,7 @@ public class BulkPlusOne extends BulkTest {
       for (int j = start; j < end; j++) {
         Text row = new Text(String.format(FMT, j));
         for (Column col : COLNAMES) {
-          f.append(new Key(row, col.getColumnFamily(), col.getColumnQualifierf()), value);
+          f.append(new Key(row, col.getColumnFamily(), col.getColumnQualifier()), value);
         }
         f.append(new Key(row, MARKER_CF, new Text(markerColumnFamily)), value);
       }
