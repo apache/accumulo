@@ -183,6 +183,17 @@ public class SplitRecoveryTest extends FunctionalTest {
     
     ensureTabletHasNoUnexpectedMetadataEntries(low, lowDatafileSizes);
     ensureTabletHasNoUnexpectedMetadataEntries(high, highDatafileSizes);
+    
+    Map<String,Long> lowBulkFiles = MetadataTable.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), low);
+    Map<String,Long> highBulkFiles = MetadataTable.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), high);
+    
+    if (!lowBulkFiles.equals(highBulkFiles)) {
+      throw new Exception(" " + lowBulkFiles + " != " + highBulkFiles + " " + low + " " + high);
+    }
+    
+    if (lowBulkFiles.size() == 0) {
+      throw new Exception(" no bulk files " + low);
+    }
   }
   
   private void ensureTabletHasNoUnexpectedMetadataEntries(KeyExtent extent, SortedMap<String,DataFileValue> expectedMapFiles) throws Exception {
