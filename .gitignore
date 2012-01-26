@@ -73,6 +73,23 @@
 /src/examples/.classpath
 /src/examples/.project
 
+# /src/examples/simple/
+/src/examples/simple/target
+
+# /src/examples/wikisearch/
+/src/examples/wikisearch/target
+
+# /src/examples/wikisearch/ingest/
+/src/examples/wikisearch/ingest/target
+/src/examples/wikisearch/ingest/lib
+
+# /src/examples/wikisearch/query/
+/src/examples/wikisearch/query/lib
+/src/examples/wikisearch/query/target
+
+# /src/examples/wikisearch/query-war/
+/src/examples/wikisearch/query-war/target
+
 # /src/server/
 /src/server/target
 /src/server/.project
