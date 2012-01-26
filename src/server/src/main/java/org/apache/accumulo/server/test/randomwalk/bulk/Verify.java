@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.test.randomwalk.bulk;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -24,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -58,6 +60,37 @@ public class Verify extends Test {
         throw new Exception("Bad key at " + entry);
       }
     }
+    
+    scanner.clearColumns();
+    scanner.fetchColumnFamily(BulkPlusOne.MARKER_CF);
+    RowIterator rowIter = new RowIterator(scanner);
+    
+    while (rowIter.hasNext()) {
+      Iterator<Entry<Key,Value>> row = rowIter.next();
+      long prev = 0;
+      Text rowText = null;
+      while (row.hasNext()) {
+        Entry<Key,Value> entry = row.next();
+        
+        if (rowText == null)
+          rowText = entry.getKey().getRow();
+
+        long curr = Long.valueOf(entry.getKey().getColumnQualifier().toString());
+
+        if (curr - 1 != prev)
+          throw new Exception("Bad marker count " + entry.getKey() + " " + entry.getValue() + " " + prev);
+        
+        if (!entry.getValue().toString().equals("1"))
+          throw new Exception("Bad marker value " + entry.getKey() + " " + entry.getValue());
+        
+        prev = curr;
+      }
+      
+      if (BulkPlusOne.counter.get() != prev) {
+        throw new Exception("Row " + rowText + " does not have all markers " + BulkPlusOne.counter.get() + " " + prev);
+      }
+    }
+
     log.info("Test successful on table " + Setup.getTableName());
     state.getConnector().tableOperations().delete(Setup.getTableName());
   }

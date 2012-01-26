@@ -417,8 +417,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     return sizes;
   }
   
-  public static void addNewTablet(KeyExtent extent, String path, TServerInstance location, Map<String,DataFileValue> datafileSizes, AuthInfo credentials,
-      String time, long lastFlushID, long lastCompactID, ZooLock zooLock) {
+  public static void addNewTablet(KeyExtent extent, String path, TServerInstance location, Map<String,DataFileValue> datafileSizes,
+      Map<String,Long> bulkLoadedFiles, AuthInfo credentials, String time, long lastFlushID, long lastCompactID, ZooLock zooLock) {
     Mutation m = extent.getPrevRowUpdateMutation();
     
     ColumnFQ.put(m, Constants.METADATA_DIRECTORY_COLUMN, new Value(path.getBytes()));
@@ -437,6 +437,11 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
       m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text(entry.getKey()), new Value(entry.getValue().encode()));
     }
     
+    for (Entry<String,Long> entry : bulkLoadedFiles.entrySet()) {
+      byte[] tidBytes = Long.toString(entry.getValue()).getBytes();
+      m.put(Constants.METADATA_BULKFILE_COLUMN_FAMILY, new Text(entry.getKey()), new Value(tidBytes));
+    }
+
     update(credentials, zooLock, m);
   }
   
@@ -594,7 +599,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     
     if (!scanner2.iterator().hasNext()) {
       log.debug("Prev tablet " + prevRowKey + " does not exist, need to create it " + metadataPrevEndRow + " " + prevPrevEndRow + " " + splitRatio);
-      MetadataTable.addNewTablet(low, lowDirectory, tserver, lowDatafileSizes, credentials, time, initFlushID, initCompactID, lock);
+      Map<String,Long> bulkFiles = getBulkFilesLoaded(credentials, metadataEntry);
+      MetadataTable.addNewTablet(low, lowDirectory, tserver, lowDatafileSizes, bulkFiles, credentials, time, initFlushID, initCompactID, lock);
     } else {
       log.debug("Prev tablet " + prevRowKey + " exist, do not need to add it");
     }
@@ -1245,6 +1251,26 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     }
   }
   
+  public static Map<String,Long> getBulkFilesLoaded(AuthInfo credentials, KeyExtent extent) {
+    return getBulkFilesLoaded(credentials, extent.getMetadataEntry());
+  }
+  
+  public static Map<String,Long> getBulkFilesLoaded(AuthInfo credentials, Text metadataRow) {
+    
+    Map<String,Long> ret = new HashMap<String,Long>();
+    
+    Scanner scanner = new ScannerImpl(HdfsZooInstance.getInstance(), credentials, Constants.METADATA_TABLE_ID, Constants.NO_AUTHS);
+    scanner.setRange(new Range(metadataRow));
+    scanner.fetchColumnFamily(Constants.METADATA_BULKFILE_COLUMN_FAMILY);
+    for (Entry<Key,Value> entry : scanner) {
+      String file = entry.getKey().getColumnQualifier().toString();
+      Long tid = Long.parseLong(entry.getValue().toString());
+      
+      ret.put(file, tid);
+    }
+    return ret;
+  }
+
   public static void addBulkLoadInProgressFlag(String path) {
     
     Mutation m = new Mutation(Constants.METADATA_BLIP_FLAG_PREFIX + path);

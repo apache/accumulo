@@ -3432,9 +3432,14 @@ public class Tablet {
       
       String time = tabletTime.getMetadataValue();
       
+      // it is possible that some of the bulk loading flags will be deleted after being read below because the bulk load
+      // finishes.... therefore split could propogate load flags for a finished bulk load... there is a special iterator
+      // on the !METADATA table to clean up this type of garbage
+      Map<String,Long> bulkLoadedFiles = MetadataTable.getBulkFilesLoaded(SecurityConstants.getSystemCredentials(), extent);
+
       MetadataTable.splitTablet(high, extent.getPrevEndRow(), splitRatio, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
-      MetadataTable.addNewTablet(low, lowDirectory, tabletServer.getTabletSession(), lowDatafileSizes, SecurityConstants.getSystemCredentials(), time,
-          lastFlushID, lastCompactID, tabletServer.getLock());
+      MetadataTable.addNewTablet(low, lowDirectory, tabletServer.getTabletSession(), lowDatafileSizes, bulkLoadedFiles,
+          SecurityConstants.getSystemCredentials(), time, lastFlushID, lastCompactID, tabletServer.getLock());
       MetadataTable.finishSplit(high, highDatafileSizes, highDatafilesToRemove, SecurityConstants.getSystemCredentials(), tabletServer.getLock());
       
       log.log(TLevel.TABLET_HIST, extent + " split " + low + " " + high);
