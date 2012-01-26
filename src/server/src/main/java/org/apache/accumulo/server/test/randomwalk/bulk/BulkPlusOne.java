@@ -54,8 +54,10 @@ public class BulkPlusOne extends BulkTest {
     }
   }
   public static final Text MARKER_CF = new Text("marker");
-  private static final AtomicLong counter = new AtomicLong();
+  static final AtomicLong counter = new AtomicLong();
   
+  private static final Value ONE = new Value("1".getBytes());
+
   static void bulkLoadLots(Logger log, State state, Value value) throws Exception {
     final Path dir = new Path("/tmp", "bulk_" + UUID.randomUUID().toString());
     final Path fail = new Path(dir.toString() + "_fail");
@@ -74,8 +76,8 @@ public class BulkPlusOne extends BulkTest {
     for (Integer row : startRows)
       printRows.add(String.format(FMT, row));
     
-    String markerColumnFamily = Long.toString(counter.incrementAndGet());
-    log.debug("preparing bulk files with start rows " + printRows + " last row " + String.format(FMT, LOTS - 1) + " marker " + markerColumnFamily);
+    String markerColumnQualifier = String.format("%07d", counter.incrementAndGet());
+    log.debug("preparing bulk files with start rows " + printRows + " last row " + String.format(FMT, LOTS - 1) + " marker " + markerColumnQualifier);
     
     List<Integer> rows = new ArrayList<Integer>(startRows);
     rows.add(LOTS);
@@ -91,7 +93,7 @@ public class BulkPlusOne extends BulkTest {
         for (Column col : COLNAMES) {
           f.append(new Key(row, col.getColumnFamily(), col.getColumnQualifier()), value);
         }
-        f.append(new Key(row, MARKER_CF, new Text(markerColumnFamily)), value);
+        f.append(new Key(row, MARKER_CF, new Text(markerColumnQualifier)), ONE);
       }
       f.close();
     }
@@ -101,7 +103,7 @@ public class BulkPlusOne extends BulkTest {
     FileStatus[] failures = fs.listStatus(fail);
     if (failures != null && failures.length > 0)
       throw new Exception("Failures " + Arrays.asList(failures) + " found importing files from " + dir);
-    log.debug("Finished bulk import, start rows " + printRows + " last row " + String.format(FMT, LOTS - 1) + " marker " + markerColumnFamily);
+    log.debug("Finished bulk import, start rows " + printRows + " last row " + String.format(FMT, LOTS - 1) + " marker " + markerColumnQualifier);
   }
   
   @Override

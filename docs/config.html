@@ -521,62 +521,69 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td>determines if logs are archived in hdfs</td>
    </tr>
    <tr >
+    <td>logger.archive.replication</td>
+    <td><b><a href='#COUNT'>count</a></b></td>
+    <td>yes</td>
+    <td><pre>0</pre></td>
+    <td>determines the replication factor for walogs archived in hdfs, set to zero to use default</td>
+   </tr>
+   <tr class='highlight'>
     <td>logger.copy.threadpool.size</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>2</pre></td>
     <td>size of the thread pool used to copy files from the local log area to HDFS</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>logger.dir.walog</td>
     <td><b><a href='#PATH'>path</a></b></td>
     <td>yes</td>
     <td><pre>walogs</pre></td>
     <td>The directory used to store write-ahead logs on the local filesystem. It is possible to specify a comma-separated list of directories.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>logger.monitor.fs</td>
     <td><b><a href='#BOOLEAN'>boolean</a></b></td>
     <td>yes</td>
     <td><pre>true</pre></td>
     <td>When enabled the logger will monitor file systems and kill itself when one switches from rw to ro.  This is usually and indication that Linux has detected a bad disk.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>logger.port.client</td>
     <td><b><a href='#PORT'>port</a></b></td>
     <td>yes but requires restart</td>
     <td><pre>11224</pre></td>
     <td>The port used for write-ahead logger services</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>logger.port.search</td>
     <td><b><a href='#BOOLEAN'>boolean</a></b></td>
     <td>yes</td>
     <td><pre>false</pre></td>
     <td>if the port above is in use, search higher ports until one is available</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>logger.recovery.file.replication</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>1</pre></td>
     <td>When a logger puts a WALOG into HDFS, it will use this as the replication factor.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>logger.server.threadcheck.time</td>
     <td><b><a href='#TIMEDURATION'>duration</a></b></td>
     <td>yes</td>
     <td><pre>1s</pre></td>
     <td>The time between adjustments of the server thread pool.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>logger.server.threads.minimum</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>2</pre></td>
     <td>The miniumum number of threads to use to handle incoming requests.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>logger.sort.buffer.size</td>
     <td><b><a href='#MEMORY'>memory</a></b></td>
     <td>yes</td>

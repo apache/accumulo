@@ -57,7 +57,7 @@ public class Setup extends Test {
         tableOps.create(getTableName());
         IteratorSetting is = new IteratorSetting(10, org.apache.accumulo.core.iterators.user.SummingCombiner.class);
         SummingCombiner.setEncodingType(is, LongCombiner.Type.STRING);
-        SummingCombiner.setColumns(is, BulkPlusOne.COLNAMES);
+        SummingCombiner.setCombineAllColumns(is, true);
         tableOps.attachIterator(getTableName(), is);
       }
     } catch (TableExistsException ex) {
@@ -65,6 +65,7 @@ public class Setup extends Test {
     }
     state.set("rand", rand);
     state.set("fs", FileSystem.get(CachedConfiguration.getInstance()));
+    BulkPlusOne.counter.set(0l);
     
     BlockingQueue<Runnable> q = new LinkedBlockingQueue<Runnable>();
     ThreadFactory factory = new ThreadFactory() {
