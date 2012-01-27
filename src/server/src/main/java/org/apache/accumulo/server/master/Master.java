@@ -1979,8 +1979,10 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       try {
         TabletServerStatus status = tserverSet.getConnection(server).getTableMap();
         result.put(server, status);
+        // TODO maybe remove from bad servers
       } catch (Exception ex) {
-        log.error("unable to get tablet server status " + server);
+        log.error("unable to get tablet server status " + server + " " + ex.getMessage());
+        log.debug("unable to get tablet server status " + server, ex);
         if (badServers.get(server).incrementAndGet() > MAX_BAD_STATUS_COUNT) {
           log.warn("attempting to stop " + server);
           try {
