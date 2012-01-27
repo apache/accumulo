@@ -1792,7 +1792,10 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           found.add(extent);
         }
       }
-      Set<KeyExtent> notFound = new HashSet<KeyExtent>(migrations.keySet());
+      Set<KeyExtent> notFound = new HashSet<KeyExtent>();
+      synchronized (migrations) {
+        notFound.addAll(migrations.keySet());
+      }
       notFound.removeAll(found);
       for (KeyExtent extent : notFound) {
         log.info("Canceling migration of " + extent + " to " + migrations.get(extent) + ": tablet no longer exists (probably due to a split)");
@@ -1947,7 +1950,11 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
     private long balanceTablets() {
       List<TabletMigration> migrationsOut = new ArrayList<TabletMigration>();
-      long wait = tabletBalancer.balance(Collections.unmodifiableSortedMap(tserverStatus), Collections.unmodifiableSet(migrations.keySet()), migrationsOut);
+      Set<KeyExtent> migrationsCopy = new HashSet<KeyExtent>();
+      synchronized (migrations) {
+        migrationsCopy.addAll(migrations.keySet());
+      }
+      long wait = tabletBalancer.balance(Collections.unmodifiableSortedMap(tserverStatus), Collections.unmodifiableSet(migrationsCopy), migrationsOut);
       
       for (TabletMigration m : TabletBalancer.checkMigrationSanity(tserverStatus.keySet(), migrationsOut)) {
         if (migrations.containsKey(m.tablet)) {
