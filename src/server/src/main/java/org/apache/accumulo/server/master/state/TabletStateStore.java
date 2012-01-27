@@ -77,7 +77,7 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
     if (tls.extent.equals(Constants.ROOT_TABLET_EXTENT)) {
       store = new ZooTabletStateStore();
     } else {
-      store = new MetaDataStateStore(null);
+      store = new MetaDataStateStore();
     }
     store.unassign(Collections.singletonList(tls));
   }
@@ -87,7 +87,7 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
     if (assignment.tablet.equals(Constants.ROOT_TABLET_EXTENT)) {
       store = new ZooTabletStateStore();
     } else {
-      store = new MetaDataStateStore(null);
+      store = new MetaDataStateStore();
     }
     store.setLocations(Collections.singletonList(assignment));
   }

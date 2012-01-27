@@ -89,7 +89,7 @@ class CleanUp extends MasterRepo {
     
     boolean done = true;
     Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
-    MetaDataTableScanner metaDataTableScanner = new MetaDataTableScanner(tableRange, null);
+    MetaDataTableScanner metaDataTableScanner = new MetaDataTableScanner(environment.getInstance(), SecurityConstants.getSystemCredentials(), tableRange, null);
     try {
       while (metaDataTableScanner.hasNext()) {
         TabletLocationState locationState = metaDataTableScanner.next();

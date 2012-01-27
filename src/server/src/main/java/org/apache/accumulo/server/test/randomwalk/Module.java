@@ -20,6 +20,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
@@ -240,16 +241,21 @@ public class Module extends Node {
         nextNodeId = ((Alias) nextNode).getTargetId();
         nextNode = ((Alias) nextNode).get();
       }
+      Properties nodeProps = getProps(nextNodeId);
       try {
         test = false;
         if (nextNode instanceof Test) {
           startTimer(nextNode.toString());
           test = true;
         }
-        nextNode.visit(state, getProps(nextNodeId));
+        nextNode.visit(state, nodeProps);
         if (test)
           stopTimer(nextNode.toString());
       } catch (Exception e) {
+        log.debug("Properties for node: " + nextNodeId);
+        for (Entry<Object,Object> entry : nodeProps.entrySet()) {
+          log.debug("  " + entry.getKey() + ": " + entry.getValue());
+        }
         throw new Exception("Error running node " + nextNodeId, e);
       }
       state.visitedNode();

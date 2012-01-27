@@ -54,6 +54,7 @@ import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
+import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.io.Text;
@@ -207,7 +208,7 @@ public class NullTserver {
     
     // read the locations for the table
     Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
-    MetaDataTableScanner s = new MetaDataTableScanner(tableRange);
+    MetaDataTableScanner s = new MetaDataTableScanner(zki, SecurityConstants.getSystemCredentials(), tableRange);
     long randomSessionID = port;
     TServerInstance instance = new TServerInstance(addr, randomSessionID);
     List<Assignment> assignments = new ArrayList<Assignment>();
@@ -217,7 +218,7 @@ public class NullTserver {
     }
     s.close();
     // point them to this server
-    MetaDataStateStore store = new MetaDataStateStore(null);
+    MetaDataStateStore store = new MetaDataStateStore();
     store.setLocations(assignments);
     
     while (true) {

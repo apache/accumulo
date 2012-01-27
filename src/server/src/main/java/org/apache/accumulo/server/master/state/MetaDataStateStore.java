@@ -21,9 +21,11 @@ import java.util.Iterator;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.impl.BatchWriterImpl;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.hadoop.io.Text;
@@ -35,15 +37,23 @@ public class MetaDataStateStore extends TabletStateStore {
   private static final int LATENCY = 1000;
   private static final int MAX_MEMORY = 200 * 1024 * 1024;
   
+  final protected Instance instance;
   final protected CurrentState state;
+  final protected AuthInfo auths;
   
-  public MetaDataStateStore(CurrentState state) {
+  public MetaDataStateStore(Instance instance, AuthInfo auths, CurrentState state) {
+    this.instance = instance;
     this.state = state;
+    this.auths = auths;
   }
   
+  public MetaDataStateStore() {
+    this(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), null);
+  }
+
   @Override
   public Iterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(Constants.NON_ROOT_METADATA_KEYSPACE, state);
+    return new MetaDataTableScanner(instance, auths, Constants.NON_ROOT_METADATA_KEYSPACE, state);
   }
   
   @Override
@@ -69,9 +79,14 @@ public class MetaDataStateStore extends TabletStateStore {
   }
   
   BatchWriter createBatchWriter() {
-    BatchWriter writer = new BatchWriterImpl(HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), Constants.METADATA_TABLE_ID, MAX_MEMORY,
-        LATENCY, THREADS);
-    return writer;
+    try {
+      return instance.getConnector(auths).createBatchWriter(Constants.METADATA_TABLE_NAME, MAX_MEMORY, LATENCY, THREADS);
+    } catch (TableNotFoundException e) {
+      // ya, I don't think so
+      throw new RuntimeException(e);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
   
   @Override

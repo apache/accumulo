@@ -92,10 +92,10 @@ public class TableOp extends Test {
             Key k = entry.getKey();
             seen++;
             if (!auths.contains(k.getColumnVisibilityData()))
-              throw new AccumuloException("Got data I should not be capable of seeing");
+              throw new AccumuloException("Got data I should not be capable of seeing: " + k + " table " + tableName);
           }
           if (!canRead)
-            throw new AccumuloException("Was able to read when I shouldn't have had the perm with connection user " + conn.whoami());
+            throw new AccumuloException("Was able to read when I shouldn't have had the perm with connection user " + conn.whoami() + " table " + tableName);
           for (Entry<String,Integer> entry : SecurityHelper.getAuthsMap(state).entrySet()) {
             if (auths.contains(entry.getKey().getBytes()))
               seen = seen - entry.getValue();
@@ -104,12 +104,12 @@ public class TableOp extends Test {
             throw new AccumuloException("Got mismatched amounts of data");
         } catch (TableNotFoundException tnfe) {
           if (tableExists)
-            throw new AccumuloException("Accumulo and test suite out of sync", tnfe);
+            throw new AccumuloException("Accumulo and test suite out of sync: table " + tableName, tnfe);
           return;
         } catch (AccumuloSecurityException ae) {
           if (ae.getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
             if (canRead)
-              throw new AccumuloException("Table read permission out of sync with Accumulo", ae);
+              throw new AccumuloException("Table read permission out of sync with Accumulo: table " + tableName, ae);
             else
               return;
           }
@@ -118,7 +118,7 @@ public class TableOp extends Test {
           if (re.getCause() instanceof AccumuloSecurityException
               && ((AccumuloSecurityException) re.getCause()).getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
             if (canRead)
-              throw new AccumuloException("Table read permission out of sync with Accumulo", re.getCause());
+              throw new AccumuloException("Table read permission out of sync with Accumulo: table " + tableName, re.getCause());
             else
               return;
           }
@@ -137,7 +137,7 @@ public class TableOp extends Test {
           writer = conn.createBatchWriter(tableName, 9000l, 0l, 1);
         } catch (TableNotFoundException tnfe) {
           if (tableExists)
-            throw new AccumuloException("Table didn't exist when it should have");
+            throw new AccumuloException("Table didn't exist when it should have: " + tableName);
           return;
         }
         boolean works = true;
@@ -171,12 +171,12 @@ public class TableOp extends Test {
           conn.tableOperations().importDirectory(tableName, dir.toString(), fail.toString(), true);
         } catch (TableNotFoundException tnfe) {
           if (tableExists)
-            throw new AccumuloException("Table didn't exist when it should have");
+            throw new AccumuloException("Table didn't exist when it should have: " + tableName);
           return;
         } catch (AccumuloSecurityException ae) {
           if (ae.getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
             if (hasPerm)
-              throw new AccumuloException("Bulk Import failed when it should have worked.");
+              throw new AccumuloException("Bulk Import failed when it should have worked: " + tableName);
             return;
           }
           throw new AccumuloException("Unexpected exception!", ae);
@@ -185,7 +185,7 @@ public class TableOp extends Test {
           SecurityHelper.increaseAuthMap(state, s, 1);
         
         if (!hasPerm)
-          throw new AccumuloException("Bulk Import succeeded when it should have failed.");
+          throw new AccumuloException("Bulk Import succeeded when it should have failed: " + dir + " table " + tableName);
         break;
       case ALTER_TABLE:
         AlterTable.renameTable(conn, state, tableName, tableName + "plus", hasPerm, tableExists);
