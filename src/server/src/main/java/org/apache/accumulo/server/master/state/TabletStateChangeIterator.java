@@ -118,7 +118,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
         return;
       SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(k, v);
       
-      TabletLocationState tls = MetaDataTableScanner.createTabletLocationState(decodedRow);
+      TabletLocationState tls = MetaDataTableScanner.createTabletLocationState(k, v);
       // we always want data about merges
       MergeInfo merge = merges.get(tls.extent.getTableId());
       if (merge != null && merge.getRange() != null && merge.getRange().overlaps(tls.extent)) {

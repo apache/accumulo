@@ -27,6 +27,7 @@ import java.util.TreeSet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
@@ -44,6 +45,7 @@ import org.apache.accumulo.server.monitor.util.celltypes.DurationType;
 import org.apache.accumulo.server.monitor.util.celltypes.NumberType;
 import org.apache.accumulo.server.monitor.util.celltypes.TableLinkType;
 import org.apache.accumulo.server.monitor.util.celltypes.TableStateType;
+import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.hadoop.io.Text;
 
 public class TablesServlet extends BasicServlet {
@@ -138,8 +140,10 @@ public class TablesServlet extends BasicServlet {
   
   private void doTableDetails(HttpServletRequest req, StringBuilder sb, Map<String,String> tidToNameMap, String tableId) {
     String displayName = Tables.getPrintableTableNameFromId(tidToNameMap, tableId);
-    
-    MetaDataTableScanner scanner = new MetaDataTableScanner(new Range(KeyExtent.getMetadataEntry(new Text(tableId), new Text()), KeyExtent.getMetadataEntry(
+    Instance instance = HdfsZooInstance.getInstance();
+    MetaDataTableScanner scanner = new MetaDataTableScanner(instance, SecurityConstants.getSystemCredentials(), new Range(KeyExtent.getMetadataEntry(new Text(
+        tableId), new Text()),
+        KeyExtent.getMetadataEntry(
         new Text(tableId), null)));
     
     TreeSet<String> locs = new TreeSet<String>();

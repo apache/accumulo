@@ -19,9 +19,9 @@ package org.apache.accumulo.server.master.tserverOps;
 import java.util.Collection;
 
 import org.apache.accumulo.server.fate.Repo;
-import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.EventCoordinator.Listener;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
+import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.TabletLocationState;
@@ -58,7 +58,7 @@ public class FlushTablets extends MasterRepo {
       } catch (DistributedStoreException e) {
         log.warn("Unable to open ZooTabletStateStore, will retry", e);
       }
-      MetaDataStateStore theRest = new MetaDataStateStore(null);
+      MetaDataStateStore theRest = new MetaDataStateStore();
       for (TabletStateStore store : new TabletStateStore[] {zooTabletStateStore, theRest}) {
         if (store != null) {
           for (TabletLocationState tabletState : store) {

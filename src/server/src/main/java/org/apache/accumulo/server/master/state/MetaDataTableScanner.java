@@ -32,15 +32,16 @@ import java.util.SortedMap;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -50,33 +51,37 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   BatchScanner mdScanner;
   Iterator<Entry<Key,Value>> iter;
   
-  public MetaDataTableScanner(Range range, CurrentState state) {
+  public MetaDataTableScanner(Instance instance, AuthInfo auths, Range range, CurrentState state) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers and online tables
     try {
-      Connector connector = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemCredentials());
+      Connector connector = instance.getConnector(auths);
       mdScanner = connector.createBatchScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS, 8);
-      ColumnFQ.fetch(mdScanner, Constants.METADATA_PREV_ROW_COLUMN);
-      mdScanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
-      mdScanner.fetchColumnFamily(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
-      mdScanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
-      mdScanner.fetchColumnFamily(Constants.METADATA_CHOPPED_COLUMN_FAMILY);
+      configureScanner(mdScanner, state);
       mdScanner.setRanges(Collections.singletonList(range));
-      mdScanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
-      IteratorSetting tabletChange = new IteratorSetting(1001, "tabletChange", TabletStateChangeIterator.class);
-      if (state != null) {
-        TabletStateChangeIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
-        TabletStateChangeIterator.setOnlineTables(tabletChange, state.onlineTables());
-        TabletStateChangeIterator.setMerges(tabletChange, state.merges());
-      }
-      mdScanner.addScanIterator(tabletChange);
       iter = mdScanner.iterator();
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
   }
+
+  static public void configureScanner(ScannerBase scanner, CurrentState state) {
+    ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+    scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
+    scanner.fetchColumnFamily(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
+    scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
+    scanner.fetchColumnFamily(Constants.METADATA_CHOPPED_COLUMN_FAMILY);
+    scanner.addScanIterator(new IteratorSetting(1000, "wholeRows", WholeRowIterator.class));
+    IteratorSetting tabletChange = new IteratorSetting(1001, "tabletChange", TabletStateChangeIterator.class);
+    if (state != null) {
+      TabletStateChangeIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
+      TabletStateChangeIterator.setOnlineTables(tabletChange, state.onlineTables());
+      TabletStateChangeIterator.setMerges(tabletChange, state.merges());
+    }
+    scanner.addScanIterator(tabletChange);
+  }
   
-  public MetaDataTableScanner(Range range) {
-    this(range, null);
+  public MetaDataTableScanner(Instance instance, AuthInfo auths, Range range) {
+    this(instance, auths, range, null);
   }
   
   public void close() {
@@ -115,7 +120,8 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
     }
   }
   
-  public static TabletLocationState createTabletLocationState(SortedMap<Key,Value> decodedRow) {
+  public static TabletLocationState createTabletLocationState(Key k, Value v) throws IOException {
+    final SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(k, v);
     KeyExtent extent = null;
     TServerInstance future = null;
     TServerInstance current = null;
@@ -152,10 +158,9 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   }
   
   private TabletLocationState fetch() {
-    Entry<Key,Value> entry = iter.next();
     try {
-      final SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(entry.getKey(), entry.getValue());
-      return createTabletLocationState(decodedRow);
+      Entry<Key,Value> e = iter.next();
+      return createTabletLocationState(e.getKey(), e.getValue());
     } catch (IOException ex) {
       throw new RuntimeException(ex);
     }

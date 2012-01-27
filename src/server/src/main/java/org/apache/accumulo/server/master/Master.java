@@ -110,6 +110,7 @@ import org.apache.accumulo.server.master.state.DeadServerList;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeState;
+import org.apache.accumulo.server.master.state.MergeStats;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.RootTabletStateStore;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -195,52 +196,6 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   final private static int TIME_TO_WAIT_BETWEEN_LOCK_CHECKS = 1000;
   final private static int MAX_TSERVER_WORK_CHUNK = 5000;
   final private static int MAX_BAD_STATUS_COUNT = 3;
-  
-  static class MergeStats {
-    MergeInfo info;
-    int hosted = 0;
-    int unassigned = 0;
-    int chopped = 0;
-    int needsToBeChopped = 0;
-    int total = 0;
-    boolean lowerSplit = false;
-    boolean upperSplit = false;
-    
-    public MergeStats(MergeInfo info) {
-      this.info = info;
-      if (info.getState().equals(MergeState.NONE))
-        return;
-      if (info.getRange().getEndRow() == null)
-        upperSplit = true;
-      if (info.getRange().getPrevEndRow() == null)
-        lowerSplit = true;
-    }
-    
-    void update(KeyExtent ke, TabletState state, boolean chopped) {
-      if (info.getState().equals(MergeState.NONE))
-        return;
-      if (!upperSplit && info.getRange().getEndRow().equals(ke.getPrevEndRow())) {
-        log.info("Upper split found");
-        upperSplit = true;
-      }
-      if (!lowerSplit && info.getRange().getPrevEndRow().equals(ke.getEndRow())) {
-        log.info("Lower split found");
-        lowerSplit = true;
-      }
-      if (!info.overlaps(ke))
-        return;
-      if (info.needsToBeChopped(ke)) {
-        this.needsToBeChopped++;
-        if (chopped)
-          this.chopped++;
-      }
-      this.total++;
-      if (state.equals(TabletState.HOSTED))
-        this.hosted++;
-      if (state.equals(TabletState.UNASSIGNED))
-        this.unassigned++;
-    }
-  }
   
   final private Instance instance;
   final private String hostname;
@@ -1366,13 +1321,13 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
             if (mergeStats == null) {
               mergeStatsCache.put(tableId, mergeStats = new MergeStats(getMergeInfo(tableId)));
             }
-            TabletGoalState goal = getGoalState(tls, mergeStats.info);
+            TabletGoalState goal = getGoalState(tls, mergeStats.getMergeInfo());
             TServerInstance server = tls.getServer();
             TabletState state = tls.getState(currentTServers.keySet());
             stats.update(tableId, state);
             mergeStats.update(tls.extent, state, tls.chopped);
-            sendChopRequest(mergeStats.info, state, tls);
-            sendSplitRequest(mergeStats.info, state, tls);
+            sendChopRequest(mergeStats.getMergeInfo(), state, tls);
+            sendSplitRequest(mergeStats.getMergeInfo(), state, tls);
             
             // Always follow through with assignments
             if (state == TabletState.ASSIGNED) {
@@ -1529,84 +1484,31 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
     private void updateMergeState(Map<Text,MergeStats> mergeStatsCache) {
       for (MergeStats stats : mergeStatsCache.values()) {
-        MergeState state = stats.info.getState();
         try {
-          if (state == MergeState.STARTED) {
-            setMergeState(stats.info, state = MergeState.SPLITTING);
-          }
-          if (state == MergeState.SPLITTING) {
-            log.info(stats.hosted + " are hosted, total " + stats.total);
-            if (!stats.info.isDelete() && stats.total == 1) {
-              log.info("Merge range is already contained in a single tablet");
-              setMergeState(stats.info, state = MergeState.COMPLETE);
-            } else if (stats.hosted == stats.total) {
-              if (stats.info.isDelete()) {
-                if (!stats.lowerSplit)
-                  log.info("Waiting for " + stats.info + " lower split to occur");
-                else if (!stats.upperSplit)
-                  log.info("Waiting for " + stats.info + " upper split to occur");
-                else
-                  setMergeState(stats.info, state = MergeState.WAITING_FOR_CHOPPED);
-              } else {
-                setMergeState(stats.info, state = MergeState.WAITING_FOR_CHOPPED);
-              }
-            } else {
-              log.info("Waiting for " + stats.hosted + " hosted tablets to be " + stats.total);
-            }
-          }
-          if (state == MergeState.WAITING_FOR_CHOPPED) {
-            log.info(stats.chopped + " tablets are chopped");
-            if (stats.chopped == stats.needsToBeChopped) {
-              setMergeState(stats.info, state = MergeState.WAITING_FOR_OFFLINE);
-            } else {
-              log.info("Waiting for " + stats.chopped + " chopped tablets to be " + stats.needsToBeChopped);
-            }
-          }
-          if (state == MergeState.WAITING_FOR_OFFLINE) {
-            if (stats.chopped != stats.needsToBeChopped) {
-              log.warn("Unexpected state: chopped tablets should be " + stats.needsToBeChopped + " was " + stats.chopped + " merge " + stats.info.getRange());
-              // Perhaps a split occurred after we chopped, but before we went offline: start over
-              setMergeState(stats.info, state = MergeState.SPLITTING);
-            } else {
-              log.info(stats.chopped + " tablets are chopped, " + stats.unassigned + " are offline");
-              if (stats.unassigned == stats.total && stats.chopped == stats.needsToBeChopped) {
-                setMergeState(stats.info, state = MergeState.MERGING);
-              } else {
-                log.info("Waiting for " + stats.unassigned + " unassigned tablets to be " + stats.total);
+          MergeState update = stats.nextMergeState();
+          if (update != stats.getMergeInfo().getState()) {
+            if (update == MergeState.MERGING) {
+              if (stats.verifyMergeConsistency(getConnector(), Master.this)) {
+                try {
+                  if (stats.getMergeInfo().isDelete())
+                    deleteTablets(stats.getMergeInfo());
+                  else
+                    mergeMetadataRecords(stats.getMergeInfo());
+                  setMergeState(stats.getMergeInfo(), MergeState.COMPLETE);
+                  update = MergeState.NONE;
+                } catch (Exception ex) {
+                  log.error("Unable merge metadata table records", ex);
+                }
               }
             }
-          }
-          if (state == MergeState.MERGING) {
-            if (stats.hosted != 0) {
-              // Shouldn't happen
-              log.error("Unexpected state: hosted tablets should be zero " + stats.hosted + " merge " + stats.info.getRange());
-            }
-            if (stats.unassigned != stats.total) {
-              // Shouldn't happen
-              log.error("Unexpected state: unassigned tablets should be " + stats.total + " was " + stats.unassigned + " merge " + stats.info.getRange());
-            }
-            log.info(stats.unassigned + " tablets are unassigned");
-            if (stats.hosted == 0 && stats.unassigned == stats.total) {
-              try {
-                if (stats.info.isDelete())
-                  deleteTablets(stats.info);
-                else
-                  mergeMetadataRecords(stats.info);
-                setMergeState(stats.info, state = MergeState.COMPLETE);
-              } catch (Exception ex) {
-                log.error("Unable merge metadata table records", ex);
-              }
-            }
-          }
-          if (state == MergeState.COMPLETE) {
-            setMergeState(stats.info, MergeState.NONE);
+            setMergeState(stats.getMergeInfo(), update);
           }
         } catch (Exception ex) {
-          log.error("Unable to update merge state for merge " + stats.info.getRange(), ex);
+          log.error("Unable to update merge state for merge " + stats.getMergeInfo().getRange(), ex);
         }
       }
     }
-    
+
     private void deleteTablets(MergeInfo info) throws AccumuloException {
       KeyExtent range = info.getRange();
       log.debug("Deleting tablets for " + range);
@@ -1858,6 +1760,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
   }
   
+
   private class MigrationCleanupThread extends Daemon {
     
     public void run() {
@@ -2113,7 +2016,9 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
     tserverSet.startListeningForTabletServerChanges();
     
-    final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(this), new MetaDataStateStore(this)};
+    AuthInfo systemAuths = SecurityConstants.getSystemCredentials();
+    final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(instance, systemAuths, this),
+        new MetaDataStateStore(instance, systemAuths, this)};
     for (int i = 0; i < stores.length; i++) {
       watchers.add(new TabletGroupWatcher(stores[i]));
     }
