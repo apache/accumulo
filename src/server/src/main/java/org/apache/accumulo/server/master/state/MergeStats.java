@@ -159,11 +159,14 @@ public class MergeStats {
     Text pr = null;
     for (Entry<Key,Value> entry : scanner) {
       TabletLocationState tls = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
+      if (!tls.extent.getTableId().equals(tableId)) {
+        break;
+      }
       verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped);
-      if (pr != null && !tls.extent.getPrevEndRow().equals(pr))
+      if (pr != null && (tls.extent.getPrevEndRow() == null || !tls.extent.getPrevEndRow().equals(pr)))
         return false;
       pr = tls.extent.getEndRow();
-      if (tls.extent.getPrevEndRow().compareTo(extent.getEndRow()) > 0) {
+      if (tls.extent.getPrevEndRow() != null && extent.getEndRow() != null && tls.extent.getPrevEndRow().compareTo(extent.getEndRow()) > 0) {
         break;
       }
     }
