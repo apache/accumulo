@@ -42,6 +42,7 @@
         <include>conf/*.example</include>
         <include>conf/*_logger.xml</include>
         <include>conf/log4j.properties</include>
+        <include>**/*.py</include>
       </includes>
       <directoryMode>0700</directoryMode>
       <fileMode>0600</fileMode>
