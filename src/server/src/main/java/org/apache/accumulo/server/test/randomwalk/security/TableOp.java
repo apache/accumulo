@@ -183,7 +183,9 @@ public class TableOp extends Test {
         }
         for (String s : SecurityHelper.getAuthsArray())
           SecurityHelper.increaseAuthMap(state, s, 1);
-        
+        fs.delete(dir, true);
+        fs.delete(fail, true);
+
         if (!hasPerm)
           throw new AccumuloException("Bulk Import succeeded when it should have failed: " + dir + " table " + tableName);
         break;

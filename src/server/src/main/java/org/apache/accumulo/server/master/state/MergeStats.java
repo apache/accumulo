@@ -184,7 +184,8 @@ public class MergeStats {
   public static void main(String[] args) throws Exception {
     Instance instance = HdfsZooInstance.getInstance();
     Map<String,String> tableIdMap = instance.getConnector(SecurityConstants.getSystemCredentials()).tableOperations().tableIdMap();
-    for (String tableId : tableIdMap.keySet()) {
+    for (String table : tableIdMap.keySet()) {
+      String tableId = tableIdMap.get(table);
       String path = ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId.toString() + "/merge";
       MergeInfo info = new MergeInfo();
       if (ZooReaderWriter.getInstance().exists(path)) {
@@ -193,7 +194,7 @@ public class MergeStats {
         in.reset(data, data.length);
         info.readFields(in);
       }
-      System.out.println(String.format("%25s  %10s %10s %s", tableIdMap.get(tableId), info.state, info.operation, info.range));
+      System.out.println(String.format("%25s  %10s %10s %s", table, info.state, info.operation, info.range));
     }
   }
 }
