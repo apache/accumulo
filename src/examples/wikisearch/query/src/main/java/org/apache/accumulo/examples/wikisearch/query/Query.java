@@ -40,7 +40,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
-
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -48,7 +47,6 @@ import org.apache.accumulo.examples.wikisearch.logic.ContentLogic;
 import org.apache.accumulo.examples.wikisearch.logic.QueryLogic;
 import org.apache.accumulo.examples.wikisearch.sample.Results;
 import org.apache.log4j.Logger;
-
 
 @Stateless
 @Local(IQuery.class)
@@ -192,12 +190,9 @@ public class Query implements IQuery {
     
     // Create list of auths
     List<String> authorizations = new ArrayList<String>();
-    if (auths == null || "".equals(auths)) {
-      authorizations.add("all");
-    } else {
+    if (auths != null && auths.length() > 0)
       for (String a : auths.split(","))
         authorizations.add(a);
-    }
     ContentLogic table = new ContentLogic();
     table.setTableName(tableName);
     return table.runQuery(connector, query, authorizations);
@@ -229,8 +224,9 @@ public class Query implements IQuery {
     
     // Create list of auths
     List<String> authorizations = new ArrayList<String>();
-    for (String a : auths.split(","))
-      authorizations.add(a);
+    if (auths != null && auths.length() > 0)
+      for (String a : auths.split(","))
+        authorizations.add(a);
     
     QueryLogic table = new QueryLogic();
     table.setTableName(tableName);

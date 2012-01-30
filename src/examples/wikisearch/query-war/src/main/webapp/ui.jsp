@@ -62,6 +62,8 @@
     		<p>The search syntax is boolean logic, for example: TEXT == 'boy' and TITLE =~ 'Autism'. The supported operators are:
     		==, !=, &lt;, &gt;, &le;, &ge;, =~, and !~. Likewise grouping can be performed using parentheses and predicates can be
     		joined using and, or, and not.
+    		<p>To highlight the cell-level access control of Apache Accumulo, the "authorization" required for a particular cell is the language 
+    		of the associated wikipedia article.
     	</div>
     	<div id="d">
 	    	<form id="FORM" name="queryForm" method="get" target="results" onsubmit="return setAction()">
@@ -73,6 +75,8 @@
 	    		</div>
 	    		<br />
 	    		<div class="center_input">
+	    		<label>Authorizations: </label>
+	    		<br />
 	    		<label>All</label><input type="checkbox" name="auths" value="all" />
 				</div>
 	    		<div class="center_input">

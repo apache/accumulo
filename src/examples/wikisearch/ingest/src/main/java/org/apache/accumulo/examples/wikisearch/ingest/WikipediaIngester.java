@@ -19,6 +19,7 @@ package org.apache.accumulo.examples.wikisearch.ingest;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
@@ -29,15 +30,17 @@ import java.util.regex.Pattern;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.aggregation.NumSummation;
-import org.apache.accumulo.core.iterators.aggregation.conf.AggregatorConfiguration;
+import org.apache.accumulo.core.iterators.user.SummingCombiner;
+import org.apache.accumulo.examples.wikisearch.iterator.GlobalIndexUidCombiner;
+import org.apache.accumulo.examples.wikisearch.iterator.TextIndexCombiner;
 import org.apache.accumulo.examples.wikisearch.reader.AggregatingRecordReader;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -52,8 +55,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
-
-@SuppressWarnings("deprecation")
 public class WikipediaIngester extends Configured implements Tool {
   
   public final static String INGEST_LANGUAGE = "wikipedia.ingest_language";
@@ -74,23 +75,21 @@ public class WikipediaIngester extends Configured implements Tool {
     
     // create the shard table
     if (!tops.exists(tableName)) {
-      // Set a text index aggregator on the given field names. No aggregator is set if the option is not supplied
+      // Set a text index combiner on the given field names. No combiner is set if the option is not supplied
       String textIndexFamilies = WikipediaMapper.TOKENS_FIELD_NAME;
       
+      tops.create(tableName);
       if (textIndexFamilies.length() > 0) {
-        System.out.println("Adding content aggregator on the fields: " + textIndexFamilies);
+        System.out.println("Adding content combiner on the fields: " + textIndexFamilies);
         
-        // Create and set the aggregators in one shot
-        List<AggregatorConfiguration> aggregators = new ArrayList<AggregatorConfiguration>();
-        
+        IteratorSetting setting = new IteratorSetting(10, TextIndexCombiner.class);
+        List<Column> columns = new ArrayList<Column>();
         for (String family : StringUtils.split(textIndexFamilies, ',')) {
-          aggregators.add(new AggregatorConfiguration(new Text("fi\0" + family), org.apache.accumulo.examples.wikisearch.aggregator.TextIndexAggregator.class.getName()));
+          columns.add(new Column("fi\0" + family));
         }
+        TextIndexCombiner.setColumns(setting, columns);
         
-        tops.create(tableName);
-        tops.addAggregators(tableName, aggregators);
-      } else {
-        tops.create(tableName);
+        tops.attachIterator(tableName, setting, EnumSet.allOf(IteratorScope.class));
       }
       
       // Set the locality group for the full content column family
@@ -100,34 +99,27 @@ public class WikipediaIngester extends Configured implements Tool {
     
     if (!tops.exists(indexTableName)) {
       tops.create(indexTableName);
-      // Add the UID aggregator
-      for (IteratorScope scope : IteratorScope.values()) {
-        String stem = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name(), "UIDAggregator");
-        tops.setProperty(indexTableName, stem, "19,org.apache.accumulo.examples.wikisearch.iterator.TotalAggregatingIterator");
-        stem += ".opt.";
-        tops.setProperty(indexTableName, stem + "*", "org.apache.accumulo.examples.wikisearch.aggregator.GlobalIndexUidAggregator");
-        
-      }
+      // Add the UID combiner
+      IteratorSetting setting = new IteratorSetting(19, "UIDAggregator", GlobalIndexUidCombiner.class);
+      GlobalIndexUidCombiner.setCombineAllColumns(setting, true);
+      tops.attachIterator(indexTableName, setting, EnumSet.allOf(IteratorScope.class));
     }
     
     if (!tops.exists(reverseIndexTableName)) {
       tops.create(reverseIndexTableName);
-      // Add the UID aggregator
-      for (IteratorScope scope : IteratorScope.values()) {
-        String stem = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name(), "UIDAggregator");
-        tops.setProperty(reverseIndexTableName, stem, "19,org.apache.accumulo.examples.wikisearch.iterator.TotalAggregatingIterator");
-        stem += ".opt.";
-        tops.setProperty(reverseIndexTableName, stem + "*", "org.apache.accumulo.examples.wikisearch.aggregator.GlobalIndexUidAggregator");
-        
-      }
+      // Add the UID combiner
+      IteratorSetting setting = new IteratorSetting(19, "UIDAggregator", GlobalIndexUidCombiner.class);
+      GlobalIndexUidCombiner.setCombineAllColumns(setting, true);
+      tops.attachIterator(reverseIndexTableName, setting, EnumSet.allOf(IteratorScope.class));
     }
     
     if (!tops.exists(metadataTableName)) {
-      // Add the NumSummation aggregator for the frequency column
-      List<AggregatorConfiguration> aggregators = new ArrayList<AggregatorConfiguration>();
-      aggregators.add(new AggregatorConfiguration(new Text("f"), NumSummation.class.getName()));
+      // Add the SummingCombiner with VARLEN encoding for the frequency column
       tops.create(metadataTableName);
-      tops.addAggregators(metadataTableName, aggregators);
+      IteratorSetting setting = new IteratorSetting(10, SummingCombiner.class);
+      SummingCombiner.setColumns(setting, Collections.singletonList(new Column("f")));
+      SummingCombiner.setEncodingType(setting, SummingCombiner.Type.VARLEN);
+      tops.attachIterator(metadataTableName, setting, EnumSet.allOf(IteratorScope.class));
     }
   }
   
@@ -136,7 +128,7 @@ public class WikipediaIngester extends Configured implements Tool {
     Job job = new Job(getConf(), "Ingest Wikipedia");
     Configuration conf = job.getConfiguration();
     conf.set("mapred.map.tasks.speculative.execution", "false");
-
+    
     String tablename = WikipediaConfiguration.getTableName(conf);
     
     String zookeepers = WikipediaConfiguration.getZookeepers(conf);
@@ -171,8 +163,8 @@ public class WikipediaIngester extends Configured implements Tool {
     job.setMapOutputKeyClass(Text.class);
     job.setMapOutputValueClass(Mutation.class);
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setOutputInfo(job, user, password, true, tablename);
-    AccumuloOutputFormat.setZooKeeperInstance(job, instanceName, zookeepers);
+    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), user, password, true, tablename);
+    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), instanceName, zookeepers);
     
     return job.waitForCompletion(true) ? 0 : 1;
   }
