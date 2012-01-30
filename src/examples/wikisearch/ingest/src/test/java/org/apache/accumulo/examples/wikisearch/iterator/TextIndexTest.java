@@ -14,29 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.examples.wikisearch.aggregator;
+package org.apache.accumulo.examples.wikisearch.iterator;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import junit.framework.Assert;
 
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.examples.wikisearch.protobuf.TermWeight;
+import org.apache.accumulo.examples.wikisearch.protobuf.TermWeight.Info.Builder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.examples.wikisearch.aggregator.TextIndexAggregator;
-import org.apache.accumulo.examples.wikisearch.protobuf.TermWeight;
-import org.apache.accumulo.examples.wikisearch.protobuf.TermWeight.Info.Builder;
-
 import com.google.protobuf.InvalidProtocolBufferException;
 
-public class TextIndexAggregatorTest {
-  private TextIndexAggregator aggregator;
+public class TextIndexTest {
+  private TextIndexCombiner combiner;
+  private List<Value> values;
   
   @Before
   public void setup() throws Exception {
-    aggregator = new TextIndexAggregator();
+    combiner = new TextIndexCombiner();
+    combiner.init(null, Collections.singletonMap("all", "true"), null);
+    values = new ArrayList<Value>();
   }
   
   @After
@@ -50,15 +54,14 @@ public class TextIndexAggregatorTest {
   
   @Test
   public void testSingleValue() throws InvalidProtocolBufferException {
-    aggregator = new TextIndexAggregator();
     Builder builder = createBuilder();
     builder.addWordOffset(1);
     builder.addWordOffset(5);
     builder.setNormalizedTermFrequency(0.1f);
     
-    aggregator.collect(new Value(builder.build().toByteArray()));
+    values.add(new Value(builder.build().toByteArray()));
     
-    Value result = aggregator.aggregate();
+    Value result = combiner.reduce(new Key(), values.iterator());
     
     TermWeight.Info info = TermWeight.Info.parseFrom(result.get());
     
@@ -72,21 +75,20 @@ public class TextIndexAggregatorTest {
   
   @Test
   public void testAggregateTwoValues() throws InvalidProtocolBufferException {
-    aggregator = new TextIndexAggregator();
     Builder builder = createBuilder();
     builder.addWordOffset(1);
     builder.addWordOffset(5);
     builder.setNormalizedTermFrequency(0.1f);
     
-    aggregator.collect(new Value(builder.build().toByteArray()));
+    values.add(new Value(builder.build().toByteArray()));
     
     builder = createBuilder();
     builder.addWordOffset(3);
     builder.setNormalizedTermFrequency(0.05f);
     
-    aggregator.collect(new Value(builder.build().toByteArray()));
+    values.add(new Value(builder.build().toByteArray()));
     
-    Value result = aggregator.aggregate();
+    Value result = combiner.reduce(new Key(), values.iterator());
     
     TermWeight.Info info = TermWeight.Info.parseFrom(result.get());
     
@@ -101,30 +103,28 @@ public class TextIndexAggregatorTest {
   
   @Test
   public void testAggregateManyValues() throws InvalidProtocolBufferException {
-    aggregator = new TextIndexAggregator();
-    
     Builder builder = createBuilder();
     builder.addWordOffset(13);
     builder.addWordOffset(15);
     builder.addWordOffset(19);
     builder.setNormalizedTermFrequency(0.12f);
     
-    aggregator.collect(new Value(builder.build().toByteArray()));
+    values.add(new Value(builder.build().toByteArray()));
     
     builder = createBuilder();
     builder.addWordOffset(1);
     builder.addWordOffset(5);
     builder.setNormalizedTermFrequency(0.1f);
     
-    aggregator.collect(new Value(builder.build().toByteArray()));
+    values.add(new Value(builder.build().toByteArray()));
     
     builder = createBuilder();
     builder.addWordOffset(3);
     builder.setNormalizedTermFrequency(0.05f);
     
-    aggregator.collect(new Value(builder.build().toByteArray()));
+    values.add(new Value(builder.build().toByteArray()));
     
-    Value result = aggregator.aggregate();
+    Value result = combiner.reduce(new Key(), values.iterator());
     
     TermWeight.Info info = TermWeight.Info.parseFrom(result.get());
     

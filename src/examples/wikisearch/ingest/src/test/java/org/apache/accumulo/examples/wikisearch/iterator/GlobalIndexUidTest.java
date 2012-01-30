@@ -14,49 +14,58 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.examples.wikisearch.aggregator;
+package org.apache.accumulo.examples.wikisearch.iterator;
+
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import junit.framework.TestCase;
-
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.aggregation.Aggregator;
-import org.apache.accumulo.examples.wikisearch.aggregator.GlobalIndexUidAggregator;
+import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.examples.wikisearch.protobuf.Uid;
 import org.apache.accumulo.examples.wikisearch.protobuf.Uid.List.Builder;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Before;
+import org.junit.Test;
 
-
-@SuppressWarnings("deprecation")
-public class GlobalIndexUidAggregatorTest extends TestCase {
+public class GlobalIndexUidTest {
+  private GlobalIndexUidCombiner combiner;
+  private List<Value> values;
   
-  Aggregator agg = new GlobalIndexUidAggregator();
+  @Before
+  public void setup() throws Exception {
+    combiner = new GlobalIndexUidCombiner();
+    combiner.init(null, Collections.singletonMap("all", "true"), null);
+    values = new ArrayList<Value>();
+  }
   
   private Uid.List.Builder createNewUidList() {
     return Uid.List.newBuilder();
   }
   
+  @Test
   public void testSingleUid() {
-    agg.reset();
     Builder b = createNewUidList();
     b.setCOUNT(1);
     b.setIGNORE(false);
     b.addUID(UUID.randomUUID().toString());
     Uid.List uidList = b.build();
     Value val = new Value(uidList.toByteArray());
-    agg.collect(val);
-    Value result = agg.aggregate();
+    values.add(val);
+    Value result = combiner.reduce(new Key(), values.iterator());
     assertTrue(val.compareTo(result.get()) == 0);
   }
   
+  @Test
   public void testLessThanMax() throws Exception {
-    agg.reset();
     List<String> savedUUIDs = new ArrayList<String>();
-    for (int i = 0; i < GlobalIndexUidAggregator.MAX - 1; i++) {
+    for (int i = 0; i < GlobalIndexUidCombiner.MAX - 1; i++) {
       Builder b = createNewUidList();
       b.setIGNORE(false);
       String uuid = UUID.randomUUID().toString();
@@ -65,21 +74,21 @@ public class GlobalIndexUidAggregatorTest extends TestCase {
       b.addUID(uuid);
       Uid.List uidList = b.build();
       Value val = new Value(uidList.toByteArray());
-      agg.collect(val);
+      values.add(val);
     }
-    Value result = agg.aggregate();
+    Value result = combiner.reduce(new Key(), values.iterator());
     Uid.List resultList = Uid.List.parseFrom(result.get());
     assertTrue(resultList.getIGNORE() == false);
-    assertTrue(resultList.getUIDCount() == (GlobalIndexUidAggregator.MAX - 1));
+    assertTrue(resultList.getUIDCount() == (GlobalIndexUidCombiner.MAX - 1));
     List<String> resultListUUIDs = resultList.getUIDList();
     for (String s : savedUUIDs)
       assertTrue(resultListUUIDs.contains(s));
   }
   
+  @Test
   public void testEqualsMax() throws Exception {
-    agg.reset();
     List<String> savedUUIDs = new ArrayList<String>();
-    for (int i = 0; i < GlobalIndexUidAggregator.MAX; i++) {
+    for (int i = 0; i < GlobalIndexUidCombiner.MAX; i++) {
       Builder b = createNewUidList();
       b.setIGNORE(false);
       String uuid = UUID.randomUUID().toString();
@@ -88,21 +97,21 @@ public class GlobalIndexUidAggregatorTest extends TestCase {
       b.addUID(uuid);
       Uid.List uidList = b.build();
       Value val = new Value(uidList.toByteArray());
-      agg.collect(val);
+      values.add(val);
     }
-    Value result = agg.aggregate();
+    Value result = combiner.reduce(new Key(), values.iterator());
     Uid.List resultList = Uid.List.parseFrom(result.get());
     assertTrue(resultList.getIGNORE() == false);
-    assertTrue(resultList.getUIDCount() == (GlobalIndexUidAggregator.MAX));
+    assertTrue(resultList.getUIDCount() == (GlobalIndexUidCombiner.MAX));
     List<String> resultListUUIDs = resultList.getUIDList();
     for (String s : savedUUIDs)
       assertTrue(resultListUUIDs.contains(s));
   }
   
+  @Test
   public void testMoreThanMax() throws Exception {
-    agg.reset();
     List<String> savedUUIDs = new ArrayList<String>();
-    for (int i = 0; i < GlobalIndexUidAggregator.MAX + 10; i++) {
+    for (int i = 0; i < GlobalIndexUidCombiner.MAX + 10; i++) {
       Builder b = createNewUidList();
       b.setIGNORE(false);
       String uuid = UUID.randomUUID().toString();
@@ -111,51 +120,56 @@ public class GlobalIndexUidAggregatorTest extends TestCase {
       b.addUID(uuid);
       Uid.List uidList = b.build();
       Value val = new Value(uidList.toByteArray());
-      agg.collect(val);
+      values.add(val);
     }
-    Value result = agg.aggregate();
+    Value result = combiner.reduce(new Key(), values.iterator());
     Uid.List resultList = Uid.List.parseFrom(result.get());
     assertTrue(resultList.getIGNORE() == true);
     assertTrue(resultList.getUIDCount() == 0);
-    assertTrue(resultList.getCOUNT() == (GlobalIndexUidAggregator.MAX + 10));
+    assertTrue(resultList.getCOUNT() == (GlobalIndexUidCombiner.MAX + 10));
   }
   
+  @Test
   public void testSeenIgnore() throws Exception {
-    agg.reset();
     Builder b = createNewUidList();
     b.setIGNORE(true);
     b.setCOUNT(0);
     Uid.List uidList = b.build();
     Value val = new Value(uidList.toByteArray());
-    agg.collect(val);
+    values.add(val);
     b = createNewUidList();
     b.setIGNORE(false);
     b.setCOUNT(1);
     b.addUID(UUID.randomUUID().toString());
     uidList = b.build();
     val = new Value(uidList.toByteArray());
-    agg.collect(val);
-    Value result = agg.aggregate();
+    values.add(val);
+    Value result = combiner.reduce(new Key(), values.iterator());
     Uid.List resultList = Uid.List.parseFrom(result.get());
     assertTrue(resultList.getIGNORE() == true);
     assertTrue(resultList.getUIDCount() == 0);
     assertTrue(resultList.getCOUNT() == 1);
   }
   
+  @Test
   public void testInvalidValueType() throws Exception {
-    Logger.getLogger(GlobalIndexUidAggregator.class).setLevel(Level.OFF);
-    agg.reset();
+    Combiner comb = new GlobalIndexUidCombiner();
+    IteratorSetting setting = new IteratorSetting(1, GlobalIndexUidCombiner.class);
+    GlobalIndexUidCombiner.setCombineAllColumns(setting, true);
+    GlobalIndexUidCombiner.setLossyness(setting, true);
+    comb.init(null, setting.getProperties(), null);
+    Logger.getLogger(GlobalIndexUidCombiner.class).setLevel(Level.OFF);
     Value val = new Value(UUID.randomUUID().toString().getBytes());
-    agg.collect(val);
-    Value result = agg.aggregate();
+    values.add(val);
+    Value result = comb.reduce(new Key(), values.iterator());
     Uid.List resultList = Uid.List.parseFrom(result.get());
     assertTrue(resultList.getIGNORE() == false);
     assertTrue(resultList.getUIDCount() == 0);
     assertTrue(resultList.getCOUNT() == 0);
   }
   
+  @Test
   public void testCount() throws Exception {
-    agg.reset();
     UUID uuid = UUID.randomUUID();
     // Collect the same UUID five times.
     for (int i = 0; i < 5; i++) {
@@ -165,9 +179,9 @@ public class GlobalIndexUidAggregatorTest extends TestCase {
       b.addUID(uuid.toString());
       Uid.List uidList = b.build();
       Value val = new Value(uidList.toByteArray());
-      agg.collect(val);
+      values.add(val);
     }
-    Value result = agg.aggregate();
+    Value result = combiner.reduce(new Key(), values.iterator());
     Uid.List resultList = Uid.List.parseFrom(result.get());
     assertTrue(resultList.getIGNORE() == false);
     assertTrue(resultList.getUIDCount() == 1);

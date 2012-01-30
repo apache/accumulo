@@ -18,8 +18,9 @@ package org.apache.accumulo.examples.wikisearch.util;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
+
+import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.hadoop.io.Text;
-import org.apache.accumulo.core.iterators.aggregation.LongSummation;
 
 public class TextUtil {
   
@@ -43,7 +44,7 @@ public class TextUtil {
   
   public static void textAppend(Text t, long s) {
     t.append(nullByte, 0, 1);
-    t.append(LongSummation.longToBytes(s), 0, 8);
+    t.append(SummingCombiner.FIXED_LEN_ENCODER.encode(s), 0, 8);
   }
   
   private static final byte[] nullByte = {0};
