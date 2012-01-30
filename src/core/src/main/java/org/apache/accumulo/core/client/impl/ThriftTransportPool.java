@@ -27,9 +27,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -528,6 +528,16 @@ public class ThriftTransportPool {
     }
   }
   
+  /**
+   * Set the time after which idle connections should be closed
+   * 
+   * @param time
+   */
+  public synchronized void setIdleTime(long time) {
+    this.killTime = time;
+    log.debug("Set thrift transport pool idle time to " + time);
+  }
+
   private static ThriftTransportPool instance = new ThriftTransportPool();
   private static final AtomicBoolean daemonStarted = new AtomicBoolean(false);
   
