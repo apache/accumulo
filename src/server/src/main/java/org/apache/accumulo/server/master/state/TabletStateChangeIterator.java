@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.Property;
@@ -35,7 +34,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.commons.codec.binary.Base64;
@@ -116,8 +114,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       
       if (onlineTables == null || current == null)
         return;
-      SortedMap<Key,Value> decodedRow = WholeRowIterator.decodeRow(k, v);
-      
+
       TabletLocationState tls = MetaDataTableScanner.createTabletLocationState(k, v);
       // we always want data about merges
       MergeInfo merge = merges.get(tls.extent.getTableId());
