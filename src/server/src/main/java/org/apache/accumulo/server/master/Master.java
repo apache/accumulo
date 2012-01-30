@@ -1494,13 +1494,14 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
                     deleteTablets(stats.getMergeInfo());
                   else
                     mergeMetadataRecords(stats.getMergeInfo());
-                  setMergeState(stats.getMergeInfo(), MergeState.COMPLETE);
-                  update = MergeState.NONE;
+                  setMergeState(stats.getMergeInfo(), update = MergeState.COMPLETE);
                 } catch (Exception ex) {
                   log.error("Unable merge metadata table records", ex);
                 }
               }
             }
+            if (update == MergeState.COMPLETE)
+              update = MergeState.NONE;
             setMergeState(stats.getMergeInfo(), update);
           }
         } catch (Exception ex) {
