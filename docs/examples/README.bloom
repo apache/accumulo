@@ -22,7 +22,7 @@ do not exist in a table.
 
 Below table named bloom_test is created and bloom filters are enabled.
 
-    $ ./accumulo shell -u username -p password
+    $ ./bin/accumulo shell -u username -p password
     Shell - Accumulo Interactive Shell
     - version: 1.5.x-incubating
     - instance name: instance
@@ -62,7 +62,7 @@ Below another 500 queries are performed, using a different seed which results
 in nothing being found.  In this case the lookups are much faster because of
 the bloom filters.
 
-    $ ../bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchScanner -s 8 instance zookeepers username password bloom_test 500 0 1000000000 50 20 exampleVis
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchScanner -s 8 instance zookeepers username password bloom_test 500 0 1000000000 50 20 exampleVis
     Generating 500 random queries...finished
     2212.39 lookups/sec   0.23 secs
     num results : 0
@@ -100,7 +100,7 @@ million inserts.  If not, then more map files will be created.
 
 The commands for creating the first table without bloom filters are below.
 
-    $ ./accumulo shell -u username -p password
+    $ ./bin/accumulo shell -u username -p password
     Shell - Accumulo Interactive Shell
     - version: 1.4.x-incubating
     - instance name: instance
@@ -122,7 +122,7 @@ The commands for creating the first table without bloom filters are below.
 
 The commands for creating the second table with bloom filers are below.
 
-    $ ./accumulo shell -u username -p password
+    $ ./bin/accumulo shell -u username -p password
     Shell - Accumulo Interactive Shell
     - version: 1.4.x-incubating
     - instance name: instance
@@ -171,20 +171,11 @@ You can verify the table has three files by looking in HDFS.  To look in HDFS
 you will need the table ID, because this is used in HDFS instead of the table
 name.  The following command will show table ids.
 
-    $ ./accumulo shell -u username -p password
-    Shell - Accumulo Interactive Shell
-    - version: 1.4.x-incubating
-    - instance name: instance
-    - instance id: 00000000-0000-0000-0000-000000000000
-    - 
-    - type 'help' for a list of available commands
-    - 
-    username@instance> tables -l
+    $ ./bin/accumulo shell -u username -p password -e 'tables -l'
     !METADATA       =>         !0
     bloom_test1     =>         o7
     bloom_test2     =>         o8
     trace           =>          1
-    username@instance> quit
 
 So the table id for bloom_test2 is o8.  The command below shows what files this
 table has in HDFS.  This assumes Accumulo is at the default location in HDFS. 
