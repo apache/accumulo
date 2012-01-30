@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
@@ -528,12 +529,15 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   }
   
   public Master(String[] args) throws IOException {
+    
     Accumulo.init("master");
     
     log.info("Version " + Constants.VERSION);
     instance = HdfsZooInstance.getInstance();
     log.info("Instance " + instance.getInstanceID());
     
+    ThriftTransportPool.getInstance().setIdleTime(ServerConfiguration.getSiteConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+
     hostname = Accumulo.getLocalAddress(args).getHostName();
     fs = TraceFileSystem.wrap(FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));
     ;
