@@ -90,8 +90,13 @@ public class MergeStats {
   
   public MergeState nextMergeState() throws Exception {
     MergeState state = info.getState();
+    log.info("Computing next merge state for " + this.info.getRange() + " which is presently " + state);
     if (state == MergeState.STARTED) {
       state = MergeState.SPLITTING;
+    }
+    if (total == 0) {
+      log.info("failed to see any tablets for this range, ignoring");
+      return state;
     }
     if (state == MergeState.SPLITTING) {
       log.info(hosted + " are hosted, total " + total);
@@ -171,9 +176,11 @@ public class MergeStats {
         break;
       }
       verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped);
+      // check that the prevRow matches the previous row
       if (pr != null && (tls.extent.getPrevEndRow() == null || !tls.extent.getPrevEndRow().equals(pr)))
         return false;
       pr = tls.extent.getEndRow();
+      // stop when we've seen the tablet just beyond our range
       if (tls.extent.getPrevEndRow() != null && extent.getEndRow() != null && tls.extent.getPrevEndRow().compareTo(extent.getEndRow()) > 0) {
         break;
       }
@@ -184,7 +191,8 @@ public class MergeStats {
   public static void main(String[] args) throws Exception {
     Instance instance = HdfsZooInstance.getInstance();
     Map<String,String> tableIdMap = instance.getConnector(SecurityConstants.getSystemCredentials()).tableOperations().tableIdMap();
-    for (String tableId : tableIdMap.keySet()) {
+    for (String table : tableIdMap.keySet()) {
+      String tableId = tableIdMap.get(table);
       String path = ZooUtil.getRoot(instance.getInstanceID()) + Constants.ZTABLES + "/" + tableId.toString() + "/merge";
       MergeInfo info = new MergeInfo();
       if (ZooReaderWriter.getInstance().exists(path)) {
@@ -193,7 +201,7 @@ public class MergeStats {
         in.reset(data, data.length);
         info.readFields(in);
       }
-      System.out.println(String.format("%25s  %10s %10s %s", tableIdMap.get(tableId), info.state, info.operation, info.range));
+      System.out.println(String.format("%25s  %10s %10s %s", table, info.state, info.operation, info.range));
     }
   }
 }

@@ -23,10 +23,11 @@ import java.util.Map;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.test.CreateRFiles;
+import org.apache.accumulo.server.test.CreateMapFiles;
 import org.apache.accumulo.server.test.VerifyIngest;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.log4j.Logger;
 
 /**
  * This test verifies that when a lot of files are bulk imported into a table with one tablet and then splits that not all map files go to the children tablets.
@@ -42,8 +43,8 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
   @Override
   public void cleanup() throws Exception {
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    fs.delete(new Path("/testrf"), true);
-    fs.delete(new Path("/testrf_failures"), true);
+    fs.delete(new Path("/tmp/testmf"), true);
+    fs.delete(new Path("/tmp/testmf_failures"), true);
   }
   
   @Override
@@ -61,14 +62,14 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
   public void run() throws Exception {
     
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    fs.delete(new Path("/testrf"), true);
+    fs.delete(new Path("/tmp/testmf"), true);
     
-    CreateRFiles.main(new String[] {"testrf", "8", "0", "100000", "99"});
+    CreateMapFiles.main(new String[] {"tmp/testmf", "8", "0", "100000", "99"});
     
-    bulkImport(fs, TABLE_NAME, "/testrf");
+    bulkImport(fs, TABLE_NAME, "/tmp/testmf");
     
     checkSplits(TABLE_NAME, 0, 0);
-    checkRFiles(TABLE_NAME, 1, 1, 100, 100);
+    checkMapFiles(TABLE_NAME, 1, 1, 100, 100);
     
     // initiate splits
     getConnector().tableOperations().setProperty(TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "100K");
@@ -85,6 +86,6 @@ public class BulkSplitOptimizationTest extends FunctionalTest {
     VerifyIngest.main(new String[] {"-timestamp", "1", "-size", "50", "-random", "56", "100000", "0", "1"});
     
     // ensure each tablet does not have all map files
-    checkRFiles(TABLE_NAME, 50, 100, 1, 4);
+    checkMapFiles(TABLE_NAME, 50, 100, 1, 4);
   }
 }

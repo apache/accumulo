@@ -370,7 +370,10 @@ public final class ZKAuthenticator implements Authenticator {
       if (Tool.convertSystemPermissions(perms).contains(permission))
         return true;
       zooCache.clear(ZKUserPath + "/" + user + ZKUserSysPerms);
-      return Tool.convertSystemPermissions(zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms)).contains(permission);
+      perms = zooCache.get(ZKUserPath + "/" + user + ZKUserSysPerms);
+      if (perms == null)
+        return false;
+      return Tool.convertSystemPermissions(perms).contains(permission);
     }
     throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST); // user doesn't exist
   }

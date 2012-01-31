@@ -41,7 +41,7 @@ FUZZ=os.getpid() % 997
 ACCUMULO_HOME = os.path.dirname(__file__)
 ACCUMULO_HOME = os.path.join(ACCUMULO_HOME, *(os.path.pardir,)*3)
 ACCUMULO_HOME = os.path.realpath(ACCUMULO_HOME)
-ACCUMULO_DIR = "/accumulo-" + ID
+ACCUMULO_DIR = "/user/" + os.getlogin() + "/accumulo-" + ID
 SITE = "test-" + ID
 
 WALOG = os.path.join(ACCUMULO_HOME, 'walogs', ID)
