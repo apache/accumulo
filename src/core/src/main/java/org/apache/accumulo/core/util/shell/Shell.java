@@ -171,7 +171,7 @@ public class Shell {
   
   private Token rootToken;
   public final Map<String,Command> commandFactory = new TreeMap<String,Command>();
-  boolean configError = false;
+  private boolean configError = false;
   
   // Global options flags
   public static final String userOption = "u";
@@ -416,6 +416,8 @@ public class Shell {
       log.warn("Unable to load history file at " + historyPath);
     }
     
+    ShellCompletor userCompletor = null;
+    
     if (execFile != null) {
       java.util.Scanner scanner = new java.util.Scanner(new File(execFile));
       while (scanner.hasNextLine())
@@ -449,23 +451,6 @@ public class Shell {
       
       execCommand(input, disableAuthTimeout, false);
     }
-  }
-  
-  ShellCompletor userCompletor = null;
-  
-  public boolean execCommand(String line) {
-    try {
-      System.out.println("trying to execute line in shell: " + line);
-      execCommand(line, disableAuthTimeout, false);
-    } catch (IOException e) {
-      System.out.println("got IOException");
-      return false;
-    }
-    if (exitCode > 0) {
-      System.out.println("got exit code " + exitCode);
-      return false;
-    }
-    return true;
   }
   
   public void printInfo() throws IOException {
@@ -509,7 +494,7 @@ public class Shell {
     reader.printString(sb.toString());
   }
   
-  String getDefaultPrompt() {
+  private String getDefaultPrompt() {
     return connector.whoami() + "@" + connector.getInstance().getInstanceName() + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
   }
   
