@@ -40,7 +40,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   private boolean lossy = false;
   
   protected static final String LOSSY = "lossy";
-
+  
   /**
    * A Java Iterator that translates an Iterator<Value> to an Iterator<V> using the decode method of an Encoder.
    */
@@ -68,19 +68,19 @@ public abstract class TypedValueCombiner<V> extends Combiner {
     }
     
     V next = null;
+    boolean hasNext = false;
+    
     @Override
     public boolean hasNext() {
-      if (next != null)
+      if (hasNext)
         return true;
-
-      while (true)
-      {
+      
+      while (true) {
         if (!source.hasNext())
           return false;
-        try
-        {
+        try {
           next = encoder.decode(source.next().get());
-          return true;
+          return hasNext = true;
         } catch (ValueFormatException vfe) {
           if (!lossy)
             throw vfe;
@@ -90,10 +90,11 @@ public abstract class TypedValueCombiner<V> extends Combiner {
     
     @Override
     public V next() {
-      if (!hasNext())
+      if (!hasNext && !hasNext())
         throw new NoSuchElementException();
       V toRet = next;
       next = null;
+      hasNext = false;
       return toRet;
     }
     
@@ -192,7 +193,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
     super.init(source, options, env);
     setLossyness(options);
   }
-
+  
   private void setLossyness(Map<String,String> options) {
     String loss = options.get(LOSSY);
     if (loss == null)
@@ -214,7 +215,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
     setLossyness(options);
     return true;
   }
-
+  
   /**
    * A convenience method to set the "lossy" option on a TypedValueCombiner. If true, the combiner will ignore any values which fail to decode. Otherwise, the
    * combiner will throw an error which will interrupt the action (and prevent potential data loss). False is the default behavior.

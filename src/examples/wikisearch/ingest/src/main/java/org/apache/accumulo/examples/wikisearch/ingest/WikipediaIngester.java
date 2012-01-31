@@ -88,6 +88,7 @@ public class WikipediaIngester extends Configured implements Tool {
           columns.add(new Column("fi\0" + family));
         }
         TextIndexCombiner.setColumns(setting, columns);
+        TextIndexCombiner.setLossyness(setting, true);
         
         tops.attachIterator(tableName, setting, EnumSet.allOf(IteratorScope.class));
       }
@@ -102,6 +103,7 @@ public class WikipediaIngester extends Configured implements Tool {
       // Add the UID combiner
       IteratorSetting setting = new IteratorSetting(19, "UIDAggregator", GlobalIndexUidCombiner.class);
       GlobalIndexUidCombiner.setCombineAllColumns(setting, true);
+      GlobalIndexUidCombiner.setLossyness(setting, true);
       tops.attachIterator(indexTableName, setting, EnumSet.allOf(IteratorScope.class));
     }
     
@@ -110,6 +112,7 @@ public class WikipediaIngester extends Configured implements Tool {
       // Add the UID combiner
       IteratorSetting setting = new IteratorSetting(19, "UIDAggregator", GlobalIndexUidCombiner.class);
       GlobalIndexUidCombiner.setCombineAllColumns(setting, true);
+      GlobalIndexUidCombiner.setLossyness(setting, true);
       tops.attachIterator(reverseIndexTableName, setting, EnumSet.allOf(IteratorScope.class));
     }
     
