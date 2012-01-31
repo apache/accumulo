@@ -1,0 +1,9 @@
+Package: [[name]]
+Version: [[version]]
+Section: utilities
+Priority: optional
+Architecture: all
+Depends: default-jre-headless, hadoop, hadoop-zookeeper
+Maintainer: Apache Software Foundation <accumulo-dev@incubator.apache.org>
+Description: Accumulo is a large distributed structured store based on Google's BigTable design.
+Distribution: development
