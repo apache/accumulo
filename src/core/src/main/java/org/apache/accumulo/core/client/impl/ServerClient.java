@@ -133,12 +133,13 @@ public class ServerClient {
       TTransport socket = ThriftTransportPool.getInstance().getAnyTransport(servers);
       ClientService.Iface client = ThriftUtil.createClient(new ClientService.Client.Factory(), socket);
       opened = true;
+      warnedAboutTServersBeingDown = false;
       return client;
     } finally {
       if (!opened) {
         if (!warnedAboutTServersBeingDown) {
           if (servers.isEmpty()) {
-            log.warn("There are no tablet servers: check that zookeeper and tablet servers are running.");
+            log.warn("There are no tablet servers: check that zookeeper and accumulo are running.");
           } else {
             log.warn("Failed to find an available server in the list of servers: " + servers);
           }
