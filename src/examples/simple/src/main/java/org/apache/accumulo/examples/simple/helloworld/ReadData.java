@@ -35,15 +35,15 @@ public class ReadData {
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (args.length < 5 || args.length > 7) {
       System.out
-          .println("bin/accumulo accumulo.examples.helloworld.ReadData <instance name> <zoo keepers> <tablename> <username> <password> [startkey [endkey]]");
+          .println("bin/accumulo accumulo.examples.helloworld.ReadData <instance name> <zoo keepers> <username> <password> <tablename> [startkey [endkey]]");
       System.exit(1);
     }
     
     String instanceName = args[0];
     String zooKeepers = args[1];
-    String tableName = args[2];
-    String user = args[3];
-    byte[] pass = args[4].getBytes();
+    String user = args[2];
+    byte[] pass = args[3].getBytes();
+    String tableName = args[4];
     
     ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
     Connector connector = instance.getConnector(user, pass);

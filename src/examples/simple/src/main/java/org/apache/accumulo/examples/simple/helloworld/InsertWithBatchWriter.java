@@ -34,15 +34,15 @@ public class InsertWithBatchWriter {
       TableNotFoundException {
     if (args.length != 5) {
       System.out
-          .println("Usage: bin/tool.sh accumulo-examplesjar accumulo.examples.helloworld.InsertWithBatchWriter <instance name> <zoo keepers> <tableName> <username> <password>");
+          .println("Usage: bin/tool.sh accumulo-examplesjar accumulo.examples.helloworld.InsertWithBatchWriter <instance name> <zoo keepers> <username> <password> <tableName>");
       System.exit(1);
     }
     
     String instanceName = args[0];
     String zooKeepers = args[1];
-    String tableName = args[2];
-    String user = args[3];
-    byte[] pass = args[4].getBytes();
+    String user = args[2];
+    byte[] pass = args[3].getBytes();
+    String tableName = args[4];
     
     ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
     Connector connector = instance.getConnector(user, pass);

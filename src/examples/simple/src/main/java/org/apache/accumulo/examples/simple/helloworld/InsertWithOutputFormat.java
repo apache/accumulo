@@ -38,14 +38,14 @@ public class InsertWithOutputFormat extends Configured implements Tool {
   @Override
   public int run(String[] args) throws Exception {
     if (args.length != 5) {
-      System.out.println("Usage: accumulo " + this.getClass().getName() + " <instance name> <zoo keepers> <tablename> <username> <password>");
+      System.out.println("Usage: accumulo " + this.getClass().getName() + " <instance name> <zoo keepers> <username> <password> <tablename>");
       return 1;
     }
-    Text tableName = new Text(args[2]);
+    Text tableName = new Text(args[4]);
     Job job = new Job(getConf());
     Configuration conf = job.getConfiguration();
     AccumuloOutputFormat.setZooKeeperInstance(conf, args[0], args[1]);
-    AccumuloOutputFormat.setOutputInfo(conf, args[3], args[4].getBytes(), true, null);
+    AccumuloOutputFormat.setOutputInfo(conf, args[2], args[3].getBytes(), true, null);
     job.setOutputFormatClass(AccumuloOutputFormat.class);
     
     // when running a mapreduce, you won't need to instantiate the output
