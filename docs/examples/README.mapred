@@ -18,7 +18,7 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
 
 This example uses mapreduce and accumulo to compute word counts for a set of
 documents.  This is accomplished using a map-only mapreduce job and a
-accumulo table with aggregators.
+accumulo table with combiners.
 
 To run this example you will need a directory in HDFS containing text files.
 The accumulo readme will be used to show how to run this example.
@@ -28,7 +28,7 @@ The accumulo readme will be used to show how to run this example.
     Found 1 items
     -rw-r--r--   2 username supergroup       9359 2009-07-15 17:54 /user/username/wc/Accumulo.README
 
-The first part of running this example is to create a table with aggregation
+The first part of running this example is to create a table with a combiner
 for the column family count.
 
     $ ./bin/accumulo shell -u username -p password
@@ -39,7 +39,13 @@ for the column family count.
     - 
     - type 'help' for a list of available commands
     - 
-    username@instance> createtable wordCount -a count=org.apache.accumulo.core.iterators.aggregation.StringSummation 
+    username@instance> createtable wordCount
+    username@instance wordCount> setiter -class org.apache.accumulo.core.iterators.user.SummingCombiner -p 10 -t wordCount -majc -minc -scan
+    SummingCombiner interprets Values as Longs and adds them together.  A variety of encodings (variable length, fixed length, or string) are available
+    ----------> set SummingCombiner parameter all, set to true to apply Combiner to every column, otherwise leave blank. if true, columns option will be ignored.: false
+    ----------> set SummingCombiner parameter columns, <col fam>[:<col qual>]{,<col fam>[:<col qual>]} escape non-alphanum chars using %<hex>.: count
+    ----------> set SummingCombiner parameter lossy, if true, failed decodes are ignored. Otherwise combiner will error on failed decodes (default false): <TRUE|FALSE>: false 
+    ----------> set SummingCombiner parameter type, <VARLEN|FIXEDLEN|STRING|fullClassName>: STRING
     username@instance wordCount> quit
 
 After creating the table, run the word count map reduce job.
