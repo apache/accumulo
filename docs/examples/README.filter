@@ -19,7 +19,7 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
 This is a simple filter example.  It uses the AgeOffFilter that is provided as 
 part of the core package org.apache.accumulo.core.iterators.user.  Filters are 
 iterators that select desired key/value pairs (or weed out undesired ones).  
-Filters extend the org.apache.accumulo.core.iterators.iterators.Filter class 
+Filters extend the org.apache.accumulo.core.iterators.Filter class 
 and must implement a method accept(Key k, Value v).  This method returns true 
 if the key/value pair are to be delivered and false if they are to be ignored.
 Filter takes a "negate" parameter which defaults to false.  If set to true, the
