@@ -52,7 +52,7 @@ public class FileDataQuery {
     return lastRefs;
   }
   
-  public ChunkInputStream getData(String hash) {
+  public ChunkInputStream getData(String hash) throws IOException {
     scanner.setRange(new Range(hash));
     scanner.setBatchSize(1);
     lastRefs.clear();

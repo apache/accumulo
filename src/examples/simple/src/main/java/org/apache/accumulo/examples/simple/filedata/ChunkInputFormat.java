@@ -31,6 +31,9 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
+/**
+ * An InputFormat that turns the file data ingested with FileDataIngest into an InputStream. Mappers used with this InputFormat must close the InputStream.
+ */
 public class ChunkInputFormat extends InputFormatBase<List<Entry<Key,Value>>,InputStream> {
   @Override
   public RecordReader<List<Entry<Key,Value>>,InputStream> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException,

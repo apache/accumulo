@@ -38,8 +38,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.PeekingIterator;
-import org.apache.accumulo.examples.simple.filedata.ChunkInputStream;
-import org.apache.accumulo.examples.simple.filedata.FileDataIngest;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -65,6 +63,9 @@ public class ChunkInputStreamTest extends TestCase {
     addData(data, "c", "~chunk", 100, 0, "A&B", "asdfjkl;");
     addData(data, "c", "~chunk", 100, 1, "A&B", "asdfjkl;");
     addData(data, "c", "~chunk", 100, 2, "A&B", "");
+    addData(data, "d", "~chunk", 100, 0, "A&B", "");
+    addData(data, "e", "~chunk", 100, 0, "A&B", "asdfjkl;");
+    addData(data, "e", "~chunk", 100, 1, "A&B", "");
     baddata = new ArrayList<Entry<Key,Value>>();
     addData(baddata, "a", "~chunk", 100, 0, "A", "asdfjkl;");
     addData(baddata, "b", "~chunk", 100, 0, "B", "asdfjkl;");
@@ -77,6 +78,8 @@ public class ChunkInputStreamTest extends TestCase {
     addData(baddata, "e", "~chunk", 100, 0, "I", "asdfjkl;");
     addData(baddata, "e", "~chunk", 100, 1, "J", "");
     addData(baddata, "e", "~chunk", 100, 2, "I", "asdfjkl;");
+    addData(baddata, "f", "~chunk", 100, 2, "K", "asdfjkl;");
+    addData(baddata, "g", "~chunk", 100, 0, "L", "");
     multidata = new ArrayList<Entry<Key,Value>>();
     addData(multidata, "a", "~chunk", 100, 0, "A&B", "asdfjkl;");
     addData(multidata, "a", "~chunk", 100, 1, "A&B", "");
@@ -106,7 +109,7 @@ public class ChunkInputStreamTest extends TestCase {
     try {
       cis.setSource(pi);
       assertNotNull(null);
-    } catch (RuntimeException e) {
+    } catch (IOException e) {
       assertNull(null);
     }
     cis.close();
@@ -167,6 +170,14 @@ public class ChunkInputStreamTest extends TestCase {
     assertEquals(read = cis.read(b), -1);
     cis.close();
     
+    cis.setSource(pi);
+    assertEquals(read = cis.read(b), 5);
+    assertEquals(new String(b, 0, read), "asdfj");
+    assertEquals(read = cis.read(b), 3);
+    assertEquals(new String(b, 0, read), "kl;");
+    assertEquals(read = cis.read(b), -1);
+    cis.close();
+    
     assertFalse(pi.hasNext());
   }
   
@@ -196,6 +207,12 @@ public class ChunkInputStreamTest extends TestCase {
     cis.close();
     
     cis.setSource(pi);
+    assertEquals(read = cis.read(b), -1);
+    cis.close();
+    
+    cis.setSource(pi);
+    assertEquals(read = cis.read(b), 8);
+    assertEquals(new String(b, 0, read), "asdfjkl;");
     assertEquals(read = cis.read(b), -1);
     cis.close();
     
@@ -242,6 +259,12 @@ public class ChunkInputStreamTest extends TestCase {
     cis.close();
     
     cis.setSource(pi);
+    assertEquals(read = cis.read(b), -1);
+    cis.close();
+    
+    cis.setSource(pi);
+    assertEquals(read = cis.read(b), 8);
+    assertEquals(new String(b, 0, read), "asdfjkl;");
     assertEquals(read = cis.read(b), -1);
     cis.close();
     
@@ -302,6 +325,20 @@ public class ChunkInputStreamTest extends TestCase {
     cis.close();
     assertEquals(cis.getVisibilities().toString(), "[I, J]");
     
+    try {
+      cis.setSource(pi);
+      assertNotNull(null);
+    } catch (IOException e) {
+      assertNull(null);
+    }
+    assumeExceptionOnClose(cis);
+    assertEquals(cis.getVisibilities().toString(), "[K]");
+    
+    cis.setSource(pi);
+    assertEquals(read = cis.read(b), -1);
+    assertEquals(cis.getVisibilities().toString(), "[L]");
+    cis.close();
+    
     assertFalse(pi.hasNext());
     
     pi = new PeekingIterator<Entry<Key,Value>>(baddata.iterator());
@@ -338,6 +375,19 @@ public class ChunkInputStreamTest extends TestCase {
     cis.setSource(pi);
     assumeExceptionOnRead(cis, b);
     assertEquals(cis.getVisibilities().toString(), "[I, J]");
+    
+    try {
+      cis.setSource(pi);
+      assertNotNull(null);
+    } catch (IOException e) {
+      assertNull(null);
+    }
+    assertEquals(cis.getVisibilities().toString(), "[K]");
+    
+    cis.setSource(pi);
+    assertEquals(read = cis.read(b), -1);
+    assertEquals(cis.getVisibilities().toString(), "[L]");
+    cis.close();
     
     assertFalse(pi.hasNext());
     

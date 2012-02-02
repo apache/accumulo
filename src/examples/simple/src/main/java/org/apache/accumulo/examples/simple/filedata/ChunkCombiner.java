@@ -30,7 +30,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
-/*
+/**
  * This iterator dedupes chunks and sets their visibilities to the combined
  * visibility of the refs columns.  For example, it would combine
  * 
