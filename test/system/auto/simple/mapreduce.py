@@ -52,7 +52,7 @@ class MapReduceTest(TestUtilsMixin,unittest.TestCase):
     output_tablename = "mapredf"
     input_cfcq = "cf-HASHTYPE:cq-NOTHASHED"
     output_cfcq = "cf-HASHTYPE:cq-MD5BASE64"
-    example_class_to_run ="org.apache.accumulo.examples.mapreduce.RowHash"
+    example_class_to_run ="org.apache.accumulo.examples.simple.mapreduce.RowHash"
     
     def setUp(self):
         if not os.getenv("ZOOKEEPER_HOME"):
@@ -66,7 +66,7 @@ class MapReduceTest(TestUtilsMixin,unittest.TestCase):
     def runTest(self):
         #These Environment variables are need to run this test it will fail if they are not in the environment
         thriftjar = globa(os.path.join('lib','libthrift*.jar'))
-        examples = globa(os.path.join('lib','accumulo-examples*[!javadoc|sources].jar'))
+        examples = globa(os.path.join('lib','examples-simple*[!javadoc|sources].jar'))
         core = globa(os.path.join('lib','accumulo-core*[!javadoc|sources].jar'))
         start = globa(os.path.join('lib','accumulo-start*[!javadoc|sources].jar'))
         trace = globa(os.path.join('lib','cloudtrace*[!javadoc|sources].jar'))

@@ -60,7 +60,7 @@ class RowHashBenchmark(Benchmark):
         #    code, out, err = cloudshell.run('user root\nsecret\ndeletetable RowHashTest\n') 
         #    self.sleep(15)
         code, out, err = cloudshell.run(self.username, self.password, "createtable %s -sf %s\n" % (self.output_table, file))
-        command = self.buildcommand('org.apache.accumulo.examples.mapreduce.TeraSortIngest',
+        command = self.buildcommand('org.apache.accumulo.examples.simple.mapreduce.TeraSortIngest',
                                     self.numrows(),
                                     self.keysizemin(),
                                     self.keysizemax(),
@@ -93,7 +93,7 @@ class RowHashBenchmark(Benchmark):
         return self.valmax
         
     def runTest(self):   
-        command = self.buildcommand('org.apache.accumulo.examples.mapreduce.RowHash',
+        command = self.buildcommand('org.apache.accumulo.examples.simple.mapreduce.RowHash',
                                     self.getInstance(),
                                     self.getZookeepers(),
                                     self.getUsername(),
