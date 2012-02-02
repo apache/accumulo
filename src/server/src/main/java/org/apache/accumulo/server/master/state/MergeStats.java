@@ -90,7 +90,9 @@ public class MergeStats {
   
   public MergeState nextMergeState() throws Exception {
     MergeState state = info.getState();
-    log.info("Computing next merge state for " + this.info.getRange() + " which is presently " + state);
+    if (state == MergeState.NONE)
+      return state;
+    log.info("Computing next merge state for " + info.getRange() + " which is presently " + state);
     if (state == MergeState.STARTED) {
       state = MergeState.SPLITTING;
     }
