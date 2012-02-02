@@ -47,13 +47,13 @@ public class ChunkInputStream extends InputStream {
     source = null;
   }
   
-  public ChunkInputStream(PeekingIterator<Entry<Key,Value>> in) {
+  public ChunkInputStream(PeekingIterator<Entry<Key,Value>> in) throws IOException {
     setSource(in);
   }
   
-  public void setSource(PeekingIterator<Entry<Key,Value>> in) {
+  public void setSource(PeekingIterator<Entry<Key,Value>> in) throws IOException {
     if (source != null)
-      throw new RuntimeException("setting new source without closing old one");
+      throw new IOException("setting new source without closing old one");
     this.source = in;
     currentVis = new TreeSet<Text>();
     count = pos = 0;
@@ -81,6 +81,12 @@ public class ChunkInputStream extends InputStream {
     currentChunk = FileDataIngest.bytesToInt(currentKey.getColumnQualifier().getBytes(), 4);
     currentChunkSize = FileDataIngest.bytesToInt(currentKey.getColumnQualifier().getBytes(), 0);
     gotEndMarker = false;
+    if (buf.length == 0)
+      gotEndMarker = true;
+    if (currentChunk != 0) {
+      source = null;
+      throw new IOException("starting chunk number isn't 0 for " + currentKey.getRow());
+    }
   }
   
   private int fill() throws IOException {
@@ -163,7 +169,7 @@ public class ChunkInputStream extends InputStream {
   
   public Set<Text> getVisibilities() {
     if (source != null)
-      throw new RuntimeException("don't get visibilities before chunks have been completely read");
+      throw new IllegalStateException("don't get visibilities before chunks have been completely read");
     return currentVis;
   }
   

@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.data.Key;
@@ -89,21 +90,29 @@ class CleanUp extends MasterRepo {
     
     boolean done = true;
     Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
-    MetaDataTableScanner metaDataTableScanner = new MetaDataTableScanner(environment.getInstance(), SecurityConstants.getSystemCredentials(), tableRange, null);
-    try {
-      while (metaDataTableScanner.hasNext()) {
-        TabletLocationState locationState = metaDataTableScanner.next();
-        TabletState state = locationState.getState(environment.onlineTabletServers());
-        if (state.equals(TabletState.ASSIGNED) || state.equals(TabletState.HOSTED)) {
-          log.debug("Still waiting for table to be deleted: " + tableId + " locationState: " + locationState);
-          done = false;
-          break;
-        }
-      }
-    } finally {
-      metaDataTableScanner.close();
-    }
+    Scanner scanner = environment.getInstance().getConnector(SecurityConstants.getSystemCredentials())
+        .createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    MetaDataTableScanner.configureScanner(scanner, environment);
+    scanner.setRange(tableRange);
     
+    KeyExtent prevExtent = null;
+    for (Entry<Key,Value> entry : scanner) {
+      TabletLocationState locationState = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
+      if (!locationState.extent.isPreviousExtent(prevExtent)) {
+        log.debug("Still waiting for table to be deleted: " + tableId + " saw inconsistency" + prevExtent + " " + locationState.extent);
+        done = false;
+        break;
+      }
+      prevExtent = locationState.extent;
+      
+      TabletState state = locationState.getState(environment.onlineTabletServers());
+      if (state.equals(TabletState.ASSIGNED) || state.equals(TabletState.HOSTED)) {
+        log.debug("Still waiting for table to be deleted: " + tableId + " locationState: " + locationState);
+        done = false;
+        break;
+      }
+    }
+
     if (!done)
       return 50;
     

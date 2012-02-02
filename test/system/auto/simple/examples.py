@@ -59,11 +59,11 @@ class Examples(TestUtilsMixin, unittest.TestCase):
 
     def runTest(self):
         self.ashell('createtable %s\nsetauths -u %s -s A,B\nquit\n' %(table, ROOT))
-        examplesJar = glob.glob(ACCUMULO_HOME+'/lib/accumulo-examples-*.jar')[0]
+        examplesJar = glob.glob(ACCUMULO_HOME+'/lib/examples-simple*.jar')[0]
 
         self.comment("Testing dirlist example (a little)")
         self.comment("  ingesting accumulo source")
-        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.dirlist.Ingest',
+        self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.dirlist.Ingest',
                      INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD,
                      'dirTable',
                      'indexTable',
@@ -72,7 +72,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                      100000,
                      ACCUMULO_HOME+"/src")
         self.comment("  searching for a file")
-        handle = self.runOn('localhost', [self.accumulo_sh(), 'org.apache.accumulo.examples.dirlist.QueryUtil',
+        handle = self.runOn('localhost', [self.accumulo_sh(), 'org.apache.accumulo.examples.simple.dirlist.QueryUtil',
                                           INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD,
                                           'indexTable', auths, 'Fate.java', '-search'])
         out, err = handle.communicate()

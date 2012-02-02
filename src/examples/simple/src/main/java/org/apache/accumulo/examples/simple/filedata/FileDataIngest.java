@@ -24,6 +24,7 @@ import java.security.NoSuchAlgorithmException;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -165,8 +166,10 @@ public class FileDataIngest {
     int chunkSize = Integer.parseInt(args[6]);
     
     Connector conn = new ZooKeeperInstance(instance, zooKeepers).getConnector(user, pass.getBytes());
-    if (!conn.tableOperations().exists(dataTable))
+    if (!conn.tableOperations().exists(dataTable)) {
       conn.tableOperations().create(dataTable);
+      conn.tableOperations().attachIterator(dataTable, new IteratorSetting(1, ChunkCombiner.class));
+    }
     BatchWriter bw = conn.createBatchWriter(dataTable, 50000000, 300000l, 4);
     FileDataIngest fdi = new FileDataIngest(chunkSize, colvis);
     for (int i = 7; i < args.length; i++) {

@@ -51,8 +51,8 @@ public class ConstraintTest extends FunctionalTest {
   
   @Override
   public List<TableSetup> getTablesToCreate() {
-    Map<String,String> config = parseConfig(Property.TABLE_CONSTRAINT_PREFIX + "1=org.apache.accumulo.examples.constraints.NumericValueConstraint",
-        Property.TABLE_CONSTRAINT_PREFIX + "2=org.apache.accumulo.examples.constraints.AlphaNumKeyConstraint");
+    Map<String,String> config = parseConfig(Property.TABLE_CONSTRAINT_PREFIX + "1=org.apache.accumulo.examples.simple.constraints.NumericValueConstraint",
+        Property.TABLE_CONSTRAINT_PREFIX + "2=org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint");
     return Arrays.asList(new TableSetup("ct", config), new TableSetup("ct2", config), new TableSetup("ct3", config));
   }
   
@@ -107,7 +107,7 @@ public class ConstraintTest extends FunctionalTest {
       }
       
       for (ConstraintViolationSummary cvs : cvsl) {
-        if (!cvs.constrainClass.equals("org.apache.accumulo.examples.constraints.NumericValueConstraint")) {
+        if (!cvs.constrainClass.equals("org.apache.accumulo.examples.simple.constraints.NumericValueConstraint")) {
           throw new Exception("Unexpected constraint class " + cvs.constrainClass);
         }
         
@@ -278,8 +278,8 @@ public class ConstraintTest extends FunctionalTest {
       
       HashMap<String,Integer> expected = new HashMap<String,Integer>();
       
-      expected.put("org.apache.accumulo.examples.constraints.NumericValueConstraint", numericErrors);
-      expected.put("org.apache.accumulo.examples.constraints.AlphaNumKeyConstraint", 1);
+      expected.put("org.apache.accumulo.examples.simple.constraints.NumericValueConstraint", numericErrors);
+      expected.put("org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint", 1);
       
       for (ConstraintViolationSummary cvs : cvsl) {
         if (expected.get(cvs.constrainClass) != cvs.numberOfViolatingMutations) {

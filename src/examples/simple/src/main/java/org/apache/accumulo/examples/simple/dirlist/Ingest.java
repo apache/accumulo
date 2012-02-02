@@ -21,12 +21,14 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.examples.simple.filedata.ChunkCombiner;
 import org.apache.accumulo.examples.simple.filedata.FileDataIngest;
 import org.apache.hadoop.io.Text;
 
@@ -131,8 +133,10 @@ public class Ingest {
       conn.tableOperations().create(nameTable);
     if (!conn.tableOperations().exists(indexTable))
       conn.tableOperations().create(indexTable);
-    if (!conn.tableOperations().exists(dataTable))
+    if (!conn.tableOperations().exists(dataTable)) {
       conn.tableOperations().create(dataTable);
+      conn.tableOperations().attachIterator(dataTable, new IteratorSetting(1, ChunkCombiner.class));
+    }
     
     BatchWriter dirBW = conn.createBatchWriter(nameTable, 50000000, 300000l, 4);
     BatchWriter indexBW = conn.createBatchWriter(indexTable, 50000000, 300000l, 4);

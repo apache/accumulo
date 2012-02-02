@@ -20,6 +20,7 @@ import unittest
 class BulkSplitOptimizationTest(JavaTest):
     "Bulk Import Split Optimization Test"
 
+    maxRuntime = 200
     order = 21
     testClass="org.apache.accumulo.server.test.functional.BulkSplitOptimizationTest"
 

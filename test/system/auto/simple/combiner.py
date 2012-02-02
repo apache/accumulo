@@ -21,7 +21,7 @@ import logging
 import unittest
 import time
 
-from TestUtils import TestUtilsMixin
+from TestUtils import TestUtilsMixin, ACCUMULO_HOME
 
 log = logging.getLogger('test.auto')
 
@@ -48,6 +48,7 @@ class CombinerTest(TestUtilsMixin, unittest.TestCase):
                      "setiter -t test -scan -p 10 -n mycombiner -class org.apache.accumulo.core.iterators.user.SummingCombiner\n"
                      "\n"
                      "cf\n"
+                     "\n"
                      "STRING\n"
                      "deleteiter -t test -n vers -minc -majc -scan\n")
         self.assert_(code == 0)
@@ -83,7 +84,7 @@ class ClassLoaderTest(TestUtilsMixin, unittest.TestCase):
             self.fail("Unable to find needed output in %r" % out)
 
     def runTest(self):
-        jarPath = os.environ['ACCUMULO_HOME']+"/lib/ext/TestCombiner.jar"
+        jarPath = ACCUMULO_HOME+"/lib/ext/TestCombiner.jar"
         # make sure the combiner is not there
         if os.path.exists(jarPath):
             os.remove(jarPath)

@@ -90,7 +90,9 @@ public class MergeStats {
   
   public MergeState nextMergeState() throws Exception {
     MergeState state = info.getState();
-    log.info("Computing next merge state for " + this.info.getRange() + " which is presently " + state);
+    if (state == MergeState.NONE)
+      return state;
+    log.info("Computing next merge state for " + info.getRange() + " which is presently " + state);
     if (state == MergeState.STARTED) {
       state = MergeState.SPLITTING;
     }
@@ -167,19 +169,32 @@ public class MergeStats {
     }
     Text tableId = extent.getTableId();
     Text first = KeyExtent.getMetadataEntry(tableId, start);
-    Range range = new Range(first, true, null, true);
+    Range range = new Range(first, false, null, true);
     scanner.setRange(range);
-    Text pr = null;
+    KeyExtent prevExtent = null;
+
     for (Entry<Key,Value> entry : scanner) {
       TabletLocationState tls = MetaDataTableScanner.createTabletLocationState(entry.getKey(), entry.getValue());
       if (!tls.extent.getTableId().equals(tableId)) {
         break;
       }
-      verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped);
-      // check that the prevRow matches the previous row
-      if (pr != null && (tls.extent.getPrevEndRow() == null || !tls.extent.getPrevEndRow().equals(pr)))
+      
+      if (prevExtent == null) {
+        // this is the first tablet observed, it must be offline and its prev row must be less than the start of the merge range
+        if (tls.extent.getPrevEndRow() != null && tls.extent.getPrevEndRow().compareTo(start) > 0) {
+          return false;
+        }
+        
+        if (tls.getState(master.onlineTabletServers()) != TabletState.UNASSIGNED)
+          return false;
+        
+      } else if (!tls.extent.isPreviousExtent(prevExtent)) {
         return false;
-      pr = tls.extent.getEndRow();
+      }
+      
+      prevExtent = tls.extent;
+
+      verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped);
       // stop when we've seen the tablet just beyond our range
       if (tls.extent.getPrevEndRow() != null && extent.getEndRow() != null && tls.extent.getPrevEndRow().compareTo(extent.getEndRow()) > 0) {
         break;
