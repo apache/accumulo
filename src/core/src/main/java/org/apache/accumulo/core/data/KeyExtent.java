@@ -754,4 +754,24 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
     return new TKeyExtent(TextUtil.getByteBuffer(textTableId), textEndRow == null ? null : TextUtil.getByteBuffer(textEndRow), textPrevEndRow == null ? null
         : TextUtil.getByteBuffer(textPrevEndRow));
   }
+  
+  /**
+   * @param prevExtent
+   */
+  public boolean isPreviousExtent(KeyExtent prevExtent) {
+    if (prevExtent == null)
+      return getPrevEndRow() == null;
+    
+    if (!prevExtent.getTableId().equals(getTableId()))
+      throw new IllegalArgumentException("Cannot compare accross tables " + prevExtent + " " + this);
+    
+    if (prevExtent.getEndRow() == null)
+      return false;
+    
+    if (getPrevEndRow() == null)
+      return false;
+    
+    return prevExtent.getEndRow().equals(getPrevEndRow());
+    
+  }
 }

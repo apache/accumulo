@@ -18,6 +18,7 @@ import logging
 import unittest
 
 from TestUtils import TestUtilsMixin
+from JavaTest import JavaTest
 
 log = logging.getLogger('test.auto')
 
@@ -90,9 +91,16 @@ quit
         secondMerge = secondMerge.strip().split('\n')[:-1]
         self.assert_(secondMerge == ['c','e','f','y'])
 
+class MergeTest(JavaTest):
+    "Test Merge"
+
+    order = 92
+    testClass="org.apache.accumulo.server.test.functional.MergeTest"
+
 
 def suite():
     result = unittest.TestSuite()
     result.addTest(Merge())
     result.addTest(MergeSize())
+    result.addTest(MergeTest())
     return result
