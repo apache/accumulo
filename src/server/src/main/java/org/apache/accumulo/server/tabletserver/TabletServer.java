@@ -2399,6 +2399,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             tablet.waitForMinC();
           }
           
+          Assignment assignment = new Assignment(extentToOpen, getTabletSession());
+          TabletStateStore.setLocation(assignment);
+
           synchronized (openingTablets) {
             synchronized (onlineTablets) {
               openingTablets.remove(extentToOpen);
@@ -2445,13 +2448,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             }
           }, reschedule);
         } else {
-          try {
-            Assignment assignment = new Assignment(extentToOpen, getTabletSession());
-            TabletStateStore.setLocation(assignment);
-            enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOADED, extentToOpen));
-          } catch (DistributedStoreException ex) {
-            log.warn("Unable to update storage", ex);
-          }
+          enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.LOADED, extentToOpen));
         }
       }
     }
