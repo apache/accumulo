@@ -425,6 +425,7 @@ class LoadFiles extends MasterRepo {
         f.get();
       if (filesToLoad.size() > 0) {
         log.debug("tid " + tid + " attempt " + (i + 1) + " " + filesToLoad + " failed");
+        UtilWaitThread.sleep(100);
       }
     }
     // Copy/Create failed file markers
