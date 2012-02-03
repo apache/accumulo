@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.test.randomwalk.bulk;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.TreeSet;
@@ -100,8 +99,9 @@ public class BulkPlusOne extends BulkTest {
     state.getConnector().tableOperations().importDirectory(Setup.getTableName(), dir.toString(), fail.toString(), true);
     fs.delete(dir, true);
     FileStatus[] failures = fs.listStatus(fail);
-    if (failures != null && failures.length > 0)
-      throw new Exception("Failures " + Arrays.asList(failures) + " found importing files from " + dir);
+    if (failures != null && failures.length > 0) {
+      throw new Exception(failures.length + " failure files found importing files from " + dir);
+    }
     fs.delete(fail, true);
     log.debug("Finished bulk import, start rows " + printRows + " last row " + String.format(FMT, LOTS - 1) + " marker " + markerColumnQualifier);
   }

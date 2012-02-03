@@ -861,7 +861,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           try {
             importTablet.importMapFiles(tid, fileMap, setTime);
           } catch (IOException ioe) {
-            log.info("file not imported: " + ioe.getMessage());
+            log.info("files " + fileMap.keySet() + " not imported to " + new KeyExtent(tke) + ": " + ioe.getMessage());
             failures.add(tke);
           }
         }
