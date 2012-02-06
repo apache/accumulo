@@ -101,7 +101,7 @@ public class WikipediaInputFormat extends TextInputFormat {
   @Override
   public List<InputSplit> getSplits(JobContext job) throws IOException {
     List<InputSplit> superSplits = super.getSplits(job);
-    List<WikipediaInputSplit> splits = new ArrayList<WikipediaInputSplit>();
+    List<InputSplit> splits = new ArrayList<InputSplit>();
     
     int numGroups = WikipediaConfiguration.getNumGroups(job.getConfiguration());
 
@@ -113,7 +113,7 @@ public class WikipediaInputFormat extends TextInputFormat {
         splits.add(new WikipediaInputSplit(fileSplit,group));
       }
     }
-    return super.getSplits(job);
+    return splits;
   }
 
   @Override
