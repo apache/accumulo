@@ -117,8 +117,6 @@ import org.apache.accumulo.core.util.shell.commands.QuotedStringTokenizer;
 import org.apache.accumulo.core.util.shell.commands.RenameTableCommand;
 import org.apache.accumulo.core.util.shell.commands.RevokeCommand;
 import org.apache.accumulo.core.util.shell.commands.ScanCommand;
-import org.apache.accumulo.core.util.shell.commands.SelectCommand;
-import org.apache.accumulo.core.util.shell.commands.SelectrowCommand;
 import org.apache.accumulo.core.util.shell.commands.SetAuthsCommand;
 import org.apache.accumulo.core.util.shell.commands.SetGroupsCommand;
 import org.apache.accumulo.core.util.shell.commands.SetIterCommand;
@@ -366,10 +364,9 @@ public class Shell {
         new GetSplitsCommand(), new GrantCommand(), new GrepCommand(), new HelpCommand(), new HiddenCommand(), new HistoryCommand(),
         new ImportDirectoryCommand(), new InfoCommand(), new InsertCommand(), new ListIterCommand(), new ListScansCommand(), new MasterStateCommand(),
         new MaxRowCommand(), new MergeCommand(), new NoTableCommand(), new OfflineCommand(), new OnlineCommand(), new PasswdCommand(), new QuestionCommand(),
-        new QuitCommand(), new RenameTableCommand(), new RevokeCommand(), new ScanCommand(), new SelectCommand(), new SelectrowCommand(),
-        new SetAuthsCommand(), new SetGroupsCommand(), new SetIterCommand(), new SetScanIterCommand(), new SleepCommand(), new SystemPermissionsCommand(),
-        new TableCommand(), new TablePermissionsCommand(), new TablesCommand(), new TraceCommand(), new UserCommand(), new UserPermissionsCommand(),
-        new UsersCommand(), new WhoAmICommand(),};
+        new QuitCommand(), new RenameTableCommand(), new RevokeCommand(), new ScanCommand(), new SetAuthsCommand(), new SetGroupsCommand(),
+        new SetIterCommand(), new SetScanIterCommand(), new SleepCommand(), new SystemPermissionsCommand(), new TableCommand(), new TablePermissionsCommand(),
+        new TablesCommand(), new TraceCommand(), new UserCommand(), new UserPermissionsCommand(), new UsersCommand(), new WhoAmICommand(),};
     for (Command cmd : external) {
       commandFactory.put(cmd.getName(), cmd);
     }

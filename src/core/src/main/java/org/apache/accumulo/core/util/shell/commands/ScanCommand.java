@@ -41,7 +41,7 @@ import org.apache.hadoop.io.Text;
 
 public class ScanCommand extends Command {
   
-  private Option scanOptAuths, scanOptStartRow, scanOptEndRow, scanOptColumns, disablePaginationOpt, tableOpt, showFewOpt;
+  private Option scanOptAuths, scanOptStartRow, scanOptEndRow, scanOptRow, scanOptColumns, disablePaginationOpt, tableOpt, showFewOpt;
   protected Option timestampOpt;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
@@ -133,10 +133,19 @@ public class ScanCommand extends Command {
   }
   
   protected Range getRange(CommandLine cl) {
-    Text startRow = cl.hasOption(scanOptStartRow.getOpt()) ? new Text(cl.getOptionValue(scanOptStartRow.getOpt())) : null;
-    Text endRow = cl.hasOption(scanOptEndRow.getOpt()) ? new Text(cl.getOptionValue(scanOptEndRow.getOpt())) : null;
-    Range r = new Range(startRow, endRow);
-    return r;
+    if ((cl.hasOption(scanOptStartRow.getOpt()) || cl.hasOption(scanOptEndRow.getOpt())) && cl.hasOption(scanOptRow.getOpt())) {
+      // did not see a way to make commons cli do this check... it has mutually exclusive options but does not support the or
+      throw new IllegalArgumentException("Options -" + scanOptRow.getOpt() + " AND (-" + scanOptStartRow.getOpt() + " OR -" + scanOptEndRow.getOpt()
+          + ") are mutally exclusive ");
+    }
+
+    if (cl.hasOption(scanOptRow.getOpt())) {
+      return new Range(new Text(cl.getOptionValue(scanOptRow.getOpt())));
+    } else {
+      Text startRow = cl.hasOption(scanOptStartRow.getOpt()) ? new Text(cl.getOptionValue(scanOptStartRow.getOpt())) : null;
+      Text endRow = cl.hasOption(scanOptEndRow.getOpt()) ? new Text(cl.getOptionValue(scanOptEndRow.getOpt())) : null;
+      return new Range(startRow, endRow);
+    }
   }
   
   protected Authorizations getAuths(CommandLine cl, Shell shellState) throws AccumuloSecurityException, AccumuloException {
@@ -160,6 +169,7 @@ public class ScanCommand extends Command {
     scanOptAuths = new Option("s", "scan-authorizations", true, "scan authorizations (all user auths are used if this argument is not specified)");
     scanOptStartRow = new Option("b", "begin-row", true, "begin row (inclusive)");
     scanOptEndRow = new Option("e", "end-row", true, "end row (inclusive)");
+    scanOptRow = new Option("r", "row", true, "row to scan");
     scanOptColumns = new Option("c", "columns", true, "comma-separated columns");
     timestampOpt = new Option("st", "show-timestamps", false, "enables displaying timestamps");
     disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
@@ -167,6 +177,7 @@ public class ScanCommand extends Command {
     showFewOpt = new Option("f", "show few", true, "Only shows certain amount of characters");
     
     scanOptAuths.setArgName("comma-separated-authorizations");
+    scanOptRow.setArgName("row");
     scanOptStartRow.setArgName("start-row");
     scanOptEndRow.setArgName("end-row");
     scanOptColumns.setArgName("{<columnfamily>[:<columnqualifier>]}");
@@ -176,6 +187,7 @@ public class ScanCommand extends Command {
     showFewOpt.setArgName("int");
     
     o.addOption(scanOptAuths);
+    o.addOption(scanOptRow);
     o.addOption(scanOptStartRow);
     o.addOption(scanOptEndRow);
     o.addOption(scanOptColumns);
