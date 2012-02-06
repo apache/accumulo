@@ -28,6 +28,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.accumulo.examples.wikisearch.ingest.WikipediaInputFormat.WikipediaInputSplit;
 import org.apache.accumulo.examples.wikisearch.reader.AggregatingRecordReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -140,7 +141,7 @@ public class AggregatingRecordReaderTest {
     
     // Create FileSplit
     Path p = new Path(f.toURI().toString());
-    FileSplit split = new FileSplit(p, 0, f.length(), null);
+    WikipediaInputSplit split = new WikipediaInputSplit(new FileSplit(p, 0, f.length(), null),0);
     AggregatingRecordReader reader = new AggregatingRecordReader();
     try {
       // Clear the values for BEGIN and STOP TOKEN
@@ -162,7 +163,7 @@ public class AggregatingRecordReaderTest {
     
     // Create FileSplit
     Path p = new Path(f.toURI().toString());
-    FileSplit split = new FileSplit(p, 0, f.length(), null);
+    WikipediaInputSplit split = new WikipediaInputSplit(new FileSplit(p, 0, f.length(), null),0);
     
     // Initialize the RecordReader
     AggregatingRecordReader reader = new AggregatingRecordReader();
@@ -183,7 +184,7 @@ public class AggregatingRecordReaderTest {
     
     // Create FileSplit
     Path p = new Path(f.toURI().toString());
-    FileSplit split = new FileSplit(p, 0, f.length(), null);
+    WikipediaInputSplit split = new WikipediaInputSplit(new FileSplit(p, 0, f.length(), null),0);
     
     // Initialize the RecordReader
     AggregatingRecordReader reader = new AggregatingRecordReader();
@@ -201,7 +202,7 @@ public class AggregatingRecordReaderTest {
     
     // Create FileSplit
     Path p = new Path(f.toURI().toString());
-    FileSplit split = new FileSplit(p, 0, f.length(), null);
+    WikipediaInputSplit split = new WikipediaInputSplit(new FileSplit(p, 0, f.length(), null),0);
     
     // Initialize the RecordReader
     AggregatingRecordReader reader = new AggregatingRecordReader();
@@ -219,7 +220,7 @@ public class AggregatingRecordReaderTest {
     
     // Create FileSplit
     Path p = new Path(f.toURI().toString());
-    FileSplit split = new FileSplit(p, 0, f.length(), null);
+    WikipediaInputSplit split = new WikipediaInputSplit(new FileSplit(p, 0, f.length(), null),0);
     
     // Initialize the RecordReader
     AggregatingRecordReader reader = new AggregatingRecordReader();
@@ -244,7 +245,7 @@ public class AggregatingRecordReaderTest {
     
     // Create FileSplit
     Path p = new Path(f.toURI().toString());
-    FileSplit split = new FileSplit(p, 0, f.length(), null);
+    WikipediaInputSplit split = new WikipediaInputSplit(new FileSplit(p, 0, f.length(), null),0);
     
     // Initialize the RecordReader
     AggregatingRecordReader reader = new AggregatingRecordReader();
@@ -263,7 +264,7 @@ public class AggregatingRecordReaderTest {
     File f = createFile(xml5);
     // Create FileSplit
     Path p = new Path(f.toURI().toString());
-    FileSplit split = new FileSplit(p, 0, f.length(), null);
+    WikipediaInputSplit split = new WikipediaInputSplit(new FileSplit(p, 0, f.length(), null),0);
     
     // Initialize the RecordReader
     AggregatingRecordReader reader = new AggregatingRecordReader();

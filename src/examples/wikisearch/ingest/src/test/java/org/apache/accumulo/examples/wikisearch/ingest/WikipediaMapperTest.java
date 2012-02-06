@@ -100,6 +100,7 @@ public class WikipediaMapperTest {
     conf.set(AggregatingRecordReader.END_TOKEN, "</page>");
     conf.set(WikipediaConfiguration.TABLE_NAME, TABLE_NAME);
     conf.set(WikipediaConfiguration.NUM_PARTITIONS, "1");
+    conf.set(WikipediaConfiguration.NUM_GROUPS, "1");
     
     MockInstance i = new MockInstance();
     c = i.getConnector("root", "pass");

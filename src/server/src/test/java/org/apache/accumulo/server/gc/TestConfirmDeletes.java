@@ -17,6 +17,8 @@
 package org.apache.accumulo.server.gc;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -26,9 +28,11 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
@@ -45,9 +49,8 @@ public class TestConfirmDeletes {
   
   AuthInfo auth = new AuthInfo("root", ByteBuffer.wrap("secret".getBytes()), "instance");
 
-  SortedSet<String> singletonSet(String s) {
-    SortedSet<String> result = new TreeSet<String>();
-    result.add(s);
+  SortedSet<String> newSet(String... s) {
+    SortedSet<String> result = new TreeSet<String>(Arrays.asList(s));
     return result;
   }
 
@@ -56,47 +59,66 @@ public class TestConfirmDeletes {
     
     // have a directory reference
     String metadata[] = {"1636< last:3353986642a66eb 192.168.117.9:9997", "1636< srv:dir /default_tablet", "1636< srv:flush 2",
-        "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb", "1636< srv:time M1328505870023", "1636< ~tab:~pr \0",};
+        "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb", "1636< srv:time M1328505870023", "1636< ~tab:~pr \0"};
+    String deletes[] = {"~del/1636/default_tablet"};
     
-    SortedSet<String> candidates = singletonSet("/1636/default_tablet");
-    test1(metadata, candidates);
-    Assert.assertEquals(0, candidates.size());
-    
+    test1(metadata, deletes, 1, 0);
+      
     // have no file reference
-    candidates = singletonSet("/1636/default_tablet/someFile");
-    test1(metadata, candidates);
-    Assert.assertEquals(1, candidates.size());
-    
+    deletes = new String[] {"~del/1636/default_tablet/someFile"};
+    test1(metadata, deletes, 1, 1);
+
     // have a file reference
     metadata = new String[] {"1636< file:/default_tablet/someFile 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997", "1636< srv:dir /default_tablet",
         "1636< srv:flush 2", "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb", "1636< srv:time M1328505870023",
-        "1636< ~tab:~pr \0",};
-    test1(metadata, candidates);
-    Assert.assertEquals(0, candidates.size());
-    
-    // have an indirect file reference
-    candidates = singletonSet("/1636/default_tablet/someFile");
-    metadata = new String[] {"1636< file:../default_tablet/someFile 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997", "1636< srv:dir /default_tablet",
-        "1636< srv:flush 2", "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb", "1636< srv:time M1328505870023",
-        "1636< ~tab:~pr \0",};
-    test1(metadata, candidates);
-    Assert.assertEquals(0, candidates.size());
+        "1636< ~tab:~pr \0"};
+    test1(metadata, deletes, 1, 0);
 
+    // have an indirect file reference
+    deletes = new String[] {"~del/9/default_tablet/someFile"};
+    metadata = new String[] {"1636< file:../9/default_tablet/someFile 10,100", "1636< last:3353986642a66eb 192.168.117.9:9997",
+        "1636< srv:dir /default_tablet", "1636< srv:flush 2", "1636< srv:lock tservers/192.168.117.9:9997/zlock-0000000000$3353986642a66eb",
+        "1636< srv:time M1328505870023", "1636< ~tab:~pr \0"};
+    
+    test1(metadata, deletes, 1, 0);
+    
+    // have an indirect file reference and a directory candidate
+    deletes = new String[] {"~del/9/default_tablet"};
+    test1(metadata, deletes, 1, 0);
+     
+    deletes = new String[] {"~del/9/default_tablet", "~del/9/default_tablet/someFile"};
+    test1(metadata, deletes, 2, 0);
+    
+    deletes = new String[] {"~blip/1636/b-0001", "~del/1636/b-0001/I0000"};
+    test1(metadata, deletes, 1, 0);
   }
   
-  private void test1(String[] metadata, SortedSet<String> candidates) throws Exception {
-    Instance instance = new MockInstance("mockabyebaby");
+  private void test1(String[] metadata, String[] deletes, int expectedInitial, int expected) throws Exception {
+    Instance instance = new MockInstance();
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     
-    load(instance, metadata);
+    load(instance, metadata, deletes);
 
     SimpleGarbageCollector gc = new SimpleGarbageCollector(new String[] {});
     gc.init(fs, instance, auth, aconf);
+    SortedSet<String> candidates = gc.getCandidates();
+    Assert.assertEquals(expectedInitial, candidates.size());
     gc.confirmDeletes(candidates);
+    Assert.assertEquals(expected, candidates.size());
   }
   
-  private void load(Instance instance, String[] metadata) throws Exception {
+  private void load(Instance instance, String[] metadata, String[] deletes) throws Exception {
+    Scanner scanner = instance.getConnector(auth).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    int count = 0;
+    for (@SuppressWarnings("unused")
+    Entry<Key,Value> entry : scanner) {
+      count++;
+    }
+    
+    // ensure there is no data from previous test
+    Assert.assertEquals(0, count);
+
     Connector conn = instance.getConnector(auth);
     BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000, 1000, 1);
     for (String line : metadata) {
@@ -104,6 +126,12 @@ public class TestConfirmDeletes {
       String[] columnParts = parts[1].split(":");
       Mutation m = new Mutation(parts[0]);
       m.put(new Text(columnParts[0]), new Text(columnParts[1]), new Value(parts[2].getBytes()));
+      bw.addMutation(m);
+    }
+    
+    for (String line : deletes) {
+      Mutation m = new Mutation(line);
+      m.put("", "", "");
       bw.addMutation(m);
     }
     bw.close();

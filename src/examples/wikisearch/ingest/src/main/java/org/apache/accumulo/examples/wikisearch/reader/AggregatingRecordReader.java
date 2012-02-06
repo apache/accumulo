@@ -20,6 +20,7 @@ package org.apache.accumulo.examples.wikisearch.reader;
 import java.io.IOException;
 
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaConfiguration;
+import org.apache.accumulo.examples.wikisearch.ingest.WikipediaInputFormat.WikipediaInputSplit;
 import org.apache.accumulo.examples.wikisearch.util.TextUtil;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
@@ -60,7 +61,7 @@ public class AggregatingRecordReader extends LongLineRecordReader {
   
   @Override
   public void initialize(InputSplit genericSplit, TaskAttemptContext context) throws IOException {
-    super.initialize(genericSplit, context);
+    super.initialize(((WikipediaInputSplit)genericSplit).getFileSplit(), context);
     this.startToken = WikipediaConfiguration.isNull(context.getConfiguration(), START_TOKEN, String.class);
     this.endToken = WikipediaConfiguration.isNull(context.getConfiguration(), END_TOKEN, String.class);
     this.returnPartialMatches = context.getConfiguration().getBoolean(RETURN_PARTIAL_MATCHES, false);

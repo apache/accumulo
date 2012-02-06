@@ -32,11 +32,11 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.examples.wikisearch.ingest.ArticleExtractor.Article;
+import org.apache.accumulo.examples.wikisearch.ingest.WikipediaInputFormat.WikipediaInputSplit;
 import org.apache.accumulo.examples.wikisearch.normalizer.LcNoDiacriticsNormalizer;
 import org.apache.accumulo.examples.wikisearch.protobuf.Uid;
 import org.apache.accumulo.examples.wikisearch.protobuf.Uid.List.Builder;
@@ -48,19 +48,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.log4j.Logger;
-import org.apache.lucene.analysis.StopAnalyzer;
-import org.apache.lucene.analysis.StopFilter;
-import org.apache.lucene.analysis.ar.ArabicAnalyzer;
-import org.apache.lucene.analysis.br.BrazilianAnalyzer;
-import org.apache.lucene.analysis.cjk.CJKAnalyzer;
-import org.apache.lucene.analysis.de.GermanAnalyzer;
-import org.apache.lucene.analysis.el.GreekAnalyzer;
-import org.apache.lucene.analysis.fa.PersianAnalyzer;
-import org.apache.lucene.analysis.fr.FrenchAnalyzer;
-import org.apache.lucene.analysis.nl.DutchAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.TermAttribute;
 import org.apache.lucene.wikipedia.analysis.WikipediaTokenizer;
-
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -82,8 +71,10 @@ public class WikipediaMapper extends Mapper<LongWritable,Text,Text,Mutation> {
   private ArticleExtractor extractor;
   private String language;
   private int numPartitions = 0;
-  private Set<?> stopwords = null;
   private ColumnVisibility cv = null;
+
+  private int myGroup = -1;
+  private int numGroups = -1;
   
   private Text tablename = null;
   private Text indexTableName = null;
@@ -98,30 +89,15 @@ public class WikipediaMapper extends Mapper<LongWritable,Text,Text,Mutation> {
     reverseIndexTableName = new Text(tablename + "ReverseIndex");
     metadataTableName = new Text(tablename + "Metadata");
     
-    FileSplit split = (FileSplit) context.getInputSplit();
+    WikipediaInputSplit wiSplit = (WikipediaInputSplit)context.getInputSplit();
+    myGroup = wiSplit.getPartition();
+    numGroups = WikipediaConfiguration.getNumGroups(conf);
+    
+    FileSplit split = wiSplit.getFileSplit();
     String fileName = split.getPath().getName();
     Matcher matcher = languagePattern.matcher(fileName);
     if (matcher.matches()) {
       language = matcher.group(1).replace('_', '-').toLowerCase();
-      if (language.equals("arwiki"))
-        stopwords = ArabicAnalyzer.getDefaultStopSet();
-      else if (language.equals("brwiki"))
-        stopwords = BrazilianAnalyzer.getDefaultStopSet();
-      else if (language.startsWith("zh"))
-        stopwords = CJKAnalyzer.getDefaultStopSet();
-      else if (language.equals("dewiki"))
-        stopwords = GermanAnalyzer.getDefaultStopSet();
-      else if (language.equals("elwiki"))
-        stopwords = GreekAnalyzer.getDefaultStopSet();
-      else if (language.equals("fawiki"))
-        stopwords = PersianAnalyzer.getDefaultStopSet();
-      else if (language.equals("frwiki"))
-        stopwords = FrenchAnalyzer.getDefaultStopSet();
-      else if (language.equals("nlwiki"))
-        stopwords = DutchAnalyzer.getDefaultStopSet();
-      else
-        stopwords = StopAnalyzer.ENGLISH_STOP_WORDS_SET;
-      
     } else {
       throw new RuntimeException("Unknown ingest language! " + fileName);
     }
@@ -150,6 +126,9 @@ public class WikipediaMapper extends Mapper<LongWritable,Text,Text,Mutation> {
     String colfPrefix = language + NULL_BYTE;
     String indexPrefix = "fi" + NULL_BYTE;
     if (article != null) {
+      int groupId = WikipediaMapper.getPartitionId(article, numGroups);
+      if(groupId != myGroup)
+        return;
       Text partitionId = new Text(Integer.toString(WikipediaMapper.getPartitionId(article, numPartitions)));
       
       // Create the mutations for the document.
@@ -230,9 +209,8 @@ public class WikipediaMapper extends Mapper<LongWritable,Text,Text,Mutation> {
     Set<String> tokenList = new HashSet<String>();
     WikipediaTokenizer tok = new WikipediaTokenizer(new StringReader(article.getText()));
     TermAttribute term = tok.addAttribute(TermAttribute.class);
-    StopFilter filter = new StopFilter(false, tok, stopwords, true);
     try {
-      while (filter.incrementToken()) {
+      while (tok.incrementToken()) {
         String token = term.term();
         if (!StringUtils.isEmpty(token))
           tokenList.add(token);

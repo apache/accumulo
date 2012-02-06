@@ -45,6 +45,9 @@ public class WikipediaConfiguration {
   public final static String ANALYZER = "wikipedia.index.analyzer";
   
   public final static String NUM_PARTITIONS = "wikipedia.ingest.partitions";
+
+  public final static String NUM_GROUPS = "wikipedia.ingest.groups";
+
   
   public static String getUser(Configuration conf) {
     return conf.get(USER);
@@ -108,6 +111,10 @@ public class WikipediaConfiguration {
   
   public static int getNumPartitions(Configuration conf) {
     return conf.getInt(NUM_PARTITIONS, 25);
+  }
+  
+  public static int getNumGroups(Configuration conf) {
+    return conf.getInt(NUM_GROUPS, 1);
   }
   
   /**
