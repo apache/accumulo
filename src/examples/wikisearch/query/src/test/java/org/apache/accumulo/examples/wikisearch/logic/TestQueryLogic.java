@@ -37,6 +37,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaConfiguration;
+import org.apache.accumulo.examples.wikisearch.ingest.WikipediaInputFormat;
+import org.apache.accumulo.examples.wikisearch.ingest.WikipediaInputFormat.WikipediaInputSplit;
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaMapper;
 import org.apache.accumulo.examples.wikisearch.parser.RangeCalculator;
 import org.apache.accumulo.examples.wikisearch.reader.AggregatingRecordReader;
@@ -113,6 +115,7 @@ public class TestQueryLogic {
     conf.set(AggregatingRecordReader.END_TOKEN, "</page>");
     conf.set(WikipediaConfiguration.TABLE_NAME, TABLE_NAME);
     conf.set(WikipediaConfiguration.NUM_PARTITIONS, "1");
+    conf.set(WikipediaConfiguration.NUM_GROUPS, "1");
     
     MockInstance i = new MockInstance();
     c = i.getConnector("root", "pass");
@@ -136,7 +139,7 @@ public class TestQueryLogic {
     Path tmpFile = new Path(data.getAbsolutePath());
     
     // Setup the Mapper
-    InputSplit split = new FileSplit(tmpFile, 0, fs.pathToFile(tmpFile).length(), null);
+    WikipediaInputSplit split = new WikipediaInputSplit(new FileSplit(tmpFile, 0, fs.pathToFile(tmpFile).length(), null),0);
     AggregatingRecordReader rr = new AggregatingRecordReader();
     Path ocPath = new Path(tmpFile, "oc");
     OutputCommitter oc = new FileOutputCommitter(ocPath, context);

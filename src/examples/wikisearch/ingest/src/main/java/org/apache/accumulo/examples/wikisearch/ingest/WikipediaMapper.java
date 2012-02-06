@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.examples.wikisearch.ingest.ArticleExtractor.Article;
+import org.apache.accumulo.examples.wikisearch.ingest.WikipediaInputFormat.WikipediaInputSplit;
 import org.apache.accumulo.examples.wikisearch.normalizer.LcNoDiacriticsNormalizer;
 import org.apache.accumulo.examples.wikisearch.protobuf.Uid;
 import org.apache.accumulo.examples.wikisearch.protobuf.Uid.List.Builder;
@@ -71,6 +72,9 @@ public class WikipediaMapper extends Mapper<LongWritable,Text,Text,Mutation> {
   private String language;
   private int numPartitions = 0;
   private ColumnVisibility cv = null;
+
+  private int myGroup = -1;
+  private int numGroups = -1;
   
   private Text tablename = null;
   private Text indexTableName = null;
@@ -85,7 +89,11 @@ public class WikipediaMapper extends Mapper<LongWritable,Text,Text,Mutation> {
     reverseIndexTableName = new Text(tablename + "ReverseIndex");
     metadataTableName = new Text(tablename + "Metadata");
     
-    FileSplit split = (FileSplit) context.getInputSplit();
+    WikipediaInputSplit wiSplit = (WikipediaInputSplit)context.getInputSplit();
+    myGroup = wiSplit.getPartition();
+    numGroups = WikipediaConfiguration.getNumGroups(conf);
+    
+    FileSplit split = wiSplit.getFileSplit();
     String fileName = split.getPath().getName();
     Matcher matcher = languagePattern.matcher(fileName);
     if (matcher.matches()) {
@@ -118,6 +126,9 @@ public class WikipediaMapper extends Mapper<LongWritable,Text,Text,Mutation> {
     String colfPrefix = language + NULL_BYTE;
     String indexPrefix = "fi" + NULL_BYTE;
     if (article != null) {
+      int groupId = WikipediaMapper.getPartitionId(article, numGroups);
+      if(groupId != myGroup)
+        return;
       Text partitionId = new Text(Integer.toString(WikipediaMapper.getPartitionId(article, numPartitions)));
       
       // Create the mutations for the document.
