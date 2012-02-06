@@ -33,14 +33,17 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -50,16 +53,16 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
+import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
-import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.ServerConstants;
@@ -122,6 +125,17 @@ public class SimpleGarbageCollector implements Iface {
   public static void main(String[] args) throws UnknownHostException, IOException {
     Accumulo.init("gc");
     SimpleGarbageCollector gc = new SimpleGarbageCollector(args);
+    
+    FileSystem fs;
+    try {
+      fs = TraceFileSystem.wrap(FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));
+    } catch (IOException e) {
+      String str = "Can't get default file system";
+      log.fatal(str, e);
+      throw new IllegalStateException(str, e);
+    }
+    gc.init(fs, HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), ServerConfiguration.getSystemConfiguration());
+    Accumulo.enableTracing(gc.address, "gc");
     gc.run();
   }
   
@@ -138,8 +152,6 @@ public class SimpleGarbageCollector implements Iface {
     opts.addOption(optAddress);
     
     try {
-      fs = TraceFileSystem.wrap(FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));
-      ;
       commandLine = new BasicParser().parse(opts, args);
       if (commandLine.getArgs().length != 0)
         throw new ParseException("Extraneous arguments");
@@ -152,18 +164,17 @@ public class SimpleGarbageCollector implements Iface {
       String str = "Can't parse the command line options";
       log.fatal(str, e);
       throw new IllegalArgumentException(str, e);
-    } catch (IOException e) {
-      String str = "Can't get default file system";
-      log.fatal(str, e);
-      throw new IllegalStateException(str, e);
     }
+  }
+  
+  public void init(FileSystem fs, Instance instance, AuthInfo credentials, AccumuloConfiguration conf) {
+    this.fs = fs;
+    this.instance = instance;
+    this.credentials = credentials;
     
-    instance = HdfsZooInstance.getInstance();
-    credentials = SecurityConstants.getSystemCredentials();
-    
-    gcStartDelay = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.GC_CYCLE_START);
-    long gcDelay = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
-    numDeleteThreads = ServerConfiguration.getSystemConfiguration().getCount(Property.GC_DELETE_THREADS);
+    gcStartDelay = conf.getTimeInMillis(Property.GC_CYCLE_START);
+    long gcDelay = conf.getTimeInMillis(Property.GC_CYCLE_DELAY);
+    numDeleteThreads = conf.getCount(Property.GC_DELETE_THREADS);
     log.info("start delay: " + (offline ? 0 + " sec (offline)" : gcStartDelay + " milliseconds"));
     log.info("time delay: " + gcDelay + " milliseconds");
     log.info("safemode: " + safemode);
@@ -171,7 +182,6 @@ public class SimpleGarbageCollector implements Iface {
     log.info("verbose: " + verbose);
     log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of " + Runtime.getRuntime().maxMemory() + " bytes");
     log.info("delete threads: " + numDeleteThreads);
-    Accumulo.enableTracing(address, "gc");
   }
   
   private void run() {
@@ -419,7 +429,7 @@ public class SimpleGarbageCollector implements Iface {
    * This method removes candidates from the candidate list under two conditions: 1. They are in the same folder as a bulk processing file, if that option is
    * selected 2. They are still in use in the file column family in the METADATA table
    */
-  private void confirmDeletes(SortedSet<String> candidates) throws AccumuloException {
+  public void confirmDeletes(SortedSet<String> candidates) throws AccumuloException {
     
     Scanner scanner;
     if (offline) {
@@ -429,7 +439,13 @@ public class SimpleGarbageCollector implements Iface {
         throw new IllegalStateException("Unable to create offline metadata scanner", e);
       }
     } else {
-      scanner = new IsolatedScanner(new ScannerImpl(instance, credentials, Constants.METADATA_TABLE_ID, Constants.NO_AUTHS));
+      try {
+        scanner = new IsolatedScanner(instance.getConnector(credentials).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
+      } catch (AccumuloSecurityException ex) {
+        throw new AccumuloException(ex);
+      } catch (TableNotFoundException ex) {
+        throw new AccumuloException(ex);
+      }
     }
     
     // skip candidates that are in a bulk processing folder
@@ -469,7 +485,7 @@ public class SimpleGarbageCollector implements Iface {
     scanner.fetchColumnFamily(Constants.METADATA_SCANFILE_COLUMN_FAMILY);
     ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
     
-    TabletIterator tabletIterator = new TabletIterator(scanner, Constants.METADATA_KEYSPACE, false, false);
+    TabletIterator tabletIterator = new TabletIterator(scanner, Constants.METADATA_KEYSPACE, false, true);
     
     while (tabletIterator.hasNext()) {
       Map<Key,Value> tabletKeyValues = tabletIterator.next();
@@ -486,7 +502,6 @@ public class SimpleGarbageCollector implements Iface {
             String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()));
             delete = "/" + table + cf;
           }
-          
           // WARNING: This line is EXTREMELY IMPORTANT.
           // You MUST REMOVE candidates that are still in use
           if (candidates.remove(delete))
