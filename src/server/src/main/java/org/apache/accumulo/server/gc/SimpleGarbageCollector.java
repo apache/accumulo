@@ -41,7 +41,6 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -370,7 +369,7 @@ public class SimpleGarbageCollector implements Iface {
   /**
    * This method gets a set of candidates for deletion by scanning the METADATA table deleted flag keyspace
    */
-  private SortedSet<String> getCandidates() {
+  SortedSet<String> getCandidates() throws Exception {
     TreeSet<String> candidates = new TreeSet<String>();
     
     if (offline) {
@@ -392,8 +391,8 @@ public class SimpleGarbageCollector implements Iface {
       return candidates;
     }
     
-    Scanner scanner = new ScannerImpl(instance, credentials, Constants.METADATA_TABLE_ID, Constants.NO_AUTHS);
-    
+    Scanner scanner = instance.getConnector(credentials).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+
     if (continueKey != null) {
       // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing them, then will never inspect deletes after N
       scanner.setRange(new Range(continueKey, true, Constants.METADATA_DELETES_KEYSPACE.getEndKey(), Constants.METADATA_DELETES_KEYSPACE.isEndKeyInclusive()));
