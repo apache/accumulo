@@ -48,6 +48,11 @@ public class WikipediaConfiguration {
 
   public final static String NUM_GROUPS = "wikipedia.ingest.groups";
 
+  public final static String PARTITIONED_ARTICLES_DIRECTORY = "wikipedia.partitioned.directory";
+  
+  public final static String RUN_PARTITIONER = "wikipedia.run.partitioner";
+  public final static String RUN_INGEST = "wikipedia.run.ingest";
+  
   
   public static String getUser(Configuration conf) {
     return conf.get(USER);
@@ -117,6 +122,18 @@ public class WikipediaConfiguration {
     return conf.getInt(NUM_GROUPS, 1);
   }
   
+  public static Path getPartitionedArticlesPath(Configuration conf) {
+    return new Path(conf.get(PARTITIONED_ARTICLES_DIRECTORY));
+  }
+  
+  public static boolean runPartitioner(Configuration conf) {
+    return conf.getBoolean(RUN_PARTITIONER, false);
+  }
+
+  public static boolean runIngest(Configuration conf) {
+    return conf.getBoolean(RUN_INGEST, true);
+  }
+
   /**
    * Helper method to get properties from Hadoop configuration
    * 
