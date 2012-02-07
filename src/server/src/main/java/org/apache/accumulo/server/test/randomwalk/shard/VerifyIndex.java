@@ -17,8 +17,8 @@
 package org.apache.accumulo.server.test.randomwalk.shard;
 
 import java.util.Iterator;
-import java.util.Properties;
 import java.util.Map.Entry;
+import java.util.Properties;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
@@ -54,6 +54,8 @@ public class VerifyIndex extends Test {
       if (key1.compareTo(key2, PartialKey.ROW_COLFAM_COLQUAL) != 0)
         throw new Exception("index rebuild mismatch " + key1 + " " + key2 + " " + indexTableName + " " + tmpIndexTableName);
       count++;
+      if (count % 1000 == 0)
+        makingProgress();
     }
     
     if (iter.hasNext())

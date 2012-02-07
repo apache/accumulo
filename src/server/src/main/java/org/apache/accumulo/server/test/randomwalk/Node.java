@@ -26,6 +26,7 @@ import org.apache.log4j.Logger;
 public abstract class Node {
   
   protected final Logger log = Logger.getLogger(this.getClass());
+  long progress = System.currentTimeMillis();
   
   /**
    * Visits node
@@ -44,5 +45,13 @@ public abstract class Node {
   @Override
   public int hashCode() {
     return toString().hashCode();
+  }
+  
+  synchronized public void makingProgress() {
+    progress = System.currentTimeMillis();
+  }
+  
+  synchronized public long lastProgress() {
+    return progress;
   }
 }

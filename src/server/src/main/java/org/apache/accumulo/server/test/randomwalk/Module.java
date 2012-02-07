@@ -194,12 +194,12 @@ public class Module extends Node {
     
     boolean test = false;
     if (initNode instanceof Test) {
-      startTimer(initNode.toString());
+      startTimer(initNode);
       test = true;
     }
     initNode.visit(state, getProps(initNodeId));
     if (test)
-      stopTimer(initNode.toString());
+      stopTimer(initNode);
 
     state.visitedNode();
     // update aliases
@@ -245,12 +245,12 @@ public class Module extends Node {
       try {
         test = false;
         if (nextNode instanceof Test) {
-          startTimer(nextNode.toString());
+          startTimer(nextNode);
           test = true;
         }
         nextNode.visit(state, nodeProps);
         if (test)
-          stopTimer(nextNode.toString());
+          stopTimer(nextNode);
       } catch (Exception e) {
         log.debug("Properties for node: " + nextNodeId);
         for (Entry<Object,Object> entry : nodeProps.entrySet()) {
@@ -283,32 +283,37 @@ public class Module extends Node {
   /**
    * 
    */
-  private void startTimer(final String nodeName) {
+  private void startTimer(final Node initNode) {
     runningLong.set(false);
     timer = new Thread(new Runnable() {
 
       @Override
       public void run() {
-        try {
-          systemTime = System.currentTimeMillis();
-          synchronized (timer) {
-            timer.wait(time);
+        while (!runningLong.get()) {
+          try {
+            systemTime = System.currentTimeMillis();
+            synchronized (timer) {
+              timer.wait(time);
+            }
+          } catch (InterruptedException ie) {
+            return;
           }
-        } catch (InterruptedException ie) {
-          return;
         }
-        log.warn("Node " + nodeName + " has been running for " + time / 1000.0 + " seconds. You may want to look into it.");
+        long timeSinceLastProgress = System.currentTimeMillis() - initNode.lastProgress();
+        if (timeSinceLastProgress > time) {
+          log.warn("Node " + initNode + " has been running for " + timeSinceLastProgress / 1000.0 + " seconds. You may want to look into it.");
+        }
         runningLong.set(true);
       }
-      
     });
+    initNode.makingProgress();
     timer.start();
   }
   
   /**
    * 
    */
-  private void stopTimer(String nodeName) {
+  private void stopTimer(Node nextNode) {
     synchronized (timer) {
       timer.interrupt();
       try {
@@ -319,7 +324,7 @@ public class Module extends Node {
       }
     }
     if (runningLong.get())
-      log.warn("Node " + nodeName + ", which was running long, has now completed after " + (System.currentTimeMillis() - systemTime) / 1000.0 + " seconds");
+      log.warn("Node " + nextNode + ", which was running long, has now completed after " + (System.currentTimeMillis() - systemTime) / 1000.0 + " seconds");
   }
 
   @Override

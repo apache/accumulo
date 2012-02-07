@@ -136,7 +136,7 @@ public class ZooCache {
         }
         log.warn("Zookeeper error, will retry", e);
       } catch (InterruptedException e) {
-        log.warn("Zookeeper error, will retry", e);
+        log.info("Zookeeper error, will retry", e);
       } catch (ConcurrentModificationException e) {
         log.debug("Zookeeper was modified, will retry");
       }
