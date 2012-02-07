@@ -75,10 +75,10 @@ public class WikipediaInputFormat extends TextInputFormat {
       Path file = new Path(in.readUTF());
       long start = in.readLong();
       long length = in.readLong();
-      int numHosts = in.readInt();
       String [] hosts = null;
       if(in.readBoolean())
       {
+        int numHosts = in.readInt();
         hosts = new String[numHosts];
         for(int i = 0; i < numHosts; i++)
           hosts[i] = in.readUTF();
