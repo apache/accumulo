@@ -180,7 +180,7 @@ public class ScanCommand extends Command {
     scanOptRow.setArgName("row");
     scanOptStartRow.setArgName("start-row");
     scanOptEndRow.setArgName("end-row");
-    scanOptColumns.setArgName("{<columnfamily>[:<columnqualifier>]}");
+    scanOptColumns.setArgName("<columnfamily>[:<columnqualifier>]{,<columnfamily>[:<columnqualifier>]}");
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);
     showFewOpt.setRequired(false);
