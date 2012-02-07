@@ -124,6 +124,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 
 import cloudtrace.instrument.Span;
 import cloudtrace.instrument.Trace;
@@ -2276,6 +2278,7 @@ public class Tablet {
       if (updateMetadata) {
         synchronized (this) {
           updatingFlushID = false;
+          this.notifyAll();
         }
       }
     }
@@ -2283,8 +2286,19 @@ public class Tablet {
   }
   
   boolean initiateMinorCompaction() {
+    if (isClosed()) {
+      // don't bother trying to get flush id if closed... could be closed after this check but that is ok... just trying to cut down on uneeded log messages....
+      return false;
+    }
+
     // get the flush id before the new memmap is made available for write
-    long flushId = getFlushID();
+    long flushId;
+    try {
+      flushId = getFlushID();
+    } catch (NoNodeException e) {
+      log.info("Asked to initiate MinC when there was no flush id " + getExtent() + " " + e.getMessage());
+      return false;
+    }
     return initiateMinorCompaction(flushId);
   }
   
@@ -2340,23 +2354,39 @@ public class Tablet {
     return true;
   }
   
-  long getFlushID() {
+  long getFlushID() throws NoNodeException {
     try {
       String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + extent.getTableId()
           + Constants.ZTABLE_FLUSH_ID;
       return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null)));
-    } catch (Exception e) {
+    } catch (InterruptedException e) {
       throw new RuntimeException(e);
+    } catch (NumberFormatException nfe) {
+      throw new RuntimeException(nfe);
+    } catch (KeeperException ke) {
+      if (ke instanceof NoNodeException) {
+        throw (NoNodeException) ke;
+      } else {
+        throw new RuntimeException(ke);
+      }
     }
   }
   
-  long getCompactionID() {
+  long getCompactionID() throws NoNodeException {
     try {
       String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + extent.getTableId()
           + Constants.ZTABLE_COMPACT_ID;
       return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null)));
-    } catch (Exception e) {
+    } catch (InterruptedException e) {
       throw new RuntimeException(e);
+    } catch (NumberFormatException nfe) {
+      throw new RuntimeException(nfe);
+    } catch (KeeperException ke) {
+      if (ke instanceof NoNodeException) {
+        throw (NoNodeException) ke;
+      } else {
+        throw new RuntimeException(ke);
+      }
     }
   }
   
@@ -2559,13 +2589,25 @@ public class Tablet {
         }
       }
       
+      while (updatingFlushID) {
+        try {
+          this.wait(50);
+        } catch (InterruptedException e) {
+          log.error(e.toString());
+        }
+      }
+
       if (!saveState || tabletMemory.getMemTable().getNumEntries() == 0) {
         return;
       }
       
       tabletMemory.waitForMinC();
       
-      mct = prepareForMinC(getFlushID());
+      try {
+        mct = prepareForMinC(getFlushID());
+      } catch (NoNodeException e) {
+        throw new RuntimeException(e);
+      }
       
       if (queueMinC) {
         tabletResources.executeMinorCompaction(mct);
@@ -2614,7 +2656,11 @@ public class Tablet {
     tabletMemory.waitForMinC();
     
     if (saveState && tabletMemory.getMemTable().getNumEntries() > 0) {
-      prepareForMinC(getFlushID()).run();
+      try {
+        prepareForMinC(getFlushID()).run();
+      } catch (NoNodeException e) {
+        throw new RuntimeException(e);
+      }
     }
     
     if (saveState) {
@@ -3105,7 +3151,11 @@ public class Tablet {
       Long compactionId = null;
       if (!propogateDeletes) {
         // compacting everything, so update the compaction id in !METADATA
-        compactionId = getCompactionID();
+        try {
+          compactionId = getCompactionID();
+        } catch (NoNodeException e) {
+          throw new RuntimeException(e);
+        }
       }
       
       // need to handle case where only one file is being major compacted
