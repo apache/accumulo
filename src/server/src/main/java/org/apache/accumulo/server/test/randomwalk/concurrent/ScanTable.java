@@ -23,6 +23,7 @@ import java.util.Properties;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
@@ -59,6 +60,12 @@ public class ScanTable extends Test {
       log.debug("Scan " + tableName + " failed, doesnt exist");
     } catch (TableOfflineException e) {
       log.debug("Scan " + tableName + " failed, offline");
+    } catch (RuntimeException e) {
+      if (e.getCause() instanceof AccumuloSecurityException) {
+        log.debug("BatchScan " + tableName + " failed, permission error");
+      } else {
+        throw e;
+      }
     }
   }
 }

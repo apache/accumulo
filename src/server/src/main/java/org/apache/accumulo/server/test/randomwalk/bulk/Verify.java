@@ -45,8 +45,13 @@ public class Verify extends Test {
   public void visit(State state, Properties props) throws Exception {
     ThreadPoolExecutor threadPool = Setup.getThreadPool(state);
     threadPool.shutdown();
+    int lastSize = 0;
     while (!threadPool.isTerminated()) {
-      log.info("Waiting for " + (threadPool.getQueue().size() + threadPool.getActiveCount()) + " nodes to complete");
+      int size = threadPool.getQueue().size() + threadPool.getActiveCount();
+      log.info("Waiting for " + size + " nodes to complete");
+      if (size != lastSize)
+        makingProgress();
+      lastSize = size;
       threadPool.awaitTermination(10, TimeUnit.SECONDS);
     }
     

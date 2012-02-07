@@ -194,6 +194,7 @@ import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 
 import cloudtrace.instrument.Span;
 import cloudtrace.instrument.Trace;
@@ -1887,7 +1888,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         if (flushID == null) {
           // read the flush id once from zookeeper instead of reading
           // it for each tablet
-          flushID = tablet.getFlushID();
+          try {
+            flushID = tablet.getFlushID();
+          } catch (NoNodeException e) {
+            // table was probably deleted
+            log.info("Asked to flush table that has no flush id " + ke + " " + e.getMessage());
+            return;
+          }
         }
         tablet.flush(flushID);
       }
@@ -1904,7 +1911,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       Tablet tablet = onlineTablets.get(new KeyExtent(textent));
       if (tablet != null) {
         log.info("Flushing " + tablet.getExtent());
-        tablet.flush(tablet.getFlushID());
+        try {
+          tablet.flush(tablet.getFlushID());
+        } catch (NoNodeException nne) {
+          log.info("Asked to flush tablet that has no flush id " + new KeyExtent(textent) + " " + nne.getMessage());
+        }
       }
     }
     
@@ -1999,7 +2010,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         // all for the same table id, so only need to read
         // compaction id once
         if (compactionId == null)
-          compactionId = tablet.getCompactionID();
+          try {
+            compactionId = tablet.getCompactionID();
+          } catch (NoNodeException e) {
+            log.info("Asked to compact table with no compaction id " + ke + " " + e.getMessage());
+            return;
+          }
         tablet.compactAll(compactionId);
       }
       
