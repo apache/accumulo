@@ -32,6 +32,7 @@ import javax.xml.stream.XMLStreamReader;
 
 import org.apache.accumulo.examples.wikisearch.normalizer.LcNoDiacriticsNormalizer;
 import org.apache.accumulo.examples.wikisearch.normalizer.NumberNormalizer;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
 
@@ -100,19 +101,23 @@ public class ArticleExtractor {
     @Override
     public void readFields(DataInput in) throws IOException {
       id = in.readInt();
-      title = in.readUTF();
+      Text foo = new Text();
+      foo.readFields(in);
+      title = foo.toString();
       timestamp = in.readLong();
-      comments = in.readUTF();
-      text = in.readUTF();
+      foo.readFields(in);
+      comments = foo.toString();
+      foo.readFields(in);
+      text = foo.toString();
     }
 
     @Override
     public void write(DataOutput out) throws IOException {
       out.writeInt(id);
-      out.writeUTF(title);
+      (new Text(title)).write(out);
       out.writeLong(timestamp);
-      out.writeUTF(comments);
-      out.writeUTF(text);
+      (new Text(comments)).write(out);
+      (new Text(text)).write(out);
     }
     
   }
