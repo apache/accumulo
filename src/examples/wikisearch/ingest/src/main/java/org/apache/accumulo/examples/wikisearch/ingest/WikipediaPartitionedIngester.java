@@ -173,6 +173,8 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
     // setup output format
     partitionerJob.setMapOutputKeyClass(Text.class);
     partitionerJob.setMapOutputValueClass(Article.class);
+    partitionerJob.setOutputKeyClass(Text.class);
+    partitionerJob.setOutputValueClass(Article.class);
     partitionerJob.setOutputFormatClass(SequenceFileOutputFormat.class);
     Path outputDir = WikipediaConfiguration.getPartitionedArticlesPath(partitionerConf);
     SequenceFileOutputFormat.setOutputPath(partitionerJob, outputDir);
@@ -186,6 +188,8 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
     Configuration ingestConf = ingestJob.getConfiguration();
     ingestConf.set("mapred.map.tasks.speculative.execution", "false");
 
+    configureIngestJob(ingestJob);
+    
     String tablename = WikipediaConfiguration.getTableName(ingestConf);
     
     String zookeepers = WikipediaConfiguration.getZookeepers(ingestConf);
@@ -198,6 +202,9 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
     TableOperations tops = connector.tableOperations();
     
     createTables(tops, tablename);
+    
+    ingestJob.setMapperClass(WikipediaPartitionedMapper.class);
+    ingestJob.setNumReduceTasks(0);
     
     // setup input format
     ingestJob.setInputFormatClass(SequenceFileInputFormat.class);
@@ -226,6 +233,11 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
     job.setInputFormatClass(WikipediaInputFormat.class);
     conf.set(AggregatingRecordReader.START_TOKEN, "<page>");
     conf.set(AggregatingRecordReader.END_TOKEN, "</page>");
+  }
+
+  protected void configureIngestJob(Job job) {
+    job.setJarByClass(WikipediaPartitionedIngester.class);
+    job.setInputFormatClass(WikipediaInputFormat.class);
   }
   
   protected static final Pattern filePattern = Pattern.compile("([a-z_]+).*.xml(.bz2)?");
