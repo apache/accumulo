@@ -50,6 +50,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -178,6 +179,8 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
     partitionerJob.setOutputFormatClass(SequenceFileOutputFormat.class);
     Path outputDir = WikipediaConfiguration.getPartitionedArticlesPath(partitionerConf);
     SequenceFileOutputFormat.setOutputPath(partitionerJob, outputDir);
+    SequenceFileOutputFormat.setCompressOutput(partitionerJob, true);
+    SequenceFileOutputFormat.setOutputCompressionType(partitionerJob, CompressionType.RECORD);
     
     return partitionerJob.waitForCompletion(true) ? 0 : 1;
   }
@@ -209,6 +212,7 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
     // setup input format
     ingestJob.setInputFormatClass(SequenceFileInputFormat.class);
     SequenceFileInputFormat.setInputPaths(ingestJob, WikipediaConfiguration.getPartitionedArticlesPath(ingestConf));
+    SequenceFileInputFormat.setMinInputSplitSize(ingestJob, 1l << 28);
 
     // setup output format
     ingestJob.setMapOutputKeyClass(Text.class);
