@@ -22,34 +22,6 @@ SCRIPT_DIR="${THIS_SCRIPT%/*}"
 SCRIPT_DIR=`cd $SCRIPT_DIR ; pwd`
 echo $SCRIPT_DIR
 
-ACCUMULO_HOME=${ACCUMULO_HOME}
-ZOOKEEPER_HOME=${ZOOKEEPER_HOME}
-
-#
-# Check ZOOKEEPER_HOME
-#
-if [[ -z $ZOOKEEPER_HOME ]]; then
-	echo "You must set ZOOKEEPER_HOME environment variable"
-	exit -1;
-else
-	for f in $ZOOKEEPER_HOME/zookeeper-*.jar; do
-		CLASSPATH=$f
-		break
-	done	
-fi
-
-#
-# Check ACCUMULO_HOME
-#
-if [[ -z $ACCUMULO_HOME ]]; then
-	echo "You must set ACCUMULO_HOME environment variable"
-	exit -1;
-else
-	for f in $ACCUMULO_HOME/lib/*.jar; do
-		CLASSPATH=${CLASSPATH}:$f
-	done	
-fi
-
 #
 # Add our jars
 #
@@ -60,7 +32,7 @@ done
 #
 # Transform the classpath into a comma-separated list also
 #
-LIBJARS=`echo $CLASSPATH | sed 's/:/,/g'`
+LIBJARS=`echo $CLASSPATH | sed 's/^://' | sed 's/:/,/g'`
 
 
 #

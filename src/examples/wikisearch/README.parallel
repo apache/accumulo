@@ -8,8 +8,7 @@
  	Prerequisites
  	-------------
  	1. Accumulo, Hadoop, and ZooKeeper must be installed and running
- 	2. ACCUMULO_HOME and ZOOKEEPER_HOME must be defined in the environment
- 	3. One or more wikipedia dump files (http://dumps.wikimedia.org/backup-index.html) placed in an HDFS directory.
+ 	2. One or more wikipedia dump files (http://dumps.wikimedia.org/backup-index.html) placed in an HDFS directory.
 	     You will want to grab the files with the link name of pages-articles.xml.bz2
  
  

@@ -76,6 +76,16 @@
     	<groupId>com.sun.jersey</groupId>
     	<artifactId>jersey-server</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.apache.accumulo</groupId>
+      <artifactId>cloudtrace</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.thrift</groupId>
+      <artifactId>libthrift</artifactId>
+      <scope>runtime</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -93,8 +103,8 @@
             <configuration>
               <outputDirectory>lib</outputDirectory>
               <!-- just grab the non-provided runtime dependencies -->
-              <includeArtifactIds>commons-lang,google-collections,lucene-core,lucene-analyzers,lucene-wikipedia,protobuf-java</includeArtifactIds>
-              <excludeTransitive>true</excludeTransitive>
+              <includeArtifactIds>commons-lang,google-collections,lucene-core,lucene-analyzers,lucene-wikipedia,protobuf-java,accumulo-core,hadoop-core,libthrift,cloudtrace,zookeeper</includeArtifactIds>
+              <excludeTransitive>false</excludeTransitive>
             </configuration>
           </execution>
         </executions>
