@@ -116,11 +116,11 @@ public class WikipediaInputFormat extends TextInputFormat {
     
     int numGroups = WikipediaConfiguration.getNumGroups(job.getConfiguration());
 
-    for(InputSplit split:superSplits)
+    for(int group = 0; group < numGroups; group++)
     {
-      FileSplit fileSplit = (FileSplit)split;
-      for(int group = 0; group < numGroups; group++)
+      for(InputSplit split:superSplits)
       {
+        FileSplit fileSplit = (FileSplit)split;
         splits.add(new WikipediaInputSplit(fileSplit,group));
       }
     }

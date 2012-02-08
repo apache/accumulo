@@ -124,9 +124,14 @@ public class ArticleExtractor {
   
   public ArticleExtractor() {}
   
-  public Article extract(Reader reader) {
-    XMLInputFactory xmlif = XMLInputFactory.newInstance();
+  private static XMLInputFactory xmlif = XMLInputFactory.newInstance();
+
+  static
+  {
     xmlif.setProperty(XMLInputFactory.IS_REPLACING_ENTITY_REFERENCES, Boolean.TRUE);
+  }
+  
+  public Article extract(Reader reader) {
     
     XMLStreamReader xmlr = null;
     
