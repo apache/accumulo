@@ -16,6 +16,42 @@
 
 \chapter{Writing Accumulo Clients}
 
+\section{Running Client Code}
+
+There are multiple ways to run Java code that uses Accumulo.  Below is a list
+of the different ways to execute client code.
+
+\begin{itemize} 
+  \item using java executable 
+  \item using the accumulo script
+  \item using the tool script 
+\end{itemize}
+
+Inorder to run client code written to run against Accumulo, you will need to
+include the jars that Accumulo depends on in your classpath.  Accumulo client
+code depends on Hadoop and Zookeeper.  For Hadoop add the hadoop core jar, all
+of the jars in the Hadoop lib directory, and the conf directory to the
+classpath. For Zookeeper 3.3 you only need to add the Zookeeper jar, and not
+what is in the Zookeeper lib directory.  You can run the following command on a
+configured Accumulo system to see what its using for its classpath.
+
+\small 
+\begin{verbatim} 
+$ACCUMULO_HOME/bin/accumulo classpath 
+\end{verbatim}
+\normalsize
+
+Another option for running your code is to put a jar file in
+\texttt{\$ACCUMULO\_HOME/lib/ext}.  After doing this you can use the accumulo
+script to execute your code.  For example if you create a jar containing the
+class com.foo.Client and placed that in lib/ext, then you could use the command
+\texttt{\$ACCUMULO\_HOME/bin/accumulo com.foo.Client} to execute your code.
+
+If you are writing map reduce job that access Accumulo, then you can use the
+bin/tool.sh script to run those jobs.  See the map reduce example.
+
+\section{Connecting}
+
 All clients must first identify the Accumulo instance to which they will be
 communicating. Code to do this is as follows:
 
