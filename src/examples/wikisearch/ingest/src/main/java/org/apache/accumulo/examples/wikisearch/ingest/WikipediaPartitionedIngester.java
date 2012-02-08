@@ -50,6 +50,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -173,9 +174,13 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
     // setup output format
     partitionerJob.setMapOutputKeyClass(Text.class);
     partitionerJob.setMapOutputValueClass(Article.class);
+    partitionerJob.setOutputKeyClass(Text.class);
+    partitionerJob.setOutputValueClass(Article.class);
     partitionerJob.setOutputFormatClass(SequenceFileOutputFormat.class);
     Path outputDir = WikipediaConfiguration.getPartitionedArticlesPath(partitionerConf);
     SequenceFileOutputFormat.setOutputPath(partitionerJob, outputDir);
+    SequenceFileOutputFormat.setCompressOutput(partitionerJob, true);
+    SequenceFileOutputFormat.setOutputCompressionType(partitionerJob, CompressionType.RECORD);
     
     return partitionerJob.waitForCompletion(true) ? 0 : 1;
   }
@@ -186,6 +191,8 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
     Configuration ingestConf = ingestJob.getConfiguration();
     ingestConf.set("mapred.map.tasks.speculative.execution", "false");
 
+    configureIngestJob(ingestJob);
+    
     String tablename = WikipediaConfiguration.getTableName(ingestConf);
     
     String zookeepers = WikipediaConfiguration.getZookeepers(ingestConf);
@@ -199,9 +206,13 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
     
     createTables(tops, tablename);
     
+    ingestJob.setMapperClass(WikipediaPartitionedMapper.class);
+    ingestJob.setNumReduceTasks(0);
+    
     // setup input format
     ingestJob.setInputFormatClass(SequenceFileInputFormat.class);
     SequenceFileInputFormat.setInputPaths(ingestJob, WikipediaConfiguration.getPartitionedArticlesPath(ingestConf));
+    SequenceFileInputFormat.setMinInputSplitSize(ingestJob, 1l << 28);
 
     // setup output format
     ingestJob.setMapOutputKeyClass(Text.class);
@@ -226,6 +237,11 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
     job.setInputFormatClass(WikipediaInputFormat.class);
     conf.set(AggregatingRecordReader.START_TOKEN, "<page>");
     conf.set(AggregatingRecordReader.END_TOKEN, "</page>");
+  }
+
+  protected void configureIngestJob(Job job) {
+    job.setJarByClass(WikipediaPartitionedIngester.class);
+    job.setInputFormatClass(WikipediaInputFormat.class);
   }
   
   protected static final Pattern filePattern = Pattern.compile("([a-z_]+).*.xml(.bz2)?");
