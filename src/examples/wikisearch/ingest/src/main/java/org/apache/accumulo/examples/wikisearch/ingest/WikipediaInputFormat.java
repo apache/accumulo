@@ -67,6 +67,8 @@ public class WikipediaInputFormat extends TextInputFormat {
 
     @Override
     public String[] getLocations() throws IOException, InterruptedException {
+      // for highly replicated files, returning all of the locations can lead to bunching
+      // TODO replace this with a subset of the locations
       return fileSplit.getLocations();
     }
 

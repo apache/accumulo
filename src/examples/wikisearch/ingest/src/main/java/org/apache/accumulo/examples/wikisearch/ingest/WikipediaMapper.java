@@ -205,7 +205,7 @@ public class WikipediaMapper extends Mapper<LongWritable,Text,Text,Mutation> {
    * @return
    * @throws IOException
    */
-  private Set<String> getTokens(Article article) throws IOException {
+  static Set<String> getTokens(Article article) throws IOException {
     Set<String> tokenList = new HashSet<String>();
     WikipediaTokenizer tok = new WikipediaTokenizer(new StringReader(article.getText()));
     TermAttribute term = tok.addAttribute(TermAttribute.class);
