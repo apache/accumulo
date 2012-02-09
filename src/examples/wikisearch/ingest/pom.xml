@@ -107,7 +107,7 @@
             <configuration>
               <outputDirectory>lib</outputDirectory>
               <!-- just grab the non-provided runtime dependencies -->
-              <includeArtifactIds>commons-lang,google-collections,lucene-core,lucene-analyzers,lucene-wikipedia,protobuf-java,accumulo-core,hadoop-core,libthrift,cloudtrace,zookeeper</includeArtifactIds>
+              <includeArtifactIds>commons-lang,google-collections,lucene-core,lucene-analyzers,lucene-wikipedia,protobuf-java,accumulo-core,hadoop-core,libthrift,cloudtrace,zookeeper,commons-codec</includeArtifactIds>
               <excludeTransitive>false</excludeTransitive>
             </configuration>
           </execution>
