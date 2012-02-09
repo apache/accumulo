@@ -148,7 +148,7 @@ import org.apache.log4j.Logger;
 /**
  * A convenient console interface to perform basic accumulo functions Includes auto-complete, help, and quoted strings with escape sequences
  */
-public class Shell {
+public class Shell extends ShellOptions {
   public static final Logger log = Logger.getLogger(Shell.class);
   private static final Logger audit = Logger.getLogger(Shell.class.getName() + ".audit");
   
@@ -156,35 +156,28 @@ public class Shell {
   private static final String SHELL_DESCRIPTION = "Shell - Accumulo Interactive Shell";
   private static final String DEFAULT_AUTH_TIMEOUT = "60"; // in minutes
   
-  private int exitCode = 0;
+  protected int exitCode = 0;
   private String tableName;
-  private Instance instance;
+  protected Instance instance;
   private Connector connector;
-  private ConsoleReader reader;
+  protected ConsoleReader reader;
   private AuthInfo credentials;
   private Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   private Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
-  private Map<String,Class<? extends Formatter>> tableFormatters = new HashMap<String,Class<? extends Formatter>>();
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
   
   private Token rootToken;
   public final Map<String,Command> commandFactory = new TreeMap<String,Command>();
-  private boolean configError = false;
-  
-  // Global options flags
-  public static final String userOption = "u";
-  public static final String tableOption = "t";
-  public static final String helpOption = "?";
-  public static final String helpLongOption = "help";
+  protected boolean configError = false;
   
   // exit if true
-  private boolean exit = false;
+  protected boolean exit = false;
   
   // file to execute commands from
-  private String execFile = null;
+  protected String execFile = null;
   // single command to execute from the command line
-  private String execCommand = null;
-  private boolean verbose = true;
+  protected String execCommand = null;
+  protected boolean verbose = true;
   
   private boolean tabCompletion;
   private boolean disableAuthTimeout;
@@ -192,76 +185,17 @@ public class Shell {
   private long lastUserActivity = System.currentTimeMillis();
   
   public Shell() throws IOException {
+    super();
     this.reader = new ConsoleReader();
   }
   
   public Shell(ConsoleReader reader) {
+    super();
     this.reader = reader;
   }
   
-  @SuppressWarnings("deprecation")
   // Not for client use
   public void config(String... args) {
-    Options opts = new Options();
-    
-    Option usernameOption = new Option("u", "user", true, "username (defaults to your OS user)");
-    usernameOption.setArgName("user");
-    opts.addOption(usernameOption);
-    
-    Option passwOption = new Option("p", "password", true, "password (prompt for password if this option is missing)");
-    passwOption.setArgName("pass");
-    opts.addOption(passwOption);
-    
-    Option tabCompleteOption = new Option(null, "disable-tab-completion", false, "disables tab completion (for less overhead when scripting)");
-    opts.addOption(tabCompleteOption);
-    
-    Option debugOption = new Option(null, "debug", false, "enables client debugging");
-    opts.addOption(debugOption);
-    
-    Option fakeOption = new Option(null, "fake", false, "fake a connection to accumulo");
-    opts.addOption(fakeOption);
-    
-    Option helpOpt = new Option(helpOption, helpLongOption, false, "display this help");
-    opts.addOption(helpOpt);
-    
-    Option execCommandOpt = new Option("e", "execute-command", true, "executes a command, and then exits");
-    opts.addOption(execCommandOpt);
-    
-    OptionGroup execFileGroup = new OptionGroup();
-    
-    Option execfileOption = new Option("f", "execute-file", true, "executes commands from a file at startup");
-    execfileOption.setArgName("file");
-    execFileGroup.addOption(execfileOption);
-    
-    Option execfileVerboseOption = new Option("fv", "execute-file-verbose", true, "executes commands from a file at startup, with commands shown");
-    execfileVerboseOption.setArgName("file");
-    execFileGroup.addOption(execfileVerboseOption);
-    
-    opts.addOptionGroup(execFileGroup);
-    
-    OptionGroup instanceOptions = new OptionGroup();
-    
-    Option hdfsZooInstance = new Option("h", "hdfsZooInstance", false, "use hdfs zoo instance");
-    instanceOptions.addOption(hdfsZooInstance);
-    
-    Option zooKeeperInstance = new Option("z", "zooKeeperInstance", true, "use a zookeeper instance with the given instance name and list of zoo hosts");
-    zooKeeperInstance.setArgName("name hosts");
-    zooKeeperInstance.setArgs(2);
-    instanceOptions.addOption(zooKeeperInstance);
-    
-    opts.addOptionGroup(instanceOptions);
-    
-    OptionGroup authTimeoutOptions = new OptionGroup();
-    
-    Option authTimeoutOpt = new Option(null, "auth-timeout", true, "minutes the shell can be idle without re-entering a password (default "
-        + DEFAULT_AUTH_TIMEOUT + " min)");
-    authTimeoutOpt.setArgName("minutes");
-    authTimeoutOptions.addOption(authTimeoutOpt);
-    
-    Option disableAuthTimeoutOpt = new Option(null, "disable-auth-timeout", false, "disables requiring the user to re-type a password after being idle");
-    authTimeoutOptions.addOption(disableAuthTimeoutOpt);
-    
-    opts.addOptionGroup(authTimeoutOptions);
     
     CommandLine cl;
     try {
@@ -298,18 +232,8 @@ public class Shell {
     String passw = cl.getOptionValue(passwOption.getOpt(), null);
     tabCompletion = !cl.hasOption(tabCompleteOption.getLongOpt());
     
-    // should only be one instance option set
-    instance = null;
-    if (cl.hasOption(fakeOption.getLongOpt())) {
-      instance = new MockInstance();
-    } else if (cl.hasOption(hdfsZooInstance.getOpt())) {
-      instance = getDefaultInstance(AccumuloConfiguration.getSiteConfiguration());
-    } else if (cl.hasOption(zooKeeperInstance.getOpt())) {
-      String[] zkOpts = cl.getOptionValues(zooKeeperInstance.getOpt());
-      instance = new ZooKeeperInstance(zkOpts[0], zkOpts[1]);
-    } else {
-      instance = getDefaultInstance(AccumuloConfiguration.getSiteConfiguration());
-    }
+    // Use a fake (Mock), ZK, or HdfsZK Accumulo instance
+    setInstance(cl);
     
     // process default parameters if unspecified
     byte[] pass;
@@ -369,6 +293,22 @@ public class Shell {
         new TablesCommand(), new TraceCommand(), new UserCommand(), new UserPermissionsCommand(), new UsersCommand(), new WhoAmICommand(),};
     for (Command cmd : external) {
       commandFactory.put(cmd.getName(), cmd);
+    }
+  }
+  
+  @SuppressWarnings("deprecation")
+  protected void setInstance(CommandLine cl) {
+    // should only be one instance option set
+    instance = null;
+    if (cl.hasOption(fakeOption.getLongOpt())) {
+      instance = new MockInstance();
+    } else if (cl.hasOption(hdfsZooInstance.getOpt())) {
+      instance = getDefaultInstance(AccumuloConfiguration.getSiteConfiguration());
+    } else if (cl.hasOption(zooKeeperInstance.getOpt())) {
+      String[] zkOpts = cl.getOptionValues(zooKeeperInstance.getOpt());
+      instance = new ZooKeeperInstance(zkOpts[0], zkOpts[1]);
+    } else {
+      instance = getDefaultInstance(AccumuloConfiguration.getSiteConfiguration());
     }
   }
   
@@ -466,14 +406,6 @@ public class Shell {
     else
       sb.append("- Authorization timeout: ").append(String.format("%.2fs\n", authTimeout / 1000.0));
     sb.append("- Debug: ").append(isDebuggingEnabled() ? "on" : "off").append("\n");
-    if (!tableFormatters.isEmpty()) {
-      sb.append("- Active Formatters");
-      for (Entry<String,Class<? extends Formatter>> entry : tableFormatters.entrySet()) {
-        if (null != entry.getValue()) {
-          sb.append("-    Table: ").append(entry.getKey()).append(", ").append(entry.getValue().getName()).append("\n");
-        }
-      }
-    }
     if (!scanIteratorOptions.isEmpty()) {
       for (Entry<String,List<IteratorSetting>> entry : scanIteratorOptions.entrySet()) {
         sb.append("- Session scan iterators for table ").append(entry.getKey()).append(":\n");
@@ -491,7 +423,7 @@ public class Shell {
     reader.printString(sb.toString());
   }
   
-  private String getDefaultPrompt() {
+  protected String getDefaultPrompt() {
     return connector.whoami() + "@" + connector.getInstance().getInstanceName() + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
   }
   
@@ -1006,10 +938,6 @@ public class Shell {
   
   public AuthInfo getCredentials() {
     return credentials;
-  }
-  
-  public void setFormatterClass(String tableName, Class<? extends Formatter> formatter) {
-    this.tableFormatters.put(tableName, formatter);
   }
 
   /**
