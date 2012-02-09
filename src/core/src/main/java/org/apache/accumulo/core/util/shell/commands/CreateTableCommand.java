@@ -36,10 +36,8 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.accumulo.core.security.VisibilityConstraint;
 import org.apache.accumulo.core.util.BadArgumentException;
-import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -183,9 +181,7 @@ public class CreateTableCommand extends Command {
     // Load custom formatter if set
     if (cl.hasOption(createTableOptFormatter.getOpt())) {
       String formatterClass = cl.getOptionValue(createTableOptFormatter.getOpt());
-      
-      shellState.setFormatterClass(tableName, AccumuloClassLoader.loadClass(formatterClass, Formatter.class));
-      
+
       shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.toString(), formatterClass);
     }
     
@@ -215,12 +211,13 @@ public class CreateTableCommand extends Command {
     createTableNoDefaultIters = new Option("ndi", "no-default-iterators", false, "prevents creation of the normal default iterator set");
     createTableOptEVC = new Option("evc", "enable-visibility-constraint", false,
         "prevents users from writing data they can not read.  When enabling this may want to consider disabling bulk import and alter table");
-    createTableOptFormatter = new Option("f", "formatter", false, "default formatter to set");
+    createTableOptFormatter = new Option("f", "formatter", true, "default formatter to set");
     
     createTableOptCopyConfig.setArgName("table");
     createTableOptCopySplits.setArgName("table");
     createTableOptSplit.setArgName("filename");
     createTableOptAgg.setArgName("{<columnfamily>[:<columnqualifier>]=<aggregation_class>}");
+    createTableOptFormatter.setArgName("className");
     
     // Splits and CopySplits are put in an optionsgroup to make them
     // mutually exclusive

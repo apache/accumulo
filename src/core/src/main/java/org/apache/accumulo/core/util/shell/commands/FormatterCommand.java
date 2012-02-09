@@ -51,9 +51,6 @@ public class FormatterCommand extends Command {
       // Remove the property
       shellState.getConnector().tableOperations().removeProperty(tableName, Property.TABLE_FORMATTER_CLASS.toString());
       
-      // Reset the shell formatter on this table
-      shellState.setFormatterClass(tableName, AccumuloClassLoader.loadClass(Property.TABLE_FORMATTER_CLASS.getDefaultValue(), Formatter.class));
-      
       shellState.getReader().printString("Removed formatter on " + tableName + "\n");
     } else if (cl.hasOption(listClassOption.getOpt())) {
       // Get the options for this table
@@ -71,9 +68,7 @@ public class FormatterCommand extends Command {
       // Set the formatter with the provided options
       String className = cl.getOptionValue(formatterClassOption.getOpt());
       
-      // Update the shell formatter for this table
-      shellState.setFormatterClass(tableName, AccumuloClassLoader.loadClass(className, Formatter.class));
-      
+      // Set the formatter property on the table
       shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.toString(), className);
     }
     
@@ -96,7 +91,6 @@ public class FormatterCommand extends Command {
         Class<? extends Formatter> formatter;
         try {
           formatter = AccumuloClassLoader.loadClass(ent.getValue(), Formatter.class);
-          shellState.setFormatterClass(tableName, formatter);
         } catch (ClassNotFoundException e) {
           return null;
         }
