@@ -461,14 +461,6 @@ public class Shell {
     else
       sb.append("- Authorization timeout: ").append(String.format("%.2fs\n", authTimeout / 1000.0));
     sb.append("- Debug: ").append(isDebuggingEnabled() ? "on" : "off").append("\n");
-    if (!tableFormatters.isEmpty()) {
-      sb.append("- Active Formatters");
-      for (Entry<String,Class<? extends Formatter>> entry : tableFormatters.entrySet()) {
-        if (null != entry.getValue()) {
-          sb.append("-    Table: ").append(entry.getKey()).append(", ").append(entry.getValue().getName()).append("\n");
-        }
-      }
-    }
     if (!scanIteratorOptions.isEmpty()) {
       for (Entry<String,List<IteratorSetting>> entry : scanIteratorOptions.entrySet()) {
         sb.append("- Session scan iterators for table ").append(entry.getKey()).append(":\n");
@@ -1001,10 +993,6 @@ public class Shell {
   
   public AuthInfo getCredentials() {
     return credentials;
-  }
-  
-  public void setFormatterClass(String tableName, Class<? extends Formatter> formatter) {
-    this.tableFormatters.put(tableName, formatter);
   }
 
   /**
