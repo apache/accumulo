@@ -166,7 +166,6 @@ public class Shell {
   private AuthInfo credentials;
   private Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   private Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
-  private Map<String,Class<? extends Formatter>> tableFormatters = new HashMap<String,Class<? extends Formatter>>();
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
   
   private Token rootToken;
