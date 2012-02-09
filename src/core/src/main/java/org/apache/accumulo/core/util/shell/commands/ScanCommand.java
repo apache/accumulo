@@ -31,8 +31,10 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.BinaryFormatter;
+import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -41,22 +43,29 @@ import org.apache.hadoop.io.Text;
 
 public class ScanCommand extends Command {
   
-  private Option scanOptAuths, scanOptStartRow, scanOptEndRow, scanOptRow, scanOptColumns, disablePaginationOpt, tableOpt, showFewOpt;
+  private Option scanOptAuths, scanOptStartRow, scanOptEndRow, scanOptRow, scanOptColumns, disablePaginationOpt, tableOpt, showFewOpt, formatterOpt;
   protected Option timestampOpt;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ParseException {
     
     String tableName;
+    Class<? extends Formatter> formatter = null;
     
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
       if (!shellState.getConnector().tableOperations().exists(tableName))
         throw new TableNotFoundException(null, tableName, null);
+      
+      // Use the configured formatter unless one was provided
+      if (!cl.hasOption(formatterOpt.getOpt())) {
+        formatter = FormatterCommand.getCurrentFormatter(tableName, shellState);
+      }
     } else {
       shellState.checkTableState();
       tableName = shellState.getTableName();
     }
+
     // handle first argument, if present, the authorizations list to
     // scan with
     Authorizations auths = getAuths(cl, shellState);
@@ -88,7 +97,11 @@ public class ScanCommand extends Command {
       }
       
     } else {
-      printRecords(cl, shellState, scanner);
+      if (null == formatter) {
+        printRecords(cl, shellState, scanner);
+      } else {
+        printRecords(cl, shellState, scanner, formatter);
+      }
     }
     
     return 0;
@@ -113,7 +126,22 @@ public class ScanCommand extends Command {
   }
   
   protected void printRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner) throws IOException {
-    shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
+    if (cl.hasOption(formatterOpt.getOpt())) {
+      try {
+        String className = cl.getOptionValue(formatterOpt.getOpt());
+        Class<? extends Formatter> formatterClass = AccumuloClassLoader.loadClass(className, Formatter.class);
+        
+        printRecords(cl, shellState, scanner, formatterClass);
+      } catch (ClassNotFoundException e) {
+        shellState.getReader().printString("Formatter class could not be loaded.\n" + e.getMessage() + "\n");
+      }
+    } else {
+      shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
+    }
+  }
+  
+  protected void printRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner, Class<? extends Formatter> formatter) throws IOException {
+    shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), formatter);
   }
   
   protected void printBinaryRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner) throws IOException {
@@ -175,6 +203,7 @@ public class ScanCommand extends Command {
     disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
     tableOpt = new Option(Shell.tableOption, "tableName", true, "table to be scanned");
     showFewOpt = new Option("f", "show few", true, "Only shows certain amount of characters");
+    formatterOpt = new Option("fm", "formatter", true, "fully qualified name of the formatter class to use");
     
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
@@ -185,6 +214,7 @@ public class ScanCommand extends Command {
     tableOpt.setRequired(false);
     showFewOpt.setRequired(false);
     showFewOpt.setArgName("int");
+    formatterOpt.setArgName("className");
     
     o.addOption(scanOptAuths);
     o.addOption(scanOptRow);
@@ -195,6 +225,7 @@ public class ScanCommand extends Command {
     o.addOption(disablePaginationOpt);
     o.addOption(tableOpt);
     o.addOption(showFewOpt);
+    o.addOption(formatterOpt);
     
     return o;
   }

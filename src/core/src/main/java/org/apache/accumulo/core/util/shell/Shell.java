@@ -917,8 +917,13 @@ public class Shell {
   }
   
   public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate) throws IOException {
-    Class<? extends Formatter> formatterClass = getFormatterClass(this.tableName);
+    Class<? extends Formatter> formatterClass = getFormatter();
     
+    printRecords(scanner, printTimestamps, paginate, formatterClass);
+  }
+  
+  public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, Class<? extends Formatter> formatterClass)
+      throws IOException {
     printLines(FormatterFactory.getFormatter(formatterClass, scanner, printTimestamps), paginate);
   }
   
@@ -1006,25 +1011,25 @@ public class Shell {
   public void setFormatterClass(String tableName, Class<? extends Formatter> formatter) {
     this.tableFormatters.put(tableName, formatter);
   }
-  
+
   /**
-   * Pull the current formatter for the given table and cache it.
+   * Return the formatter for this table, .
    * 
    * @param tableName
    * @return The formatter class for the given table
    */
-  public Class<? extends Formatter> getFormatterClass(String tableName) {
-    if (this.tableFormatters.containsKey(tableName) && null != this.tableFormatters.get(tableName)) {
-      return this.tableFormatters.get(tableName);
-    } else {
-      Class<? extends Formatter> formatter = FormatterCommand.getCurrentFormatter(tableName, this);
-      
-      if (null == formatter) {
-        return this.defaultFormatterClass;
-      } else {
-        return formatter;
-      }
-    }
+  public Class<? extends Formatter> getFormatter() {
+    return getFormatter(this.tableName);
   }
   
+  public Class<? extends Formatter> getFormatter(String tableName) {
+    Class<? extends Formatter> formatter = FormatterCommand.getCurrentFormatter(tableName, this);
+    
+    if (null == formatter) {
+      log.error("Could not load the specified formatter. Using the DefaultFormatter");
+      return this.defaultFormatterClass;
+    } else {
+      return formatter;
+    }
+  }
 }

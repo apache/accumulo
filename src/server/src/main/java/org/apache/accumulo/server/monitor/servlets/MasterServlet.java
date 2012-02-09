@@ -136,7 +136,7 @@ public class MasterServlet extends BasicServlet {
       masterStatus.addSortableColumn("Loggers", new NumberType<Integer>((int) (slaves.size() * .8), Integer.MAX_VALUE, 1, Integer.MAX_VALUE),
           "The number of write-ahead loggers.  This should be approximately the same as the number of tablet servers (and greater than zero).");
       masterStatus.addSortableColumn("Last&nbsp;GC", null, "The last time files were cleaned-up from HDFS.");
-      masterStatus.addSortableColumn("#&nbsp;Tablets", new NumberType<Integer>(0, 300000, 2, 400000), null);
+      masterStatus.addSortableColumn("#&nbsp;Tablets", new NumberType<Integer>(0, Integer.MAX_VALUE, 2, Integer.MAX_VALUE), null);
       masterStatus.addSortableColumn("#&nbsp;Unassigned<br />Tablets", new NumberType<Integer>(0, 0), null);
       masterStatus.addSortableColumn("Entries", new NumberType<Long>(), "The total number of key/value pairs in Accumulo");
       masterStatus.addSortableColumn("Ingest", new NumberType<Long>(), "The number of Key/Value pairs inserted, per second. "
