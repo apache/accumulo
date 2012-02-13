@@ -42,6 +42,7 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.examples.wikisearch.ingest.ArticleExtractor.Article;
 import org.apache.accumulo.examples.wikisearch.iterator.GlobalIndexUidCombiner;
 import org.apache.accumulo.examples.wikisearch.iterator.TextIndexCombiner;
+import org.apache.accumulo.examples.wikisearch.output.SortingRFileOutputFormat;
 import org.apache.accumulo.examples.wikisearch.reader.AggregatingRecordReader;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -53,7 +54,6 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat;
 import org.apache.hadoop.util.Tool;
@@ -140,7 +140,13 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
         return result;
     }
     if(WikipediaConfiguration.runIngest(conf))
-      return runIngestJob();
+    {
+      int result = runIngestJob();
+      if(result != 0)
+        return result;
+      if(WikipediaConfiguration.bulkIngest(conf))
+        return loadBulkFiles();
+    }
     return 0;
   }
   
@@ -195,11 +201,6 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
     
     String tablename = WikipediaConfiguration.getTableName(ingestConf);
     
-    String zookeepers = WikipediaConfiguration.getZookeepers(ingestConf);
-    String instanceName = WikipediaConfiguration.getInstanceName(ingestConf);
-    
-    String user = WikipediaConfiguration.getUser(ingestConf);
-    byte[] password = WikipediaConfiguration.getPassword(ingestConf);
     Connector connector = WikipediaConfiguration.getConnector(ingestConf);
     
     TableOperations tops = connector.tableOperations();
@@ -217,11 +218,45 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
     // setup output format
     ingestJob.setMapOutputKeyClass(Text.class);
     ingestJob.setMapOutputValueClass(Mutation.class);
-    ingestJob.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setOutputInfo(ingestJob.getConfiguration(), user, password, true, tablename);
-    AccumuloOutputFormat.setZooKeeperInstance(ingestJob.getConfiguration(), instanceName, zookeepers);
+    
+    if(WikipediaConfiguration.bulkIngest(ingestConf))
+    {
+      ingestJob.setOutputFormatClass(AccumuloOutputFormat.class);
+      String zookeepers = WikipediaConfiguration.getZookeepers(ingestConf);
+      String instanceName = WikipediaConfiguration.getInstanceName(ingestConf);
+      String user = WikipediaConfiguration.getUser(ingestConf);
+      byte[] password = WikipediaConfiguration.getPassword(ingestConf);
+      AccumuloOutputFormat.setOutputInfo(ingestJob.getConfiguration(), user, password, true, tablename);
+      AccumuloOutputFormat.setZooKeeperInstance(ingestJob.getConfiguration(), instanceName, zookeepers);
+    } else {
+      ingestJob.setOutputFormatClass(SortingRFileOutputFormat.class);
+      SortingRFileOutputFormat.setMaxBufferSize(ingestConf, WikipediaConfiguration.bulkIngestBufferSize(ingestConf));
+      SortingRFileOutputFormat.setPathName(ingestConf, WikipediaConfiguration.bulkIngestDir(ingestConf));
+    }
     
     return ingestJob.waitForCompletion(true) ? 0 : 1;
+  }
+  
+  public int loadBulkFiles() throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException
+  {
+    Configuration conf = getConf();
+
+    Connector connector = WikipediaConfiguration.getConnector(conf);
+    
+    FileSystem fs = FileSystem.get(conf);
+    String directory = WikipediaConfiguration.bulkIngestDir(conf);
+    
+    String failureDirectory = WikipediaConfiguration.bulkIngestFailureDir(conf);
+    
+    for(FileStatus status: fs.listStatus(new Path(directory)))
+    {
+      if(status.isDir() == false)
+        continue;
+      Path dir = status.getPath();
+      connector.tableOperations().importDirectory(dir.getName(), dir.toString(), failureDirectory+"/"+dir.getName(), true);
+    }
+    
+    return 0;
   }
   
   public final static PathFilter partFilter = new PathFilter() {
@@ -241,7 +276,6 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
 
   protected void configureIngestJob(Job job) {
     job.setJarByClass(WikipediaPartitionedIngester.class);
-    job.setInputFormatClass(WikipediaInputFormat.class);
   }
   
   protected static final Pattern filePattern = Pattern.compile("([a-z_]+).*.xml(.bz2)?");

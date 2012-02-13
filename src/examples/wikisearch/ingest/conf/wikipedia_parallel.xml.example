@@ -56,4 +56,20 @@
     <name>wikipedia.run.ingest</name>
     <value><!--whether to run the ingest step --></value>
   </property>
+  <property>
+    <name>wikipedia.bulk.ingest</name>
+    <value><!--whether to use bulk ingest vice streaming ingest --></value>
+  </property>
+  <property>
+    <name>wikipedia.bulk.ingest.dir</name>
+    <value><!--the directory to store rfiles for bulk ingest --></value>
+  </property>
+  <property>
+    <name>wikipedia.bulk.ingest.failure.dir</name>
+    <value><!--the directory to store failed rfiles after bulk ingest --></value>
+  </property>
+  <property>
+    <name>wikipedia.bulk.ingest.buffer.size</name>
+    <value><!--the ammount of memory to use for buffering and sorting key/value pairs in each mapper before writing rfiles --></value>
+  </property>
 </configuration>
