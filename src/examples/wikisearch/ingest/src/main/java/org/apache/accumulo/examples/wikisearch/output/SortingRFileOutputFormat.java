@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.examples.wikisearch.ingest.WikipediaMapper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
@@ -12,9 +13,12 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 public class SortingRFileOutputFormat extends OutputFormat<Text,Mutation> {
-  
+
+  private static final Logger log = Logger.getLogger(SortingRFileOutputFormat.class);
+
   public static final String PATH_NAME = "sortingrfileoutputformat.path";
   public static final String MAX_BUFFER_SIZE = "sortingrfileoutputformat.max.buffer.size";
   
