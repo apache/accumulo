@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
+import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.ByteBuffer;
@@ -990,8 +991,17 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     if (!autoAdjust)
       splitsToAdd = new HashMap<Range,ArrayList<String>>();
     
+    HashMap<String,String> hostNameCache = new HashMap<String,String>();
+
     for (Entry<String,Map<KeyExtent,List<Range>>> tserverBin : binnedRanges.entrySet()) {
-      String location = tserverBin.getKey().split(":", 2)[0];
+      String ip = tserverBin.getKey().split(":", 2)[0];
+      String location = hostNameCache.get(ip);
+      if (location == null) {
+        InetAddress inetAddress = InetAddress.getByName(ip);
+        location = inetAddress.getHostName();
+        hostNameCache.put(ip, location);
+      }
+
       for (Entry<KeyExtent,List<Range>> extentRanges : tserverBin.getValue().entrySet()) {
         Range ke = extentRanges.getKey().toDataRange();
         for (Range r : extentRanges.getValue()) {
