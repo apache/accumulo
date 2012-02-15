@@ -35,12 +35,7 @@ echo "% Licensed to the Apache Software Foundation (ASF) under one or more
 echo "\\chapter{Shell Commands}"
 echo
 echo "\\begin{alltt}"
-echo "help -np
-quit" | \
-../../../../bin/accumulo shell -u foo -p foo --fake | \
-#head -11 | \
-gawk 'BEGIN{count = 0}{if(count > 9 && substr($0,0,4) != "foo@"){print "\\textbf{"$1"}\n"; system("./get_shell_command.sh \""$1"\""); print "";};count += 1}' |\
-sed -e 's/_/\\_/g'
+../../../../bin/accumulo shell -u foo -p foo --fake -e "help -nw `../../../../bin/accumulo shell -u foo -p foo --fake -e "help -np -nw" | cut -d" " -f1 | perl -ne 'chomp; print; print " "'`" 2>&1 | perl -ne '$l = $_; if (/^usage: ([^ ]+)/) {print "\n\\textbf{$1}\n\n"} $l =~ s/\t/  /g; $l =~ s/  +/  /g; use Text::Wrap; $Text::Wrap::columns=89; $Text::Wrap::break="[ ]"; $Text::Wrap::unexpand=0; print wrap("    ","              ",$l);'
 echo
 echo "\\end{alltt}"
 
