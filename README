@@ -62,7 +62,7 @@ Create a "masters" file in $ACCUMULO_HOME/conf/.  This is a list of
 machines where the master server will run. 
 
 Create conf/accumulo-env.sh following the template of
-conf/accumulo-env.sh.example.  Set JAVA_HOME, HADOOP_HOME, and ZOOKEEPER_HOME.
+conf/accumulo-env.sh.*-example.  Set JAVA_HOME, HADOOP_HOME, and ZOOKEEPER_HOME.The example accumulo-env files are named based on the memory footprint for the accumulo processes, and if that footprint is during standalone or cluster use. Please note that the footprints are for only the Accumulo system processes, so ample space should be left for other processes like hadoop, zookeeper, and the accumulo client code.
 These directories must be at the same location on every node in the cluster.
 Note that zookeeper must be installed on every machine, but it should not be 
 run on every machine.
