@@ -104,7 +104,6 @@ import org.apache.accumulo.core.util.shell.commands.InfoCommand;
 import org.apache.accumulo.core.util.shell.commands.InsertCommand;
 import org.apache.accumulo.core.util.shell.commands.ListIterCommand;
 import org.apache.accumulo.core.util.shell.commands.ListScansCommand;
-import org.apache.accumulo.core.util.shell.commands.MasterStateCommand;
 import org.apache.accumulo.core.util.shell.commands.MaxRowCommand;
 import org.apache.accumulo.core.util.shell.commands.MergeCommand;
 import org.apache.accumulo.core.util.shell.commands.NoTableCommand;
@@ -286,11 +285,11 @@ public class Shell extends ShellOptions {
         new DeleteTableCommand(), new DeleteUserCommand(), new DropTableCommand(), new DropUserCommand(), new DUCommand(), new EGrepCommand(),
         new ExecfileCommand(), new ExitCommand(), new FlushCommand(), new FormatterCommand(), new GetAuthsCommand(), new GetGroupsCommand(),
         new GetSplitsCommand(), new GrantCommand(), new GrepCommand(), new HelpCommand(), new HiddenCommand(), new HistoryCommand(),
-        new ImportDirectoryCommand(), new InfoCommand(), new InsertCommand(), new ListIterCommand(), new ListScansCommand(), new MasterStateCommand(),
-        new MaxRowCommand(), new MergeCommand(), new NoTableCommand(), new OfflineCommand(), new OnlineCommand(), new PasswdCommand(), new QuestionCommand(),
-        new QuitCommand(), new RenameTableCommand(), new RevokeCommand(), new ScanCommand(), new SetAuthsCommand(), new SetGroupsCommand(),
-        new SetIterCommand(), new SetScanIterCommand(), new SleepCommand(), new SystemPermissionsCommand(), new TableCommand(), new TablePermissionsCommand(),
-        new TablesCommand(), new TraceCommand(), new UserCommand(), new UserPermissionsCommand(), new UsersCommand(), new WhoAmICommand(),};
+        new ImportDirectoryCommand(), new InfoCommand(), new InsertCommand(), new ListIterCommand(), new ListScansCommand(), new MaxRowCommand(),
+        new MergeCommand(), new NoTableCommand(), new OfflineCommand(), new OnlineCommand(), new PasswdCommand(), new QuestionCommand(), new QuitCommand(),
+        new RenameTableCommand(), new RevokeCommand(), new ScanCommand(), new SetAuthsCommand(), new SetGroupsCommand(), new SetIterCommand(),
+        new SetScanIterCommand(), new SleepCommand(), new SystemPermissionsCommand(), new TableCommand(), new TablePermissionsCommand(), new TablesCommand(),
+        new TraceCommand(), new UserCommand(), new UserPermissionsCommand(), new UsersCommand(), new WhoAmICommand(),};
     for (Command cmd : external) {
       commandFactory.put(cmd.getName(), cmd);
     }
