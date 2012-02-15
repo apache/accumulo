@@ -54,7 +54,7 @@ public class DeleteRowsCommand extends Command {
   
   @Override
   public String description() {
-    return "delete a range of rows in a table\nNote that rows matching the start row ARE NOT deleted, but rows matching the end row ARE deleted.";
+    return "delete a range of rows in a table.  Note that rows matching the start row ARE NOT deleted, but rows matching the end row ARE deleted.";
   }
   
   @Override

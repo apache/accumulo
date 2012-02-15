@@ -658,6 +658,10 @@ public class Shell extends ShellOptions {
       Shell.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp());
     }
     
+    public final void printHelp(int width) {
+      Shell.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp(), width);
+    }
+    
     // Get options with help
     public final Options getOptionsWithHelp() {
       Options opts = getOptions();
@@ -906,8 +910,12 @@ public class Shell extends ShellOptions {
   }
   
   private static final void printHelp(String usage, String description, Options opts) {
+    printHelp(usage, description, opts, Integer.MAX_VALUE);
+  }
+  
+  private static final void printHelp(String usage, String description, Options opts, int width) {
     PrintWriter pw = new PrintWriter(System.err);
-    new HelpFormatter().printHelp(pw, Integer.MAX_VALUE, usage, description, opts, 2, 5, null, true);
+    new HelpFormatter().printHelp(pw, width, usage, description, opts, 2, 5, null, true);
     pw.flush();
   }
   
@@ -939,7 +947,7 @@ public class Shell extends ShellOptions {
   public AuthInfo getCredentials() {
     return credentials;
   }
-
+  
   /**
    * Return the formatter for this table, .
    * 

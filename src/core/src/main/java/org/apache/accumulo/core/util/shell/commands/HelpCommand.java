@@ -30,19 +30,52 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class HelpCommand extends Command {
-  
   private Option disablePaginationOpt;
+  private Option noWrapOpt;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws ShellCommandException, IOException {
+    int numColumns = shellState.getReader().getTermwidth();
+    if (cl.hasOption(noWrapOpt.getOpt()))
+      numColumns = Integer.MAX_VALUE;
+    
     // print help summary
     if (cl.getArgs().length == 0) {
       int i = 0;
       for (String cmd : shellState.commandFactory.keySet())
         i = Math.max(i, cmd.length());
+      if (numColumns < 40)
+        throw new IllegalArgumentException("numColumns must be at least 40 (was " + numColumns + ")");
       ArrayList<String> output = new ArrayList<String>();
       for (Command c : shellState.commandFactory.values()) {
-        if (!(c instanceof HiddenCommand))
-          output.add(String.format("%-" + i + "s  -  %s", c.getName(), c.description()));
+        if (!(c instanceof HiddenCommand)) {
+          String n = c.getName();
+          String s = c.description();
+          if (s == null)
+            s = "";
+          int beginIndex = 0;
+          int endIndex = s.length();
+          while (beginIndex < endIndex && s.charAt(beginIndex) == ' ')
+            beginIndex++;
+          String dash = "-";
+          while (endIndex > beginIndex && endIndex - beginIndex + i + 5 > numColumns) {
+            endIndex = s.lastIndexOf(" ", numColumns + beginIndex - i - 5);
+            if (endIndex == -1 || endIndex < beginIndex) {
+              endIndex = numColumns + beginIndex - i - 5 - 1;
+              output.add(String.format("%-" + i + "s  %s  %s-", n, dash, s.substring(beginIndex, endIndex)));
+              dash = " ";
+              beginIndex = endIndex;
+            } else {
+              output.add(String.format("%-" + i + "s  %s  %s", n, dash, s.substring(beginIndex, endIndex)));
+              dash = " ";
+              beginIndex = endIndex + 1;
+            }
+            n = "";
+            endIndex = s.length();
+            while (beginIndex < endIndex && s.charAt(beginIndex) == ' ')
+              beginIndex++;
+          }
+          output.add(String.format("%-" + i + "s  %s  %s", n, dash, s.substring(beginIndex, endIndex)));
+        }
       }
       shellState.printLines(output.iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
     }
@@ -53,7 +86,7 @@ public class HelpCommand extends Command {
       if (c == null)
         shellState.getReader().printString(String.format("Unknown command \"%s\".  Enter \"help\" for a list possible commands.\n", cmd));
       else
-        c.printHelp();
+        c.printHelp(numColumns);
     }
     return 0;
   }
@@ -71,6 +104,8 @@ public class HelpCommand extends Command {
     Options o = new Options();
     disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
     o.addOption(disablePaginationOpt);
+    noWrapOpt = new Option("nw", "no-wrap", false, "disables wrapping of output");
+    o.addOption(noWrapOpt);
     return o;
   }
   
