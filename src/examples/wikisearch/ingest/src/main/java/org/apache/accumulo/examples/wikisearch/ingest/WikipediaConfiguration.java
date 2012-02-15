@@ -52,6 +52,10 @@ public class WikipediaConfiguration {
   
   public final static String RUN_PARTITIONER = "wikipedia.run.partitioner";
   public final static String RUN_INGEST = "wikipedia.run.ingest";
+  public final static String BULK_INGEST = "wikipedia.bulk.ingest";
+  public final static String BULK_INGEST_DIR = "wikipedia.bulk.ingest.dir";
+  public final static String BULK_INGEST_FAILURE_DIR = "wikipedia.bulk.ingest.failure.dir";
+  public final static String BULK_INGEST_BUFFER_SIZE = "wikipedia.bulk.ingest.buffer.size";
   
   
   public static String getUser(Configuration conf) {
@@ -134,6 +138,22 @@ public class WikipediaConfiguration {
     return conf.getBoolean(RUN_INGEST, true);
   }
 
+  public static boolean bulkIngest(Configuration conf) {
+    return conf.getBoolean(BULK_INGEST, true);
+  }
+
+  public static String bulkIngestDir(Configuration conf) {
+    return conf.get(BULK_INGEST_DIR);
+  }
+
+  public static String bulkIngestFailureDir(Configuration conf) {
+    return conf.get(BULK_INGEST_FAILURE_DIR);
+  }
+  
+  public static long bulkIngestBufferSize(Configuration conf) {
+    return conf.getLong(BULK_INGEST_BUFFER_SIZE,1l<<28);
+  }
+
   /**
    * Helper method to get properties from Hadoop configuration
    * 
@@ -169,5 +189,5 @@ public class WikipediaConfiguration {
       throw new IllegalArgumentException(resultClass.getSimpleName() + " is unhandled.");
     
   }
-  
+
 }
