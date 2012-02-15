@@ -36,7 +36,7 @@ public class MasterStateCommand extends Command {
   
   @Override
   public String usage() {
-    return "use the command line utility instead";
+    return "masterstate is deprecated, use the command line utility instead";
   }
   
   @Override

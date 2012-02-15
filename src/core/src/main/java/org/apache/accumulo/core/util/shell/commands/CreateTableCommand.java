@@ -181,7 +181,7 @@ public class CreateTableCommand extends Command {
     // Load custom formatter if set
     if (cl.hasOption(createTableOptFormatter.getOpt())) {
       String formatterClass = cl.getOptionValue(createTableOptFormatter.getOpt());
-
+      
       shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_FORMATTER_CLASS.toString(), formatterClass);
     }
     
@@ -216,7 +216,7 @@ public class CreateTableCommand extends Command {
     createTableOptCopyConfig.setArgName("table");
     createTableOptCopySplits.setArgName("table");
     createTableOptSplit.setArgName("filename");
-    createTableOptAgg.setArgName("{<columnfamily>[:<columnqualifier>]=<aggregation_class>}");
+    createTableOptAgg.setArgName("{<columnfamily>[:<columnqualifier>]=<aggregation class>}");
     createTableOptFormatter.setArgName("className");
     
     // Splits and CopySplits are put in an optionsgroup to make them
