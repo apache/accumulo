@@ -2392,7 +2392,7 @@ public class Shell {
       Authorizations auths = getAuths(cl, shellState);
       final Scanner scanner = shellState.connector.createScanner(shellState.tableName, auths);
       
-      scanner.setScanIterators(1, SortedKeyIterator.class.getName(), "NOVALUE");
+      scanner.setScanIterators(Integer.MAX_VALUE, SortedKeyIterator.class.getName(), "NOVALUE");
       
       // handle remaining optional arguments
       scanner.setRange(getRange(cl));
