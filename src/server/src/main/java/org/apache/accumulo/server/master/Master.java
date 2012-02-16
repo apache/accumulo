@@ -1399,7 +1399,8 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
   private SortedMap<TServerInstance,TabletServerStatus> gatherTableInformation() {
     long start = System.currentTimeMillis();
     SortedMap<TServerInstance,TabletServerStatus> result = new TreeMap<TServerInstance,TabletServerStatus>();
-    for (TServerInstance server : tserverSet.getCurrentServers()) {
+    Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
+    for (TServerInstance server : currentServers) {
       if (serversToShutdown.contains(server))
         continue;
       try {
@@ -1417,6 +1418,14 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
           tserverSet.remove(server);
         }
       }
+    }
+    synchronized (badServers) {
+      Set<TServerInstance> deadBadServers = new HashSet<TServerInstance>(badServers.keySet());
+      deadBadServers.removeAll(currentServers);
+      if (!badServers.isEmpty()) {
+        log.debug("Forgetting about bad servers: " + badServers);
+      }
+      badServers.entrySet().removeAll(deadBadServers);
     }
     log.debug(String.format("Finished gathering information from %d servers in %.2f seconds", result.size(), (System.currentTimeMillis() - start) / 1000.));
     return result;
