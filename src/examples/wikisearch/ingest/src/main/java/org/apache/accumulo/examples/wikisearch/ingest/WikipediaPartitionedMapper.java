@@ -26,6 +26,10 @@ import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.MultiTableBatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -112,6 +116,7 @@ public class WikipediaPartitionedMapper extends Mapper<Text,Article,Text,Mutatio
     }
   }
   
+  MultiTableBatchWriter mtbw;
 
   @Override
   public void setup(final Context context) {
@@ -120,6 +125,14 @@ public class WikipediaPartitionedMapper extends Mapper<Text,Article,Text,Mutatio
     indexTableName = new Text(tablename + "Index");
     reverseIndexTableName = new Text(tablename + "ReverseIndex");
     metadataTableName = new Text(tablename + "Metadata");
+    
+    try {
+      mtbw = WikipediaConfiguration.getConnector(conf).createMultiTableBatchWriter(10000000, 1000, 10);
+    } catch (AccumuloException e) {
+      throw new RuntimeException(e);
+    } catch (AccumuloSecurityException e) {
+      throw new RuntimeException(e);
+    }
     
     final Text metadataTableNameFinal = metadataTableName;
     final Text indexTableNameFinal = indexTableName;
@@ -163,7 +176,7 @@ public class WikipediaPartitionedMapper extends Mapper<Text,Article,Text,Mutatio
           Mutation m = new Mutation(key.row);
           m.put(key.colfam, key.colqual, key.cv, key.timestamp, val);
           try {
-            context.write(indexTableNameFinal, m);
+            mtbw.getBatchWriter(indexTableNameFinal.toString()).addMutation(m);
           } catch (Exception e) {
             throw new RuntimeException(e);
           }
@@ -189,7 +202,7 @@ public class WikipediaPartitionedMapper extends Mapper<Text,Article,Text,Mutatio
           Mutation m = new Mutation(key.row);
           m.put(key.colfam, key.colqual, key.cv, key.timestamp, val);
           try {
-            context.write(reverseIndexTableNameFinal, m);
+            mtbw.getBatchWriter(reverseIndexTableNameFinal.toString()).addMutation(m);
           } catch (Exception e) {
             throw new RuntimeException(e);
           }
@@ -210,7 +223,7 @@ public class WikipediaPartitionedMapper extends Mapper<Text,Article,Text,Mutatio
             Mutation m = new Mutation(key.row);
             m.put(key.colfam, key.colqual, key.cv, key.timestamp, value);
             try {
-              context.write(metadataTableNameFinal, m);
+              mtbw.getBatchWriter(metadataTableNameFinal.toString()).addMutation(m);
             } catch (Exception e) {
               throw new RuntimeException(e);
             }
@@ -224,6 +237,11 @@ public class WikipediaPartitionedMapper extends Mapper<Text,Article,Text,Mutatio
     wikiIndexOutput.flush();
     wikiMetadataOutput.flush();
     wikiReverseIndexOutput.flush();
+    try {
+      mtbw.close();
+    } catch (MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 

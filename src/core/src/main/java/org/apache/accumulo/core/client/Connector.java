@@ -22,18 +22,16 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.security.Authorizations;
 
 /**
- * Connector facilitates connecting to an Accumulo instance. One of the main purposes of this class is to make it easy to connect to multiple Accumulo instances
- * within the same JVM.
+ * Connector connects to an Accumulo instance and allows the user to request readers and writers for the instance as well as various objects that permit
+ * administrative operations.
  * 
- * Additionally, the Connector object enforces security on the client side, by forcing all API calls to be accompanied by user credentials.
- * 
- * This Connector requires a master to be running to be instantiated, and for certain calls, such as getTables()
+ * The Connector enforces security on the client side by forcing all API calls to be accompanied by user credentials.
  */
 public class Connector {
   final Connector impl;
   
   /**
-   * Construct an Connector from an {@link Instance}
+   * Construct a Connector from an {@link Instance}
    * 
    * @deprecated Not for client use
    * @param instance
@@ -181,7 +179,7 @@ public class Connector {
   }
   
   /**
-   * Retrieves a TableOperations object to perform table functions, such as create and delete
+   * Retrieves a TableOperations object to perform table functions, such as create and delete.
    * 
    * @return an object to manipulate tables
    */
@@ -190,7 +188,7 @@ public class Connector {
   }
   
   /**
-   * Retrieves a SecurityOperations object to perform user security operations, such as creating users
+   * Retrieves a SecurityOperations object to perform user security operations, such as creating users.
    * 
    * @return an object to modify users and permissions
    */
@@ -199,7 +197,7 @@ public class Connector {
   }
   
   /**
-   * Retrieves a InstanceOperations object to modify instance configuration
+   * Retrieves an InstanceOperations object to modify instance configuration.
    * 
    * @return an object to modify instance configuration
    */

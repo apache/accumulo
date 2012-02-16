@@ -56,7 +56,7 @@ public class DeleteManyCommand extends ScanCommand {
     Authorizations auths = getAuths(cl, shellState);
     final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
     
-    scanner.addScanIterator(new IteratorSetting(1, "NOVALUE", SortedKeyIterator.class));
+    scanner.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, "NOVALUE", SortedKeyIterator.class));
     
     // handle remaining optional arguments
     scanner.setRange(getRange(cl));

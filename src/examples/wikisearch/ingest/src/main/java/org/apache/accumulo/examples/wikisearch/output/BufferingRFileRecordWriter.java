@@ -69,8 +69,8 @@ final class BufferingRFileRecordWriter extends RecordWriter<Text,Mutation> {
     if (buffer.size() == 0)
       return;
     
-    // TODO fix the filename
     String file = filenamePrefix + "/" + tablename + "/" + taskID + "_" + (fileCount++) + ".rf";
+    // TODO get the table configuration for the given table?
     FileSKVWriter writer = RFileOperations.getInstance().openWriter(file, fs, conf, acuconf);
     
     // forget locality groups for now, just write everything to the default
@@ -110,17 +110,18 @@ final class BufferingRFileRecordWriter extends RecordWriter<Text,Mutation> {
     {
       Key k = new Key(mutation.getRow(),update.getColumnFamily(),update.getColumnQualifier(),update.getColumnVisibility(),update.getTimestamp(),update.isDeleted());
       Value v = new Value(update.getValue());
+      // TODO account for object overhead
       mutationSize += k.getSize();
       mutationSize += v.getSize();
       buffer.put(k, v);
     }
     size += mutationSize;
     long bufferSize = bufferSizes.get(table);
+    
+    // TODO use a MutableLong instead
     bufferSize += mutationSize;
     bufferSizes.put(table, bufferSize);
-    
-    // TODO add object overhead size
-    
+
     while (size >= maxSize) {
       flushLargestTable();
     }
