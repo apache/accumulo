@@ -44,9 +44,13 @@ import org.apache.hadoop.io.Text;
 
 /**
  * A scanner that instantiates iterators on the client side instead of on the tablet server. This can be useful for testing iterators or in cases where you
- * don't want iterators affecting the performance of tablet servers.
- * 
- * Suggested usage: Scanner scanner = new ClientSideIteratorScanner(connector.createScanner(tableName, authorizations))
+ * don't want iterators affecting the performance of tablet servers.<br>
+ * <br>
+ * Suggested usage:<br>
+ * <code>Scanner scanner = new ClientSideIteratorScanner(connector.createScanner(tableName, authorizations));</code><br>
+ * <br>
+ * Iterators added to this scanner will be run in the client JVM. Separate scan iterators can be run on the server side and client side by adding iterators to
+ * the source scanner (which will execute server side) and to the client side scanner (which will execute client side).
  */
 public class ClientSideIteratorScanner extends ScannerOptions implements Scanner {
   private int size;
@@ -55,11 +59,20 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   private Range range;
   private boolean isolated = false;
   
+  /**
+   * A class that wraps a Scanner in a SortedKeyValueIterator so that other accumulo iterators can use it as a source.
+   */
   public class ScannerTranslator implements SortedKeyValueIterator<Key,Value> {
     protected Scanner scanner;
     Iterator<Entry<Key,Value>> iter;
     Entry<Key,Value> top = null;
     
+    /**
+     * Constructs an accumulo iterator from a scanner.
+     * 
+     * @param scanner
+     *          the scanner to iterate over
+     */
     public ScannerTranslator(Scanner scanner) {
       this.scanner = scanner;
     }
@@ -111,8 +124,14 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     }
   }
   
-  protected ScannerTranslator smi;
+  private ScannerTranslator smi;
   
+  /**
+   * Constructs a scanner that can execute client-side iterators.
+   * 
+   * @param scanner
+   *          the source scanner
+   */
   public ClientSideIteratorScanner(Scanner scanner) {
     smi = new ScannerTranslator(scanner);
     this.range = new Range((Key) null, (Key) null);
@@ -120,6 +139,11 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     this.timeOut = Integer.MAX_VALUE;
   }
   
+  /**
+   * Sets the source Scanner.
+   * 
+   * @param scanner
+   */
   public void setSource(Scanner scanner) {
     smi = new ScannerTranslator(scanner);
   }

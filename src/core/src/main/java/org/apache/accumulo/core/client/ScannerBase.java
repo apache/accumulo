@@ -25,7 +25,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 /**
- * This class host methods that are shared between all different types of scanners.
+ * This class hosts configuration methods that are shared between different types of scanners.
  * 
  */
 public interface ScannerBase extends Iterable<Entry<Key,Value>> {
@@ -42,7 +42,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   public void addScanIterator(IteratorSetting cfg);
   
   /**
-   * Remove an iterator from the list of iterators
+   * Remove an iterator from the list of iterators.
    * 
    * @param iteratorName
    *          nickname used for the iterator
@@ -151,13 +151,17 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   public void setValueRegex(String regex);
   
   /**
+   * Adds a column family to the list of columns that will be fetched by this scanner. By default when no columns have been added the scanner fetches all
+   * columns.
+   * 
    * @param col
-   *          limit the scan to only this column family (multiple calls appends to the list of column families to limit)
+   *          the column family to be fetched
    */
   public void fetchColumnFamily(Text col);
   
   /**
-   * Limits the scan to only this column, identified by family and qualifier. Multiple calls appends to the list of columns to be fetched.
+   * Adds a column to the list of columns that will be fetched by this scanner. The column is identified by family and qualifier. By default when no columns
+   * have been added the scanner fetches all columns.
    * 
    * @param colFam
    *          the column family of the column to be fetched
@@ -167,7 +171,7 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   public void fetchColumn(Text colFam, Text colQual);
   
   /**
-   * Clears the columns to be fetched (useful for resetting the scanner for reuse)
+   * Clears the columns to be fetched (useful for resetting the scanner for reuse). Once cleared, the scanner will fetch all columns.
    */
   public void clearColumns();
   
@@ -177,10 +181,12 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   public void clearScanIterators();
   
   /**
-   * Returns an iterator over an accumulo table. This iterator uses the options that are currently set for its lifetime. So setting options will have no effect
+   * Returns an iterator over an accumulo table. This iterator uses the options that are currently set for its lifetime, so setting options will have no effect
    * on existing iterators.
    * 
    * Keys returned by the iterator are not guaranteed to be in sorted order.
+   * 
+   * @return an iterator over Key,Value pairs which meet the restrictions set on the scanner
    */
   public Iterator<Entry<Key,Value>> iterator();
 }

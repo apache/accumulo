@@ -20,12 +20,17 @@ import java.util.Collection;
 
 import org.apache.accumulo.core.data.Range;
 
+/**
+ * Implementations of BatchDeleter support efficient deletion of ranges in accumulo.
+ * 
+ */
+
 public interface BatchDeleter extends ScannerBase {
   
   public void delete() throws MutationsRejectedException, TableNotFoundException;
   
   /**
-   * Allows scanning over multiple ranges efficiently.
+   * Allows deleting multiple ranges efficiently.
    * 
    * @param ranges
    *          specifies the non-overlapping ranges to query

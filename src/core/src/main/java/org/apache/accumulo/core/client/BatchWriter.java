@@ -24,7 +24,7 @@ import org.apache.accumulo.core.data.Mutation;
 public interface BatchWriter {
   
   /**
-   * Queues one mutation to write
+   * Queues one mutation to write.
    * 
    * @param m
    *          the mutation to add
@@ -35,7 +35,7 @@ public interface BatchWriter {
   public void addMutation(Mutation m) throws MutationsRejectedException;
   
   /**
-   * Queues several mutations to write
+   * Queues several mutations to write.
    * 
    * @param iterable
    *          allows adding any number of mutations iteratively
