@@ -51,6 +51,7 @@ import org.apache.hadoop.io.Text;
  * <p>
  * To regain the original key/value pairs of the row, call the decodeRow function on the key/value pair that this iterator returned.
  * 
+ * @see RowFilter
  */
 public class WholeRowIterator implements SortedKeyValueIterator<Key,Value> {
   
