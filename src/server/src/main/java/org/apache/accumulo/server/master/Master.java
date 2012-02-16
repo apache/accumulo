@@ -1420,12 +1420,7 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
       }
     }
     synchronized (badServers) {
-      Set<TServerInstance> deadBadServers = new HashSet<TServerInstance>(badServers.keySet());
-      deadBadServers.removeAll(currentServers);
-      if (!badServers.isEmpty()) {
-        log.debug("Forgetting about bad servers: " + badServers);
-      }
-      badServers.entrySet().removeAll(deadBadServers);
+      badServers.keySet().retainAll(currentServers);
     }
     log.debug(String.format("Finished gathering information from %d servers in %.2f seconds", result.size(), (System.currentTimeMillis() - start) / 1000.));
     return result;
