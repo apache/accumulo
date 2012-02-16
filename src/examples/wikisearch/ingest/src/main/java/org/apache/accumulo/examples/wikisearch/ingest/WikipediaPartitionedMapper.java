@@ -29,6 +29,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -236,6 +237,11 @@ public class WikipediaPartitionedMapper extends Mapper<Text,Article,Text,Mutatio
     wikiIndexOutput.flush();
     wikiMetadataOutput.flush();
     wikiReverseIndexOutput.flush();
+    try {
+      mtbw.close();
+    } catch (MutationsRejectedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 
