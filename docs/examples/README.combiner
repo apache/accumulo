@@ -1,4 +1,4 @@
-Title: Combiner Example
+Title: Apache Accumulo Combiner Example
 Notice:    Licensed to the Apache Software Foundation (ASF) under one
            or more contributor license agreements.  See the NOTICE file
            distributed with this work for additional information
@@ -23,7 +23,7 @@ tar distribution.
     $ bin/accumulo shell -u username
     Enter current password for 'username'@'instance': ***
     
-    Shell - Accumulo Interactive Shell
+    Shell - Apache Accumulo Interactive Shell
     - 
     - version: 1.5.x-incubating
     - instance name: instance

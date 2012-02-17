@@ -150,10 +150,10 @@
             <configuration>
               <name>accumulo</name>
               <projversion>${project.version}</projversion>
-              <summary>Accumulo BigTable clone</summary>
+              <summary>Apache Accumulo BigTable clone</summary>
               <description>
-                Accumulo is a large distributed structured store based on Google's
-                BigTable design.
+                Apache Accumulo is a large distributed structured store based on
+                Google's BigTable design.
               </description>
               <copyright>2011 The Apache Software Foundation.</copyright>
               <url>http://incubator.apache.org/accumulo</url>

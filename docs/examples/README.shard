@@ -1,4 +1,4 @@
-Title: Shard Example
+Title: Apache Accumulo Shard Example
 Notice:    Licensed to the Apache Software Foundation (ASF) under one
            or more contributor license agreements.  See the NOTICE file
            distributed with this work for additional information
@@ -16,7 +16,7 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
            specific language governing permissions and limitations
            under the License.
 
-Accumulo has in iterator called the intersecting iterator which supports querying a term index that is partitioned by 
+Accumulo has an iterator called the intersecting iterator which supports querying a term index that is partitioned by 
 document, or "sharded". This example shows how to use the intersecting iterator through these four programs:
 
  * Index.java - Indexes a set of text files into an Accumulo table
