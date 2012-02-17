@@ -42,14 +42,13 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
-import org.apache.log4j.Logger;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
 public class WikipediaPartitionedMapper extends Mapper<Text,Article,Text,Mutation> {
   
-  private static final Logger log = Logger.getLogger(WikipediaPartitionedMapper.class);
+  // private static final Logger log = Logger.getLogger(WikipediaPartitionedMapper.class);
   
   public final static Charset UTF8 = Charset.forName("UTF-8");
   public static final String DOCUMENT_COLUMN_FAMILY = "d";

@@ -315,7 +315,7 @@
         <version>0.8</version>
         <inherited>false</inherited>
         <configuration>
-          <deb>${project.build.directory}/${artifactId}_${project.version}-${os.arch}.deb</deb>
+          <deb>${project.build.directory}/${project.artifactId}_${project.version}-${os.arch}.deb</deb>
           <controlDir>src/packages/deb/accumulo.control</controlDir>
           <installDir>/opt/accumulo/accumulo-${project-version}</installDir>
           <dataSet>

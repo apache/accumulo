@@ -38,8 +38,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.TabletLocator;
-import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -150,7 +150,7 @@ public class BulkImporter {
             } catch (Exception ex) {
               log.warn("Unable to find tablets that overlap file " + mapFile.toString());
             }
-            
+            log.debug("Map file " + mapFile + " found to overlap " + tabletsToAssignMapFileTo.size() + " tablets");
             if (tabletsToAssignMapFileTo.size() == 0) {
               List<KeyExtent> empty = Collections.emptyList();
               completeFailures.put(mapFile, empty);
@@ -652,33 +652,41 @@ public class BulkImporter {
     return findOverlappingTablets(acuConf, fs, locator, file, start, failed.getEndRow());
   }
   
+  final static byte[] byte0 = {0};
+
   public static List<TabletLocation> findOverlappingTablets(AccumuloConfiguration acuConf, FileSystem fs, TabletLocator locator, Path file, Text startRow,
       Text endRow) throws Exception {
     List<TabletLocation> result = new ArrayList<TabletLocation>();
-    
     Collection<ByteSequence> columnFamilies = Collections.emptyList();
-    
-    FileSKVIterator reader = FileOperations.getInstance().openReader(file.toString(), true, fs, fs.getConf(), acuConf);
+    String filename = file.toString();
+    // log.debug(filename + " finding overlapping tablets " + startRow + " -> " + endRow);
+    FileSKVIterator reader = FileOperations.getInstance().openReader(filename, true, fs, fs.getConf(), acuConf);
     try {
       Text row = startRow;
       if (row == null)
         row = new Text();
       while (true) {
+        // log.debug(filename + " Seeking to row " + row);
         reader.seek(new Range(row, null), columnFamilies, false);
-        if (!reader.hasTop())
+        if (!reader.hasTop()) {
+          // log.debug(filename + " not found");
           break;
+        }
         row = reader.getTopKey().getRow();
         TabletLocation tabletLocation = locator.locateTablet(row, false, true);
+        // log.debug(filename + " found row " + row + " at location " + tabletLocation);
         result.add(tabletLocation);
         row = tabletLocation.tablet_extent.getEndRow();
-        if (row != null && (endRow == null || row.compareTo(endRow) < 0))
-          row = Range.followingPrefix(row);
-        else
+        if (row != null && (endRow == null || row.compareTo(endRow) < 0)) {
+          row = new Text(row);
+          row.append(byte0, 0, byte0.length);
+        } else
           break;
       }
     } finally {
       reader.close();
     }
+    // log.debug(filename + " to be sent to " + result);
     return result;
   }
   
