@@ -444,4 +444,31 @@ public class FilterTest {
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 31);
   }
+  
+  @Test
+  public void testDeletes() throws IOException {
+    Text colf = new Text("a");
+    Text colq = new Text("b");
+    Value dv = new Value();
+    TreeMap<Key,Value> tm = new TreeMap<Key,Value>();
+    
+    Key k = new Key(new Text("0"), colf, colq);
+    tm.put(k, dv);
+    k = new Key(new Text("1"), colf, colq, 10);
+    k.setDeleted(true);
+    tm.put(k, dv);
+    k = new Key(new Text("1"), colf, colq, 5);
+    tm.put(k, dv);
+    k = new Key(new Text("10"), colf, colq);
+    tm.put(k, dv);
+    
+    assertTrue(tm.size() == 4);
+    
+    Filter filter = new SimpleFilter();
+    filter.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
+    filter.seek(new Range(), EMPTY_COL_FAMS, false);
+    int size = size(filter);
+    assertTrue("size = " + size, size == 3);
+    
+  }
 }

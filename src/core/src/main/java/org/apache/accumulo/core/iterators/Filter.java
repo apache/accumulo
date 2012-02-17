@@ -69,7 +69,7 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
    * Iterates over the source until an acceptable key/value pair is found.
    */
   protected void findTop() {
-    while (getSource().hasTop() && (negate == accept(getSource().getTopKey(), getSource().getTopValue()))) {
+    while (getSource().hasTop() && !getSource().getTopKey().isDeleted() && (negate == accept(getSource().getTopKey(), getSource().getTopValue()))) {
       try {
         getSource().next();
       } catch (IOException e) {
