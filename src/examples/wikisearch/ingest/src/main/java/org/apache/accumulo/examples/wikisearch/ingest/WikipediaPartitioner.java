@@ -23,40 +23,21 @@ package org.apache.accumulo.examples.wikisearch.ingest;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.nio.charset.Charset;
-import java.util.HashSet;
-import java.util.IllegalFormatException;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.examples.wikisearch.ingest.ArticleExtractor.Article;
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaInputFormat.WikipediaInputSplit;
-import org.apache.accumulo.examples.wikisearch.normalizer.LcNoDiacriticsNormalizer;
-import org.apache.accumulo.examples.wikisearch.protobuf.Uid;
-import org.apache.accumulo.examples.wikisearch.protobuf.Uid.List.Builder;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.log4j.Logger;
-import org.apache.lucene.analysis.tokenattributes.TermAttribute;
-import org.apache.lucene.wikipedia.analysis.WikipediaTokenizer;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 
 public class WikipediaPartitioner extends Mapper<LongWritable,Text,Text,Article> {
   
-  private static final Logger log = Logger.getLogger(WikipediaPartitioner.class);
+  // private static final Logger log = Logger.getLogger(WikipediaPartitioner.class);
   
   public final static Charset UTF8 = Charset.forName("UTF-8");
   public static final String DOCUMENT_COLUMN_FAMILY = "d";

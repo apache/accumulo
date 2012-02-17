@@ -65,7 +65,6 @@ public enum Property {
   MASTER_RECOVERY_POOL("master.recovery.pool", "recovery", PropertyType.STRING, "Priority queue to use for log recovery map/reduce jobs."),
   MASTER_RECOVERY_SORT_MAPREDUCE("master.recovery.sort.mapreduce", "false", PropertyType.BOOLEAN,
       "If true, use map/reduce to sort write-ahead logs during recovery"),
-  MASTER_BULK_SERVERS("master.bulk.server.max", "4", PropertyType.COUNT, "The number of servers to use during a bulk load"),
   MASTER_BULK_RETRIES("master.bulk.retries", "3", PropertyType.COUNT, "The number of attempts to bulk-load a file before giving up."),
   MASTER_BULK_THREADPOOL_SIZE("master.bulk.threadpool.size", "5", PropertyType.COUNT, "The number of threads to use when coordinating a bulk-import."),
   MASTER_MINTHREADS("master.server.threads.minimum", "2", PropertyType.COUNT, "The minimum number of threads to use to handle incoming requests."),

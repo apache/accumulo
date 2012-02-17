@@ -19,11 +19,15 @@ package org.apache.accumulo.server.master.tableOps;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -41,12 +45,13 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.LoggingRunnable;
+import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -370,7 +375,7 @@ class LoadFiles extends MasterRepo {
   
   @Override
   public Repo<Master> call(final long tid, Master master) throws Exception {
-    
+    final SiteConfiguration conf = ServerConfiguration.getSiteConfiguration();
     FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.FileUtil.getFileSystem(CachedConfiguration.getInstance(),
         ServerConfiguration.getSiteConfiguration()));
     List<FileStatus> files = new ArrayList<FileStatus>();
@@ -389,42 +394,68 @@ class LoadFiles extends MasterRepo {
     }
     fs.delete(writable, false);
     
-    // group files into N-sized chunks, send the chunks to random servers
-    final int SERVERS_TO_USE = Math.min(ServerConfiguration.getSystemConfiguration().getCount(Property.MASTER_BULK_SERVERS), master.onlineTabletServers()
-        .size());
-    
-    log.debug("tid " + tid + " using " + SERVERS_TO_USE + " servers");
-    // wait for success, repeat failures R times
     final List<String> filesToLoad = Collections.synchronizedList(new ArrayList<String>());
     for (FileStatus f : files)
       filesToLoad.add(f.getPath().toString());
     
-    final int RETRIES = Math.max(1, ServerConfiguration.getSystemConfiguration().getCount(Property.MASTER_BULK_RETRIES));
-    for (int i = 0; i < RETRIES && filesToLoad.size() > 0; i++) {
-      List<Future<?>> results = new ArrayList<Future<?>>();
-      for (List<String> chunk : groupFiles(filesToLoad, SERVERS_TO_USE)) {
-        final List<String> attempt = chunk;
-        results.add(threadPool.submit(new LoggingRunnable(log, new Runnable() {
+
+    final int RETRIES = Math.max(1, conf.getCount(Property.MASTER_BULK_RETRIES));
+    for (int attempt = 0; attempt < RETRIES && filesToLoad.size() > 0; attempt++) {
+      List<Future<List<String>>> results = new ArrayList<Future<List<String>>>();
+      
+      // Figure out which files will be sent to which server
+      Set<TServerInstance> currentServers = Collections.synchronizedSet(new HashSet<TServerInstance>(master.onlineTabletServers()));
+      Map<String,List<String>> loadAssignments = new HashMap<String,List<String>>();
+      for (TServerInstance server : currentServers) {
+        loadAssignments.put(server.hostPort(), new ArrayList<String>());
+      }
+      int i = 0;
+      List<Entry<String,List<String>>> entries = new ArrayList<Entry<String,List<String>>>(loadAssignments.entrySet());
+      for (String file : filesToLoad) {
+        entries.get(i % entries.size()).getValue().add(file);
+        i++;
+      }
+      
+      // Use the threadpool to assign files one-at-a-time to the server
+      for (Entry<String,List<String>> entry : entries) {
+        if (entry.getValue().isEmpty()) {
+          continue;
+        }
+        final Entry<String,List<String>> finalEntry = entry;
+        results.add(threadPool.submit(new Callable<List<String>>() {
           @Override
-          public void run() {
+          public List<String> call() {
+            if (log.isDebugEnabled()) {
+              log.debug("Asking " + finalEntry.getKey() + " to load " + sampleList(finalEntry.getValue(), 10));
+            }
+            List<String> failures = new ArrayList<String>();
             ClientService.Iface client = null;
             try {
-              client = ServerClient.getConnection(HdfsZooInstance.getInstance());
-              List<String> fail = client.bulkImportFiles(null, SecurityConstants.getSystemCredentials(), tid, tableId, attempt, errorDir, setTime);
-              attempt.removeAll(fail);
-              filesToLoad.removeAll(attempt);
+              client = ThriftUtil.getTServerClient(finalEntry.getKey(), conf);
+              for (String file : finalEntry.getValue()) {
+                List<String> attempt = Collections.singletonList(file);
+                log.debug("Asking " + finalEntry.getKey() + " to bulk import " + file);
+                List<String> fail = client.bulkImportFiles(null, SecurityConstants.getSystemCredentials(), tid, tableId, attempt, errorDir, setTime);
+                if (fail.isEmpty()) {
+                  filesToLoad.remove(file);
+                } else {
+                  failures.addAll(fail);
+                }
+              }
             } catch (Exception ex) {
               log.error(ex, ex);
             } finally {
               ServerClient.close(client);
             }
+            return failures;
           }
-        })));
+        }));
       }
-      for (Future<?> f : results)
-        f.get();
+      Set<String> failures = new HashSet<String>();
+      for (Future<List<String>> f : results)
+        failures.addAll(f.get());
       if (filesToLoad.size() > 0) {
-        log.debug("tid " + tid + " attempt " + (i + 1) + " " + filesToLoad + " failed");
+        log.debug("tid " + tid + " attempt " + (i + 1) + " " + sampleList(filesToLoad, 10) + " failed");
         UtilWaitThread.sleep(100);
       }
     }
@@ -449,16 +480,24 @@ class LoadFiles extends MasterRepo {
     return new CompleteBulkImport(tableId, source, bulk, errorDir);
   }
   
-  private List<List<String>> groupFiles(List<String> files, int groups) {
-    List<List<String>> result = new ArrayList<List<String>>();
-    Iterator<String> iter = files.iterator();
-    for (int i = 0; i < groups && iter.hasNext(); i++) {
-      List<String> group = new ArrayList<String>();
-      for (int j = 0; j < Math.ceil(files.size() / (double) groups) && iter.hasNext(); j++) {
-        group.add(iter.next());
+  static String sampleList(Collection<?> potentiallyLongList, int max) {
+    StringBuffer result = new StringBuffer();
+    result.append("[");
+    int i = 0;
+    for (Object obj : potentiallyLongList) {
+      result.append(obj);
+      if (i >= max) {
+        result.append("...");
+        break;
+      } else {
+        result.append(", ");
       }
-      result.add(group);
+      i++;
     }
-    return result;
+    if (i < max)
+      result.delete(result.length() - 2, result.length());
+    result.append("]");
+    return result.toString();
   }
+
 }
