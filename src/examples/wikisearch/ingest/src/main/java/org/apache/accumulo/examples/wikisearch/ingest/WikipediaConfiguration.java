@@ -56,6 +56,7 @@ public class WikipediaConfiguration {
   public final static String BULK_INGEST_DIR = "wikipedia.bulk.ingest.dir";
   public final static String BULK_INGEST_FAILURE_DIR = "wikipedia.bulk.ingest.failure.dir";
   public final static String BULK_INGEST_BUFFER_SIZE = "wikipedia.bulk.ingest.buffer.size";
+  public final static String PARTITIONED_INPUT_MIN_SPLIT_SIZE = "wikipedia.min.input.split.size";
   
   
   public static String getUser(Configuration conf) {
@@ -130,6 +131,10 @@ public class WikipediaConfiguration {
     return new Path(conf.get(PARTITIONED_ARTICLES_DIRECTORY));
   }
   
+  public static long getMinInputSplitSize(Configuration conf) {
+    return conf.getLong(PARTITIONED_INPUT_MIN_SPLIT_SIZE, 1l << 27);
+  }
+
   public static boolean runPartitioner(Configuration conf) {
     return conf.getBoolean(RUN_PARTITIONER, false);
   }

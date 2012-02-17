@@ -217,7 +217,8 @@ public class WikipediaPartitionedIngester extends Configured implements Tool {
     // setup input format
     ingestJob.setInputFormatClass(SequenceFileInputFormat.class);
     SequenceFileInputFormat.setInputPaths(ingestJob, WikipediaConfiguration.getPartitionedArticlesPath(ingestConf));
-    SequenceFileInputFormat.setMinInputSplitSize(ingestJob, 1l << 28);
+    // TODO make split size configurable
+    SequenceFileInputFormat.setMinInputSplitSize(ingestJob, WikipediaConfiguration.getMinInputSplitSize(ingestConf));
 
     // setup output format
     ingestJob.setMapOutputKeyClass(Text.class);
