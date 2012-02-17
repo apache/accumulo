@@ -180,7 +180,7 @@ public class Test extends TestCase {
   }
   
   public void testChangingDirectory() throws Exception {
-    String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
+    String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml.1GBstandalone-example");
     String SITE_CONF = System.getenv("ACCUMULO_HOME") + "/conf/" + configFile;
     File oldConf = new File(SITE_CONF);
     boolean exists = oldConf.exists();
