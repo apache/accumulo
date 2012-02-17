@@ -1,4 +1,4 @@
-Title: Bloom Filter Example
+Title: Apache Accumulo Bloom Filter Example
 Notice:    Licensed to the Apache Software Foundation (ASF) under one
            or more contributor license agreements.  See the NOTICE file
            distributed with this work for additional information
@@ -23,7 +23,7 @@ do not exist in a table.
 Below table named bloom_test is created and bloom filters are enabled.
 
     $ ./bin/accumulo shell -u username -p password
-    Shell - Accumulo Interactive Shell
+    Shell - Apache Accumulo Interactive Shell
     - version: 1.4.x-incubating
     - instance name: instance
     - instance id: 00000000-0000-0000-0000-000000000000
@@ -101,7 +101,7 @@ million inserts.  If not, then more map files will be created.
 The commands for creating the first table without bloom filters are below.
 
     $ ./bin/accumulo shell -u username -p password
-    Shell - Accumulo Interactive Shell
+    Shell - Apache Accumulo Interactive Shell
     - version: 1.4.x-incubating
     - instance name: instance
     - instance id: 00000000-0000-0000-0000-000000000000
@@ -123,7 +123,7 @@ The commands for creating the first table without bloom filters are below.
 The commands for creating the second table with bloom filers are below.
 
     $ ./bin/accumulo shell -u username -p password
-    Shell - Accumulo Interactive Shell
+    Shell - Apache Accumulo Interactive Shell
     - version: 1.4.x-incubating
     - instance name: instance
     - instance id: 00000000-0000-0000-0000-000000000000

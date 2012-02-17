@@ -1,4 +1,13 @@
 ******************************************************************************
+0. Introduction
+
+Apache Accumulo is a sorted, distributed key/value store based on Google's 
+BigTable design. It is built on top of Apache Hadoop, Zookeeper, and Thrift. It 
+features a few novel improvements on the BigTable design in the form of 
+cell-level access labels and a server-side programming mechanism that can modify
+key/value pairs at various points in the data management process.
+
+******************************************************************************
 1. Building
 
 In the normal tarball or RPM release of accumulo, everything is built and
@@ -18,7 +27,8 @@ but having them available suppresses a runtime warning:
 
 If you want to build the debian release, use the command "mvn package && maven
 -N jdeb:jdeb" to generate a .deb file in the target/ directory. Please follow
-the steps at https://cwiki.apache.org/BIGTOP/how-to-install-hadoop-distribution-from-bigtop.html
+the steps at 
+https://cwiki.apache.org/BIGTOP/how-to-install-hadoop-distribution-from-bigtop.html
 to add bigtop to your debian sources list. This will make it substantially
 easier to install.
 
@@ -39,10 +49,10 @@ accumulo.
 ******************************************************************************
 4. Configuring
 
-Accumulo has two prerequisites, hadoop and zookeeper. Zookeeper must be at
-least version 3.3.0. Both of these must be installed and configured. Zookeeper 
-normally only allows for 10 connections from one computer.  On a single-host 
-install, this number is a little two low.  Add the following to the 
+Apache Accumulo has two prerequisites, hadoop and zookeeper. Zookeeper must be 
+at least version 3.3.0. Both of these must be installed and configured. 
+Zookeeper normally only allows for 10 connections from one computer.  On a 
+single-host install, this number is a little two low.  Add the following to the 
 $ZOOKEEPER_HOME/conf/zoo.cfg file:
 
    maxClientCnxns=100
@@ -62,8 +72,14 @@ Create a "masters" file in $ACCUMULO_HOME/conf/.  This is a list of
 machines where the master server will run. 
 
 Create conf/accumulo-env.sh following the template of
-conf/accumulo-env.sh.*-example.  Set JAVA_HOME, HADOOP_HOME, and ZOOKEEPER_HOME.The example accumulo-env files are named based on the memory footprint for the accumulo processes, and if that footprint is during standalone or cluster use. Please note that the footprints are for only the Accumulo system processes, so ample space should be left for other processes like hadoop, zookeeper, and the accumulo client code.
-These directories must be at the same location on every node in the cluster.
+conf/accumulo-env.sh.*-example.  Set JAVA_HOME, HADOOP_HOME, and ZOOKEEPER_HOME.
+The example accumulo-env files are named based on the memory footprint for the 
+accumulo processes, and if that footprint is during standalone or cluster use. 
+Please note that the footprints are for only the Accumulo system processes, so 
+ample space should be left for other processes like hadoop, zookeeper, and the 
+accumulo client code.  These directories must be at the same location on every 
+node in the cluster.
+
 Note that zookeeper must be installed on every machine, but it should not be 
 run on every machine.
 
@@ -97,7 +113,7 @@ against mis-configured systems, servers using different configuration files
 will not communicate with the rest of the cluster.
 
 ******************************************************************************
-5. Running Accumulo
+5. Running Apache Accumulo
 
 Make sure hadoop is configured on all of the machines in the cluster, including
 access to a shared hdfs instance.  Make sure hdfs is running.
@@ -121,7 +137,7 @@ scanned.
     $ ./bin/accumulo shell -u root
     Enter current password for 'root'@'accumulo': ******
 
-    Shell - Accumulo Interactive Shell
+    Shell - Apache Accumulo Interactive Shell
     - 
     - version: 1.4.0-incubating-SNAPSHOT
     - instance name: accumulo
@@ -142,7 +158,7 @@ certain column.
     $ ./bin/accumulo shell -u root
     Enter current password for 'root'@'accumulo': ******
 
-    Shell - Accumulo Interactive Shell
+    Shell - Apache Accumulo Interactive Shell
     - 
     - version: 1.4.0-incubating-SNAPSHOT
     - instance name: accumulo
@@ -158,7 +174,7 @@ certain column.
 
 
 ******************************************************************************
-6. Monitoring Accumulo
+6. Monitoring Apache Accumulo
 
 You can point your browser to the master host, on port 50095 to see the status
 of accumulo across the cluster.  You can even do this with the text-based
@@ -171,7 +187,7 @@ tablet servers are up. You can monitor query and ingest rates across the
 cluster.
 
 ******************************************************************************
-7. Stopping Accumulo
+7. Stopping Apache Accumulo
 
 Do not kill the tabletservers or run bin/tdown.sh unless absolutely necessary.
 Recovery from a catastrophic loss of servers can take a long time. To shutdown
@@ -190,19 +206,20 @@ redirected to the log dir.
 ******************************************************************************
 9. API
 
-The public accumulo API is composed of everything in the org.apache.accumulo.core.client
-package (excluding the org.apache.accumulo.core.client.impl package) and the following
-classes from org.apache.accumulo.core.data : Key, Mutation, Value, and Range.  To get
-started using accumulo review the example and the javadoc for the packages and
-classes mentioned above. 
+The public accumulo API is composed of everything in the 
+org.apache.accumulo.core.client package (excluding the 
+org.apache.accumulo.core.client.impl package) and the following classes from 
+org.apache.accumulo.core.data : Key, Mutation, Value, and Range.  To get started
+using accumulo review the example and the javadoc for the packages and classes 
+mentioned above. 
 
 ******************************************************************************
 10. Performance Tuning
 
-Accumulo has exposed several configuration properties that can be changed. 
-These properties and configuration management are described in detail in 
-docs/config.html.  While the default value is usually optimal, there are cases 
-where a change can increase query and ingest performance.
+Apache Accumulo has exposed several configuration properties that can be 
+changed.  These properties and configuration management are described in detail 
+in docs/config.html.  While the default value is usually optimal, there are 
+cases where a change can increase query and ingest performance.
 
 Before changing a property from its default in a production system, you should 
 develop a good understanding of the property and consider creating a test to 

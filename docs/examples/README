@@ -1,4 +1,4 @@
-Title: Examples
+Title: Apache Accumulo Examples
 Notice:    Licensed to the Apache Software Foundation (ASF) under one
            or more contributor license agreements.  See the NOTICE file
            distributed with this work for additional information
@@ -16,7 +16,7 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
            specific language governing permissions and limitations
            under the License.
 
-Each README in the examples directory highlights the use of particular features of Accumulo.
+Each README in the examples directory highlights the use of particular features of Apache Accumulo.
 
 Before running any of the examples, the following steps must be performed.
 

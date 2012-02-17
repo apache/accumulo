@@ -14,7 +14,14 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<h2>Mock Accumulo</h2>
+<html>
+<head>
+<title>Accumulo Mock</title>
+<link rel='stylesheet' type='text/css' href='documentation.css' media='screen'/>
+</head>
+<body>
+
+<h1>Apache Accumulo Documentation : Mock Accumulo</h1>
 
 <p>Normally, accumulo consists of lots of moving parts.  Even a stand-alone version of accumulo requires hadoop, 
 zookeeper, the accumulo master, a tablet server, etc. If you want to write a unit test that uses accumulo, you need a lot of 
@@ -45,7 +52,7 @@ Accumulo called MockAccumulo.  The normal interaction with the client API looks 
 <pre>
 $ ./bin/accumulo shell --fake -u root -p nonsense
 
-Shell - Accumulo Interactive Shell
+Shell - Apache Accumulo Interactive Shell
 - 
 - version: 1.3.2-SNAPSHOT
 - instance name: mock-instance
@@ -69,3 +76,5 @@ root@mock-instance test&gt;
 <p>MockAccumulo presently does not enforce users, logins, permissions, etc.  It <b>does</b> support Iterators and Aggregators.  
 Note that MockAccumulo holds all data in memory, and will not retain any data or settings between runs.</p>
  
+</body>
+</html>

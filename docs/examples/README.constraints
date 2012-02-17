@@ -1,4 +1,4 @@
-Title: Constraints Example
+Title: Apache Accumulo Constraints Example
 Notice:    Licensed to the Apache Software Foundation (ASF) under one
            or more contributor license agreements.  See the NOTICE file
            distributed with this work for additional information
@@ -24,7 +24,7 @@ the end shows the inserts were not allowed.
 
     $ ./bin/accumulo shell -u username -p password
     
-    Shell - Accumulo Interactive Shell
+    Shell - Apache Accumulo Interactive Shell
     - 
     - version: 1.4.x-incubating
     - instance name: instance
