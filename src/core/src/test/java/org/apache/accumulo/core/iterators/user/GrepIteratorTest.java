@@ -61,6 +61,11 @@ public class GrepIteratorTest {
     input.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef".getBytes()));
     output.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef".getBytes()));
     input.put(new Key("dfh", "xyz", "xyz", 1), new Value("xyz".getBytes()));
+    
+    Key k = new Key("dfh", "xyz", "xyz", 1);
+    k.setDeleted(true);
+    input.put(k, new Value("xyz".getBytes()));
+    output.put(k, new Value("xyz".getBytes()));
   }
   
   public static void checkEntries(SortedKeyValueIterator<Key,Value> skvi, SortedMap<Key,Value> map) throws IOException {
@@ -83,6 +88,7 @@ public class GrepIteratorTest {
     checkEntries(gi, output);
     GrepIterator.setTerm(is, "cde");
     gi.init(new SortedMapIterator(input), is.getProperties(), null);
+    gi.deepCopy(null);
     gi.seek(new Range(), EMPTY_COL_FAMS, false);
     checkEntries(gi, output);
     GrepIterator.setTerm(is, "def");

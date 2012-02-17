@@ -17,35 +17,27 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
  * This iterator provides exact string matching. It searches both the Key and Value for the string. The string to match is specified by the "term" option.
  */
-public class GrepIterator extends SkippingIterator {
+public class GrepIterator extends Filter {
   
   private byte term[];
   
   @Override
-  protected void consume() throws IOException {
-    while (getSource().hasTop()) {
-      Key k = getSource().getTopKey();
-      Value v = getSource().getTopValue();
-      
-      if (match(v.get()) || match(k.getRowData()) || match(k.getColumnFamilyData()) || match(k.getColumnQualifierData())) {
-        break;
-      }
-      
-      getSource().next();
-    }
+  public boolean accept(Key k, Value v) {
+    return match(v.get()) || match(k.getRowData()) || match(k.getColumnFamilyData()) || match(k.getColumnQualifierData());
   }
   
   private boolean match(ByteSequence bs) {
@@ -88,7 +80,9 @@ public class GrepIterator extends SkippingIterator {
   
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    throw new UnsupportedOperationException();
+    GrepIterator copy = (GrepIterator) super.deepCopy(env);
+    copy.term = Arrays.copyOf(term, term.length);
+    return copy;
   }
   
   @Override
