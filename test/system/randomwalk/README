@@ -1,3 +1,4 @@
+Apache Accumulo Random Walk Tests
 
 The randomwalk framework needs to be configured for your Accumulo instance by
 doing the following steps:

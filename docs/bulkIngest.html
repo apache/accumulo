@@ -16,14 +16,12 @@
 -->
 <html>
 <head>
-<title>Accumulo Documentation : Bulk Ingest</title>
+<title>Accumulo Bulk Ingest</title>
 <link rel='stylesheet' type='text/css' href='documentation.css' media='screen'/>
 </head>
 <body>
 
-<h1>Accumulo Documentation</h1>
-
-<h2>Bulk Ingest</h2>
+<h1>Apache Accumulo Documentation : Bulk Ingest</h2>
 
 <p>Accumulo supports the ability to import map files produced by an
 external process into an online table.  Often, it is much faster to churn
@@ -37,8 +35,8 @@ Accumulo table you want to ingest data into.  To bulk insert data
 using map/reduce, the following high level steps should be taken.  
 
 <ul>
-<li>Construct a <code>org.apache.accumulo.core.client.Connector</core> instance</li>
-<li>Call <code>connector.tableOperations().getSplits()</core></li>
+<li>Construct an <code>org.apache.accumulo.core.client.Connector</code> instance</li>
+<li>Call <code>connector.tableOperations().getSplits()</code></li>
 <li>Run a map/reduce job using <a href='apidocs/org/apache/accumulo/core/client/mapreduce/lib/partition/RangePartitioner.html'>RangePartitioner</a> with splits from the previous step</li>
 <li>Call <code>connector.tableOperations().importDirectory()</code> passing the output directory of the MapReduce job</li>
 </ul> 

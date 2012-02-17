@@ -1,4 +1,4 @@
-Accumulo functional tests.
+Apache Accumulo Functional Tests
 
 These scripts run a series of tests against a small local accumulo instance.  To run these scripts, 
 you must have hadoop and zookeeper installed and running.  You will need a functioning C compiler to build 

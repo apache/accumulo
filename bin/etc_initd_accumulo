@@ -16,16 +16,16 @@
 # limitations under the License.
 
 #
-# accumulo            This shell script takes care of stoping and starting 
-#                      accumulo on a single server
+# accumulo            This shell script takes care of stopping and starting 
+#                     accumulo on a single server
 # chkconfig: - 60 20
-# description: Accumulo: an implementation of Google's BigTable
+# description: Apache Accumulo: an implementation of Google's BigTable
 # probe: false
 
 . /etc/rc.d/init.d/functions
 
-# lets assume this file is symlinked in from accumulo distro bin directory
-# otherwise reset the ACCUMULO_HOME settting
+# let's assume this file is symlinked in from accumulo distro bin directory
+# otherwise reset the ACCUMULO_HOME setting
 pwd=`pwd -P`
 ACCUMULO_HOME=`cd $pwd/.. ; pwd -P`
 

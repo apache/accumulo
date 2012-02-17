@@ -143,7 +143,7 @@ public class Shell {
   private static final Logger log = Logger.getLogger(Shell.class);
   
   private static final int NO_FIXED_ARG_LENGTH_CHECK = -1;
-  private static final String SHELL_DESCRIPTION = "Shell - Accumulo Interactive Shell";
+  private static final String SHELL_DESCRIPTION = "Shell - Apache Accumulo Interactive Shell";
   private static final String DEFAULT_AUTH_TIMEOUT = "60"; // in minutes
   
   private int exitCode = 0;

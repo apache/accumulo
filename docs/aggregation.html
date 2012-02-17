@@ -16,19 +16,19 @@
 -->
 <html>
 <head>
-<title>Accumulo Documentation : Aggregation</title>
+<title>Accumulo Aggregation</title>
 <link rel='stylesheet' type='text/css' href='documentation.css' media='screen'/>
 </head>
 <body>
 
-<h1>Aggregation</h1>
+<h1>Apache Accumulo Documentation : Aggregation</h1>
 
 <p>Accumulo does aggregation differently than traditional RDBMSs.  Instead of aggregating at query time, it aggregates at ingest time.  Doing aggregation at ingest time is ideal for large amounts of data and has three distinct advantages.  First, it reduces the actual amount of data stored.  Second, it makes queries run faster.  Third, it removes the need to do a lookup at insert time in many cases, which can greatly speed up ingest. 
 
 <p>Aggregation in accumulo is easy to use.  You simply specify which columns or column family you want to aggregate at table creation time.  Allowing an aggregation function to apply to a whole column family is an interesting twist that gives the user great flexibility.  The example below demonstrates this flexibility.  
 
 <p><pre>
-Shell - Accumulo Interactive Shell
+Shell - Apache Accumulo Interactive Shell
 - version: 1.3.6-incubating-SNAPSHOT
 - instance id: 863fc0d1-3623-4b6c-8c23-7d4fdb1c8a49
 - 
