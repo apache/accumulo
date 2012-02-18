@@ -202,7 +202,7 @@ public class Test extends TestCase {
       if (exists)
         d = db.parse(siteBkp);
       else
-        d = db.parse(new File(SITE_CONF + ".example"));
+        d = db.parse(new File(SITE_CONF + ".512MBBstandalone-example"));
       
       NodeList pnodes = d.getElementsByTagName("property");
       for (int i = pnodes.getLength() - 1; i >= 0; i--) {
