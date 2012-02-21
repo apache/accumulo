@@ -172,90 +172,83 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td>The number of attempts to bulk-load a file before giving up.</td>
    </tr>
    <tr >
-    <td>master.bulk.server.max</td>
-    <td><b><a href='#COUNT'>count</a></b></td>
-    <td>yes</td>
-    <td><pre>4</pre></td>
-    <td>The number of servers to use during a bulk load</td>
-   </tr>
-   <tr class='highlight'>
     <td>master.bulk.threadpool.size</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>5</pre></td>
     <td>The number of threads to use when coordinating a bulk-import.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>master.logger.balancer</td>
     <td><b><a href='#CLASSNAME'>java&nbsp;class</a></b></td>
     <td>yes</td>
     <td><pre>org.apache.accumulo.server.master.balancer.SimpleLoggerBalancer</pre></td>
     <td>The balancer class that accumulo will use to make logger assignment decisions.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>master.port.client</td>
     <td><b><a href='#PORT'>port</a></b></td>
     <td>yes but requires restart</td>
     <td><pre>9999</pre></td>
     <td>The port used for handling client connections on the master</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>master.recovery.max.age</td>
     <td><b><a href='#TIMEDURATION'>duration</a></b></td>
     <td>yes</td>
     <td><pre>60m</pre></td>
     <td>Recovery files older than this age will be removed.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>master.recovery.pool</td>
     <td><b><a href='#STRING'>string</a></b></td>
     <td>yes</td>
     <td><pre>recovery</pre></td>
     <td>Priority queue to use for log recovery map/reduce jobs.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>master.recovery.queue</td>
     <td><b><a href='#STRING'>string</a></b></td>
     <td>yes</td>
     <td><pre>default</pre></td>
     <td>Priority queue to use for log recovery map/reduce jobs.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>master.recovery.reducers</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>10</pre></td>
     <td>Number of reducers to use to sort recovery logs (per log)</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>master.recovery.sort.mapreduce</td>
     <td><b><a href='#BOOLEAN'>boolean</a></b></td>
     <td>yes</td>
     <td><pre>false</pre></td>
     <td>If true, use map/reduce to sort write-ahead logs during recovery</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>master.recovery.time.max</td>
     <td><b><a href='#TIMEDURATION'>duration</a></b></td>
     <td>yes</td>
     <td><pre>30m</pre></td>
     <td>The maximum time to attempt recovery before giving up</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>master.server.threadcheck.time</td>
     <td><b><a href='#TIMEDURATION'>duration</a></b></td>
     <td>yes</td>
     <td><pre>1s</pre></td>
     <td>The time between adjustments of the server thread pool.</td>
    </tr>
-   <tr class='highlight'>
+   <tr >
     <td>master.server.threads.minimum</td>
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>2</pre></td>
     <td>The minimum number of threads to use to handle incoming requests.</td>
    </tr>
-   <tr >
+   <tr class='highlight'>
     <td>master.tablet.balancer</td>
     <td><b><a href='#CLASSNAME'>java&nbsp;class</a></b></td>
     <td>yes</td>
