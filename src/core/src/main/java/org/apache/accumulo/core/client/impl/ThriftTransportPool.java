@@ -35,6 +35,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Daemon;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TTimeoutTransport;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.log4j.Logger;
@@ -372,7 +373,7 @@ public class ThriftTransportPool {
     return getTransport(location, port, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
   }
   
-  TTransport getAnyTransport(List<ThriftTransportKey> servers) throws TTransportException {
+  Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers) throws TTransportException {
     
     servers = new ArrayList<ThriftTransportKey>(servers);
     
@@ -385,7 +386,7 @@ public class ThriftTransportPool {
               cachedConnection.setReserved(true);
               if (log.isTraceEnabled())
                 log.trace("Using existing connection to " + entry.getKey().getLocation() + ":" + entry.getKey().getPort());
-              return cachedConnection.transport;
+              return new Pair<String,TTransport>(entry.getKey().getLocation() + ":" + entry.getKey().getPort(), cachedConnection.transport);
             }
           }
         }
@@ -396,7 +397,7 @@ public class ThriftTransportPool {
     while (servers.size() > 0 && retryCount < 10) {
       int index = random.nextInt(servers.size());
       try {
-        return createNewTransport(servers.get(index));
+        return new Pair<String,TTransport>(servers.get(index).getLocation() + ":" + servers.get(index).getPort(), createNewTransport(servers.get(index)));
       } catch (TTransportException tte) {
         log.debug("Failed to connect to " + servers.get(index), tte);
         servers.remove(index);
