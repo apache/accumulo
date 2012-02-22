@@ -25,9 +25,11 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
+import org.apache.accumulo.core.client.impl.thrift.ClientService.Iface;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -79,11 +81,14 @@ public class ServerClient {
   public static <T> T executeRaw(Instance instance, ClientExecReturn<T,ClientService.Iface> exec) throws Exception {
     while (true) {
       ClientService.Iface client = null;
+      String server = null;
       try {
-        client = ServerClient.getConnection(instance);
+        Pair<String,Iface> pair = ServerClient.getConnection(instance);
+        server = pair.getFirst();
+        client = pair.getSecond();
         return exec.execute(client);
       } catch (TTransportException tte) {
-        log.debug("ClientService request failed, retrying ... ", tte);
+        log.debug("ClientService request failed " + server + ", retrying ... ", tte);
         UtilWaitThread.sleep(100);
       } finally {
         if (client != null)
@@ -95,12 +100,15 @@ public class ServerClient {
   public static void executeRaw(Instance instance, ClientExec<ClientService.Iface> exec) throws Exception {
     while (true) {
       ClientService.Iface client = null;
+      String server = null;
       try {
-        client = ServerClient.getConnection(instance);
+        Pair<String,Iface> pair = ServerClient.getConnection(instance);
+        server = pair.getFirst();
+        client = pair.getSecond();
         exec.execute(client);
         break;
       } catch (TTransportException tte) {
-        log.debug("ClientService request failed, retrying ... ", tte);
+        log.debug("ClientService request failed " + server + ", retrying ... ", tte);
         UtilWaitThread.sleep(100);
       } finally {
         if (client != null)
@@ -111,7 +119,7 @@ public class ServerClient {
   
   static volatile boolean warnedAboutTServersBeingDown = false;
 
-  public static ClientService.Iface getConnection(Instance instance) throws TTransportException {
+  public static Pair<String,ClientService.Iface> getConnection(Instance instance) throws TTransportException {
     ArgumentChecker.notNull(instance);
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
@@ -130,11 +138,11 @@ public class ServerClient {
     
     boolean opened = false;
     try {
-      TTransport socket = ThriftTransportPool.getInstance().getAnyTransport(servers);
-      ClientService.Iface client = ThriftUtil.createClient(new ClientService.Client.Factory(), socket);
+      Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers);
+      ClientService.Iface client = ThriftUtil.createClient(new ClientService.Client.Factory(), pair.getSecond());
       opened = true;
       warnedAboutTServersBeingDown = false;
-      return client;
+      return new Pair<String,ClientService.Iface>(pair.getFirst(), client);
     } finally {
       if (!opened) {
         if (!warnedAboutTServersBeingDown) {
