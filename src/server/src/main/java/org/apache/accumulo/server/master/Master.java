@@ -824,10 +824,10 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           log.error(serverName + " reports assignment failed for tablet " + tablet);
           break;
         case LOADED:
-          nextEvent.event("tablet %s was loaded", tablet);
+          nextEvent.event("tablet %s was loaded on %s", tablet, serverName);
           break;
         case UNLOADED:
-          nextEvent.event("tablet %s was unloaded", tablet);
+          nextEvent.event("tablet %s was unloaded from %s", tablet, serverName);
           break;
         case UNLOAD_ERROR:
           log.error(serverName + " reports unload failed for tablet " + tablet);
@@ -1231,10 +1231,11 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
             case SPLITTING:
               return TabletGoalState.HOSTED;
             case WAITING_FOR_CHOPPED:
-              return tls.chopped ? TabletGoalState.UNASSIGNED : TabletGoalState.HOSTED;
             case WAITING_FOR_OFFLINE:
             case MERGING:
-              return TabletGoalState.UNASSIGNED;
+              if (tls.walogs.isEmpty() && tls.chopped)
+                return TabletGoalState.UNASSIGNED;
+              return TabletGoalState.HOSTED;
           }
         }
       }
@@ -1329,7 +1330,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
             TServerInstance server = tls.getServer();
             TabletState state = tls.getState(currentTServers.keySet());
             stats.update(tableId, state);
-            mergeStats.update(tls.extent, state, tls.chopped);
+            mergeStats.update(tls.extent, state, tls.chopped, !tls.walogs.isEmpty());
             sendChopRequest(mergeStats.getMergeInfo(), state, tls);
             sendSplitRequest(mergeStats.getMergeInfo(), state, tls);
             

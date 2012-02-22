@@ -29,6 +29,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -152,6 +153,7 @@ public class TraceServer implements Watcher {
         if (!connector.tableOperations().exists(table)) {
           connector.tableOperations().create(table);
         }
+        connector.tableOperations().setProperty(table, Property.TABLE_FORMATTER_CLASS.getKey(), TraceFormatter.class.getName());
         break;
       } catch (Exception ex) {
         log.info("waiting to checking/create the trace table: " + ex);

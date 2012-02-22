@@ -191,7 +191,7 @@ public class TestMergeState {
     MergeStats stats = new MergeStats(state.mergeInfo);
     stats.getMergeInfo().setState(MergeState.WAITING_FOR_OFFLINE);
     for (TabletLocationState tss : metaDataStateStore) {
-      stats.update(tss.extent, tss.getState(state.onlineTabletServers()), tss.chopped);
+      stats.update(tss.extent, tss.getState(state.onlineTabletServers()), tss.chopped, false);
     }
     return stats;
   }

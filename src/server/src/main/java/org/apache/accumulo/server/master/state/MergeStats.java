@@ -63,7 +63,7 @@ public class MergeStats {
     return info;
   }
 
-  public void update(KeyExtent ke, TabletState state, boolean chopped) {
+  public void update(KeyExtent ke, TabletState state, boolean chopped, boolean hasWALs) {
     if (info.getState().equals(MergeState.NONE))
       return;
     if (!upperSplit && info.getRange().getEndRow().equals(ke.getPrevEndRow())) {
@@ -78,7 +78,7 @@ public class MergeStats {
       return;
     if (info.needsToBeChopped(ke)) {
       this.needsToBeChopped++;
-      if (chopped)
+      if (chopped && !hasWALs)
         this.chopped++;
     }
     this.total++;
@@ -178,6 +178,9 @@ public class MergeStats {
       if (!tls.extent.getTableId().equals(tableId)) {
         break;
       }
+      if (!tls.walogs.isEmpty()) {
+        return false;
+      }
       
       if (prevExtent == null) {
         // this is the first tablet observed, it must be offline and its prev row must be less than the start of the merge range
@@ -194,7 +197,7 @@ public class MergeStats {
       
       prevExtent = tls.extent;
 
-      verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped);
+      verify.update(tls.extent, tls.getState(master.onlineTabletServers()), tls.chopped, !tls.walogs.isEmpty());
       // stop when we've seen the tablet just beyond our range
       if (tls.extent.getPrevEndRow() != null && extent.getEndRow() != null && tls.extent.getPrevEndRow().compareTo(extent.getEndRow()) > 0) {
         break;
