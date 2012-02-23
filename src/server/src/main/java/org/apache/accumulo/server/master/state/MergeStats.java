@@ -78,8 +78,13 @@ public class MergeStats {
       return;
     if (info.needsToBeChopped(ke)) {
       this.needsToBeChopped++;
-      if (chopped && !hasWALs)
-        this.chopped++;
+      if (chopped) {
+        if (state.equals(TabletState.HOSTED)) {
+          this.chopped++;
+        } else if (!hasWALs) {
+          this.chopped++;
+        }
+      }
     }
     this.total++;
     if (state.equals(TabletState.HOSTED))
@@ -92,40 +97,40 @@ public class MergeStats {
     MergeState state = info.getState();
     if (state == MergeState.NONE)
       return state;
-    log.info("Computing next merge state for " + info.getRange() + " which is presently " + state);
+    log.info("Computing next merge state for " + info.getRange() + " which is presently " + state + " isDelete : " + info.isDelete());
     if (state == MergeState.STARTED) {
       state = MergeState.SPLITTING;
     }
     if (total == 0) {
-      log.info("failed to see any tablets for this range, ignoring");
+      log.info("failed to see any tablets for this range, ignoring " + info.getRange());
       return state;
     }
     if (state == MergeState.SPLITTING) {
       log.info(hosted + " are hosted, total " + total);
       if (!info.isDelete() && total == 1) {
-        log.info("Merge range is already contained in a single tablet");
+        log.info("Merge range is already contained in a single tablet " + info.getRange());
         state = MergeState.COMPLETE;
       } else if (hosted == total) {
         if (info.isDelete()) {
           if (!lowerSplit)
-            log.info("Waiting for " + info + " lower split to occur");
+            log.info("Waiting for " + info + " lower split to occur " + info.getRange());
           else if (!upperSplit)
-            log.info("Waiting for " + info + " upper split to occur");
+            log.info("Waiting for " + info + " upper split to occur " + info.getRange());
           else
             state = MergeState.WAITING_FOR_CHOPPED;
         } else {
           state = MergeState.WAITING_FOR_CHOPPED;
         }
       } else {
-        log.info("Waiting for " + hosted + " hosted tablets to be " + total);
+        log.info("Waiting for " + hosted + " hosted tablets to be " + total + " " + info.getRange());
       }
     }
     if (state == MergeState.WAITING_FOR_CHOPPED) {
-      log.info(chopped + " tablets are chopped");
+      log.info(chopped + " tablets are chopped " + info.getRange());
       if (chopped == needsToBeChopped) {
         state = MergeState.WAITING_FOR_OFFLINE;
       } else {
-        log.info("Waiting for " + chopped + " chopped tablets to be " + needsToBeChopped);
+        log.info("Waiting for " + chopped + " chopped tablets to be " + needsToBeChopped + " " + info.getRange());
       }
     }
     if (state == MergeState.WAITING_FOR_OFFLINE) {
@@ -134,11 +139,11 @@ public class MergeStats {
         // Perhaps a split occurred after we chopped, but before we went offline: start over
         state = MergeState.WAITING_FOR_CHOPPED;
       } else {
-        log.info(chopped + " tablets are chopped, " + unassigned + " are offline");
+        log.info(chopped + " tablets are chopped, " + unassigned + " are offline " + info.getRange());
         if (unassigned == total && chopped == needsToBeChopped) {
           state = MergeState.MERGING;
         } else {
-          log.info("Waiting for " + unassigned + " unassigned tablets to be " + total);
+          log.info("Waiting for " + unassigned + " unassigned tablets to be " + total + " " + info.getRange());
         }
       }
     }
@@ -153,7 +158,7 @@ public class MergeStats {
         log.error("Unexpected state: unassigned tablets should be " + total + " was " + unassigned + " merge " + info.getRange());
         state = MergeState.WAITING_FOR_CHOPPED;
       }
-      log.info(unassigned + " tablets are unassigned");
+      log.info(unassigned + " tablets are unassigned " + info.getRange());
     }
     return state;
   }
@@ -178,10 +183,11 @@ public class MergeStats {
       if (!tls.extent.getTableId().equals(tableId)) {
         break;
       }
-      if (!tls.walogs.isEmpty()) {
+
+      if (!tls.walogs.isEmpty() && verify.getMergeInfo().overlaps(tls.extent)) {
         return false;
       }
-      
+
       if (prevExtent == null) {
         // this is the first tablet observed, it must be offline and its prev row must be less than the start of the merge range
         if (tls.extent.getPrevEndRow() != null && tls.extent.getPrevEndRow().compareTo(start) > 0) {
