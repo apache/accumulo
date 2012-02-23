@@ -1231,11 +1231,18 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
             case SPLITTING:
               return TabletGoalState.HOSTED;
             case WAITING_FOR_CHOPPED:
+              if (tls.getState(onlineTabletServers()).equals(TabletState.HOSTED)) {
+                if (tls.chopped)
+                  return TabletGoalState.UNASSIGNED;
+              } else {
+                if (tls.chopped && tls.walogs.isEmpty())
+                  return TabletGoalState.UNASSIGNED;
+              }
+              
+              return TabletGoalState.HOSTED;
             case WAITING_FOR_OFFLINE:
             case MERGING:
-              if (tls.walogs.isEmpty() && tls.chopped)
-                return TabletGoalState.UNASSIGNED;
-              return TabletGoalState.HOSTED;
+              return TabletGoalState.UNASSIGNED;
           }
         }
       }
