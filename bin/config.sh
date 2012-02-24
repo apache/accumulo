@@ -15,8 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#copied below from hadoop-config.sh
-this="$0"
+this=`readlink -f "$0"`
 while [ -h "$this" ]; do
     ls=`ls -ld "$this"`
     link=`expr "$ls" : '.*-> \(.*\)$'`
@@ -58,7 +57,6 @@ then
       echo "You must set HADOOP_HOME"
       exit 1
    fi
-   HADOOP_HOME=`dirname $HADOOP_HOME`
    HADOOP_HOME=`dirname $HADOOP_HOME`
 fi
 export HADOOP_HOME
