@@ -424,7 +424,10 @@ class LoadFiles extends MasterRepo {
             ClientService.Iface client = null;
             String server = null;
             try {
-              Pair<String,Iface> pair = ServerClient.getConnection(master.getInstance());
+              // get a connection to a random tablet server, do not prefer cached connections because
+              // this is running on the master and there are lots of connections to tablet servers
+              // serving the !METADATA tablets
+              Pair<String,Iface> pair = ServerClient.getConnection(master.getInstance(), false);
               client = pair.getSecond();
               server = pair.getFirst();
               List<String> attempt = Collections.singletonList(file);

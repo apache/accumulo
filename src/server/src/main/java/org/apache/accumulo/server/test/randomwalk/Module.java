@@ -162,7 +162,7 @@ public class Module extends Node {
     this.xmlFile = xmlFile;
     loadFromXml();
   }
-  
+
   @Override
   public void visit(State state, Properties props) throws Exception {
     int maxHops, maxSec;
@@ -286,24 +286,19 @@ public class Module extends Node {
   private void startTimer(final Node initNode) {
     runningLong.set(false);
     timer = new Thread(new Runnable() {
-
       @Override
       public void run() {
-        while (!runningLong.get()) {
-          try {
-            systemTime = System.currentTimeMillis();
-            synchronized (timer) {
-              timer.wait(time);
-            }
-          } catch (InterruptedException ie) {
-            return;
-          }
+        try {
+          systemTime = System.currentTimeMillis();
+          Thread.sleep(time);
+        } catch (InterruptedException ie) {
+          return;
         }
         long timeSinceLastProgress = System.currentTimeMillis() - initNode.lastProgress();
         if (timeSinceLastProgress > time) {
           log.warn("Node " + initNode + " has been running for " + timeSinceLastProgress / 1000.0 + " seconds. You may want to look into it.");
+          runningLong.set(true);
         }
-        runningLong.set(true);
       }
     });
     initNode.makingProgress();

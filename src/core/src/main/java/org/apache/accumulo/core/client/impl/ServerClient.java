@@ -120,6 +120,10 @@ public class ServerClient {
   static volatile boolean warnedAboutTServersBeingDown = false;
 
   public static Pair<String,ClientService.Iface> getConnection(Instance instance) throws TTransportException {
+    return getConnection(instance, true);
+  }
+  
+  public static Pair<String,ClientService.Iface> getConnection(Instance instance, boolean preferCachedConnections) throws TTransportException {
     ArgumentChecker.notNull(instance);
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
@@ -138,7 +142,7 @@ public class ServerClient {
     
     boolean opened = false;
     try {
-      Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers);
+      Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers, preferCachedConnections);
       ClientService.Iface client = ThriftUtil.createClient(new ClientService.Client.Factory(), pair.getSecond());
       opened = true;
       warnedAboutTServersBeingDown = false;

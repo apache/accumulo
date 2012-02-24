@@ -43,6 +43,11 @@ public abstract class Node {
   }
   
   @Override
+  public String toString() {
+    return this.getClass().getName();
+  }
+  
+  @Override
   public int hashCode() {
     return toString().hashCode();
   }
