@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.security.SecurityPermission;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -373,20 +374,30 @@ public class ThriftTransportPool {
     return getTransport(location, port, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
   }
   
-  Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers) throws TTransportException {
+  Pair<String,TTransport> getAnyTransport(List<ThriftTransportKey> servers, boolean preferCachedConnection) throws TTransportException {
     
     servers = new ArrayList<ThriftTransportKey>(servers);
     
-    synchronized (this) {
-      // atomically find an available location that is in the list
-      for (Entry<ThriftTransportKey,List<CachedConnection>> entry : cache.entrySet()) {
-        if (servers.contains(entry.getKey())) {
-          for (CachedConnection cachedConnection : entry.getValue()) {
-            if (!cachedConnection.isReserved()) {
-              cachedConnection.setReserved(true);
-              if (log.isTraceEnabled())
-                log.trace("Using existing connection to " + entry.getKey().getLocation() + ":" + entry.getKey().getPort());
-              return new Pair<String,TTransport>(entry.getKey().getLocation() + ":" + entry.getKey().getPort(), cachedConnection.transport);
+    if (preferCachedConnection) {
+      HashSet<ThriftTransportKey> serversSet = new HashSet<ThriftTransportKey>(servers);
+      
+      synchronized (this) {
+        
+        // randomly pick a server from the connection cache
+        serversSet.retainAll(cache.keySet());
+        
+        if (serversSet.size() > 0) {
+          ArrayList<ThriftTransportKey> cachedServers = new ArrayList<ThriftTransportKey>(serversSet);
+          Collections.shuffle(cachedServers, random);
+          
+          for (ThriftTransportKey ttk : cachedServers) {
+            for (CachedConnection cachedConnection : cache.get(ttk)) {
+              if (!cachedConnection.isReserved()) {
+                cachedConnection.setReserved(true);
+                if (log.isTraceEnabled())
+                  log.trace("Using existing connection to " + ttk.getLocation() + ":" + ttk.getPort());
+                return new Pair<String,TTransport>(ttk.getLocation() + ":" + ttk.getPort(), cachedConnection.transport);
+              }
             }
           }
         }
@@ -396,8 +407,26 @@ public class ThriftTransportPool {
     int retryCount = 0;
     while (servers.size() > 0 && retryCount < 10) {
       int index = random.nextInt(servers.size());
+      ThriftTransportKey ttk = servers.get(index);
+      
+      if (!preferCachedConnection) {
+        synchronized (this) {
+          List<CachedConnection> cachedConnList = cache.get(ttk);
+          if (cachedConnList != null) {
+            for (CachedConnection cachedConnection : cachedConnList) {
+              if (!cachedConnection.isReserved()) {
+                cachedConnection.setReserved(true);
+                if (log.isTraceEnabled())
+                  log.trace("Using existing connection to " + ttk.getLocation() + ":" + ttk.getPort());
+                return new Pair<String,TTransport>(ttk.getLocation() + ":" + ttk.getPort(), cachedConnection.transport);
+              }
+            }
+          }
+        }
+      }
+
       try {
-        return new Pair<String,TTransport>(servers.get(index).getLocation() + ":" + servers.get(index).getPort(), createNewTransport(servers.get(index)));
+        return new Pair<String,TTransport>(ttk.getLocation() + ":" + ttk.getPort(), createNewTransport(ttk));
       } catch (TTransportException tte) {
         log.debug("Failed to connect to " + servers.get(index), tte);
         servers.remove(index);
@@ -478,13 +507,15 @@ public class ThriftTransportPool {
     boolean existInCache = false;
     CachedTTransport ctsc = (CachedTTransport) tsc;
     
+    ArrayList<CachedConnection> closeList = new ArrayList<ThriftTransportPool.CachedConnection>();
+
     synchronized (this) {
       List<CachedConnection> ccl = cache.get(ctsc.getCacheKey());
       for (Iterator<CachedConnection> iterator = ccl.iterator(); iterator.hasNext();) {
         CachedConnection cachedConnection = iterator.next();
         if (cachedConnection.transport == tsc) {
           if (ctsc.sawError) {
-            tsc.close();
+            closeList.add(cachedConnection);
             iterator.remove();
             
             if (log.isTraceEnabled())
@@ -519,6 +550,26 @@ public class ThriftTransportPool {
           existInCache = true;
           break;
         }
+      }
+      
+      // remove all unreserved cached connection when a sever has an error, not just the connection that was returned
+      if (ctsc.sawError) {
+        for (Iterator<CachedConnection> iterator = ccl.iterator(); iterator.hasNext();) {
+          CachedConnection cachedConnection = iterator.next();
+          if (!cachedConnection.isReserved()) {
+            closeList.add(cachedConnection);
+            iterator.remove();
+          }
+        }
+      }
+    }
+    
+    // close outside of sync block
+    for (CachedConnection cachedConnection : closeList) {
+      try {
+        cachedConnection.transport.close();
+      } catch (Exception e) {
+        log.debug("Failed to close connection w/ errors", e);
       }
     }
     
