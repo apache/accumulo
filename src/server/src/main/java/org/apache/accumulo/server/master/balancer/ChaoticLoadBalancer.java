@@ -1,0 +1,134 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.accumulo.server.master.balancer;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
+import java.util.Set;
+import java.util.SortedMap;
+
+import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
+import org.apache.accumulo.server.master.state.TServerInstance;
+import org.apache.accumulo.server.master.state.TabletMigration;
+import org.apache.thrift.TException;
+
+/**
+ * A chaotic load balancer used for testing. It constantly shuffles tablets, preventing them from resting in a single location for very long. This is not
+ * designed for performance, do not use on production systems. I'm calling it the LokiLoadBalancer.
+ */
+public class ChaoticLoadBalancer extends TabletBalancer {
+  Random r = new Random();
+  
+  /* (non-Javadoc)
+   * @see org.apache.accumulo.server.master.balancer.TabletBalancer#getAssignments(java.util.SortedMap, java.util.Map, java.util.Map)
+   */
+  @Override
+  public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
+      Map<KeyExtent,TServerInstance> assignments) {
+    long total = assignments.size() + unassigned.size();
+    long avg = (long) Math.ceil(((double) total) / current.size());
+    Map<TServerInstance,Long> toAssign = new HashMap<TServerInstance,Long>();
+    List<TServerInstance> tServerArray = new ArrayList<TServerInstance>();
+    for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
+      long numTablets = 0;
+      for (TableInfo ti : e.getValue().getTableMap().values()) {
+        numTablets += ti.tablets;
+      }
+      if (numTablets < avg) {
+        tServerArray.add(e.getKey());
+        toAssign.put(e.getKey(), avg - numTablets);
+      }
+    }
+
+    for (KeyExtent ke : unassigned.keySet())
+    {
+      int index = r.nextInt(tServerArray.size());
+      TServerInstance dest = tServerArray.get(index);
+      assignments.put(ke, dest);
+      long remaining = toAssign.get(dest).longValue() - 1;
+      if (remaining == 0) {
+        tServerArray.remove(index);
+        toAssign.remove(dest);
+      } else {
+        toAssign.put(dest, remaining);
+      }
+    }
+  }
+  
+  /**
+   * Will balance randomly, maintaining distribution
+   */
+  @Override
+  public long balance(SortedMap<TServerInstance,TabletServerStatus> current, Set<KeyExtent> migrations, List<TabletMigration> migrationsOut) {
+    Map<TServerInstance,Long> numTablets = new HashMap<TServerInstance,Long>();
+    List<TServerInstance> underCapacityTServer = new ArrayList<TServerInstance>();
+
+    long totalTablets = 0;
+    for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
+      long tabletCount = 0;
+      for (TableInfo ti : e.getValue().getTableMap().values()) {
+        tabletCount += ti.tablets;
+      }
+      numTablets.put(e.getKey(), tabletCount);
+      underCapacityTServer.add(e.getKey());
+      totalTablets += tabletCount;
+    }
+    // totalTablets is fuzzy due to asynchronicity of the stats
+    // *1.2 to handle fuzziness, and prevent locking for 'perfect' balancing scenarios
+    long avg = (long) Math.ceil(((double) totalTablets) / current.size() * 1.2);
+    
+    for (Entry<TServerInstance, TabletServerStatus> e : current.entrySet())
+    {
+      for (String table : e.getValue().getTableMap().keySet())
+      {
+        try {
+          for (TabletStats ts : getOnlineTabletsForTable(e.getKey(), table)) {
+            
+            int index = r.nextInt(underCapacityTServer.size());
+            TServerInstance dest = underCapacityTServer.get(index);
+            if (dest.equals(e.getKey()))
+              continue;
+            migrationsOut.add(new TabletMigration(new KeyExtent(ts.extent), e.getKey(), dest));
+            if (numTablets.put(dest, numTablets.get(dest) + 1) > avg)
+              underCapacityTServer.remove(index);
+            if (numTablets.put(e.getKey(), numTablets.get(e.getKey()) - 1) <= avg && !underCapacityTServer.contains(e.getKey()))
+              underCapacityTServer.add(e.getKey());
+
+          }
+        } catch (ThriftSecurityException e1) {
+          // Shouldn't happen, but carry on if it does
+          e1.printStackTrace();
+        } catch (TException e1) {
+          // Shouldn't happen, but carry on if it does
+          e1.printStackTrace();
+        }
+      }
+    }
+    
+    // Yes, it can run every 5ms
+    return 5;
+  }
+  
+}
