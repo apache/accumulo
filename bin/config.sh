@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-this=`readlink -f "$0"`
+this=`readlink "$0"`
 while [ -h "$this" ]; do
     ls=`ls -ld "$this"`
     link=`expr "$ls" : '.*-> \(.*\)$'`
