@@ -684,7 +684,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     public Tablet currentTablet;
     public MapCounter<Tablet> successfulCommits = new MapCounter<Tablet>();
     Map<KeyExtent,Long> failures = new HashMap<KeyExtent,Long>();
-    List<KeyExtent> authFailures = new ArrayList<KeyExtent>();
+    HashSet<KeyExtent> authFailures = new HashSet<KeyExtent>();
     public Violations violations;
     public AuthInfo credentials;
     public long totalUpdates = 0;
@@ -1360,6 +1360,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
     private void setUpdateTablet(UpdateSession us, KeyExtent keyExtent) {
       long t1 = System.currentTimeMillis();
+      if (us.currentTablet != null && us.currentTablet.getExtent().equals(keyExtent))
+        return;
+
+      if (us.currentTablet == null && (us.failures.containsKey(keyExtent) || us.authFailures.contains(keyExtent))) {
+        // if there were previous failures, then do not accept additional writes
+        return;
+      }
+      
       try {
         // if user has no permission to write to this table, add it to
         // the failures list
@@ -1410,8 +1418,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       
       try {
         KeyExtent keyExtent = new KeyExtent(tkeyExtent);
-        if (us.currentTablet == null || !us.currentTablet.getExtent().equals(keyExtent))
-          setUpdateTablet(us, keyExtent);
+        setUpdateTablet(us, keyExtent);
         
         if (us.currentTablet != null) {
           List<Mutation> mutations = us.queuedMutations.get(us.currentTablet);
