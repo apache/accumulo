@@ -16,7 +16,8 @@
 # limitations under the License.
 
 
-bin=`dirname "$0"`
+bin=`readlink -f "$0"`
+bin=`dirname "$bin"`
 bin=`cd "$bin"; pwd`
 
 . "$bin"/config.sh

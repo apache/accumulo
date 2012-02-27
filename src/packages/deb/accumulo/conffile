@@ -1,0 +1,8 @@
+/etc/accumulo/conf/accumulo-site.xml
+/etc/accumulo/conf/accumulo-env.sh
+/etc/accumulo/conf/slaves
+/etc/accumulo/conf/masters
+/etc/accumulo/conf/loggers
+/etc/accumulo/conf/accumulo-metrics.xml
+/etc/accumulo/conf/tracers
+/etc/accumulo/conf/gc
