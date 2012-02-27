@@ -21,7 +21,7 @@ Package: accumulo
 Version: [[version]]
 Section: misc
 Architecture: all
-Depends: default-jre-headless, hadoop, hadoop-zookeeper, coreutils
+Depends: default-jre-headless, hadoop, hadoop-zookeeper, coreutils, sshd
 Recommends: accumulo-native
 Description: Accumulo is a large distributed structured store based on Google's BigTable design.
 Distribution: development
