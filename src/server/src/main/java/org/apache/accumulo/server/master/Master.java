@@ -1359,13 +1359,22 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
                   break;
                 case ASSIGNED_TO_DEAD_SERVER:
                   assignedToDeadServers.add(tls);
-                  log.info("Current servers " + currentTServers.keySet());
+                  if (server.equals(migrations.get(tls.extent)))
+                    migrations.remove(tls.extent);
+                  // log.info("Current servers " + currentTServers.keySet());
                   break;
                 case UNASSIGNED:
                   // maybe it's a finishing migration
                   TServerInstance dest = migrations.get(tls.extent);
-                  if (dest != null && destinations.keySet().contains(dest)) {
-                    assignments.add(new Assignment(tls.extent, dest));
+                  if (dest != null) {
+                    // if destination is still good, assign it
+                    if (destinations.keySet().contains(dest)) {
+                      assignments.add(new Assignment(tls.extent, dest));
+                    } else {
+                      // get rid of this migration
+                      migrations.remove(tls.extent);
+                      unassigned.put(tls.extent, server);
+                    }
                   } else {
                     unassigned.put(tls.extent, server);
                   }
@@ -1381,7 +1390,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
                   break;
                 case ASSIGNED_TO_DEAD_SERVER:
                   assignedToDeadServers.add(tls);
-                  log.info("Current servers " + currentTServers.keySet());
+                  // log.info("Current servers " + currentTServers.keySet());
                   break;
                 case HOSTED:
                   TServerConnection conn = tserverSet.getConnection(server);
@@ -1806,15 +1815,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           found.add(extent);
         }
       }
-      Set<KeyExtent> notFound = new HashSet<KeyExtent>();
-      synchronized (migrations) {
-        notFound.addAll(migrations.keySet());
-      }
-      notFound.removeAll(found);
-      for (KeyExtent extent : notFound) {
-        log.info("Canceling migration of " + extent + " to " + migrations.get(extent) + ": tablet no longer exists (probably due to a split)");
-        migrations.remove(extent);
-      }
+      migrations.keySet().retainAll(found);
     }
   }
   
