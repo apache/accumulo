@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-this=`readlink "$0"`
+this="$0"
 while [ -h "$this" ]; do
     ls=`ls -ld "$this"`
     link=`expr "$ls" : '.*-> \(.*\)$'`
@@ -57,6 +57,7 @@ then
       echo "You must set HADOOP_HOME"
       exit 1
    fi
+   HADOOP_HOME=`dirname $HADOOP_HOME`
    HADOOP_HOME=`dirname $HADOOP_HOME`
 fi
 export HADOOP_HOME
