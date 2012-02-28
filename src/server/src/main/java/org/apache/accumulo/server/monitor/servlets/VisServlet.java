@@ -36,7 +36,7 @@ public class VisServlet extends BasicServlet {
   
   @Override
   protected String getTitle(HttpServletRequest req) {
-    return "Tablet Server Status Visualization";
+    return "Server Activity";
   }
   
   @Override
@@ -64,6 +64,8 @@ public class VisServlet extends BasicServlet {
         spacing = 10;
       else if (size.equals("40"))
         spacing = 40;
+      else if (size.equals("80"))
+        spacing = 80;
     }
     
     ArrayList<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
@@ -88,7 +90,8 @@ public class VisServlet extends BasicServlet {
     // size select box
     sb.append("&nbsp;&nbsp<span class='viscontrol'>Size: <select id='size' onchange='setSize(this)'><option").append(spacing == 10 ? " selected='true'" : "")
         .append(">10</option><option").append(spacing == 20 ? " selected='true'" : "").append(">20</option><option")
-        .append(spacing == 40 ? " selected='true'" : "").append(">40</option></select></span>\n");
+        .append(spacing == 40 ? " selected='true'" : "").append(">40</option><option").append(spacing == 80 ? " selected='true'" : "")
+        .append(">80</option></select></span>\n");
     // motion select box
     sb.append("&nbsp;&nbsp<span class='viscontrol'>Motion: <select id='motion' onchange='setMotion(this)'><option>Ingest</option><option")
         .append(!useIngest ? " selected='true'" : "").append(">Query</option></select></span>\n");

@@ -16,12 +16,12 @@
 -->
 
 <script type='text/javascript'>
-var maxLoad = 3*numCores;
-var maxThroughput = 7; // exponent of 10
+var maxLoad = numCores;
+var maxThroughput = 19; // exponent of 2
 
 // size and spacing variables
 var numDots = 0; // number of dots to draw
-var dotSpacing = 10; // spacing between centers of dots
+var dotSpacing = 10; // spacing between centers of dots (radius)
 var dotPadding = 0.5; // dot padding
 var minDotRadius = 3; // min dot radius
 var maxDotRadius = dotSpacing - dotPadding;
@@ -87,6 +87,7 @@ function handleNewData() {
   var ingestinfo = xmlhttp.responseXML.getElementsByTagName('ingest');
   var queryinfo = xmlhttp.responseXML.getElementsByTagName('query');
   var deadinfo = xmlhttp.responseXML.getElementsByTagName('deadTabletServer');
+  var badinfo = xmlhttp.responseXML.getElementsByTagName('badTabletServer');
   var idinfo = xmlhttp.responseXML.getElementsByTagName('server');
   
   for (i=0; i < loadinfo.length; i++) {
@@ -102,7 +103,10 @@ function handleNewData() {
     if (activity < 10) {
       newSkip = -1;
     } else {
-      newSkip = Math.ceil(Math.pow(1.5,maxThroughput - Math.log(activity)/Math.log(10)));
+      activity = Math.log(activity)/Math.log(2);
+      if (maxThroughput < activity)
+        maxThroughput = activity;
+      newSkip = Math.ceil(Math.pow(1.8, maxThroughput - activity));
     }
     setDotInfo(newColor,newSkip,info,extra,i);
   }
@@ -110,9 +114,12 @@ function handleNewData() {
   for (i=loadinfo.length,j=0; j < deadinfo.length; i++,j++) {
     setDotInfo(-1,-1,deadinfo[j].attributes[0].nodeValue,'',i);
   }
-  if (numDots != loadinfo.length + deadinfo.length)
+  for (i=loadinfo.length+deadinfo.length,j=0; j < badinfo.length; i++,j++) {
+    setDotInfo(-1,-1,badinfo[j].attributes[0].nodeValue,'',i);
+  }
+  if (numDots != loadinfo.length + deadinfo.length + badinfo.length)
     drawGrid();
-  numDots = loadinfo.length + deadinfo.length;
+  numDots = loadinfo.length + deadinfo.length + badinfo.length;
   xmlReturned = true;
 }
 
@@ -178,9 +185,9 @@ function drawDots(){
 // fill in a few grey dots
 function drawGrid() {
   context.clearRect(0, 0, canvas.width, canvas.height);
-  for (i=0; i < 32; i++) {
-    for (j=0; j < 32; j++) {
-      drawDot(i,j,maxDotRadius,nullColor);
+  for (i=0,k=0; i < canvas.width; i+=dotSpacing*2,k++) {
+    for (j=0,l=0; j < canvas.height; j+=dotSpacing*2,l++) {
+      drawDot(k,l,maxDotRadius,nullColor);
     }
   }
 }
@@ -271,6 +278,10 @@ function setSize(obj) {
       dotSpacing = 20;
       minDotRadius = 5;
       break;
+    case 3:
+      dotSpacing = 40;
+      minDotRadius = 7;
+      break;
     default:
       dotSpacing = 10;
       minDotRadius = 3;
@@ -329,7 +340,7 @@ function showId(e) {
 
 function setState() {
   var url = visurl+'?shape='+(useCircles?'circles':'squares')+'&size='+(dotSpacing*2)+'&motion='+(useIngest?'ingest':'query');
-  window.history.replaceState(window.history.state,'Tablet Server Status Visualization',url);
+  window.history.replaceState(window.history.state,'Server Activity',url);
 }
 
 // go to server page on click
