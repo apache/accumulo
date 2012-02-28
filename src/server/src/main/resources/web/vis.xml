@@ -152,9 +152,12 @@ function drawDots(){
   var y;
   for (i=0; i < numDots; i++) {
     if (resizeFrameModulus[i]<=0 || dotSize[i] > maxDotRadius) {
-      // if not changing size, stay at max radius
+      // if not changing size, increase to max radius
       // also check for resize by the user
-      dotSize[i] = maxDotRadius;
+      if (dotSize[i] < maxDotRadius)
+        dotSize[i] = dotSize[i] + 1;
+      else
+        dotSize[i] = maxDotRadius;
     } else if (resizeFrameModulus[i] > 0 && frame % resizeFrameModulus[i] == 0) {
       if (dotSize[i] >= maxDotRadius) {dotSizeGrowing[i] = false};
       if (dotSize[i] <= minDotRadius) {dotSizeGrowing[i] = true};
