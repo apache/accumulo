@@ -184,7 +184,7 @@ public class MergeStats {
         break;
       }
 
-      if (!tls.walogs.isEmpty() && verify.getMergeInfo().overlaps(tls.extent)) {
+      if (!tls.walogs.isEmpty() && verify.getMergeInfo().needsToBeChopped(tls.extent)) {
         return false;
       }
 
