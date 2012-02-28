@@ -44,7 +44,7 @@ public class XMLServlet extends BasicServlet {
   
   @Override
   protected void pageStart(HttpServletRequest req, HttpServletResponse resp, StringBuilder sb) {
-    resp.setContentType("text/xml");
+    resp.setContentType("text/xml;charset=UTF-8");
     sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
     sb.append("<stats>\n");
   }
@@ -67,6 +67,7 @@ public class XMLServlet extends BasicServlet {
       
       sb.append("\n<server id='").append(status.name).append("'>\n");
       sb.append("<lastContact>").append(System.currentTimeMillis() - status.lastContact).append("</lastContact>\n");
+      sb.append("<osload>").append(status.osLoad).append("</osload>\n");
       
       TableInfo summary = Monitor.summarizeTableStats(status);
       sb.append("<compactions>\n");
@@ -84,6 +85,8 @@ public class XMLServlet extends BasicServlet {
         sb.append("</loggers>");
       }
       
+      sb.append("<ingest>").append(summary.ingestRate).append("</ingest>\n");
+      sb.append("<query>").append(summary.queryRate).append("</query>\n");
       totalIngest += summary.ingestRate;
       totalQuery += summary.queryRate;
       totalEntries += summary.recs;

@@ -121,7 +121,7 @@ abstract public class BasicServlet extends HttpServlet {
     // BEGIN HEADER
     sb.append("<head>\n");
     sb.append("<title>").append(getTitle(req)).append(" - Accumulo ").append(Constants.VERSION).append("</title>\n");
-    if ((refresh > 0) && (req.getRequestURI().startsWith("/docs") == false))
+    if ((refresh > 0) && (req.getRequestURI().startsWith("/docs") == false) && (req.getRequestURI().startsWith("/vis") == false))
       sb.append("<meta http-equiv='refresh' content='" + refresh + "' />\n");
     sb.append("<meta http-equiv='Content-Type' content='").append(DEFAULT_CONTENT_TYPE).append("' />\n");
     sb.append("<meta http-equiv='Content-Script-Type' content='text/javascript' />\n");
@@ -172,6 +172,7 @@ abstract public class BasicServlet extends HttpServlet {
     if (numProblems > 0)
       sb.append("<span class='error'><a href='/problems'>Table&nbsp;Problems&nbsp;<span class='smalltext'>(" + numProblems + ")</a></span></span><br />\n");
     sb.append("<hr />\n");
+    sb.append("<a href='/vis'>Visualization</a><br />\n");
     sb.append("<a href='/xml'>XML</a><hr />\n");
     sb.append("<div class='smalltext'>[<a href='").append("/op?action=refresh&value=").append(refresh < 1 ? "5" : "-1");
     sb.append("&redir=").append(currentPage(req)).append("'>");
