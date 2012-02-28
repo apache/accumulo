@@ -88,6 +88,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     if (!migrations.isEmpty())
       return 100;
 
+    boolean moveMetadata = r.nextInt(4) == 0;
     long totalTablets = 0;
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
       long tabletCount = 0;
@@ -106,6 +107,8 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     {
       for (String table : e.getValue().getTableMap().keySet())
       {
+        if (!moveMetadata && "!METADATA".equals(table))
+          continue;
         try {
           for (TabletStats ts : getOnlineTabletsForTable(e.getKey(), table)) {
             KeyExtent ke = new KeyExtent(ts.extent);
