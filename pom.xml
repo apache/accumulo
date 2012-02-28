@@ -317,7 +317,7 @@
         <executions>
           <execution>
             <id>accumulo</id>
-            <phase>package</phase>
+            <phase>install</phase>
             <goals>
               <goal>jdeb</goal>
             </goals>
@@ -409,7 +409,7 @@
           </execution>
           <execution>
             <id>accumulo-native</id>
-            <phase>package</phase>
+            <phase>install</phase>
             <goals>
               <goal>jdeb</goal>
             </goals>
@@ -449,7 +449,7 @@
           </execution>
           <execution>
             <id>accumulo-test</id>
-            <phase>package</phase>
+            <phase>install</phase>
             <goals>
               <goal>jdeb</goal>
             </goals>
