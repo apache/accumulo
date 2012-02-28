@@ -85,6 +85,9 @@ public class ChaoticLoadBalancer extends TabletBalancer {
     Map<TServerInstance,Long> numTablets = new HashMap<TServerInstance,Long>();
     List<TServerInstance> underCapacityTServer = new ArrayList<TServerInstance>();
 
+    if (!migrations.isEmpty())
+      return 100;
+
     long totalTablets = 0;
     for (Entry<TServerInstance,TabletServerStatus> e : current.entrySet()) {
       long tabletCount = 0;
@@ -105,17 +108,20 @@ public class ChaoticLoadBalancer extends TabletBalancer {
       {
         try {
           for (TabletStats ts : getOnlineTabletsForTable(e.getKey(), table)) {
-            
+            KeyExtent ke = new KeyExtent(ts.extent);
             int index = r.nextInt(underCapacityTServer.size());
             TServerInstance dest = underCapacityTServer.get(index);
             if (dest.equals(e.getKey()))
               continue;
-            migrationsOut.add(new TabletMigration(new KeyExtent(ts.extent), e.getKey(), dest));
+            migrationsOut.add(new TabletMigration(ke, e.getKey(), dest));
             if (numTablets.put(dest, numTablets.get(dest) + 1) > avg)
               underCapacityTServer.remove(index);
             if (numTablets.put(e.getKey(), numTablets.get(e.getKey()) - 1) <= avg && !underCapacityTServer.contains(e.getKey()))
               underCapacityTServer.add(e.getKey());
-
+            
+            // We can get some craziness with only 1 tserver, so lets make sure there's always an option!
+            if (underCapacityTServer.isEmpty())
+              underCapacityTServer.addAll(numTablets.keySet());
           }
         } catch (ThriftSecurityException e1) {
           // Shouldn't happen, but carry on if it does
@@ -127,8 +133,7 @@ public class ChaoticLoadBalancer extends TabletBalancer {
       }
     }
     
-    // Yes, it can run every 5ms
-    return 5;
+    return 100;
   }
   
 }
