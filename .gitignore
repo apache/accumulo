@@ -75,20 +75,38 @@
 
 # /src/examples/simple/
 /src/examples/simple/target
+/src/examples/simple/.classpath
+/src/examples/simple/.project
+/src/examples/simple/.settings/
+
 
 # /src/examples/wikisearch/
 /src/examples/wikisearch/target
+/src/examples/wikisearch/.project
+/src/examples/wikisearch/.settings/
 
 # /src/examples/wikisearch/ingest/
 /src/examples/wikisearch/ingest/target
 /src/examples/wikisearch/ingest/lib
+/src/examples/wikisearch/ingest/.classpath
+/src/examples/wikisearch/ingest/.project
+/src/examples/wikisearch/ingest/.settings/
+
 
 # /src/examples/wikisearch/query/
 /src/examples/wikisearch/query/lib
 /src/examples/wikisearch/query/target
+/src/examples/wikisearch/query/.classpath
+/src/examples/wikisearch/query/.project
+/src/examples/wikisearch/query/.settings/
+
 
 # /src/examples/wikisearch/query-war/
 /src/examples/wikisearch/query-war/target
+/src/examples/wikisearch/query-war/.classpath
+/src/examples/wikisearch/query-war/.project
+/src/examples/wikisearch/query-war/.settings/
+
 
 # /src/server/
 /src/server/target
