@@ -313,3 +313,18 @@ pre.logevent {
     text-align: center;
     font-size: 1.5em;
 }
+.nowrap {
+    white-space:nowrap;
+}
+
+.viscontrol {
+    border: 1px solid #c4c4c4;
+    padding: 5px;
+}
+
+#vishoverinfo {
+    visibility: hidden;
+    position: absolute;
+    border: 1px solid #c4c4c4;
+    background-color: #ffffff;
+}

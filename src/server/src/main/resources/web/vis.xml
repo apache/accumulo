@@ -1,0 +1,343 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<script type='text/javascript'>
+var maxLoad = 3*numCores;
+var maxThroughput = 7; // exponent of 10
+
+// size and spacing variables
+var numDots = 0; // number of dots to draw
+var dotSpacing = 10; // spacing between centers of dots
+var dotPadding = 0.5; // dot padding
+var minDotRadius = 3; // min dot radius
+var maxDotRadius = dotSpacing - dotPadding;
+
+// arrays of information about each dot
+var dotSize = new Array(numDots); // current sizes
+var dotSizeGrowing = new Array(numDots); // true when dot size is growing, false when shrinking
+var resizeFrameModulus = new Array(numDots); // never resize when <= 0, otherwise resize when frame % modulus == 0
+var ids = new Array(numDots); // server ids
+var extras = new Array(numDots); // info from which color and motion is derived
+var mousedDot = 0; // the dot currently under the mouse
+
+var maxObservedColor = maxLoad;
+var colors = new Array(numDots); // dot colors between 0 and maxObservedColor, -1 for dead node
+var colorPalette = ['#0000CC', '#0014B8', '#0029A3', '#003D8F', '#00527A', '#006666', '#007A52', '#008F3D', '#00A329', '#00B814', '#00CC00', '#14D100', '#29D600', '#3DDB00', '#52E000', '#66E600', '#7AEB00', '#8FF000', '#A3F500', '#B8FA00', '#CCFF00', '#CCFF00', '#CCF200', '#CCE600', '#CCD900', '#CCCC00', '#CCBF00', '#CCB200', '#CCA600', '#CC9900', '#CC8C00', '#CC8000', '#CC7300', '#CC6600', '#CC5900', '#CC4C00', '#CC4000', '#CC3300', '#CC2600', '#CC1A00', '#CC0D00', '#CC0000'];
+
+var nullColor = '#F5F8FA';
+var deadColor = '#B000CC';
+
+// animation variables
+var frame = 0;
+var canvas = document.getElementById('visCanvas');
+var context = canvas.getContext('2d');
+
+// mouse handling for server information display
+canvas.addEventListener('mouseover', showId, false);
+canvas.addEventListener('mousemove', showId, false);
+canvas.addEventListener('mouseout', hideId, false);
+canvas.addEventListener('click', goToServer, false);
+
+// initialize settings based on request parameters
+var main = document.getElementById('main');
+var useCircles = true;
+var useIngest = true;
+setShape(document.getElementById('shape'));
+setSize(document.getElementById('size'));
+setMotion(document.getElementById('motion'));
+
+// xml loading variables
+var xmlReturned = true;
+var xmlhttp=new XMLHttpRequest(); // don't bother allowing for IE 5 or 6 since canvas won't work
+xmlhttp.onreadystatechange=function() {
+  handleNewData();
+}
+
+window.requestAnimFrame = (function(callback){
+  return window.requestAnimationFrame ||
+  window.webkitRequestAnimationFrame ||
+  window.mozRequestAnimationFrame ||
+  window.oRequestAnimationFrame ||
+  window.msRequestAnimationFrame ||
+  function(callback){
+    window.setTimeout(callback, 1000 / 60);
+  };
+})();
+
+function handleNewData() {
+  if (xmlhttp.readyState!=4 || xmlhttp.status!=200 || xmlhttp.status==null) {
+    xmlReturned = true;
+    return;
+  }
+  var loadinfo = xmlhttp.responseXML.getElementsByTagName('osload');
+  var ingestinfo = xmlhttp.responseXML.getElementsByTagName('ingest');
+  var queryinfo = xmlhttp.responseXML.getElementsByTagName('query');
+  var deadinfo = xmlhttp.responseXML.getElementsByTagName('deadTabletServer');
+  var idinfo = xmlhttp.responseXML.getElementsByTagName('server');
+  
+  for (i=0; i < loadinfo.length; i++) {
+    var load = parseFloat(loadinfo[i].childNodes[0].nodeValue);
+    var activity;
+    if (useIngest)
+      activity = parseFloat(ingestinfo[i].childNodes[0].nodeValue);
+    else
+      activity = parseFloat(queryinfo[i].childNodes[0].nodeValue);
+    var info = idinfo[i].attributes[0].nodeValue;
+    var extra = '<br>osload: ' + Math.round(load*100)/100 + ', ' + (useIngest?'ingest':'query') + ': ' + Math.round(activity);
+    newColor = load;
+    if (activity < 10) {
+      newSkip = -1;
+    } else {
+      newSkip = Math.ceil(Math.pow(1.5,maxThroughput - Math.log(activity)/Math.log(10)));
+    }
+    setDotInfo(newColor,newSkip,info,extra,i);
+  }
+  
+  for (i=loadinfo.length,j=0; j < deadinfo.length; i++,j++) {
+    setDotInfo(-1,-1,deadinfo[j].attributes[0].nodeValue,'',i);
+  }
+  if (numDots != loadinfo.length + deadinfo.length)
+    drawGrid();
+  numDots = loadinfo.length + deadinfo.length;
+  xmlReturned = true;
+}
+
+function setDotInfo(color,resizeModulus,id,extra,index) {
+  if (maxObservedColor < color) {
+    maxObservedColor = color;
+  }
+  if (index >= colors.length) {
+    colors.push(color);
+    resizeFrameModulus.push(resizeModulus);
+    ids.push(id);
+    extras.push(extra);
+    dotSize.push(maxDotRadius);
+    dotSizeGrowing.push(false);
+  } else {
+    colors[index] = color;
+    resizeFrameModulus[index] = resizeModulus;
+    ids[index] = id;
+    extras[index] = extra;
+    // keep existing size and direction
+  }
+}
+
+function drawDots(){
+  requestAnimFrame(drawDots);
+  if (xmlReturned == true) {
+    xmlReturned = false;
+    xmlhttp.open('POST',xmlurl,true);
+    xmlhttp.send();
+  }
+  
+  frame++;
+  
+  var width = Math.ceil(Math.sqrt(numDots));
+  var height = Math.ceil(numDots/width);
+  var x;
+  var y;
+  for (i=0; i < numDots; i++) {
+    if (resizeFrameModulus[i]<=0 || dotSize[i] > maxDotRadius) {
+      // if not changing size, stay at max radius
+      // also check for resize by the user
+      dotSize[i] = maxDotRadius;
+    } else if (resizeFrameModulus[i] > 0 && frame % resizeFrameModulus[i] == 0) {
+      if (dotSize[i] >= maxDotRadius) {dotSizeGrowing[i] = false};
+      if (dotSize[i] <= minDotRadius) {dotSizeGrowing[i] = true};
+      if (dotSizeGrowing[i]) {dotSize[i] = dotSize[i] + 1;}
+      else {dotSize[i] = dotSize[i] - 1;}
+    }
+    x = i % width;
+    y = Math.floor(i / width);
+    if (colors[i]==-1)
+      strokeDot(x,y,maxDotRadius-1,deadColor);
+    else
+      drawDot(x,y,dotSize[i],getColor(colors[i]));
+  }
+  if (mousedDot < numDots)
+    document.getElementById('vishoverinfo').innerHTML=ids[mousedDot]+extras[mousedDot];
+}
+
+// fill in a few grey dots
+function drawGrid() {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  for (i=0; i < 32; i++) {
+    for (j=0; j < 32; j++) {
+      drawDot(i,j,maxDotRadius,nullColor);
+    }
+  }
+}
+
+// fill a dot specified by indices into dot grid
+function drawDot(i,j,r,c) {
+  x = i*dotSpacing*2 + dotSpacing;
+  y = j*dotSpacing*2 + dotSpacing;
+  context.clearRect(x-dotSpacing, y-dotSpacing, dotSpacing*2, dotSpacing*2);
+  if (useCircles)
+    fillCircle(x,y,r-dotPadding,c);
+  else
+    fillSquare(x-r,y-r,(r-dotPadding)*2,c);
+}
+
+// stroke a dot specified by indices into dot grid
+function strokeDot(i,j,r,c) {
+  x = i*dotSpacing*2 + dotSpacing;
+  y = j*dotSpacing*2 + dotSpacing;
+  context.clearRect(x-dotSpacing, y-dotSpacing, dotSpacing*2, dotSpacing*2);
+  if (useCircles)
+    strokeCircle(x,y,r-dotPadding,c);
+  else
+    strokeSquare(x-r,y-r,(r-dotPadding)*2,c);
+}
+
+// translate color between 0 and maxObservedColor into an html color code
+function getColor(c) {
+  return colorPalette[Math.round((colorPalette.length-1)*c/maxObservedColor)];
+}
+
+function strokeCircle(x,y,r,c) {
+  context.strokeStyle = c;
+  context.lineWidth = 2;
+  context.beginPath();
+  context.arc(x,y,r,0,Math.PI*2,true);
+  context.closePath();
+  context.stroke();
+}
+
+function fillCircle(x,y,r,c) {
+  context.fillStyle = c;
+  context.beginPath();
+  context.arc(x,y,r,0,Math.PI*2,true);
+  context.closePath();
+  context.fill();
+}
+
+function strokeSquare(x,y,d,c) {
+  context.strokeStyle = c;
+  context.lineWidth = 2;
+  context.strokeRect(x,y,d,d);
+}
+
+function fillSquare(x,y,d,c) {
+  context.fillStyle = c;
+  context.fillRect(x,y,d,d);
+}
+
+// callback for shape selection
+function setShape(obj) {
+  switch (obj.selectedIndex) {
+    case 0:
+      useCircles = true;
+      break;
+    case 1:
+      useCircles = false;
+      break;
+    default:
+      useCircles = true;
+  }
+  drawGrid();
+  setState();
+}
+
+// callback for size selection
+function setSize(obj) {
+  switch (obj.selectedIndex) {
+    case 0:
+      dotSpacing = 5;
+      minDotRadius = 1;
+      break;
+    case 1:
+      dotSpacing = 10;
+      minDotRadius = 3;
+      break;
+    case 2:
+      dotSpacing = 20;
+      minDotRadius = 5;
+      break;
+    default:
+      dotSpacing = 10;
+      minDotRadius = 3;
+  }
+  maxDotRadius = dotSpacing - dotPadding;
+  drawGrid();
+  setState();
+}
+
+// callback for motion selection
+function setMotion(obj) {
+  switch (obj.selectedIndex) {
+    case 0:
+      useIngest = true;
+      break;
+    case 1:
+      useIngest = false;
+      break;
+    default:
+      useIngest = true;
+  }
+  drawGrid();
+  setState();
+}
+
+// hide server info on mouseout
+function hideId(e) {
+  document.getElementById('vishoverinfo').style.visibility='hidden';
+}
+
+// display server info on mouseover
+function showId(e) {
+  var x;
+  var y;
+  if (e.pageX || e.pageY) {
+    x = e.pageX + main.scrollLeft;
+    y = e.pageY + main.scrollTop;
+  }
+  else {
+    // clientX and clientY unimplemented
+    return;
+  }
+  var relx = x - canvas.offsetLeft - main.offsetLeft;
+  var rely = y - canvas.offsetTop - main.offsetTop;
+  var width = Math.ceil(Math.sqrt(numDots));
+  mousedDot = Math.floor(relx/(dotSpacing*2)) + width*Math.floor(rely/(dotSpacing*2));
+  if (relx < (width*dotSpacing*2) && mousedDot < numDots) {
+    document.getElementById('vishoverinfo').style.left=relx+canvas.offsetLeft;
+    document.getElementById('vishoverinfo').style.top=rely+canvas.offsetTop-40;
+    document.getElementById('vishoverinfo').style.visibility='visible';
+  }
+  else {
+    document.getElementById('vishoverinfo').style.visibility='hidden';
+  }
+}
+
+function setState() {
+  var url = visurl+'?shape='+(useCircles?'circles':'squares')+'&size='+(dotSpacing*2)+'&motion='+(useIngest?'ingest':'query');
+  window.history.replaceState(window.history.state,'Tablet Server Status Visualization',url);
+}
+
+// go to server page on click
+function goToServer(e) {
+  if (mousedDot < numDots)
+    window.location = serverurl + ids[mousedDot];
+}
+
+window.onload = function() {
+  drawGrid();
+  drawDots();
+}
+</script>
+
