@@ -132,7 +132,7 @@ public class TestMergeState {
     
     // do the state check
     MergeStats stats = scan(state, metaDataStateStore);
-    MergeState newState = stats.nextMergeState();
+    MergeState newState = stats.nextMergeState(connector, state);
     Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, newState);
     
     // unassign the tablets
@@ -141,12 +141,9 @@ public class TestMergeState {
     deleter.setRanges(Collections.singletonList(new Range()));
     deleter.delete();
     
-    // now we should be ready to merge
+    // now we should be ready to merge but, we have an inconsistent !METADATA table
     stats = scan(state, metaDataStateStore);
-    Assert.assertEquals(MergeState.MERGING, stats.nextMergeState());
-
-    // but, we have an inconsistent !METADATA table, so double check
-    Assert.assertFalse(stats.verifyMergeConsistency(connector, state));
+    Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(connector, state));
     
     // finish the split
     KeyExtent tablet = new KeyExtent(tableId, new Text("p"), new Text("o"));
@@ -157,7 +154,7 @@ public class TestMergeState {
     
     // onos... there's a new tablet online
     stats = scan(state, metaDataStateStore);
-    Assert.assertEquals(MergeState.WAITING_FOR_CHOPPED, stats.nextMergeState());
+    Assert.assertEquals(MergeState.WAITING_FOR_CHOPPED, stats.nextMergeState(connector, state));
     
     // chop it
     m = tablet.getPrevRowUpdateMutation();
@@ -165,7 +162,7 @@ public class TestMergeState {
     update(connector, m);
 
     stats = scan(state, metaDataStateStore);
-    Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState());
+    Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, stats.nextMergeState(connector, state));
 
     // take it offline
     m = tablet.getPrevRowUpdateMutation();
@@ -174,10 +171,7 @@ public class TestMergeState {
     
     // now we can split
     stats = scan(state, metaDataStateStore);
-    Assert.assertEquals(MergeState.MERGING, stats.nextMergeState());
-
-    // and we have consistent !METADATA table
-    Assert.assertTrue(stats.verifyMergeConsistency(connector, state));
+    Assert.assertEquals(MergeState.MERGING, stats.nextMergeState(connector, state));
 
   }
 
