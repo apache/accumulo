@@ -93,7 +93,7 @@ public class MergeStats {
       this.unassigned++;
   }
   
-  public MergeState nextMergeState() throws Exception {
+  public MergeState nextMergeState(Connector connector, CurrentState master) throws Exception {
     MergeState state = info.getState();
     if (state == MergeState.NONE)
       return state;
@@ -141,7 +141,10 @@ public class MergeStats {
       } else {
         log.info(chopped + " tablets are chopped, " + unassigned + " are offline " + info.getRange());
         if (unassigned == total && chopped == needsToBeChopped) {
-          state = MergeState.MERGING;
+          if (verifyMergeConsistency(connector, master))
+            state = MergeState.MERGING;
+          else
+            log.info("Merge consistency check failed " + info.getRange());
         } else {
           log.info("Waiting for " + unassigned + " unassigned tablets to be " + total + " " + info.getRange());
         }
@@ -163,7 +166,7 @@ public class MergeStats {
     return state;
   }
   
-  public boolean verifyMergeConsistency(Connector connector, CurrentState master) throws TableNotFoundException, IOException {
+  private boolean verifyMergeConsistency(Connector connector, CurrentState master) throws TableNotFoundException, IOException {
     MergeStats verify = new MergeStats(info);
     Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     MetaDataTableScanner.configureScanner(scanner, master);

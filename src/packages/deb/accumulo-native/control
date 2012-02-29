@@ -21,6 +21,6 @@ Package: accumulo-native
 Version: [[version]]
 Section: misc
 Architecture: all
-Depends: default-jdk, accumulo (=[[version]]), g++, g++-multilib
+Depends: java6-sdk, accumulo (=[[version]]), g++, g++-multilib
 Description: Native libraries for Accumulo- locks and InMemoryMap
   This optional package contains native libraries that improve the performance of Accumulo tservers.

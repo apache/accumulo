@@ -161,6 +161,7 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<a href='/master'>Master&nbsp;Server</a><br />\n");
     sb.append("<a href='/tservers'>Tablet&nbsp;Servers</a><br />\n");
     sb.append("<a href='/loggers'>Logger&nbsp;Servers</a><br />\n");
+    sb.append("<a href='/vis'>Server Activity</a><br />\n");
     sb.append("<a href='/gc'>Garbage&nbsp;Collector</a><br />\n");
     sb.append("<a href='/tables'>Tables</a><br />\n");
     sb.append("<a href='/trace/summary?minutes=10'>Recent&nbsp;Traces</a><br />\n");
@@ -172,7 +173,6 @@ abstract public class BasicServlet extends HttpServlet {
     if (numProblems > 0)
       sb.append("<span class='error'><a href='/problems'>Table&nbsp;Problems&nbsp;<span class='smalltext'>(" + numProblems + ")</a></span></span><br />\n");
     sb.append("<hr />\n");
-    sb.append("<a href='/vis'>Visualization</a><br />\n");
     sb.append("<a href='/xml'>XML</a><hr />\n");
     sb.append("<div class='smalltext'>[<a href='").append("/op?action=refresh&value=").append(refresh < 1 ? "5" : "-1");
     sb.append("&redir=").append(currentPage(req)).append("'>");
