@@ -1508,7 +1508,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         try {
           MergeState update = stats.nextMergeState();
           if (update == MergeState.MERGING) {
-            if (stats.verifyMergeConsistency(getConnector(), Master.this)) {
+            if (mergeStarted(stats.getMergeInfo()) || stats.verifyMergeConsistency(getConnector(), Master.this)) {
               try {
                 if (stats.getMergeInfo().isDelete()) {
                   deleteTablets(stats.getMergeInfo());
@@ -1530,6 +1530,31 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           log.error("Unable to update merge state for merge " + stats.getMergeInfo().getRange(), ex);
         }
       }
+    }
+
+    /**
+     * Determine if a merge has been started, and was interrupted and needs to be completed.
+     * 
+     * @param mergeInfo
+     * @return
+     * @throws AccumuloException
+     */
+    private boolean mergeStarted(MergeInfo mergeInfo) throws AccumuloException {
+      KeyExtent merge = mergeInfo.getRange();
+      KeyExtent highTablet = getHighTablet(merge);
+      // merge specifies -inf
+      if (merge.getPrevEndRow() == null) {
+        // lasttablet must start at -inf
+        return highTablet.getPrevEndRow() == null;
+      }
+      // upper end of merge is set -inf
+      if (highTablet.getPrevEndRow() == null) {
+        // nothing can come before this: merge is started
+        return true;
+      }
+      // if prevRow of last tablet is <= merge start, merge has started
+      Text mergeStart = merge.getPrevEndRow();
+      return highTablet.getPrevEndRow().compareTo(mergeStart.getBytes(), 0, mergeStart.getLength()) <= 0;
     }
 
     private void deleteTablets(MergeInfo info) throws AccumuloException {
