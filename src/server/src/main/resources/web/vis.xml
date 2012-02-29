@@ -123,7 +123,7 @@ function setDotInfo(color,rate,id,extra,index) {
   if (maxObservedColor < color) {
     maxObservedColor = color;
   }
-  if (maxObservedSpeed < speed) {
+  if (maxObservedSpeed < rate) {
     maxObservedSpeed = rate;
   }
   if (index >= colors.length) {
