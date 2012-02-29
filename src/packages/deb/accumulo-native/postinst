@@ -16,7 +16,11 @@
 # limitations under the License.
 
 # postinst script for Apache Accumulo native libraries
-export JAVA_HOME=/usr/lib/jvm/default-java
+JAVA_HOME=/usr/lib/jvm/default-java
+if [ ! -d $JAVA_HOME ]; then 
+  export JAVA_HOME=/usr/lib/jvm/java-6-openjdk;
+fi
+export JAVA_HOME
+echo $JAVA_HOME
 cd /usr/lib/accumulo/src/server/src/main/c++
 make
-
