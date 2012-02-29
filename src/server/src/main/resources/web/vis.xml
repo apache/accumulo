@@ -16,8 +16,14 @@
 -->
 
 <script type='text/javascript'>
-var maxLoad = numCores;
-var maxThroughput = 19; // exponent of 2
+// observable stats that can be connected to motion or color
+var statName = ['osload','ingest','query'];
+var speedStatType = 1; // index into statName
+var colorStatType = 0; // index into statName
+var maxStatValue = [numCores, 1000, 10000]; // initial values that are system-dependent will increase based on observed values
+var significance = [100,1,1]; // values will be converted by floor(this*value)/this
+var maxObservedSpeed = maxStatValue[speedStatType];
+var maxObservedColor = maxStatValue[colorStatType];
 
 // size and spacing variables
 var numDots = 0; // number of dots to draw
@@ -29,12 +35,11 @@ var maxDotRadius = dotSpacing - dotPadding;
 // arrays of information about each dot
 var dotSize = new Array(numDots); // current sizes
 var dotSizeGrowing = new Array(numDots); // true when dot size is growing, false when shrinking
-var resizeFrameModulus = new Array(numDots); // never resize when <= 0, otherwise resize when frame % modulus == 0
 var ids = new Array(numDots); // server ids
 var extras = new Array(numDots); // info from which color and motion is derived
 var mousedDot = 0; // the dot currently under the mouse
 
-var maxObservedColor = maxLoad;
+var speed = new Array(numDots); // between 0 (motionless) and maxObservedSpeed (fastest)
 var colors = new Array(numDots); // dot colors between 0 and maxObservedColor, -1 for dead node
 var colorPalette = ['#0000CC', '#0014B8', '#0029A3', '#003D8F', '#00527A', '#006666', '#007A52', '#008F3D', '#00A329', '#00B814', '#00CC00', '#14D100', '#29D600', '#3DDB00', '#52E000', '#66E600', '#7AEB00', '#8FF000', '#A3F500', '#B8FA00', '#CCFF00', '#CCFF00', '#CCF200', '#CCE600', '#CCD900', '#CCCC00', '#CCBF00', '#CCB200', '#CCA600', '#CC9900', '#CC8C00', '#CC8000', '#CC7300', '#CC6600', '#CC5900', '#CC4C00', '#CC4000', '#CC3300', '#CC2600', '#CC1A00', '#CC0D00', '#CC0000'];
 
@@ -55,7 +60,6 @@ canvas.addEventListener('click', goToServer, false);
 // initialize settings based on request parameters
 var main = document.getElementById('main');
 var useCircles = true;
-var useIngest = true;
 setShape(document.getElementById('shape'));
 setSize(document.getElementById('size'));
 setMotion(document.getElementById('motion'));
@@ -83,60 +87,55 @@ function handleNewData() {
     xmlReturned = true;
     return;
   }
-  var loadinfo = xmlhttp.responseXML.getElementsByTagName('osload');
-  var ingestinfo = xmlhttp.responseXML.getElementsByTagName('ingest');
-  var queryinfo = xmlhttp.responseXML.getElementsByTagName('query');
+  var statinfo = new Array(statName.length);
+  for (j=0; j < statName.length; j++)
+    statinfo[j] = xmlhttp.responseXML.getElementsByTagName(statName[j]);
   var deadinfo = xmlhttp.responseXML.getElementsByTagName('deadTabletServer');
   var badinfo = xmlhttp.responseXML.getElementsByTagName('badTabletServer');
   var idinfo = xmlhttp.responseXML.getElementsByTagName('server');
   
-  for (i=0; i < loadinfo.length; i++) {
-    var load = parseFloat(loadinfo[i].childNodes[0].nodeValue);
-    var activity;
-    if (useIngest)
-      activity = parseFloat(ingestinfo[i].childNodes[0].nodeValue);
-    else
-      activity = parseFloat(queryinfo[i].childNodes[0].nodeValue);
+  var statValues = new Array(3);
+  for (i=0; i < idinfo.length; i++) {
     var info = idinfo[i].attributes[0].nodeValue;
-    var extra = '<br>osload: ' + Math.round(load*100)/100 + ', ' + (useIngest?'ingest':'query') + ': ' + Math.round(activity);
-    newColor = load;
-    if (activity < 10) {
-      newSkip = -1;
-    } else {
-      activity = Math.log(activity)/Math.log(2);
-      if (maxThroughput < activity)
-        maxThroughput = activity;
-      newSkip = Math.ceil(Math.pow(1.8, maxThroughput - activity));
+    var extra = '<br>';
+    for (j=0; j < statinfo.length; j++) {
+      statValues[j] = Math.floor(significance[j]*parseFloat(statinfo[j][i].childNodes[0].nodeValue))/significance[j];
+      if (maxStatValue[j] < statValues[j])
+        maxStatValue[j] = statValues[j];
+      extra = extra + ' ' + statName[j] + ': ' + statValues[j];
     }
-    setDotInfo(newColor,newSkip,info,extra,i);
+    setDotInfo(statValues[colorStatType],statValues[speedStatType],info,extra,i);
   }
   
-  for (i=loadinfo.length,j=0; j < deadinfo.length; i++,j++) {
+  for (i=idinfo.length,j=0; j < deadinfo.length; i++,j++) {
     setDotInfo(-1,-1,deadinfo[j].attributes[0].nodeValue,'',i);
   }
-  for (i=loadinfo.length+deadinfo.length,j=0; j < badinfo.length; i++,j++) {
+  for (i=idinfo.length+deadinfo.length,j=0; j < badinfo.length; i++,j++) {
     setDotInfo(-1,-1,badinfo[j].attributes[0].nodeValue,'',i);
   }
-  if (numDots != loadinfo.length + deadinfo.length + badinfo.length)
+  if (numDots != idinfo.length + deadinfo.length + badinfo.length)
     drawGrid();
-  numDots = loadinfo.length + deadinfo.length + badinfo.length;
+  numDots = idinfo.length + deadinfo.length + badinfo.length;
   xmlReturned = true;
 }
 
-function setDotInfo(color,resizeModulus,id,extra,index) {
+function setDotInfo(color,rate,id,extra,index) {
   if (maxObservedColor < color) {
     maxObservedColor = color;
   }
+  if (maxObservedSpeed < speed) {
+    maxObservedSpeed = rate;
+  }
   if (index >= colors.length) {
     colors.push(color);
-    resizeFrameModulus.push(resizeModulus);
+    speed.push(rate);
     ids.push(id);
     extras.push(extra);
     dotSize.push(maxDotRadius);
     dotSizeGrowing.push(false);
   } else {
     colors[index] = color;
-    resizeFrameModulus[index] = resizeModulus;
+    speed[index] = rate;
     ids[index] = id;
     extras[index] = extra;
     // keep existing size and direction
@@ -158,25 +157,35 @@ function drawDots(){
   var x;
   var y;
   for (i=0; i < numDots; i++) {
-    if (resizeFrameModulus[i]<=0 || dotSize[i] > maxDotRadius) {
+    if (Math.floor(dotSize[i]) > maxDotRadius) {
+      // check for resize by the user
+      dotSize[i] = maxDotRadius;
+    } else if (speed[i]<=0) {
       // if not changing size, increase to max radius
-      // also check for resize by the user
       if (dotSize[i] < maxDotRadius)
         dotSize[i] = dotSize[i] + 1;
-      else
+      if (dotSize[i] > maxDotRadius)
         dotSize[i] = maxDotRadius;
-    } else if (resizeFrameModulus[i] > 0 && frame % resizeFrameModulus[i] == 0) {
-      if (dotSize[i] >= maxDotRadius) {dotSizeGrowing[i] = false};
-      if (dotSize[i] <= minDotRadius) {dotSizeGrowing[i] = true};
-      if (dotSizeGrowing[i]) {dotSize[i] = dotSize[i] + 1;}
-      else {dotSize[i] = dotSize[i] - 1;}
+    } else {
+      if (dotSizeGrowing[i]) {
+        dotSize[i] = dotSize[i] + speed[i]/maxObservedSpeed;
+        if (dotSize[i] + speed[i]/maxObservedSpeed > maxDotRadius) {
+          dotSizeGrowing[i] = false;
+        }
+      }
+      else {
+        dotSize[i] = dotSize[i] - speed[i]/maxObservedSpeed;
+        if (dotSize[i] - speed[i]/maxObservedSpeed < minDotRadius) {
+          dotSizeGrowing[i] = true;
+        }
+      }
     }
     x = i % width;
     y = Math.floor(i / width);
     if (colors[i]==-1)
       strokeDot(x,y,maxDotRadius-1,deadColor);
     else
-      drawDot(x,y,dotSize[i],getColor(colors[i]));
+      drawDot(x,y,Math.floor(dotSize[i]),getColor(colors[i]));
   }
   if (mousedDot < numDots)
     document.getElementById('vishoverinfo').innerHTML=ids[mousedDot]+extras[mousedDot];
@@ -293,16 +302,16 @@ function setSize(obj) {
 
 // callback for motion selection
 function setMotion(obj) {
-  switch (obj.selectedIndex) {
-    case 0:
-      useIngest = true;
-      break;
-    case 1:
-      useIngest = false;
-      break;
-    default:
-      useIngest = true;
-  }
+  speedStatType = obj.selectedIndex;
+  maxObservedSpeed = maxStatValue[speedStatType];
+  drawGrid();
+  setState();
+}
+
+// callback for color selection
+function setColor(obj) {
+  colorStatType = obj.selectedIndex;
+  maxObservedColor = maxStatValue[colorStatType];
   drawGrid();
   setState();
 }
@@ -339,7 +348,7 @@ function showId(e) {
 }
 
 function setState() {
-  var url = visurl+'?shape='+(useCircles?'circles':'squares')+'&size='+(dotSpacing*2)+'&motion='+(useIngest?'ingest':'query');
+  var url = visurl+'?shape='+(useCircles?'circles':'squares')+'&size='+(dotSpacing*2)+'&motion='+statName[speedStatType]+'&color='+statName[colorStatType];
   window.history.replaceState(window.history.state,'Server Activity',url);
 }
 

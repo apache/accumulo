@@ -30,9 +30,14 @@ import org.apache.accumulo.server.monitor.Monitor;
 public class VisServlet extends BasicServlet {
   private static final long serialVersionUID = 1L;
   boolean useCircles;
-  boolean useIngest;
+  StatType motion;
+  StatType color;
   int spacing;
   String url;
+  
+  public enum StatType {
+    osload, ingest, query
+  }
   
   @Override
   protected String getTitle(HttpServletRequest req) {
@@ -46,15 +51,25 @@ public class VisServlet extends BasicServlet {
     url = urlsb.toString();
     
     useCircles = true;
-    String shape = req.getParameter("shape");
-    if (shape != null && (shape.equals("square") || shape.equals("squares"))) {
+    String s = req.getParameter("shape");
+    if (s != null && (s.equals("square") || s.equals("squares"))) {
       useCircles = false;
     }
     
-    useIngest = true;
-    String motion = req.getParameter("motion");
-    if (motion != null && (motion.equals("query"))) {
-      useIngest = false;
+    s = req.getParameter("motion");
+    motion = StatType.ingest;
+    if (s != null) {
+      try {
+        motion = StatType.valueOf(s);
+      } catch (Exception e) {}
+    }
+    
+    s = req.getParameter("color");
+    color = StatType.osload;
+    if (s != null) {
+      try {
+        color = StatType.valueOf(s);
+      } catch (Exception e) {}
     }
     
     spacing = 20;
@@ -93,10 +108,13 @@ public class VisServlet extends BasicServlet {
         .append(spacing == 40 ? " selected='true'" : "").append(">40</option><option").append(spacing == 80 ? " selected='true'" : "")
         .append(">80</option></select></span>\n");
     // motion select box
-    sb.append("&nbsp;&nbsp<span class='viscontrol'>Motion: <select id='motion' onchange='setMotion(this)'><option>Ingest</option><option")
-        .append(!useIngest ? " selected='true'" : "").append(">Query</option></select></span>\n");
+    sb.append("&nbsp;&nbsp<span class='viscontrol'>Motion: <select id='motion' onchange='setMotion(this)'>");
+    addOptions(sb, motion);
+    sb.append("</select></span>\n");
     // color select box
-    sb.append("&nbsp;&nbsp<span class='viscontrol'>Color: <select><option>OS Load</option></select></span>\n");
+    sb.append("&nbsp;&nbsp<span class='viscontrol'>Color: <select id='color' onchange='setColor(this)'>");
+    addOptions(sb, color);
+    sb.append("</select></span>\n");
     sb.append("&nbsp;&nbsp<span class='viscontrol'>(hover for info, click for details)</span>");
     sb.append("</div>\n\n");
     // floating info box
@@ -111,6 +129,12 @@ public class VisServlet extends BasicServlet {
     sb.append("var visurl = '" + url + "vis';\n");
     sb.append("var serverurl = '" + url + "tservers?s=';\n");
     sb.append("</script>\n");
+  }
+  
+  private void addOptions(StringBuilder sb, StatType selectedStatType) {
+    for (StatType st : StatType.values()) {
+      sb.append("<option").append(st.equals(selectedStatType) ? " selected='true'>" : ">").append(st).append("</option>");
+    }
   }
   
   private void doScript(StringBuilder sb, ArrayList<TabletServerStatus> tservers) {
