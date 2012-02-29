@@ -22,11 +22,10 @@ var speedStatType = 1; // index into statName
 var colorStatType = 0; // index into statName
 var maxStatValue = [numCores, 1000, 10000]; // initial values that are system-dependent will increase based on observed values
 var significance = [100,1,1]; // values will be converted by floor(this*value)/this
-var maxObservedSpeed = maxStatValue[speedStatType];
-var maxObservedColor = maxStatValue[colorStatType];
 
 // size and spacing variables
 var numDots = 0; // number of dots to draw
+var numLive = 0;
 var dotSpacing = 10; // spacing between centers of dots (radius)
 var dotPadding = 0.5; // dot padding
 var minDotRadius = 3; // min dot radius
@@ -39,8 +38,7 @@ var ids = new Array(numDots); // server ids
 var extras = new Array(numDots); // info from which color and motion is derived
 var mousedDot = 0; // the dot currently under the mouse
 
-var speed = new Array(numDots); // between 0 (motionless) and maxObservedSpeed (fastest)
-var colors = new Array(numDots); // dot colors between 0 and maxObservedColor, -1 for dead node
+var allStats = new Array(numDots);
 var colorPalette = ['#0000CC', '#0014B8', '#0029A3', '#003D8F', '#00527A', '#006666', '#007A52', '#008F3D', '#00A329', '#00B814', '#00CC00', '#14D100', '#29D600', '#3DDB00', '#52E000', '#66E600', '#7AEB00', '#8FF000', '#A3F500', '#B8FA00', '#CCFF00', '#CCFF00', '#CCF200', '#CCE600', '#CCD900', '#CCCC00', '#CCBF00', '#CCB200', '#CCA600', '#CC9900', '#CC8C00', '#CC8000', '#CC7300', '#CC6600', '#CC5900', '#CC4C00', '#CC4000', '#CC3300', '#CC2600', '#CC1A00', '#CC0D00', '#CC0000'];
 
 var nullColor = '#F5F8FA';
@@ -94,7 +92,7 @@ function handleNewData() {
   var badinfo = xmlhttp.responseXML.getElementsByTagName('badTabletServer');
   var idinfo = xmlhttp.responseXML.getElementsByTagName('server');
   
-  var statValues = new Array(3);
+  var statValues = new Array(statName.length);
   for (i=0; i < idinfo.length; i++) {
     var info = idinfo[i].attributes[0].nodeValue;
     var extra = '<br>';
@@ -104,14 +102,16 @@ function handleNewData() {
         maxStatValue[j] = statValues[j];
       extra = extra + ' ' + statName[j] + ': ' + statValues[j];
     }
-    setDotInfo(statValues[colorStatType],statValues[speedStatType],info,extra,i);
+    setStats(statValues,i);
+    setDotInfo(info,extra,i);
   }
+  numLive = idinfo.length;
   
   for (i=idinfo.length,j=0; j < deadinfo.length; i++,j++) {
-    setDotInfo(-1,-1,deadinfo[j].attributes[0].nodeValue,'',i);
+    setDotInfo(deadinfo[j].attributes[0].nodeValue,'',i);
   }
   for (i=idinfo.length+deadinfo.length,j=0; j < badinfo.length; i++,j++) {
-    setDotInfo(-1,-1,badinfo[j].attributes[0].nodeValue,'',i);
+    setDotInfo(badinfo[j].attributes[0].nodeValue,'',i);
   }
   if (numDots != idinfo.length + deadinfo.length + badinfo.length)
     drawGrid();
@@ -119,23 +119,20 @@ function handleNewData() {
   xmlReturned = true;
 }
 
-function setDotInfo(color,rate,id,extra,index) {
-  if (maxObservedColor < color) {
-    maxObservedColor = color;
-  }
-  if (maxObservedSpeed < rate) {
-    maxObservedSpeed = rate;
-  }
-  if (index >= colors.length) {
-    colors.push(color);
-    speed.push(rate);
+function setStats(statValues,index) {
+  if (index >= allStats.length)
+    allStats.push(new Array(statValues.length));
+  for (j=0; j < statValues.length; j++)
+    allStats[index][j] = statValues[j];
+}
+
+function setDotInfo(id,extra,index) {
+  if (index >= ids.length) {
     ids.push(id);
     extras.push(extra);
     dotSize.push(maxDotRadius);
     dotSizeGrowing.push(false);
   } else {
-    colors[index] = color;
-    speed[index] = rate;
     ids[index] = id;
     extras[index] = extra;
     // keep existing size and direction
@@ -156,36 +153,38 @@ function drawDots(){
   var height = Math.ceil(numDots/width);
   var x;
   var y;
+  var sizeChange;
   for (i=0; i < numDots; i++) {
     if (Math.floor(dotSize[i]) > maxDotRadius) {
       // check for resize by the user
       dotSize[i] = maxDotRadius;
-    } else if (speed[i]<=0) {
+    } else if (i >= numLive || allStats[i][speedStatType]<=0) {
       // if not changing size, increase to max radius
       if (dotSize[i] < maxDotRadius)
         dotSize[i] = dotSize[i] + 1;
       if (dotSize[i] > maxDotRadius)
         dotSize[i] = maxDotRadius;
     } else {
+      sizeChange = allStats[i][speedStatType]/maxStatValue[speedStatType];
       if (dotSizeGrowing[i]) {
-        dotSize[i] = dotSize[i] + speed[i]/maxObservedSpeed;
-        if (dotSize[i] + speed[i]/maxObservedSpeed > maxDotRadius) {
+        dotSize[i] = dotSize[i] + sizeChange;
+        if (dotSize[i] + sizeChange > maxDotRadius) {
           dotSizeGrowing[i] = false;
         }
       }
       else {
-        dotSize[i] = dotSize[i] - speed[i]/maxObservedSpeed;
-        if (dotSize[i] - speed[i]/maxObservedSpeed < minDotRadius) {
+        dotSize[i] = dotSize[i] - sizeChange;
+        if (dotSize[i] - sizeChange < minDotRadius) {
           dotSizeGrowing[i] = true;
         }
       }
     }
     x = i % width;
     y = Math.floor(i / width);
-    if (colors[i]==-1)
+    if (i >= numLive)
       strokeDot(x,y,maxDotRadius-1,deadColor);
     else
-      drawDot(x,y,Math.floor(dotSize[i]),getColor(colors[i]));
+      drawDot(x,y,Math.floor(dotSize[i]),getColor(allStats[i][colorStatType],maxStatValue[colorStatType]));
   }
   if (mousedDot < numDots)
     document.getElementById('vishoverinfo').innerHTML=ids[mousedDot]+extras[mousedDot];
@@ -224,8 +223,8 @@ function strokeDot(i,j,r,c) {
 }
 
 // translate color between 0 and maxObservedColor into an html color code
-function getColor(c) {
-  return colorPalette[Math.round((colorPalette.length-1)*c/maxObservedColor)];
+function getColor(c,maxc) {
+  return colorPalette[Math.round((colorPalette.length-1)*c/maxc)];
 }
 
 function strokeCircle(x,y,r,c) {
@@ -303,7 +302,6 @@ function setSize(obj) {
 // callback for motion selection
 function setMotion(obj) {
   speedStatType = obj.selectedIndex;
-  maxObservedSpeed = maxStatValue[speedStatType];
   drawGrid();
   setState();
 }
@@ -311,7 +309,6 @@ function setMotion(obj) {
 // callback for color selection
 function setColor(obj) {
   colorStatType = obj.selectedIndex;
-  maxObservedColor = maxStatValue[colorStatType];
   drawGrid();
   setState();
 }
