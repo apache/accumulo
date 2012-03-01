@@ -16,12 +16,8 @@
 -->
 
 <script type='text/javascript'>
-// observable stats that can be connected to motion or color
-var statName = ['osload','ingest','query'];
 var speedStatType = 1; // index into statName
 var colorStatType = 0; // index into statName
-var maxStatValue = [numCores, 1000, 10000]; // initial values that are system-dependent will increase based on observed values
-var significance = [100,1,1]; // values will be converted by floor(this*value)/this
 
 // size and spacing variables
 var numDots = 0; // number of dots to draw
@@ -98,8 +94,8 @@ function handleNewData() {
     var extra = '<br>';
     for (j=0; j < statinfo.length; j++) {
       statValues[j] = Math.floor(significance[j]*parseFloat(statinfo[j][i].childNodes[0].nodeValue))/significance[j];
-      if (maxStatValue[j] < statValues[j])
-        maxStatValue[j] = statValues[j];
+      if (statValues[j] < 0)
+        statValues[j] = 0;
       extra = extra + ' ' + statName[j] + ': ' + statValues[j];
     }
     setStats(statValues,i);
@@ -122,8 +118,11 @@ function handleNewData() {
 function setStats(statValues,index) {
   if (index >= allStats.length)
     allStats.push(new Array(statValues.length));
-  for (j=0; j < statValues.length; j++)
+  for (j=0; j < statValues.length; j++) {
+    if (adjustMax[j] && maxStatValue[j] < statValues[j])
+      maxStatValue[j] = statValues[j];
     allStats[index][j] = statValues[j];
+  }
 }
 
 function setDotInfo(id,extra,index) {
@@ -166,6 +165,8 @@ function drawDots(){
         dotSize[i] = maxDotRadius;
     } else {
       sizeChange = allStats[i][speedStatType]/maxStatValue[speedStatType];
+      if (sizeChange > 1)
+        sizeChange = 1;
       if (dotSizeGrowing[i]) {
         dotSize[i] = dotSize[i] + sizeChange;
         if (dotSize[i] + sizeChange > maxDotRadius) {
@@ -184,7 +185,7 @@ function drawDots(){
     if (i >= numLive)
       strokeDot(x,y,maxDotRadius-1,deadColor);
     else
-      drawDot(x,y,Math.floor(dotSize[i]),getColor(allStats[i][colorStatType],maxStatValue[colorStatType]));
+      drawDot(x,y,Math.floor(dotSize[i]),getColor(allStats[i][colorStatType]/maxStatValue[colorStatType]));
   }
   if (mousedDot < numDots)
     document.getElementById('vishoverinfo').innerHTML=ids[mousedDot]+extras[mousedDot];
@@ -223,8 +224,10 @@ function strokeDot(i,j,r,c) {
 }
 
 // translate color between 0 and maxObservedColor into an html color code
-function getColor(c,maxc) {
-  return colorPalette[Math.round((colorPalette.length-1)*c/maxc)];
+function getColor(normColor) {
+  if (normColor > 1)
+    normColor = 1;
+  return colorPalette[Math.round((colorPalette.length-1)*normColor)];
 }
 
 function strokeCircle(x,y,r,c) {
