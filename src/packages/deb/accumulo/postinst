@@ -27,9 +27,9 @@ ln -fs /var/log/accumulo/logs /usr/lib/accumulo/logs
 ln -fs /var/log/accumulo/walogs /usr/lib/accumulo/walogs 
 
 if [ -z $JAVA_HOME ]; then
-  JAVA_HOME=`!readlink -f /usr/bin/java`
+  JAVA_HOME=`readlink -f /usr/bin/java`
   JAVA_HOME=`dirname $JAVA_HOME`
-  JAVA_HOME=`ci $JAVA_HOME/../../; pwd`
+  JAVA_HOME=`cd $JAVA_HOME/../../; pwd`
 fi
 if [ -z $ZOOKEEPER_HOME ]; then
   ZOOKEEPER_HOME="/usr/lib/zookeeper"
