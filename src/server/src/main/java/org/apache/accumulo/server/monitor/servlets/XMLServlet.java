@@ -87,6 +87,11 @@ public class XMLServlet extends BasicServlet {
       
       sb.append("<ingest>").append(summary.ingestRate).append("</ingest>\n");
       sb.append("<query>").append(summary.queryRate).append("</query>\n");
+      sb.append("<ingestMB>").append(summary.ingestByteRate / 1000000.0).append("</ingestMB>\n");
+      sb.append("<queryMB>").append(summary.queryByteRate / 1000000.0).append("</queryMB>\n");
+      sb.append("<scans>").append(summary.scans.running + summary.scans.queued).append("</scans>");
+      sb.append("<scansessions>").append(Monitor.getLookupRate()).append("</scansessions>\n");
+      sb.append("<holdtime>").append(status.holdTime).append("</holdtime>\n");
       totalIngest += summary.ingestRate;
       totalQuery += summary.queryRate;
       totalEntries += summary.recs;

@@ -587,6 +587,10 @@ public class Monitor {
     }
   }
   
+  public static double getLookupRate() {
+    return lookupRateTracker.calculateRate();
+  }
+  
   public static List<Pair<Long,Integer>> getQueryRateOverTime() {
     synchronized (queryRateOverTime) {
       return new ArrayList<Pair<Long,Integer>>(queryRateOverTime);

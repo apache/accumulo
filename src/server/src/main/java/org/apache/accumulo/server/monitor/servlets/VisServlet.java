@@ -24,10 +24,14 @@ import java.util.ArrayList;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.monitor.Monitor;
 
 public class VisServlet extends BasicServlet {
+  private static final int concurrentScans = ServerConfiguration.getSystemConfiguration().getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
+  
   private static final long serialVersionUID = 1L;
   boolean useCircles;
   StatType motion;
@@ -36,7 +40,52 @@ public class VisServlet extends BasicServlet {
   String url;
   
   public enum StatType {
-    osload, ingest, query
+    osload(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors(), true, 100, "OS Load"),
+    ingest(1000, true, 1, "Ingest Entries"),
+    query(10000, true, 1, "Scan Entries"),
+    ingestMB(10, true, 10, "Ingest MB"),
+    queryMB(5, true, 10, "Scan MB"),
+    scans(concurrentScans * 2, false, 1, "Running Scans"),
+    scansessions(50, true, 10, "Scan Sessions"),
+    holdtime(60000, false, 1, "Hold Time");
+    
+    private int max;
+    private boolean adjustMax;
+    private float significance;
+    private String description;
+    
+    /**
+     * @param max
+     *          initial estimate of largest possible value for this stat
+     * @param adjustMax
+     *          indicates whether max should be adjusted based on observed values
+     * @param significance
+     *          values will be converted by floor(significance*value)/significance
+     * @param description
+     *          as appears in selection box
+     */
+    private StatType(int max, boolean adjustMax, float significance, String description) {
+      this.max = max;
+      this.adjustMax = adjustMax;
+      this.significance = significance;
+      this.description = description;
+    }
+    
+    public int getMax() {
+      return max;
+    }
+    
+    public boolean getAdjustMax() {
+      return adjustMax;
+    }
+    
+    public float getSignificance() {
+      return significance;
+    }
+    
+    public String getDescription() {
+      return description;
+    }
   }
   
   @Override
@@ -127,13 +176,34 @@ public class VisServlet extends BasicServlet {
     sb.append("var numCores = " + ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors() + ";\n");
     sb.append("var xmlurl = '" + url + "xml';\n");
     sb.append("var visurl = '" + url + "vis';\n");
-    sb.append("var serverurl = '" + url + "tservers?s=';\n");
+    sb.append("var serverurl = '" + url + "tservers?s=';\n\n");
+    sb.append("// observable stats that can be connected to motion or color\n");
+    sb.append("var statName = [");
+    for (StatType st : StatType.values())
+      sb.append("'").append(st).append("',");
+    sb.setLength(sb.length() - 1);
+    sb.append("];\n");
+    sb.append("var maxStatValue = [");
+    for (StatType st : StatType.values())
+      sb.append(st.getMax()).append(",");
+    sb.setLength(sb.length() - 1);
+    sb.append("]; // initial values that are system-dependent may increase based on observed values\n");
+    sb.append("var adjustMax = [");
+    for (StatType st : StatType.values())
+      sb.append(st.getAdjustMax()).append(",");
+    sb.setLength(sb.length() - 1);
+    sb.append("]; // whether to allow increases in the max based on observed values\n");
+    sb.append("var significance = [");
+    for (StatType st : StatType.values())
+      sb.append(st.getSignificance()).append(",");
+    sb.setLength(sb.length() - 1);
+    sb.append("]; // values will be converted by floor(this*value)/this\n");
     sb.append("</script>\n");
   }
   
   private void addOptions(StringBuilder sb, StatType selectedStatType) {
     for (StatType st : StatType.values()) {
-      sb.append("<option").append(st.equals(selectedStatType) ? " selected='true'>" : ">").append(st).append("</option>");
+      sb.append("<option").append(st.equals(selectedStatType) ? " selected='true'>" : ">").append(st.getDescription()).append("</option>");
     }
   }
   
