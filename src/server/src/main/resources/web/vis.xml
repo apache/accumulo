@@ -16,9 +16,6 @@
 -->
 
 <script type='text/javascript'>
-var speedStatType = 1; // index into statName
-var colorStatType = 0; // index into statName
-
 // size and spacing variables
 var numDots = 0; // number of dots to draw
 var numLive = 0;
@@ -53,10 +50,11 @@ canvas.addEventListener('click', goToServer, false);
 
 // initialize settings based on request parameters
 var main = document.getElementById('main');
+var speedStatType = document.getElementById('motion').selectedIndex; // index into statName
+var colorStatType = document.getElementById('color').selectedIndex; // index into statName
 var useCircles = true;
 setShape(document.getElementById('shape'));
 setSize(document.getElementById('size'));
-setMotion(document.getElementById('motion'));
 
 // xml loading variables
 var xmlReturned = true;
