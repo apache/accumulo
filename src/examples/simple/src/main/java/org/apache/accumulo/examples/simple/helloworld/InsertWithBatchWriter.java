@@ -34,7 +34,7 @@ public class InsertWithBatchWriter {
       TableNotFoundException {
     if (args.length != 5) {
       System.out
-          .println("Usage: bin/tool.sh accumulo-examplesjar accumulo.examples.helloworld.InsertWithBatchWriter <instance name> <zoo keepers> <username> <password> <tableName>");
+          .println("Usage: accumulo examples-simplejar accumulo.examples.helloworld.InsertWithBatchWriter <instance name> <zoo keepers> <username> <password> <tableName>");
       System.exit(1);
     }
     

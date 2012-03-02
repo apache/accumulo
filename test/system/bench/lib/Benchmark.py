@@ -99,7 +99,7 @@ class Benchmark(unittest.TestCase):
         
     # Returns the location of the local examples jar
     def getexamplejar(self):
-        return self.findjar(accumulo() + '/lib/accumulo-examples*.jar')
+        return self.findjar(accumulo() + '/lib/examples-simple*.jar')
     
     # Returns a string of core, thrift and zookeeper jars with a specified delim
     def getjars(self, delim=','):
