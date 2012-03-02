@@ -21,6 +21,9 @@ import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
 import java.util.TimerTask;
 
+import org.apache.accumulo.cloudtrace.instrument.Span;
+import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
+import org.apache.accumulo.cloudtrace.thrift.SpanReceiver;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -55,9 +58,6 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
-import cloudtrace.instrument.Span;
-import cloudtrace.thrift.RemoteSpan;
-import cloudtrace.thrift.SpanReceiver;
 
 public class TraceServer implements Watcher {
   

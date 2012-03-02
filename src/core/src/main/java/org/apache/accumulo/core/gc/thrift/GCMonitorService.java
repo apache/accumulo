@@ -24,13 +24,13 @@ import org.slf4j.LoggerFactory;
 
   public interface Iface {
 
-    public GCStatus getStatus(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public GCStatus getStatus(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
   }
 
   public interface AsyncIface {
 
-    public void getStatus(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getStatus_call> resultHandler) throws org.apache.thrift.TException;
+    public void getStatus(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getStatus_call> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -71,13 +71,13 @@ import org.slf4j.LoggerFactory;
       return this.oprot_;
     }
 
-    public GCStatus getStatus(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public GCStatus getStatus(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_getStatus(tinfo, credentials);
       return recv_getStatus();
     }
 
-    public void send_getStatus(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.thrift.TException
+    public void send_getStatus(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.thrift.TException
     {
       oprot_.writeMessageBegin(new org.apache.thrift.protocol.TMessage("getStatus", org.apache.thrift.protocol.TMessageType.CALL, ++seqid_));
       getStatus_args args = new getStatus_args();
@@ -129,7 +129,7 @@ import org.slf4j.LoggerFactory;
       super(protocolFactory, clientManager, transport);
     }
 
-    public void getStatus(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.thrift.async.AsyncMethodCallback<getStatus_call> resultHandler) throws org.apache.thrift.TException {
+    public void getStatus(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.thrift.async.AsyncMethodCallback<getStatus_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       getStatus_call method_call = new getStatus_call(tinfo, credentials, resultHandler, this, protocolFactory, transport);
       this.currentMethod = method_call;
@@ -137,9 +137,9 @@ import org.slf4j.LoggerFactory;
     }
 
     public static class getStatus_call extends org.apache.thrift.async.TAsyncMethodCall {
-      private cloudtrace.thrift.TInfo tinfo;
+      private org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
       private org.apache.accumulo.core.security.thrift.AuthInfo credentials;
-      public getStatus_call(cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.thrift.async.AsyncMethodCallback<getStatus_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getStatus_call(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, org.apache.thrift.async.AsyncMethodCallback<getStatus_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -245,7 +245,7 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
-    public cloudtrace.thrift.TInfo tinfo;
+    public org.apache.accumulo.cloudtrace.thrift.TInfo tinfo;
     public org.apache.accumulo.core.security.thrift.AuthInfo credentials;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -315,7 +315,7 @@ import org.slf4j.LoggerFactory;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, cloudtrace.thrift.TInfo.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.cloudtrace.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.security.thrift.AuthInfo.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -326,7 +326,7 @@ import org.slf4j.LoggerFactory;
     }
 
     public getStatus_args(
-      cloudtrace.thrift.TInfo tinfo,
+      org.apache.accumulo.cloudtrace.thrift.TInfo tinfo,
       org.apache.accumulo.core.security.thrift.AuthInfo credentials)
     {
       this();
@@ -339,7 +339,7 @@ import org.slf4j.LoggerFactory;
      */
     public getStatus_args(getStatus_args other) {
       if (other.isSetTinfo()) {
-        this.tinfo = new cloudtrace.thrift.TInfo(other.tinfo);
+        this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.security.thrift.AuthInfo(other.credentials);
@@ -356,11 +356,11 @@ import org.slf4j.LoggerFactory;
       this.credentials = null;
     }
 
-    public cloudtrace.thrift.TInfo getTinfo() {
+    public org.apache.accumulo.cloudtrace.thrift.TInfo getTinfo() {
       return this.tinfo;
     }
 
-    public getStatus_args setTinfo(cloudtrace.thrift.TInfo tinfo) {
+    public getStatus_args setTinfo(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -410,7 +410,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetTinfo();
         } else {
-          setTinfo((cloudtrace.thrift.TInfo)value);
+          setTinfo((org.apache.accumulo.cloudtrace.thrift.TInfo)value);
         }
         break;
 
@@ -538,7 +538,7 @@ import org.slf4j.LoggerFactory;
         switch (field.id) {
           case 2: // TINFO
             if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
-              this.tinfo = new cloudtrace.thrift.TInfo();
+              this.tinfo = new org.apache.accumulo.cloudtrace.thrift.TInfo();
               this.tinfo.read(iprot);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);

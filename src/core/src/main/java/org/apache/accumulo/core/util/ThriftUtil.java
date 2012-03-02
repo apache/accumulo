@@ -18,6 +18,7 @@ package org.apache.accumulo.core.util;
 
 import java.net.InetSocketAddress;
 
+import org.apache.accumulo.cloudtrace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.ClientExec;
@@ -37,7 +38,6 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 
-import cloudtrace.instrument.thrift.TraceWrap;
 
 public class ThriftUtil {
   private static final Logger log = Logger.getLogger(ThriftUtil.class);

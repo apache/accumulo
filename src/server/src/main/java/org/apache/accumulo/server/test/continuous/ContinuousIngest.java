@@ -23,6 +23,10 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
+import org.apache.accumulo.cloudtrace.instrument.CountSampler;
+import org.apache.accumulo.cloudtrace.instrument.Trace;
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
+import org.apache.accumulo.cloudtrace.instrument.receivers.ZooSpanClient;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -39,10 +43,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 
-import cloudtrace.instrument.CountSampler;
-import cloudtrace.instrument.Trace;
-import cloudtrace.instrument.Tracer;
-import cloudtrace.instrument.receivers.ZooSpanClient;
 
 public class ContinuousIngest {
   

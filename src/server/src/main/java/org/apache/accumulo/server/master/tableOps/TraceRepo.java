@@ -16,12 +16,12 @@
  */
 package org.apache.accumulo.server.master.tableOps;
 
+import org.apache.accumulo.cloudtrace.instrument.Span;
+import org.apache.accumulo.cloudtrace.instrument.Trace;
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
+import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.server.fate.Repo;
 
-import cloudtrace.instrument.Span;
-import cloudtrace.instrument.Trace;
-import cloudtrace.instrument.Tracer;
-import cloudtrace.thrift.TInfo;
 
 /**
  * 

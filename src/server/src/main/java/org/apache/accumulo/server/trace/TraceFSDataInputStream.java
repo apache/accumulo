@@ -18,10 +18,10 @@ package org.apache.accumulo.server.trace;
 
 import java.io.IOException;
 
+import org.apache.accumulo.cloudtrace.instrument.Span;
+import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.hadoop.fs.FSDataInputStream;
 
-import cloudtrace.instrument.Span;
-import cloudtrace.instrument.Trace;
 
 public class TraceFSDataInputStream extends FSDataInputStream {
   @Override

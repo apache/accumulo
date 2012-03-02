@@ -40,6 +40,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.accumulo.cloudtrace.instrument.Span;
+import org.apache.accumulo.cloudtrace.instrument.Trace;
+import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -71,9 +74,6 @@ import org.apache.hadoop.io.WritableName;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.thrift.TException;
 
-import cloudtrace.instrument.Span;
-import cloudtrace.instrument.Trace;
-import cloudtrace.thrift.TInfo;
 
 /**
  * Write log operations to open {@link org.apache.hadoop.io.SequenceFile}s referenced by log id's.

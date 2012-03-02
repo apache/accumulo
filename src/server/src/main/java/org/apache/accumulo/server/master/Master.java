@@ -38,6 +38,8 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.cloudtrace.instrument.thrift.TraceWrap;
+import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -175,8 +177,6 @@ import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
-import cloudtrace.instrument.thrift.TraceWrap;
-import cloudtrace.thrift.TInfo;
 
 /**
  * The Master is responsible for assigning and balancing tablets and loggers to tablet servers.

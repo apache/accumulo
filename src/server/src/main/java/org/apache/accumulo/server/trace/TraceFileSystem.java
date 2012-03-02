@@ -19,6 +19,8 @@ package org.apache.accumulo.server.trace;
 import java.io.IOException;
 import java.net.URI;
 
+import org.apache.accumulo.cloudtrace.instrument.Span;
+import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
@@ -33,8 +35,6 @@ import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Progressable;
 
-import cloudtrace.instrument.Span;
-import cloudtrace.instrument.Trace;
 
 // If FileSystem was an interface, we could use a Proxy, but it's not, so we have to override everything manually
 

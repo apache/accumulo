@@ -23,8 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import cloudtrace.instrument.Span;
-import cloudtrace.thrift.RemoteSpan;
+import org.apache.accumulo.cloudtrace.instrument.Span;
+import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
+
 
 public class SpanTree {
   final Map<Long,List<Long>> parentChildren = new HashMap<Long,List<Long>>();
