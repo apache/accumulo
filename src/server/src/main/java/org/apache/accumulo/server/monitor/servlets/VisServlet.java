@@ -47,12 +47,15 @@ public class VisServlet extends BasicServlet {
     queryMB(5, true, 10, "Scan MB"),
     scans(concurrentScans * 2, false, 1, "Running Scans"),
     scansessions(50, true, 10, "Scan Sessions"),
-    holdtime(60000, false, 1, "Hold Time");
+    holdtime(60000, false, 1, "Hold Time"),
+    allavg(1, false, 100, "Overall Avg", true),
+    allmax(1, false, 100, "Overall Max", true);
     
     private int max;
     private boolean adjustMax;
     private float significance;
     private String description;
+    private boolean derived;
     
     /**
      * @param max
@@ -65,10 +68,15 @@ public class VisServlet extends BasicServlet {
      *          as appears in selection box
      */
     private StatType(int max, boolean adjustMax, float significance, String description) {
+      this(max, adjustMax, significance, description, false);
+    }
+    
+    private StatType(int max, boolean adjustMax, float significance, String description, boolean derived) {
       this.max = max;
       this.adjustMax = adjustMax;
       this.significance = significance;
       this.description = description;
+      this.derived = derived;
     }
     
     public int getMax() {
@@ -85,6 +93,18 @@ public class VisServlet extends BasicServlet {
     
     public String getDescription() {
       return description;
+    }
+    
+    public boolean isDerived() {
+      return derived;
+    }
+    
+    public static int numDerived() {
+      int count = 0;
+      for (StatType st : StatType.values())
+        if (st.isDerived())
+          count++;
+      return count;
     }
   }
   
@@ -106,7 +126,7 @@ public class VisServlet extends BasicServlet {
     }
     
     s = req.getParameter("motion");
-    motion = StatType.ingest;
+    motion = StatType.allmax;
     if (s != null) {
       try {
         motion = StatType.valueOf(s);
@@ -114,20 +134,20 @@ public class VisServlet extends BasicServlet {
     }
     
     s = req.getParameter("color");
-    color = StatType.osload;
+    color = StatType.allavg;
     if (s != null) {
       try {
         color = StatType.valueOf(s);
       } catch (Exception e) {}
     }
     
-    spacing = 20;
+    spacing = 40;
     String size = req.getParameter("size");
     if (size != null) {
       if (size.equals("10"))
         spacing = 10;
-      else if (size.equals("40"))
-        spacing = 40;
+      else if (size.equals("20"))
+        spacing = 20;
       else if (size.equals("80"))
         spacing = 80;
     }
@@ -198,6 +218,7 @@ public class VisServlet extends BasicServlet {
       sb.append(st.getSignificance()).append(",");
     sb.setLength(sb.length() - 1);
     sb.append("]; // values will be converted by floor(this*value)/this\n");
+    sb.append("var numNormalStats = ").append(StatType.values().length - StatType.numDerived()).append(";\n");
     sb.append("</script>\n");
   }
   

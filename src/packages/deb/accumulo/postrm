@@ -16,13 +16,13 @@
 # limitations under the License.
 
 # postrm script for Apache Accumulo
+rm -f /usr/lib/accumulo/conf
 rm -f /usr/lib/accumulo/logs
 rm -f /usr/lib/accumulo/walogs
-rm -f /usr/lib/accumulo/conf
-rm -f /usr/bin/accumulo
 case "$1" in
   purge)
     rm -Rf /var/log/accumulo
+    rm -Rf /var/lib/accumulo
     rm -Rf /etc/accumulo
   ;;
   remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
@@ -33,4 +33,5 @@ case "$1" in
   ;;
 esac
 
+rm -f /usr/bin/accumulo
 exit 0

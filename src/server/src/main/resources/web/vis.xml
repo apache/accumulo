@@ -79,27 +79,26 @@ function handleNewData() {
     xmlReturned = true;
     return;
   }
-  var statinfo = new Array(statName.length);
-  for (j=0; j < statName.length; j++)
+  var statinfo = new Array(numNormalStats);
+  for (j=0; j < numNormalStats; j++)
     statinfo[j] = xmlhttp.responseXML.getElementsByTagName(statName[j]);
   var deadinfo = xmlhttp.responseXML.getElementsByTagName('deadTabletServer');
   var badinfo = xmlhttp.responseXML.getElementsByTagName('badTabletServer');
   var idinfo = xmlhttp.responseXML.getElementsByTagName('server');
   
-  var statValues = new Array(statName.length);
+  var statValues = new Array(numNormalStats);
   for (i=0; i < idinfo.length; i++) {
     var info = idinfo[i].attributes[0].nodeValue;
     var extra = '<br>';
-    for (j=0; j < statinfo.length; j++) {
-      statValues[j] = Math.floor(significance[j]*parseFloat(statinfo[j][i].childNodes[0].nodeValue))/significance[j];
-      if (statValues[j] < 0)
-        statValues[j] = 0;
+    for (j=0; j < numNormalStats; j++) {
+      statValues[j] = Math.max(0,Math.floor(significance[j]*parseFloat(statinfo[j][i].childNodes[0].nodeValue))/significance[j]);
       extra = extra + ' ' + statName[j] + ': ' + statValues[j];
     }
     setStats(statValues,i);
     setDotInfo(info,extra,i);
   }
   numLive = idinfo.length;
+  resetOverallStats();
   
   for (i=idinfo.length,j=0; j < deadinfo.length; i++,j++) {
     setDotInfo(deadinfo[j].attributes[0].nodeValue,'',i);
@@ -114,12 +113,38 @@ function handleNewData() {
 }
 
 function setStats(statValues,index) {
+  var newStats = new Array(numNormalStats+2);
+  for (j=0; j < numNormalStats; j++) {
+    if (adjustMax[j])
+      maxStatValue[j] = Math.max(statValues[j],maxStatValue[j]);
+    newStats[j] = statValues[j];
+  }
+  setOverallStats(newStats);
   if (index >= allStats.length)
-    allStats.push(new Array(statValues.length));
-  for (j=0; j < statValues.length; j++) {
-    if (adjustMax[j] && maxStatValue[j] < statValues[j])
-      maxStatValue[j] = statValues[j];
-    allStats[index][j] = statValues[j];
+    allStats.push(newStats);
+  else
+    allStats[index] = newStats;
+}
+
+function setOverallStats(statValues) {
+  avgStat = 0;
+  maxStat = 0;
+  for (j=0; j < numNormalStats; j++) {
+    normStat = statValues[j]/maxStatValue[j];
+    if (normStat > 0)
+      avgStat += normStat;
+    maxStat = Math.max(maxStat,normStat);
+  }
+  avgStat = avgStat/numNormalStats;
+  maxStat = Math.min(1,maxStat);
+  statValues[numNormalStats] = Math.floor(significance[numNormalStats]*avgStat)/significance[numNormalStats];
+  statValues[numNormalStats+1] = Math.floor(significance[numNormalStats+1]*maxStat)/significance[numNormalStats+1];
+}
+
+function resetOverallStats() {
+  for (i=0; i < numLive; i++) {
+    setOverallStats(allStats[i]);
+    extras[i] = extras[i] + ' avg: ' + allStats[i][numNormalStats] + ' max: ' + allStats[i][numNormalStats+1];
   }
 }
 
@@ -162,9 +187,7 @@ function drawDots(){
       if (dotSize[i] > maxDotRadius)
         dotSize[i] = maxDotRadius;
     } else {
-      sizeChange = allStats[i][speedStatType]/maxStatValue[speedStatType];
-      if (sizeChange > 1)
-        sizeChange = 1;
+      sizeChange = getStat(i,speedStatType);
       if (dotSizeGrowing[i]) {
         dotSize[i] = dotSize[i] + sizeChange;
         if (dotSize[i] + sizeChange > maxDotRadius) {
@@ -183,7 +206,7 @@ function drawDots(){
     if (i >= numLive)
       strokeDot(x,y,maxDotRadius-1,deadColor);
     else
-      drawDot(x,y,Math.floor(dotSize[i]),getColor(allStats[i][colorStatType]/maxStatValue[colorStatType]));
+      drawDot(x,y,Math.floor(dotSize[i]),getColor(getStat(i,colorStatType)));
   }
   if (mousedDot < numDots)
     document.getElementById('vishoverinfo').innerHTML=ids[mousedDot]+extras[mousedDot];
@@ -221,10 +244,12 @@ function strokeDot(i,j,r,c) {
     strokeSquare(x-r,y-r,(r-dotPadding)*2,c);
 }
 
+function getStat(dotIndex,statIndex) {
+  return Math.min(1,allStats[dotIndex][statIndex]/maxStatValue[statIndex]);
+}
+
 // translate color between 0 and maxObservedColor into an html color code
 function getColor(normColor) {
-  if (normColor > 1)
-    normColor = 1;
   return colorPalette[Math.round((colorPalette.length-1)*normColor)];
 }
 
@@ -303,14 +328,12 @@ function setSize(obj) {
 // callback for motion selection
 function setMotion(obj) {
   speedStatType = obj.selectedIndex;
-  drawGrid();
   setState();
 }
 
 // callback for color selection
 function setColor(obj) {
   colorStatType = obj.selectedIndex;
-  drawGrid();
   setState();
 }
 
