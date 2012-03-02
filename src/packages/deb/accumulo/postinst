@@ -22,11 +22,11 @@ mv -f /usr/lib/accumulo/conf/* /etc/accumulo/conf/
 rm -Rf /usr/lib/accumulo/conf
 ln -fs /etc/accumulo/conf /usr/lib/accumulo/conf 
 mkdir -p /var/log/accumulo/logs
-mkdir -p /var/log/accumulo/walogs
+mkdir -p /var/lib/accumulo/walogs
 ln -fs /var/log/accumulo/logs /usr/lib/accumulo/logs 
-ln -fs /var/log/accumulo/walogs /usr/lib/accumulo/walogs 
+ln -fs /var/lib/accumulo/walogs /usr/lib/accumulo/walogs 
 
-if [ -z $JAVA_HOME ]; then
+if [ -z $JAVA_HOME -o ! -f $JAVA_HOME/jre/bin/ ] ; then
   JAVA_HOME=`readlink -f /usr/bin/java`
   JAVA_HOME=`dirname $JAVA_HOME`
   JAVA_HOME=`cd $JAVA_HOME/../../; pwd`
