@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -40,7 +41,6 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
-import cloudtrace.thrift.RemoteSpan;
 
 public class TraceDump {
   static final long DEFAULT_TIME_IN_MILLIS = 10 * 60 * 1000l;

@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.TreeSet;
 
+import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -61,7 +62,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import cloudtrace.instrument.Trace;
 
 public class TestIngest {
   public static final Authorizations AUTHS = new Authorizations("L1", "L2", "G1", "GROUP2");

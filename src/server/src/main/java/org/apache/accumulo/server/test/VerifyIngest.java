@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -38,7 +39,6 @@ import org.apache.accumulo.server.test.TestIngest.IngestArgs;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
-import cloudtrace.instrument.Trace;
 
 public class VerifyIngest {
   private static String username = "root";

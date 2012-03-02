@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.cloudtrace.instrument.TraceRunnable;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -68,7 +69,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
-import cloudtrace.instrument.TraceRunnable;
 
 public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value>> {
   

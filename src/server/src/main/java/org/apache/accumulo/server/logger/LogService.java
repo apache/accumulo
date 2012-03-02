@@ -32,6 +32,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.accumulo.cloudtrace.instrument.thrift.TraceWrap;
+import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -76,8 +78,6 @@ import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
-import cloudtrace.instrument.thrift.TraceWrap;
-import cloudtrace.thrift.TInfo;
 
 /**
  * A Mutation logging service.

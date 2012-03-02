@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
@@ -31,7 +32,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.transport.TMemoryInputTransport;
 
-import cloudtrace.thrift.RemoteSpan;
 
 /**
  * A formatter than can be used in the shell to display trace information.

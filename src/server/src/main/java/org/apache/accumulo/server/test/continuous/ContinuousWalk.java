@@ -22,6 +22,10 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.zip.CRC32;
 
+import org.apache.accumulo.cloudtrace.instrument.Span;
+import org.apache.accumulo.cloudtrace.instrument.Trace;
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
+import org.apache.accumulo.cloudtrace.instrument.receivers.ZooSpanClient;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -39,10 +43,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 
-import cloudtrace.instrument.Span;
-import cloudtrace.instrument.Trace;
-import cloudtrace.instrument.Tracer;
-import cloudtrace.instrument.receivers.ZooSpanClient;
 
 public class ContinuousWalk {
   

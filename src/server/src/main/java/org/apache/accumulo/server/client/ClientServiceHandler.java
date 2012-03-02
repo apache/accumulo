@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -50,7 +51,6 @@ import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
-import cloudtrace.thrift.TInfo;
 
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = Logger.getLogger(ClientServiceHandler.class);

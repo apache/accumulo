@@ -36,6 +36,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.cloudtrace.instrument.Span;
+import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -67,8 +69,6 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
-import cloudtrace.instrument.Span;
-import cloudtrace.instrument.Trace;
 
 /*
  * Differences from previous TabletServerBatchWriter

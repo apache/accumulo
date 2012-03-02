@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -32,7 +33,6 @@ import org.apache.accumulo.server.monitor.util.celltypes.DurationType;
 import org.apache.accumulo.server.monitor.util.celltypes.StringType;
 import org.apache.hadoop.io.Text;
 
-import cloudtrace.thrift.RemoteSpan;
 
 public class ListType extends Basic {
   

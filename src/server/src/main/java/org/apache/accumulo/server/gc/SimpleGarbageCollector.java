@@ -31,6 +31,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.cloudtrace.instrument.CountSampler;
+import org.apache.accumulo.cloudtrace.instrument.Sampler;
+import org.apache.accumulo.cloudtrace.instrument.Span;
+import org.apache.accumulo.cloudtrace.instrument.Trace;
+import org.apache.accumulo.cloudtrace.instrument.thrift.TraceWrap;
+import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -89,12 +95,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
-import cloudtrace.instrument.CountSampler;
-import cloudtrace.instrument.Sampler;
-import cloudtrace.instrument.Span;
-import cloudtrace.instrument.Trace;
-import cloudtrace.instrument.thrift.TraceWrap;
-import cloudtrace.thrift.TInfo;
 
 public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
