@@ -300,7 +300,7 @@ public class Shell extends ShellOptions {
     // should only be one instance option set
     instance = null;
     if (cl.hasOption(fakeOption.getLongOpt())) {
-      instance = new MockInstance();
+      instance = new MockInstance("fake");
     } else if (cl.hasOption(hdfsZooInstance.getOpt())) {
       instance = getDefaultInstance(AccumuloConfiguration.getSiteConfiguration());
     } else if (cl.hasOption(zooKeeperInstance.getOpt())) {
