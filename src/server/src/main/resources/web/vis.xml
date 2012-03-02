@@ -85,14 +85,17 @@ function handleNewData() {
   var deadinfo = xmlhttp.responseXML.getElementsByTagName('deadTabletServer');
   var badinfo = xmlhttp.responseXML.getElementsByTagName('badTabletServer');
   var idinfo = xmlhttp.responseXML.getElementsByTagName('server');
+  var hostinfo = xmlhttp.responseXML.getElementsByTagName('hostname');
   
   var statValues = new Array(numNormalStats);
   for (i=0; i < idinfo.length; i++) {
     var info = idinfo[i].attributes[0].nodeValue;
-    var extra = '<br>';
+    var extra = ' (' + hostinfo[i].childNodes[0].nodeValue + ')';
     for (j=0; j < numNormalStats; j++) {
+      if (j % 4 == 0)
+        extra = extra + '<br>\n';
       statValues[j] = Math.max(0,Math.floor(significance[j]*parseFloat(statinfo[j][i].childNodes[0].nodeValue))/significance[j]);
-      extra = extra + ' ' + statName[j] + ': ' + statValues[j];
+      extra = extra + '&nbsp;&nbsp;' + statName[j] + ': <strong>' + statValues[j] + '</strong>';
     }
     setStats(statValues,i);
     setDotInfo(info,extra,i);
@@ -129,22 +132,27 @@ function setStats(statValues,index) {
 function setOverallStats(statValues) {
   avgStat = 0;
   maxStat = 0;
+  maxIndex = 0;
   for (j=0; j < numNormalStats; j++) {
     normStat = statValues[j]/maxStatValue[j];
     if (normStat > 0)
       avgStat += normStat;
-    maxStat = Math.max(maxStat,normStat);
+    if (maxStat < normStat) {
+      maxStat = normStat;
+      maxIndex = j;
+    }
   }
   avgStat = avgStat/numNormalStats;
   maxStat = Math.min(1,maxStat);
   statValues[numNormalStats] = Math.floor(significance[numNormalStats]*avgStat)/significance[numNormalStats];
   statValues[numNormalStats+1] = Math.floor(significance[numNormalStats+1]*maxStat)/significance[numNormalStats+1];
+  return maxIndex;
 }
 
 function resetOverallStats() {
   for (i=0; i < numLive; i++) {
-    setOverallStats(allStats[i]);
-    extras[i] = extras[i] + ' avg: ' + allStats[i][numNormalStats] + ' max: ' + allStats[i][numNormalStats+1];
+    maxIndex = setOverallStats(allStats[i]);
+    extras[i] = extras[i] + '<br>\n&nbsp;&nbsp;avg: <strong>' + allStats[i][numNormalStats] + '</strong>&nbsp;&nbsp;max: <strong>' + allStats[i][numNormalStats+1] + '</strong> (' + statName[maxIndex] + ')';
   }
 }
 
@@ -209,7 +217,7 @@ function drawDots(){
       drawDot(x,y,Math.floor(dotSize[i]),getColor(getStat(i,colorStatType)));
   }
   if (mousedDot < numDots)
-    document.getElementById('vishoverinfo').innerHTML=ids[mousedDot]+extras[mousedDot];
+    document.getElementById('vishoverinfo').innerHTML='<strong>' + ids[mousedDot] + '</strong>' + extras[mousedDot];
 }
 
 // fill in a few grey dots
@@ -360,7 +368,7 @@ function showId(e) {
   mousedDot = Math.floor(relx/(dotSpacing*2)) + width*Math.floor(rely/(dotSpacing*2));
   if (relx < (width*dotSpacing*2) && mousedDot < numDots) {
     document.getElementById('vishoverinfo').style.left=relx+canvas.offsetLeft;
-    document.getElementById('vishoverinfo').style.top=rely+canvas.offsetTop-40;
+    document.getElementById('vishoverinfo').style.top=Math.max(0,rely+canvas.offsetTop-70);
     document.getElementById('vishoverinfo').style.visibility='visible';
   }
   else {

@@ -191,6 +191,15 @@ public class VisServlet extends BasicServlet {
     // canvas
     sb.append("<br><canvas id='visCanvas' width='").append(width).append("' height='").append(height).append("'>Browser does not support canvas.</canvas>\n\n");
     sb.append("</div>\n\n");
+  }
+  
+  private void addOptions(StringBuilder sb, StatType selectedStatType) {
+    for (StatType st : StatType.values()) {
+      sb.append("<option").append(st.equals(selectedStatType) ? " selected='true'>" : ">").append(st.getDescription()).append("</option>");
+    }
+  }
+  
+  private void doScript(StringBuilder sb, ArrayList<TabletServerStatus> tservers) {
     // initialization of some javascript variables
     sb.append("<script type='text/javascript'>\n");
     sb.append("var numCores = " + ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors() + ";\n");
@@ -220,15 +229,7 @@ public class VisServlet extends BasicServlet {
     sb.append("]; // values will be converted by floor(this*value)/this\n");
     sb.append("var numNormalStats = ").append(StatType.values().length - StatType.numDerived()).append(";\n");
     sb.append("</script>\n");
-  }
-  
-  private void addOptions(StringBuilder sb, StatType selectedStatType) {
-    for (StatType st : StatType.values()) {
-      sb.append("<option").append(st.equals(selectedStatType) ? " selected='true'>" : ">").append(st.getDescription()).append("</option>");
-    }
-  }
-  
-  private void doScript(StringBuilder sb, ArrayList<TabletServerStatus> tservers) {
+    
     InputStream data = VisServlet.class.getClassLoader().getResourceAsStream("web/vis.xml");
     if (data != null) {
       byte[] buffer = new byte[1024];

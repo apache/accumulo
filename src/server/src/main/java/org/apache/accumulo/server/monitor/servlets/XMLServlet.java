@@ -33,6 +33,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.TabletServerState;
 import org.apache.accumulo.server.monitor.Monitor;
+import org.apache.accumulo.server.monitor.util.celltypes.TServerLinkType;
 
 public class XMLServlet extends BasicServlet {
   private static final long serialVersionUID = 1L;
@@ -66,6 +67,7 @@ public class XMLServlet extends BasicServlet {
     for (TabletServerStatus status : Monitor.getMmi().tServerInfo) {
       
       sb.append("\n<server id='").append(status.name).append("'>\n");
+      sb.append("<hostname>").append(TServerLinkType.displayName(status.name)).append("</hostname>");
       sb.append("<lastContact>").append(System.currentTimeMillis() - status.lastContact).append("</lastContact>\n");
       sb.append("<osload>").append(status.osLoad).append("</osload>\n");
       
