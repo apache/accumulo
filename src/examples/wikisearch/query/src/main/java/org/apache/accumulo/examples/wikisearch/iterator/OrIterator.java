@@ -150,7 +150,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
    * Returns the given key's row
    * 
    * @param key
-   * @return
+   * @return The given key's row
    */
   protected Text getPartition(Key key) {
     return key.getRow();
@@ -160,7 +160,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
    * Returns the given key's dataLocation
    * 
    * @param key
-   * @return
+   * @return The given key's dataLocation
    */
   protected Text getDataLocation(Key key) {
     return key.getColumnFamily();
@@ -170,7 +170,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
    * Returns the given key's term
    * 
    * @param key
-   * @return
+   * @return The given key's term
    */
   protected Text getTerm(Key key) {
     int idx = 0;
@@ -184,7 +184,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
    * Returns the given key's DocID
    * 
    * @param key
-   * @return
+   * @return The given key's DocID
    */
   protected Text getDocID(Key key) {
     int idx = 0;
@@ -198,7 +198,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
    * Returns the given key's UID
    * 
    * @param key
-   * @return
+   * @return The given key's UID
    */
   static protected String getUID(Key key) {
     try {
@@ -260,7 +260,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
    * Construct the topKey given the current <code>TermSource</code>
    * 
    * @param TS
-   * @return
+   * @return The top Key for a given TermSource
    */
   protected Key buildTopKey(TermSource TS) {
     if ((TS == null) || (TS.topKey == null)) {

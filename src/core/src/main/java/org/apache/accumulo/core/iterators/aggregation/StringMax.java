@@ -20,7 +20,7 @@ import org.apache.accumulo.core.data.Value;
 
 /**
  * @deprecated since 1.4
- * @use org.apache.accumulo.core.iterators.user.MaxCombiner with MaxCombiner.Type.STRING
+ * @see org.apache.accumulo.core.iterators.user.MaxCombiner with MaxCombiner.Type.STRING
  */
 public class StringMax implements Aggregator {
   

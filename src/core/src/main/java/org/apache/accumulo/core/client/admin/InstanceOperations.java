@@ -44,8 +44,6 @@ public interface InstanceOperations {
   /**
    * Removes a instance property from zookeeper
    * 
-   * @param tableName
-   *          the name of the table
    * @param property
    *          the name of a per-table property
    * @throws AccumuloException
@@ -62,16 +60,17 @@ public interface InstanceOperations {
   /**
    * List the currently active tablet servers participating in the accumulo instance
    * 
-   * @return
+   * @return A list of currently active tablet servers.
    */
   
   public List<String> getTabletServers();
   
   /**
-   * List the active scans on tablet server. The tablet server address should be of the form <ip address>:<port>
+   * List the active scans on tablet server.
    * 
    * @param tserver
-   * @return
+   *          The tablet server address should be of the form <ip address>:<port>
+   * @return A list of active scans on tablet server.
    * @throws AccumuloException
    * @throws AccumuloSecurityException
    */
@@ -83,7 +82,7 @@ public interface InstanceOperations {
    * 
    * @param className
    * @param asTypeName
-   * @return
+   * @return true if the instance can load the given class as the given type, false otherwise
    * @throws AccumuloException
    */
   public boolean testClassLoad(final String className, final String asTypeName) throws AccumuloException, AccumuloSecurityException;

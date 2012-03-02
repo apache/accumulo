@@ -113,7 +113,7 @@ public abstract class Filter implements Writable {
    * 
    * @param key
    *          The key to add.
-   * @return
+   * @return true if the key was added, false otherwise.
    */
   public abstract boolean add(Key key);
   

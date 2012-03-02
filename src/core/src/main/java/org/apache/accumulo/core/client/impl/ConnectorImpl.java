@@ -50,14 +50,14 @@ public class ConnectorImpl extends Connector {
   
 /**
      * 
-     * Use {@link Instance#getConnector(String, byte[])
+     * Use {@link Instance#getConnector(String, byte[])}
      * 
      * @param instance
      * @param user
      * @param password
      * @throws AccumuloException
      * @throws AccumuloSecurityException
-     * @see Instance.getConnector(String user, byte[] password)
+     * @see Instance#getConnector(String user, byte[] password)
      * @deprecated Not for client use
      */
   public ConnectorImpl(Instance instance, String user, byte[] password) throws AccumuloException, AccumuloSecurityException {

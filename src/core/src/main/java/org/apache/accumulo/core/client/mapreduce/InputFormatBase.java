@@ -136,7 +136,9 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * Enable or disable use of the {@link IsolatedScanner}. By default it is not enabled.
    * 
    * @param conf
+   *          The Hadoop configuration object
    * @param enable
+   *          if true, enable usage of the IsolatedScanner. Otherwise, disable.
    */
   public static void setIsolated(Configuration conf, boolean enable) {
     conf.setBoolean(ISOLATED, enable);
@@ -145,8 +147,10 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * Enable or disable use of the {@link ClientSideIteratorScanner}. By default it is not enabled.
    * 
-   * @param job
+   * @param conf
+   *          The Hadoop configuration object
    * @param enable
+   *          if true, enable usage of the ClientSideInteratorScanner. Otherwise, disable.
    */
   public static void setLocalIterators(Configuration conf, boolean enable) {
     conf.setBoolean(LOCAL_ITERATORS, enable);
@@ -248,8 +252,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * 
    * @param conf
    *          The job in which to save the iterator configuration
-   * @param priority
-   *          The priority of the iterator
    * @param cfg
    *          The configuration of the iterator
    */

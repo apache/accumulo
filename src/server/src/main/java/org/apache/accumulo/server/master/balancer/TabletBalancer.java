@@ -42,18 +42,15 @@ public abstract class TabletBalancer {
   private static final Logger log = Logger.getLogger(TabletBalancer.class);
   
   /**
-   * Assign tablets to tablet servers
+   * Assign tablets to tablet servers. This method is called whenever the master finds tablets that are unassigned.
    * 
    * @param current
    *          The current table-summary state of all the online tablet servers. Read-only. The TabletServerStatus for each server may be null if the tablet
    *          server has not yet responded to a recent request for status.
    * @param unassigned
    *          A map from unassigned tablet to the last known tablet server. Read-only.
-   * @param assignements
+   * @param assignments
    *          A map from tablet to assigned server. Write-only.
-   * @return
-   * 
-   *         This method is called whenever the master finds tablets that are unassigned.
    */
   abstract public void getAssignments(SortedMap<TServerInstance,TabletServerStatus> current, Map<KeyExtent,TServerInstance> unassigned,
       Map<KeyExtent,TServerInstance> assignments);
@@ -79,7 +76,7 @@ public abstract class TabletBalancer {
    * 
    * @param tserver
    *          The tablet server to ask.
-   * @param table
+   * @param tableId
    *          The table id
    * @return a list of tablet statistics
    * @throws ThriftSecurityException
@@ -110,7 +107,7 @@ public abstract class TabletBalancer {
    * 
    * @param current
    * @param migrations
-   * @return
+   * @return A list of TabletMigration object that passed sanity checks.
    */
   public static List<TabletMigration> checkMigrationSanity(Set<TServerInstance> current, List<TabletMigration> migrations) {
     List<TabletMigration> result = new ArrayList<TabletMigration>(migrations.size());

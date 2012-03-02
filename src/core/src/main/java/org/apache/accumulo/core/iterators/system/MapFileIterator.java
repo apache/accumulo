@@ -52,8 +52,8 @@ public class MapFileIterator implements FileSKVIterator {
   
   /**
    * @param acuconf
-   * @param fs2
-   * @param file
+   * @param fs
+   * @param dir
    * @param conf
    * @throws IOException
    */

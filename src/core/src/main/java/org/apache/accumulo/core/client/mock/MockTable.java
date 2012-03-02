@@ -114,7 +114,8 @@ public class MockTable {
   }
   
   /**
-   * @deprecated since 1.4 {@link #attachIterator(String, IteratorSetting)}
+   * @deprecated since 1.4 
+   * @see TableOperations#attachIterator(String, IteratorSetting)
    */
   public void addAggregators(List<? extends org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig> aggregators) {
     for (Entry<String,String> entry : IteratorUtil.generateAggTableProperties(aggregators).entrySet()) {

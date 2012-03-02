@@ -78,7 +78,7 @@ public class MemValue extends Value {
    * Takes a Value and will take out the embedded kvCount, and then return that value while replacing the Value with the original unembedded version
    * 
    * @param v
-   * @return
+   * @return The kvCount embedded in v.
    */
   public static int splitKVCount(Value v) {
     if (v instanceof MemValue)

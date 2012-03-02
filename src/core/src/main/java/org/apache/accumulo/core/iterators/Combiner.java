@@ -295,13 +295,12 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   }
   
   /**
-   * A convenience method to set the "all columns" option on a Combiner. If true, the columns option will be ignored and the Combiner will be applied to all
-   * columns.
+   * A convenience method to set the "all columns" option on a Combiner. 
    * 
    * @param is
    *          iterator settings object to configure
-   * @param enableAllColumns
-   *          if true the combiner will be applied to all columns
+   * @param combineAllColumns
+   *          if true, the columns option is ignored and the Combiner will be applied to all columns
    */
   public static void setCombineAllColumns(IteratorSetting is, boolean combineAllColumns) {
     is.addOption(ALL_OPTION, Boolean.toString(combineAllColumns));

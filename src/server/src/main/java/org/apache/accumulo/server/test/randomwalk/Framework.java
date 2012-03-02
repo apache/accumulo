@@ -50,8 +50,8 @@ public class Framework {
    * 
    * @param startName
    *          Full name of starting graph or test
-   * @param traversals
-   *          Number of nodes that should be visited
+   * @param state
+   * @param confDir
    */
   public int run(String startName, State state, String confDir) {
     

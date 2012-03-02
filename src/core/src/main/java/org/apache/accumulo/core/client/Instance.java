@@ -87,10 +87,8 @@ public interface Instance {
   /**
    * Returns a connection to accumulo.
    * 
-   * @param user
-   *          a valid accumulo user
-   * @param pass
-   *          A UTF-8 encoded password. The password may be cleared after making this call.
+   * @param auth
+   *          An AuthInfo object.
    * @return the accumulo Connector
    * @throws AccumuloException
    *           when a generic exception occurs

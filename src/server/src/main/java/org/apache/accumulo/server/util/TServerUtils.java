@@ -73,7 +73,7 @@ public class TServerUtils {
   /**
    * Start a server, at the given port, or higher, if that port is not available.
    * 
-   * @param portHint
+   * @param portHintProperty
    *          the port to attempt to open, can be zero, meaning "any available port"
    * @param processor
    *          the service to be started
@@ -81,6 +81,9 @@ public class TServerUtils {
    *          the name of the class that is providing the service
    * @param threadName
    *          name this service's thread for better debugging
+   * @param portSearchProperty
+   * @param minThreadProperty
+   * @param timeBetweenThreadChecksProperty
    * @return the server object created, and the port actually used
    * @throws UnknownHostException
    *           when we don't know our own address

@@ -950,8 +950,7 @@ public class Shell extends ShellOptions {
   /**
    * Return the formatter for this table, .
    * 
-   * @param tableName
-   * @return The formatter class for the given table
+   * @return The formatter class for this table
    */
   public Class<? extends Formatter> getFormatter() {
     return getFormatter(this.tableName);

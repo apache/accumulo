@@ -204,7 +204,7 @@ public class Query implements IQuery {
    * 
    * @param query
    * @param auths
-   * @return
+   * @return The results of a query
    * @throws ParseException
    */
   public Results query(String query, String auths) {

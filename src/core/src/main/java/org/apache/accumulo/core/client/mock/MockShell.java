@@ -119,8 +119,9 @@ public class MockShell extends Shell {
   
   /**
    * Convenience method to create the byte-array to hand to the console
-   * @param commands Array of commands to run
-   * @return
+   * @param commands 
+   *          An array of commands to run
+   * @return A byte[] input stream which can be handed to the console.
    */
   public static ByteArrayInputStream makeCommands(String... commands) {
     StringBuilder sb = new StringBuilder(commands.length * 8);

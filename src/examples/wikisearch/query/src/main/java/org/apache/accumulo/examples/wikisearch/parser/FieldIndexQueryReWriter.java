@@ -90,7 +90,7 @@ public class FieldIndexQueryReWriter {
    * 
    * @param query
    * @param options
-   * @return
+   * @return String representation of a given query.
    * @throws ParseException
    * @throws Exception
    */
@@ -115,7 +115,7 @@ public class FieldIndexQueryReWriter {
    * 
    * @param query
    * @param options
-   * @return
+   * @return String representation of a given query.
    * @throws ParseException
    * @throws Exception
    */
@@ -140,7 +140,7 @@ public class FieldIndexQueryReWriter {
    * @param query
    * @param fNameUpper
    * @param fValueUpper
-   * @return
+   * @return String representation of a given query.
    * @throws ParseException
    */
   public String applyCaseSensitivity(String query, boolean fNameUpper, boolean fValueUpper) throws ParseException {
@@ -748,9 +748,7 @@ public class FieldIndexQueryReWriter {
   }
   
   /**
-   * 
    * @param options
-   * @return
    */
   public Multimap<String,String> parseIndexedTerms(Map<String,String> options) {
     if (options.get(INDEXED_TERMS_LIST) != null) {
@@ -782,9 +780,7 @@ public class FieldIndexQueryReWriter {
   }
   
   /**
-   * 
    * @param root
-   * @return
    */
   public RewriterTreeNode refactorTree(RewriterTreeNode root) {
     Enumeration<?> dfe = root.breadthFirstEnumeration();
@@ -983,8 +979,7 @@ public class FieldIndexQueryReWriter {
     }
     
     /**
-     * 
-     * @return
+     * @return The field name.
      */
     public String getFieldName() {
       return fieldName;
@@ -1000,7 +995,7 @@ public class FieldIndexQueryReWriter {
     
     /**
      * 
-     * @return
+     * @return The field value.
      */
     public String getFieldValue() {
       return fieldValue;
@@ -1016,7 +1011,7 @@ public class FieldIndexQueryReWriter {
     
     /**
      * 
-     * @return
+     * @return true if negated, otherwise false.
      */
     public boolean isNegated() {
       return negated;
@@ -1032,7 +1027,7 @@ public class FieldIndexQueryReWriter {
     
     /**
      * 
-     * @return
+     * @return The operator.
      */
     public String getOperator() {
       return operator;
@@ -1048,7 +1043,7 @@ public class FieldIndexQueryReWriter {
     
     /**
      * 
-     * @return
+     * @return The type.
      */
     public int getType() {
       return type;
@@ -1070,10 +1065,6 @@ public class FieldIndexQueryReWriter {
       this.removal = removal;
     }
     
-    /**
-     * 
-     * @return
-     */
     public String getContents() {
       StringBuilder s = new StringBuilder("[");
       s.append(toString());
@@ -1092,7 +1083,7 @@ public class FieldIndexQueryReWriter {
     
     /**
      * 
-     * @return
+     * @return A string represenation of the field name and value.
      */
     public String printNode() {
       StringBuilder s = new StringBuilder("[");
