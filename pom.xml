@@ -561,4 +561,9 @@
     <system>Apache's JIRA issue tracker</system>
     <url>https://issues.apache.org/jira/browse/ACCUMULO</url>
   </issueManagement>
+
+  <properties>
+    <targetJdk>1.6</targetJdk>
+  </properties>
+
 </project>
