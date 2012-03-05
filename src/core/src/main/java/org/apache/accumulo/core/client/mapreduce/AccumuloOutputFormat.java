@@ -106,7 +106,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   public static void setOutputInfo(JobContext job, String user, byte[] passwd, boolean createTables, String defaultTable) {
     setOutputInfo(job.getConfiguration(), user, passwd, createTables, defaultTable);
   }
-
+  
   /**
    * Configure the output format.
    * 
@@ -140,7 +140,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
     setZooKeeperInstance(job.getConfiguration(), instanceName, zooKeepers);
   }
-
+  
   public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
     if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
       throw new IllegalStateException("Instance info can only be set once per job");
@@ -157,7 +157,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   public static void setMockInstance(JobContext job, String instanceName) {
     setMockInstance(job.getConfiguration(), instanceName);
   }
-
+  
   public static void setMockInstance(Configuration conf, String instanceName) {
     conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
     conf.setBoolean(MOCK, true);
@@ -170,7 +170,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   public static void setMaxMutationBufferSize(JobContext job, long numberOfBytes) {
     setMaxMutationBufferSize(job.getConfiguration(), numberOfBytes);
   }
-
+  
   public static void setMaxMutationBufferSize(Configuration conf, long numberOfBytes) {
     conf.setLong(MAX_MUTATION_BUFFER_SIZE, numberOfBytes);
   }
@@ -210,7 +210,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   /**
-   * @deprecated Use {@link #setSimulationMode(Configurtion)} instead
+   * @deprecated Use {@link #setSimulationMode(Configuration)} instead
    */
   public static void setSimulationMode(JobContext job) {
     setSimulationMode(job.getConfiguration());

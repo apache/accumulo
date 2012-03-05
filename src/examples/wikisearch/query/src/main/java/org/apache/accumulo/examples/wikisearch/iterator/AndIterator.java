@@ -96,7 +96,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
    * Returns the given key's dataLocation
    * 
    * @param key
-   * @return
+   * @return The given key's dataLocation
    */
   protected Text getDataLocation(Key key) {
     return key.getColumnFamily();
@@ -106,7 +106,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
    * Returns the given key's term
    * 
    * @param key
-   * @return
+   * @return The given key's term
    */
   protected Text getTerm(Key key) {
     int idx = 0;
@@ -120,7 +120,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
    * Returns the given key's DocID
    * 
    * @param key
-   * @return
+   * @return The given key's DocID
    */
   protected Text getDocID(Key key) {
     int idx = 0;
@@ -134,7 +134,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
    * Returns the given key's UID
    * 
    * @param key
-   * @return
+   * @return The given key's UID
    */
   protected String getUID(Key key) {
     int idx = 0;
@@ -151,7 +151,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
    *          The desired row
    * @param dataLocation
    *          The desired dataLocation
-   * @return
+   * @return A Key object built from the given row and dataLocation.
    */
   protected Key buildKey(Text row, Text dataLocation) {
     return new Key(row, (dataLocation == null) ? nullText : dataLocation);
@@ -166,7 +166,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
    *          The desired dataLocation
    * @param term
    *          The desired term
-   * @return
+   * @return A Key object built from the given row, dataLocation, and term.
    */
   protected Key buildKey(Text row, Text dataLocation, Text term) {
     return new Key(row, (dataLocation == null) ? nullText : dataLocation, (term == null) ? nullText : term);
@@ -177,7 +177,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
    * 
    * @param key
    *          The key who will be directly before the returned key
-   * @return
+   * @return The key directly following the given key.
    */
   protected Key buildFollowingPartitionKey(Key key) {
     return key.followingKey(PartialKey.ROW);
@@ -589,7 +589,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
    * 
    * @param columns
    *          The columns to be encoded
-   * @return
+   * @return A Base64 encoded string (using a \n delimiter) of all columns to intersect on.
    */
   public static String encodeColumns(Text[] columns) {
     StringBuilder sb = new StringBuilder();
@@ -605,7 +605,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
    * 
    * @param terms
    *          The terms to be encoded
-   * @return
+   * @return A Base64 encoded string (using a \n delimiter) of all terms to intersect on.
    */
   public static String encodeTermValues(Text[] terms) {
     StringBuilder sb = new StringBuilder();
@@ -622,7 +622,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
    * 
    * @param flags
    *          The array of NOTs
-   * @return
+   * @return A base64 encoded string of which columns are NOT'ed
    */
   public static String encodeBooleans(boolean[] flags) {
     byte[] bytes = new byte[flags.length];
@@ -641,7 +641,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
    * 
    * @param columns
    *          The Base64 encoded String of the columns
-   * @return
+   * @return A Text array of the decoded columns
    */
   public static Text[] decodeColumns(String columns) {
     String[] columnStrings = columns.split("\n");
@@ -658,7 +658,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
    * 
    * @param terms
    *          The Base64 encoded String of the terms
-   * @return
+   * @return A Text array of decoded terms.
    */
   public static Text[] decodeTermValues(String terms) {
     String[] termStrings = terms.split("\n");
@@ -674,7 +674,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
    * Decode the encoded NOT flags into a <code>boolean</code> array
    * 
    * @param flags
-   * @return
+   * @return A boolean array of decoded NOT flags
    */
   public static boolean[] decodeBooleans(String flags) {
     // return null of there were no flags

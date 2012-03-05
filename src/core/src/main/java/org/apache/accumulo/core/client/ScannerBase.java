@@ -63,14 +63,12 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   public void updateScanIteratorOption(String iteratorName, String key, String value);
   
   /**
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
+   * @deprecated Since 1.4, use {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator}.
    */
   public void setScanIterators(int priority, String iteratorClass, String iteratorName) throws IOException;
   
   /**
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
+   * @deprecated Since 1.4, use {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator}.
    */
   public void setScanIteratorOption(String iteratorName, String key, String value);
   
@@ -84,9 +82,8 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @throws IOException
    *           if an exception occurs reading from the iterator stack
    * 
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.user.RegExFilter}
+   * @deprecated Since 1.4, use {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator} and
+   *             {@link org.apache.accumulo.core.iterators.user.RegExFilter}
    */
   public void setupRegex(String iteratorName, int iteratorPriority) throws IOException;
   
@@ -97,11 +94,10 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @param regex
    *          java regular expression to match
    * 
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.user.RegExFilter#ROW_REGEX}
+   * @deprecated Since 1.4, use {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator} and
+   *             {@link org.apache.accumulo.core.iterators.user.RegExFilter}
    * 
-   *      <pre>
+   *             <pre>
    * // Use the more flexible addScanIterator method:
    * ScanIterator cfg = new ScanIterator(&quot;regex&quot;, RegexIterator.class);
    * RegexIterator.setRegexs(cfg, row, null, null, null, false);
@@ -117,9 +113,8 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @param regex
    *          java regular expression to match
    * 
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.user.RegExFilter#COLF_REGEX}
+   * @deprecated Since 1.4, use {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator} and
+   *             {@link org.apache.accumulo.core.iterators.user.RegExFilter}
    */
   public void setColumnFamilyRegex(String regex);
   
@@ -131,9 +126,8 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @param regex
    *          java regular expression to match
    * 
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.user.RegExFilter#COLQ_REGEX}.
+   * @deprecated Since 1.4, use {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator} and
+   *             {@link org.apache.accumulo.core.iterators.user.RegExFilter}
    * 
    */
   public void setColumnQualifierRegex(String regex);
@@ -144,9 +138,8 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @param regex
    *          java regular expression to match
    * 
-   * @deprecated since 1.4
-   * @see {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator(IteratorSetting)}
-   * @see {@link org.apache.accumulo.core.iterators.user.RegExFilter}
+   * @deprecated Since 1.4, use {@link org.apache.accumulo.core.client.ScannerBase#addScanIterator} and
+   *             {@link org.apache.accumulo.core.iterators.user.RegExFilter}
    */
   public void setValueRegex(String regex);
   

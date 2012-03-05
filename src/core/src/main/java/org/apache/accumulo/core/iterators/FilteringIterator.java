@@ -34,8 +34,7 @@ import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.log4j.Logger;
 
 /**
- * @deprecated since 1.4
- * @use org.apache.accumulo.core.iterators.Filter
+ * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.Filter}
  **/
 public class FilteringIterator extends WrappingIterator implements OptionDescriber {
   private List<? extends Filter> filters;

@@ -87,10 +87,10 @@ public interface TableOperations {
   /**
    * @param tableName
    *          the name of the table
+   * @param versioningIter
+   *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
    * @param timeType
    *          specifies logical or real-time based time recording for entries in the table
-   * @param limitVersion
-   *          Enables/disables the versioning iterator, which will limit the number of Key versions kept.
    * @throws AccumuloException
    *           if a general error occurs
    * @throws AccumuloSecurityException
@@ -412,8 +412,7 @@ public interface TableOperations {
       AccumuloSecurityException;
   
   /**
-   * @deprecated Since 1.4
-   * @see {@link TableOperations#importDirectory(String, String, String)};
+   * @deprecated Since 1.4 use {@link #importDirectory(String, String, String, boolean)}
    */
   public AssignmentStats importDirectory(String tableName, String dir, String failureDir, int numThreads, int numAssignThreads, boolean disableGC)
       throws IOException, AccumuloException, AccumuloSecurityException;

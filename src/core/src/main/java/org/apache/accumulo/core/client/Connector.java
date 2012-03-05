@@ -44,14 +44,14 @@ public class Connector {
    *           when a generic exception occurs
    * @throws AccumuloSecurityException
    *           when a user's credentials are invalid
-   * @see Instance.getConnector(String user, byte[] password)
+   * @see Instance#getConnector(String user, byte[] password)
    */
   public Connector(Instance instance, String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
     impl = instance.getConnector(user, password);
   }
   
   /**
-   * @see Instance.getConnector(String user, byte[] password)
+   * @see Instance#getConnector(String user, byte[] password)
    * @deprecated Not for client use
    */
   public Connector() {

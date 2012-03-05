@@ -25,6 +25,7 @@ import java.util.SortedMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -114,7 +115,7 @@ public class MockTable {
   }
   
   /**
-   * @deprecated since 1.4 {@link #attachIterator(String, IteratorSetting)}
+   * @deprecated Since 1.4, use {@link TableOperations#attachIterator(String tableName, IteratorSetting setting)}
    */
   public void addAggregators(List<? extends org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig> aggregators) {
     for (Entry<String,String> entry : IteratorUtil.generateAggTableProperties(aggregators).entrySet()) {

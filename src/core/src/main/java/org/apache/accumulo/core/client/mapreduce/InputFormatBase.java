@@ -143,18 +143,22 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * Enable or disable use of the {@link IsolatedScanner}. By default it is not enabled.
    * 
    * @param job
+   *          The Hadoop job object
    * @param enable
+   *          if true, enable usage of the IsolatedScanner. Otherwise, disable.
    * @deprecated Use {@link #setIsolated(Configuration,boolean)} instead
    */
   public static void setIsolated(JobContext job, boolean enable) {
     setIsolated(job.getConfiguration(), enable);
   }
-
+  
   /**
    * Enable or disable use of the {@link IsolatedScanner}. By default it is not enabled.
    * 
    * @param conf
+   *          The Hadoop configuration object
    * @param enable
+   *          if true, enable usage of the IsolatedScanner. Otherwise, disable.
    */
   public static void setIsolated(Configuration conf, boolean enable) {
     conf.setBoolean(ISOLATED, enable);
@@ -164,18 +168,22 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * Enable or disable use of the {@link ClientSideIteratorScanner}. By default it is not enabled.
    * 
    * @param job
+   *          The Hadoop job object
    * @param enable
+   *          if true, enable usage of the ClientSideInteratorScanner. Otherwise, disable.
    * @deprecated Use {@link #setLocalIterators(Configuration,boolean)} instead
    */
   public static void setLocalIterators(JobContext job, boolean enable) {
     setLocalIterators(job.getConfiguration(), enable);
   }
-
+  
   /**
    * Enable or disable use of the {@link ClientSideIteratorScanner}. By default it is not enabled.
    * 
-   * @param job
+   * @param conf
+   *          The Hadoop configuration object
    * @param enable
+   *          if true, enable usage of the ClientSideInteratorScanner. Otherwise, disable.
    */
   public static void setLocalIterators(Configuration conf, boolean enable) {
     conf.setBoolean(LOCAL_ITERATORS, enable);
@@ -187,7 +195,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setInputInfo(JobContext job, String user, byte[] passwd, String table, Authorizations auths) {
     setInputInfo(job.getConfiguration(), user, passwd, table, auths);
   }
-
+  
   public static void setInputInfo(Configuration conf, String user, byte[] passwd, String table, Authorizations auths) {
     if (conf.getBoolean(INPUT_INFO_HAS_BEEN_SET, false))
       throw new IllegalStateException("Input info can only be set once per job");
@@ -207,7 +215,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
     setZooKeeperInstance(job.getConfiguration(), instanceName, zooKeepers);
   }
-
+  
   public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
     if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
       throw new IllegalStateException("Instance info can only be set once per job");
@@ -224,7 +232,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setMockInstance(JobContext job, String instanceName) {
     setMockInstance(job.getConfiguration(), instanceName);
   }
-
+  
   public static void setMockInstance(Configuration conf, String instanceName) {
     conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
     conf.setBoolean(MOCK, true);
@@ -232,12 +240,12 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
-   * @deprecated Use {@link #setRanges(Configuration,Collection<Range>)} instead
+   * @deprecated Use {@link #setRanges(Configuration,Collection)} instead
    */
   public static void setRanges(JobContext job, Collection<Range> ranges) {
     setRanges(job.getConfiguration(), ranges);
   }
-
+  
   public static void setRanges(Configuration conf, Collection<Range> ranges) {
     ArgumentChecker.notNull(ranges);
     ArrayList<String> rangeStrings = new ArrayList<String>(ranges.size());
@@ -259,7 +267,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void disableAutoAdjustRanges(JobContext job) {
     disableAutoAdjustRanges(job.getConfiguration());
   }
-
+  
   public static void disableAutoAdjustRanges(Configuration conf) {
     conf.setBoolean(AUTO_ADJUST_RANGES, false);
   }
@@ -316,7 +324,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void setMaxVersions(JobContext job, int maxVersions) throws IOException {
     setMaxVersions(job.getConfiguration(), maxVersions);
   }
-
+  
   /**
    * Sets the max # of values that may be returned for an individual Accumulo cell. By default, applied before all other Accumulo iterators (highest priority)
    * leveraged in the scan by the record reader. To adjust priority use setIterator() & setIteratorOptions() w/ the VersioningIterator type explicitly.
@@ -338,7 +346,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @param columnFamilyColumnQualifierPairs
    *          A pair of {@link Text} objects corresponding to column family and column qualifier. If the column qualifier is null, the entire column family is
    *          selected. An empty set is the default and is equivalent to scanning the all columns.
-   * @deprecated Use {@link #fetchColumns(Configuration,Collection<Pair<Text, Text>>)} instead
+   * @deprecated Use {@link #fetchColumns(Configuration,Collection)} instead
    */
   public static void fetchColumns(JobContext job, Collection<Pair<Text,Text>> columnFamilyColumnQualifierPairs) {
     fetchColumns(job.getConfiguration(), columnFamilyColumnQualifierPairs);
@@ -383,8 +391,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * 
    * @param job
    *          The job in which to save the iterator configuration
-   * @param priority
-   *          The priority of the iterator
    * @param cfg
    *          The configuration of the iterator
    * @deprecated Use {@link #addIterator(Configuration,IteratorSetting)} instead
@@ -392,14 +398,12 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   public static void addIterator(JobContext job, IteratorSetting cfg) {
     addIterator(job.getConfiguration(), cfg);
   }
-
+  
   /**
    * Encode an iterator on the input.
    * 
    * @param conf
    *          The job in which to save the iterator configuration
-   * @param priority
-   *          The priority of the iterator
    * @param cfg
    *          The configuration of the iterator
    */
@@ -504,7 +508,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static boolean isIsolated(JobContext job) {
     return isIsolated(job.getConfiguration());
   }
-
+  
   protected static boolean isIsolated(Configuration conf) {
     return conf.getBoolean(ISOLATED, false);
   }
@@ -515,7 +519,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static boolean usesLocalIterators(JobContext job) {
     return usesLocalIterators(job.getConfiguration());
   }
-
+  
   protected static boolean usesLocalIterators(Configuration conf) {
     return conf.getBoolean(LOCAL_ITERATORS, false);
   }
@@ -526,7 +530,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static String getUsername(JobContext job) {
     return getUsername(job.getConfiguration());
   }
-
+  
   protected static String getUsername(Configuration conf) {
     return conf.get(USERNAME);
   }
@@ -534,12 +538,13 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   /**
    * WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to provide a charset safe conversion to a
    * string, and is not intended to be secure.
+   * 
    * @deprecated Use {@link #getPassword(Configuration)} instead
    */
   protected static byte[] getPassword(JobContext job) {
     return getPassword(job.getConfiguration());
   }
-
+  
   /**
    * WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to provide a charset safe conversion to a
    * string, and is not intended to be secure.
@@ -554,7 +559,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static String getTablename(JobContext job) {
     return getTablename(job.getConfiguration());
   }
-
+  
   protected static String getTablename(Configuration conf) {
     return conf.get(TABLE_NAME);
   }
@@ -565,7 +570,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static Authorizations getAuthorizations(JobContext job) {
     return getAuthorizations(job.getConfiguration());
   }
-
+  
   protected static Authorizations getAuthorizations(Configuration conf) {
     String authString = conf.get(AUTHORIZATIONS);
     return authString == null ? Constants.NO_AUTHS : new Authorizations(authString.split(","));
@@ -577,7 +582,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static Instance getInstance(JobContext job) {
     return getInstance(job.getConfiguration());
   }
-
+  
   protected static Instance getInstance(Configuration conf) {
     if (conf.getBoolean(MOCK, false))
       return new MockInstance(conf.get(INSTANCE_NAME));
@@ -590,7 +595,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static TabletLocator getTabletLocator(JobContext job) throws TableNotFoundException {
     return getTabletLocator(job.getConfiguration());
   }
-
+  
   protected static TabletLocator getTabletLocator(Configuration conf) throws TableNotFoundException {
     if (conf.getBoolean(MOCK, false))
       return new MockTabletLocator();
@@ -608,7 +613,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static List<Range> getRanges(JobContext job) throws IOException {
     return getRanges(job.getConfiguration());
   }
-
+  
   protected static List<Range> getRanges(Configuration conf) throws IOException {
     ArrayList<Range> ranges = new ArrayList<Range>();
     for (String rangeString : conf.getStringCollection(RANGES)) {
@@ -626,7 +631,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static String getRegex(JobContext job, RegexType type) {
     return getRegex(job.getConfiguration(), type);
   }
-
+  
   protected static String getRegex(Configuration conf, RegexType type) {
     String key = null;
     switch (type) {
@@ -662,7 +667,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static Set<Pair<Text,Text>> getFetchedColumns(JobContext job) {
     return getFetchedColumns(job.getConfiguration());
   }
-
+  
   protected static Set<Pair<Text,Text>> getFetchedColumns(Configuration conf) {
     Set<Pair<Text,Text>> columns = new HashSet<Pair<Text,Text>>();
     for (String col : conf.getStringCollection(COLUMNS)) {
@@ -680,7 +685,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static boolean getAutoAdjustRanges(JobContext job) {
     return getAutoAdjustRanges(job.getConfiguration());
   }
-
+  
   protected static boolean getAutoAdjustRanges(Configuration conf) {
     return conf.getBoolean(AUTO_ADJUST_RANGES, true);
   }
@@ -691,7 +696,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static Level getLogLevel(JobContext job) {
     return getLogLevel(job.getConfiguration());
   }
-
+  
   protected static Level getLogLevel(Configuration conf) {
     return Level.toLevel(conf.getInt(LOGLEVEL, Level.INFO.toInt()));
   }
@@ -704,7 +709,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static void validateOptions(JobContext job) throws IOException {
     validateOptions(job.getConfiguration());
   }
-
+  
   // InputFormat doesn't have the equivalent of OutputFormat's
   // checkOutputSpecs(JobContext job)
   protected static void validateOptions(Configuration conf) throws IOException {
@@ -742,7 +747,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static int getMaxVersions(JobContext job) {
     return getMaxVersions(job.getConfiguration());
   }
-
+  
   // Get the maxVersions the VersionsIterator should be configured with. Return -1 if none.
   protected static int getMaxVersions(Configuration conf) {
     return conf.getInt(MAX_VERSIONS, -1);
@@ -755,7 +760,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static List<AccumuloIterator> getIterators(JobContext job) {
     return getIterators(job.getConfiguration());
   }
-
+  
   // Return a list of the iterator settings (for iterators to apply to a scanner)
   protected static List<AccumuloIterator> getIterators(Configuration conf) {
     
@@ -782,7 +787,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static List<AccumuloIteratorOption> getIteratorOptions(JobContext job) {
     return getIteratorOptions(job.getConfiguration());
   }
-
+  
   // Return a list of the iterator options specified
   protected static List<AccumuloIteratorOption> getIteratorOptions(Configuration conf) {
     String iteratorOptions = conf.get(ITERATORS_OPTIONS);
@@ -826,7 +831,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     protected boolean setupRegex(TaskAttemptContext attempt, Scanner scanner) throws AccumuloException {
       return setupRegex(attempt.getConfiguration(), scanner);
     }
-
+    
     protected boolean setupRegex(Configuration conf, Scanner scanner) throws AccumuloException {
       try {
         checkAndEnableRegex(getRegex(conf, RegexType.ROW), scanner, "setRowRegex");
@@ -846,7 +851,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     protected void setupIterators(TaskAttemptContext attempt, Scanner scanner) throws AccumuloException {
       setupIterators(attempt.getConfiguration(), scanner);
     }
-
+    
     // Apply the configured iterators from the job to the scanner
     protected void setupIterators(Configuration conf, Scanner scanner) throws AccumuloException {
       List<AccumuloIterator> iterators = getIterators(conf);
@@ -871,7 +876,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     protected void setupMaxVersions(TaskAttemptContext attempt, Scanner scanner) {
       setupMaxVersions(attempt.getConfiguration(), scanner);
     }
-
+    
     // Apply the VersioningIterator at priority 0 based on the job config
     protected void setupMaxVersions(Configuration conf, Scanner scanner) {
       int maxVersions = getMaxVersions(conf);
@@ -992,7 +997,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       splitsToAdd = new HashMap<Range,ArrayList<String>>();
     
     HashMap<String,String> hostNameCache = new HashMap<String,String>();
-
+    
     for (Entry<String,Map<KeyExtent,List<Range>>> tserverBin : binnedRanges.entrySet()) {
       String ip = tserverBin.getKey().split(":", 2)[0];
       String location = hostNameCache.get(ip);
@@ -1001,7 +1006,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         location = inetAddress.getHostName();
         hostNameCache.put(ip, location);
       }
-
+      
       for (Entry<KeyExtent,List<Range>> extentRanges : tserverBin.getValue().entrySet()) {
         Range ke = extentRanges.getKey().toDataRange();
         for (Range r : extentRanges.getValue()) {

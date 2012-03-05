@@ -73,15 +73,13 @@ import org.apache.log4j.Logger;
  * a sorted change list, to create a new version of the database in a new file. Sorting large change lists can be done with {@link MySequenceFile.Sorter}.
  * 
  * 
- * @deprecated since 1.4
- * @use org.apache.accumulo.core.file.rfile.RFile
+ * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.file.rfile.RFile}
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class MyMapFile {
   
   /**
-   * @deprecated since 1.4
-   * @use org.apache.accumulo.core.Constants.MAPFILE_EXTENSION
+   * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.Constants#MAPFILE_EXTENSION}
    */
   public static final String EXTENSION = "map";
   

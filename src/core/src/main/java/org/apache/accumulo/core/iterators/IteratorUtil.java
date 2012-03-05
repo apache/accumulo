@@ -63,9 +63,9 @@ public class IteratorUtil {
   /**
    * @deprecated since 1.4
    * @param aggregators
-   * @return
+   * @return A map of Aggregator Table Properties.
    * 
-   * @see {@link TableOperations#attachIterators(String, IteratorSetting)}
+   * @see TableOperations#attachIterator(String, IteratorSetting)
    */
   public static Map<String,String> generateAggTableProperties(List<? extends PerColumnIteratorConfig> aggregators) {
     

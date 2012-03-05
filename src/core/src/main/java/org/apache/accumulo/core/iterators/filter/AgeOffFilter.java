@@ -24,8 +24,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 
 /**
- * @deprecated since 1.4
- * @use org.apache.accumulo.core.iterators.user.AgeOffFilter
+ * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.AgeOffFilter}
  **/
 public class AgeOffFilter implements Filter, OptionDescriber {
   private long threshold;

@@ -95,7 +95,7 @@ public abstract class RowFilter extends WrappingIterator {
    * 
    * @param rowIterator
    *          - An iterator over the row.
-   * @return
+   * @return false if a row should be suppressed, otherwise true.
    * @throws IOException
    */
   public abstract boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException;

@@ -222,8 +222,6 @@ public abstract class AbstractQueryLogic {
    * @param c
    * @param auths
    * @param queryLiterals
-   * @param begin
-   * @param end
    * @param datatypes
    *          - optional list of types
    * @return map of indexed field names to types to normalizers used in this date range
@@ -286,8 +284,6 @@ public abstract class AbstractQueryLogic {
    * @param c
    * @param auths
    * @param value
-   * @param begin
-   * @param end
    * @param datatypes
    *          - optional list of types
    * @return ranges that fit into the date range.
@@ -305,11 +301,6 @@ public abstract class AbstractQueryLogic {
    *          multimap of indexed field name and Normalizers used
    * @param terms
    *          multimap of field name and QueryTerm object
-   * @param begin
-   *          query begin date
-   * @param end
-   *          query end date
-   * @param dateFormatter
    * @param indexTableName
    * @param reverseIndexTableName
    * @param queryString

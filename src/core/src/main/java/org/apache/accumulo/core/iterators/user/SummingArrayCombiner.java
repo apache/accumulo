@@ -49,7 +49,18 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   private static final String CLASS_PREFIX = "class:";
   
   public static enum Type {
-    VARLEN, FIXEDLEN, STRING
+    /**
+     * indicates a variable-length encoding of a list of Longs using {@link SummingArrayCombiner.VarLongArrayEncoder}
+     */
+    VARLEN,
+    /**
+     * indicates a fixed-length (8 bytes for each Long) encoding of a list of Longs using {@link SummingArrayCombiner.FixedLongArrayEncoder}
+     */
+    FIXEDLEN,
+    /**
+     * indicates a string (comma-separated) representation of a list of Longs using {@link SummingArrayCombiner.StringArrayEncoder}
+     */
+    STRING
   }
   
   @Override

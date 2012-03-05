@@ -27,8 +27,7 @@ import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
 import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 
 /**
- * @deprecated since 1.4
- * @use org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter
+ * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.ColumnAgeOffFilter}
  **/
 public class ColumnAgeOffFilter implements Filter, OptionDescriber {
   

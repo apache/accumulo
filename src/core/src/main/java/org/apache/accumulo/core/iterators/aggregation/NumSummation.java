@@ -26,8 +26,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.WritableUtils;
 
 /**
- * @deprecated since 1.4
- * @use org.apache.accumulo.core.iterators.user.SummingCombiner with SummingCombiner.Type.VARLEN
+ * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.SummingCombiner} with
+ *             {@link org.apache.accumulo.core.iterators.LongCombiner.Type#VARLEN}
  */
 public class NumSummation implements Aggregator {
   long sum = 0l;

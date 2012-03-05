@@ -114,10 +114,10 @@ public abstract class AbstractEvaluatingIterator implements SortedKeyValueIterat
   public abstract void fillMap(EventFields event, Key key, Value value) throws Exception;
   
   /**
-   * Check to see if this key should be acted upon. Provides the ability to skip this key and all of the following ones that match using the comparator.
+   * Provides the ability to skip this key and all of the following ones that match using the comparator.
    * 
    * @param key
-   * @return
+   * @return true if the key should be acted upon, otherwise false.
    * @throws IOException
    */
   public abstract boolean isKeyAccepted(Key key) throws IOException;

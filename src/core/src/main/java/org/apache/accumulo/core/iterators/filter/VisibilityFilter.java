@@ -29,8 +29,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 /**
- * @deprecated since 1.4
- * @use org.apache.accumulo.core.iterators.System.VisibilityFilter
+ * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.system.VisibilityFilter}
  **/
 public class VisibilityFilter implements Filter {
   private VisibilityEvaluator ve;

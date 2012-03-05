@@ -153,7 +153,7 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
   /**
    * get an instance that retries when zookeeper connection errors occur
    * 
-   * @return
+   * @return an instance that retries when Zookeeper connection errors occur.
    */
   public static synchronized IZooReaderWriter getRetryingInstance() {
     

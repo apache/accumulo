@@ -279,9 +279,6 @@ public class RangeCalculator extends QueryParser {
    * @param auths
    * @param indexedTerms
    * @param terms
-   * @param begin
-   * @param end
-   * @param dateFormatter
    * @param query
    * @param logic
    * @param typeFilter
@@ -564,7 +561,6 @@ public class RangeCalculator extends QueryParser {
    *          mapKey for wildcard and range queries that specify which mapkey to use in the results
    * @param typeFilter
    *          - optional list of datatypes
-   * @return
    * @throws TableNotFoundException
    */
   protected Map<MapKey,TermRange> queryGlobalIndex(Map<MapKey,Set<Range>> indexRanges, String specificFieldName, String tableName, boolean isReverse,

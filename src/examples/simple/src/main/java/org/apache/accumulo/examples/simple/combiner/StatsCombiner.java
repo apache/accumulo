@@ -100,8 +100,8 @@ public class StatsCombiner extends Combiner {
    * 
    * @param iterConfig
    *          Iterator settings to configure
-   * @param maxSize
-   *          Maximum set size
+   * @param base
+   *          The expected base/radix of the numbers.
    */
   public static void setRadix(IteratorSetting iterConfig, int base) {
     iterConfig.addOption(RADIX_OPTION, base + "");

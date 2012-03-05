@@ -62,9 +62,9 @@ public class TextUtil {
   /**
    * Appends the UTF-8 bytes of the given string to the given {@link Text}
    * 
-   * @param text
+   * @param t
    *          the Text to which to append
-   * @param string
+   * @param s
    *          the String to append
    */
   public static void textAppendNoNull(Text t, String s) {

@@ -24,8 +24,7 @@ import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.security.ColumnVisibility;
 
 /**
- * @deprecated since 1.4
- * @use org.apache.accumulo.core.iterators.user.NoVisFilter
+ * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.ReqVisFilter}
  **/
 public class NoLabelFilter implements Filter, OptionDescriber {
   

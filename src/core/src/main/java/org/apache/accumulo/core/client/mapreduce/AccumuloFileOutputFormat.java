@@ -163,7 +163,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   /**
    * 
    * @param job
-   * @return
+   * @return The Accumulo instance.
    * 
    * @deprecated since 1.4, use {@link #setBlockSize(Configuration, int)} no other configurations are used by OutputFormat
    */
@@ -174,7 +174,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   /**
    * 
    * @param conf
-   * @return
+   * @return The Accumulo instance.
    * 
    * @deprecated since 1.4, use {@link #setBlockSize(Configuration, int)} no other configurations are used by OutputFormat
    */

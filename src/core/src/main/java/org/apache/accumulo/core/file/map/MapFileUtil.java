@@ -35,7 +35,7 @@ public class MapFileUtil {
    * @param conf
    * @param fs
    * @param dirName
-   * @return
+   * @return true if the attempt was successful, false otherwise
    */
   public static boolean attemptToFixMapFile(Configuration conf, FileSystem fs, String dirName) {
     boolean fixed = true;
@@ -90,13 +90,13 @@ public class MapFileUtil {
   }
   
   /**
-   * @deprecated sicne 1.4
+   * @deprecated since 1.4
    * 
    * @param acuTableConf
    * @param conf
    * @param fs
    * @param dirname
-   * @return
+   * @return a MapFile writer
    * @throws IOException
    */
   public static MyMapFile.Writer openMapFileWriter(AccumuloConfiguration acuTableConf, Configuration conf, FileSystem fs, String dirname) throws IOException {

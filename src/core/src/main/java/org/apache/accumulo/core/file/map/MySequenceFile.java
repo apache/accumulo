@@ -192,8 +192,7 @@ import org.apache.hadoop.util.ReflectionUtils;
  * </p>
  * 
  * @see CompressionCodec
- * @deprecated since 1.4
- * @use org.apache.accumulo.core.file.rfile.RFile
+ * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.file.rfile.RFile}
  */
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class MySequenceFile {

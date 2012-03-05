@@ -31,8 +31,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
 /**
- * @deprecated since 1.4
- * @see CreateRandomRFile
+ * @deprecated since 1.4 (will become CreateRandomRFile)
  */
 public class CreateRandomMapFile {
   private static int num;

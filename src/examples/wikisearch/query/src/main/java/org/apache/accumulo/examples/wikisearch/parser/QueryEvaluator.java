@@ -201,7 +201,6 @@ public class QueryEvaluator {
    * Evaluates the query against an event.
    * 
    * @param eventFields
-   * @return
    */
   public boolean evaluate(EventFields eventFields) {
     

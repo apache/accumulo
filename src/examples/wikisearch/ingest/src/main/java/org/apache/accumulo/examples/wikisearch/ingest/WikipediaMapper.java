@@ -112,7 +112,7 @@ public class WikipediaMapper extends Mapper<LongWritable,Text,Text,Mutation> {
    * 
    * @param article
    * @param numPartitions
-   * @return
+   * @return The number of the partition for a given article.
    * @throws IllegalFormatException
    */
   public static int getPartitionId(Article article, int numPartitions) throws IllegalFormatException {
