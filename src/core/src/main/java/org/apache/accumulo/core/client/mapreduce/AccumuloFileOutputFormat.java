@@ -93,7 +93,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   protected static void handleBlockSize(JobContext job) {
     handleBlockSize(job.getConfiguration());
   }
-
+  
   protected static void handleBlockSize(Configuration conf) {
     int blockSize;
     if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) {
@@ -111,7 +111,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   public static void setFileType(JobContext job, String type) {
     setFileType(job.getConfiguration(), type);
   }
-
+  
   public static void setFileType(Configuration conf, String type) {
     conf.set(FILE_TYPE, type);
   }
@@ -122,14 +122,13 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   public static void setBlockSize(JobContext job, int blockSize) {
     setBlockSize(job.getConfiguration(), blockSize);
   }
-
+  
   public static void setBlockSize(Configuration conf, int blockSize) {
     conf.setInt(BLOCK_SIZE, blockSize);
   }
   
   private static int getBlockSize(Configuration conf) {
-    return conf.getInt(BLOCK_SIZE,
-        (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
+    return conf.getInt(BLOCK_SIZE, (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
   }
   
   /**
@@ -137,18 +136,17 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @param job
    * @param instanceName
    * @param zooKeepers
-   * @deprecated since 1.4, use {@link #setBlockSize(Configuration, int)} to set block size no other configurations are used by OutputFormat
+   * @deprecated since 1.4, use {@link #setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers)}
    */
   public static void setZooKeeperInstance(JobContext job, String instanceName, String zooKeepers) {
     setZooKeeperInstance(job.getConfiguration(), instanceName, zooKeepers);
   }
-
+  
   /**
    * 
    * @param conf
    * @param instanceName
    * @param zooKeepers
-   * @deprecated since 1.4, use {@link #setBlockSize(Configuration, int)} to set block size no other configurations are used by OutputFormat
    */
   public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
     if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
@@ -165,7 +163,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * @param job
    * @return The Accumulo instance.
    * 
-   * @deprecated since 1.4, use {@link #setBlockSize(Configuration, int)} no other configurations are used by OutputFormat
+   * @deprecated since 1.4, use {@link #getInstance(Configuration conf)} no other configurations are used by OutputFormat
    */
   protected static Instance getInstance(JobContext job) {
     return getInstance(job.getConfiguration());
@@ -175,8 +173,6 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * 
    * @param conf
    * @return The Accumulo instance.
-   * 
-   * @deprecated since 1.4, use {@link #setBlockSize(Configuration, int)} no other configurations are used by OutputFormat
    */
   protected static Instance getInstance(Configuration conf) {
     return new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS));
