@@ -2422,7 +2422,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
              */
 
             tablet.waitForMinC();
-          } else if (tablet.getNumEntries() > 0) {
+          } else if (tablet.getNumEntriesInMemory() > 0) {
             log.warn("Minor compaction after recovery fails for " + extentToOpen);
           }
           
