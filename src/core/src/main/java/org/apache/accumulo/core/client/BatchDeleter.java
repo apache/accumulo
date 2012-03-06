@@ -26,7 +26,14 @@ import org.apache.accumulo.core.data.Range;
  */
 
 public interface BatchDeleter extends ScannerBase {
-  
+  /**
+   * Deletes the ranges specified by {@link #setRanges}.
+   * 
+   * @throws MutationsRejectedException
+   *           this can be thrown when deletion mutations fail
+   * @throws TableNotFoundException
+   *           when the table does not exist
+   */
   public void delete() throws MutationsRejectedException, TableNotFoundException;
   
   /**
@@ -37,5 +44,8 @@ public interface BatchDeleter extends ScannerBase {
    */
   void setRanges(Collection<Range> ranges);
   
+  /**
+   * Releases any resources.
+   */
   void close();
 }

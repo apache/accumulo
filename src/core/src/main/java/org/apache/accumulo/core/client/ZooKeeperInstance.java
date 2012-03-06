@@ -232,6 +232,13 @@ public class ZooKeeperInstance implements Instance {
     this.conf = conf;
   }
   
+  /**
+   * Given a zooCache and instanceId, look up the instance name.
+   * 
+   * @param zooCache
+   * @param instanceId
+   * @return the instance name
+   */
   public static String lookupInstanceName(ZooCache zooCache, UUID instanceId) {
     ArgumentChecker.notNull(zooCache, instanceId);
     for (String name : zooCache.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {

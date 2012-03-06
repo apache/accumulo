@@ -34,8 +34,9 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
-@Deprecated
-// deprecated since 1.4
+/**
+ * @deprecated since 1.4, use {@code scan -r <row> -c <columnfamily>[:<columnqualifier>]} instead.
+ */
 public class SelectCommand extends Command {
   
   private Option selectOptAuths, timestampOpt, disablePaginationOpt, tableOpt;
@@ -44,8 +45,8 @@ public class SelectCommand extends Command {
       IOException {
     String tableName;
     
-    shellState.log.warn("select is deprecated, use 'scan -r <row> -c <columnfamily>[:<columnqualifier>]'");
-
+    Shell.log.warn("select is deprecated, use scan -r <row> -c <columnfamily>[:<columnqualifier>]'");
+    
     if (cl.hasOption(tableOpt.getOpt())) {
       tableName = cl.getOptionValue(tableOpt.getOpt());
       if (!shellState.getConnector().tableOperations().exists(tableName))
