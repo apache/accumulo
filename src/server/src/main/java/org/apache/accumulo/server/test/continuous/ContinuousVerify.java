@@ -18,8 +18,12 @@ package org.apache.accumulo.server.test.continuous;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Random;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
@@ -130,10 +134,10 @@ public class ContinuousVerify extends Configured implements Tool {
   }
   
   @Override
-  public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
-    if (args.length != 8) {
+  public int run(String[] args) throws Exception {
+    if (args.length != 9) {
       throw new IllegalArgumentException("Usage : " + ContinuousVerify.class.getName()
-          + " <instance name> <zookeepers> <user> <pass> <table> <output dir> <max mappers> <num reducers>");
+          + " <instance name> <zookeepers> <user> <pass> <table> <output dir> <max mappers> <num reducers> <scan offline>");
     }
     
     String instance = args[0];
@@ -144,14 +148,26 @@ public class ContinuousVerify extends Configured implements Tool {
     String outputdir = args[5];
     String maxMaps = args[6];
     String reducers = args[7];
+    boolean scanOffline = Boolean.parseBoolean(args[8]);
     
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
     
+    String clone = table;
+    Connector conn = null;
+    if (scanOffline) {
+      Random random = new Random();
+      clone = table + "_" + String.format("%016x", Math.abs(random.nextLong()));
+      ZooKeeperInstance zki = new ZooKeeperInstance(instance, zookeepers);
+      conn = zki.getConnector(user, pass.getBytes());
+      conn.tableOperations().clone(table, clone, true, new HashMap<String,String>(), new HashSet<String>());
+      conn.tableOperations().offline(clone);
+    }
+
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), user, pass.getBytes(), table, new Authorizations());
+    AccumuloInputFormat.setInputInfo(job.getConfiguration(), user, pass.getBytes(), clone, new Authorizations());
     AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), instance, zookeepers);
-    
+    AccumuloInputFormat.setScanOffline(job.getConfiguration(), scanOffline);
     // set up ranges
     try {
       Set<Range> ranges = new ZooKeeperInstance(instance, zookeepers).getConnector(user, pass.getBytes()).tableOperations()
@@ -170,9 +186,17 @@ public class ContinuousVerify extends Configured implements Tool {
     job.setNumReduceTasks(Integer.parseInt(reducers));
     
     job.setOutputFormatClass(TextOutputFormat.class);
+    
+    job.getConfiguration().setBoolean("mapred.map.tasks.speculative.execution", scanOffline);
+
     TextOutputFormat.setOutputPath(job, new Path(outputdir));
     
     job.waitForCompletion(true);
+    
+    if (scanOffline) {
+      conn.tableOperations().delete(clone);
+    }
+
     return job.isSuccessful() ? 0 : 1;
   }
   

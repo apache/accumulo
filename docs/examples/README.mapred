@@ -89,3 +89,9 @@ counts.
     tserver, count:20080906 []    1
     tserver.compaction.major.concurrent.max count:20080906 []    1
     ...
+
+Another example to look at is
+org.apache.accumulo.examples.simple.mapreduce.UniqueColumns.  This example
+computes the unique set of columns in a table and shows how a map reduce job
+can directly read a tables files from HDFS. 
+

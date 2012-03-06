@@ -185,6 +185,12 @@ public class IteratorUtil {
   public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
       SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
       IteratorEnvironment env) throws IOException {
+    return loadIterators(scope, source, extent, conf, ssiList, ssio, env, true);
+  }
+  
+  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
+      SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
+      IteratorEnvironment env, boolean useAccumuloClassLoader) throws IOException {
     List<IterInfo> iters = new ArrayList<IterInfo>(ssiList);
     Map<String,Map<String,String>> allOptions = new HashMap<String,Map<String,String>>();
     
@@ -201,18 +207,23 @@ public class IteratorUtil {
       }
     }
     
-    return loadIterators(source, iters, allOptions, env);
+    return loadIterators(source, iters, allOptions, env, useAccumuloClassLoader);
   }
   
+  @SuppressWarnings("unchecked")
   public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(SortedKeyValueIterator<K,V> source,
-      Collection<IterInfo> iters, Map<String,Map<String,String>> iterOpts, IteratorEnvironment env) throws IOException {
+      Collection<IterInfo> iters, Map<String,Map<String,String>> iterOpts, IteratorEnvironment env, boolean useAccumuloClassLoader) throws IOException {
     SortedKeyValueIterator<K,V> prev = source;
     
     try {
       for (IterInfo iterInfo : iters) {
-        @SuppressWarnings("unchecked")
-        Class<? extends SortedKeyValueIterator<K,V>> clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloClassLoader.loadClass(iterInfo.className,
-            SortedKeyValueIterator.class);
+       
+        Class<? extends SortedKeyValueIterator<K,V>> clazz;
+        if (useAccumuloClassLoader){
+          clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloClassLoader.loadClass(iterInfo.className, SortedKeyValueIterator.class);
+        }else{
+          clazz = (Class<? extends SortedKeyValueIterator<K,V>>) Class.forName(iterInfo.className).asSubclass(SortedKeyValueIterator.class);
+        }
         SortedKeyValueIterator<K,V> skvi = clazz.newInstance();
         
         Map<String,String> options = iterOpts.get(iterInfo.iterName);
