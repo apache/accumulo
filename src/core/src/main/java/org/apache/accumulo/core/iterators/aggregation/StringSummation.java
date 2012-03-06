@@ -19,8 +19,8 @@ package org.apache.accumulo.core.iterators.aggregation;
 import org.apache.accumulo.core.data.Value;
 
 /**
- * @deprecated since 1.4
- * @see org.apache.accumulo.core.iterators.user.SummingCombiner with SummingCombiner.Type.STRING
+ * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.SummingCombiner} with
+ *             {@link org.apache.accumulo.core.iterators.LongCombiner.Type#STRING}
  */
 public class StringSummation implements Aggregator {
   

@@ -47,7 +47,18 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   protected static final String CLASS_PREFIX = "class:";
   
   public static enum Type {
-    VARLEN, FIXEDLEN, STRING
+    /**
+     * indicates a variable-length encoding of a Long using {@link LongCombiner.VarLenEncoder}
+     */
+    VARLEN,
+    /**
+     * indicates a fixed-length (8-byte) encoding of a Long using {@link LongCombiner.FixedLenEncoder}
+     */
+    FIXEDLEN,
+    /**
+     * indicates a string representation of a Long using {@link LongCombiner.StringEncoder}
+     */
+    STRING
   }
   
   @Override
@@ -61,8 +72,8 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
     if (type == null)
       throw new IllegalArgumentException("no type specified");
     if (type.startsWith(CLASS_PREFIX)) {
-        setEncoder(type.substring(CLASS_PREFIX.length()));
-        testEncoder(42l);
+      setEncoder(type.substring(CLASS_PREFIX.length()));
+      testEncoder(42l);
     } else {
       switch (Type.valueOf(type)) {
         case VARLEN:

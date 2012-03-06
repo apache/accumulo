@@ -19,8 +19,8 @@ package org.apache.accumulo.core.iterators.aggregation;
 import org.apache.accumulo.core.data.Value;
 
 /**
- * @deprecated since 1.4
- * @see org.apache.accumulo.core.iterators.user.MaxCombiner with MaxCombiner.Type.STRING
+ * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.MaxCombiner} with
+ *             {@link org.apache.accumulo.core.iterators.LongCombiner.Type#STRING}
  */
 public class StringMax implements Aggregator {
   

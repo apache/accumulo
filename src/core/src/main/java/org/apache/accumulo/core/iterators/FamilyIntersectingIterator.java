@@ -21,8 +21,7 @@ import org.apache.accumulo.core.iterators.user.IndexedDocIterator;
 /**
  * This class remains here for backwards compatibility.
  * 
- * @deprecated since 1.4
- * @see org.apache.accumulo.core.iterators.user.IndexedDocIterator
+ * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.IndexedDocIterator}
  */
 public class FamilyIntersectingIterator extends IndexedDocIterator {
   

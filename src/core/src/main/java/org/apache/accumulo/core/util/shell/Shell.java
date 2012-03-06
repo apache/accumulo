@@ -948,14 +948,21 @@ public class Shell extends ShellOptions {
   }
   
   /**
-   * Return the formatter for this table, .
+   * Return the formatter for the current table.
    * 
-   * @return The formatter class for this table
+   * @return the formatter class for the current table
    */
   public Class<? extends Formatter> getFormatter() {
     return getFormatter(this.tableName);
   }
   
+  /**
+   * Return the formatter for the given table.
+   * 
+   * @param tableName
+   *          the table name
+   * @return the formatter class for the given table
+   */
   public Class<? extends Formatter> getFormatter(String tableName) {
     Class<? extends Formatter> formatter = FormatterCommand.getCurrentFormatter(tableName, this);
     

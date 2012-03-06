@@ -27,9 +27,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -107,27 +107,27 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
   
   private static int getBlockSize(Configuration conf) {
-    return conf.getInt(BLOCK_SIZE,
-        (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
+    return conf.getInt(BLOCK_SIZE, (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
   }
   
   /**
-   * 
-   * @param job
-   * @return The Accumulo instance.
-   * 
-   * @deprecated since 1.4, use {@link #setBlockSize(Configuration, int)} no other configurations are used by OutputFormat
+   * @param conf
+   * @param instanceName
+   * @param zooKeepers
    */
-  protected static Instance getInstance(JobContext job) {
-    return getInstance(job.getConfiguration());
+  public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
+    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
+      throw new IllegalStateException("Instance info can only be set once per job");
+    conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
+    
+    ArgumentChecker.notNull(instanceName, zooKeepers);
+    conf.set(INSTANCE_NAME, instanceName);
+    conf.set(ZOOKEEPERS, zooKeepers);
   }
   
   /**
-   * 
    * @param conf
    * @return The Accumulo instance.
-   * 
-   * @deprecated since 1.4, use {@link #setBlockSize(Configuration, int)} no other configurations are used by OutputFormat
    */
   protected static Instance getInstance(Configuration conf) {
     return new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS));

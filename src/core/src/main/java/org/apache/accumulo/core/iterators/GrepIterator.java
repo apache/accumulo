@@ -19,8 +19,7 @@ package org.apache.accumulo.core.iterators;
 /**
  * This class remains here for backwards compatibility.
  * 
- * @deprecated since 1.4
- * @see org.apache.accumulo.core.iterators.user.GrepIterator
+ * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.GrepIterator}
  */
 public class GrepIterator extends org.apache.accumulo.core.iterators.user.GrepIterator {
   
