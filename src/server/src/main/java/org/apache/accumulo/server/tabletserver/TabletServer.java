@@ -151,15 +151,15 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.ServerServices;
+import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooLock;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooLock.LockLossReason;
 import org.apache.accumulo.core.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -200,8 +200,8 @@ import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.MapCounter;
 import org.apache.accumulo.server.util.MetadataTable;
-import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.MetadataTable.LogEntry;
+import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TServerUtils.ServerPort;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -211,7 +211,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableName;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
@@ -2170,14 +2169,21 @@ public class TabletServer extends AbstractMetricsImpl implements TabletServerMBe
           
           // this opens the tablet file and fills in the endKey in the extent
           tablet = new Tablet(TabletServer.this, locationToOpen, extentToOpen, trm, tabletsKeyValues);
-          if (!tablet.initiateMinorCompaction() && tablet.getNumEntriesInMemory() > 0) {
-            log.warn("Minor compaction after recovery fails for " + extentToOpen);
-            
-            // it is important to wait for minc in the case that the minor compaction finish
-            // event did not make it to the logs (the file will be in !METADATA, preventing replay of compacted data)...
-            // but do not want a majc to wipe the file out from !METADATA and then have another process failure...
-            // this could cause duplicate data to replay
+          if (tablet.initiateMinorCompaction()) {
+            /*
+             * If a minor compaction starts after a tablet opens, this indicates a log recovery occurred. This recovered data must be minor compacted.
+             * 
+             * There are three reasons to wait for this minor compaction to finish before placing the tablet in online tablets.
+             * 
+             * 1) The log recovery code does not handle data written to the tablet on multiple tablet servers. 2) The log recovery code does not block if memory
+             * is full. Therefore recovering lots of tablets that use a lot of memory could run out of memory. 3) The minor compaction finish event did not make
+             * it to the logs (the file will be in !METADATA, preventing replay of compacted data)... but do not want a majc to wipe the file out from !METADATA
+             * and then have another process failure... this could cause duplicate data to replay
+             */
+
             tablet.waitForMinC();
+          } else if (tablet.getNumEntries() > 0) {
+            log.warn("Minor compaction after recovery fails for " + extentToOpen);
           }
           
           synchronized (openingTablets) {
