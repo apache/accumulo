@@ -50,9 +50,13 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -65,10 +69,12 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -139,6 +145,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   private static final String ITERATORS_OPTIONS = PREFIX + ".iterators.options";
   private static final String ITERATORS_DELIM = ",";
   
+  private static final String READ_OFFLINE = PREFIX + ".read.offline";
+
   /**
    * @deprecated Use {@link #setIsolated(Configuration,boolean)} instead
    */
@@ -370,6 +378,32 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     if (maxVersions < 1)
       throw new IOException("Invalid maxVersions: " + maxVersions + ".  Must be >= 1");
     conf.setInt(MAX_VERSIONS, maxVersions);
+  }
+  
+  /**
+   * Enable reading offline tables. This will make the map reduce job directly read the tables files. If the table is not offline, then the job will fail. If
+   * the table comes online during the map reduce job, its likely that the job will fail.
+   * 
+   * To use this option, the map reduce user will need access to read the accumulo directory in HDFS.
+   * 
+   * Reading the offline table will create the scan time iterator stack in the map process. So any iterators that are configured for the table will need to be
+   * on the mappers classpath. The accumulo-site.xml may need to be on the mappers classpath if HDFS or the accumlo directory in HDFS are non-standard.
+   * 
+   * One way to use this feature is to clone a table, take the clone offline, and use the clone as the input table for a map reduce job. If you plan to map
+   * reduce over the data many times, it may be better to the compact the table, clone it, take it offline, and use the clone for all map reduce jobs. The
+   * reason to do this is that compaction will reduce each tablet in the table to one file, and its faster to read from one file.
+   * 
+   * There are two possible advantages to reading a tables file directly out of HDFS. First, you may see better read performance. Second, it will support
+   * speculative execution better. When reading an online table speculative execution can put more load on an already slow tablet server.
+   * 
+   * @param conf
+   *          the job
+   * @param scanOff
+   *          pass true to read offline tables
+   */
+  
+  public static void setScanOffline(Configuration conf, boolean scanOff) {
+    conf.setBoolean(READ_OFFLINE, scanOff);
   }
   
   /**
@@ -893,6 +927,12 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     return conf.getInt(MAX_VERSIONS, -1);
   }
   
+  protected static boolean isOfflineScan(Configuration conf) {
+    return conf.getBoolean(READ_OFFLINE, false);
+  }
+
+  // Return a list of the iterator settings (for iterators to apply to a scanner)
+
   /**
    * @deprecated Use {@link #getIterators(Configuration)} instead
    */
@@ -1069,7 +1109,12 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         Connector conn = instance.getConnector(user, password);
         log.debug("Creating scanner for table: " + getTablename(attempt.getConfiguration()));
         log.debug("Authorizations are: " + authorizations);
-        scanner = conn.createScanner(getTablename(attempt.getConfiguration()), authorizations);
+        if (isOfflineScan(attempt.getConfiguration())) {
+          scanner = new OfflineScanner(instance, new AuthInfo(user, ByteBuffer.wrap(password), instance.getInstanceID()), Tables.getTableId(instance,
+              getTablename(attempt.getConfiguration())), authorizations);
+        } else {
+          scanner = conn.createScanner(getTablename(attempt.getConfiguration()), authorizations);
+        }
         if (isIsolated(attempt.getConfiguration())) {
           log.info("Creating isolated scanner");
           scanner = new IsolatedScanner(scanner);
@@ -1128,6 +1173,106 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     }
   }
   
+  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobContext job, String tableName, List<Range> ranges) throws TableNotFoundException,
+      AccumuloException, AccumuloSecurityException {
+    
+    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
+
+    Instance instance = getInstance(job.getConfiguration());
+    Connector conn = instance.getConnector(getUsername(job.getConfiguration()), getPassword(job.getConfiguration()));
+    String tableId = Tables.getTableId(instance, tableName);
+    
+    if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
+      Tables.clearCache(instance);
+      if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
+        throw new AccumuloException("Table is online " + tableName + "(" + tableId + ") cannot scan table in offline mode ");
+      }
+    }
+
+    for (Range range : ranges) {
+      Text startRow;
+      
+      if (range.getStartKey() != null)
+        startRow = range.getStartKey().getRow();
+      else
+        startRow = new Text();
+      
+      Range metadataRange = new Range(new KeyExtent(new Text(tableId), startRow, null).getMetadataEntry(), true, null, false);
+      Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+      ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+      scanner.fetchColumnFamily(Constants.METADATA_LAST_LOCATION_COLUMN_FAMILY);
+      scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
+      scanner.fetchColumnFamily(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
+      scanner.setRange(metadataRange);
+      
+      RowIterator rowIter = new RowIterator(scanner);
+      
+      // TODO check that extents match prev extent
+
+      KeyExtent lastExtent = null;
+
+      while (rowIter.hasNext()) {
+        Iterator<Entry<Key,Value>> row = rowIter.next();
+        String last = "";
+        KeyExtent extent = null;
+        String location = null;
+        
+        while (row.hasNext()) {
+          Entry<Key,Value> entry = row.next();
+          Key key = entry.getKey();
+          
+          if (key.getColumnFamily().equals(Constants.METADATA_LAST_LOCATION_COLUMN_FAMILY)) {
+            last = entry.getValue().toString();
+          }
+          
+          if (key.getColumnFamily().equals(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY)
+              || key.getColumnFamily().equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) {
+            location = entry.getValue().toString();
+          }
+
+          if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(key)) {
+            extent = new KeyExtent(key.getRow(), entry.getValue());
+          }
+          
+        }
+        
+        if (location != null)
+          return null;
+
+        if (!extent.getTableId().toString().equals(tableId)) {
+          throw new AccumuloException("Saw unexpected table Id " + tableId + " " + extent);
+        }
+
+        if (lastExtent != null && !extent.isPreviousExtent(lastExtent)) {
+          throw new AccumuloException(" " + lastExtent + " is not previous extent " + extent);
+        }
+
+        Map<KeyExtent,List<Range>> tabletRanges = binnedRanges.get(last);
+        if (tabletRanges == null) {
+          tabletRanges = new HashMap<KeyExtent,List<Range>>();
+          binnedRanges.put(last, tabletRanges);
+        }
+        
+        List<Range> rangeList = tabletRanges.get(extent);
+        if (rangeList == null) {
+          rangeList = new ArrayList<Range>();
+          tabletRanges.put(extent, rangeList);
+        }
+        
+        rangeList.add(range);
+
+        if (extent.getEndRow() == null || range.afterEndKey(new Key(extent.getEndRow()).followingKey(PartialKey.ROW))) {
+          break;
+        }
+        
+        lastExtent = extent;
+      }
+
+    }
+    
+    return binnedRanges;
+  }
+
   /**
    * Read the metadata table to get tablets and match up ranges to them.
    */
@@ -1148,10 +1293,30 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     TabletLocator tl;
     try {
-      tl = getTabletLocator(job.getConfiguration());
-      while (!tl.binRanges(ranges, binnedRanges).isEmpty()) {
-        log.warn("Unable to locate bins for specified ranges. Retrying.");
-        UtilWaitThread.sleep(100 + (int) (Math.random() * 100)); // sleep randomly between 100 and 200 ms
+      if (isOfflineScan(job.getConfiguration())) {
+        binnedRanges = binOfflineTable(job, tableName, ranges);
+        while (binnedRanges == null) {
+          // Some tablets were still online, try again
+          UtilWaitThread.sleep(100 + (int) (Math.random() * 100)); // sleep randomly between 100 and 200 ms
+          binnedRanges = binOfflineTable(job, tableName, ranges);
+        }
+      } else {
+        Instance instance = getInstance(job.getConfiguration());
+        String tableId = null;
+        tl = getTabletLocator(job.getConfiguration());
+        while (!tl.binRanges(ranges, binnedRanges).isEmpty()) {
+          if (!(instance instanceof MockInstance)) {
+            if (tableId == null)
+              tableId = Tables.getTableId(instance, tableName);
+            if (!Tables.exists(instance, tableId))
+              throw new TableDeletedException(tableId);
+            if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
+              throw new TableOfflineException(instance, tableId);
+          }
+          binnedRanges.clear();
+          log.warn("Unable to locate bins for specified ranges. Retrying.");
+          UtilWaitThread.sleep(100 + (int) (Math.random() * 100)); // sleep randomly between 100 and 200 ms
+        }
       }
     } catch (Exception e) {
       throw new IOException(e);

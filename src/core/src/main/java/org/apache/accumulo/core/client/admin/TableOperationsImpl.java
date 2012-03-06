@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -847,11 +848,18 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return Collections.singleton(range);
     
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
-    TabletLocator tl = TabletLocator.getInstance(instance, credentials, new Text(Tables.getTableId(instance, tableName)));
+    String tableId = Tables.getTableId(instance, tableName);
+    TabletLocator tl = TabletLocator.getInstance(instance, credentials, new Text(tableId));
     while (!tl.binRanges(Collections.singletonList(range), binnedRanges).isEmpty()) {
+      if (!Tables.exists(instance, tableId))
+        throw new TableDeletedException(tableId);
+      if (Tables.getTableState(instance, tableId) == TableState.OFFLINE)
+        throw new TableOfflineException(instance, tableId);
+
       log.warn("Unable to locate bins for specified range. Retrying.");
       // sleep randomly between 100 and 200ms
       UtilWaitThread.sleep(100 + (int) (Math.random() * 100));
+      binnedRanges.clear();
     }
     
     // group key extents to get <= maxSplits

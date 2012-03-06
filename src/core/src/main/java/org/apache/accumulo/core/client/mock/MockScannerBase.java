@@ -33,8 +33,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
@@ -106,7 +106,7 @@ public class MockScannerBase extends ScannerOptions implements ScannerBase {
     AccumuloConfiguration conf = new MockConfiguration(table.settings);
     MockIteratorEnvironment iterEnv = new MockIteratorEnvironment();
     SortedKeyValueIterator<Key,Value> result = iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(IteratorScope.scan, vf, null, conf,
-        serverSideIteratorList, serverSideIteratorOptions, iterEnv));
+        serverSideIteratorList, serverSideIteratorOptions, iterEnv, false));
     return result;
   }
   

@@ -77,6 +77,7 @@ MASTER_RESTART_SLEEP_TIME=2
 VERFIY_OUT=/tmp/continuous_verify
 VERIFY_MAX_MAPS=64
 VERIFY_REDUCERS=64
+SCAN_OFFLINE=false
 
 #settings related to the batch walker
 BATCH_WALKER_SLEEP=180000
