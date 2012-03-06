@@ -48,7 +48,7 @@ public class IteratorSetting {
   private Map<String,String> properties;
   
   /**
-   * Get layer at which this iterator applies. See {@link #setPriority(int) for how the priority is used.}
+   * Get layer at which this iterator applies. See {@link #setPriority(int)} for how the priority is used.
    * 
    * @return the priority of this Iterator
    */
@@ -138,7 +138,7 @@ public class IteratorSetting {
    * Constructs an iterator setting configured for the scan scope with no parameters. (Parameters can be added later.)
    * 
    * @param priority
-   *          the priority for the iterator @see {@link #setPriority(int)}
+   *          the priority for the iterator (see {@link #setPriority(int)})
    * @param name
    *          the distinguishing name for the iterator
    * @param iteratorClass
@@ -152,7 +152,7 @@ public class IteratorSetting {
    * Constructs an iterator setting configured for the specified scopes with the specified parameters.
    * 
    * @param priority
-   *          the priority for the iterator @see {@link #setPriority(int)}
+   *          the priority for the iterator (see {@link #setPriority(int)})
    * @param name
    *          the distinguishing name for the iterator
    * @param iteratorClass
@@ -173,7 +173,7 @@ public class IteratorSetting {
    * parameters.
    * 
    * @param priority
-   *          the priority for the iterator @see {@link #setPriority(int)}
+   *          the priority for the iterator (see {@link #setPriority(int)})
    * @param iteratorClass
    *          the class for the iterator
    */
@@ -182,19 +182,18 @@ public class IteratorSetting {
   }
   
   /**
-
+   * 
    * Constructs an iterator setting using the given class's SimpleName for the iterator name and configured for the specified scopes with the specified
    * parameters.
    * 
    * @param priority
-   *          the priority for the iterator @see {@link #setPriority(int)}
+   *          the priority for the iterator (see {@link #setPriority(int)})
    * @param iteratorClass
    *          the class for the iterator
    * @param properties
    *          any properties for the iterator
    */
-  public IteratorSetting(int priority, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
-      Map<String,String> properties) {
+  public IteratorSetting(int priority, Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass, Map<String,String> properties) {
     this(priority, iteratorClass.getSimpleName(), iteratorClass.getName(), properties);
   }
   
@@ -202,7 +201,7 @@ public class IteratorSetting {
    * Constructs an iterator setting configured for the scan scope with no parameters.
    * 
    * @param priority
-   *          the priority for the iterator @see {@link #setPriority(int)}
+   *          the priority for the iterator (see {@link #setPriority(int)})
    * @param name
    *          the distinguishing name for the iterator
    * @param iteratorClass
@@ -313,6 +312,6 @@ public class IteratorSetting {
     public Text getColumnQualifier() {
       return getSecond();
     }
-
+    
   }
 }

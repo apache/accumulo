@@ -133,7 +133,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   private static final String ITERATORS_DELIM = ",";
   
   /**
-   * Enable or disable use of the {@link IsolatedScanner}. By default it is not enabled.
+   * Enable or disable use of the {@link IsolatedScanner} in this configuration object. By default it is not enabled.
    * 
    * @param conf
    *          The Hadoop configuration object
@@ -145,7 +145,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
-   * Enable or disable use of the {@link ClientSideIteratorScanner}. By default it is not enabled.
+   * Enable or disable use of the {@link ClientSideIteratorScanner} in this configuration object. By default it is not enabled.
    * 
    * @param conf
    *          The Hadoop configuration object
@@ -156,6 +156,20 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     conf.setBoolean(LOCAL_ITERATORS, enable);
   }
   
+  /**
+   * Initialize the user, table, and authorization information for the configuration object that will be used with an Accumulo InputFormat.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @param user
+   *          a valid accumulo user
+   * @param passwd
+   *          the user's password
+   * @param table
+   *          the table to read
+   * @param auths
+   *          the authorizations used to restrict data read
+   */
   public static void setInputInfo(Configuration conf, String user, byte[] passwd, String table, Authorizations auths) {
     if (conf.getBoolean(INPUT_INFO_HAS_BEEN_SET, false))
       throw new IllegalStateException("Input info can only be set once per job");
@@ -169,6 +183,16 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       conf.set(AUTHORIZATIONS, auths.serialize());
   }
   
+  /**
+   * Configure a {@link ZooKeeperInstance} for this configuration object.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @param instanceName
+   *          the accumulo instance name
+   * @param zooKeepers
+   *          a comma-separated list of zookeeper servers
+   */
   public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
     if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
       throw new IllegalStateException("Instance info can only be set once per job");
@@ -179,12 +203,28 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     conf.set(ZOOKEEPERS, zooKeepers);
   }
   
+  /**
+   * Configure a {@link MockInstance} for this configuration object.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @param instanceName
+   *          the accumulo instance name
+   */
   public static void setMockInstance(Configuration conf, String instanceName) {
     conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
     conf.setBoolean(MOCK, true);
     conf.set(INSTANCE_NAME, instanceName);
   }
   
+  /**
+   * Set the ranges to map over for this configuration object.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @param ranges
+   *          the ranges that will be mapped over
+   */
   public static void setRanges(Configuration conf, Collection<Range> ranges) {
     ArgumentChecker.notNull(ranges);
     ArrayList<String> rangeStrings = new ArrayList<String>(ranges.size());
@@ -200,6 +240,13 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     conf.setStrings(RANGES, rangeStrings.toArray(new String[0]));
   }
   
+  /**
+   * Disables the adjustment of ranges for this configuration object. By default, overlapping ranges will be merged and ranges will be fit to existing tablet
+   * boundaries. Disabling this adjustment will cause there to be exactly one mapper per range set using {@link #setRanges(Configuration, Collection)}.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   */
   public static void disableAutoAdjustRanges(Configuration conf) {
     conf.setBoolean(AUTO_ADJUST_RANGES, false);
   }
@@ -209,10 +256,11 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * leveraged in the scan by the record reader. To adjust priority use setIterator() & setIteratorOptions() w/ the VersioningIterator type explicitly.
    * 
    * @param conf
-   *          the job
+   *          the Hadoop configuration object
    * @param maxVersions
-   *          the max versions
+   *          the max number of versions per accumulo cell
    * @throws IOException
+   *           if maxVersions is < 1
    */
   public static void setMaxVersions(Configuration conf, int maxVersions) throws IOException {
     if (maxVersions < 1)
@@ -221,7 +269,10 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
+   * Restricts the columns that will be mapped over for this configuration object.
    * 
+   * @param conf
+   *          the Hadoop configuration object
    * @param columnFamilyColumnQualifierPairs
    *          A pair of {@link Text} objects corresponding to column family and column qualifier. If the column qualifier is null, the entire column family is
    *          selected. An empty set is the default and is equivalent to scanning the all columns.
@@ -241,6 +292,14 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     conf.setStrings(COLUMNS, columnStrings.toArray(new String[0]));
   }
   
+  /**
+   * Sets the log level for this configuration object.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @param level
+   *          the logging level
+   */
   public static void setLogLevel(Configuration conf, Level level) {
     ArgumentChecker.notNull(level);
     log.setLevel(level);
@@ -248,10 +307,10 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
-   * Encode an iterator on the input.
+   * Encode an iterator on the input for this configuration object.
    * 
    * @param conf
-   *          The job in which to save the iterator configuration
+   *          The Hadoop configuration in which to save the iterator configuration
    * @param cfg
    *          The configuration of the iterator
    */
@@ -287,41 +346,104 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     }
   }
   
+  /**
+   * Determines whether a configuration has isolation enabled.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return true if isolation is enabled, false otherwise
+   * @see #setIsolated(Configuration, boolean)
+   */
   protected static boolean isIsolated(Configuration conf) {
     return conf.getBoolean(ISOLATED, false);
   }
   
+  /**
+   * Determines whether a configuration uses local iterators.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return true if uses local iterators, false otherwise
+   * @see #setLocalIterators(Configuration, boolean)
+   */
   protected static boolean usesLocalIterators(Configuration conf) {
     return conf.getBoolean(LOCAL_ITERATORS, false);
   }
   
+  /**
+   * Gets the user name from the configuration.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return the user name
+   * @see #setInputInfo(Configuration, String, byte[], String, Authorizations)
+   */
   protected static String getUsername(Configuration conf) {
     return conf.get(USERNAME);
   }
   
   /**
-   * WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to provide a charset safe conversion to a
-   * string, and is not intended to be secure.
+   * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
+   * provide a charset safe conversion to a string, and is not intended to be secure.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return the BASE64-encoded password
+   * @see #setInputInfo(Configuration, String, byte[], String, Authorizations)
    */
   protected static byte[] getPassword(Configuration conf) {
     return Base64.decodeBase64(conf.get(PASSWORD, "").getBytes());
   }
   
+  /**
+   * Gets the table name from the configuration.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return the table name
+   * @see #setInputInfo(Configuration, String, byte[], String, Authorizations)
+   */
   protected static String getTablename(Configuration conf) {
     return conf.get(TABLE_NAME);
   }
   
+  /**
+   * Gets the authorizations to set for the scans from the configuration.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return the accumulo scan authorizations
+   * @see #setInputInfo(Configuration, String, byte[], String, Authorizations)
+   */
   protected static Authorizations getAuthorizations(Configuration conf) {
     String authString = conf.get(AUTHORIZATIONS);
     return authString == null ? Constants.NO_AUTHS : new Authorizations(authString.split(","));
   }
   
+  /**
+   * Initializes an Accumulo {@link Instance} based on the configuration.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return an accumulo instance
+   * @see #setZooKeeperInstance(Configuration, String, String)
+   * @see #setMockInstance(Configuration, String)
+   */
   protected static Instance getInstance(Configuration conf) {
     if (conf.getBoolean(MOCK, false))
       return new MockInstance(conf.get(INSTANCE_NAME));
     return new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS));
   }
   
+  /**
+   * Initializes an Accumulo {@link TabletLocator} based on the configuration.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return an accumulo tablet locator
+   * @throws TableNotFoundException
+   *           if the table name set on the configuration doesn't exist
+   */
   protected static TabletLocator getTabletLocator(Configuration conf) throws TableNotFoundException {
     if (conf.getBoolean(MOCK, false))
       return new MockTabletLocator();
@@ -333,6 +455,16 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         new Text(Tables.getTableId(instance, tableName)));
   }
   
+  /**
+   * Gets the ranges to scan over from a configuration object.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return the ranges
+   * @throws IOException
+   *           if the ranges have been encoded improperly
+   * @see #setRanges(Configuration, Collection)
+   */
   protected static List<Range> getRanges(Configuration conf) throws IOException {
     ArrayList<Range> ranges = new ArrayList<Range>();
     for (String rangeString : conf.getStringCollection(RANGES)) {
@@ -344,6 +476,14 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     return ranges;
   }
   
+  /**
+   * Gets the columns to be mapped over from this configuration object.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return a set of columns
+   * @see #fetchColumns(Configuration, Collection)
+   */
   protected static Set<Pair<Text,Text>> getFetchedColumns(Configuration conf) {
     Set<Pair<Text,Text>> columns = new HashSet<Pair<Text,Text>>();
     for (String col : conf.getStringCollection(COLUMNS)) {
@@ -355,15 +495,39 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     return columns;
   }
   
+  /**
+   * Determines whether a configuration has auto-adjust ranges enabled.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return true if auto-adjust is enabled, false otherwise
+   * @see #disableAutoAdjustRanges(Configuration)
+   */
   protected static boolean getAutoAdjustRanges(Configuration conf) {
     return conf.getBoolean(AUTO_ADJUST_RANGES, true);
   }
   
+  /**
+   * Gets the log level from this configuration.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return the log level
+   * @see #setLogLevel(Configuration, Level)
+   */
   protected static Level getLogLevel(Configuration conf) {
     return Level.toLevel(conf.getInt(LOGLEVEL, Level.INFO.toInt()));
   }
   
   // InputFormat doesn't have the equivalent of OutputFormat's checkOutputSpecs(JobContext job)
+  /**
+   * Check whether a configuration is fully configured to be used with an Accumulo {@link org.apache.hadoop.mapreduce.InputFormat}.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @throws IOException
+   *           if the configuration is improperly configured
+   */
   protected static void validateOptions(Configuration conf) throws IOException {
     if (!conf.getBoolean(INPUT_INFO_HAS_BEEN_SET, false))
       throw new IOException("Input info has not been set.");
@@ -392,12 +556,26 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     }
   }
   
-  // Get the maxVersions the VersionsIterator should be configured with. Return -1 if none.
+  /**
+   * Gets the maxVersions to use for the {@link VersioningIterator} from this configuration.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return the max versions, -1 if not configured
+   * @see #setMaxVersions(Configuration, int)
+   */
   protected static int getMaxVersions(Configuration conf) {
     return conf.getInt(MAX_VERSIONS, -1);
   }
   
-  // Return a list of the iterator settings (for iterators to apply to a scanner)
+  /**
+   * Gets a list of the iterator settings (for iterators to apply to a scanner) from this configuration.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return a list of iterators
+   * @see #addIterator(Configuration, IteratorSetting)
+   */
   protected static List<AccumuloIterator> getIterators(Configuration conf) {
     
     String iterators = conf.get(ITERATORS);
@@ -416,7 +594,14 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     return list;
   }
   
-  // Return a list of the iterator options specified
+  /**
+   * Gets a list of the iterator options specified on this configuration.
+   * 
+   * @param conf
+   *          the Hadoop configuration object
+   * @return a list of iterator options
+   * @see #addIterator(Configuration, IteratorSetting)
+   */
   protected static List<AccumuloIteratorOption> getIteratorOptions(Configuration conf) {
     String iteratorOptions = conf.get(ITERATORS_OPTIONS);
     
@@ -439,7 +624,15 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     protected Iterator<Entry<Key,Value>> scannerIterator;
     protected RangeInputSplit split;
     
-    // Apply the configured iterators from the job to the scanner
+    /**
+     * Apply the configured iterators from the configuration to the scanner.
+     * 
+     * @param conf
+     *          the Hadoop configuration object
+     * @param scanner
+     *          the scanner to configure
+     * @throws AccumuloException
+     */
     protected void setupIterators(Configuration conf, Scanner scanner) throws AccumuloException {
       List<AccumuloIterator> iterators = getIterators(conf);
       List<AccumuloIteratorOption> options = getIteratorOptions(conf);
@@ -456,7 +649,14 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       }
     }
     
-    // Apply the VersioningIterator at priority 0 based on the job config
+    /**
+     * If maxVersions has been set, configure a {@link VersioningIterator} at priority 0 for this scanner.
+     * 
+     * @param conf
+     *          the Hadoop configuration object
+     * @param scanner
+     *          the scanner to configure
+     */
     protected void setupMaxVersions(Configuration conf, Scanner scanner) {
       int maxVersions = getMaxVersions(conf);
       // Check to make sure its a legit value
@@ -467,6 +667,9 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       }
     }
     
+    /**
+     * Initialize a scanner over the given input split using this task attempt configuration.
+     */
     public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
       Scanner scanner;
       split = (RangeInputSplit) inSplit;
@@ -540,7 +743,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
-   * read the metadata table to get tablets of interest these each become a split
+   * Read the metadata table to get tablets and match up ranges to them.
    */
   public List<InputSplit> getSplits(JobContext job) throws IOException {
     log.setLevel(getLogLevel(job.getConfiguration()));
@@ -575,7 +778,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       splitsToAdd = new HashMap<Range,ArrayList<String>>();
     
     HashMap<String,String> hostNameCache = new HashMap<String,String>();
-
+    
     for (Entry<String,Map<KeyExtent,List<Range>>> tserverBin : binnedRanges.entrySet()) {
       String ip = tserverBin.getKey().split(":", 2)[0];
       String location = hostNameCache.get(ip);
@@ -584,7 +787,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         location = inetAddress.getHostName();
         hostNameCache.put(ip, location);
       }
-
+      
       for (Entry<KeyExtent,List<Range>> extentRanges : tserverBin.getValue().entrySet()) {
         Range ke = extentRanges.getKey().toDataRange();
         for (Range r : extentRanges.getValue()) {

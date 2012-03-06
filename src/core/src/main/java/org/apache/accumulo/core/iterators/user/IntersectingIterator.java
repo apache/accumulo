@@ -382,13 +382,10 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   private static final String notFlagOptionName = "notFlag";
   
   /**
-   * to be made protected
-   * 
    * @param columns
    * @return encoded columns
-   * @deprecated since 1.4 {@link #setColumnFamilies(IteratorSetting, Text[] columns)}
    */
-  public static String encodeColumns(Text[] columns) {
+  protected static String encodeColumns(Text[] columns) {
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < columns.length; i++) {
       sb.append(new String(Base64.encodeBase64(TextUtil.getBytes(columns[i]))));
@@ -398,13 +395,10 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   }
   
   /**
-   * to be made protected
-   * 
    * @param flags
    * @return encoded flags
-   * @deprecated since 1.4 {@link #setColumnFamilies(IteratorSetting, Text[] columns, boolean[] flags)}
    */
-  public static String encodeBooleans(boolean[] flags) {
+  protected static String encodeBooleans(boolean[] flags) {
     byte[] bytes = new byte[flags.length];
     for (int i = 0; i < flags.length; i++) {
       if (flags[i])
@@ -425,13 +419,10 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   }
   
   /**
-   * to be made protected
-   * 
    * @param flags
    * @return decoded flags
-   * @deprecated since 1.4
    */
-  public static boolean[] decodeBooleans(String flags) {
+  protected static boolean[] decodeBooleans(String flags) {
     // return null of there were no flags
     if (flags == null)
       return null;
