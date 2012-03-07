@@ -193,7 +193,7 @@ public class QueryUtil {
   /**
    * Scans over the index table for files or directories with a given name, prefix, or suffix (indicated by a wildcard '*' at the beginning or end of the term.
    * 
-   * @param term
+   * @param exp
    *          the name a file or directory to search for with an optional wildcard '*' at the beginning or end
    */
   public Iterable<Entry<Key,Value>> singleRestrictedWildCardSearch(String exp) throws Exception {
@@ -220,7 +220,7 @@ public class QueryUtil {
   /**
    * Scans over the index table for files or directories with a given name that can contain a single wildcard '*' anywhere in the term.
    * 
-   * @param term
+   * @param exp
    *          the name a file or directory to search for with one optional wildcard '*'
    */
   public Iterable<Entry<Key,Value>> singleWildCardSearch(String exp) throws Exception {
