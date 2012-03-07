@@ -32,13 +32,22 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
 /**
- * Mutation represents an action that manipulates a row in a table
+ * <p>
+ * Mutation represents an action that manipulates a row in a table. A mutation holds a list of column/value pairs that represent an atomic set of modifications
+ * to make to a row.
  * 
+ * <p>
  * Convenience methods which takes columns and value as CharSequence (String implements CharSequence) are provided. CharSequence is converted to UTF-8 by
  * constructing a new Text object.
  * 
+ * <p>
  * When always passing in the same data as a CharSequence/String, its probably more efficient to call the Text put methods. This way the data is only encoded
  * once and only one Text object is created.
+ * 
+ * <p>
+ * All of the put methods append data to the mutation, they do not overwrite anything that was previously put. The mutation holds a list of all column/values
+ * that were put into it. The putDelete() methods do not remove something that was previously added to the mutation, rather they indicate that Accumulo should
+ * insert a delete marker for that row column.
  * 
  */
 

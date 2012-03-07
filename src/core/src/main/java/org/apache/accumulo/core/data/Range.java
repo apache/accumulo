@@ -28,6 +28,11 @@ import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
+/**
+ * This class is used to specify a range of Accumulo Keys.
+ * 
+ */
+
 public class Range implements WritableComparable<Range> {
   
   private Key start;
@@ -193,6 +198,11 @@ public class Range implements WritableComparable<Range> {
     return start;
   }
   
+  /**
+   * 
+   * @param key
+   * @return true of the given key is before the range, otherwise false
+   */
   public boolean beforeStartKey(Key key) {
     if (infiniteStartKey) {
       return false;
@@ -203,6 +213,10 @@ public class Range implements WritableComparable<Range> {
     return key.compareTo(start) <= 0;
   }
   
+  /**
+   * @return the last key in the range, null if the end key is infinite
+   */
+
   public Key getEndKey() {
     if (infiniteStopKey) {
       return null;
@@ -210,6 +224,11 @@ public class Range implements WritableComparable<Range> {
     return stop;
   }
   
+  /**
+   * @param key
+   * @return true if the given key is after the range, otherwise false
+   */
+
   public boolean afterEndKey(Key key) {
     if (infiniteStopKey)
       return false;
@@ -279,10 +298,32 @@ public class Range implements WritableComparable<Range> {
     return comp;
   }
   
+  /**
+   * 
+   * @param key
+   * @return true if the given key falls within the range
+   */
   public boolean contains(Key key) {
     return !beforeStartKey(key) && !afterEndKey(key);
   }
   
+  /**
+   * Takes a collection on range and merges overlapping and adjacent ranges. For example given the following input
+   * 
+   * <pre>
+   * [a,c], (c, d], (g,m), (j,t]
+   * </pre>
+   * 
+   * the following ranges would be returned
+   * 
+   * <pre>
+   * [a,d], (g,t]
+   * </pre>
+   * 
+   * @param ranges
+   * @return list of merged ranges
+   */
+
   public static List<Range> mergeOverlapping(Collection<Range> ranges) {
     if (ranges.size() == 0)
       return Collections.emptyList();
@@ -339,10 +380,36 @@ public class Range implements WritableComparable<Range> {
     return ret;
   }
   
+  /**
+   * Creates a range which represents the intersection of this range and the passed in range. The following example will print true.
+   * 
+   * <pre>
+   * Range range1 = new Range(&quot;a&quot;, &quot;f&quot;);
+   * Range range2 = new Range(&quot;c&quot;, &quot;n&quot;);
+   * Range range3 = range1.clip(range2);
+   * System.out.println(range3.equals(new Range(&quot;c&quot;, &quot;f&quot;)));
+   * </pre>
+   * 
+   * @param range
+   * @return the intersection
+   * @throws IllegalArgumentException
+   *           if ranges does not overlap
+   */
+
   public Range clip(Range range) {
     return clip(range, false);
   }
   
+  /**
+   * Same as other clip function except if gives the option to return null of the ranges do not overlap instead of throwing an exception.
+   * 
+   * @see Range#clip(Range)
+   * @param range
+   * @param returnNullIfDisjoint
+   *          If the ranges do not overlap and true is passed, then null is returned otherwise an exception is thrown.
+   * @return the intersection
+   */
+
   public Range clip(Range range, boolean returnNullIfDisjoint) {
     
     Key sk = range.getStartKey();
@@ -384,6 +451,18 @@ public class Range implements WritableComparable<Range> {
     return new Range(sk, ski, ek, eki);
   }
   
+  /**
+   * Creates a new range that is bounded by the columns passed in. The stary key in the returned range will have a column >= to the minimum column. The end key
+   * in the returned range will have a column <= the max column.
+   * 
+   * 
+   * @param min
+   * @param max
+   * @return a column bounded range
+   * @throws IllegalArgumentException
+   *           if min > max
+   */
+
   public Range bound(Column min, Column max) {
     
     if (min.compareTo(max) > 0) {
