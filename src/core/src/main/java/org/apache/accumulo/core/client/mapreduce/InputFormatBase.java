@@ -277,18 +277,23 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
+   * <p>
    * Enable reading offline tables. This will make the map reduce job directly read the tables files. If the table is not offline, then the job will fail. If
    * the table comes online during the map reduce job, its likely that the job will fail.
    * 
+   * <p>
    * To use this option, the map reduce user will need access to read the accumulo directory in HDFS.
    * 
+   * <p>
    * Reading the offline table will create the scan time iterator stack in the map process. So any iterators that are configured for the table will need to be
    * on the mappers classpath. The accumulo-site.xml may need to be on the mappers classpath if HDFS or the accumlo directory in HDFS are non-standard.
    * 
+   * <p>
    * One way to use this feature is to clone a table, take the clone offline, and use the clone as the input table for a map reduce job. If you plan to map
    * reduce over the data many times, it may be better to the compact the table, clone it, take it offline, and use the clone for all map reduce jobs. The
    * reason to do this is that compaction will reduce each tablet in the table to one file, and its faster to read from one file.
    * 
+   * <p>
    * There are two possible advantages to reading a tables file directly out of HDFS. First, you may see better read performance. Second, it will support
    * speculative execution better. When reading an online table speculative execution can put more load on an already slow tablet server.
    * 

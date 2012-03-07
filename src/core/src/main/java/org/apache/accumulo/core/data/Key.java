@@ -17,8 +17,10 @@
 package org.apache.accumulo.core.data;
 
 /**
- * This class is used to group together all the info that goes into a key in 
- * the mapfiles
+ * This is the Key used to store and access individual values in Accumulo.  A Key is a tuple composed of a row, column family, column qualifier, 
+ * column visibility, timestamp, and delete marker.
+ * 
+ * Keys are comparable and therefore have a sorted order.  
  * 
  */
 
@@ -231,53 +233,137 @@ public class Key implements WritableComparable<Key>, Cloneable {
     this.deleted = false;
   }
   
+  /**
+   * This method gives users control over allocation of Text objects by copying into the passed in text.
+   * 
+   * @param r
+   *          the key's row will be copied into this Text
+   * @return the Text that was passed in
+   */
+
   public Text getRow(Text r) {
     r.set(row, 0, row.length);
     return r;
   }
   
+  /**
+   * This method returns a pointer to the keys internal data and does not copy it.
+   * 
+   * @return ByteSequence that points to the internal key row data.
+   */
+
   public ByteSequence getRowData() {
     return new ArrayByteSequence(row);
   }
   
+  /**
+   * This method allocates a Text object and copies into it.
+   * 
+   * @return Text containing the row field
+   */
+
   public Text getRow() {
     return getRow(new Text());
   }
   
+  /**
+   * Efficiently compare the the row of a key w/o allocating a text object and copying the row into it.
+   * 
+   * @param r
+   *          row to compare to keys row
+   * @return same as getRow().compareTo(r)
+   */
+
   public int compareRow(Text r) {
     return WritableComparator.compareBytes(row, 0, row.length, r.getBytes(), 0, r.getLength());
   }
   
+  /**
+   * This method returns a pointer to the keys internal data and does not copy it.
+   * 
+   * @return ByteSequence that points to the internal key column family data.
+   */
+
   public ByteSequence getColumnFamilyData() {
     return new ArrayByteSequence(colFamily);
   }
   
+  /**
+   * This method gives users control over allocation of Text objects by copying into the passed in text.
+   * 
+   * @param cf
+   *          the key's column family will be copied into this Text
+   * @return the Text that was passed in
+   */
+
   public Text getColumnFamily(Text cf) {
     cf.set(colFamily, 0, colFamily.length);
     return cf;
   }
   
+  /**
+   * This method allocates a Text object and copies into it.
+   * 
+   * @return Text containing the column family field
+   */
+
   public Text getColumnFamily() {
     return getColumnFamily(new Text());
   }
   
+  /**
+   * Efficiently compare the the column family of a key w/o allocating a text object and copying the column qualifier into it.
+   * 
+   * @param cf
+   *          column family to compare to keys column family
+   * @return same as getColumnFamily().compareTo(cf)
+   */
+
   public int compareColumnFamily(Text cf) {
     return WritableComparator.compareBytes(colFamily, 0, colFamily.length, cf.getBytes(), 0, cf.getLength());
   }
   
+  /**
+   * This method returns a pointer to the keys internal data and does not copy it.
+   * 
+   * @return ByteSequence that points to the internal key column qualifier data.
+   */
+
   public ByteSequence getColumnQualifierData() {
     return new ArrayByteSequence(colQualifier);
   }
   
+  /**
+   * This method gives users control over allocation of Text objects by copying into the passed in text.
+   * 
+   * @param cq
+   *          the key's column qualifier will be copied into this Text
+   * @return the Text that was passed in
+   */
+
   public Text getColumnQualifier(Text cq) {
     cq.set(colQualifier, 0, colQualifier.length);
     return cq;
   }
   
+  /**
+   * This method allocates a Text object and copies into it.
+   * 
+   * @return Text containing the column qualifier field
+   */
+
   public Text getColumnQualifier() {
     return getColumnQualifier(new Text());
   }
   
+  /**
+   * Efficiently compare the the column qualifier of a key w/o allocating a text object and copying the column qualifier into it.
+   * 
+   * @param cq
+   *          column family to compare to keys column qualifier
+   * @return same as compareColumnQualifier().compareTo(cq)
+   */
+
   public int compareColumnQualifier(Text cq) {
     return WritableComparator.compareBytes(colQualifier, 0, colQualifier.length, cq.getBytes(), 0, cq.getLength());
   }
@@ -298,14 +384,34 @@ public class Key implements WritableComparable<Key>, Cloneable {
     this.deleted = deleted;
   }
   
+  /**
+   * This method returns a pointer to the keys internal data and does not copy it.
+   * 
+   * @return ByteSequence that points to the internal key column visibility data.
+   */
+
   public ByteSequence getColumnVisibilityData() {
     return new ArrayByteSequence(colVisibility);
   }
   
+  /**
+   * This method allocates a Text object and copies into it.
+   * 
+   * @return Text containing the column visibility field
+   */
+
   public final Text getColumnVisibility() {
     return getColumnVisibility(new Text());
   }
   
+  /**
+   * This method gives users control over allocation of Text objects by copying into the passed in text.
+   * 
+   * @param cv
+   *          the key's column visibility will be copied into this Text
+   * @return the Text that was passed in
+   */
+
   public final Text getColumnVisibility(Text cv) {
     cv.set(colVisibility, 0, colVisibility.length);
     return cv;
@@ -366,6 +472,11 @@ public class Key implements WritableComparable<Key>, Cloneable {
     out.writeBoolean(deleted);
   }
   
+  /**
+   * Compare part of a key. For example compare just the row and column family, and if those are equal then return true.
+   * 
+   */
+
   public boolean equals(Key other, PartialKey part) {
     switch (part) {
       case ROW:
@@ -388,6 +499,11 @@ public class Key implements WritableComparable<Key>, Cloneable {
     }
   }
   
+  /**
+   * Compare part of a key. For example compare just the row and column family, and if those are equal then return 0.
+   * 
+   */
+
   public int compareTo(Key other, PartialKey part) {
     // check for matching row
     int result = WritableComparator.compareBytes(row, 0, row.length, other.row, 0, other.row.length);
@@ -430,7 +546,9 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
   
   /**
-   * determines the order of keys in the MapFiles we must then just make sure that *'s are not ever stored
+   * Compare the elements of a key starting with the row. If the row is equal, then compare the column family, etc. The row, column family, column qualifier,
+   * and column visibility are compared lexographically and sorted ascending. The timestamps are compared numerically and sorted descending so that the most
+   * recent data comes first. Last when delete is compared, true come first and false after.
    */
   
   public int compareTo(Key other) {
