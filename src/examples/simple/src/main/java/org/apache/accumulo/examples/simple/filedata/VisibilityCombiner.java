@@ -20,6 +20,9 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.data.ByteSequence;
 
+/**
+ * A utility for merging visibilities into the form {@code (VIS1)|(VIS2)|...|(VISN)}. Used by the {@link ChunkCombiner}.
+ */
 public class VisibilityCombiner {
   
   private TreeSet<String> visibilities = new TreeSet<String>();

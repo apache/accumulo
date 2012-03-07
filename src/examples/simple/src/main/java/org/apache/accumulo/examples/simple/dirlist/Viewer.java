@@ -40,6 +40,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.examples.simple.filedata.FileDataQuery;
 import org.apache.log4j.Logger;
 
+/**
+ * Provides a GUI for browsing the file system information stored in Accumulo. See docs/examples/README.dirlist for instructions.
+ */
 @SuppressWarnings("serial")
 public class Viewer extends JFrame implements TreeSelectionListener, TreeExpansionListener {
   private static final Logger log = Logger.getLogger(Viewer.class);

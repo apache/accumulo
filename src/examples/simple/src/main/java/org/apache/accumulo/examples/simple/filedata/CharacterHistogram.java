@@ -38,7 +38,8 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
 /**
- * 
+ * A MapReduce that computes a histogram of byte frequency for each file and stores the histogram alongside the file data. The {@link ChunkInputFormat} is used
+ * to read the file data from Accumulo. See docs/examples/README.filedata for instructions.
  */
 public class CharacterHistogram extends Configured implements Tool {
   public static final String VIS = "vis";

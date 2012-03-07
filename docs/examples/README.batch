@@ -16,6 +16,12 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
            specific language governing permissions and limitations
            under the License.
 
+This tutorial uses the following Java classes, which can be found in org.apache.accumulo.examples.simple.client in the simple-examples module:
+
+ * SequentialBatchWriter.java - writes mutations with sequential rows and random values
+ * RandomBatchWriter.java - used by SequentialBatchWriter to generate random values
+ * RandomBatchScanner.java - reads random rows and verifies their values
+
 This is an example of how to use the batch writer and batch scanner. To compile
 the example, run maven and copy the produced jar into the accumulo lib dir.
 This is already done in the tar distribution. 
@@ -29,15 +35,11 @@ list of zookeeper nodes (given as zookeepers here).
 Before you run this, you must ensure that the user you are running has the
 "exampleVis" authorization. (you can set this in the shell with "setauths -u username -s exampleVis")
 
-    $ ./bin/accumulo shell -u root
-    > setauths -u username -s exampleVis
-    > exit
+    $ ./bin/accumulo shell -u root -e "setauths -u username -s exampleVis"
 
 You must also create the table, batchtest1, ahead of time. (In the shell, use "createtable batchtest1")
 
-    $ ./bin/accumulo shell -u username
-    > createtable batchtest1
-    > exit
+    $ ./bin/accumulo shell -u username -e "createtable batchtest1"
     $ ./bin/accumulo org.apache.accumulo.examples.simple.client.SequentialBatchWriter instance zookeepers username password batchtest1 0 10000 50 20000000 500 20 exampleVis
     $ ./bin/accumulo org.apache.accumulo.examples.simple.client.RandomBatchScanner instance zookeepers username password batchtest1 100 0 10000 50 20 exampleVis
     07 11:33:11,103 [client.CountingVerifyingReceiver] INFO : Generating 100 random queries...

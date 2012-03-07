@@ -26,8 +26,8 @@ import java.util.Map;
  * this interface for the interactive part. The alternative would be to manually set configuration options with the config -t tableName property=value. If you
  * go the manual route, be careful to use the correct structure for the property and to set all the properties required for the iterator.
  * 
- * OptionDescribers will need to implement two methods: describeOptions() which returns an instance of IteratorOptions and validateOptions(Map<String,String>
- * options) which is intended to throw an exception or return false if the options are not acceptable.
+ * OptionDescribers will need to implement two methods: {@code describeOptions()} which returns an instance of {@link IteratorOptions} and
+ * {@code validateOptions(Map<String,String> options)} which is intended to throw an exception or return false if the options are not acceptable.
  * 
  */
 public interface OptionDescriber {
@@ -38,7 +38,7 @@ public interface OptionDescriber {
     public String description;
     
     /**
-     * IteratorOptions requires the following:
+     * IteratorOptions holds the name, description, and option information for an iterator.
      * 
      * @param name
      *          is the distinguishing name for the iterator or filter
@@ -109,7 +109,20 @@ public interface OptionDescriber {
     }
   }
   
+  /**
+   * Gets an iterator options object that contains information needed to configure this iterator. This object will be used by the accumulo shell to prompt the
+   * user to input the appropriate information.
+   * 
+   * @return an iterator options object
+   */
   public IteratorOptions describeOptions();
   
+  /**
+   * Check to see if an options map contains all options required by an iterator and that the option values are in the expected formats.
+   * 
+   * @param options
+   *          a map of option names to option values
+   * @return true if options are valid, false otherwise
+   */
   public boolean validateOptions(Map<String,String> options);
 }

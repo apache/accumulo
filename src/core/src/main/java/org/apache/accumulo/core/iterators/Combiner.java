@@ -38,7 +38,7 @@ import org.apache.log4j.Logger;
  * A SortedKeyValueIterator that combines the Values for different versions of a Key into a single Value. Combiner will replace one or more versions of a Key
  * and their Values with the most recent Key and a Value which is the result of the reduce method.
  * 
- * Subclasses must implement a reduce method: public Value reduce(Key key, Iterator<Value> iter);
+ * Subclasses must implement a reduce method: {@code public Value reduce(Key key, Iterator<Value> iter)}.
  * 
  * This reduce method will be passed the most recent Key and an iterator over the Values for all non-deleted versions of that Key.
  */
@@ -295,7 +295,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
   }
   
   /**
-   * A convenience method to set the "all columns" option on a Combiner. 
+   * A convenience method to set the "all columns" option on a Combiner.
    * 
    * @param is
    *          iterator settings object to configure

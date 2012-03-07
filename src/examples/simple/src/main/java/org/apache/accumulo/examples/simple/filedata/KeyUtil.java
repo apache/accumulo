@@ -20,9 +20,19 @@ import java.util.ArrayList;
 
 import org.apache.hadoop.io.Text;
 
+/**
+ * A utility for creating and parsing null-byte separated strings into/from Text objects.
+ */
 public class KeyUtil {
   public static final byte[] nullbyte = new byte[] {0};
   
+  /**
+   * Join some number of strings using a null byte separator into a text object.
+   * 
+   * @param s
+   *          strings
+   * @return a text object containing the strings separated by null bytes
+   */
   public static Text buildNullSepText(String... s) {
     Text t = new Text(s[0]);
     for (int i = 1; i < s.length; i++) {
@@ -32,6 +42,13 @@ public class KeyUtil {
     return t;
   }
   
+  /**
+   * Split a text object using a null byte separator into an array of strings.
+   * 
+   * @param t
+   *          null-byte separated text object
+   * @return an array of strings
+   */
   public static String[] splitNullSepText(Text t) {
     ArrayList<String> s = new ArrayList<String>();
     byte[] b = t.getBytes();

@@ -16,6 +16,10 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
            specific language governing permissions and limitations
            under the License.
 
+This tutorial uses the following Java class, which can be found in org.apache.accumulo.examples.simple.combiner in the simple-examples module:
+
+ * StatsCombiner.java - a combiner that calculates max, min, sum, and count
+
 This is a simple combiner example.  To build this example run maven and then
 copy the produced jar into the accumulo lib dir.  This is already done in the
 tar distribution.

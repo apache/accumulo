@@ -31,22 +31,26 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Text;
 
 /**
- * This iterator dedupes chunks and sets their visibilities to the combined
- * visibility of the refs columns.  For example, it would combine
+ * This iterator dedupes chunks and sets their visibilities to the combined visibility of the refs columns. For example, it would combine
  * 
+ * <pre>
  *    row1 refs uid1\0a A&B V0
  *    row1 refs uid2\0b C&D V0
  *    row1 ~chunk 0 A&B V1
  *    row1 ~chunk 0 C&D V1
  *    row1 ~chunk 0 E&F V1
  *    row1 ~chunk 0 G&H V1
- *    
- *  into the following...
- *  
+ * </pre>
+ * 
+ * into the following
+ * 
+ * <pre>
  *    row1 refs uid1\0a A&B V0
  *    row1 refs uid2\0b C&D V0
  *    row1 ~chunk 0 (A&B)|(C&D) V1
- *    
+ * </pre>
+ * 
+ * {@link VisibilityCombiner} is used to combie the visibilities.
  */
 
 public class ChunkCombiner implements SortedKeyValueIterator<Key,Value> {

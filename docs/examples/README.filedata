@@ -24,7 +24,7 @@ The example has the following classes:
  * ChunkInputFormat - An Accumulo InputFormat that provides keys containing file info (List<Entry<Key,Value>>) and values with an InputStream over the file (ChunkInputStream).
  * ChunkInputStream - An input stream over file data stored in Accumulo.
  * FileDataIngest - Takes a list of files and archives them into Accumulo keyed on the SHA1 hashes of the files.
- * FileDataQuery - Retrieves file data based on the SHA1 hash of the file. (Used by the filedata.Viewer.)
+ * FileDataQuery - Retrieves file data based on the SHA1 hash of the file. (Used by the dirlist.Viewer.)
  * KeyUtil - A utility for creating and parsing null-byte separated strings into/from Text objects.
  * VisibilityCombiner - A utility for merging visibilities into the form (VIS1)|(VIS2)|...
 

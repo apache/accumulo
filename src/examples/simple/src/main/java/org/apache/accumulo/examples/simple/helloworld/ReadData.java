@@ -31,6 +31,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
+/**
+ * Reads all data between two rows; all data after a given row; or all data in a table, depending on the number of arguments given.
+ */
 public class ReadData {
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (args.length < 5 || args.length > 7) {

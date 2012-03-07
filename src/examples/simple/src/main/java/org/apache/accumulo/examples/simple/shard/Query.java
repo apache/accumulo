@@ -31,8 +31,9 @@ import org.apache.accumulo.core.iterators.user.IntersectingIterator;
 import org.apache.hadoop.io.Text;
 
 /**
- * This program queries a set of terms in the shard table (populated by Index.java) using the intersecting iterator.
+ * This program queries a set of terms in the shard table (populated by {@link Index}) using the {@link IntersectingIterator}.
  * 
+ * See docs/examples/README.shard for instructions.
  */
 
 public class Query {

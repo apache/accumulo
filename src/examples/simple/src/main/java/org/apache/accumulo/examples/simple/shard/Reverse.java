@@ -29,9 +29,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
 /**
- * The program reads an accumulo table written by Index.java and writes out to another table. It writes out a mapping of documents to terms. The document to term
- * mapping is used by ContinuousQuery.java
+ * The program reads an accumulo table written by {@link Index} and writes out to another table. It writes out a mapping of documents to terms. The document to
+ * term mapping is used by {@link ContinuousQuery}.
  * 
+ * See docs/examples/README.shard for instructions.
  */
 
 public class Reverse {

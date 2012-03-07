@@ -30,6 +30,9 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+/**
+ * Inserts 10K rows (50K entries) into accumulo with each row having 5 entries using an OutputFormat.
+ */
 public class InsertWithOutputFormat extends Configured implements Tool {
   // this is a tool because when you run a mapreduce, you will need to use the
   // ToolRunner
@@ -38,7 +41,7 @@ public class InsertWithOutputFormat extends Configured implements Tool {
   @Override
   public int run(String[] args) throws Exception {
     if (args.length != 5) {
-      System.out.println("Usage: accumulo " + this.getClass().getName() + " <instance name> <zoo keepers> <username> <password> <tablename>");
+      System.out.println("Usage: bin/tool.sh " + this.getClass().getName() + " <instance name> <zoo keepers> <username> <password> <tablename>");
       return 1;
     }
     Text tableName = new Text(args[4]);

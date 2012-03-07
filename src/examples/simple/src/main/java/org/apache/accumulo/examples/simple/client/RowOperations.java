@@ -36,6 +36,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+/**
+ * A demonstration of reading entire rows and deleting entire rows.
+ */
 public class RowOperations {
   
   private static final Logger log = Logger.getLogger(RowOperations.class);
