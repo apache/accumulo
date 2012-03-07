@@ -29,6 +29,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.io.Text;
 
+/**
+ * Inserts 10K rows (50K entries) into accumulo with each row having 5 entries.
+ */
 public class InsertWithBatchWriter {
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, MutationsRejectedException, TableExistsException,
       TableNotFoundException {

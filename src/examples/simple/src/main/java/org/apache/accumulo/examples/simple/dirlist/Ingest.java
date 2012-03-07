@@ -32,6 +32,10 @@ import org.apache.accumulo.examples.simple.filedata.ChunkCombiner;
 import org.apache.accumulo.examples.simple.filedata.FileDataIngest;
 import org.apache.hadoop.io.Text;
 
+/**
+ * Recursively lists the files and directories under a given path, ingests their names and file info into one Accumulo table, indexes the file names in a
+ * separate table, and the file data into a third table. See docs/examples/README.dirlist for instructions.
+ */
 public class Ingest {
   static final Value nullValue = new Value(new byte[0]);
   public static final String LENGTH_CQ = "length";

@@ -34,6 +34,10 @@ import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 
+/**
+ * Provides utility methods for getting the info for a file, listing the contents of a directory, and performing single wild card searches on file or directory
+ * names. See docs/examples/README.dirlist for instructions.
+ */
 public class QueryUtil {
   private Connector conn = null;
   private String tableName;
@@ -52,6 +56,13 @@ public class QueryUtil {
     this.auths = auths;
   }
   
+  /**
+   * Calculates the depth of a path, i.e. the number of forward slashes in the path name.
+   * 
+   * @param path
+   *          the full path of a file or directory
+   * @return the depth of the path
+   */
   public static int getDepth(String path) {
     int numSlashes = 0;
     int index = -1;
@@ -60,12 +71,26 @@ public class QueryUtil {
     return numSlashes;
   }
   
+  /**
+   * Given a path, construct an accumulo row prepended with the path's depth for the directory table.
+   * 
+   * @param path
+   *          the full path of a file or directory
+   * @return the accumulo row associated with this path
+   */
   public static Text getRow(String path) {
     Text row = new Text(String.format("%03d", getDepth(path)));
     row.append(path.getBytes(), 0, path.length());
     return row;
   }
   
+  /**
+   * Given a path, construct an accumulo row prepended with the {@link #FORWARD_PREFIX} for the index table.
+   * 
+   * @param path
+   *          the full path of a file or directory
+   * @return the accumulo row associated with this path
+   */
   public static Text getForwardIndex(String path) {
     String part = path.substring(path.lastIndexOf("/") + 1);
     if (part.length() == 0)
@@ -75,6 +100,13 @@ public class QueryUtil {
     return row;
   }
   
+  /**
+   * Given a path, construct an accumulo row prepended with the {@link #REVERSE_PREFIX} with the path reversed for the index table.
+   * 
+   * @param path
+   *          the full path of a file or directory
+   * @return the accumulo row associated with this path
+   */
   public static Text getReverseIndex(String path) {
     String part = path.substring(path.lastIndexOf("/") + 1);
     if (part.length() == 0)
@@ -88,12 +120,24 @@ public class QueryUtil {
     return row;
   }
   
+  /**
+   * Returns either the {@link #DIR_COLF} or a decoded string version of the colf.
+   * 
+   * @param colf
+   *          the column family
+   */
   public static String getType(Text colf) {
     if (colf.equals(DIR_COLF))
       return colf.toString() + ":";
     return Long.toString(Ingest.encoder.decode(colf.getBytes())) + ":";
   }
   
+  /**
+   * Scans over the directory table and pulls out stat information about a path.
+   * 
+   * @param path
+   *          the full path of a file or directory
+   */
   public Map<String,String> getData(String path) throws TableNotFoundException {
     if (path.endsWith("/"))
       path = path.substring(0, path.length() - 1);
@@ -108,6 +152,12 @@ public class QueryUtil {
     return data;
   }
   
+  /**
+   * Uses the directory table to list the contents of a directory.
+   * 
+   * @param path
+   *          the full path of a directory
+   */
   public Map<String,Map<String,String>> getDirList(String path) throws TableNotFoundException {
     if (!path.endsWith("/"))
       path = path + "/";
@@ -127,6 +177,12 @@ public class QueryUtil {
     return fim;
   }
   
+  /**
+   * Scans over the index table for files or directories with a given name.
+   * 
+   * @param term
+   *          the name a file or directory to search for
+   */
   public Iterable<Entry<Key,Value>> exactTermSearch(String term) throws Exception {
     System.out.println("executing exactTermSearch for " + term);
     Scanner scanner = conn.createScanner(tableName, auths);
@@ -134,6 +190,12 @@ public class QueryUtil {
     return scanner;
   }
   
+  /**
+   * Scans over the index table for files or directories with a given name, prefix, or suffix (indicated by a wildcard '*' at the beginning or end of the term.
+   * 
+   * @param exp
+   *          the name a file or directory to search for with an optional wildcard '*' at the beginning or end
+   */
   public Iterable<Entry<Key,Value>> singleRestrictedWildCardSearch(String exp) throws Exception {
     if (exp.indexOf("/") >= 0)
       throw new Exception("this method only works with unqualified names");
@@ -155,6 +217,12 @@ public class QueryUtil {
     return scanner;
   }
   
+  /**
+   * Scans over the index table for files or directories with a given name that can contain a single wildcard '*' anywhere in the term.
+   * 
+   * @param exp
+   *          the name a file or directory to search for with one optional wildcard '*'
+   */
   public Iterable<Entry<Key,Value>> singleWildCardSearch(String exp) throws Exception {
     int starIndex = exp.indexOf("*");
     if (exp.indexOf("*", starIndex + 1) >= 0)
@@ -184,6 +252,12 @@ public class QueryUtil {
     return scanner;
   }
   
+  /**
+   * Lists the contents of a directory using the directory table, or searches for file or directory names (if the -search flag is included).
+   * 
+   * @param args
+   * @throws Exception
+   */
   public static void main(String[] args) throws Exception {
     if (args.length != 7 && (args.length != 8 || !args[7].equals("-search"))) {
       System.out.println("usage: " + QueryUtil.class.getSimpleName() + " <instance> <zookeepers> <user> <pass> <table> <auths> <path> [-search]");

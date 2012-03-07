@@ -26,6 +26,7 @@ A comma-separated list of zookeeper servers will be referred to as "zookeepers".
 
 2. Create an Accumulo user (see the [user manual][1]), or use the root user.
 The Accumulo user name will be referred to as "username" with password "password" throughout the examples.
+This user will need to have the ability to create tables.
 
 In all commands, you will need to replace "instance", "zookeepers", "username", and "password" with the values you set for your Accumulo instance.
 

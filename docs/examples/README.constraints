@@ -16,6 +16,11 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
            specific language governing permissions and limitations
            under the License.
 
+This tutorial uses the following Java classes, which can be found in org.apache.accumulo.examples.simple.constraints in the simple-examples module:
+
+ * AlphaNumKeyConstraint.java - a constraint that requires alphanumeric keys
+ * NumericValueConstraint.java - a constraint that requires numeric string values
+
 This an example of how to create a table with constraints. Below a table is
 create with two example constraints.  One constraints does not allow non alpha
 numeric keys.  The other constraint does not allow non numeric values. Two

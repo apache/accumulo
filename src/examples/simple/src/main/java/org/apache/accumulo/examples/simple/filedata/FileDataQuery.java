@@ -33,6 +33,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.PeekingIterator;
 
+/**
+ * Retrieves file data based on the SHA1 hash of the file. Used by the {@link org.apache.accumulo.examples.simple.dirlist.Viewer}. See README.dirlist for
+ * instructions.
+ */
 public class FileDataQuery {
   private Connector conn = null;
   List<Entry<Key,Value>> lastRefs;

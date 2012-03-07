@@ -26,8 +26,19 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 
+/**
+ * Simple example for writing random data in sequential order to Accumulo. See docs/examples/README.batch for instructions.
+ */
 public class SequentialBatchWriter {
-  
+  /**
+   * Writes a specified number of entries to Accumulo using a {@link BatchWriter}. The rows of the entries will be sequential starting at a specified number.
+   * The column families will be "foo" and column qualifiers will be "1". The values will be random byte arrays of a specified size.
+   * 
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   * @throws TableNotFoundException
+   * @throws MutationsRejectedException
+   */
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
     if (args.length != 12) {
       System.out

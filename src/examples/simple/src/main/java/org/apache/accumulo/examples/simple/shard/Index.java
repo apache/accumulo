@@ -30,7 +30,9 @@ import org.apache.hadoop.io.Text;
 /**
  * This program indexes a set of documents given on the command line into a shard table.
  * 
- * What it writes to the table is row = partition id column family = term column qualifier = document id
+ * What it writes to the table is row = partition id, column family = term, column qualifier = document id.
+ * 
+ * See docs/examples/README.shard for instructions.
  */
 
 public class Index {

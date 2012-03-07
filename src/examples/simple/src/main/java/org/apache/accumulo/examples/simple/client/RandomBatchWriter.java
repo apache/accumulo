@@ -32,8 +32,23 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
+/**
+ * Simple example for writing random data to Accumulo. See docs/examples/README.batch for instructions.
+ * 
+ * The rows of the entries will be randomly generated numbers between a specified min and max (prefixed by "row_"). The column families will be "foo" and column
+ * qualifiers will be "1". The values will be random byte arrays of a specified size.
+ */
 public class RandomBatchWriter {
   
+  /**
+   * Creates a random byte array of specified size using the specified seed.
+   * 
+   * @param rowid
+   *          the seed to use for the random number generator
+   * @param dataSize
+   *          the size of the array
+   * @return a random byte array
+   */
   public static byte[] createValue(long rowid, int dataSize) {
     Random r = new Random(rowid);
     byte value[] = new byte[dataSize];
@@ -48,6 +63,17 @@ public class RandomBatchWriter {
     return value;
   }
   
+  /**
+   * Creates a mutation on a specified row with column family "foo", column qualifier "1", specified visibility, and a random value of specified size.
+   * 
+   * @param rowid
+   *          the row of the mutation
+   * @param dataSize
+   *          the size of the random value
+   * @param visibility
+   *          the visibility of the entry to insert
+   * @return a mutation
+   */
   public static Mutation createMutation(long rowid, int dataSize, ColumnVisibility visibility) {
     Text row = new Text(String.format("row_%010d", rowid));
     
@@ -62,6 +88,13 @@ public class RandomBatchWriter {
     return m;
   }
   
+  /**
+   * Writes a specified number of entries to Accumulo using a {@link BatchWriter}.
+   * 
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   * @throws TableNotFoundException
+   */
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     
     String seed = null;

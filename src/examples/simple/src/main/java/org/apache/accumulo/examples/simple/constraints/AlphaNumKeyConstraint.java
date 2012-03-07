@@ -27,7 +27,7 @@ import org.apache.accumulo.core.data.Mutation;
 /**
  * This class is an accumulo constraint that ensures all fields of a key are alpha numeric.
  * 
- * 
+ * See docs/examples/README.constraint for instructions.
  * 
  */
 

@@ -33,6 +33,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
+/**
+ * Computes recursive counts over file system information and stores them back into the same Accumulo table. See docs/examples/README.dirlist for instructions.
+ */
 public class FileCount {
   
   private int entriesScanned;

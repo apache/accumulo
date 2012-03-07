@@ -36,8 +36,9 @@ import org.apache.hadoop.io.Text;
 
 /**
  * Using the doc2word table created by Reverse.java, this program randomly selects N words per document. Then it continually queries a random set of words in
- * the shard table (created by Index.java) using the intersecting iterator.
+ * the shard table (created by {@link Index}) using the {@link IntersectingIterator}.
  * 
+ * See docs/examples/README.shard for instructions.
  */
 
 public class ContinuousQuery {
@@ -68,13 +69,13 @@ public class ContinuousQuery {
     Random rand = new Random();
     
     BatchScanner bs = conn.createBatchScanner(table, Constants.NO_AUTHS, 20);
-
+    
     for (long i = 0; i < iterations; i += 1) {
       Text[] columns = randTerms.get(rand.nextInt(randTerms.size()));
       
       bs.clearScanIterators();
       bs.clearColumns();
-
+      
       IteratorSetting ii = new IteratorSetting(20, "ii", IntersectingIterator.class);
       IntersectingIterator.setColumnFamilies(ii, columns);
       bs.addScanIterator(ii);
@@ -92,7 +93,7 @@ public class ContinuousQuery {
     }
     
     bs.close();
-
+    
   }
   
   private static ArrayList<Text[]> findRandomTerms(Scanner scanner, int numTerms) {
