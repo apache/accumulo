@@ -400,7 +400,7 @@ public class Mutation implements Writable {
     
     if (cachedValLens == -1) {
       int tmpCVL = 0;
-      for (byte val[] : values)
+      for (byte[] val : values)
         tmpCVL += val.length;
       
       cachedValLens = tmpCVL;
