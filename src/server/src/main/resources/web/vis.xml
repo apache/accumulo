@@ -28,7 +28,6 @@ var maxDotRadius = dotSpacing - dotPadding;
 var dotSize = new Array(numDots); // current sizes
 var dotSizeGrowing = new Array(numDots); // true when dot size is growing, false when shrinking
 var ids = new Array(numDots); // server ids
-var extras = new Array(numDots); // info from which color and motion is derived
 var mousedDot = 0; // the dot currently under the mouse
 
 var allStats = new Array(numDots);
@@ -59,9 +58,11 @@ setSize(document.getElementById('size'));
 // xml loading variables
 var xmlReturned = true;
 var xmlhttp=new XMLHttpRequest(); // don't bother allowing for IE 5 or 6 since canvas won't work
+xmlhttp.overrideMimeType("text/xml");
 xmlhttp.onreadystatechange=function() {
   handleNewData();
 }
+self.setInterval("getXML()",5000);
 
 window.requestAnimFrame = (function(callback){
   return window.requestAnimationFrame ||
@@ -90,15 +91,12 @@ function handleNewData() {
   var statValues = new Array(numNormalStats);
   for (i=0; i < idinfo.length; i++) {
     var info = idinfo[i].attributes[0].nodeValue;
-    var extra = ' (' + hostinfo[i].childNodes[0].nodeValue + ')';
+    var host = hostinfo[i].childNodes[0].nodeValue;
     for (j=0; j < numNormalStats; j++) {
-      if (j % 4 == 0)
-        extra = extra + '<br>\n';
       statValues[j] = Math.max(0,Math.floor(significance[j]*parseFloat(statinfo[j][i].childNodes[0].nodeValue))/significance[j]);
-      extra = extra + '&nbsp;&nbsp;' + statName[j] + ': <strong>' + statValues[j] + '</strong>';
     }
     setStats(statValues,i);
-    setDotInfo(info,extra,i);
+    setDotInfo(info,host,i);
   }
   numLive = idinfo.length;
   resetOverallStats();
@@ -115,8 +113,9 @@ function handleNewData() {
   xmlReturned = true;
 }
 
+// set the data for a given server
 function setStats(statValues,index) {
-  var newStats = new Array(numNormalStats+2);
+  var newStats = new Array(numNormalStats+3);
   for (j=0; j < numNormalStats; j++) {
     if (adjustMax[j])
       maxStatValue[j] = Math.max(statValues[j],maxStatValue[j]);
@@ -129,6 +128,7 @@ function setStats(statValues,index) {
     allStats[index] = newStats;
 }
 
+// set max and average
 function setOverallStats(statValues) {
   avgStat = 0;
   maxStat = 0;
@@ -146,36 +146,55 @@ function setOverallStats(statValues) {
   maxStat = Math.min(1,maxStat);
   statValues[numNormalStats] = Math.floor(significance[numNormalStats]*avgStat)/significance[numNormalStats];
   statValues[numNormalStats+1] = Math.floor(significance[numNormalStats+1]*maxStat)/significance[numNormalStats+1];
-  return maxIndex;
+  statValues[numNormalStats+2] = maxIndex;
 }
 
+// reset max and average for all servers (global maxes may have changed)
 function resetOverallStats() {
   for (i=0; i < numLive; i++) {
-    maxIndex = setOverallStats(allStats[i]);
-    extras[i] = extras[i] + '<br>\n&nbsp;&nbsp;avg: <strong>' + allStats[i][numNormalStats] + '</strong>&nbsp;&nbsp;max: <strong>' + allStats[i][numNormalStats+1] + '</strong> (' + statName[maxIndex] + ')';
+    setOverallStats(allStats[i]);
   }
 }
 
-function setDotInfo(id,extra,index) {
+// initialize or update dot info
+function setDotInfo(id,host,index) {
   if (index >= ids.length) {
-    ids.push(id);
-    extras.push(extra);
+    ids.push([id,host]);
     dotSize.push(maxDotRadius);
     dotSizeGrowing.push(false);
   } else {
-    ids[index] = id;
-    extras[index] = extra;
+    ids[index] = [id,host];
     // keep existing size and direction
   }
 }
 
-function drawDots(){
-  requestAnimFrame(drawDots);
+// construct server info for hover
+function getInfo(i) {
+  var extra = '<strong>' + ids[i][0] + '</strong>';
+  if (i < numLive) {
+    extra = extra + ' (' + ids[i][1] + ')';
+    for (j=0; j < numNormalStats; j++) {
+      if (j % 4 == 0)
+        extra = extra + '<br>\n';
+      extra = extra + '&nbsp;&nbsp;' + statName[j] + ': <strong>' + allStats[i][j] + '</strong>';
+    }
+    extra = extra + '<br>\n&nbsp;&nbsp;avg: <strong>' + allStats[i][numNormalStats] + '</strong>&nbsp;&nbsp;max: <strong>' + allStats[i][numNormalStats+1] + '</strong> (' + statName[allStats[i][numNormalStats+2]] + ')';
+  }
+  return extra;
+}
+
+// reload xml
+function getXML() {
   if (xmlReturned == true) {
     xmlReturned = false;
     xmlhttp.open('POST',xmlurl,true);
     xmlhttp.send();
   }
+}
+
+// redraw
+function drawDots() {
+  requestAnimFrame(drawDots);
   
   frame++;
   
@@ -217,7 +236,7 @@ function drawDots(){
       drawDot(x,y,Math.floor(dotSize[i]),getColor(getStat(i,colorStatType)));
   }
   if (mousedDot < numDots)
-    document.getElementById('vishoverinfo').innerHTML='<strong>' + ids[mousedDot] + '</strong>' + extras[mousedDot];
+    document.getElementById('vishoverinfo').innerHTML=getInfo(mousedDot);
 }
 
 // fill in a few grey dots
@@ -384,12 +403,13 @@ function setState() {
 // go to server page on click
 function goToServer(e) {
   if (mousedDot < numDots)
-    window.location = serverurl + ids[mousedDot];
+    window.location = serverurl + ids[mousedDot][0];
 }
 
 window.onload = function() {
   drawGrid();
   drawDots();
+  getXML();
 }
 </script>
 
