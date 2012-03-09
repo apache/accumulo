@@ -171,6 +171,53 @@ certain column.
     row1 colf1:colq2 []    val2
 
 
+If you are running on top of hdfs with kerberos enabled, then you need to do
+some extra work. We currently do not internally support kerberos, so you must
+manually manage the accumulo users tickets. First, create an accumulo principal
+
+  kadmin.local -q "addprinc -randkey accumulo/<host.domain.name>"
+
+where <host.domain.name> is replaced by a fully qualified domain name. Export
+the principals to a keytab file
+
+  kadmin.local -q "xst -k accumulo.keytab -glob accumulo*"
+
+Place this file in $ACCUMULO_HOME/conf for every host. It should be owned by
+the accumulo user and chmodded to 400. Add the following to the accumulo-env.sh
+
+  kinit -kt $ACCUMULO_HOME/conf/accumulo.keytab accumulo/`hostname -f`
+
+And set the following crontab for every host
+
+  0 5 * * * kinit -kt $ACCUMULO_HOME/conf/accumulo.keytab accumulo/`hostname -f`
+
+Additionally, adjust the $ACCUMULO_HOME/conf/monitor.security.policy to change
+
+  permission java.util.PropertyPermission "*", "read";
+
+to
+  
+  permission java.util.PropertyPermission "*", "read,write";
+
+And add these lines to the end of the policy file
+
+  permission javax.security.auth.AuthPermission "createLoginContext.hadoop-user-kerberos";
+  permission java.lang.RuntimePermission "createSecurityManager";
+  permission javax.security.auth.AuthPermission "doAs";
+  permission javax.security.auth.AuthPermission "getPolicy";
+  permission java.security.SecurityPermission "createAccessControlContext";
+  permission javax.security.auth.AuthPermission "getSubjectFromDomainCombiner";
+  permission java.lang.RuntimePermission "getProtectionDomain";
+  permission javax.security.auth.AuthPermission "modifyPrivateCredentials";
+  permission javax.security.auth.PrivateCredentialPermission "javax.security.auth.kerberos.KerberosTicket javax.security.auth.kerberos.KerberosPrincipal \"*\"", "read";
+  permission javax.security.auth.kerberos.ServicePermission "krbtgt/<REALM>@<REALM>", "initiate";
+  permission javax.security.auth.kerberos.ServicePermission "hdfs/<namenode.domain.name>@<REALM>", "initiate";
+  permission javax.security.auth.kerberos.ServicePermission "mapred/<jobtracker.domain.name>@<REALM>", "initiate";
+
+Where <REALM> is replaced with the kerberos realm for the Hadoop cluster, 
+<namenode.domain.name> is replaced with the fully qualified domain name of the 
+server running the namenode and <jobtracker.domain.name> is replaced with the 
+fully qualified domain name of the server running the job tracker.
 
 
 ******************************************************************************
