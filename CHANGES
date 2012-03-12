@@ -35,6 +35,7 @@ Minor features added prior to Incubation
  * Added visibility constraint, it prevents users from writing data they can not read
  * Removed dependency on accumulo-site.xml from client library.
  * Improved tracing granularty
+ * Added information about running scans to monitor page
 
 Preformance improvements added prior to incubation
  
