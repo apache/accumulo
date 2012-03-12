@@ -76,7 +76,10 @@ window.requestAnimFrame = (function(callback){
 })();
 
 function handleNewData() {
-  if (xmlhttp.readyState!=4 || xmlhttp.status!=200 || xmlhttp.status==null) {
+  if (xmlhttp.readyState!=4) {
+    return;
+  }
+  if (xmlhttp.status!=200 || xmlhttp.responseXML==null) {
     xmlReturned = true;
     return;
   }

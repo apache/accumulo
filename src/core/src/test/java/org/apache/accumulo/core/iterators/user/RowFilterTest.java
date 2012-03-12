@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -47,13 +48,33 @@ public class RowFilterTest extends TestCase {
     @Override
     public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException {
       int sum = 0;
+      int sum2 = 0;
       
+      Key firstKey = null;
+      
+      if (rowIterator.hasTop()) {
+        firstKey = new Key(rowIterator.getTopKey());
+      }
+
       while (rowIterator.hasTop()) {
         sum += Integer.parseInt(rowIterator.getTopValue().toString());
         rowIterator.next();
       }
       
-      return sum == 2;
+      // ensure that seeks are confined to the row
+      rowIterator.seek(new Range(), new HashSet<ByteSequence>(), false);
+      while (rowIterator.hasTop()) {
+        sum2 += Integer.parseInt(rowIterator.getTopValue().toString());
+        rowIterator.next();
+      }
+      
+      rowIterator.seek(new Range(firstKey.getRow(), false, null, true), new HashSet<ByteSequence>(), false);
+      while (rowIterator.hasTop()) {
+        sum2 += Integer.parseInt(rowIterator.getTopValue().toString());
+        rowIterator.next();
+      }
+      
+      return sum == 2 && sum2 == 2;
     }
     
   }
@@ -110,7 +131,7 @@ public class RowFilterTest extends TestCase {
 
     IteratorSetting is = new IteratorSetting(40, SummingRowFilter.class);
     conn.tableOperations().attachIterator("table1", is);
-    
+
     Scanner scanner = conn.createScanner("table1", Constants.NO_AUTHS);
     assertEquals(new HashSet<String>(Arrays.asList("2", "3")), getRows(scanner));
     

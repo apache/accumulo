@@ -49,12 +49,42 @@ import org.apache.hadoop.io.Text;
  */
 public abstract class RowFilter extends WrappingIterator {
   
-  private SortedKeyValueIterator<Key,Value> decisionIterator;
+  private RowIterator decisionIterator;
   private Collection<ByteSequence> columnFamilies;
   Text currentRow;
   private boolean inclusive;
   private Range range;
   private boolean hasTop;
+
+  private static class RowIterator extends WrappingIterator {
+    private Range rowRange;
+    private boolean hasTop;
+    
+    RowIterator(SortedKeyValueIterator<Key,Value> source) {
+      super.setSource(source);
+    }
+    
+    void setRow(Range row) {
+      this.rowRange = row;
+    }
+    
+    @Override
+    public boolean hasTop() {
+      return hasTop && super.hasTop();
+    }
+    
+    @Override
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
+      
+      range = rowRange.clip(range, true);
+      if (range == null) {
+        hasTop = false;
+      } else {
+        hasTop = true;
+        super.seek(range, columnFamilies, inclusive);
+      }
+    }
+  }
 
   private void skipRows() throws IOException {
     SortedKeyValueIterator<Key,Value> source = getSource();
@@ -64,7 +94,9 @@ public abstract class RowFilter extends WrappingIterator {
       if (currentRow != null && currentRow.equals(row))
         break;
       
-      decisionIterator.seek(new Range(row), columnFamilies, inclusive);
+      Range rowRange = new Range(row);
+      decisionIterator.setRow(rowRange);
+      decisionIterator.seek(rowRange, columnFamilies, inclusive);
       
       if (acceptRow(decisionIterator)) {
         currentRow = row;
@@ -94,7 +126,9 @@ public abstract class RowFilter extends WrappingIterator {
    * 
    * 
    * @param rowIterator
-   *          - An iterator over the row.
+   *          - An iterator over the row. This iterator is confined to the row. Seeking past the end of the row will return no data. Seeking before the row will
+   *          always set top to the first column in the current row. By default this iterator will only see the columns the parent was seeked with. To see more
+   *          columns reseek this iterator with those columns.
    * @return false if a row should be suppressed, otherwise true.
    * @throws IOException
    */
@@ -103,7 +137,7 @@ public abstract class RowFilter extends WrappingIterator {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    this.decisionIterator = source.deepCopy(env);
+    this.decisionIterator = new RowIterator(source.deepCopy(env));
   }
   
   @Override
