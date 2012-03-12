@@ -155,7 +155,6 @@ The following is a list of changes made during incubation.
     * [ACCUMULO-435] - Accumulo debian packaging does not handle JAVA_HOMEs properly
     * [ACCUMULO-436] - tablet merge stuck
     * [ACCUMULO-444] - Data loss possible when tablet killed immediately after recovery
-    * [ACCUMULO-445] - Concurrent random walk test does not handle premission change
     * [ACCUMULO-446] - boolean logic iterators do not correctly "jump()"
     * [ACCUMULO-447] - BooleanLogicIterator cannot handle ORs correctly
 
