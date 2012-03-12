@@ -37,7 +37,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaConfiguration;
-import org.apache.accumulo.examples.wikisearch.ingest.WikipediaInputFormat;
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaInputFormat.WikipediaInputSplit;
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaMapper;
 import org.apache.accumulo.examples.wikisearch.parser.RangeCalculator;
@@ -50,7 +49,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordWriter;
@@ -162,8 +160,6 @@ public class TestQueryLogic {
     table.setIndexTableName(INDEX_TABLE_NAME);
     table.setReverseIndexTableName(RINDEX_TABLE_NAME);
     table.setUseReadAheadIterator(false);
-    table.setNumPartitions(1);
-    
   }
   
   void debugQuery(String tableName) throws Exception {

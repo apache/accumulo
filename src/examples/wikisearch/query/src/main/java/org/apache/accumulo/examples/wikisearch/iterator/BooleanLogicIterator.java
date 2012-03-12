@@ -33,7 +33,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -592,7 +591,6 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
       // 3 cases for child: SEL, AND, OR
       // and negation
       BooleanLogicTreeNode child = (BooleanLogicTreeNode) children.nextElement();
-      // if (child.getType() == BooleanLogicTreeNode.NodeType.SEL || child.getType() == BooleanLogicTreeNode.NodeType.AND) {
       if (child.getType() == ParserTreeConstants.JJTEQNODE || child.getType() == ParserTreeConstants.JJTNENODE
           || child.getType() == ParserTreeConstants.JJTANDNODE || child.getType() == ParserTreeConstants.JJTERNODE
           || child.getType() == ParserTreeConstants.JJTNRNODE || child.getType() == ParserTreeConstants.JJTLENODE
@@ -1503,48 +1501,14 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
     if (log.isDebugEnabled()) {
       log.debug("jump, All leaves need to advance to: " + jumpKey);
     }
-    
-    Key sKeyRow = new Key(jumpKey.getRow());
-    Key eKeyRow = new Key(jumpKey.followingKey(PartialKey.ROW));
-    Range rowRange = new Range(sKeyRow, true, eKeyRow, false);
-    
-    if (log.isDebugEnabled()) {
-      log.debug("jump, RowRange: " + rowRange);
-    }
-    
+
     String advanceUid = getIndexKeyUid(jumpKey);
     if (log.isDebugEnabled()) {
       log.debug("advanceUid =>  " + advanceUid);
     }
     boolean ok = true;
     for (BooleanLogicTreeNode leaf : positives) {
-      if (leaf.hasTop() && leaf.getTopKey().getRow().toString().compareTo(jumpKey.getRow().toString()) < 0) {
-        // seek
-        if (log.isDebugEnabled()) {
-          log.debug("row Jump on leaf: " + leaf);
-        }
-        ok = leaf.jump(jumpKey);
-        // leaf.seek(rowRange, EMPTY_COL_FAMS, true);
-        
-      } else if (leaf.hasTop() && leaf.getTopKey().getRow().toString().compareTo(jumpKey.getRow().toString()) == 0) {
-        // compare the uid's
-        if (log.isDebugEnabled()) {
-          log.debug("leaf topKey: " + leaf.getTopKey());
-          log.debug("advanceUid: " + advanceUid + "  leafUid: " + getEventKeyUid(leaf.getTopKey()));
-        }
-        
-        if (getEventKeyUid(leaf.getTopKey()).compareTo(advanceUid) < 0) {
-          if (log.isDebugEnabled()) {
-            log.debug("uid Jump on leaf: " + leaf);
-          }
-          ok = leaf.jump(jumpKey);
-        }
-      } else {
-        if (log.isDebugEnabled()) {
-          log.debug("this leaf no jump: " + leaf);
-        }
-        continue;
-      }
+      leaf.jump(jumpKey);
     }
     return ok;
   }
@@ -1841,23 +1805,20 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
     resetNegatives();
     
     // test Tree, if it's not valid, call next
-    if (testTreeState()) {
+    if (testTreeState() && overallRange.contains(root.getTopKey())) {
       if (!negatives.isEmpty()) {
         // now advance negatives
         advanceNegatives(this.root.getTopKey());
         if (!testTreeState()) {
-          if (overallRange.contains(root.getTopKey())) {
-            next();
-          } else {
-            setTopKey(null);
-            return;
-          }
+          next();
         }
       }
       
-      log.debug("overallRange " + overallRange + " topKey " + this.root.getTopKey() + " contains " + overallRange.contains(this.root.getTopKey()));
+      if (log.isDebugEnabled()) {
+        log.debug("overallRange " + overallRange + " topKey " + this.root.getTopKey() + " contains " + overallRange.contains(this.root.getTopKey()));
+      }
 
-      if (overallRange.contains(this.root.getTopKey())) {
+      if (overallRange.contains(this.root.getTopKey()) && this.root.isValid()) {
         setTopKey(this.root.getTopKey());
       } else {
         setTopKey(null);

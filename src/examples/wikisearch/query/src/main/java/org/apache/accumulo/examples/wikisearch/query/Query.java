@@ -70,9 +70,6 @@ public class Query implements IQuery {
   @Resource(name = "tableName")
   private String tableName;
   
-  @Resource(name = "partitions")
-  private int partitions;
-  
   @Resource(name = "threads")
   private int threads;
   
@@ -235,7 +232,6 @@ public class Query implements IQuery {
     table.setReverseIndexTableName(tableName + "ReverseIndex");
     table.setQueryThreads(threads);
     table.setUnevaluatedFields("TEXT");
-    table.setNumPartitions(partitions);
     table.setUseReadAheadIterator(false);
     return table.runQuery(connector, authorizations, query, null, null, null);
   }
