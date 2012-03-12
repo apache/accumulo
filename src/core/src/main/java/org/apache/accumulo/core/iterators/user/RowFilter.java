@@ -126,7 +126,9 @@ public abstract class RowFilter extends WrappingIterator {
    * 
    * 
    * @param rowIterator
-   *          - An iterator over the row.
+   *          - An iterator over the row. This iterator is confined to the row. Seeking past the end of the row will return no data. Seeking before the row will
+   *          always set top to the first column in the current row. By default this iterator will only see the columns the parent was seeked with. To see more
+   *          columns reseek this iterator with those columns.
    * @return false if a row should be suppressed, otherwise true.
    * @throws IOException
    */
