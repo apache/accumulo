@@ -186,10 +186,12 @@ public class VisServlet extends BasicServlet {
     sb.append("</select></span>\n");
     sb.append("&nbsp;&nbsp<span class='viscontrol'>(hover for info, click for details)</span>");
     sb.append("</div>\n\n");
+    sb.append("<div id='hoverable'>\n");
     // floating info box
     sb.append("<div id='vishoverinfo'></div>\n\n");
     // canvas
     sb.append("<br><canvas id='visCanvas' width='").append(width).append("' height='").append(height).append("'>Browser does not support canvas.</canvas>\n\n");
+    sb.append("</div>\n");
     sb.append("</div>\n\n");
   }
   
