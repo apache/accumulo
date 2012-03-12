@@ -47,12 +47,12 @@ import org.apache.accumulo.examples.wikisearch.iterator.ReadAheadIterator;
 import org.apache.accumulo.examples.wikisearch.normalizer.LcNoDiacriticsNormalizer;
 import org.apache.accumulo.examples.wikisearch.normalizer.Normalizer;
 import org.apache.accumulo.examples.wikisearch.parser.EventFields;
+import org.apache.accumulo.examples.wikisearch.parser.EventFields.FieldValue;
 import org.apache.accumulo.examples.wikisearch.parser.FieldIndexQueryReWriter;
 import org.apache.accumulo.examples.wikisearch.parser.JexlOperatorConstants;
 import org.apache.accumulo.examples.wikisearch.parser.QueryParser;
-import org.apache.accumulo.examples.wikisearch.parser.RangeCalculator;
-import org.apache.accumulo.examples.wikisearch.parser.EventFields.FieldValue;
 import org.apache.accumulo.examples.wikisearch.parser.QueryParser.QueryTerm;
+import org.apache.accumulo.examples.wikisearch.parser.RangeCalculator;
 import org.apache.accumulo.examples.wikisearch.sample.Document;
 import org.apache.accumulo.examples.wikisearch.sample.Field;
 import org.apache.accumulo.examples.wikisearch.sample.Results;
@@ -207,7 +207,6 @@ public abstract class AbstractQueryLogic {
   private Kryo kryo = new Kryo();
   private EventFields eventFields = new EventFields();
   private List<String> unevaluatedFields = null;
-  private int numPartitions = 0;
   private Map<Class<? extends Normalizer>,Normalizer> normalizerCacheMap = new HashMap<Class<? extends Normalizer>,Normalizer>();
   private static final String NULL_BYTE = "\u0000";
   
@@ -395,20 +394,13 @@ public abstract class AbstractQueryLogic {
       this.unevaluatedFields.add(field);
   }
   
-  public int getNumPartitions() {
-    return numPartitions;
-  }
-  
-  public void setNumPartitions(int numPartitions) {
-    this.numPartitions = numPartitions;
-  }
-  
   public Document createDocument(Key key, Value value) {
+    Document doc = new Document();
+
     eventFields.clear();
     ByteBuffer buf = ByteBuffer.wrap(value.get());
     eventFields.readObjectData(kryo, buf);
     
-    Document doc = new Document();
     // Set the id to the document id which is located in the colf
     String row = key.getRow().toString();
     String colf = key.getColumnFamily().toString();

@@ -759,17 +759,18 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
       log.debug("In AndIterator.seek()");
       log.debug("AndIterator.seek Given range => " + range);
     }
-    // if (firstSeek) {
+    currentRow = new Text();
+    currentDocID.set(emptyByteArray);
+    doSeek(range, seekColumnFamilies, inclusive);
+  }
+  
+  private void doSeek(Range range, Collection<ByteSequence> seekColumnFamilies, boolean inclusive) throws IOException {
+
     overallRange = new Range(range);
-    // firstSeek = false;
-    // }
+
     if (range.getEndKey() != null && range.getEndKey().getRow() != null) {
       this.parentEndRow = range.getEndKey().getRow();
     }
-    
-    // overallRange = new Range(range);
-    currentRow = new Text();
-    currentDocID.set(emptyByteArray);
     
     this.seekColumnFamilies = seekColumnFamilies;
     this.inclusive = inclusive;
@@ -801,7 +802,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
       if (overallRange != null && !overallRange.contains(topKey)) {
         topKey = null;
         if (log.isDebugEnabled()) {
-          log.debug("seek, topKey is outside of overall range: " + overallRange);
+          log.debug("doSeek, topKey is outside of overall range: " + overallRange);
         }
       }
     }
@@ -853,16 +854,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
       if (log.isDebugEnabled()) {
         log.debug("jump called, but topKey is null, must need to move to next row");
       }
-      // call seek with the jumpKey
-      
-      Key endKey = null;
-      if (parentEndRow != null) {
-        endKey = new Key(parentEndRow);
-      }
-      Range newRange = new Range(jumpKey, true, endKey, false);
-      this.seek(newRange, seekColumnFamilies, false);
-      // the parent seek should account for the endKey range check.
-      return hasTop();
+      return false;
     } else {
       
       int comp = this.topKey.getRow().compareTo(jumpKey.getRow());
@@ -909,16 +901,13 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
           if (log.isDebugEnabled()) {
             log.debug("jump, uid jump");
           }
-          // move one, and then advanceToIntersection will move the rest.
           Text row = jumpKey.getRow();
-          String cq = topKey.getColumnQualifier().toString();
-          cq = cq.replaceAll(myUid, jumpUid);
+          Range range = new Range(row);
+          this.currentRow = row;
+          this.currentDocID = new Text(this.getUID(jumpKey));
           
-          Key startKey = buildKey(row, topKey.getColumnFamily(), new Text(cq));
-          Range range = new Range(startKey, true, null, false);
-          sources[0].iter.seek(range, seekColumnFamilies, true);
-          advanceToIntersection();
-          
+          doSeek(range, seekColumnFamilies, false);
+
           // make sure it is in the range if we have one.
           if (hasTop() && parentEndRow != null && topKey.getRow().compareTo(parentEndRow) > 0) {
             topKey = null;

@@ -342,10 +342,6 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
       log.debug("seek, overallRange: " + overallRange);
     }
     
-    // if (range.getStartKey() != null && range.getStartKey().getRow() != null) {
-    // this.parentStartRow = range.getStartKey().getRow();
-    // }
-    
     if (range.getEndKey() != null && range.getEndKey().getRow() != null) {
       this.parentEndRow = range.getEndKey().getRow();
     }
@@ -688,11 +684,12 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
         if (log.isDebugEnabled()) {
           log.debug("jump called, but ts.topKey is null, this one needs to move to next row.");
         }
+        Key startKey = new Key(jumpKey.getRow(), ts.dataLocation, new Text(ts.term + "\0" + jumpKey.getColumnFamily()));
         Key endKey = null;
         if (parentEndRow != null) {
           endKey = new Key(parentEndRow);
         }
-        Range newRange = new Range(jumpKey, true, endKey, false);
+        Range newRange = new Range(startKey, true, endKey, false);
         ts.iter.seek(newRange, columnFamilies, inclusive);
         ts.setNew();
         advanceToMatch(ts);

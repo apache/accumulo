@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -249,7 +250,6 @@ public class RangeCalculator extends QueryParser {
   protected static Logger log = Logger.getLogger(RangeCalculator.class);
   private static String WILDCARD = ".*";
   private static String SINGLE_WILDCARD = "\\.";
-  protected static String START_ROW = "0";
   
   protected Connector c;
   protected Authorizations auths;
@@ -258,7 +258,6 @@ public class RangeCalculator extends QueryParser {
   protected String indexTableName;
   protected String reverseIndexTableName;
   protected int queryThreads = 8;
-  protected String END_ROW = null;
   
   /* final results of index lookups, ranges for the shard table */
   protected Set<Range> result = null;
@@ -294,7 +293,6 @@ public class RangeCalculator extends QueryParser {
     this.indexTableName = logic.getIndexTableName();
     this.reverseIndexTableName = logic.getReverseIndexTableName();
     this.queryThreads = logic.getQueryThreads();
-    this.END_ROW = Integer.toString(logic.getNumPartitions());
     
     Map<MapKey,Set<Range>> indexRanges = new HashMap<MapKey,Set<Range>>();
     Map<MapKey,Set<Range>> trailingWildcardRanges = new HashMap<MapKey,Set<Range>>();
@@ -340,9 +338,8 @@ public class RangeCalculator extends QueryParser {
           
           // EQUALS
           if (entry.getValue().getOperator().equals(JexlOperatorConstants.getOperator(ASTEQNode.class))) {
-            Key startRange = new Key(fieldValue, fieldName, new Text(START_ROW));
-            Key endRange = new Key(fieldValue, fieldName, new Text(END_ROW));
-            Range r = new Range(startRange, true, endRange, false);
+            Key startRange = new Key(fieldValue, fieldName);
+            Range r = new Range(startRange, true, startRange.followingKey(PartialKey.ROW), true);
             
             MapKey key = new MapKey(fieldName.toString(), fieldValue.toString());
             key.setOriginalQueryValue(value);
@@ -360,9 +357,8 @@ public class RangeCalculator extends QueryParser {
               loc = normalizedFieldValue.indexOf(SINGLE_WILDCARD);
             if (-1 == loc) {
               // Then no wildcard in the query? Treat like the equals case above.
-              Key startRange = new Key(fieldValue, fieldName, new Text(START_ROW));
-              Key endRange = new Key(fieldValue, fieldName, new Text(END_ROW));
-              Range r = new Range(startRange, true, endRange, false);
+              Key startRange = new Key(fieldValue, fieldName);
+              Range r = new Range(startRange, true, startRange.followingKey(PartialKey.ROW), true);
               
               MapKey key = new MapKey(fieldName.toString(), fieldValue.toString());
               key.setOriginalQueryValue(value);
@@ -375,9 +371,9 @@ public class RangeCalculator extends QueryParser {
                 // Then we have a leading wildcard, reverse the term and use the global reverse index.
                 StringBuilder buf = new StringBuilder(normalizedFieldValue.substring(2));
                 normalizedFieldValue = buf.reverse().toString();
-                Key startRange = new Key(new Text(normalizedFieldValue + "\u0000"), fieldName, new Text(START_ROW));
-                Key endRange = new Key(new Text(normalizedFieldValue + "\u10FFFF"), fieldName, new Text(END_ROW));
-                Range r = new Range(startRange, true, endRange, false);
+                Key startRange = new Key(new Text(normalizedFieldValue + "\u0000"), fieldName);
+                Key endRange = new Key(new Text(normalizedFieldValue + "\u10FFFF"), fieldName);
+                Range r = new Range(startRange, true, endRange, true);
                 
                 MapKey key = new MapKey(fieldName.toString(), normalizedFieldValue);
                 key.setOriginalQueryValue(value);
@@ -388,9 +384,9 @@ public class RangeCalculator extends QueryParser {
               } else if (loc == (normalizedFieldValue.length() - 2)) {
                 normalizedFieldValue = normalizedFieldValue.substring(0, loc);
                 // Then we have a trailing wildcard character.
-                Key startRange = new Key(new Text(normalizedFieldValue + "\u0000"), fieldName, new Text(START_ROW));
-                Key endRange = new Key(new Text(normalizedFieldValue + "\u10FFFF"), fieldName, new Text(END_ROW));
-                Range r = new Range(startRange, true, endRange, false);
+                Key startRange = new Key(new Text(normalizedFieldValue + "\u0000"), fieldName);
+                Key endRange = new Key(new Text(normalizedFieldValue + "\u10FFFF"), fieldName);
+                Range r = new Range(startRange, true, endRange, true);
                 
                 MapKey key = new MapKey(fieldName.toString(), normalizedFieldValue);
                 key.setOriginalQueryValue(value);
@@ -438,9 +434,9 @@ public class RangeCalculator extends QueryParser {
           lower = up.getRow();
           upper = lk.getRow();
         }
-        Key startRange = new Key(lower, entry.getKey(), new Text(START_ROW));
-        Key endRange = new Key(upper, entry.getKey(), new Text(END_ROW));
-        Range r = new Range(startRange, true, endRange, false);
+        Key startRange = new Key(lower, entry.getKey());
+        Key endRange = new Key(upper, entry.getKey());
+        Range r = new Range(startRange, true, endRange, true);
         // For the range queries we need to query the global index and then handle the results a little differently.
         Map<MapKey,Set<Range>> ranges = new HashMap<MapKey,Set<Range>>();
         MapKey key = new MapKey(entry.getKey().toString(), entry.getValue().getLower().toString());

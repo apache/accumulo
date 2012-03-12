@@ -33,8 +33,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.examples.wikisearch.iterator.EvaluatingIterator;
 import org.apache.accumulo.examples.wikisearch.normalizer.LcNoDiacriticsNormalizer;
 import org.apache.accumulo.examples.wikisearch.normalizer.Normalizer;
-import org.apache.accumulo.examples.wikisearch.parser.RangeCalculator;
 import org.apache.accumulo.examples.wikisearch.parser.QueryParser.QueryTerm;
+import org.apache.accumulo.examples.wikisearch.parser.RangeCalculator;
 import org.apache.accumulo.examples.wikisearch.protobuf.Uid;
 import org.apache.accumulo.examples.wikisearch.util.TextUtil;
 import org.apache.hadoop.io.Text;
@@ -90,8 +90,6 @@ public class QueryLogic extends AbstractQueryLogic {
   
   protected static Logger log = Logger.getLogger(QueryLogic.class);
   
-  private static String startPartition = "0";
-  
   public QueryLogic() {
     super();
   }
@@ -106,10 +104,7 @@ public class QueryLogic extends AbstractQueryLogic {
   }
   
   protected Collection<Range> getFullScanRange(Date begin, Date end, Multimap<String,QueryTerm> terms) {
-    String startKey = startPartition;
-    String endKey = Integer.toString(this.getNumPartitions());
-    Range r = new Range(startKey, true, endKey, false);
-    return Collections.singletonList(r);
+    return Collections.singletonList(new Range());
   }
   
   @Override

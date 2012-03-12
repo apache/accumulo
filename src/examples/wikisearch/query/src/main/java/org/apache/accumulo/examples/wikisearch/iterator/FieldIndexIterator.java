@@ -22,15 +22,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.jexl2.Expression;
-import org.apache.commons.jexl2.JexlContext;
-import org.apache.commons.jexl2.JexlEngine;
-import org.apache.commons.jexl2.MapContext;
-import org.apache.commons.jexl2.parser.ParserTreeConstants;
-import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -40,6 +31,14 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.examples.wikisearch.function.QueryFunctions;
 import org.apache.accumulo.examples.wikisearch.util.FieldIndexKeyParser;
+import org.apache.commons.jexl2.Expression;
+import org.apache.commons.jexl2.JexlContext;
+import org.apache.commons.jexl2.JexlEngine;
+import org.apache.commons.jexl2.MapContext;
+import org.apache.commons.jexl2.parser.ParserTreeConstants;
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 
 /**
  * This iterator should only return keys from the fi\0{fieldName}:{fieldValue} part of the shard table. Expect topKey to be CF, {datatype}\0{UID}
@@ -474,13 +473,15 @@ public class FieldIndexIterator extends WrappingIterator {
       }
       
     } else if (comp < 0) { // a row behind jump key, need to move forward
-      String myRow = "";
-      if (hasTop()) {
-        myRow = topKey.getRow().toString();
-      } else if (currentRow != null) {
-        myRow = currentRow.toString();
+      if (log.isDebugEnabled()) {
+        String myRow = "";
+        if (hasTop()) {
+          myRow = topKey.getRow().toString();
+        } else if (currentRow != null) {
+          myRow = currentRow.toString();
+        }
+        log.debug("My row " + myRow + " is less than jump row: " + jumpKey.getRow() + " seeking");
       }
-      log.debug("My row " + myRow + " is less than jump row: " + jumpKey.getRow() + " seeking");
       range = buildRange(jumpKey.getRow());
       // this.seek(range, EMPTY_COL_FAMS, false);
       
@@ -521,8 +522,20 @@ public class FieldIndexIterator extends WrappingIterator {
       }
       if (ucomp < 0) { // need to move up
         log.debug("my uid is less than jumpUid, topUid: " + myUid + "   jumpUid: " + jumpUid);
+        
+        Text cq = jumpKey.getColumnQualifier();
+        int index = cq.find(NULL_BYTE);
+        if (0 <= index) {
+          cq.set(cq.getBytes(), index + 1, cq.getLength() - index - 1);
+        } else {
+          log.error("Expected a NULL separator in the column qualifier");
+          this.topKey = null;
+          this.topValue = null;
+          return false;
+        }
+
         // note my internal range stays the same, I just need to move forward
-        Key startKey = new Key(topKey.getRow(), fName, new Text(fValue + NULL_BYTE + jumpKey.getColumnQualifier()));
+        Key startKey = new Key(topKey.getRow(), fName, new Text(fValue + NULL_BYTE + cq));
         Key endKey = new Key(topKey.getRow(), fName, new Text(fValue + ONE_BYTE));
         range = new Range(startKey, true, endKey, false);
         log.debug("Using range: " + range + " to seek");
