@@ -16,7 +16,7 @@
 # limitations under the License.
 
 loc=`dirname "$0"`
-loc=`cd "$loc/../.."; pwd`
+loc=`cd "$loc/.."; pwd`
 
 cd "$loc"
 

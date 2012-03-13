@@ -16,7 +16,6 @@
 		<groupId>org.apache.accumulo</groupId>
 		<artifactId>accumulo</artifactId>
 		<version>1.5.0-incubating-SNAPSHOT</version>
-		<relativePath>../..</relativePath>
 	</parent>
 
   <modelVersion>4.0.0</modelVersion>
@@ -70,7 +69,7 @@
             <configuration>
               <executable>bash</executable>
               <arguments>
-                <argument>../../docs/src/user_manual/build.sh</argument>
+                <argument>../docs/src/user_manual/build.sh</argument>
               </arguments>
             </configuration>
           </execution>

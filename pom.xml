@@ -30,20 +30,15 @@
   <name>accumulo</name>
 
   <modules>
-    <module>src/trace</module>
-    <module>src/core</module>
-    <module>src/server</module>
-    <module>src/start</module>
-    <module>src/examples</module>
-    <module>src/assemble</module>
+    <module>trace</module>
+    <module>core</module>
+    <module>server</module>
+    <module>start</module>
+    <module>examples</module>
+    <module>assemble</module>
   </modules>
 
   <build>
-    <resources>
-      <resource>
-        <directory>${basedir}/src/main/resources</directory>
-      </resource>
-    </resources>
     
     <defaultGoal>package</defaultGoal>
     <plugins>
@@ -59,7 +54,7 @@
             <configuration>
               <rules>
                 <requireMavenVersion>
-                  <version>[2.0.9,)</version>
+                  <version>[2.2.0,)</version>
                 </requireMavenVersion>
               </rules>
             </configuration>
@@ -106,7 +101,7 @@
               <goal>copy-dependencies</goal>
             </goals>
             <configuration>
-              <outputDirectory>../../lib</outputDirectory>
+              <outputDirectory>../lib</outputDirectory>
               <!-- just grab the non-provided runtime dependencies -->
               <includeArtifactIds>commons-collections,commons-configuration,commons-io,commons-lang,jline,log4j,libthrift,commons-jci-core,commons-jci-fam,commons-logging,commons-logging-api</includeArtifactIds>
               <excludeTransitive>true</excludeTransitive>
@@ -117,7 +112,7 @@
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
-          <outputDirectory>../../lib</outputDirectory>
+          <outputDirectory>../lib</outputDirectory>
           <archive>
             <manifest>
               <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
@@ -167,14 +162,14 @@
       <plugin>
         <artifactId>maven-source-plugin</artifactId>
         <configuration>
-          <outputDirectory>../../lib</outputDirectory>
+          <outputDirectory>../lib</outputDirectory>
         </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <environmentVariables>
-            <ACCUMULO_HOME>../..</ACCUMULO_HOME>
+            <ACCUMULO_HOME>..</ACCUMULO_HOME>
           </environmentVariables>
         </configuration>
       </plugin>

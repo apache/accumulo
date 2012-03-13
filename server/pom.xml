@@ -22,7 +22,6 @@
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo</artifactId>
     <version>1.5.0-incubating-SNAPSHOT</version>
-    <relativePath>../../</relativePath>
   </parent>
 
   <modelVersion>4.0.0</modelVersion>
