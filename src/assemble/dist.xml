@@ -39,7 +39,7 @@
     </fileSet>
     <fileSet>
       <includes>
-        <include>conf/*.example</include>
+        <include>conf/examples/**</include>
         <include>conf/*_logger.xml</include>
         <include>conf/log4j.properties</include>
         <include>**/*.py</include>
@@ -68,7 +68,11 @@
     </fileSet>
     <fileSet>
       <includes>
-        <include>[A-Z]*</include>
+        <include>CHANGES</include>
+        <include>DISCLAIMER</include>
+        <include>LICENSE</include>
+        <include>NOTICE</include>
+        <include>README</include>                
         <include>pom.xml</include>
         <include>contrib/**</include>
         <include>docs/**</include>
