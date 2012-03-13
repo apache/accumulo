@@ -15,4 +15,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-java -cp ../core/target/classes/:../core/src/main/resources/org/apache/accumulo/core/conf/:../../lib/log4j-1.2.16.jar  org.apache.accumulo.core.conf.DefaultConfiguration --generate-doc > ../docs/config.html
+java -cp ../core/target/classes/:../core/src/main/resources/org/apache/accumulo/core/conf/:../lib/log4j-1.2.16.jar  org.apache.accumulo.core.conf.DefaultConfiguration --generate-doc > ../docs/config.html
