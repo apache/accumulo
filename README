@@ -45,6 +45,7 @@ accumulo.
 ******************************************************************************
 3. Upgrading from 1.3 to 1.4
 
+There are no steps for upgrading from 1.3 to 1.4.
 
 ******************************************************************************
 4. Configuring
@@ -65,23 +66,38 @@ have password-less ssh set up as described in the hadoop documentation.
 You will need to have hadoop installed and configured on your system.
 Accumulo 1.4.0-incubating-SNAPSHOT has been tested with hadoop version 0.20.2.
 
-Create a "slaves" file in $ACCUMULO_HOME/conf/.  This is a list of machines
-where tablet servers and loggers will run.
+The example accumulo configuration files are placed in directories based on the 
+memory footprint for the accumulo processes.  If you are using native libraries
+for you tablet server in-memory map, then you can use the files in "native-standalone".
+If you get warnings about not being able to load the native libraries, you can
+use the configuration files in "standalone".
 
-Create a "masters" file in $ACCUMULO_HOME/conf/.  This is a list of
-machines where the master server will run. 
+For testing on a single computer, use a fairly small configuration:
 
-Create conf/accumulo-env.sh following the template of
-conf/accumulo-env.sh.*-example.  Set JAVA_HOME, HADOOP_HOME, and ZOOKEEPER_HOME.
-The example accumulo-env files are named based on the memory footprint for the 
-accumulo processes, and if that footprint is during standalone or cluster use. 
+  $ cp conf/examples/512MB/native-standalone/* conf
+
 Please note that the footprints are for only the Accumulo system processes, so 
 ample space should be left for other processes like hadoop, zookeeper, and the 
 accumulo client code.  These directories must be at the same location on every 
 node in the cluster.
 
-Note that zookeeper must be installed on every machine, but it should not be 
-run on every machine.
+If you are configuring a larger cluster you will need to create the configuration
+files yourself and propogate the changes to the $ACCUMULO_HOME/conf directories:
+
+   Create a "slaves" file in $ACCUMULO_HOME/conf/.  This is a list of machines
+   where tablet servers and loggers will run.
+
+   Create a "masters" file in $ACCUMULO_HOME/conf/.  This is a list of
+   machines where the master server will run. 
+
+   Create conf/accumulo-env.sh following the template of
+   example/3GB/native-standalone/accumulo-env.sh.  
+
+However you create your configuration files, you will need to set 
+JAVA_HOME, HADOOP_HOME, and ZOOKEEPER_HOME in conf/accumulo-env.sh
+
+Note that zookeeper client jar files must be installed on every machine, but 
+the server should not be run on every machine.
 
 Create the $ACCUMULO_LOG_DIR on every machine in the slaves file.
 
@@ -96,9 +112,13 @@ sure their heap space settings fit within the available memory.  The zookeeper
 instances are also time sensitive and should be on machines that will not be
 heavily loaded, or over-subscribed for memory.
 
-Create conf/accumulo-site.xml.  You must set the zookeeper servers in this
+Edit conf/accumulo-site.xml.  You must set the zookeeper servers in this
 file (instance.zookeeper.host).  Look at docs/config.html to see what
 additional variables you can modify and what the defaults are.
+
+It is advisable to change the instance secret (instance.secret) to some new
+value.  Also ensure that the accumulo-site.xml file is not readable by other
+users on the machine.
 
 Create the write-ahead log directory on all slaves.  The directory is set in 
 the accumulo-site.xml as the "logger.dir.walog" parameter.  It is a local 

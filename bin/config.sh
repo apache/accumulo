@@ -52,13 +52,18 @@ fi
 if [ -z "$HADOOP_HOME" ]
 then
    HADOOP_HOME="`which hadoop`"
-   if [ -z "$HADOOP_HOME" ]
+   if [ -z "$HADOOP_HOME"]
    then
       echo "You must set HADOOP_HOME"
       exit 1
    fi
    HADOOP_HOME=`dirname $HADOOP_HOME`
    HADOOP_HOME=`dirname $HADOOP_HOME`
+fi
+if [ ! -d "$HADOOP_HOME" ]
+then
+    echo "$HADOOP_HOME is not a directory"
+    exit 1
 fi
 export HADOOP_HOME
 
