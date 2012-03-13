@@ -94,6 +94,7 @@
   <properties>
     <so>**/*.so</so>
     <jnilib>**/*.jnilib</jnilib>
+    <accumulo-top>..</accumulo-top>
   </properties>
 
   <profiles>
@@ -106,7 +107,7 @@
           <configuration>
             <finalName>${project.parent.artifactId}-${project.version}</finalName>
             <descriptors>
-              <descriptor>src/assemble/dist.xml</descriptor>
+              <descriptor>dist.xml</descriptor>
             </descriptors>
             <tarLongFileMode>gnu</tarLongFileMode>
           </configuration>
@@ -173,7 +174,7 @@
                   <directory>/opt/accumulo/accumulo-${project.version}</directory>
                   <sources>
                     <source>
-                      <location>${project.parent.relativePath}/README</location>
+                      <location>${accumulo-top}/README</location>
                     </source>
                   </sources>
                 </mapping>
@@ -181,7 +182,7 @@
                   <directory>/opt/accumulo/accumulo-${project.version}/docs</directory>
                   <sources>
                     <source>
-                      <location>${project.parent.relativePath}/docs</location>
+                      <location>${accumulo-top}/docs</location>
                     </source>
                   </sources>
                 </mapping>
@@ -189,12 +190,12 @@
                   <directory>/opt/accumulo/accumulo-${project.version}/test</directory>
                   <sources>
                     <source>
-                      <location>${project.parent.relativePath}/test</location>
+                      <location>${accumulo-top}/test</location>
                       <excludes>
-                        <exclude>${project.parent.relativePath}/**/walkers.txt</exclude>
-                        <exclude>${project.parent.relativePath}/**/ingesters.txt</exclude>
-                        <exclude>${project.parent.relativePath}/**/continuous-env.sh</exclude>
-                        <exclude>${project.parent.relativePath}/**/*.pyc</exclude>
+                        <exclude>${accumulo-top}/**/walkers.txt</exclude>
+                        <exclude>${accumulo-top}/**/ingesters.txt</exclude>
+                        <exclude>${accumulo-top}/**/continuous-env.sh</exclude>
+                        <exclude>${accumulo-top}/**/*.pyc</exclude>
                       </excludes>
                     </source>
                   </sources>
@@ -210,7 +211,7 @@
                   <groupname>root</groupname>
                   <sources>
                     <source>
-                      <location>${project.parent.relativePath}/bin</location>
+                      <location>${accumulo-top}/bin</location>
                     </source>
                   </sources>
                 </mapping>
@@ -218,17 +219,17 @@
                   <directory>/opt/accumulo/accumulo-${project.version}/conf</directory>
                   <sources>
                     <source>
-                      <location>${project.parent.relativePath}/conf</location>
+                      <location>${accumulo-top}/conf</location>
                       <excludes>
-                        <exclude>${project.parent.relativePath}/**/accumulo-site.xml</exclude>
-                        <exclude>${project.parent.relativePath}/**/accumulo-env.sh</exclude>
-                        <exclude>${project.parent.relativePath}/**/accumulo-metrics.xml</exclude>
-                        <exclude>${project.parent.relativePath}/**/test-*</exclude>
-                        <exclude>${project.parent.relativePath}/**/slaves</exclude>
-                        <exclude>${project.parent.relativePath}/**/masters</exclude>
-                        <exclude>${project.parent.relativePath}/**/tracers</exclude>
-                        <exclude>${project.parent.relativePath}/**/gc</exclude>
-                        <exclude>${project.parent.relativePath}/**/monitor</exclude>
+                        <exclude>${accumulo-top}/**/accumulo-site.xml</exclude>
+                        <exclude>${accumulo-top}/**/accumulo-env.sh</exclude>
+                        <exclude>${accumulo-top}/**/accumulo-metrics.xml</exclude>
+                        <exclude>${accumulo-top}/**/test-*</exclude>
+                        <exclude>${accumulo-top}/**/slaves</exclude>
+                        <exclude>${accumulo-top}/**/masters</exclude>
+                        <exclude>${accumulo-top}/**/tracers</exclude>
+                        <exclude>${accumulo-top}/**/gc</exclude>
+                        <exclude>${accumulo-top}/**/monitor</exclude>
                       </excludes>
                     </source>
                   </sources>
@@ -238,7 +239,7 @@
                   <dependency />
                   <sources>
                     <source>
-                      <location>${project.parent.relativePath}/lib</location>
+                      <location>${accumulo-top}/lib</location>
                     </source>
                   </sources>
                 </mapping>
@@ -271,7 +272,7 @@
                   <installDir>/usr/lib/accumulo</installDir>
                   <dataSet>
                     <data>
-                      <src>${project.parent.relativePath}/lib</src>
+                      <src>${accumulo-top}/lib</src>
                       <type>directory</type>
                       <mapper>
                         <type>perm</type>
@@ -280,7 +281,7 @@
                       <excludes>**/.svn/**</excludes>
                     </data>
                     <data>
-                      <src>${project.parent.relativePath}/NOTICE</src>
+                      <src>${accumulo-top}/NOTICE</src>
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
@@ -288,7 +289,7 @@
                       </mapper>
                     </data>
                     <data>
-                      <src>${project.parent.relativePath}/DISCLAIMER</src>
+                      <src>${accumulo-top}/DISCLAIMER</src>
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
@@ -296,7 +297,7 @@
                       </mapper>
                     </data>
                     <data>
-                      <src>${project.parent.relativePath}/NOTICE</src>
+                      <src>${accumulo-top}/NOTICE</src>
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
@@ -304,7 +305,7 @@
                       </mapper>
                     </data>
                     <data>
-                      <src>${project.parent.relativePath}/CHANGES</src>
+                      <src>${accumulo-top}/CHANGES</src>
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
@@ -312,7 +313,7 @@
                       </mapper>
                     </data>
                     <data>
-                      <src>${project.parent.relativePath}/README</src>
+                      <src>${accumulo-top}/README</src>
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
@@ -320,7 +321,7 @@
                       </mapper>
                     </data>
                     <data>
-                      <src>${project.parent.relativePath}/docs</src>
+                      <src>${accumulo-top}/docs</src>
                       <type>directory</type>
                       <mapper>
                         <type>perm</type>
@@ -329,7 +330,7 @@
                       <excludes>**/.svn/**</excludes>
                     </data>
                     <data>
-                      <src>${project.parent.relativePath}/bin</src>
+                      <src>${accumulo-top}/bin</src>
                       <type>directory</type>
                       <mapper>
                         <type>perm</type>
@@ -339,7 +340,7 @@
                       <excludes>**/.svn/**</excludes>
                     </data>
                     <data>
-                      <src>${project.parent.relativePath}/conf</src>
+                      <src>${accumulo-top}/conf</src>
                       <type>directory</type>
                       <mapper>
                         <type>perm</type>
@@ -363,7 +364,7 @@
                   <deb>${project.build.directory}/${project.artifactId}-native_${project.version}-${os.arch}.deb</deb>
                   <dataSet>
                     <data>
-                      <src>${project.parent.relativePath}/src/server/src/main/c++</src>
+                      <src>${accumulo-top}/src/server/src/main/c++</src>
                       <type>directory</type>
                       <mapper>
                         <type>perm</type>
@@ -372,7 +373,7 @@
                       <excludes>**/.svn/**</excludes>
                     </data>
                     <data>
-                      <src>${project.parent.relativePath}/src/server/src/main/java/org/apache/accumulo/server/tabletserver/MLock.java</src>
+                      <src>${accumulo-top}/src/server/src/main/java/org/apache/accumulo/server/tabletserver/MLock.java</src>
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
@@ -380,7 +381,7 @@
                       </mapper>
                     </data>
                     <data>
-                      <src>${project.parent.relativePath}/src/server/src/main/java/org/apache/accumulo/server/tabletserver/NativeMap.java</src>
+                      <src>${accumulo-top}/src/server/src/main/java/org/apache/accumulo/server/tabletserver/NativeMap.java</src>
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
@@ -403,7 +404,7 @@
                   <deb>${project.build.directory}/${project.artifactId}-test_${project.version}-${os.arch}.deb</deb>
                   <dataSet>
                     <data>
-                      <src>${project.parent.relativePath}/test</src>
+                      <src>${accumulo-top}/test</src>
                       <type>directory</type>
                       <mapper>
                         <type>perm</type>
