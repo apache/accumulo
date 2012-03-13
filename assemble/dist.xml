@@ -17,26 +17,26 @@
 	<baseDirectory>accumulo-${project.version}</baseDirectory>
 	<fileSets>
 		<fileSet>
-			<directory>../../bin</directory>
+			<directory>../bin</directory>
 			<fileMode>0755</fileMode>
 			<directoryMode>0755</directoryMode>
 		</fileSet>
 		<fileSet>
-			<directory>../../logs</directory>
+			<directory>../logs</directory>
 			<directoryMode>0700</directoryMode>
 			<excludes>
 				<exclude>*</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
-			<directory>../../walogs</directory>
+			<directory>../walogs</directory>
 			<directoryMode>0700</directoryMode>
 			<excludes>
 				<exclude>*</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
-			<directory>../../</directory>
+			<directory>../</directory>
 			<includes>
 				<include>**/*.py</include>
 				<include>**/*.pl</include>
@@ -53,7 +53,7 @@
 			</excludes>
 		</fileSet>
 		<fileSet>
-			<directory>../../</directory>
+			<directory>../</directory>
 			<excludes>
 				<!-- the following ignored because they were included above -->
 				<exclude>**/*.py</exclude>
