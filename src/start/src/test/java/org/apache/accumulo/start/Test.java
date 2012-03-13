@@ -181,7 +181,8 @@ public class Test extends TestCase {
   
   public void testChangingDirectory() throws Exception {
     String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
-    String SITE_CONF = System.getenv("ACCUMULO_HOME") + "/conf/" + configFile;
+    String CONF_DIR = System.getenv("ACCUMULO_HOME") + "/conf/";
+    String SITE_CONF = CONF_DIR + configFile;
     File oldConf = new File(SITE_CONF);
     boolean exists = oldConf.exists();
     String siteBkp = SITE_CONF + ".bkp";
@@ -202,7 +203,7 @@ public class Test extends TestCase {
       if (exists)
         d = db.parse(siteBkp);
       else
-        d = db.parse(new File(SITE_CONF + ".512MBBstandalone-example"));
+        d = db.parse(new File(CONF_DIR + "examples/512MB/standalone/" + configFile));
       
       NodeList pnodes = d.getElementsByTagName("property");
       for (int i = pnodes.getLength() - 1; i >= 0; i--) {
