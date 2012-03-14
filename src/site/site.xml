@@ -39,7 +39,7 @@ under the License.
     <breadcrumbs>
       <item name="Accumulo"  href="http://incubator.apache.org/accumulo/" />
     </breadcrumbs>
-    <menu ref="reports" />
-    <menu ref="modules" />
+    <menu ref="reports" inherit="top" />
+    <menu ref="modules" inherit="top" />
   </body>
 </project>
