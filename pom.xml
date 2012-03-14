@@ -28,6 +28,22 @@
   <packaging>pom</packaging>
   <version>1.5.0-incubating-SNAPSHOT</version>
   <name>accumulo</name>
+  <prerequisites>
+    <maven>2.2.0</maven>
+  </prerequisites>
+
+  <organization>
+    <name>Apache Accumulo Project</name>
+      <url>http://incubator.apache.org/accumulo/</url>
+  </organization>
+
+  <distributionManagement>
+    <site>
+      <id>accumulo.mvn.website</id>
+      <name>Accumulo Maven Site</name>
+      <url>scp://people.apache.org/x1/home/bimargulies/public_html/accumulo-site-stage</url>
+    </site>
+  </distributionManagement>
 
   <modules>
     <module>trace</module>
@@ -39,7 +55,14 @@
   </modules>
 
   <build>
-    
+    <extensions>
+      <!-- enable ssh deployment of site with maven 3 -->
+      <extension>
+ 	<groupId>org.apache.maven.wagon</groupId>
+ 	<artifactId>wagon-ssh</artifactId>
+ 	<version>2.2</version>
+       </extension>
+     </extensions>    
     <defaultGoal>package</defaultGoal>
     <plugins>
       <plugin>
@@ -92,7 +115,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>2.3</version>
         <executions>
           <execution>
             <id>copy-dependencies</id>
@@ -110,6 +132,7 @@
         </executions>
       </plugin>
       <plugin>
+	<!-- set inherited=false? -->
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
           <outputDirectory>../lib</outputDirectory>
@@ -199,6 +222,27 @@
 
     <pluginManagement>
       <plugins>
+	<plugin>
+	  <artifactId>maven-resources-plugin</artifactId>
+	  <version>2.5</version>
+	</plugin>
+	<plugin>
+	  <artifactId>maven-compiler-plugin</artifactId>
+	  <version>2.3.2</version>
+	</plugin>
+	<plugin>
+	  <artifactId>maven-javadoc-plugin</artifactId>
+	  <version>2.8.1</version>
+	</plugin>
+	<plugin>
+	  <artifactId>maven-surefire-plugin</artifactId>
+	  <version>2.12</version>
+	</plugin>
+	<plugin>
+	  <groupId>org.apache.maven.plugins</groupId>
+	  <artifactId>maven-enforcer-plugin</artifactId>
+	  <version>1.0.1</version>
+	</plugin>
         <plugin>
           <artifactId>maven-assembly-plugin</artifactId>
           <version>2.2.1</version>
@@ -206,8 +250,13 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>1.2</version>
+          <version>1.2.1</version>
         </plugin>
+	<plugin>
+	  <groupId>org.apache.maven.plugins</groupId>
+	  <artifactId>maven-dependency-plugin</artifactId>
+	  <version>2.3</version>
+	</plugin>
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
           <artifactId>lifecycle-mapping</artifactId>
@@ -276,6 +325,11 @@
           <artifactId>rpm-maven-plugin</artifactId>
           <version>2.1-alpha-1</version>
         </plugin>
+	<plugin>
+	  <groupId>org.apache.maven.plugins</groupId>
+	  <artifactId>maven-site-plugin</artifactId>
+	  <version>3.0</version>
+	</plugin>
       </plugins>
     </pluginManagement>
   </build>
@@ -311,7 +365,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>2.0.1</version>
+        <version>2.4.0</version>
         <configuration>
           <findbugsXmlOutput>true</findbugsXmlOutput>
           <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
@@ -323,10 +377,30 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.5</version>
+        <version>2.8.1</version>
+      </plugin>
+      <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-project-info-reports-plugin</artifactId>
+	<version>2.4</version>
+	<configuration>
+	  <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
+	</configuration>
+	<reportSets>
+	  <reportSet>
+	    <reports>
+	      <report>summary</report>
+	      <report>index</report>
+	      <report>dependencies</report>
+	      <report>issue-tracking</report>
+	      <report>scm</report>
+	    </reports>
+	  </reportSet>
+	</reportSets>
       </plugin>
     </plugins>
   </reporting>
+
 
   <profiles>
     <profile>
@@ -548,7 +622,8 @@
     <url>https://builds.apache.org/view/A-F/view/Accumulo/</url>
     <system>Apache Jenkins</system>
   </ciManagement>
-  <url>http://incubator.apache.org/accumulo/</url>
+  <!-- this URL is where the site derived via the maven-site-plugin ends up, not the generic site -->
+  <url>http://incubator.apache.org/accumulo/maven/</url>
 
   <description>Apache Accumulo is a sorted, distributed key/value store based on Google's BigTable design. It is built on top of Apache Hadoop, Zookeeper, and Thrift. It features a few novel improvements on the BigTable design in the form of cell-level access labels and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</description>
 
