@@ -268,7 +268,7 @@
                 <configuration>
                   <deb>${project.build.directory}/${project.artifactId}_${project.version}.deb</deb>
                   <attach>false</attach>
-                  <controlDir>src/packages/deb/accumulo</controlDir>
+                  <controlDir>packages/deb/accumulo</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
                   <dataSet>
                     <data>
@@ -359,33 +359,33 @@
                 </goals>
                 <configuration>
                   <attach>false</attach>
-                  <controlDir>src/packages/deb/accumulo-native</controlDir>
+                  <controlDir>packages/deb/accumulo-native</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
                   <deb>${project.build.directory}/${project.artifactId}-native_${project.version}-${os.arch}.deb</deb>
                   <dataSet>
                     <data>
-                      <src>${accumulo-top}/src/server/src/main/c++</src>
+                      <src>${accumulo-top}/server/src/main/c++</src>
                       <type>directory</type>
                       <mapper>
                         <type>perm</type>
-                        <prefix>/usr/lib/accumulo/src/server/src/main/c++</prefix>
+                        <prefix>/usr/lib/accumulo/server/src/main/c++</prefix>
                       </mapper>
                       <excludes>**/.svn/**</excludes>
                     </data>
                     <data>
-                      <src>${accumulo-top}/src/server/src/main/java/org/apache/accumulo/server/tabletserver/MLock.java</src>
+                      <src>${accumulo-top}/server/src/main/java/org/apache/accumulo/server/tabletserver/MLock.java</src>
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
-                        <prefix>/usr/lib/accumulo/src/server/src/main/java/org/apache/accumulo/server/tabletserver/MLock.java</prefix>
+                        <prefix>/usr/lib/accumulo/server/src/main/java/org/apache/accumulo/server/tabletserver/MLock.java</prefix>
                       </mapper>
                     </data>
                     <data>
-                      <src>${accumulo-top}/src/server/src/main/java/org/apache/accumulo/server/tabletserver/NativeMap.java</src>
+                      <src>${accumulo-top}/server/src/main/java/org/apache/accumulo/server/tabletserver/NativeMap.java</src>
                       <type>file</type>
                       <mapper>
                         <type>perm</type>
-                        <prefix>/usr/lib/accumulo/src/server/src/main/java/org/apache/accumulo/server/tabletserver/NativeMap.java</prefix>
+                        <prefix>/usr/lib/accumulo/server/src/main/java/org/apache/accumulo/server/tabletserver/NativeMap.java</prefix>
                       </mapper>
                     </data>
                   </dataSet>
@@ -399,7 +399,7 @@
                 </goals>
                 <configuration>
                   <attach>false</attach>
-                  <controlDir>src/packages/deb/accumulo-test</controlDir>
+                  <controlDir>packages/deb/accumulo-test</controlDir>
                   <installDir>/usr/lib/accumulo</installDir>
                   <deb>${project.build.directory}/${project.artifactId}-test_${project.version}-${os.arch}.deb</deb>
                   <dataSet>

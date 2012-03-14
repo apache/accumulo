@@ -27,7 +27,7 @@ LIBS:= libNativeMap-Mac_OS_X-x86_64-64.jnilib
 CXXFLAGS=-m64 -dynamiclib -O3 -I/Developer/SDKs/MacOSX10.6.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers
 endif
 
-INSTALL_DIR=../../../../../../lib/native/map
+INSTALL_DIR=../../../../../lib/native/map
 INSTALLED_LIBS=$(patsubst %,$(INSTALL_DIR)/%,$(LIBS))
 
 all : $(INSTALLED_LIBS)
@@ -36,7 +36,7 @@ clean:
 	rm -f $(INSTALLED_LIBS) $(LIBS)
 
 org_apache_accumulo_server_tabletserver_NativeMap.h : ../../java/org/apache/accumulo/server/tabletserver/NativeMap.java
-	javah -classpath ../../../../../../lib/accumulo-server-1.5.0-incubating-SNAPSHOT.jar org.apache.accumulo.server.tabletserver.NativeMap
+	javah -classpath ../../../../../lib/accumulo-server-1.5.0-incubating-SNAPSHOT.jar org.apache.accumulo.server.tabletserver.NativeMap
 
 $(INSTALLED_LIBS) : $(INSTALL_DIR) $(LIBS)
 	cp $(LIBS) $(INSTALL_DIR)

@@ -21,7 +21,6 @@
         <artifactId>accumulo-examples</artifactId>
         <groupId>org.apache.accumulo</groupId>
         <version>1.5.0-incubating-SNAPSHOT</version>
-        <relativePath>../</relativePath>
   </parent>
   <artifactId>accumulo-wikisearch</artifactId>
   <packaging>pom</packaging>

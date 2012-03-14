@@ -28,7 +28,7 @@ LIBS:= lib$(LIB)-Mac_OS_X-x86_64-64.jnilib
 CXXFLAGS=-m64 -dynamiclib -O3 -I/System/Library/Frameworks/JavaVM.framework/Headers
 endif
 
-INSTALL_DIR=../../../../../../lib/native/mlock
+INSTALL_DIR=../../../../../lib/native/mlock
 INSTALLED_LIBS=$(patsubst %,$(INSTALL_DIR)/%,$(LIBS))
 
 all : $(INSTALLED_LIBS)
@@ -37,7 +37,7 @@ clean:
 	rm -f $(INSTALLED_LIBS) $(LIBS)
 
 org_apache_accumulo_server_tabletserver_$(LIB).h : ../../java/org/apache/accumulo/server/tabletserver/$(LIB).java
-	javah -classpath ../../../../../../lib/accumulo-server-1.5.0-incubating-SNAPSHOT.jar org.apache.accumulo.server.tabletserver.$(LIB)
+	javah -classpath ../../../../../lib/accumulo-server-1.5.0-incubating-SNAPSHOT.jar org.apache.accumulo.server.tabletserver.$(LIB)
 
 $(INSTALLED_LIBS) : $(INSTALL_DIR) $(LIBS)
 	cp $(LIBS) $(INSTALL_DIR)
