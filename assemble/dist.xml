@@ -44,7 +44,7 @@
 			</includes>
 			<excludes>
 				<exclude>**/target</exclude>
-				<exclude>**/accumulo-env.sh</exclude>
+				<exclude>conf/accumulo-env.sh</exclude>
 				<exclude>**/continuous-env.sh</exclude>
 				<exclude>**bin/**</exclude>
 				<exclude>logs/**</exclude>
@@ -70,14 +70,14 @@
 
 				<!-- the following files ignored because they should not be in the tarball -->
 				<exclude>**/.*</exclude>
-				<exclude>**/accumulo-site.xml</exclude>
-				<exclude>**/accumulo-metrics.xml</exclude>
+				<exclude>conf/accumulo-site.xml</exclude>
+				<exclude>conf/accumulo-metrics.xml</exclude>
 				<exclude>**/test-*</exclude>
-				<exclude>**/slaves</exclude>
-				<exclude>**/masters</exclude>
-				<exclude>**/monitor</exclude>
-				<exclude>**/tracers</exclude>
-				<exclude>**/gc</exclude>
+				<exclude>conf/slaves</exclude>
+				<exclude>conf/masters</exclude>
+				<exclude>conf/monitor</exclude>
+				<exclude>conf/tracers</exclude>
+				<exclude>conf/gc</exclude>
 				<exclude>**/walkers.txt</exclude>
 				<exclude>**/ingesters.txt</exclude>
 				<exclude>**/*.pyc</exclude>
