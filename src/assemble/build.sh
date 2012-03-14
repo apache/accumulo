@@ -41,12 +41,13 @@ runAt() {
 run mvn -U -P distclean clean 
 mvn rat:check 
 COUNT=`grep '!????' target/rat.txt | wc -l`
-EXPECTED=19
+EXPECTED=56
 if [ "$COUNT" -ne $EXPECTED ]
 then
    fail expected $EXPECTED files missing licenses, but saw "$COUNT"
 fi
+#need to run mvn package twice to properly build docs/config.html
+run mvn package
 run mvn package javadoc:aggregate javadoc:jar source:jar
 runAt ./src/server/src/main/c++ make 
-run mvn package source:jar assembly:single
-test -x /usr/bin/rpmbuild && run mvn -N rpm:rpm
+run mvn assembly:single -N
