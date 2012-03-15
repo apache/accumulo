@@ -76,7 +76,12 @@
       <name>trace.user</name>
       <value>root</value>
     </property>
-    
+
+    <property>
+      <name>tserver.walog.max.size</name>
+      <value>100M</value>
+    </property>
+
     <property>
       <name>general.classpaths</name>
       <value>
