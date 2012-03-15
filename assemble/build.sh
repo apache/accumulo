@@ -38,7 +38,7 @@ runAt() {
   ( cd $1 ; echo in `pwd`; shift ; run $@ ) || fail 
 }
 
-run mvn -U -P distclean clean 
+run mvn -U clean 
 mvn rat:check 
 COUNT=`grep '!????' target/rat.txt | wc -l`
 EXPECTED=56
@@ -48,6 +48,5 @@ then
 fi
 #need to run mvn package twice to properly build docs/config.html
 run mvn package
-run mvn package javadoc:aggregate javadoc:jar source:jar
-runAt ./src/server/src/main/c++ make 
-run mvn assembly:single -N
+run mvn package javadoc:aggregate javadoc:jar source:jar -Pdist
+run mvn -P assemble

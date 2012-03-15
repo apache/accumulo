@@ -37,10 +37,13 @@
 		</fileSet>
 		<fileSet>
 			<directory>../</directory>
+			<fileMode>0755</fileMode>
+			<directoryMode>0755</directoryMode>
 			<includes>
 				<include>**/*.py</include>
 				<include>**/*.pl</include>
 				<include>**/*.sh</include>
+				<include>${so}</include>
 			</includes>
 			<excludes>
 				<exclude>**/target</exclude>
