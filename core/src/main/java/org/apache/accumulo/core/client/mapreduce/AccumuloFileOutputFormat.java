@@ -64,24 +64,21 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
     handleBlockSize(job.getConfiguration());
     final Path file = this.getDefaultWorkFile(job, "." + extension);
     
-    final FileSKVWriter out = FileOperations.getInstance().openWriter(file.toString(), file.getFileSystem(conf), conf,
-        AccumuloConfiguration.getDefaultConfiguration());
-    out.startDefaultLocalityGroup();
-    
     return new RecordWriter<Key,Value>() {
-      private boolean hasData = false;
+      FileSKVWriter out = null;
       
       @Override
       public void write(Key key, Value value) throws IOException {
+        if (out == null) {
+          out = FileOperations.getInstance().openWriter(file.toString(), file.getFileSystem(conf), conf, AccumuloConfiguration.getDefaultConfiguration());
+          out.startDefaultLocalityGroup();
+        }
         out.append(key, value);
-        hasData = true;
       }
       
       @Override
       public void close(TaskAttemptContext context) throws IOException, InterruptedException {
         out.close();
-        if (!hasData)
-          file.getFileSystem(conf).delete(file, false);
       }
     };
   }
