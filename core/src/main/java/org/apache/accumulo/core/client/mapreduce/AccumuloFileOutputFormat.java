@@ -78,7 +78,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
       
       @Override
       public void close(TaskAttemptContext context) throws IOException, InterruptedException {
-        out.close();
+        if (out != null)
+          out.close();
       }
     };
   }
