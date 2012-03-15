@@ -78,6 +78,11 @@
     </property>
     
     <property>
+      <name>tserver.walog.max.size</name>
+      <value>100M</value>
+    </property>
+
+    <property>
       <name>general.classpaths</name>
       <value>
     $ACCUMULO_HOME/src/server/target/classes/,
