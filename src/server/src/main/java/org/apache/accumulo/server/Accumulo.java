@@ -40,6 +40,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.FSConstants.SafeModeAction;
 import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 import org.apache.log4j.helpers.LogLog;
 import org.apache.log4j.xml.DOMConfigurator;
 import org.apache.zookeeper.KeeperException;
@@ -122,7 +123,11 @@ public class Accumulo {
     LogLog.setQuietMode(true);
     
     // Configure logging
-    DOMConfigurator.configure(logConfig);
+    DOMConfigurator.configureAndWatch(logConfig, 5000);
+    
+    // General purpose logging control independent from specific component log config
+    String propertyLogConfig = String.format("%s/conf/log4j.properties", System.getenv("ACCUMULO_HOME"));
+    PropertyConfigurator.configureAndWatch(propertyLogConfig, 5000);
     
     log.info(application + " starting");
     log.info("Instance " + HdfsZooInstance.getInstance().getInstanceID());
