@@ -273,7 +273,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       gcTimeIncreasedCount = 0;
     } else {
       gcTimeIncreasedCount++;
-      if (gcTimeIncreasedCount > 3 && mem < rt.totalMemory() * 0.05) {
+      if (gcTimeIncreasedCount > 3 && mem < rt.maxMemory() * 0.05) {
         log.warn("Running low on memory");
         gcTimeIncreasedCount = 0;
       }
