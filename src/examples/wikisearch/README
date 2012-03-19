@@ -11,7 +11,10 @@
  	1. Accumulo, Hadoop, and ZooKeeper must be installed and running
  	2. One or more wikipedia dump files (http://dumps.wikimedia.org/backup-index.html) placed in an HDFS directory.
 	   You will want to grab the files with the link name of pages-articles.xml.bz2
- 
+        3. Though not strictly required, the ingest will go more quickly if the files are decompressed:
+
+            $ bunzip2 < enwiki-*-pages-articles.xml.bz2 | hadoop fs -put - /wikipedia/enwiki-pages-articles.xml
+
  
  	INSTRUCTIONS
  	------------

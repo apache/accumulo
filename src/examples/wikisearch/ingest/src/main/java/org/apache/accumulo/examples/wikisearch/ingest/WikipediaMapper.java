@@ -119,6 +119,8 @@ public class WikipediaMapper extends Mapper<LongWritable,Text,Text,Mutation> {
     return article.getId() % numPartitions;
   }
   
+  static HashSet<String> metadataSent = new HashSet<String>();
+
   @Override
   protected void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
     Article article = extractor.extract(new InputStreamReader(new ByteArrayInputStream(value.getBytes()), UTF8));
@@ -137,9 +139,13 @@ public class WikipediaMapper extends Mapper<LongWritable,Text,Text,Mutation> {
       for (Entry<String,Object> entry : article.getFieldValues().entrySet()) {
         m.put(colfPrefix + article.getId(), entry.getKey() + NULL_BYTE + entry.getValue().toString(), cv, article.getTimestamp(), NULL_VALUE);
         // Create mutations for the metadata table.
-        Mutation mm = new Mutation(entry.getKey());
-        mm.put(METADATA_EVENT_COLUMN_FAMILY, language, cv, article.getTimestamp(), NULL_VALUE);
-        context.write(metadataTableName, mm);
+        String metadataKey = entry.getKey() + METADATA_EVENT_COLUMN_FAMILY + language;
+        if (!metadataSent.contains(metadataKey)) {
+          Mutation mm = new Mutation(entry.getKey());
+          mm.put(METADATA_EVENT_COLUMN_FAMILY, language, cv, article.getTimestamp(), NULL_VALUE);
+          context.write(metadataTableName, mm);
+          metadataSent.add(metadataKey);
+        }
       }
       
       // Tokenize the content
@@ -182,10 +188,13 @@ public class WikipediaMapper extends Mapper<LongWritable,Text,Text,Mutation> {
         context.write(reverseIndexTableName, grm);
         
         // Create mutations for the metadata table.
-        Mutation mm = new Mutation(index.getKey());
-        mm.put(METADATA_INDEX_COLUMN_FAMILY, language + NULL_BYTE + LcNoDiacriticsNormalizer.class.getName(), cv, article.getTimestamp(), NULL_VALUE);
-        context.write(metadataTableName, mm);
-        
+        String metadataKey = index.getKey() + METADATA_INDEX_COLUMN_FAMILY + language;
+        if (!metadataSent.contains(metadataKey)) {
+          Mutation mm = new Mutation(index.getKey());
+          mm.put(METADATA_INDEX_COLUMN_FAMILY, language + NULL_BYTE + LcNoDiacriticsNormalizer.class.getName(), cv, article.getTimestamp(), NULL_VALUE);
+          context.write(metadataTableName, mm);
+          metadataSent.add(metadataKey);
+        }
       }
       // Add the entire text to the document section of the table.
       // row is the partition, colf is 'd', colq is language\0articleid, value is Base64 encoded GZIP'd document
