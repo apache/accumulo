@@ -43,7 +43,7 @@ import org.apache.log4j.Logger;
 
 public class IndexedDocIteratorTest extends TestCase {
   
-  private static final Logger log = Logger.getLogger(IntersectingDocIteratorTest.class);
+  private static final Logger log = Logger.getLogger(IndexedDocIteratorTest.class);
   
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
   private static final byte[] nullByte = {0};
