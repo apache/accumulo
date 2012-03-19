@@ -29,6 +29,16 @@
   <name>accumulo-core</name>
 
   <build>
+    <pluginManagement>
+      <plugins>
+	<plugin>
+	  <artifactId>maven-jar-plugin</artifactId>
+	  <configuration>
+	    <outputDirectory>../lib</outputDirectory>
+	  </configuration>
+	</plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>

@@ -27,6 +27,18 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>cloudtrace</artifactId>
   <name>cloudtrace</name>
+  <build>
+    <pluginManagement>
+      <plugins>
+	<plugin>
+	  <artifactId>maven-jar-plugin</artifactId>
+	  <configuration>
+	    <outputDirectory>../lib</outputDirectory>
+	  </configuration>
+	</plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
 
   <dependencies>
     <dependency>

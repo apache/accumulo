@@ -132,31 +132,6 @@
         </executions>
       </plugin>
       <plugin>
-	<!-- set inherited=false? -->
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <outputDirectory>../lib</outputDirectory>
-          <archive>
-            <manifest>
-              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
-            </manifest>
-            <manifestEntries>
-              <Implementation-Build>${buildNumber}</Implementation-Build>
-              <Implementation-Timestamp>${timestamp}</Implementation-Timestamp>
-            </manifestEntries>
-          </archive>
-          <includes>
-            <include>cloudtrace/**</include>
-            <include>org/apache/accumulo**/**</include>
-            <include>web/**</include>
-            <include>randomwalk/**</include>
-            <include>*.*</include>
-            <include>**/META-INF/*</include>      
-          </includes>
-        </configuration>
-      </plugin>
-      <plugin>
         <artifactId>maven-resources-plugin</artifactId>
         <configuration>
           <encoding>UTF-8</encoding>
@@ -222,6 +197,21 @@
 
     <pluginManagement>
       <plugins>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+            </manifest>
+            <manifestEntries>
+              <Implementation-Build>${buildNumber}</Implementation-Build>
+              <Implementation-Timestamp>${timestamp}</Implementation-Timestamp>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
 	<plugin>
 	  <artifactId>maven-resources-plugin</artifactId>
 	  <version>2.5</version>

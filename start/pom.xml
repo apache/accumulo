@@ -29,11 +29,12 @@
   <name>accumulo-start</name>
 
   <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
+    <pluginManagement>
+      <plugins>
+	<plugin>
+	  <artifactId>maven-jar-plugin</artifactId>
+	  <configuration>
+	    <outputDirectory>../lib</outputDirectory>
           <archive>
             <manifestSections>
               <manifestSection>
@@ -44,9 +45,10 @@
               </manifestSection>
             </manifestSections>
           </archive>
-        </configuration>
-      </plugin>
-    </plugins>
+	  </configuration>
+	</plugin>
+      </plugins>
+    </pluginManagement>
   </build>
 
   <dependencies>
