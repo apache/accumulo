@@ -61,6 +61,12 @@
           </includes>
         </configuration>
       </plugin>
+      <plugin>
+        <artifactId>maven-source-plugin</artifactId>
+        <configuration>
+          <outputDirectory>../../lib</outputDirectory>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 

@@ -133,10 +133,4 @@ public class WikipediaInputFormat extends TextInputFormat {
   public RecordReader<LongWritable,Text> createRecordReader(InputSplit split, TaskAttemptContext context) {
     return new AggregatingRecordReader();
   }
-  
-  @Override
-  protected boolean isSplitable(JobContext context, Path file) {
-    return false;
-  }
-  
 }

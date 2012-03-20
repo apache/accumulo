@@ -1,10 +1,26 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.accumulo.examples.wikisearch.output;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ColumnUpdate;
@@ -31,12 +47,10 @@ final class BufferingRFileRecordWriter extends RecordWriter<Text,Mutation> {
   
   private Map<Text,TreeMap<Key,Value>> buffers = new HashMap<Text,TreeMap<Key,Value>>();
   private Map<Text,Long> bufferSizes = new HashMap<Text,Long>();
-
-  private TreeMap<Key,Value> getBuffer(Text tablename)
-  {
+  
+  private TreeMap<Key,Value> getBuffer(Text tablename) {
     TreeMap<Key,Value> buffer = buffers.get(tablename);
-    if(buffer == null)
-    {
+    if (buffer == null) {
       buffer = new TreeMap<Key,Value>();
       buffers.put(tablename, buffer);
       bufferSizes.put(tablename, 0l);
@@ -44,14 +58,11 @@ final class BufferingRFileRecordWriter extends RecordWriter<Text,Mutation> {
     return buffer;
   }
   
-  private Text getLargestTablename()
-  {
+  private Text getLargestTablename() {
     long max = 0;
     Text table = null;
-    for(Entry<Text,Long> e:bufferSizes.entrySet())
-    {
-      if(e.getValue() > max)
-      {
+    for (Entry<Text,Long> e : bufferSizes.entrySet()) {
+      if (e.getValue() > max) {
         max = e.getValue();
         table = e.getKey();
       }
@@ -59,10 +70,9 @@ final class BufferingRFileRecordWriter extends RecordWriter<Text,Mutation> {
     return table;
   }
   
-  private void flushLargestTable() throws IOException
-  {
+  private void flushLargestTable() throws IOException {
     Text tablename = getLargestTablename();
-    if(tablename == null)
+    if (tablename == null)
       return;
     long bufferSize = bufferSizes.get(tablename);
     TreeMap<Key,Value> buffer = buffers.get(tablename);
@@ -98,7 +108,7 @@ final class BufferingRFileRecordWriter extends RecordWriter<Text,Mutation> {
   
   @Override
   public void close(TaskAttemptContext arg0) throws IOException, InterruptedException {
-    while(size > 0)
+    while (size > 0)
       flushLargestTable();
   }
   
@@ -106,9 +116,9 @@ final class BufferingRFileRecordWriter extends RecordWriter<Text,Mutation> {
   public void write(Text table, Mutation mutation) throws IOException, InterruptedException {
     TreeMap<Key,Value> buffer = getBuffer(table);
     int mutationSize = 0;
-    for(ColumnUpdate update: mutation.getUpdates())
-    {
-      Key k = new Key(mutation.getRow(),update.getColumnFamily(),update.getColumnQualifier(),update.getColumnVisibility(),update.getTimestamp(),update.isDeleted());
+    for (ColumnUpdate update : mutation.getUpdates()) {
+      Key k = new Key(mutation.getRow(), update.getColumnFamily(), update.getColumnQualifier(), update.getColumnVisibility(), update.getTimestamp(),
+          update.isDeleted());
       Value v = new Value(update.getValue());
       // TODO account for object overhead
       mutationSize += k.getSize();
@@ -121,7 +131,7 @@ final class BufferingRFileRecordWriter extends RecordWriter<Text,Mutation> {
     // TODO use a MutableLong instead
     bufferSize += mutationSize;
     bufferSizes.put(table, bufferSize);
-
+    
     while (size >= maxSize) {
       flushLargestTable();
     }
