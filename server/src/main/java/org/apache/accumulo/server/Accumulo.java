@@ -176,11 +176,13 @@ public class Accumulo {
     long sleep = 1000;
     while (true) {
       try {
+        FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
+        if (!(fs instanceof DistributedFileSystem))
+          break;
         DistributedFileSystem dfs = (DistributedFileSystem) FileSystem.get(CachedConfiguration.getInstance());
         if (!dfs.setSafeMode(SafeModeAction.SAFEMODE_GET))
           break;
         log.warn("Waiting for the NameNode to leave safemode");
-        sleep = 1000;
       } catch (IOException ex) {
         log.warn("Unable to connect to HDFS");
       }
