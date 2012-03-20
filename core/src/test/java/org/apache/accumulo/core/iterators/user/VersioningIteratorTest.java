@@ -75,7 +75,7 @@ public class VersioningIteratorTest {
       VersioningIterator it = new VersioningIterator();
       IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
       VersioningIterator.setMaxVersions(is, 3);
-      it.init(new SortedMapIterator(tm), is.getProperties(), null);
+      it.init(new SortedMapIterator(tm), is.getOptions(), null);
       it.seek(new Range(), EMPTY_COL_FAMS, false);
       
       TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
@@ -106,7 +106,7 @@ public class VersioningIteratorTest {
       VersioningIterator it = new VersioningIterator();
       IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
       VersioningIterator.setMaxVersions(is, 3);
-      it.init(new SortedMapIterator(tm), is.getProperties(), null);
+      it.init(new SortedMapIterator(tm), is.getOptions(), null);
       
       // after doing this seek, should only get two keys for row 1
       // since we are seeking to the middle of the most recent
@@ -142,7 +142,7 @@ public class VersioningIteratorTest {
       VersioningIterator it = new VersioningIterator();
       IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
       VersioningIterator.setMaxVersions(is, 3);
-      it.init(new SortedMapIterator(tm), is.getProperties(), null);
+      it.init(new SortedMapIterator(tm), is.getOptions(), null);
       
       // after doing this seek, should get zero keys for row 1
       Key seekKey = new Key(new Text(String.format("%03d", 1)), colf, colq, 15);
@@ -192,7 +192,7 @@ public class VersioningIteratorTest {
         VersioningIterator it = new VersioningIterator();
         IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
         VersioningIterator.setMaxVersions(is, i);
-        it.init(new SortedMapIterator(tm), is.getProperties(), null);
+        it.init(new SortedMapIterator(tm), is.getOptions(), null);
         it.seek(new Range(), EMPTY_COL_FAMS, false);
         
         TreeMap<Key,Value> tmOut = iteratorOverTestData(it);
@@ -219,7 +219,7 @@ public class VersioningIteratorTest {
     VersioningIterator it = new VersioningIterator();
     IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
     VersioningIterator.setMaxVersions(is, 3);
-    it.init(new SortedMapIterator(tm), is.getProperties(), null);
+    it.init(new SortedMapIterator(tm), is.getOptions(), null);
     
     Key seekKey = new Key(new Text(String.format("%03d", 1)), colf, colq, 19);
     it.seek(new Range(seekKey, false, null, true), EMPTY_COL_FAMS, false);
@@ -241,7 +241,7 @@ public class VersioningIteratorTest {
     VersioningIterator it = new VersioningIterator();
     IteratorSetting is = new IteratorSetting(1, VersioningIterator.class);
     VersioningIterator.setMaxVersions(is, 3);
-    it.init(new SortedMapIterator(tm), is.getProperties(), null);
+    it.init(new SortedMapIterator(tm), is.getOptions(), null);
     VersioningIterator it2 = it.deepCopy(null);
     
     Key seekKey = new Key(new Text(String.format("%03d", 1)), colf, colq, 19);

@@ -156,7 +156,7 @@ public class IntersectingIteratorTest extends TestCase {
     IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(is, columnFamilies);
     IntersectingIterator iter = new IntersectingIterator();
-    iter.init(source, is.getProperties(), env);
+    iter.init(source, is.getOptions(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {
@@ -185,7 +185,7 @@ public class IntersectingIteratorTest extends TestCase {
     IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(is, columnFamilies);
     IntersectingIterator iter = new IntersectingIterator();
-    iter.init(source, is.getProperties(), env);
+    iter.init(source, is.getOptions(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {
@@ -222,7 +222,7 @@ public class IntersectingIteratorTest extends TestCase {
     IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(is, columnFamilies);
     IntersectingIterator iter = new IntersectingIterator();
-    iter.init(mi, is.getProperties(), env);
+    iter.init(mi, is.getOptions(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {
@@ -258,7 +258,7 @@ public class IntersectingIteratorTest extends TestCase {
     IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(is, columnFamilies, notFlags);
     IntersectingIterator iter = new IntersectingIterator();
-    iter.init(source, is.getProperties(), env);
+    iter.init(source, is.getOptions(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {

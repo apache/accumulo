@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -111,6 +112,7 @@ public class IteratorSetting {
    * Get the configuration parameters for this iterator.
    * 
    * @return the properties
+   * @deprecated Since 1.4.1, see {@link IteratorSetting.getOptions}
    */
   public Map<String,String> getProperties() {
     return properties;
@@ -121,6 +123,7 @@ public class IteratorSetting {
    * 
    * @param properties
    *          the properties to set
+   * @deprecated Since 1.4.1, see {@link IteratorSetting.clearOptions} and {@link IteratorSetting.setOptions}
    */
   public void setProperties(Map<String,String> properties) {
     this.properties.clear();
@@ -129,6 +132,7 @@ public class IteratorSetting {
   
   /**
    * @return <tt>true</tt> if this iterator has configuration parameters.
+   * @deprecated Since 1.4.1, see {@link IteratorSetting.getOptions} and test {@link Map.isEmpty}
    */
   public boolean hasProperties() {
     return !properties.isEmpty();
@@ -258,6 +262,15 @@ public class IteratorSetting {
   public void addOptions(Map<String,String> properties) {
     ArgumentChecker.notNull(properties);
     addOptions(properties.entrySet());
+  }
+  
+  /**
+   * Get the configuration parameters for this iterator.
+   * 
+   * @return the properties
+   */
+  public Map<String,String> getOptions() {
+    return Collections.unmodifiableMap(properties);
   }
   
   /**

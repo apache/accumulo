@@ -196,7 +196,7 @@ public class IndexedDocIteratorTest extends TestCase {
     IndexedDocIterator.setColumnFamilies(is, columnFamilies);
     IndexedDocIterator.setColfs(is, indexColf.toString(), docColfPrefix);
     IndexedDocIterator iter = new IndexedDocIterator();
-    iter.init(source, is.getProperties(), env);
+    iter.init(source, is.getOptions(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {
@@ -234,7 +234,7 @@ public class IndexedDocIteratorTest extends TestCase {
     IndexedDocIterator.setColumnFamilies(is, columnFamilies);
     IndexedDocIterator.setColfs(is, indexColf.toString(), docColfPrefix);
     IndexedDocIterator iter = new IndexedDocIterator();
-    iter.init(source, is.getProperties(), env);
+    iter.init(source, is.getOptions(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {
@@ -276,7 +276,7 @@ public class IndexedDocIteratorTest extends TestCase {
     IndexedDocIterator.setColumnFamilies(is, columnFamilies);
     IndexedDocIterator.setColfs(is, indexColf.toString(), docColfPrefix);
     IndexedDocIterator iter = new IndexedDocIterator();
-    iter.init(mi, is.getProperties(), env);
+    iter.init(mi, is.getOptions(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {
@@ -317,7 +317,7 @@ public class IndexedDocIteratorTest extends TestCase {
     IndexedDocIterator.setColumnFamilies(is, columnFamilies, notFlags);
     IndexedDocIterator.setColfs(is, indexColf.toString(), docColfPrefix);
     IndexedDocIterator iter = new IndexedDocIterator();
-    iter.init(source, is.getProperties(), env);
+    iter.init(source, is.getOptions(), env);
     iter.seek(new Range(), EMPTY_COL_FAMS, false);
     int hitCount = 0;
     while (iter.hasTop()) {

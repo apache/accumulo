@@ -157,7 +157,7 @@ public class GlobalIndexUidTest {
     IteratorSetting setting = new IteratorSetting(1, GlobalIndexUidCombiner.class);
     GlobalIndexUidCombiner.setCombineAllColumns(setting, true);
     GlobalIndexUidCombiner.setLossyness(setting, true);
-    comb.init(null, setting.getProperties(), null);
+    comb.init(null, setting.getOptions(), null);
     Logger.getLogger(GlobalIndexUidCombiner.class).setLevel(Level.OFF);
     Value val = new Value(UUID.randomUUID().toString().getBytes());
     values.add(val);

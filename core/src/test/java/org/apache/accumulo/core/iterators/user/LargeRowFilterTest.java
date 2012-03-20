@@ -61,7 +61,7 @@ public class LargeRowFilterTest extends TestCase {
     LargeRowFilter lrfi = new LargeRowFilter();
     IteratorSetting is = new IteratorSetting(1, LargeRowFilter.class);
     LargeRowFilter.setMaxColumns(is, maxColumns);
-    lrfi.init(new ColumnFamilySkippingIterator(smi), is.getProperties(), new RowDeletingIteratorTest.TestIE(scope, false));
+    lrfi.init(new ColumnFamilySkippingIterator(smi), is.getOptions(), new RowDeletingIteratorTest.TestIE(scope, false));
     return lrfi;
   }
   

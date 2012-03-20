@@ -118,7 +118,7 @@ public class ScanCommand extends Command {
     for (IteratorSetting setting : tableScanIterators) {
       Shell.log.debug("Setting scan iterator " + setting.getName() + " at priority " + setting.getPriority() + " using class name "
           + setting.getIteratorClass());
-      for (Entry<String,String> option : setting.getProperties().entrySet()) {
+      for (Entry<String,String> option : setting.getOptions().entrySet()) {
         Shell.log.debug("Setting option for " + setting.getName() + ": " + option.getKey() + "=" + option.getValue());
       }
       scanner.addScanIterator(setting);
