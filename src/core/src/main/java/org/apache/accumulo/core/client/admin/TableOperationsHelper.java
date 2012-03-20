@@ -42,7 +42,7 @@ public abstract class TableOperationsHelper implements TableOperations {
     checkIteratorConflicts(tableName, setting, scopes);
     for (IteratorScope scope : scopes) {
       String root = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), setting.getName());
-      for (Entry<String,String> prop : setting.getProperties().entrySet()) {
+      for (Entry<String,String> prop : setting.getOptions().entrySet()) {
         this.setProperty(tableName, root + ".opt." + prop.getKey(), prop.getValue());
       }
       this.setProperty(tableName, root, setting.getPriority() + "," + setting.getIteratorClass());

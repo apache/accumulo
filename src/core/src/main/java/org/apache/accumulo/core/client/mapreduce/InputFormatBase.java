@@ -491,7 +491,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     }
     // Store the iterators w/ the job
     conf.set(ITERATORS, iterators);
-    for (Entry<String,String> entry : cfg.getProperties().entrySet()) {
+    for (Entry<String,String> entry : cfg.getOptions().entrySet()) {
       if (entry.getValue() == null)
         continue;
       

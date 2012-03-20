@@ -82,7 +82,7 @@ public class ScannerOptions implements ScannerBase {
       opts = new HashMap<String,String>();
       serverSideIteratorOptions.put(si.getName(), opts);
     }
-    opts.putAll(si.getProperties());
+    opts.putAll(si.getOptions());
   }
   
   @Override

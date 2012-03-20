@@ -76,7 +76,7 @@ public class ListIterCommand extends Command {
           sb.append("-    Iterator ").append(setting.getName()).append(", ").append(scope).append(" scope options:\n");
           sb.append("-        ").append("iteratorPriority").append(" = ").append(setting.getPriority()).append("\n");
           sb.append("-        ").append("iteratorClassName").append(" = ").append(setting.getIteratorClass()).append("\n");
-          for (Entry<String,String> optEntry : setting.getProperties().entrySet()) {
+          for (Entry<String,String> optEntry : setting.getOptions().entrySet()) {
             sb.append("-        ").append(optEntry.getKey()).append(" = ").append(optEntry.getValue()).append("\n");
           }
         }

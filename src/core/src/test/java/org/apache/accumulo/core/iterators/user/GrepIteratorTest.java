@@ -78,15 +78,15 @@ public class GrepIteratorTest {
     GrepIterator gi = new GrepIterator();
     IteratorSetting is = new IteratorSetting(1, GrepIterator.class);
     GrepIterator.setTerm(is, "ab");
-    gi.init(new SortedMapIterator(input), is.getProperties(), null);
+    gi.init(new SortedMapIterator(input), is.getOptions(), null);
     gi.seek(new Range(), EMPTY_COL_FAMS, false);
     checkEntries(gi, output);
     GrepIterator.setTerm(is, "cde");
-    gi.init(new SortedMapIterator(input), is.getProperties(), null);
+    gi.init(new SortedMapIterator(input), is.getOptions(), null);
     gi.seek(new Range(), EMPTY_COL_FAMS, false);
     checkEntries(gi, output);
     GrepIterator.setTerm(is, "def");
-    gi.init(new SortedMapIterator(input), is.getProperties(), null);
+    gi.init(new SortedMapIterator(input), is.getOptions(), null);
     gi.seek(new Range(), EMPTY_COL_FAMS, false);
     checkEntries(gi, output);
   }

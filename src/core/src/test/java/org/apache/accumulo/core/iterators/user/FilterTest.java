@@ -131,12 +131,12 @@ public class FilterTest {
     IteratorSetting is = new IteratorSetting(1, SimpleFilter.class);
     Filter.setNegate(is, true);
     
-    filter.init(new SortedMapIterator(tm), is.getProperties(), null);
+    filter.init(new SortedMapIterator(tm), is.getOptions(), null);
     filter.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(filter);
     assertTrue("size = " + size, size == 900);
     
-    filter.init(new SortedMapIterator(tm), is.getProperties(), null);
+    filter.init(new SortedMapIterator(tm), is.getOptions(), null);
     Key k = new Key(new Text("500"));
     filter.seek(new Range(k, null), EMPTY_COL_FAMS, false);
     size = size(filter);
@@ -144,7 +144,7 @@ public class FilterTest {
     
     filter.init(new SortedMapIterator(tm), EMPTY_OPTS, null);
     Filter filter2 = new SimpleFilter2();
-    filter2.init(filter, is.getProperties(), null);
+    filter2.init(filter, is.getOptions(), null);
     filter2.seek(new Range(), EMPTY_COL_FAMS, false);
     size = size(filter2);
     assertTrue("size = " + size, size == 100);
@@ -168,7 +168,7 @@ public class FilterTest {
     IteratorSetting is = new IteratorSetting(1, SimpleFilter.class);
     Filter.setNegate(is, true);
     
-    filter.init(new SortedMapIterator(tm), is.getProperties(), null);
+    filter.init(new SortedMapIterator(tm), is.getOptions(), null);
     SortedKeyValueIterator<Key,Value> copy = filter.deepCopy(null);
     filter.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(filter);
@@ -197,7 +197,7 @@ public class FilterTest {
     AgeOffFilter.setTTL(is, 101l);
     AgeOffFilter.setCurrentTime(is, 1001l);
     AgeOffFilter.setNegate(is, true);
-    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a = a.deepCopy(null);
     SortedKeyValueIterator<Key,Value> copy = a.deepCopy(null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -223,19 +223,19 @@ public class FilterTest {
     assertTrue(tm.size() == 1000);
     
     ColumnAgeOffFilter a = new ColumnAgeOffFilter();
-    a.init(new SortedMapIterator(tm), is.getProperties(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 902);
     
     ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101l);
-    a.init(new SortedMapIterator(tm), is.getProperties(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 102);
     
     ColumnAgeOffFilter.removeTTL(is, new IteratorSetting.Column("a", "b"));
-    a.init(new SortedMapIterator(tm), is.getProperties(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
     a = (ColumnAgeOffFilter) a.deepCopy(null);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -398,49 +398,49 @@ public class FilterTest {
     TimestampFilter a = new TimestampFilter();
     IteratorSetting is = new IteratorSetting(1, TimestampFilter.class);
     TimestampFilter.setRange(is, "19990101010011GMT+01:00", "19990101010031GMT+01:00");
-    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a = (TimestampFilter) a.deepCopy(null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 21);
     TimestampFilter.setRange(is, baseTime + 11000, baseTime + 31000);
-    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 21);
     
     TimestampFilter.setEnd(is, "19990101000031GMT", false);
-    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 20);
     
     TimestampFilter.setStart(is, "19990101000011GMT", false);
-    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 19);
     
     TimestampFilter.setEnd(is, "19990101000031GMT", true);
-    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 20);
     
     is.clearOptions();
     TimestampFilter.setStart(is, "19990101000011GMT", true);
-    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 89);
     
     TimestampFilter.setStart(is, "19990101000011GMT", false);
-    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 88);
     
     is.clearOptions();
     TimestampFilter.setEnd(is, "19990101000031GMT", true);
-    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 32);
     
     TimestampFilter.setEnd(is, "19990101000031GMT", false);
-    a.init(new SortedMapIterator(tm), is.getProperties(), null);
+    a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 31);
   }
