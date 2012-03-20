@@ -30,12 +30,14 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.examples.wikisearch.parser.EventFields;
 import org.apache.accumulo.examples.wikisearch.parser.EventFields.FieldValue;
+import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.io.Text;
 
 
 public class EvaluatingIterator extends AbstractEvaluatingIterator {
   
   public static final String NULL_BYTE_STRING = "\u0000";
+  LRUMap visibilityMap = new LRUMap();
   
   public EvaluatingIterator() {
     super();
@@ -78,7 +80,20 @@ public class EvaluatingIterator extends AbstractEvaluatingIterator {
     String fieldName = colq.substring(0, idx);
     String fieldValue = colq.substring(idx + 1);
     
-    event.put(fieldName, new FieldValue(new ColumnVisibility(key.getColumnVisibility().getBytes()), fieldValue.getBytes()));
+    event.put(fieldName, new FieldValue(getColumnVisibility(key), fieldValue.getBytes()));
+  }
+
+  /**
+   * @param key
+   * @return
+   */
+  public ColumnVisibility getColumnVisibility(Key key) {
+    ColumnVisibility result = (ColumnVisibility) visibilityMap.get(key.getColumnVisibility());
+    if (result != null) 
+      return result;
+    result = new ColumnVisibility(key.getColumnVisibility().getBytes());
+    visibilityMap.put(key.getColumnVisibility(), result);
+    return result;
   }
   
   /**
