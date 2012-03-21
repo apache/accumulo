@@ -124,6 +124,9 @@ public class TFile {
   private static final int MAX_KEY_SIZE = 64 * 1024; // 64KB
   static final Version API_VERSION = new Version((short) 1, (short) 0);
   
+  /** snappy codec **/
+  public static final String COMPRESSION_SNAPPY = "snappy";
+
   /** compression: gzip */
   public static final String COMPRESSION_GZ = "gz";
   /** compression: lzo */
@@ -159,6 +162,7 @@ public class TFile {
    *         <li>"none" - No compression.
    *         <li>"lzo" - LZO compression.
    *         <li>"gz" - GZIP compression.
+   *         <li>"snappy" - Snappy compression
    *         </ul>
    */
   public static String[] getSupportedCompressionAlgorithms() {

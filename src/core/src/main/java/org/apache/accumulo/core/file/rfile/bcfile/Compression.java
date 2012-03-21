@@ -208,8 +208,68 @@ final class Compression {
       public boolean isSupported() {
         return true;
       }
-    };
+    },
     
+    SNAPPY(TFile.COMPRESSION_SNAPPY) {
+      // Use base type to avoid compile-time dependencies.
+      private transient CompressionCodec snappyCodec = null;
+      private transient boolean checked = false;
+      private static final String defaultClazz = "org.apache.hadoop.io.compress.SnappyCodec";
+      
+      public CompressionCodec getCodec() throws IOException {
+        if (!isSupported()) {
+          throw new IOException("SNAPPY codec class not specified. Did you forget to set property " + CONF_SNAPPY_CLASS + "?");
+        }
+        return snappyCodec;
+      }
+      
+      @Override
+      public synchronized OutputStream createCompressionStream(OutputStream downStream, Compressor compressor, int downStreamBufferSize) throws IOException {
+        
+        if (!isSupported()) {
+          throw new IOException("SNAPPY codec class not specified. Did you forget to set property " + CONF_SNAPPY_CLASS + "?");
+        }
+        OutputStream bos1 = null;
+        if (downStreamBufferSize > 0) {
+          bos1 = new BufferedOutputStream(downStream, downStreamBufferSize);
+        } else {
+          bos1 = downStream;
+        }
+        conf.setInt("io.compression.codec.snappy.buffersize", 64 * 1024);
+        CompressionOutputStream cos = snappyCodec.createOutputStream(bos1, compressor);
+        BufferedOutputStream bos2 = new BufferedOutputStream(new FinishOnFlushCompressionStream(cos), DATA_OBUF_SIZE);
+        return bos2;
+      }
+      
+      @Override
+      public synchronized InputStream createDecompressionStream(InputStream downStream, Decompressor decompressor, int downStreamBufferSize) throws IOException {
+        if (!isSupported()) {
+          throw new IOException("SNAPPY codec class not specified. Did you forget to set property " + CONF_SNAPPY_CLASS + "?");
+        }
+        if (downStreamBufferSize > 0) {
+          conf.setInt("io.file.buffer.size", downStreamBufferSize);
+        }
+        CompressionInputStream cis = snappyCodec.createInputStream(downStream, decompressor);
+        BufferedInputStream bis2 = new BufferedInputStream(cis, DATA_IBUF_SIZE);
+        return bis2;
+      }
+      
+      @Override
+      public synchronized boolean isSupported() {
+        if (!checked) {
+          checked = true;
+          String extClazz = (conf.get(CONF_SNAPPY_CLASS) == null ? System.getProperty(CONF_SNAPPY_CLASS) : null);
+          String clazz = (extClazz != null) ? extClazz : defaultClazz;
+          try {
+            LOG.info("Trying to load snappy codec class: " + clazz);
+            snappyCodec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), conf);
+          } catch (ClassNotFoundException e) {
+            // that is okay
+          }
+        }
+        return snappyCodec != null;
+      }
+    };
     // We require that all compression related settings are configured
     // statically in the Configuration object.
     protected static final Configuration conf = new Configuration();
@@ -219,6 +279,7 @@ final class Compression {
     // data output buffer size to absorb small writes from application.
     private static final int DATA_OBUF_SIZE = 4 * 1024;
     public static final String CONF_LZO_CLASS = "io.compression.codec.lzo.class";
+    public static final String CONF_SNAPPY_CLASS = "io.compression.codec.snappy.class";
     
     Algorithm(String name) {
       this.compressName = name;
