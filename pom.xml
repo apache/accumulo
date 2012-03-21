@@ -26,7 +26,7 @@
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo</artifactId>
   <packaging>pom</packaging>
-  <version>1.5.0-incubating-SNAPSHOT</version>
+  <version>1.5.0-SNAPSHOT</version>
   <name>accumulo</name>
   <prerequisites>
     <maven>2.2.0</maven>
@@ -489,33 +489,33 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>cloudtrace</artifactId>
-        <version>1.5.0-incubating-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-start</artifactId>
-        <version>1.5.0-incubating-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-core</artifactId>
-        <version>1.5.0-incubating-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-server</artifactId>
-        <version>1.5.0-incubating-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>examples-simple</artifactId>
-        <version>1.5.0-incubating-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>wikisearch-query-war</artifactId>
         <type>war</type>
-        <version>1.5.0-incubating-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
       </dependency>
 
       <!-- additional dependencies we need to provide -->
