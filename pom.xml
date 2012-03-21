@@ -725,11 +725,6 @@
         <version>0.9.94</version>
       </dependency>
       <dependency>
-        <groupId>jfree</groupId>
-        <artifactId>jcommon</artifactId>
-        <version>1.0.12</version>
-      </dependency>
-      <dependency>
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging</artifactId>
         <version>1.0.4</version>
@@ -738,11 +733,6 @@
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging-api</artifactId>
         <version>1.0.4</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-net</groupId>
-        <artifactId>commons-net</artifactId>
-        <version>1.4.1</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
