@@ -157,6 +157,7 @@ The following is a list of changes made during incubation.
     * [ACCUMULO-444] - Data loss possible when tablet killed immediately after recovery
     * [ACCUMULO-446] - boolean logic iterators do not correctly "jump()"
     * [ACCUMULO-447] - BooleanLogicIterator cannot handle ORs correctly
+    * [ACCUMULO-476] - java.lang.ClassCastException: com.mapr.fs.MapRFileSystem cannot be cast to org.apache.hadoop.hdfs.DistributedFileSystem
 
 ** Improvement
     * [ACCUMULO-10] - tablet server bulk import methods should only be callable by system user
@@ -182,6 +183,7 @@ The following is a list of changes made during incubation.
     * [ACCUMULO-114] - hide passwords when logging the configuration at start-up
     * [ACCUMULO-127] - Environment settings should be set in the accumulo-env.sh and we should document as such
     * [ACCUMULO-129] - shell requires iterators to implement OptionDescriber
+    * [ACCUMULO-139] - Add Snappy support
     * [ACCUMULO-153] - Iterator options for input formats can't contain certain characters
     * [ACCUMULO-154] - Combiner configuration is confusing
     * [ACCUMULO-156] - Refactor Trie
@@ -226,6 +228,8 @@ The following is a list of changes made during incubation.
     * [ACCUMULO-390] - Provide examples for different configurations
     * [ACCUMULO-407] - Look into on the fly log4j configuration
     * [ACCUMULO-460] - zookeeper jar and ubuntu
+    * [ACCUMULO-474] - wikisearch against an unindexed field causes tablet servers to run out of memory, or stop-the-world-gc
+    * [ACCUMULO-477] - inconsistent names and duplicate methods in IteratorSettings 
 
 ** New Feature
     * [ACCUMULO-19] - Debian packaging support
@@ -252,6 +256,10 @@ The following is a list of changes made during incubation.
     * [ACCUMULO-411] - Improve javadocs and post to web site
     * [ACCUMULO-438] - Rename cloudtrace package to org.apache.accumulo.cloudtrace
     * [ACCUMULO-440] - Check 1.4 examples before release
+    * [ACCUMULO-469] - Java files are missing license headers
+    * [ACCUMULO-472] - Simple examples sources jar is in the wrong place
+    * [ACCUMULO-475] - Update LICENSE and NOTICE
+    * [ACCUMULO-481] - accumulo graduates: remove "incubating" flavor from project name
 
 ** Test
     * [ACCUMULO-426] - Create shuffling load balancer
