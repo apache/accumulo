@@ -112,7 +112,7 @@ public class IteratorSetting {
    * Get the configuration parameters for this iterator.
    * 
    * @return the properties
-   * @deprecated Since 1.4.1, see {@link IteratorSetting.getOptions}
+   * @deprecated Since 1.4.1, see {@link #getOptions()}
    */
   public Map<String,String> getProperties() {
     return properties;
@@ -123,7 +123,7 @@ public class IteratorSetting {
    * 
    * @param properties
    *          the properties to set
-   * @deprecated Since 1.4.1, see {@link IteratorSetting.clearOptions} and {@link IteratorSetting.setOptions}
+   * @deprecated Since 1.4.1, see {@link #clearOptions()} and {@link #addOptions(Map)}
    */
   public void setProperties(Map<String,String> properties) {
     this.properties.clear();
@@ -132,7 +132,7 @@ public class IteratorSetting {
   
   /**
    * @return <tt>true</tt> if this iterator has configuration parameters.
-   * @deprecated Since 1.4.1, see {@link IteratorSetting.getOptions} and test {@link Map.isEmpty}
+   * @deprecated Since 1.4.1, see {@link #getOptions()} and test {@link Map#isEmpty()}
    */
   public boolean hasProperties() {
     return !properties.isEmpty();
@@ -169,7 +169,7 @@ public class IteratorSetting {
     setName(name);
     setIteratorClass(iteratorClass);
     this.properties = new HashMap<String,String>();
-    setProperties(properties);
+    addOptions(properties);
   }
   
   /**
