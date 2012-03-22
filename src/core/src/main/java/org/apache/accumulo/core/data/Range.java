@@ -107,7 +107,7 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Creates a range from startRow inclusive to endRow inclusive
+   * Creates a range from startRow to endRow
    * 
    * @param startRow
    *          set this to null when negative infinity is needed
@@ -125,7 +125,7 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Creates a range from startRow inclusive to endRow inclusive
+   * Creates a range from startRow to endRow
    * 
    * @param startRow
    *          set this to null when negative infinity is needed
@@ -142,6 +142,8 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
+   * Creates a range from startKey to endKey
+   * 
    * @param startKey
    *          set this to null when negative infinity is needed
    * @param startKeyInclusive
@@ -165,7 +167,7 @@ public class Range implements WritableComparable<Range> {
   }
   
   /**
-   * Copy constructor
+   * Copies a range
    */
   public Range(Range range) {
     this(range.start, range.stop, range.startKeyInclusive, range.stopKeyInclusive, range.infiniteStartKey, range.infiniteStopKey);
@@ -191,6 +193,9 @@ public class Range implements WritableComparable<Range> {
         trange.stopKeyInclusive, trange.infiniteStartKey, trange.infiniteStopKey);
   }
   
+  /**
+   * @return the first key in the range, null if the key is infinite
+   */
   public Key getStartKey() {
     if (infiniteStartKey) {
       return null;
@@ -201,7 +206,7 @@ public class Range implements WritableComparable<Range> {
   /**
    * 
    * @param key
-   * @return true of the given key is before the range, otherwise false
+   * @return true if the given key is before the range, otherwise false
    */
   public boolean beforeStartKey(Key key) {
     if (infiniteStartKey) {
@@ -216,7 +221,7 @@ public class Range implements WritableComparable<Range> {
   /**
    * @return the last key in the range, null if the end key is infinite
    */
-
+  
   public Key getEndKey() {
     if (infiniteStopKey) {
       return null;
@@ -228,7 +233,7 @@ public class Range implements WritableComparable<Range> {
    * @param key
    * @return true if the given key is after the range, otherwise false
    */
-
+  
   public boolean afterEndKey(Key key) {
     if (infiniteStopKey)
       return false;
@@ -258,6 +263,10 @@ public class Range implements WritableComparable<Range> {
     return compareTo(otherRange) == 0;
   }
   
+  /**
+   * Compares this range to another range. Compares in the order start key, inclusiveness of start key, end key, inclusiveness of end key. Infinite keys sort
+   * first, and non-infinite keys are compared with {@link Key#compareTo(Key)}. Inclusive sorts before non-inclusive.
+   */
   public int compareTo(Range o) {
     int comp;
     
@@ -323,7 +332,7 @@ public class Range implements WritableComparable<Range> {
    * @param ranges
    * @return list of merged ranges
    */
-
+  
   public static List<Range> mergeOverlapping(Collection<Range> ranges) {
     if (ranges.size() == 0)
       return Collections.emptyList();
@@ -395,7 +404,7 @@ public class Range implements WritableComparable<Range> {
    * @throws IllegalArgumentException
    *           if ranges does not overlap
    */
-
+  
   public Range clip(Range range) {
     return clip(range, false);
   }
@@ -409,7 +418,7 @@ public class Range implements WritableComparable<Range> {
    *          If the ranges do not overlap and true is passed, then null is returned otherwise an exception is thrown.
    * @return the intersection
    */
-
+  
   public Range clip(Range range, boolean returnNullIfDisjoint) {
     
     Key sk = range.getStartKey();
@@ -462,7 +471,7 @@ public class Range implements WritableComparable<Range> {
    * @throws IllegalArgumentException
    *           if min > max
    */
-
+  
   public Range bound(Column min, Column max) {
     
     if (min.compareTo(max) > 0) {
