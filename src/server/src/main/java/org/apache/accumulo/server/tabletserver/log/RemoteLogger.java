@@ -34,7 +34,6 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
-import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 
 /**
@@ -124,10 +123,12 @@ public class RemoteLogger {
   
   public synchronized void close() throws NoSuchLogIDException, LoggerClosedException, TException {
     try {
-      client.close(null, logFile.id);
+      if (client != null)
+        client.close(null, logFile.id);
     } finally {
-      TServiceClient c = (TServiceClient) client;
-      c.getInputProtocol().getTransport().close();
+      MutationLogger.Iface tmp = client;
+      client = null;
+      ThriftUtil.returnClient(tmp);
     }
   }
   

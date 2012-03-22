@@ -61,7 +61,7 @@
     
     <property>
       <name>tserver.cache.index.size</name>
-      <value>100M</value>
+      <value>512M</value>
     </property>
     
     <property>
