@@ -234,12 +234,12 @@ public class TableOperationsHelperTest {
     setting = t.getIteratorSetting("table", "otherName", IteratorScope.scan);
     Assert.assertEquals(20, setting.getPriority());
     Assert.assertEquals("some.classname", setting.getIteratorClass());
-    Assert.assertFalse(setting.hasProperties());
+    Assert.assertTrue(setting.getOptions().isEmpty());
     setting = t.getIteratorSetting("table", "otherName", IteratorScope.majc);
     Assert.assertEquals(20, setting.getPriority());
     Assert.assertEquals("some.classname", setting.getIteratorClass());
-    Assert.assertTrue(setting.hasProperties());
-    Assert.assertEquals(Collections.singletonMap("key", "value"), setting.getProperties());
+    Assert.assertFalse(setting.getOptions().isEmpty());
+    Assert.assertEquals(Collections.singletonMap("key", "value"), setting.getOptions());
     t.attachIterator("table", setting, EnumSet.of(IteratorScope.minc));
     t.check("table", new String[] {"table.iterator.majc.otherName=20,some.classname", "table.iterator.majc.otherName.opt.key=value",
         "table.iterator.minc.otherName=20,some.classname", "table.iterator.minc.otherName.opt.key=value", "table.iterator.scan.otherName=20,some.classname",});

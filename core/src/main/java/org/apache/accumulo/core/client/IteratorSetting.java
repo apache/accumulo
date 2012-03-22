@@ -109,36 +109,6 @@ public class IteratorSetting {
   }
   
   /**
-   * Get the configuration parameters for this iterator.
-   * 
-   * @return the properties
-   * @deprecated Since 1.4.1, see {@link IteratorSetting.getOptions}
-   */
-  public Map<String,String> getProperties() {
-    return properties;
-  }
-  
-  /**
-   * Set the configuration parameters for this iterator.
-   * 
-   * @param properties
-   *          the properties to set
-   * @deprecated Since 1.4.1, see {@link IteratorSetting.clearOptions} and {@link IteratorSetting.setOptions}
-   */
-  public void setProperties(Map<String,String> properties) {
-    this.properties.clear();
-    addOptions(properties);
-  }
-  
-  /**
-   * @return <tt>true</tt> if this iterator has configuration parameters.
-   * @deprecated Since 1.4.1, see {@link IteratorSetting.getOptions} and test {@link Map.isEmpty}
-   */
-  public boolean hasProperties() {
-    return !properties.isEmpty();
-  }
-  
-  /**
    * Constructs an iterator setting configured for the scan scope with no parameters. (Parameters can be added later.)
    * 
    * @param priority
@@ -169,7 +139,7 @@ public class IteratorSetting {
     setName(name);
     setIteratorClass(iteratorClass);
     this.properties = new HashMap<String,String>();
-    setProperties(properties);
+    addOptions(properties);
   }
   
   /**
