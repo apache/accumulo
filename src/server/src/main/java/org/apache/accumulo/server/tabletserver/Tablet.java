@@ -2302,8 +2302,30 @@ public class Tablet {
     return initiateMinorCompaction(flushId);
   }
   
+  boolean minorCompactNow() {
+    long flushId;
+    try {
+      flushId = getFlushID();
+    } catch (NoNodeException e) {
+      log.info("Asked to initiate MinC when there was no flush id " + getExtent() + " " + e.getMessage());
+      return false;
+    }
+    MinorCompactionTask mct = createMinorCompactionTask(flushId);
+    if (mct == null)
+      return false;
+    mct.run();
+    return true;
+  }
+
   boolean initiateMinorCompaction(long flushId) {
-    
+    MinorCompactionTask mct = createMinorCompactionTask(flushId);
+    if (mct == null)
+      return false;
+    tabletResources.executeMinorCompaction(mct);
+    return true;
+  }
+  
+  private MinorCompactionTask createMinorCompactionTask(long flushId) {
     MinorCompactionTask mct;
     long t1, t2;
     
@@ -2328,14 +2350,14 @@ public class Tablet {
             logMessage.append(" tabletMemory.getMemTable().getNumEntries() " + tabletMemory.getMemTable().getNumEntries());
           logMessage.append(" updatingFlushID " + updatingFlushID);
           
-          return false;
+          return null;
         }
         // We're still recovering log entries
         if (datafileManager == null) {
           logMessage = new StringBuilder();
           logMessage.append(extent.toString());
           logMessage.append(" datafileManager " + datafileManager);
-          return false;
+          return null;
         }
         
         mct = prepareForMinC(flushId);
@@ -2347,11 +2369,8 @@ public class Tablet {
         log.debug(logMessage);
     }
     
-    tabletResources.executeMinorCompaction(mct);
-    
     log.debug(String.format("MinC initiate lock %.2f secs", (t2 - t1) / 1000.0));
-    
-    return true;
+    return mct;
   }
   
   long getFlushID() throws NoNodeException {
