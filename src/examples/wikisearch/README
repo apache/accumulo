@@ -66,11 +66,3 @@
 	There are two parameters to the REST service, query and auths. The query parameter is the same string that you would type
 	into the search box at ui.jsp, and the auths parameter is a comma-separated list of wikis that you want to search (i.e.
 	enwiki,frwiki,dewiki, etc. Or you can use all) 
-	
-	10. Optional. Add the following line to the $ACCUMULO_HOME/conf/log4j.properties file to turn off debug messages in the specialized 
-	iterators, which will dramatically increase performance:
-	
-	log4j.logger.org.apache.accumulo.examples.wikisearch.iterator=INFO,A1
-	
-	This needs to be propagated to all the tablet server nodes, and accumulo needs to be restarted.
-	
