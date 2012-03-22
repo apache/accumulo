@@ -69,7 +69,6 @@
     <fileSet>
       <includes>
         <include>CHANGES</include>
-        <include>DISCLAIMER</include>
         <include>LICENSE</include>
         <include>NOTICE</include>
         <include>README</include>                
