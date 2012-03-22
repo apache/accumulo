@@ -158,6 +158,8 @@ The following is a list of changes made during incubation.
     * [ACCUMULO-446] - boolean logic iterators do not correctly "jump()"
     * [ACCUMULO-447] - BooleanLogicIterator cannot handle ORs correctly
     * [ACCUMULO-476] - java.lang.ClassCastException: com.mapr.fs.MapRFileSystem cannot be cast to org.apache.hadoop.hdfs.DistributedFileSystem
+    * [ACCUMULO-484] - root tablet fails to load after recovery when all minor compaction threads are busy
+    * [ACCUMULO-486] - tablet server runs out of memory after 8 hours of continuous ingest
 
 ** Improvement
     * [ACCUMULO-10] - tablet server bulk import methods should only be callable by system user
@@ -230,6 +232,7 @@ The following is a list of changes made during incubation.
     * [ACCUMULO-460] - zookeeper jar and ubuntu
     * [ACCUMULO-474] - wikisearch against an unindexed field causes tablet servers to run out of memory, or stop-the-world-gc
     * [ACCUMULO-477] - inconsistent names and duplicate methods in IteratorSettings 
+    * [ACCUMULO-485] - reduce the debugging level for the examples
 
 ** New Feature
     * [ACCUMULO-19] - Debian packaging support
