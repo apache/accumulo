@@ -41,7 +41,7 @@ runAt() {
 run mvn -U clean 
 mvn rat:check 
 COUNT=`grep '!????' target/rat.txt | wc -l`
-EXPECTED=56
+EXPECTED=55
 if [ "$COUNT" -ne $EXPECTED ]
 then
    fail expected $EXPECTED files missing licenses, but saw "$COUNT"

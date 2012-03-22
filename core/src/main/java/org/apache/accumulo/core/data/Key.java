@@ -20,7 +20,7 @@ package org.apache.accumulo.core.data;
  * This is the Key used to store and access individual values in Accumulo.  A Key is a tuple composed of a row, column family, column qualifier, 
  * column visibility, timestamp, and delete marker.
  * 
- * Keys are comparable and therefore have a sorted order.  
+ * Keys are comparable and therefore have a sorted order defined by {@link #compareTo(Key)}.
  * 
  */
 
@@ -82,6 +82,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
     deleted = del;
   }
   
+  /**
+   * Creates a key with empty row, empty column family, empty column qualifier, empty column visibility, timestamp {@link Long#MAX_VALUE}, and delete marker
+   * false.
+   */
   public Key() {
     row = EMPTY_BYTES;
     colFamily = EMPTY_BYTES;
@@ -91,10 +95,18 @@ public class Key implements WritableComparable<Key>, Cloneable {
     deleted = false;
   }
   
+  /**
+   * Creates a key with the specified row, empty column family, empty column qualifier, empty column visibility, timestamp {@link Long#MAX_VALUE}, and delete
+   * marker false.
+   */
   public Key(Text row) {
     init(row.getBytes(), 0, row.getLength(), EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, Long.MAX_VALUE, false, true);
   }
   
+  /**
+   * Creates a key with the specified row, empty column family, empty column qualifier, empty column visibility, the specified timestamp, and delete marker
+   * false.
+   */
   public Key(Text row, long ts) {
     this(row);
     timestamp = ts;
@@ -116,57 +128,102 @@ public class Key implements WritableComparable<Key>, Cloneable {
     init(row, 0, row.length, cf, 0, cf.length, cq, 0, cq.length, cv, 0, cv.length, ts, deleted, copy);
   }
   
+  /**
+   * Creates a key with the specified row, the specified column family, empty column qualifier, empty column visibility, timestamp {@link Long#MAX_VALUE}, and
+   * delete marker false.
+   */
   public Key(Text row, Text cf) {
     init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), EMPTY_BYTES, 0, 0, EMPTY_BYTES, 0, 0, Long.MAX_VALUE, false, true);
   }
   
+  /**
+   * Creates a key with the specified row, the specified column family, the specified column qualifier, empty column visibility, timestamp
+   * {@link Long#MAX_VALUE}, and delete marker false.
+   */
   public Key(Text row, Text cf, Text cq) {
     init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0, cq.getLength(), EMPTY_BYTES, 0, 0, Long.MAX_VALUE, false, true);
   }
   
+  /**
+   * Creates a key with the specified row, the specified column family, the specified column qualifier, the specified column visibility, timestamp
+   * {@link Long#MAX_VALUE}, and delete marker false.
+   */
   public Key(Text row, Text cf, Text cq, Text cv) {
     init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0, cq.getLength(), cv.getBytes(), 0, cv.getLength(),
         Long.MAX_VALUE, false, true);
   }
   
+  /**
+   * Creates a key with the specified row, the specified column family, the specified column qualifier, empty column visibility, the specified timestamp, and
+   * delete marker false.
+   */
   public Key(Text row, Text cf, Text cq, long ts) {
     init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0, cq.getLength(), EMPTY_BYTES, 0, 0, ts, false, true);
   }
   
+  /**
+   * Creates a key with the specified row, the specified column family, the specified column qualifier, the specified column visibility, the specified
+   * timestamp, and delete marker false.
+   */
   public Key(Text row, Text cf, Text cq, Text cv, long ts) {
     init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0, cq.getLength(), cv.getBytes(), 0, cv.getLength(), ts, false,
         true);
   }
   
+  /**
+   * Creates a key with the specified row, the specified column family, the specified column qualifier, the specified column visibility, the specified
+   * timestamp, and delete marker false.
+   */
   public Key(Text row, Text cf, Text cq, ColumnVisibility cv, long ts) {
     byte[] expr = cv.getExpression();
     init(row.getBytes(), 0, row.getLength(), cf.getBytes(), 0, cf.getLength(), cq.getBytes(), 0, cq.getLength(), expr, 0, expr.length, ts, false, true);
   }
   
+  /**
+   * Converts CharSequence to Text and creates a Key using {@link #Key(Text)}.
+   */
   public Key(CharSequence row) {
     this(new Text(row.toString()));
   }
   
+  /**
+   * Converts CharSequence to Text and creates a Key using {@link #Key(Text,Text)}.
+   */
   public Key(CharSequence row, CharSequence cf) {
     this(new Text(row.toString()), new Text(cf.toString()));
   }
   
+  /**
+   * Converts CharSequence to Text and creates a Key using {@link #Key(Text,Text,Text)}.
+   */
   public Key(CharSequence row, CharSequence cf, CharSequence cq) {
     this(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()));
   }
   
+  /**
+   * Converts CharSequence to Text and creates a Key using {@link #Key(Text,Text,Text,Text)}.
+   */
   public Key(CharSequence row, CharSequence cf, CharSequence cq, CharSequence cv) {
     this(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()), new Text(cv.toString()));
   }
   
+  /**
+   * Converts CharSequence to Text and creates a Key using {@link #Key(Text,Text,Text,long)}.
+   */
   public Key(CharSequence row, CharSequence cf, CharSequence cq, long ts) {
     this(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()), ts);
   }
   
+  /**
+   * Converts CharSequence to Text and creates a Key using {@link #Key(Text,Text,Text,Text,long)}.
+   */
   public Key(CharSequence row, CharSequence cf, CharSequence cq, CharSequence cv, long ts) {
     this(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()), new Text(cv.toString()), ts);
   }
   
+  /**
+   * Converts CharSequence to Text and creates a Key using {@link #Key(Text,Text,Text,ColumnVisibility,long)}.
+   */
   public Key(CharSequence row, CharSequence cf, CharSequence cq, ColumnVisibility cv, long ts) {
     this(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()), new Text(cv.getExpression()), ts);
   }
@@ -220,6 +277,9 @@ public class Key implements WritableComparable<Key>, Cloneable {
     return returnKey;
   }
   
+  /**
+   * Creates a key with the same row, column family, column qualifier, column visibility, timestamp, and delete marker as the given key.
+   */
   public Key(Key other) {
     set(other);
   }
@@ -240,7 +300,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          the key's row will be copied into this Text
    * @return the Text that was passed in
    */
-
+  
   public Text getRow(Text r) {
     r.set(row, 0, row.length);
     return r;
@@ -251,7 +311,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * 
    * @return ByteSequence that points to the internal key row data.
    */
-
+  
   public ByteSequence getRowData() {
     return new ArrayByteSequence(row);
   }
@@ -261,7 +321,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * 
    * @return Text containing the row field
    */
-
+  
   public Text getRow() {
     return getRow(new Text());
   }
@@ -271,9 +331,9 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * 
    * @param r
    *          row to compare to keys row
-   * @return same as getRow().compareTo(r)
+   * @return same as {@link getRow()}.compareTo(r)
    */
-
+  
   public int compareRow(Text r) {
     return WritableComparator.compareBytes(row, 0, row.length, r.getBytes(), 0, r.getLength());
   }
@@ -283,7 +343,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * 
    * @return ByteSequence that points to the internal key column family data.
    */
-
+  
   public ByteSequence getColumnFamilyData() {
     return new ArrayByteSequence(colFamily);
   }
@@ -295,7 +355,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          the key's column family will be copied into this Text
    * @return the Text that was passed in
    */
-
+  
   public Text getColumnFamily(Text cf) {
     cf.set(colFamily, 0, colFamily.length);
     return cf;
@@ -306,7 +366,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * 
    * @return Text containing the column family field
    */
-
+  
   public Text getColumnFamily() {
     return getColumnFamily(new Text());
   }
@@ -316,9 +376,9 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * 
    * @param cf
    *          column family to compare to keys column family
-   * @return same as getColumnFamily().compareTo(cf)
+   * @return same as {@link #getColumnFamily()}.compareTo(cf)
    */
-
+  
   public int compareColumnFamily(Text cf) {
     return WritableComparator.compareBytes(colFamily, 0, colFamily.length, cf.getBytes(), 0, cf.getLength());
   }
@@ -328,7 +388,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * 
    * @return ByteSequence that points to the internal key column qualifier data.
    */
-
+  
   public ByteSequence getColumnQualifierData() {
     return new ArrayByteSequence(colQualifier);
   }
@@ -340,7 +400,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          the key's column qualifier will be copied into this Text
    * @return the Text that was passed in
    */
-
+  
   public Text getColumnQualifier(Text cq) {
     cq.set(colQualifier, 0, colQualifier.length);
     return cq;
@@ -351,7 +411,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * 
    * @return Text containing the column qualifier field
    */
-
+  
   public Text getColumnQualifier() {
     return getColumnQualifier(new Text());
   }
@@ -361,9 +421,9 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * 
    * @param cq
    *          column family to compare to keys column qualifier
-   * @return same as compareColumnQualifier().compareTo(cq)
+   * @return same as {@link #getColumnQualifier()}.compareTo(cq)
    */
-
+  
   public int compareColumnQualifier(Text cq) {
     return WritableComparator.compareBytes(colQualifier, 0, colQualifier.length, cq.getBytes(), 0, cq.getLength());
   }
@@ -389,7 +449,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * 
    * @return ByteSequence that points to the internal key column visibility data.
    */
-
+  
   public ByteSequence getColumnVisibilityData() {
     return new ArrayByteSequence(colVisibility);
   }
@@ -399,7 +459,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * 
    * @return Text containing the column visibility field
    */
-
+  
   public final Text getColumnVisibility() {
     return getColumnVisibility(new Text());
   }
@@ -411,12 +471,15 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *          the key's column visibility will be copied into this Text
    * @return the Text that was passed in
    */
-
+  
   public final Text getColumnVisibility(Text cv) {
     cv.set(colVisibility, 0, colVisibility.length);
     return cv;
   }
   
+  /**
+   * Sets this key's row, column family, column qualifier, column visibility, timestamp, and delete marker to be the same as another key's.
+   */
   public void set(Key k) {
     row = k.row;
     colFamily = k.colFamily;
@@ -476,7 +539,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Compare part of a key. For example compare just the row and column family, and if those are equal then return true.
    * 
    */
-
+  
   public boolean equals(Key other, PartialKey part) {
     switch (part) {
       case ROW:
@@ -500,10 +563,12 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
   
   /**
-   * Compare part of a key. For example compare just the row and column family, and if those are equal then return 0.
+   * Compare elements of a key given by a {@link PartialKey}. For example, for {@link PartialKey#ROW_COLFAM}, compare just the row and column family. If the
+   * rows are not equal, return the result of the row comparison; otherwise, return the result of the column family comparison.
    * 
+   * @see #compareTo(Key)
    */
-
+  
   public int compareTo(Key other, PartialKey part) {
     // check for matching row
     int result = WritableComparator.compareBytes(row, 0, row.length, other.row, 0, other.row.length);
@@ -546,9 +611,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
   
   /**
-   * Compare the elements of a key starting with the row. If the row is equal, then compare the column family, etc. The row, column family, column qualifier,
-   * and column visibility are compared lexographically and sorted ascending. The timestamps are compared numerically and sorted descending so that the most
-   * recent data comes first. Last when delete is compared, true come first and false after.
+   * Compare all elements of a key. The elements (row, column family, column qualifier, column visibility, timestamp, and delete marker) are compared in order
+   * until an unequal element is found. If the row is equal, then compare the column family, etc. The row, column family, column qualifier, and column
+   * visibility are compared lexographically and sorted ascending. The timestamps are compared numerically and sorted descending so that the most recent data
+   * comes first. Lastly, a delete marker of true sorts before a delete marker of false.
    */
   
   public int compareTo(Key other) {
@@ -609,10 +675,18 @@ public class Key implements WritableComparable<Key>, Cloneable {
     return rowColumnStringBuilder().toString();
   }
   
+  /**
+   * Returns the sums of the lengths of the row, column family, column qualifier, and visibility.
+   * 
+   * @return row.length + colFamily.length + colQualifier.length + colVisibility.length;
+   */
   public int getLength() {
     return row.length + colFamily.length + colQualifier.length + colVisibility.length;
   }
   
+  /**
+   * Same as {@link #getLength()}.
+   */
   public int getSize() {
     return getLength();
   }
@@ -657,6 +731,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Use this to compress a list of keys before sending them via thrift.
    * 
    * @param param
+   *          a list of key/value pairs
    */
   public static List<TKeyValue> compress(List<? extends KeyValue> param) {
     
