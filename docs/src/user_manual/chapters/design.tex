@@ -52,10 +52,10 @@ servers, one Garbage Collector process, one Master server and many Clients.
 \subsection{Tablet Server}
 
 The TabletServer manages some subset of all the tablets (partitions of tables). This includes receiving writes from clients, persisting writes to a
-write‐ahead log, sorting new key‐value pairs in memory, periodically
-flushing sorted key‐value pairs to new files in HDFS, and responding
-to reads from clients, forming a merge‐sorted view of all keys and
-values from all the files it has created and the sorted in‐memory
+write-ahead log, sorting new key-value pairs in memory, periodically
+flushing sorted key-value pairs to new files in HDFS, and responding
+to reads from clients, forming a merge-sorted view of all keys and
+values from all the files it has created and the sorted in-memory
 store.
 
 TabletServers also perform recovery of a tablet
@@ -107,18 +107,18 @@ ingest and query load is balanced across the cluster.
 \section{Tablet Service}
 
 
-When a write arrives at a TabletServer it is written to a Write‐Ahead Log and
+When a write arrives at a TabletServer it is written to a Write-Ahead Log and
 then inserted into a sorted data structure in memory called a MemTable. When the
 MemTable reaches a certain size the TabletServer writes out the sorted key-value
 pairs to a file in HDFS called Indexed Sequential Access Method (ISAM)
 file. This process is called a minor compaction.  A new MemTable is then created
-and the fact of the compaction is recorded in the Write‐Ahead Log.
+and the fact of the compaction is recorded in the Write-Ahead Log.
 
 When a request to read data arrives at a TabletServer, the TabletServer does a
 binary search across the MemTable as well as the in-memory indexes associated
 with each ISAM file to find the relevant values. If clients are performing a
-scan, several key‐value pairs are returned to the client in order from the
-MemTable and the set of ISAM files by performing a merge‐sort as they are read.
+scan, several key-value pairs are returned to the client in order from the
+MemTable and the set of ISAM files by performing a merge-sort as they are read.
 
 \section{Compactions}
 
@@ -126,7 +126,7 @@ In order to manage the number of files per tablet, periodically the TabletServer
 performs Major Compactions of files within a tablet, in which some set of ISAM
 files are combined into one file. The previous files will eventually be removed
 by the Garbage Collector. This also provides an opportunity to permanently
-remove deleted key‐value pairs by omitting key‐value pairs suppressed by a
+remove deleted key-value pairs by omitting key-value pairs suppressed by a
 delete entry when the new file is created.
 
 \section{Fault-Tolerance}

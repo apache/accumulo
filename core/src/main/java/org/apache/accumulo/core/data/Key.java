@@ -331,7 +331,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * 
    * @param r
    *          row to compare to keys row
-   * @return same as {@link getRow()}.compareTo(r)
+   * @return same as {@link #getRow()}.compareTo(r)
    */
   
   public int compareRow(Text r) {
