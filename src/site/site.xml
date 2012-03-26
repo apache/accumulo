@@ -27,7 +27,7 @@ under the License.
     <bannerLeft>
         <name>Apache Accumulo</name>
         <src>http://www.apache.org/images/asf-logo.gif</src>
-        <href>http://incubator.apache.org/accumulo/</href>
+        <href>http://accumulo.apache.org/</href>
     </bannerLeft>
   <version position="right" />
   <skin>
@@ -37,7 +37,7 @@ under the License.
   </skin>
   <body>
     <breadcrumbs>
-      <item name="Accumulo"  href="http://incubator.apache.org/accumulo/" />
+      <item name="Accumulo"  href="http://accumulo.apache.org/" />
     </breadcrumbs>
     <menu ref="reports" inherit="top" />
     <menu ref="modules" inherit="top" />

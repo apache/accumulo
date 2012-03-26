@@ -156,7 +156,7 @@
                 Google's BigTable design.
               </description>
               <copyright>2011 The Apache Software Foundation.</copyright>
-              <url>http://incubator.apache.org/accumulo</url>
+              <url>http://accumulo.apache.org</url>
               <needarch>true</needarch>
               <group>Utilities</group>
               <requires>

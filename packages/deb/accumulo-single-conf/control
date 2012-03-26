@@ -15,8 +15,8 @@
 Source: Apache Accumulo
 Section: misc
 Priority: extra
-Maintainer: Apache Accumulo <accumulo-dev@incubator.apache.org>
-Homepage: http://incubator.apache.org/accumulo
+Maintainer: Apache Accumulo <accumulo-dev@accumulo.apache.org>
+Homepage: http://accumulo.apache.org
 Package: accumulo-single-conf
 Provides: accumulo-config
 Version: [[version]]

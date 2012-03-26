@@ -34,7 +34,7 @@
 
   <organization>
     <name>Apache Accumulo Project</name>
-      <url>http://incubator.apache.org/accumulo/</url>
+      <url>http://accumulo.apache.org/</url>
   </organization>
 
   <distributionManagement>
@@ -601,9 +601,9 @@
   </dependencies>
 
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/incubator/accumulo/trunk</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/incubator/accumulo/trunk</developerConnection>
-    <url>http://svn.apache.org/viewvc/incubator/accumulo</url>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/accumulo/trunk</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/accumulo/trunk</developerConnection>
+    <url>http://svn.apache.org/viewvc/accumulo</url>
   </scm>
 
   <ciManagement>
@@ -611,7 +611,7 @@
     <system>Apache Jenkins</system>
   </ciManagement>
   <!-- this URL is where the site derived via the maven-site-plugin ends up, not the generic site -->
-  <url>http://incubator.apache.org/accumulo/maven/</url>
+  <url>http://accumulo.apache.org/maven/</url>
 
   <description>Apache Accumulo is a sorted, distributed key/value store based on Google's BigTable design. It is built on top of Apache Hadoop, Zookeeper, and Thrift. It features a few novel improvements on the BigTable design in the form of cell-level access labels and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</description>
 
