@@ -79,7 +79,7 @@
     
     <property>
       <name>tserver.walog.max.size</name>
-      <value>100M</value>
+      <value>512M</value>
     </property>
 
     <property>
