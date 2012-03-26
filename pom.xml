@@ -43,9 +43,9 @@
     </mailingList>
     <mailingList>
       <name>Developer List</name>
-      <subscribe>accumulo-dev-subscribe@accumulo.apache.org</subscribe>
-      <unsubscribe>accumulo-dev-unsubscribe@accumulo.apache.org</unsubscribe>
-      <post>accumulo-dev@accumulo.apache.org</post>
+      <subscribe>dev-subscribe@accumulo.apache.org</subscribe>
+      <unsubscribe>dev-unsubscribe@accumulo.apache.org</unsubscribe>
+      <post>dev@accumulo.apache.org</post>
       <archive>http://mail-archives.apache.org/mod_mbox/accumulo-dev/</archive>
     </mailingList>
     <mailingList>
