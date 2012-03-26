@@ -28,37 +28,37 @@
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo</artifactId>
   <packaging>pom</packaging>
-  <version>1.3.6-incubating-SNAPSHOT</version>
+  <version>1.3.6-SNAPSHOT</version>
   <name>accumulo</name>
 
-  <url>http://incubator.apache.org/accumulo</url>
+  <url>http://accumulo.apache.org</url>
   <description>Apache Accumulo is a sorted, distributed key/value store based on Google's BigTable design. It is built on top of Apache Hadoop, Zookeeper, and Thrift. It features a few novel improvements on the BigTable design in the form of cell-level access labels and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</description>
   <mailingLists>
     <mailingList>
       <name>User List</name>
-      <subscribe>accumulo-user-subscribe@incubator.apache.org</subscribe>
-      <unsubscribe>accumulo-user-unsubscribe@incubator.apache.org</unsubscribe>
-      <post>accumulo-user@incubator.apache.org</post>
-      <archive>http://mail-archives.apache.org/mod_mbox/incubator-accumulo-user/</archive>
+      <subscribe>accumulo-user-subscribe@accumulo.apache.org</subscribe>
+      <unsubscribe>accumulo-user-unsubscribe@accumulo.apache.org</unsubscribe>
+      <post>accumulo-user@accumulo.apache.org</post>
+      <archive>http://mail-archives.apache.org/mod_mbox/accumulo-user/</archive>
     </mailingList>
     <mailingList>
       <name>Developer List</name>
-      <subscribe>accumulo-dev-subscribe@incubator.apache.org</subscribe>
-      <unsubscribe>accumulo-dev-unsubscribe@incubator.apache.org</unsubscribe>
-      <post>accumulo-dev@incubator.apache.org</post>
-      <archive>http://mail-archives.apache.org/mod_mbox/incubator-accumulo-dev/</archive>
+      <subscribe>accumulo-dev-subscribe@accumulo.apache.org</subscribe>
+      <unsubscribe>accumulo-dev-unsubscribe@accumulo.apache.org</unsubscribe>
+      <post>accumulo-dev@accumulo.apache.org</post>
+      <archive>http://mail-archives.apache.org/mod_mbox/accumulo-dev/</archive>
     </mailingList>
     <mailingList>
       <name>Commits List</name>
-      <subscribe>accumulo-commits-subscribe@incubator.apache.org</subscribe>
-      <unsubscribe>accumulo-commits-unsubscribe@incubator.apache.org</unsubscribe>
-      <archive>http://mail-archives.apache.org/mod_mbox/incubator-accumulo-commits/</archive>
+      <subscribe>accumulo-commits-subscribe@accumulo.apache.org</subscribe>
+      <unsubscribe>accumulo-commits-unsubscribe@accumulo.apache.org</unsubscribe>
+      <archive>http://mail-archives.apache.org/mod_mbox/accumulo-commits/</archive>
     </mailingList>
   </mailingLists>
   
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/incubator/accumulo/branches/1.3</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/incubator/accumulo/branches/1.3</developerConnection>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/accumulo/branches/1.3</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/accumulo/branches/1.3</developerConnection>
     <url>http://svn.apache.org/viewvc/incubator/accumulo/branches/1.3</url>
   </scm>
 
@@ -220,7 +220,7 @@
             on Google's BigTable design.
           </description>
           <copyright>2011 The Apache Software Foundation.</copyright>
-          <url>http://incubator.apache.org/accumulo</url>
+          <url>http://accumulo.apache.org</url>
           <needarch>true</needarch>
           <group>Utilities</group>
           <requires>
@@ -519,22 +519,22 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>cloudtrace</artifactId>
-        <version>1.3.6-incubating-SNAPSHOT</version>
+        <version>1.3.6-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-start</artifactId>
-        <version>1.3.6-incubating-SNAPSHOT</version>
+        <version>1.3.6-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-core</artifactId>
-        <version>1.3.6-incubating-SNAPSHOT</version>
+        <version>1.3.6-SNAPSHOT</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-server</artifactId>
-        <version>1.3.6-incubating-SNAPSHOT</version>
+        <version>1.3.6-SNAPSHOT</version>
       </dependency>
 
       <!-- additional dependencies we need to provide -->
@@ -627,7 +627,7 @@
   <repositories>
     <repository>
       <id>legacy-releases</id>
-      <url>http://incubator.apache.org/accumulo/mvn_repo</url>
+      <url>http://accumulo.apache.org/mvn_repo</url>
     </repository>
   </repositories>
 
