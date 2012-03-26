@@ -28,7 +28,7 @@ fi
 
 #TODO could support multinode configs, this script assumes single node config
 
-ONE_THREE_DIR=../../../accumulo-1.3.5-incubating-SNAPSHOT
+ONE_THREE_DIR=../../../accumulo-1.3.5-SNAPSHOT
 ONE_FOUR_DIR=../../
 
 pkill -f accumulo.start

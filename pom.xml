@@ -198,7 +198,7 @@
             Google's BigTable design.
           </description>
           <copyright>2011 The Apache Software Foundation.</copyright>
-          <url>http://incubator.apache.org/accumulo</url>
+          <url>http://accumulo.apache.org</url>
           <needarch>true</needarch>
           <group>Utilities</group>
           <requires>
@@ -763,16 +763,16 @@
   </dependencies>
 
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/incubator/accumulo/branches/1.4</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/incubator/accumulo/branches/1.4</developerConnection>
-    <url>http://svn.apache.org/viewvc/incubator/accumulo/branches/1.4</url>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/accumulo/branches/1.4</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/accumulo/branches/1.4</developerConnection>
+    <url>http://svn.apache.org/viewvc/accumulo/branches/1.4</url>
   </scm>
 
   <ciManagement>
     <url>https://builds.apache.org/view/A-F/view/Accumulo/</url>
     <system>Apache Jenkins</system>
   </ciManagement>
-  <url>http://incubator.apache.org/accumulo/</url>
+  <url>http://accumulo.apache.org/</url>
   <description>Apache Accumulo is a sorted, distributed key/value store based on Google's BigTable design. It is built on top of Apache Hadoop, Zookeeper, and Thrift. It features a few novel improvements on the BigTable design in the form of cell-level access labels and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</description>
   <issueManagement>
     <system>Apache's JIRA issue tracker</system>
