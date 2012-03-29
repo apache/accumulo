@@ -37,7 +37,11 @@ then
 fi
 SLAVES=`wc -l < ${ACCUMULO_HOME}/conf/slaves`
 
-PID=`$SSH $HOST ps -ef | egrep ${ACCUMULO_HOME}/.*/accumulo.*.jar | grep "Main $SERVICE" | grep -v grep | awk {'print $2'} | head -1`
+if [ $HOST == localhost ] 
+  PID=`ps -ef | egrep ${ACCUMULO_HOME}/.*/accumulo.*.jar | grep "Main $SERVICE" | grep -v grep | awk {'print $2'} | head -1`
+else
+  PID=`$SSH $HOST ps -ef | egrep ${ACCUMULO_HOME}/.*/accumulo.*.jar | grep "Main $SERVICE" | grep -v grep | awk {'print $2'} | head -1`
+fi
 
 if [ -z $PID ]; then
     echo "Starting $LONGNAME on $HOST"
