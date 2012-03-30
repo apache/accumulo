@@ -37,7 +37,7 @@ then
 fi
 SLAVES=`wc -l < ${ACCUMULO_HOME}/conf/slaves`
 
-if [ $HOST == localhost ] 
+if [ $HOST == localhost -o $HOST == "`hostname`" ] 
 then
   PID=`ps -ef | egrep ${ACCUMULO_HOME}/.*/accumulo.*.jar | grep "Main $SERVICE" | grep -v grep | awk {'print $2'} | head -1`
 else
@@ -46,14 +46,15 @@ fi
 
 if [ -z $PID ]; then
     echo "Starting $LONGNAME on $HOST"
-    if [ $HOST == localhost ] 
+    if [ $HOST == localhost  -o $HOST == "`hostname`" ] 
     then
        ${bin}/accumulo ${SERVICE} --address $1 >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err & 
+       MAX_FILES_OPEN=`bash -c 'ulimit -n'`
     else
-       $SSH $HOST "bash -c 'exec nohup ${bin}/accumulo ${SERVICE} --address $1 >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err' &" 
+       $SSH $HOST "bash -c 'exec nohup ${bin}/accumulo ${SERVICE} --address $1 >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err' &"
+       MAX_FILES_OPEN=`$SSH $HOST "bash -c 'ulimit -n'"` 
     fi
 
-    MAX_FILES_OPEN=`$SSH $HOST "bash -c 'ulimit -n'"`
     if [ -n "$MAX_FILES_OPEN" ] && [ -n "$SLAVES" ] ; then
        if [ "$SLAVES" -gt 10 ] && [ "$MAX_FILES_OPEN" -lt 65536 ]; then
           echo "WARN : Max files open on $HOST is $MAX_FILES_OPEN, recommend 65536"
