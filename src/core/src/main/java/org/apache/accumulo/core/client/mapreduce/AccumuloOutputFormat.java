@@ -85,7 +85,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   private static final String NUM_WRITE_THREADS = PREFIX + ".writethreads";
   
   private static final long DEFAULT_MAX_MUTATION_BUFFER_SIZE = 50 * 1024 * 1024; // 50MB
-  private static final int DEFAULT_MAX_LATENCY = 60; // 1 minute
+  private static final int DEFAULT_MAX_LATENCY = 60 * 1000; // 1 minute
   private static final int DEFAULT_NUM_WRITE_THREADS = 2;
   
   /**
