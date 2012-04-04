@@ -288,7 +288,7 @@ public class SimpleGarbageCollector implements Iface {
       waLogs.stop();
       gcSpan.stop();
       
-      Trace.off();
+      Trace.offNoFlush();
       try {
         long gcDelay = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for " + gcDelay + " milliseconds");
