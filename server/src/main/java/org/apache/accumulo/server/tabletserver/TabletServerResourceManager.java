@@ -43,14 +43,13 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
 import org.apache.accumulo.server.tabletserver.Tablet.MajorCompactionReason;
 import org.apache.accumulo.server.util.NamingThreadFactory;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 
@@ -115,7 +114,7 @@ public class TabletServerResourceManager {
     return addEs(name, new ThreadPoolExecutor(min, max, timeout, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamingThreadFactory(name)));
   }
   
-  public TabletServerResourceManager(Configuration conf, FileSystem fs) {
+  public TabletServerResourceManager(FileSystem fs) {
     
     this.acuConf = ServerConfiguration.getSystemConfiguration();
     
@@ -171,7 +170,7 @@ public class TabletServerResourceManager {
     
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
     
-    fileManager = new FileManager(conf, fs, maxOpenFiles, _dCache, _iCache);
+    fileManager = new FileManager(fs, maxOpenFiles, _dCache, _iCache);
     
     try {
       Class<? extends MemoryManager> clazz = AccumuloClassLoader.loadClass(ServerConfiguration.getSystemConfiguration().get(Property.TSERV_MEM_MGMT),

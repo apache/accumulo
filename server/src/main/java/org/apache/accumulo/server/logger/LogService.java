@@ -36,6 +36,7 @@ import org.apache.accumulo.cloudtrace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.thrift.TKeyExtent;
@@ -67,7 +68,6 @@ import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TServerUtils.ServerPort;
 import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
@@ -89,17 +89,18 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 public class LogService implements MutationLogger.Iface, Watcher {
   static final org.apache.log4j.Logger LOG = org.apache.log4j.Logger.getLogger(LogService.class);
   
-  private Configuration conf;
-  private Authenticator authenticator;
-  private TServer service;
-  private LogWriter writer_;
-  private MutationLogger.Iface writer;
+  private final Instance instance;
+  private final Authenticator authenticator;
+  private final TServer service;
+  private final LogWriter writer_;
+  private final MutationLogger.Iface writer;
+  private ShutdownState shutdownState = ShutdownState.STARTED;
+  private final List<FileLock> fileLocks = new ArrayList<FileLock>();
+  private final String addressString;
   
   enum ShutdownState {
     STARTED, REGISTERED, WAITING_FOR_HALT, HALT
   };
-  
-  private ShutdownState shutdownState = ShutdownState.STARTED;
   
   synchronized void switchState(ShutdownState state) {
     LOG.info("Switching from " + shutdownState + " to " + state);
@@ -111,19 +112,19 @@ public class LogService implements MutationLogger.Iface, Watcher {
       throw new LoggerClosedException();
   }
   
-  private List<FileLock> fileLocks = new ArrayList<FileLock>();
-  
-  private final String addressString;
-  
   public static void main(String[] args) throws Exception {
     LogService logService;
+    FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
+    Accumulo.init(fs, "logger");
     
+    String hostname = Accumulo.getLocalAddress(args);
     try {
-      logService = new LogService(args);
+      logService = new LogService(HdfsZooInstance.getInstance(), fs, hostname);
     } catch (Exception e) {
       LOG.fatal("Failed to initialize log service args=" + Arrays.asList(args), e);
       throw e;
     }
+    Accumulo.enableTracing(hostname, "logger");
     try {
       logService.run();
     } catch (Exception ex) {
@@ -131,24 +132,11 @@ public class LogService implements MutationLogger.Iface, Watcher {
     }
   }
   
-  public LogService(String[] args) throws UnknownHostException, KeeperException, InterruptedException, IOException {
-    try {
-      Accumulo.init("logger");
-    } catch (UnknownHostException e1) {
-      LOG.error("Error reading logging configuration");
-    }
-    
+  public LogService(Instance instance, FileSystem fs, String hostname) throws UnknownHostException, KeeperException, InterruptedException, IOException {
+    this.instance = instance;
     FileSystemMonitor.start(Property.LOGGER_MONITOR_FS);
     
-    conf = CachedConfiguration.getInstance();
-    FileSystem fs = null;
-    try {
-      fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
-    } catch (IOException e) {
-      String msg = "Exception connecting to FileSystem";
-      LOG.error(msg, e);
-      throw new RuntimeException(msg);
-    }
+    fs = TraceFileSystem.wrap(fs);
     final Set<String> rootDirs = new HashSet<String>();
     for (String root : ServerConfiguration.getSystemConfiguration().get(Property.LOGGER_DIR).split(",")) {
       if (!root.startsWith("/"))
@@ -188,7 +176,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
     int poolSize = ServerConfiguration.getSystemConfiguration().getCount(Property.LOGGER_COPY_THREADPOOL_SIZE);
     boolean archive = ServerConfiguration.getSystemConfiguration().getBoolean(Property.LOGGER_ARCHIVE);
     AccumuloConfiguration acuConf = ServerConfiguration.getSystemConfiguration();
-    writer_ = new LogWriter(acuConf, fs, rootDirs, HdfsZooInstance.getInstance().getInstanceID(), poolSize, archive);
+    writer_ = new LogWriter(acuConf, fs, rootDirs, instance.getInstanceID(), poolSize, archive);
     InvocationHandler h = new InvocationHandler() {
       @Override
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
@@ -225,11 +213,10 @@ public class LogService implements MutationLogger.Iface, Watcher {
     ServerPort sp = TServerUtils.startServer(Property.LOGGER_PORT, processor, this.getClass().getSimpleName(), "Logger Client Service Handler",
         Property.LOGGER_PORTSEARCH, Property.LOGGER_MINTHREADS, Property.LOGGER_THREADCHECK);
     service = sp.server;
-    InetSocketAddress address = new InetSocketAddress(Accumulo.getLocalAddress(args), sp.port);
+    InetSocketAddress address = new InetSocketAddress(hostname, sp.port);
     addressString = AddressUtil.toString(address);
     registerInZooKeeper(Constants.ZLOGGERS);
     this.switchState(ShutdownState.REGISTERED);
-    Accumulo.enableTracing(address.getHostName(), "logger");
   }
   
   public void run() {
@@ -252,7 +239,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
   void registerInZooKeeper(String zooDir) {
     try {
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-      String path = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + zooDir;
+      String path = ZooUtil.getRoot(instance) + zooDir;
       path += "/logger-";
       path = zoo.putEphemeralSequential(path, addressString.getBytes());
       zoo.exists(path, this);

@@ -52,7 +52,7 @@ fi
 if [ -z "$HADOOP_HOME" ]
 then
    HADOOP_HOME="`which hadoop`"
-   if [ -z "$HADOOP_HOME"]
+   if [ -z "$HADOOP_HOME" ]
    then
       echo "You must set HADOOP_HOME"
       exit 1

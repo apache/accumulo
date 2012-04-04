@@ -41,8 +41,8 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
-import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
+import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -50,7 +50,6 @@ import org.apache.accumulo.server.problems.ProblemReportingIterator;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -103,7 +102,6 @@ public class FileManager {
   private Semaphore filePermits;
   
   private FileSystem fs;
-  private Configuration conf;
   
   // the data cache and index cache are allocated in
   // TabletResourceManager and passed through the file opener to
@@ -163,7 +161,7 @@ public class FileManager {
    * @param indexCache
    *          : underlying file can and should be able to handle a null cache
    */
-  FileManager(Configuration conf, FileSystem fs, int maxOpen, BlockCache dataCache, BlockCache indexCache) {
+  FileManager(FileSystem fs, int maxOpen, BlockCache dataCache, BlockCache indexCache) {
     
     if (maxOpen <= 0)
       throw new IllegalArgumentException("maxOpen <= 0");
@@ -174,7 +172,6 @@ public class FileManager {
     this.filePermits = new Semaphore(maxOpen, true);
     this.maxOpen = maxOpen;
     this.fs = fs;
-    this.conf = conf;
     
     this.openFiles = new HashMap<String,List<OpenReader>>();
     this.reservedReaders = new HashMap<FileSKVIterator,String>();
@@ -311,7 +308,8 @@ public class FileManager {
     for (String file : filesToOpen) {
       try {
         // log.debug("Opening "+file);
-        FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, conf, ServerConfiguration.getTableConfiguration(table.toString()),
+        FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, fs.getConf(),
+            ServerConfiguration.getTableConfiguration(table.toString()),
             dataCache, indexCache);
         reservedFiles.add(reader);
         readersReserved.put(reader, file);

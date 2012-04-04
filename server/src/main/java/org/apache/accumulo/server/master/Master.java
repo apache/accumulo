@@ -198,9 +198,9 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   final private static int MAX_TSERVER_WORK_CHUNK = 5000;
   final private static int MAX_BAD_STATUS_COUNT = 3;
   
+  final private FileSystem fs;
   final private Instance instance;
   final private String hostname;
-  final private FileSystem fs;
   final private LiveTServerSet tserverSet;
   final private List<TabletGroupWatcher> watchers = new ArrayList<TabletGroupWatcher>();
   final private Authenticator authenticator;
@@ -279,7 +279,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   
 
   private void upgradeZookeeper() {
-    if (Accumulo.getAccumuloPersistentVersion() == Constants.PREV_DATA_VERSION) {
+    if (Accumulo.getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
       try {
         log.info("Upgrading zookeeper");
 
@@ -332,7 +332,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   private AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
 
   private void upgradeMetadata() {
-    if (Accumulo.getAccumuloPersistentVersion() == Constants.PREV_DATA_VERSION) {
+    if (Accumulo.getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
       if (upgradeMetadataRunning.compareAndSet(false, true)) {
         Runnable upgradeTask = new Runnable() {
           @Override
@@ -354,7 +354,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
               
               bw.close();
               
-              Accumulo.updateAccumuloVersion();
+              Accumulo.updateAccumuloVersion(fs);
               
               log.info("Upgrade complete");
 
@@ -528,26 +528,18 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     return instance;
   }
   
-  public Master(String[] args) throws IOException {
-    
-    Accumulo.init("master");
-    
-    log.info("Version " + Constants.VERSION);
-    instance = HdfsZooInstance.getInstance();
-    log.info("Instance " + instance.getInstanceID());
-    
-    ThriftTransportPool.getInstance().setIdleTime(ServerConfiguration.getSiteConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+  public Master(Instance instance, FileSystem fs, String hostname) throws IOException {
+    this.instance = instance;
+    this.fs = TraceFileSystem.wrap(fs);
+    this.hostname = hostname;
 
-    hostname = Accumulo.getLocalAddress(args).getHostName();
-    fs = TraceFileSystem.wrap(FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));
-    ;
+    log.info("Version " + Constants.VERSION);
+    log.info("Instance " + instance.getInstanceID());
+    ThriftTransportPool.getInstance().setIdleTime(ServerConfiguration.getSiteConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     authenticator = ZKAuthenticator.getInstance();
-    
     tserverSet = new LiveTServerSet(instance, this);
-    
     this.tabletBalancer = createInstanceFromPropertyName(Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
     this.loggerBalancer = createInstanceFromPropertyName(Property.MASTER_LOGGER_BALANCER, LoggerBalancer.class, new SimpleLoggerBalancer());
-    Accumulo.enableTracing(hostname, "master");
   }
   
   public TServerConnection getConnection(TServerInstance server) {
@@ -2151,7 +2143,11 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   
   public static void main(String[] args) throws Exception {
     try {
-      Master master = new Master(args);
+      FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
+      Accumulo.init(fs, "master");
+      String hostname = Accumulo.getLocalAddress(args);
+      Master master = new Master(HdfsZooInstance.getInstance(), fs, hostname);
+      Accumulo.enableTracing(hostname, "master");
       master.run();
     } catch (Exception ex) {
       log.error("Unexpected exception, exiting", ex);

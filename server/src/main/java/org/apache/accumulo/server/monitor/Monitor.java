@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.monitor;
 
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,6 +31,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.master.thrift.Compacting;
@@ -39,6 +39,7 @@ import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.Pair;
@@ -68,6 +69,7 @@ import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.EmbeddedWebServer;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -136,6 +138,8 @@ public class Monitor {
   private static Map<String,Map<ProblemType,Integer>> problemSummary = Collections.emptyMap();
   private static Exception problemException;
   private static GCStatus gcStatus;
+  
+  private static Instance instance;
   
   public static Map<String,Double> summarizeTableStats(MasterMonitorInfo mmi) {
     Map<String,Double> compactingByTable = new HashMap<String,Double>();
@@ -421,13 +425,19 @@ public class Monitor {
     return result;
   }
   
-  public static void main(String[] args) {
-    new Monitor().run(args);
+  public static void main(String[] args) throws Exception {
+    FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
+    Accumulo.init(fs, "monitor");
+    String hostname = Accumulo.getLocalAddress(args);
+    instance = HdfsZooInstance.getInstance();
+    Monitor monitor = new Monitor();
+    Accumulo.enableTracing(hostname, "monitor");
+    monitor.run(hostname);
   }
   
   private static long START_TIME;
   
-  public void run(String[] args) {
+  public void run(String hostname) {
     Monitor.START_TIME = System.currentTimeMillis();
     int port = ServerConfiguration.getSystemConfiguration().getPort(Property.MONITOR_PORT);
     EmbeddedWebServer server;
@@ -475,14 +485,6 @@ public class Monitor {
         
       }
     }), "Data fetcher").start();
-    
-    try {
-      Accumulo.init("monitor");
-      Accumulo.enableTracing(Accumulo.getLocalAddress(args).toString(), "monitor");
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
-    }
-    
   }
   
   public static MasterMonitorInfo getMmi() {

@@ -99,6 +99,19 @@ import org.apache.zookeeper.KeeperException;
 public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
   
+  static final Options OPTS = new Options();
+  static final Option OPT_VERBOSE_MODE = new Option("v", "verbose", false, "extra information will get printed to stdout also");
+  static final Option OPT_SAFE_MODE = new Option("s", "safemode", false, "safe mode will not delete files");
+  static final Option OPT_OFFLINE = new Option("o", "offline", false,
+      "offline mode will run once and check data files directly; this is dangerous if accumulo is running or not shut down properly");
+  static final Option OPT_ADDRESS = new Option("a", "address", true, "specify our local address");
+  static {
+    OPTS.addOption(OPT_VERBOSE_MODE);
+    OPTS.addOption(OPT_SAFE_MODE);
+    OPTS.addOption(OPT_OFFLINE);
+    OPTS.addOption(OPT_ADDRESS);
+  }
+
   // how much of the JVM's available memory should it use gathering candidates
   private static final float CANDIDATE_MEMORY_PERCENTAGE = 0.75f;
   private boolean candidateMemExceeded;
@@ -110,10 +123,8 @@ public class SimpleGarbageCollector implements Iface {
   private long gcStartDelay;
   private boolean checkForBulkProcessingFiles;
   private FileSystem fs;
-  private Option optSafeMode, optOffline, optVerboseMode, optAddress;
-  private boolean safemode, offline, verbose;
-  private String address;
-  private CommandLine commandLine;
+  private boolean safemode = false, offline = false, verbose = false;
+  private String address = "localhost";
   private ZooLock lock;
   private Key continueKey = null;
   
@@ -122,52 +133,56 @@ public class SimpleGarbageCollector implements Iface {
   private int numDeleteThreads;
   
   public static void main(String[] args) throws UnknownHostException, IOException {
-    Accumulo.init("gc");
-    SimpleGarbageCollector gc = new SimpleGarbageCollector(args);
-    
-    FileSystem fs;
+    final FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
+    Accumulo.init(fs, "gc");
+    String address = "localhost";
+    SimpleGarbageCollector gc = new SimpleGarbageCollector();
     try {
-      fs = TraceFileSystem.wrap(FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));
-    } catch (IOException e) {
-      String str = "Can't get default file system";
-      log.fatal(str, e);
-      throw new IllegalStateException(str, e);
-    }
-    gc.init(fs, HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), ServerConfiguration.getSystemConfiguration());
-    Accumulo.enableTracing(gc.address, "gc");
-    gc.run();
-  }
-  
-  public SimpleGarbageCollector(String[] args) throws UnknownHostException {
-    Options opts = new Options();
-    optVerboseMode = new Option("v", "verbose", false, "extra information will get printed to stdout also");
-    optSafeMode = new Option("s", "safemode", false, "safe mode will not delete files");
-    optOffline = new Option("o", "offline", false,
-        "offline mode will run once and check data files directly; this is dangerous if accumulo is running or not shut down properly");
-    optAddress = new Option("a", "address", true, "specify our local address");
-    opts.addOption(optVerboseMode);
-    opts.addOption(optSafeMode);
-    opts.addOption(optOffline);
-    opts.addOption(optAddress);
-    
-    try {
-      commandLine = new BasicParser().parse(opts, args);
+      final CommandLine commandLine = new BasicParser().parse(OPTS, args);
       if (commandLine.getArgs().length != 0)
         throw new ParseException("Extraneous arguments");
       
-      safemode = commandLine.hasOption(optSafeMode.getOpt());
-      offline = commandLine.hasOption(optOffline.getOpt());
-      verbose = commandLine.hasOption(optVerboseMode.getOpt());
-      address = commandLine.getOptionValue(optAddress.getOpt());
+      if (commandLine.hasOption(OPT_SAFE_MODE.getOpt()))
+        gc.setSafeMode();
+      if (commandLine.hasOption(OPT_OFFLINE.getOpt()))
+        gc.setOffline();
+      if (commandLine.hasOption(OPT_VERBOSE_MODE.getOpt()))
+        gc.setVerbose();
+      address = commandLine.getOptionValue(OPT_ADDRESS.getOpt());
+      if (address != null)
+        gc.useAddress(address);
     } catch (ParseException e) {
       String str = "Can't parse the command line options";
       log.fatal(str, e);
       throw new IllegalArgumentException(str, e);
     }
+    
+    gc.init(fs, HdfsZooInstance.getInstance(), SecurityConstants.getSystemCredentials(), ServerConfiguration.getSystemConfiguration());
+    Accumulo.enableTracing(address, "gc");
+    gc.run();
   }
   
+  public SimpleGarbageCollector() {
+  }
+  
+  public void setSafeMode() {
+    this.safemode = true;
+  }
+  
+  public void setOffline() {
+    this.offline = true;
+  }
+  
+  public void setVerbose() {
+    this.verbose = true;
+  }
+  
+  public void useAddress(String address) {
+    this.address = address;
+  }
+
   public void init(FileSystem fs, Instance instance, AuthInfo credentials, AccumuloConfiguration conf) {
-    this.fs = fs;
+    this.fs = TraceFileSystem.wrap(fs);
     this.instance = instance;
     this.credentials = credentials;
     

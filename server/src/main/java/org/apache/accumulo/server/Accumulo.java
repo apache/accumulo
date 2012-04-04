@@ -24,16 +24,13 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -47,33 +44,21 @@ import org.apache.zookeeper.KeeperException;
 public class Accumulo {
   
   private static final Logger log = Logger.getLogger(Accumulo.class);
-  private static Integer dataVersion = null;
   
-  public static synchronized void updateAccumuloVersion() {
-    Configuration conf = CachedConfiguration.getInstance();
+  public static synchronized void updateAccumuloVersion(FileSystem fs) {
     try {
-      if (getAccumuloPersistentVersion() == Constants.PREV_DATA_VERSION) {
-        FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
-        
+      if (getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
         fs.create(new Path(ServerConstants.getDataVersionLocation() + "/" + Constants.DATA_VERSION));
         fs.delete(new Path(ServerConstants.getDataVersionLocation() + "/" + Constants.PREV_DATA_VERSION), false);
-        
-        dataVersion = null;
       }
     } catch (IOException e) {
       throw new RuntimeException("Unable to set accumulo version: an error occurred.", e);
     }
-    
   }
 
-  public static synchronized int getAccumuloPersistentVersion() {
-    if (dataVersion != null)
-      return dataVersion;
-    
-    Configuration conf = CachedConfiguration.getInstance();
+  public static synchronized int getAccumuloPersistentVersion(FileSystem fs) {
+    int dataVersion;
     try {
-      FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
-      
       FileStatus[] files = fs.listStatus(ServerConstants.getDataVersionLocation());
       if (files == null || files.length == 0) {
         dataVersion = -1; // assume it is 0.5 or earlier
@@ -84,7 +69,6 @@ public class Accumulo {
     } catch (IOException e) {
       throw new RuntimeException("Unable to read accumulo version: an error occurred.", e);
     }
-    
   }
   
   public static void enableTracing(String address, String application) {
@@ -95,7 +79,7 @@ public class Accumulo {
     }
   }
   
-  public static void init(String application) throws UnknownHostException {
+  public static void init(FileSystem fs, String application) throws UnknownHostException {
     
     System.setProperty("org.apache.accumulo.core.application", application);
     
@@ -126,10 +110,10 @@ public class Accumulo {
     
     log.info(application + " starting");
     log.info("Instance " + HdfsZooInstance.getInstance().getInstanceID());
-    log.info("Data Version " + Accumulo.getAccumuloPersistentVersion());
-    Accumulo.waitForZookeeperAndHdfs();
+    int dataVersion = Accumulo.getAccumuloPersistentVersion(fs);
+    log.info("Data Version " + dataVersion);
+    Accumulo.waitForZookeeperAndHdfs(fs);
     
-    int dataVersion = Accumulo.getAccumuloPersistentVersion();
     Version codeVersion = new Version(Constants.VERSION);
     if (dataVersion != Constants.DATA_VERSION && dataVersion != Constants.PREV_DATA_VERSION) {
       throw new RuntimeException("This version of accumulo (" + codeVersion + ") is not compatible with files stored using data version " + dataVersion);
@@ -147,7 +131,7 @@ public class Accumulo {
     }
   }
   
-  public static InetAddress getLocalAddress(String[] args) throws UnknownHostException {
+  public static String getLocalAddress(String[] args) throws UnknownHostException {
     InetAddress result = InetAddress.getLocalHost();
     for (int i = 0; i < args.length - 1; i++) {
       if (args[i].equals("-a") || args[i].equals("--address")) {
@@ -156,10 +140,10 @@ public class Accumulo {
         break;
       }
     }
-    return result;
+    return result.getHostName();
   }
   
-  public static void waitForZookeeperAndHdfs() {
+  public static void waitForZookeeperAndHdfs(FileSystem fs) {
     log.info("Attempting to talk to zookeeper");
     while (true) {
       try {
@@ -176,7 +160,6 @@ public class Accumulo {
     long sleep = 1000;
     while (true) {
       try {
-        FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
         if (!(fs instanceof DistributedFileSystem))
           break;
         DistributedFileSystem dfs = (DistributedFileSystem) FileSystem.get(CachedConfiguration.getInstance());

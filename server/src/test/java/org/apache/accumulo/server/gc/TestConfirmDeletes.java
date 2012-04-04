@@ -100,7 +100,7 @@ public class TestConfirmDeletes {
     
     load(instance, metadata, deletes);
 
-    SimpleGarbageCollector gc = new SimpleGarbageCollector(new String[] {});
+    SimpleGarbageCollector gc = new SimpleGarbageCollector();
     gc.init(fs, instance, auth, aconf);
     SortedSet<String> candidates = gc.getCandidates();
     Assert.assertEquals(expectedInitial, candidates.size());

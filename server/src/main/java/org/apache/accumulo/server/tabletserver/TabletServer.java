@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Constructor;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -69,6 +68,7 @@ import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.TabletType;
 import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -188,7 +188,6 @@ import org.apache.accumulo.server.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.Platform;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -221,8 +220,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   protected TabletServerMinCMetrics mincMetrics = new TabletServerMinCMetrics();
   
-  public TabletServer() {
+  public TabletServer(Instance instance, FileSystem fs) {
     super();
+    this.instance = instance;
+    this.fs = TraceFileSystem.wrap(fs);
     SimpleTimer.getInstance().schedule(new TimerTask() {
       @Override
       public void run() {
@@ -1774,7 +1775,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         });
       }
       
-      ZooUtil.LockID lid = new ZooUtil.LockID(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZMASTER_LOCK, lock);
+      ZooUtil.LockID lid = new ZooUtil.LockID(ZooUtil.getRoot(instance) + Constants.ZMASTER_LOCK, lock);
       
       try {
         if (!ZooLock.isLockHeld(masterLockCache, lid)) {
@@ -2479,7 +2480,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   }
   
   private FileSystem fs;
-  private Configuration conf;
+  private Instance instance;
   private ZooCache cache;
   
   private SortedMap<KeyExtent,Tablet> onlineTablets = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,Tablet>());
@@ -2513,7 +2514,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   public Set<String> getLoggers() throws TException, MasterNotRunningException, ThriftSecurityException {
     Set<String> allLoggers = new HashSet<String>();
-    String dir = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZLOGGERS;
+    String dir = ZooUtil.getRoot(instance) + Constants.ZLOGGERS;
     for (String child : cache.getChildren(dir)) {
       allLoggers.add(new String(cache.get(dir + "/" + child)));
     }
@@ -2562,7 +2563,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   private String getMasterAddress() {
     try {
-      List<String> locations = HdfsZooInstance.getInstance().getMasterLocations();
+      List<String> locations = instance.getMasterLocations();
       if (locations.size() == 0)
         return null;
       return locations.get(0);
@@ -2609,7 +2610,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private void announceExistence() {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
-      String zPath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTSERVERS + "/" + getClientAddressString();
+      String zPath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + getClientAddressString();
       
       zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
       
@@ -2929,26 +2930,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
   }
   
-  public void config(String[] args) throws UnknownHostException {
-    InetAddress local = Accumulo.getLocalAddress(args);
-    
-    try {
-      Accumulo.init("tserver");
-      log.info("Tablet server starting on " + local.getHostAddress());
-      
-      conf = CachedConfiguration.getInstance();
-      fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
-      
-      authenticator = ZKAuthenticator.getInstance();
-      
-      if (args.length > 0)
-        conf.set("tabletserver.hostname", args[0]);
-      Accumulo.enableTracing(local.getHostName(), "tserver");
-    } catch (IOException e) {
-      log.fatal("couldn't get a reference to the filesystem. quitting");
-      throw new RuntimeException(e);
-    }
-    clientAddress = new InetSocketAddress(local, 0);
+  public void config(String hostname) {
+    log.info("Tablet server starting on " + hostname);
+    authenticator = ZKAuthenticator.getInstance();
+    clientAddress = new InetSocketAddress(hostname, 0);
     logger = new TabletServerLogger(this, ServerConfiguration.getSystemConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE));
     
     if (ServerConfiguration.getSystemConfiguration().getBoolean(Property.TSERV_LOCK_MEMORY)) {
@@ -2977,7 +2962,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
     SimpleTimer.getInstance().schedule(gcDebugTask, 0, 1000);
     
-    this.resourceManager = new TabletServerResourceManager(conf, fs);
+    this.resourceManager = new TabletServerResourceManager(fs);
     
     lastPingTime = System.currentTimeMillis();
     
@@ -3102,8 +3087,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   public static void main(String[] args) throws IOException {
     try {
-      TabletServer server = new TabletServer();
-      server.config(args);
+      FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
+      Accumulo.init(fs, "tserver");
+      String hostname = Accumulo.getLocalAddress(args);
+      Instance instance = HdfsZooInstance.getInstance();
+      TabletServer server = new TabletServer(instance, fs);
+      server.config(hostname);
+      Accumulo.enableTracing(hostname, "tserver");
       server.run();
     } catch (Exception ex) {
       log.error("Uncaught exception in TabletServer.main, exiting", ex);

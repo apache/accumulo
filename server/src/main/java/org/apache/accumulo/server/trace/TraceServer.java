@@ -27,13 +27,16 @@ import org.apache.accumulo.cloudtrace.thrift.SpanReceiver;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.Accumulo;
@@ -42,6 +45,7 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TByteArrayOutputStream;
@@ -63,6 +67,7 @@ public class TraceServer implements Watcher {
   
   final private static Logger log = Logger.getLogger(TraceServer.class);
   final private AccumuloConfiguration conf;
+  final private Instance instance;
   final private TServer server;
   private BatchWriter writer = null;
   private Connector connector;
@@ -143,13 +148,13 @@ public class TraceServer implements Watcher {
     
   }
   
-  public TraceServer(String args[]) throws Exception {
-    Accumulo.init("tracer");
+  public TraceServer(Instance instance, String hostname) throws Exception {
+    this.instance = instance;
     conf = ServerConfiguration.getSystemConfiguration();
     table = conf.get(Property.TRACE_TABLE);
     while (true) {
       try {
-        connector = HdfsZooInstance.getInstance().getConnector(conf.get(Property.TRACE_USER), conf.get(Property.TRACE_PASSWORD).getBytes());
+        connector = instance.getConnector(conf.get(Property.TRACE_USER), conf.get(Property.TRACE_PASSWORD).getBytes());
         if (!connector.tableOperations().exists(table)) {
           connector.tableOperations().create(table);
         }
@@ -169,7 +174,7 @@ public class TraceServer implements Watcher {
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
     options.processor(new SpanReceiver.Processor(new Receiver()));
     server = new TThreadPoolServer(options);
-    final InetSocketAddress address = new InetSocketAddress(Accumulo.getLocalAddress(args), sock.getLocalPort());
+    final InetSocketAddress address = new InetSocketAddress(hostname, sock.getLocalPort());
     registerInZooKeeper(AddressUtil.toString(address));
     
     writer = connector.createBatchWriter(table, 100l * 1024 * 1024, 5 * 1000l, 10);
@@ -212,14 +217,19 @@ public class TraceServer implements Watcher {
   
 
   private void registerInZooKeeper(String name) throws Exception {
-    String root = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTRACERS;
+    String root = ZooUtil.getRoot(instance) + Constants.ZTRACERS;
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes());
     zoo.exists(path, this);
   }
   
   public static void main(String[] args) throws Exception {
-    TraceServer server = new TraceServer(args);
+    FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
+    Accumulo.init(fs, "tracer");
+    String hostname = Accumulo.getLocalAddress(args);
+    Instance instance = HdfsZooInstance.getInstance();
+    TraceServer server = new TraceServer(instance, hostname);
+    Accumulo.enableTracing(hostname, "tserver");
     server.run();
     log.info("tracer stopping");
   }
