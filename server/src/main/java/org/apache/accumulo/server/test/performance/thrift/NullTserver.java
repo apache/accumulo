@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.cloudtrace.thrift.TInfo;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -50,6 +51,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.client.ClientServiceHandler;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.MetaDataStateStore;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
@@ -74,8 +76,8 @@ public class NullTserver {
     
     private long updateSession = 1;
     
-    ThriftClientHandler(TransactionWatcher watcher) {
-      super(watcher);
+    ThriftClientHandler(Instance instance, TransactionWatcher watcher) {
+      super(instance, watcher);
     }
     
     @Override
@@ -196,7 +198,7 @@ public class NullTserver {
     int port = Integer.parseInt(args[3]);
     
     TransactionWatcher watcher = new TransactionWatcher();
-    ThriftClientHandler tch = new ThriftClientHandler(watcher);
+    ThriftClientHandler tch = new ThriftClientHandler(HdfsZooInstance.getInstance(), watcher);
     TabletClientService.Processor processor = new TabletClientService.Processor(tch);
     TServerUtils.startTServer(port, processor, "NullTServer", "null tserver", 2, 1000);
     

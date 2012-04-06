@@ -19,6 +19,7 @@ package org.apache.accumulo.server.tabletserver;
 import java.util.List;
 
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.server.conf.ServerConfiguration;
 
 /**
  * A MemoryManager in accumulo currently determines when minor compactions should occur and when ingest should be put on hold. The goal of a memory manager
@@ -29,6 +30,14 @@ import org.apache.accumulo.core.data.KeyExtent;
  */
 
 public interface MemoryManager {
+  
+  /**
+   * Initialize the memory manager.
+   * 
+   * @param conf
+   */
+  void init(ServerConfiguration conf);
+
   /**
    * An implementation of this function will be called periodically by accumulo and should return a list of tablets to minor compact.
    * 

@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.cloudtrace.instrument.TraceExecutorService;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -76,18 +77,17 @@ public class TabletServerResourceManager {
   private ExecutorService defaultReadAheadThreadPool;
   private Map<String,ExecutorService> threadPools = new TreeMap<String,ExecutorService>();
   
-  private AccumuloConfiguration acuConf;
-  
   private HashSet<TabletResourceManager> tabletResources;
   
   private FileManager fileManager;
   
-  private MemoryManager memoryManger;
+  private MemoryManager memoryManager;
   
   private MemoryManagementFramework memMgmt;
   
-  private LruBlockCache _dCache = null;
-  private LruBlockCache _iCache = null;
+  private final LruBlockCache _dCache;
+  private final LruBlockCache _iCache;
+  private final ServerConfiguration conf;
   
   private static final Logger log = Logger.getLogger(TabletServerResourceManager.class);
   
@@ -114,12 +114,12 @@ public class TabletServerResourceManager {
     return addEs(name, new ThreadPoolExecutor(min, max, timeout, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamingThreadFactory(name)));
   }
   
-  public TabletServerResourceManager(FileSystem fs) {
-    
-    this.acuConf = ServerConfiguration.getSystemConfiguration();
+  public TabletServerResourceManager(Instance instance, FileSystem fs) {
+    this.conf = new ServerConfiguration(instance);
+    AccumuloConfiguration acuConf = conf.getConfiguration();
     
     long maxMemory = acuConf.getMemoryInBytes(Property.TSERV_MAXMEM);
-    boolean usingNativeMap = ServerConfiguration.getSystemConfiguration().getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.loadedNativeLibraries();
+    boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.loadedNativeLibraries();
     
     long blockSize = acuConf.getMemoryInBytes(Property.TSERV_DEFAULT_BLOCKSIZE);
     long dCacheSize = acuConf.getMemoryInBytes(Property.TSERV_DATACACHE_SIZE);
@@ -170,19 +170,20 @@ public class TabletServerResourceManager {
     
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
     
-    fileManager = new FileManager(fs, maxOpenFiles, _dCache, _iCache);
+    fileManager = new FileManager(conf, fs, maxOpenFiles, _dCache, _iCache);
     
     try {
-      Class<? extends MemoryManager> clazz = AccumuloClassLoader.loadClass(ServerConfiguration.getSystemConfiguration().get(Property.TSERV_MEM_MGMT),
+      Class<? extends MemoryManager> clazz = AccumuloClassLoader.loadClass(acuConf.get(Property.TSERV_MEM_MGMT),
           MemoryManager.class);
-      memoryManger = clazz.newInstance();
-      log.debug("Loaded memory manager : " + memoryManger.getClass().getName());
+      memoryManager = clazz.newInstance();
+      memoryManager.init(conf);
+      log.debug("Loaded memory manager : " + memoryManager.getClass().getName());
     } catch (Exception e) {
       log.error("Failed to find memory manger in config, using default", e);
     }
     
-    if (memoryManger == null) {
-      memoryManger = new LargestFirstMemoryManager();
+    if (memoryManager == null) {
+      memoryManager = new LargestFirstMemoryManager();
     }
     
     memMgmt = new MemoryManagementFramework();
@@ -233,7 +234,7 @@ public class TabletServerResourceManager {
     MemoryManagementFramework() {
       tabletReports = Collections.synchronizedMap(new HashMap<KeyExtent,TabletStateImpl>());
       memUsageReports = new LinkedBlockingQueue<TabletStateImpl>();
-      maxMem = ServerConfiguration.getSystemConfiguration().getMemoryInBytes(Property.TSERV_MAXMEM);
+      maxMem = conf.getConfiguration().getMemoryInBytes(Property.TSERV_MAXMEM);
       
       Runnable r1 = new Runnable() {
         public void run() {
@@ -308,7 +309,7 @@ public class TabletServerResourceManager {
           synchronized (tabletReports) {
             tablets = new ArrayList<TabletState>(tabletReports.values());
           }
-          mma = memoryManger.getMemoryManagementActions(tablets);
+          mma = memoryManager.getMemoryManagementActions(tablets);
           
         } catch (Throwable t) {
           log.error("Memory manager failed " + t.getMessage(), t);
@@ -377,7 +378,7 @@ public class TabletServerResourceManager {
   
   void waitUntilCommitsAreEnabled() {
     if (holdCommits) {
-      long timeout = System.currentTimeMillis() + ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
+      long timeout = System.currentTimeMillis() + conf.getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
       synchronized (commitHold) {
         while (holdCommits) {
           try {
@@ -654,7 +655,7 @@ public class TabletServerResourceManager {
           TabletServerResourceManager.this.removeTabletResource(this);
           
           memMgmt.tabletClosed(tablet.getExtent());
-          memoryManger.tabletClosed(tablet.getExtent());
+          memoryManager.tabletClosed(tablet.getExtent());
           
           closed = true;
         }
@@ -672,8 +673,8 @@ public class TabletServerResourceManager {
   }
   
   public void executeSplit(KeyExtent tablet, Runnable splitTask) {
-    if (tablet.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
-      if (tablet.equals(Constants.ROOT_TABLET_EXTENT)) {
+    if (tablet.isMeta()) {
+      if (tablet.isRootTablet()) {
         log.warn("Saw request to split root tablet, ignoring");
         return;
       }
@@ -686,7 +687,7 @@ public class TabletServerResourceManager {
   public void executeMajorCompaction(KeyExtent tablet, Runnable compactionTask) {
     if (tablet.equals(Constants.ROOT_TABLET_EXTENT)) {
       rootMajorCompactionThreadPool.execute(compactionTask);
-    } else if (tablet.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
+    } else if (tablet.isMeta()) {
       defaultMajorCompactionThreadPool.execute(compactionTask);
     } else {
       majorCompactionThreadPool.execute(compactionTask);
@@ -694,9 +695,9 @@ public class TabletServerResourceManager {
   }
   
   public void executeReadAhead(KeyExtent tablet, Runnable task) {
-    if (tablet.equals(Constants.ROOT_TABLET_EXTENT)) {
+    if (tablet.isRootTablet()) {
       task.run();
-    } else if (tablet.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
+    } else if (tablet.isMeta()) {
       defaultReadAheadThreadPool.execute(task);
     } else {
       readAheadThreadPool.execute(task);
@@ -712,9 +713,9 @@ public class TabletServerResourceManager {
   }
   
   public void addMigration(KeyExtent tablet, Runnable migrationHandler) {
-    if (tablet.equals(Constants.ROOT_TABLET_EXTENT)) {
+    if (tablet.isRootTablet()) {
       migrationHandler.run();
-    } else if (tablet.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
+    } else if (tablet.isMeta()) {
       defaultMigrationPool.execute(migrationHandler);
     } else {
       migrationPool.execute(migrationHandler);

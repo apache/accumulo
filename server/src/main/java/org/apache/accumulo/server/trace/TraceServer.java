@@ -66,8 +66,7 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
 public class TraceServer implements Watcher {
   
   final private static Logger log = Logger.getLogger(TraceServer.class);
-  final private AccumuloConfiguration conf;
-  final private Instance instance;
+  final private ServerConfiguration serverConfiguration;
   final private TServer server;
   private BatchWriter writer = null;
   private Connector connector;
@@ -148,13 +147,13 @@ public class TraceServer implements Watcher {
     
   }
   
-  public TraceServer(Instance instance, String hostname) throws Exception {
-    this.instance = instance;
-    conf = ServerConfiguration.getSystemConfiguration();
+  public TraceServer(ServerConfiguration serverConfiguration, String hostname) throws Exception {
+    this.serverConfiguration = serverConfiguration;
+    AccumuloConfiguration conf = serverConfiguration.getConfiguration();
     table = conf.get(Property.TRACE_TABLE);
     while (true) {
       try {
-        connector = instance.getConnector(conf.get(Property.TRACE_USER), conf.get(Property.TRACE_PASSWORD).getBytes());
+        connector = serverConfiguration.getInstance().getConnector(conf.get(Property.TRACE_USER), conf.get(Property.TRACE_PASSWORD).getBytes());
         if (!connector.tableOperations().exists(table)) {
           connector.tableOperations().create(table);
         }
@@ -217,18 +216,19 @@ public class TraceServer implements Watcher {
   
 
   private void registerInZooKeeper(String name) throws Exception {
-    String root = ZooUtil.getRoot(instance) + Constants.ZTRACERS;
+    String root = ZooUtil.getRoot(serverConfiguration.getInstance()) + Constants.ZTRACERS;
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes());
     zoo.exists(path, this);
   }
   
   public static void main(String[] args) throws Exception {
-    FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
-    Accumulo.init(fs, "tracer");
-    String hostname = Accumulo.getLocalAddress(args);
     Instance instance = HdfsZooInstance.getInstance();
-    TraceServer server = new TraceServer(instance, hostname);
+    ServerConfiguration conf = new ServerConfiguration(instance);
+    FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), conf.getConfiguration());
+    Accumulo.init(fs, conf, "tracer");
+    String hostname = Accumulo.getLocalAddress(args);
+    TraceServer server = new TraceServer(conf, hostname);
     Accumulo.enableTracing(hostname, "tserver");
     server.run();
     log.info("tracer stopping");

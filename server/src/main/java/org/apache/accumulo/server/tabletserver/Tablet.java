@@ -51,6 +51,7 @@ import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
@@ -240,7 +241,7 @@ public class Tablet {
     private CommitSession commitSession;
     
     TabletMemory() {
-      memTable = new InMemoryMap();
+      memTable = new InMemoryMap(tabletServer.getSystemConfiguration());
       commitSession = new CommitSession(nextSeq, memTable);
       nextSeq += 2;
     }
@@ -263,7 +264,7 @@ public class Tablet {
       }
       
       otherMemTable = memTable;
-      memTable = new InMemoryMap();
+      memTable = new InMemoryMap(tabletServer.getSystemConfiguration());
       
       CommitSession oldCommitSession = commitSession;
       commitSession = new CommitSession(nextSeq, memTable);
@@ -454,7 +455,7 @@ public class Tablet {
   }
   
   String getNextMapFilename(String prefix) throws IOException {
-    String extension = FileOperations.getNewFileExtension(ServerConfiguration.getTableConfiguration(extent.getTableId().toString()));
+    String extension = FileOperations.getNewFileExtension(tabletServer.getTableConfiguration(extent));
     checkTabletDir();
     return location.toString() + "/" + prefix + UniqueNameAllocator.getInstance().getNextName() + "." + extension;
   }
@@ -478,10 +479,6 @@ public class Tablet {
       
       fs.mkdirs(tabletDir);
     }
-  }
-  
-  public boolean isMetadataTablet() {
-    return extent.getTableId().toString().equals(Constants.METADATA_TABLE_ID);
   }
   
   private static String rel2abs(String relPath, KeyExtent extent) {
@@ -658,7 +655,7 @@ public class Tablet {
         
       }
       
-      if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+      if (extent.isRootTablet()) {
         throw new IllegalArgumentException("Can not import files to root tablet");
       }
       
@@ -724,7 +721,7 @@ public class Tablet {
       if (mergingMinorCompactionFile != null)
         throw new IllegalStateException("Tried to reserve merging minor compaction file when already reserved  : " + mergingMinorCompactionFile);
       
-      if (extent.equals(Constants.ROOT_TABLET_EXTENT))
+      if (extent.isRootTablet())
         return null;
       
       int maxFiles = acuTableConf.getMaxFilesPerTablet();
@@ -777,7 +774,7 @@ public class Tablet {
     void bringMinorCompactionOnline(Path tmpDatafile, Path newDatafile, Path absMergeFile, DataFileValue dfv, CommitSession commitSession, long flushId) {
       
       IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
-      if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+      if (extent.isRootTablet()) {
         try {
           if (!zoo.isLockHeld(tabletServer.getLock().getLockID())) {
             throw new IllegalStateException();
@@ -963,7 +960,7 @@ public class Tablet {
     void bringMajorCompactionOnline(Set<Path> oldDatafiles, Path tmpDatafile, Path newDatafile, Long compactionId, DataFileValue dfv) throws IOException {
       long t1, t2;
       
-      if (!extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+      if (!extent.isRootTablet()) {
         
         if (fs.exists(newDatafile)) {
           log.error("Target map file already exist " + newDatafile, new Exception());
@@ -989,7 +986,7 @@ public class Tablet {
         
         dataSourceDeletions.incrementAndGet();
         
-        if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+        if (extent.isRootTablet()) {
           
           waitForScansToFinish(oldDatafiles, true, Long.MAX_VALUE);
           
@@ -1058,7 +1055,7 @@ public class Tablet {
         t2 = System.currentTimeMillis();
       }
       
-      if (!extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+      if (!extent.isRootTablet()) {
         Set<Path> filesInUseByScans = waitForScansToFinish(oldDatafiles, false, 10000);
         if (filesInUseByScans.size() > 0)
           log.debug("Adding scan refs to metadata " + extent + " " + abs2rel(filesInUseByScans));
@@ -1135,15 +1132,15 @@ public class Tablet {
         datafiles, time, null, new HashSet<String>(), initFlushID, initCompactID);
   }
   
-  private static String lookupTime(KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
+  private static String lookupTime(AccumuloConfiguration conf, KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
     SortedMap<Key,Value> entries;
     
-    if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+    if (extent.isRootTablet()) {
       return null;
-    } else if (extent.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
+    } else if (extent.isMeta()) {
       SortedSet<Column> columns = new TreeSet<Column>();
       columns.add(Constants.METADATA_TIME_COLUMN.toColumn());
-      entries = MetadataTable.getRootMetadataDataEntries(extent, columns, SecurityConstants.getSystemCredentials());
+      entries = MetadataTable.getRootMetadataDataEntries(conf, extent, columns, SecurityConstants.getSystemCredentials());
     } else {
       entries = new TreeMap<Key,Value>();
       Text rowName = extent.getMetadataEntry();
@@ -1161,13 +1158,14 @@ public class Tablet {
     return null;
   }
   
-  private static SortedMap<String,DataFileValue> lookupDatafiles(Text locText, FileSystem fs, KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues)
+  private static SortedMap<String,DataFileValue> lookupDatafiles(AccumuloConfiguration conf, Text locText, FileSystem fs, KeyExtent extent,
+      SortedMap<Key,Value> tabletsKeyValues)
       throws IOException {
     Path location = new Path(ServerConstants.getTablesDir() + "/" + extent.getTableId().toString() + locText.toString());
     
     TreeMap<String,DataFileValue> datafiles = new TreeMap<String,DataFileValue>();
     
-    if (extent.equals(Constants.ROOT_TABLET_EXTENT)) { // the meta0 tablet
+    if (extent.isRootTablet()) { // the meta0 tablet
       // cleanUpFiles() has special handling for delete. files
       FileStatus[] files = fs.listStatus(location);
       Path[] paths = new Path[files.length];
@@ -1185,8 +1183,8 @@ public class Tablet {
       
       SortedMap<Key,Value> datafilesMetadata;
       
-      if (extent.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
-        datafilesMetadata = MetadataTable.getRootMetadataDataFileEntries(extent, SecurityConstants.getSystemCredentials());
+      if (extent.isMeta()) {
+        datafilesMetadata = MetadataTable.getRootMetadataDataFileEntries(conf, extent, SecurityConstants.getSystemCredentials());
       } else {
         
         Text rowName = extent.getMetadataEntry();
@@ -1252,7 +1250,7 @@ public class Tablet {
   private static List<LogEntry> lookupLogEntries(KeyExtent ke, SortedMap<Key,Value> tabletsKeyValues) {
     List<LogEntry> logEntries = new ArrayList<LogEntry>();
     
-    if (ke.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
+    if (ke.isMeta()) {
       try {
         logEntries = MetadataTable.getLogEntries(SecurityConstants.getSystemCredentials(), ke);
       } catch (Exception ex) {
@@ -1313,9 +1311,10 @@ public class Tablet {
   
   private Tablet(TabletServer tabletServer, Text location, KeyExtent extent, TabletResourceManager trm, Configuration conf, FileSystem fs,
       SortedMap<Key,Value> tabletsKeyValues) throws IOException {
-    this(tabletServer, location, extent, trm, conf, fs, lookupLogEntries(extent, tabletsKeyValues), lookupDatafiles(location, fs, extent, tabletsKeyValues),
-        lookupTime(extent, tabletsKeyValues), lookupLastServer(extent, tabletsKeyValues), lookupScanFiles(extent, tabletsKeyValues), lookupFlushID(extent,
-            tabletsKeyValues), lookupCompactID(extent, tabletsKeyValues));
+    this(tabletServer, location, extent, trm, conf, fs, lookupLogEntries(extent, tabletsKeyValues), lookupDatafiles(tabletServer.getSystemConfiguration(),
+        location, fs, extent, tabletsKeyValues),
+ lookupTime(tabletServer.getSystemConfiguration(), extent, tabletsKeyValues), lookupLastServer(extent,
+        tabletsKeyValues), lookupScanFiles(extent, tabletsKeyValues), lookupFlushID(extent, tabletsKeyValues), lookupCompactID(extent, tabletsKeyValues));
   }
   
   private static TServerInstance lookupLastServer(KeyExtent extent, SortedMap<Key,Value> tabletsKeyValues) {
@@ -1337,7 +1336,7 @@ public class Tablet {
     this.lastLocation = lastLocation;
     this.tabletDirectory = location.toString();
     this.conf = conf;
-    this.acuTableConf = ServerConfiguration.getTableConfiguration(extent.getTableId().toString());
+    this.acuTableConf = tabletServer.getTableConfiguration(extent);
     
     this.fs = fs;
     this.extent = extent;
@@ -1346,14 +1345,14 @@ public class Tablet {
     this.lastFlushID = initFlushID;
     this.lastCompactID = initCompactID;
     
-    if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+    if (extent.isRootTablet()) {
       
       long rtime = Long.MIN_VALUE;
       for (String path : datafiles.keySet()) {
         String filename = new Path(path).getName();
         
         FileSKVIterator reader = FileOperations.getInstance().openReader(this.location + "/" + filename, true, fs, fs.getConf(),
-            ServerConfiguration.getTableConfiguration(Constants.METADATA_TABLE_ID));
+            tabletServer.getTableConfiguration(extent));
         long maxTime = -1;
         try {
           
@@ -1392,7 +1391,7 @@ public class Tablet {
         
         try {
           log.debug("Reloading constraints");
-          cc = ConstraintLoader.load(extent.getTableId().toString());
+          cc = ConstraintLoader.load(getTableConfiguration());
         } catch (IOException e) {
           log.error("Failed to reload constraints for " + extent, e);
           cc = new ConstraintChecker();
@@ -1498,7 +1497,7 @@ public class Tablet {
   }
   
   private void setupDefaultSecurityLabels(KeyExtent extent) {
-    if (extent.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
+    if (extent.isMeta()) {
       defaultSecurityLabel = new byte[0];
     } else {
       try {
@@ -2740,7 +2739,7 @@ public class Tablet {
         throw new RuntimeException(msg);
       }
       
-      if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+      if (extent.isRootTablet()) {
         if (!fileLog.getSecond().keySet().equals(datafileManager.getDatafileSizesRel().keySet())) {
           String msg = "Data file in !METADATA differ from in memory data " + extent + "  " + fileLog.getSecond().keySet() + "  "
               + datafileManager.getDatafileSizesRel().keySet();
@@ -3013,7 +3012,7 @@ public class Tablet {
     
     try {
       // we should make .25 below configurable
-      keys = FileUtil.findMidPoint(fs, ServerConfiguration.getSystemConfiguration(), extent.getPrevEndRow(), extent.getEndRow(), files, .25);
+      keys = FileUtil.findMidPoint(fs, tabletServer.getSystemConfiguration(), extent.getPrevEndRow(), extent.getEndRow(), files, .25);
     } catch (IOException e) {
       log.error("Failed to find midpoint " + e.getMessage());
       return null;
@@ -3024,7 +3023,7 @@ public class Tablet {
       
       Text lastRow;
       if (extent.getEndRow() == null) {
-        Key lastKey = (Key) FileUtil.findLastKey(fs, ServerConfiguration.getSystemConfiguration(), files);
+        Key lastKey = (Key) FileUtil.findLastKey(fs, tabletServer.getSystemConfiguration(), files);
         lastRow = lastKey.getRow();
       } else {
         lastRow = extent.getEndRow();
@@ -3130,7 +3129,7 @@ public class Tablet {
       majorCompactionWaitingToStart = false;
       notifyAll();
       
-      if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+      if (extent.isRootTablet()) {
         // very important that we call this before doing major compaction,
         // otherwise deleted compacted files could possible be brought back
         // at some point if the file they were compacted to was legitimately
@@ -3427,7 +3426,7 @@ public class Tablet {
       throw new IllegalArgumentException();
     }
     
-    if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+    if (extent.isRootTablet()) {
       String msg = "Cannot split root tablet";
       log.warn(msg);
       throw new RuntimeException(msg);
@@ -3446,7 +3445,7 @@ public class Tablet {
     // from the set... can still query and insert into the tablet while this
     // map file operation is happening
     Map<String,org.apache.accumulo.core.file.FileUtil.FileInfo> firstAndLastRowsAbs = FileUtil.tryToGetFirstAndLastRows(fs,
-        ServerConfiguration.getSystemConfiguration(), datafileManager.getFiles());
+        tabletServer.getSystemConfiguration(), datafileManager.getFiles());
     
     // convert absolute paths to relative paths
     Map<String,org.apache.accumulo.core.file.FileUtil.FileInfo> firstAndLastRows = new HashMap<String,org.apache.accumulo.core.file.FileUtil.FileInfo>();
@@ -3467,7 +3466,7 @@ public class Tablet {
         splitPoint = findSplitRow(datafileManager.getFiles());
       else {
         Text tsp = new Text(sp);
-        splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(fs, ServerConfiguration.getSystemConfiguration(), extent.getPrevEndRow(),
+        splitPoint = new SplitRowSpec(FileUtil.estimatePercentageLTE(fs, tabletServer.getSystemConfiguration(), extent.getPrevEndRow(),
             extent.getEndRow(), datafileManager.getFiles(), tsp), tsp);
       }
       
@@ -3584,7 +3583,7 @@ public class Tablet {
       
       // TODO check seems uneeded now
       long lockWait = System.currentTimeMillis() - now;
-      if (lockWait > ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)) {
+      if (lockWait > tabletServer.getSystemConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT)) {
         throw new IOException("Timeout waiting " + (lockWait / 1000.) + " seconds to get tablet lock");
       }
       
@@ -3783,4 +3782,7 @@ public class Tablet {
       }
   }
   
+  public TableConfiguration getTableConfiguration() {
+    return tabletServer.getTableConfiguration(extent);
+  }
 }

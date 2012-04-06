@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.tabletserver.thrift.NoSuchLogIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletMutations;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.ThriftUtil;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -162,13 +162,13 @@ public class RemoteLogger {
   private final UUID tserverSession;
   private MutationLogger.Iface client = null;
   
-  public RemoteLogger(String address, UUID tserverUUID) throws ThriftSecurityException, LoggerClosedException, TException, IOException {
+  public RemoteLogger(String address, UUID tserverUUID, AccumuloConfiguration conf) throws ThriftSecurityException, LoggerClosedException, TException,
+      IOException {
     
     logger = address;
     tserverSession = tserverUUID;
     try {
-      client = ThriftUtil.getClient(new MutationLogger.Client.Factory(), address, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT,
-          ServerConfiguration.getSystemConfiguration());
+      client = ThriftUtil.getClient(new MutationLogger.Client.Factory(), address, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT, conf);
       logFile = client.create(null, SecurityConstants.getSystemCredentials(), tserverSession.toString());
       log.debug("Got new write-ahead log: " + this);
     } catch (ThriftSecurityException tse) {
@@ -190,13 +190,12 @@ public class RemoteLogger {
     t.start();
   }
   
-  public RemoteLogger(String address) throws IOException {
+  public RemoteLogger(String address, AccumuloConfiguration conf) throws IOException {
     logger = address;
     tserverSession = null;
     logFile = null;
     try {
-      client = ThriftUtil.getClient(new MutationLogger.Client.Factory(), address, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT,
-          ServerConfiguration.getSystemConfiguration());
+      client = ThriftUtil.getClient(new MutationLogger.Client.Factory(), address, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT, conf);
     } catch (TTransportException e) {
       throw new IOException(e);
     }
@@ -278,8 +277,8 @@ public class RemoteLogger {
     client.minorCompactionStarted(null, logFile.id, seq, tid, fqfn);
   }
   
-  public synchronized long startCopy(String name, String fullyQualifiedFileName, boolean sort) throws ThriftSecurityException, TException {
-    return client.startCopy(null, SecurityConstants.getSystemCredentials(), name, fullyQualifiedFileName, sort);
+  public synchronized long startCopy(String name, String fullyQualifiedFileName) throws ThriftSecurityException, TException {
+    return client.startCopy(null, SecurityConstants.getSystemCredentials(), name, fullyQualifiedFileName, true);
   }
   
   public synchronized List<String> getClosedLogs() throws ThriftSecurityException, TException {

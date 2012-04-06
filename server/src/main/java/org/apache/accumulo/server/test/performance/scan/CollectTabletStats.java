@@ -65,10 +65,12 @@ import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -108,7 +110,8 @@ public class CollectTabletStats {
           + " [-i <iterations>] [-t <num threads>] [-l|-f] [-c <column fams>] <instance> <zookeepers> <user> <pass> <table> <auths> <batch size>");
       return;
     }
-    
+    final FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
+
     String instance = processedArgs[0];
     String zookeepers = processedArgs[1];
     String user = processedArgs[2];
@@ -116,8 +119,8 @@ public class CollectTabletStats {
     final String tableName = processedArgs[4];
     final String auths[] = processedArgs[5].split(",");
     final int batchSize = Integer.parseInt(processedArgs[6]);
-    
     ZooKeeperInstance zki = new ZooKeeperInstance(instance, zookeepers);
+    final ServerConfiguration sconf = new ServerConfiguration(zki);
     
     String tableId = Tables.getNameToIdMap(zki).get(tableName);
     
@@ -163,7 +166,7 @@ public class CollectTabletStats {
         final List<String> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
           public int runTest() throws Exception {
-            return readFiles(files, ke, columns);
+            return readFiles(fs, sconf.getConfiguration(), files, ke, columns);
           }
           
         };
@@ -182,7 +185,7 @@ public class CollectTabletStats {
         final List<String> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
           public int runTest() throws Exception {
-            return readFilesUsingIterStack(files, auths, ke, columns, false);
+            return readFilesUsingIterStack(fs, sconf, files, auths, ke, columns, false);
           }
         };
         
@@ -199,7 +202,7 @@ public class CollectTabletStats {
         final List<String> files = tabletFiles.get(ke);
         Test test = new Test(ke) {
           public int runTest() throws Exception {
-            return readFilesUsingIterStack(files, auths, ke, columns, true);
+            return readFilesUsingIterStack(fs, sconf, files, auths, ke, columns, true);
           }
         };
         
@@ -426,7 +429,7 @@ public class CollectTabletStats {
   
   private static SortedKeyValueIterator<Key,Value> createScanIterator(KeyExtent ke, Collection<SortedKeyValueIterator<Key,Value>> mapfiles,
       Authorizations authorizations, byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
-      boolean useTableIterators) throws IOException {
+      boolean useTableIterators, TableConfiguration conf) throws IOException {
     
     SortedMapIterator smi = new SortedMapIterator(new TreeMap<Key,Value>());
     
@@ -441,23 +444,18 @@ public class CollectTabletStats {
     VisibilityFilter visFilter = new VisibilityFilter(colFilter, authorizations, defaultLabels);
     
     if (useTableIterators)
-      return IteratorUtil.loadIterators(IteratorScope.scan, visFilter, ke, ServerConfiguration.getTableConfiguration(ke.getTableId().toString()), ssiList,
-          ssio, null);
+      return IteratorUtil.loadIterators(IteratorScope.scan, visFilter, ke, conf, ssiList, ssio, null);
     return visFilter;
   }
   
-  private static int readFiles(List<String> files, KeyExtent ke, String[] columns) throws Exception {
-    
-    Configuration conf = new Configuration();
-    FileSystem fs = FileSystem.get(conf);
-    AccumuloConfiguration acuconf = ServerConfiguration.getSystemConfiguration();
+  private static int readFiles(FileSystem fs, AccumuloConfiguration aconf, List<String> files, KeyExtent ke, String[] columns) throws Exception {
     
     int count = 0;
     
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
     
     for (String file : files) {
-      FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, conf, acuconf);
+      FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, fs.getConf(), aconf);
       Range range = new Range(ke.getPrevEndRow(), false, ke.getEndRow(), true);
       reader.seek(range, columnSet, columnSet.size() == 0 ? false : true);
       while (reader.hasTop() && !range.afterEndKey(reader.getTopKey())) {
@@ -478,22 +476,22 @@ public class CollectTabletStats {
     return columnSet;
   }
   
-  private static int readFilesUsingIterStack(List<String> files, String auths[], KeyExtent ke, String[] columns, boolean useTableIterators) throws Exception {
-    Configuration conf = new Configuration();
-    FileSystem fs = FileSystem.get(conf);
-    AccumuloConfiguration acuconf = ServerConfiguration.getSystemConfiguration();
+  private static int readFilesUsingIterStack(FileSystem fs, ServerConfiguration aconf, List<String> files, String auths[], KeyExtent ke, String[] columns,
+      boolean useTableIterators)
+      throws Exception {
     
     SortedKeyValueIterator<Key,Value> reader;
     
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<SortedKeyValueIterator<Key,Value>>(files.size());
     
     for (String file : files) {
-      readers.add(FileOperations.getInstance().openReader(file, false, fs, conf, acuconf));
+      readers.add(FileOperations.getInstance().openReader(file, false, fs, fs.getConf(), aconf.getConfiguration()));
     }
     
     List<IterInfo> emptyIterinfo = Collections.emptyList();
     Map<String,Map<String,String>> emptySsio = Collections.emptyMap();
-    reader = createScanIterator(ke, readers, new Authorizations(auths), new byte[] {}, new HashSet<Column>(), emptyIterinfo, emptySsio, useTableIterators);
+    TableConfiguration tconf = aconf.getTableConfiguration(ke.getTableId().toString());
+    reader = createScanIterator(ke, readers, new Authorizations(auths), new byte[] {}, new HashSet<Column>(), emptyIterinfo, emptySsio, useTableIterators, tconf);
     
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
     

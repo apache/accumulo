@@ -31,6 +31,7 @@ import java.util.Set;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -47,9 +48,9 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.util.MetadataTable.LogEntry;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -58,11 +59,13 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
   
   private Set<String> allFiles = new HashSet<String>();
   private Range range = new Range();
+  private final FileSystem fs;
+  private final AccumuloConfiguration conf;
   
-  private List<SortedKeyValueIterator<Key,Value>> openMapFiles(Collection<String> files, FileSystem fs, Configuration conf) throws IOException {
+  private List<SortedKeyValueIterator<Key,Value>> openMapFiles(Collection<String> files, FileSystem fs, AccumuloConfiguration conf) throws IOException {
     List<SortedKeyValueIterator<Key,Value>> readers = new ArrayList<SortedKeyValueIterator<Key,Value>>();
     for (String file : files) {
-      FileSKVIterator reader = FileOperations.getInstance().openReader(file, true, fs, conf, ServerConfiguration.getSystemConfiguration());
+      FileSKVIterator reader = FileOperations.getInstance().openReader(file, true, fs, fs.getConf(), conf);
       readers.add(reader);
     }
     return readers;
@@ -112,9 +115,10 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     
   }
   
-  public OfflineMetadataScanner() throws IOException {
+  public OfflineMetadataScanner(AccumuloConfiguration conf, FileSystem fs) throws IOException {
     super();
-    
+    this.fs = fs;
+    this.conf = conf;
     List<LogEntry> rwal;
     try {
       rwal = MetadataTable.getLogEntries(null, Constants.ROOT_TABLET_EXTENT);
@@ -125,9 +129,6 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     if (rwal.size() > 0) {
       throw new RuntimeException("Root tablet has write ahead logs, can not scan offline");
     }
-    
-    Configuration conf = CachedConfiguration.getInstance();
-    FileSystem fs = FileSystem.get(conf);
     
     FileStatus[] rootFiles = fs.listStatus(new Path(ServerConstants.getRootTabletDir()));
     
@@ -188,8 +189,6 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     final SortedKeyValueIterator<Key,Value> ssi;
     final List<SortedKeyValueIterator<Key,Value>> readers;
     try {
-      Configuration conf = CachedConfiguration.getInstance();
-      FileSystem fs = FileSystem.get(conf);
       readers = openMapFiles(allFiles, fs, conf);
       ssi = createSystemIter(range, readers, new HashSet<Column>(getFetchedColumns()));
     } catch (IOException e) {
@@ -252,7 +251,9 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
   }
   
   public static void main(String[] args) throws IOException {
-    OfflineMetadataScanner scanner = new OfflineMetadataScanner();
+    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
+    ServerConfiguration conf = new ServerConfiguration(HdfsZooInstance.getInstance());
+    OfflineMetadataScanner scanner = new OfflineMetadataScanner(conf.getConfiguration(), fs);
     scanner.setRange(Constants.METADATA_KEYSPACE);
     for (Entry<Key,Value> entry : scanner)
       System.out.println(entry.getKey() + " " + entry.getValue());

@@ -29,7 +29,6 @@ import java.util.Map.Entry;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -112,6 +111,8 @@ public class FileManager {
   
   private long maxIdleTime;
   
+  private final ServerConfiguration conf;
+  
   private class IdleFileCloser extends TimerTask {
     
     @Override
@@ -153,6 +154,7 @@ public class FileManager {
   
   /**
    * 
+   * @param instance
    * @param conf
    * @param fs
    * @param maxOpen
@@ -161,11 +163,11 @@ public class FileManager {
    * @param indexCache
    *          : underlying file can and should be able to handle a null cache
    */
-  FileManager(FileSystem fs, int maxOpen, BlockCache dataCache, BlockCache indexCache) {
+  FileManager(ServerConfiguration conf, FileSystem fs, int maxOpen, BlockCache dataCache, BlockCache indexCache) {
     
     if (maxOpen <= 0)
       throw new IllegalArgumentException("maxOpen <= 0");
-    
+    this.conf = conf;
     this.dataCache = dataCache;
     this.indexCache = indexCache;
     
@@ -176,7 +178,7 @@ public class FileManager {
     this.openFiles = new HashMap<String,List<OpenReader>>();
     this.reservedReaders = new HashMap<FileSKVIterator,String>();
     
-    this.maxIdleTime = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.TSERV_MAX_IDLE);
+    this.maxIdleTime = conf.getConfiguration().getTimeInMillis(Property.TSERV_MAX_IDLE);
     SimpleTimer.getInstance().schedule(new IdleFileCloser(), maxIdleTime, maxIdleTime / 2);
     
   }
@@ -308,8 +310,7 @@ public class FileManager {
     for (String file : filesToOpen) {
       try {
         // log.debug("Opening "+file);
-        FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, fs.getConf(),
-            ServerConfiguration.getTableConfiguration(table.toString()),
+        FileSKVIterator reader = FileOperations.getInstance().openReader(file, false, fs, fs.getConf(), conf.getTableConfiguration(table.toString()),
             dataCache, indexCache);
         reservedFiles.add(reader);
         readersReserved.put(reader, file);
@@ -450,9 +451,9 @@ public class FileManager {
       dataSources = new ArrayList<FileDataSource>();
       this.tablet = tablet;
       
-      continueOnFailure = ServerConfiguration.getTableConfiguration(tablet.getTableId().toString()).getBoolean(Property.TABLE_FAILURES_IGNORE);
+      continueOnFailure = conf.getTableConfiguration(tablet).getBoolean(Property.TABLE_FAILURES_IGNORE);
       
-      if (tablet.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
+      if (tablet.isMeta()) {
         continueOnFailure = false;
       }
     }

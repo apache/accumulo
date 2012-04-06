@@ -24,14 +24,13 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -391,7 +390,7 @@ public class TabletLocatorImpl extends TabletLocator {
     
     if (ptl != null) {
       List<TabletLocation> locations = locationObtainer.lookupTablet(ptl, metadataRow, lastTabletRow, parent);
-      if (locations.size() == 0 && !ptl.tablet_extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+      if (locations.size() == 0 && !ptl.tablet_extent.isRootTablet()) {
         // try the next tablet
         Text er = ptl.tablet_extent.getEndRow();
         if (er != null && er.compareTo(lastTabletRow) < 0) {

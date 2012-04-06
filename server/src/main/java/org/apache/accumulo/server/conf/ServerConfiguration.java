@@ -21,11 +21,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.core.data.KeyExtent;
 
 public class ServerConfiguration {
   
@@ -44,9 +45,9 @@ public class ServerConfiguration {
     }
   }
   
-  private static synchronized ZooConfiguration getZooConfiguration() {
+  private static synchronized ZooConfiguration getZooConfiguration(Instance instance) {
     checkPermissions();
-    return ZooConfiguration.getInstance(getSiteConfiguration());
+    return ZooConfiguration.getInstance(instance, getSiteConfiguration());
   }
   
   public static synchronized DefaultConfiguration getDefaultConfiguration() {
@@ -54,25 +55,21 @@ public class ServerConfiguration {
     return DefaultConfiguration.getInstance();
   }
   
-  public static synchronized AccumuloConfiguration getSystemConfiguration() {
-    return getZooConfiguration();
+  public static synchronized AccumuloConfiguration getSystemConfiguration(Instance instance) {
+    return getZooConfiguration(instance);
   }
-  
-  public static TableConfiguration getTableConfiguration(String instanceId, String tableId) {
+
+  public static TableConfiguration getTableConfiguration(Instance instance, String tableId) {
     checkPermissions();
     synchronized (tableInstances) {
       TableConfiguration conf = tableInstances.get(tableId);
       if (conf == null) {
-        conf = new TableConfiguration(instanceId, tableId, getSystemConfiguration());
+        conf = new TableConfiguration(instance.getInstanceID(), tableId, getSystemConfiguration(instance));
         ConfigSanityCheck.validate(conf);
         tableInstances.put(tableId, conf);
       }
       return conf;
     }
-  }
-  
-  public static TableConfiguration getTableConfiguration(String tableId) {
-    return getTableConfiguration(HdfsZooInstance.getInstance().getInstanceID(), tableId);
   }
   
   static void removeTableIdInstance(String tableId) {
@@ -88,4 +85,27 @@ public class ServerConfiguration {
       }
     }
   }
+  
+  private final Instance instance;
+  
+  public ServerConfiguration(Instance instance) {
+    this.instance = instance;
+  }
+  
+  public TableConfiguration getTableConfiguration(String tableId) {
+    return getTableConfiguration(instance, tableId);
+  }
+  
+  public TableConfiguration getTableConfiguration(KeyExtent extent) {
+    return getTableConfiguration(extent.getTableId().toString());
+  }
+
+  public synchronized AccumuloConfiguration getConfiguration() {
+    return getZooConfiguration(instance);
+  }
+  
+  public Instance getInstance() {
+    return instance;
+  }
+
 }

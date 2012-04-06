@@ -21,7 +21,6 @@ import java.net.InetSocketAddress;
 import org.apache.accumulo.core.tabletserver.thrift.MutationLogger;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fate.Repo;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.tableOps.MasterRepo;
@@ -46,7 +45,7 @@ public class StopLogger extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master m) throws Exception {
     InetSocketAddress addr = AddressUtil.parseAddress(logger, 0);
-    MutationLogger.Iface client = ThriftUtil.getClient(new MutationLogger.Client.Factory(), addr, ServerConfiguration.getSystemConfiguration());
+    MutationLogger.Iface client = ThriftUtil.getClient(new MutationLogger.Client.Factory(), addr, m.getSystemConfiguration());
     try {
       client.halt(null, SecurityConstants.getSystemCredentials());
       log.info("logger asked to halt " + logger);

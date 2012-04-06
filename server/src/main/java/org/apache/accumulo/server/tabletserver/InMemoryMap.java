@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
@@ -209,9 +210,8 @@ public class InMemoryMap {
     }
   }
   
-  public InMemoryMap() {
-    this(ServerConfiguration.getSystemConfiguration().getBoolean(Property.TSERV_NATIVEMAP_ENABLED), ServerConfiguration.getSystemConfiguration().get(
-        Property.TSERV_MEMDUMP_DIR));
+  public InMemoryMap(AccumuloConfiguration config) {
+    this(config.getBoolean(Property.TSERV_NATIVEMAP_ENABLED), config.get(Property.TSERV_MEMDUMP_DIR));
   }
   
   private interface SimpleMap {

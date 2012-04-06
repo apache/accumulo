@@ -26,11 +26,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.monitor.Monitor;
 
 public class VisServlet extends BasicServlet {
-  private static final int concurrentScans = ServerConfiguration.getSystemConfiguration().getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
+  private static final int concurrentScans = Monitor.getSystemConfiguration().getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
   
   private static final long serialVersionUID = 1L;
   boolean useCircles;

@@ -34,9 +34,10 @@ public class TableDiskUsage {
     FileSystem fs = FileSystem.get(new Configuration());
     
     Instance instance = HdfsZooInstance.getInstance();
+    ServerConfiguration conf = new ServerConfiguration(instance);
     Connector conn = instance.getConnector("root", "secret");
     
-    org.apache.accumulo.core.util.TableDiskUsage.printDiskUsage(ServerConfiguration.getSystemConfiguration(), Arrays.asList(args), fs, conn);
+    org.apache.accumulo.core.util.TableDiskUsage.printDiskUsage(conf.getConfiguration(), Arrays.asList(args), fs, conn);
   }
   
 }

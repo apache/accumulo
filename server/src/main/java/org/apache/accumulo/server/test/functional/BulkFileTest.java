@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
@@ -55,25 +56,24 @@ public class BulkFileTest extends FunctionalTest {
   @Override
   public void run() throws Exception {
     Configuration conf = new Configuration();
-    FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
+    AccumuloConfiguration aconf = ServerConfiguration.getDefaultConfiguration();
+    FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, aconf));
     
     String dir = "/tmp/bulk_test_diff_files_89723987592";
     
     fs.delete(new Path(dir), true);
     
-    FileSKVWriter writer1 = FileOperations.getInstance().openWriter(dir + "/f1." + RFile.EXTENSION, fs, conf,
-        ServerConfiguration.getSystemConfiguration());
+    FileSKVWriter writer1 = FileOperations.getInstance().openWriter(dir + "/f1." + RFile.EXTENSION, fs, conf, aconf);
     writer1.startDefaultLocalityGroup();
     writeData(writer1, 0, 333);
     writer1.close();
     
-    FileSKVWriter writer2 = FileOperations.getInstance().openWriter(dir + "/f2." + RFile.EXTENSION, fs, conf,
-        ServerConfiguration.getSystemConfiguration());
+    FileSKVWriter writer2 = FileOperations.getInstance().openWriter(dir + "/f2." + RFile.EXTENSION, fs, conf, aconf);
     writer2.startDefaultLocalityGroup();
     writeData(writer2, 334, 999);
     writer2.close();
     
-    FileSKVWriter writer3 = FileOperations.getInstance().openWriter(dir + "/f3." + RFile.EXTENSION, fs, conf, ServerConfiguration.getSystemConfiguration());
+    FileSKVWriter writer3 = FileOperations.getInstance().openWriter(dir + "/f3." + RFile.EXTENSION, fs, conf, aconf);
     writer3.startDefaultLocalityGroup();
     writeData(writer3, 1000, 1999);
     writer3.close();

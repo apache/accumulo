@@ -34,7 +34,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.util.time.SimpleTimer;
@@ -55,9 +54,9 @@ abstract public class BasicServlet extends HttpServlet {
     StringBuilder sb = new StringBuilder();
     try {
       Monitor.fetchData();
-      bannerText = sanitize(ServerConfiguration.getSystemConfiguration().get(Property.MONITOR_BANNER_TEXT));
-      bannerColor = ServerConfiguration.getSystemConfiguration().get(Property.MONITOR_BANNER_COLOR).replace("'", "&#39;");
-      bannerBackground = ServerConfiguration.getSystemConfiguration().get(Property.MONITOR_BANNER_BACKGROUND).replace("'", "&#39;");
+      bannerText = sanitize(Monitor.getSystemConfiguration().get(Property.MONITOR_BANNER_TEXT));
+      bannerColor = Monitor.getSystemConfiguration().get(Property.MONITOR_BANNER_COLOR).replace("'", "&#39;");
+      bannerBackground = Monitor.getSystemConfiguration().get(Property.MONITOR_BANNER_BACKGROUND).replace("'", "&#39;");
       pageStart(req, resp, sb);
       pageBody(req, resp, sb);
       pageEnd(req, resp, sb);

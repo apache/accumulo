@@ -31,32 +31,41 @@ public class LargestFirstMemoryManager implements MemoryManager {
   
   private static final Logger log = Logger.getLogger(LargestFirstMemoryManager.class);
   
-  private final long maxMemory;
-  private final int maxConcurrentMincs;
-  private final int numWaitingMultiplier;
+  private long maxMemory = -1;
+  private int maxConcurrentMincs;
+  private int numWaitingMultiplier;
   private long prevIngestMemory;
   private double compactionThreshold;
   private long maxObserved;
   private HashMap<Text,Long> mincIdleThresholds;
   private static final long zerotime = System.currentTimeMillis();
+  private ServerConfiguration config = null;
   
   LargestFirstMemoryManager(long maxMemory, int maxConcurrentMincs, int numWaitingMultiplier) {
+    this();
     this.maxMemory = maxMemory;
     this.maxConcurrentMincs = maxConcurrentMincs;
     this.numWaitingMultiplier = numWaitingMultiplier;
+  }
+  
+  public void init(ServerConfiguration conf) {
+    this.config = conf;
+    maxMemory = conf.getConfiguration().getMemoryInBytes(Property.TSERV_MAXMEM);
+    maxConcurrentMincs = conf.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT);
+    numWaitingMultiplier = Constants.TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER;
+  }
+  
+  LargestFirstMemoryManager() {
     prevIngestMemory = 0;
     compactionThreshold = 0.5;
     maxObserved = 0;
     mincIdleThresholds = new HashMap<Text,Long>();
   }
   
-  LargestFirstMemoryManager() {
-    this(ServerConfiguration.getSystemConfiguration().getMemoryInBytes(Property.TSERV_MAXMEM), ServerConfiguration.getSystemConfiguration().getCount(
-        Property.TSERV_MINC_MAXCONCURRENT), Constants.TSERV_MINC_MAXCONCURRENT_NUMWAITING_MULTIPLIER);
-  }
-  
   @Override
   public MemoryManagementActions getMemoryManagementActions(List<TabletState> tablets) {
+    if (maxMemory < 0)
+      throw new IllegalStateException("need to initialize Largst");
     mincIdleThresholds.clear();
     long ingestMemory = 0;
     long compactionMemory = 0;
@@ -92,7 +101,7 @@ public class LargestFirstMemoryManager implements MemoryManager {
         }
         Text tableId = ts.getExtent().getTableId();
         if (!mincIdleThresholds.containsKey(tableId))
-          mincIdleThresholds.put(tableId, ServerConfiguration.getTableConfiguration(tableId.toString()).getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
+          mincIdleThresholds.put(tableId, config.getTableConfiguration(tableId.toString()).getTimeInMillis(Property.TABLE_MINC_COMPACT_IDLETIME));
         if (idleTime > mincIdleThresholds.get(tableId) && tml > largestIdleMemTableLoad) {
           largestIdleMemTableLoad = tml;
           largestIdleMemTablet = ts.getExtent();

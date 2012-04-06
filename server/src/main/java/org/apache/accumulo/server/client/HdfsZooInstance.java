@@ -59,7 +59,7 @@ public class HdfsZooInstance implements Instance {
   }
   
   private HdfsZooInstance() {
-    AccumuloConfiguration acuConf = ServerConfiguration.getSystemConfiguration();
+    AccumuloConfiguration acuConf = ServerConfiguration.getSiteConfiguration();
     zooCache = new ZooCache(acuConf.get(Property.INSTANCE_ZK_HOST), (int) acuConf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT));
   }
   
@@ -131,12 +131,12 @@ public class HdfsZooInstance implements Instance {
   
   @Override
   public String getZooKeepers() {
-    return getConfiguration().get(Property.INSTANCE_ZK_HOST);
+    return ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST);
   }
   
   @Override
   public int getZooKeepersSessionTimeOut() {
-    return (int) getConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    return (int) ServerConfiguration.getSiteConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
   }
   
   @SuppressWarnings("deprecation")
@@ -163,7 +163,7 @@ public class HdfsZooInstance implements Instance {
   @Override
   public AccumuloConfiguration getConfiguration() {
     if (conf == null)
-      conf = ServerConfiguration.getSystemConfiguration();
+      conf = new ServerConfiguration(this).getConfiguration();
     return conf;
   }
   

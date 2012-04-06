@@ -772,6 +772,13 @@ public class KeyExtent implements WritableComparable<KeyExtent> {
       return false;
     
     return prevExtent.getEndRow().equals(getPrevEndRow());
-    
+  }
+  
+  public boolean isMeta() {
+    return getTableId().toString().equals(Constants.METADATA_TABLE_ID);
+  }
+  
+  public boolean isRootTablet() {
+    return this.compareTo(Constants.ROOT_TABLET_EXTENT) == 0;
   }
 }

@@ -17,8 +17,6 @@
 package org.apache.accumulo.server.master;
 
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -26,28 +24,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.tabletserver.log.RemoteLogger;
-import org.apache.accumulo.server.trace.TraceFileSystem;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobStatus;
-import org.apache.hadoop.mapred.RunningJob;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.log4j.Logger;
 
 public class CoordinateRecoveryTask implements Runnable {
@@ -115,43 +103,29 @@ public class CoordinateRecoveryTask implements Runnable {
     final LogFile logFile;
     final long copyStartTime;
     long copySize = 0;
-    Job sortJob = null;
-    boolean useMapReduce = ServerConfiguration.getSystemConfiguration().getBoolean(Property.MASTER_RECOVERY_SORT_MAPREDUCE);
     JobComplete notify = null;
+    final AccumuloConfiguration config;
     
-    RecoveryJob(LogFile entry, JobComplete callback) throws Exception {
+    RecoveryJob(LogFile entry, JobComplete callback, AccumuloConfiguration conf) throws Exception {
       logFile = entry;
       copyStartTime = System.currentTimeMillis();
       notify = callback;
+      config = conf;
     }
     
     private void startCopy() throws Exception {
       log.debug("Starting log recovery: " + logFile);
       try {
         // Ask the logging server to put the file in HDFS
-        RemoteLogger logger = new RemoteLogger(logFile.server);
+        RemoteLogger logger = new RemoteLogger(logFile.server, config);
         String base = logFile.unsortedFileName();
         log.debug("Starting to copy " + logFile.file + " from " + logFile.server);
-        copySize = logger.startCopy(logFile.file, base, !useMapReduce);
+        copySize = logger.startCopy(logFile.file, base);
       } catch (Throwable t) {
         log.warn("Unable to recover " + logFile + "(" + t + ")", t);
         fail();
       }
       
-    }
-    
-    synchronized private void startSort() throws Exception {
-      Integer reducers = ServerConfiguration.getSystemConfiguration().getCount(Property.MASTER_RECOVERY_REDUCERS);
-      String queue = ServerConfiguration.getSystemConfiguration().get(Property.MASTER_RECOVERY_QUEUE);
-      String pool = ServerConfiguration.getSystemConfiguration().get(Property.MASTER_RECOVERY_POOL);
-      String result = logFile.recoveryFileName();
-      fs.delete(new Path(result), true);
-      List<String> jars = new ArrayList<String>();
-      jars.addAll(jarsLike("accumulo-core"));
-      jars.addAll(jarsLike("zookeeper"));
-      jars.addAll(jarsLike("libthrift"));
-      sortJob = LogSort.startSort(true,
-          new String[] {"-libjars", StringUtil.join(jars, ","), "-r", reducers.toString(), "-q", queue, "-p", pool, logFile.unsortedFileName(), result});
     }
     
     synchronized boolean isComplete() throws Exception {
@@ -162,28 +136,17 @@ public class CoordinateRecoveryTask implements Runnable {
         return true;
       }
       
-      if (elapsedMillis() > ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.MASTER_RECOVERY_MAXTIME)) {
+      if (elapsedMillis() > config.getTimeInMillis(Property.MASTER_RECOVERY_MAXTIME)) {
         log.warn("Recovery taking too long, giving up");
-        if (sortJob != null)
-          sortJob.killJob();
         return true;
       }
       
       // Did the sort fail?
-      if (sortJob == null && fs.exists(new Path(logFile.failedFileName()))) {
+      if (fs.exists(new Path(logFile.failedFileName()))) {
         return true;
       }
       
       log.debug(toString());
-      
-      // Did the copy complete?
-      if (useMapReduce && fs.exists(new Path(logFile.unsortedFileName()))) {
-        // Start the sort or check on it
-        if (sortJob == null) {
-          log.debug("Finished copy of " + logFile.file + " from " + logFile.server + ": took " + (elapsedMillis() / 1000.) + " seconds, starting sort");
-          startSort();
-        }
-      }
       return false;
     }
     
@@ -192,7 +155,6 @@ public class CoordinateRecoveryTask implements Runnable {
     }
     
     synchronized void fail(boolean createFailFlag) {
-      sortJob = null;
       String failed = logFile.failedFileName();
       try {
         if (createFailFlag)
@@ -208,29 +170,14 @@ public class CoordinateRecoveryTask implements Runnable {
     }
     
     synchronized public String toString() {
-      if (sortJob != null) {
-        try {
-          return String.format("Sorting log %s job %s: %2.1f/%2.1f", logFile.file, sortJob.getTrackingURL(), sortJob.mapProgress() * 100,
-              sortJob.reduceProgress() * 100);
-        } catch (Exception e) {
-          log.debug("Unable to get stats for sort of " + logFile.file, e);
-        }
-      }
       return String.format("Copying %s from %s (for %f seconds) %2.1f", logFile.file, logFile.server, elapsedMillis() / 1000., copiedSoFar() * 100. / copySize);
     }
     
     synchronized long copiedSoFar() {
       try {
-        if (useMapReduce) {
-          Path unsorted = new Path(logFile.unsortedFileName());
-          if (fs.exists(unsorted))
-            return fs.getFileStatus(unsorted).getLen();
-          return fs.getFileStatus(new Path(logFile.copyTempFileName())).getLen();
-        } else {
-          ContentSummary contentSummary = fs.getContentSummary(new Path(logFile.recoveryFileName()));
-          // map files are bigger than sequence files
-          return (long) (contentSummary.getSpaceConsumed() * .8);
-        }
+        ContentSummary contentSummary = fs.getContentSummary(new Path(logFile.recoveryFileName()));
+        // map files are bigger than sequence files
+        return (long) (contentSummary.getSpaceConsumed() * .8);
       } catch (Exception ex) {
         return 0;
       }
@@ -238,17 +185,17 @@ public class CoordinateRecoveryTask implements Runnable {
     
     synchronized public RecoveryStatus getStatus() throws IOException {
       try {
-        return new RecoveryStatus(logFile.server, logFile.file, (sortJob == null ? 0. : sortJob.mapProgress()), (sortJob == null ? 0.
-            : sortJob.reduceProgress()), (int) (System.currentTimeMillis() - copyStartTime), (sortJob != null) ? 1. : (copySize == 0 ? 0 : copiedSoFar()
-            / (double) copySize));
+        return new RecoveryStatus(logFile.server, logFile.file, 0., 0., (int) (System.currentTimeMillis() - copyStartTime), (copiedSoFar() / (double) copySize));
       } catch (Exception e) {
         return new RecoveryStatus(logFile.server, logFile.file, 1.0, 1.0, (int) (System.currentTimeMillis() - copyStartTime), 1.0);
       }
     }
   }
   
-  public CoordinateRecoveryTask(FileSystem fs) {
+  AccumuloConfiguration config;
+  public CoordinateRecoveryTask(FileSystem fs, AccumuloConfiguration conf) {
     this.fs = fs;
+    this.config = conf;
   }
   
   public boolean recover(AuthInfo credentials, KeyExtent extent, Collection<Collection<String>> entries, JobComplete notify) {
@@ -282,7 +229,7 @@ public class CoordinateRecoveryTask implements Runnable {
         try {
           synchronized (processing) {
             if (!fs.exists(new Path(failed)) && !fs.exists(new Path(recovered)) && !processing.containsKey(metadataEntry)) {
-              processing.put(metadataEntry, job = new RecoveryJob(logFile, notify));
+              processing.put(metadataEntry, job = new RecoveryJob(logFile, notify, config));
             }
           }
           if (job != null) {
@@ -296,58 +243,10 @@ public class CoordinateRecoveryTask implements Runnable {
     return finished;
   }
   
-  private static List<String> jarsLike(String substr) {
-    ArrayList<String> result = new ArrayList<String>();
-    URLClassLoader loader = (URLClassLoader) CoordinateRecoveryTask.class.getClassLoader();
-    for (URL url : loader.getURLs()) {
-      String path = url.getPath();
-      if (path.indexOf(substr) >= 0 && path.endsWith(".jar") && path.indexOf("javadoc") < 0 && path.indexOf("sources") < 0) {
-        result.add(path);
-      }
-    }
-    return result;
-  }
-  
-  void cleanupOldJobs() {
-    try {
-      Configuration conf = CachedConfiguration.getInstance();
-      @SuppressWarnings("deprecation")
-      // No alternative api in hadoop 20
-      JobClient jc = new JobClient(new org.apache.hadoop.mapred.JobConf(conf));
-      for (JobStatus status : jc.getAllJobs()) {
-        if (!status.isJobComplete()) {
-          RunningJob job = jc.getJob(status.getJobID());
-          if (job.getJobName().equals(LogSort.getJobName())) {
-            log.info("found a running " + job.getJobName());
-            Configuration jobConfig = new Configuration(false);
-            log.info("fetching configuration from " + job.getJobFile());
-            jobConfig.addResource(TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration())).open(
-                new Path(job.getJobFile())));
-            if (HdfsZooInstance.getInstance().getInstanceID().equals(jobConfig.get(LogSort.INSTANCE_ID_PROPERTY))) {
-              log.info("Killing job " + job.getID().toString());
-            }
-          }
-        }
-      }
-      FileStatus[] children = fs.listStatus(new Path(ServerConstants.getRecoveryDir()));
-      if (children != null) {
-        for (FileStatus child : children) {
-          log.info("Deleting recovery directory " + child);
-          fs.delete(child.getPath(), true);
-        }
-      }
-    } catch (IOException e) {
-      log.error("Error cleaning up old Log Sort jobs" + e);
-    } catch (Exception e) {
-      log.error("Unknown error cleaning up old jobs", e);
-    }
-  }
-  
   @Override
   public void run() {
     // Check on the asynchronous requests: keep them moving along
     int count = 0;
-    cleanupOldJobs();
     while (!stop) {
       try {
         synchronized (processing) {
@@ -381,7 +280,7 @@ public class CoordinateRecoveryTask implements Runnable {
   
   private void removeOldRecoverFiles() throws IOException {
     long now = System.currentTimeMillis();
-    long maxAgeInMillis = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.MASTER_RECOVERY_MAXAGE);
+    long maxAgeInMillis = config.getTimeInMillis(Property.MASTER_RECOVERY_MAXAGE);
     FileStatus[] children = fs.listStatus(new Path(ServerConstants.getRecoveryDir()));
     if (children != null) {
       for (FileStatus child : children) {

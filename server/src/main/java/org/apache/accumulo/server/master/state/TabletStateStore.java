@@ -20,8 +20,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 
-import org.apache.accumulo.core.Constants;
-
 /**
  * Interface for storing information about tablet assignments. There are three implementations:
  * 
@@ -68,7 +66,7 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
   
   public static void unassign(TabletLocationState tls) throws DistributedStoreException {
     TabletStateStore store;
-    if (tls.extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+    if (tls.extent.isRootTablet()) {
       store = new ZooTabletStateStore();
     } else {
       store = new MetaDataStateStore();
@@ -78,7 +76,7 @@ public abstract class TabletStateStore implements Iterable<TabletLocationState> 
   
   public static void setLocation(Assignment assignment) throws DistributedStoreException {
     TabletStateStore store;
-    if (assignment.tablet.equals(Constants.ROOT_TABLET_EXTENT)) {
+    if (assignment.tablet.isRootTablet()) {
       store = new ZooTabletStateStore();
     } else {
       store = new MetaDataStateStore();

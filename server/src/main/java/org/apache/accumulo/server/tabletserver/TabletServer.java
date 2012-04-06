@@ -135,6 +135,7 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -220,9 +221,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   protected TabletServerMinCMetrics mincMetrics = new TabletServerMinCMetrics();
   
-  public TabletServer(Instance instance, FileSystem fs) {
+  private ServerConfiguration serverConfig;
+  
+  public TabletServer(ServerConfiguration conf, FileSystem fs) {
     super();
-    this.instance = instance;
+    this.serverConfig = conf;
+    this.instance = conf.getInstance();
     this.fs = TraceFileSystem.wrap(fs);
     SimpleTimer.getInstance().schedule(new TimerTask() {
       @Override
@@ -240,7 +244,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }, 5000, 5000);
   }
   
-  private synchronized static void logGCInfo() {
+  private synchronized static void logGCInfo(AccumuloConfiguration conf) {
     List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
     Runtime rt = Runtime.getRuntime();
     
@@ -295,7 +299,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       log.debug(sb.toString());
     }
     
-    final long keepAliveTimeout = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     if (maxIncreaseInCollectionTime > keepAliveTimeout) {
       Halt.halt("Garbage collection may be interfering with lock keep-alive.  Halting.", -1);
     }
@@ -320,11 +324,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     SecureRandom random;
     Map<Long,Session> sessions;
     
-    SessionManager() {
+    SessionManager(AccumuloConfiguration conf) {
       random = new SecureRandom();
       sessions = new HashMap<Long,Session>();
       
-      final long maxIdle = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
+      final long maxIdle = conf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
       
       TimerTask r = new TimerTask() {
         public void run() {
@@ -811,13 +815,17 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
   }
   
+  public AccumuloConfiguration getSystemConfiguration() {
+    return serverConfig.getConfiguration();
+  }
+
   TransactionWatcher watcher = new TransactionWatcher();
   
   private class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
     
     SessionManager sessionManager;
     
-    AccumuloConfiguration acuConf = ServerConfiguration.getSystemConfiguration();
+    AccumuloConfiguration acuConf = getSystemConfiguration();
     
     TabletServerUpdateMetrics updateMetrics = new TabletServerUpdateMetrics();
     
@@ -826,9 +834,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     WriteTracker writeTracker = new WriteTracker();
     
     ThriftClientHandler() {
-      super(watcher);
+      super(instance, watcher);
       log.debug(ThriftClientHandler.class.getName() + " created");
-      sessionManager = new SessionManager();
+      sessionManager = new SessionManager(getSystemConfiguration());
       // Register the metrics MBean
       try {
         updateMetrics.register();
@@ -1237,10 +1245,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       for (KeyExtent keyExtent : batch.keySet()) {
         if (threadPoolExtent == null) {
           threadPoolExtent = keyExtent;
-        } else if (keyExtent.equals(Constants.ROOT_TABLET_EXTENT)) {
+        } else if (keyExtent.isRootTablet()) {
           throw new IllegalArgumentException("Cannot batch query root tablet with other tablets " + threadPoolExtent + " " + keyExtent);
-        } else if (keyExtent.getTableId().toString().equals(Constants.METADATA_TABLE_ID)
-            && !threadPoolExtent.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
+        } else if (keyExtent.isMeta() && !threadPoolExtent.isMeta()) {
           throw new IllegalArgumentException("Cannot batch query !METADATA and non !METADATA tablets " + threadPoolExtent + " " + keyExtent);
         }
         
@@ -1428,7 +1435,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             mutations.add(mutation);
             us.queuedMutationSize += mutation.numBytes();
           }
-          if (us.queuedMutationSize > ServerConfiguration.getSystemConfiguration().getMemoryInBytes(Property.TSERV_MUTATION_QUEUE_MAX))
+          if (us.queuedMutationSize > getSystemConfiguration().getMemoryInBytes(Property.TSERV_MUTATION_QUEUE_MAX))
             flush(us);
         }
       } finally {
@@ -1446,7 +1453,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       
       boolean containsMetadataTablet = false;
       for (Tablet tablet : us.queuedMutations.keySet())
-        if (tablet.getExtent().getTableId().toString().equals(Constants.METADATA_TABLE_ID))
+        if (tablet.getExtent().isMeta())
           containsMetadataTablet = true;
       
       if (!containsMetadataTablet && us.queuedMutations.size() > 0)
@@ -1633,7 +1640,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         throw new NotServingTabletException(tkeyExtent);
       }
       
-      if (!keyExtent.getTableId().toString().equals(Constants.METADATA_TABLE_ID))
+      if (!keyExtent.isMeta())
         TabletServer.this.resourceManager.waitUntilCommitsAreEnabled();
       
       long opid = writeTracker.startWrite(TabletType.type(keyExtent));
@@ -1754,7 +1761,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           if (fatal) {
             Halt.halt(1, new Runnable() {
               public void run() {
-                logGCInfo();
+                logGCInfo(getSystemConfiguration());
               }
             });
           }
@@ -1770,7 +1777,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         Halt.halt(1, new Runnable() {
           public void run() {
             log.info("Tablet server no longer holds lock during checkPermission() : " + request + ", exiting");
-            logGCInfo();
+            logGCInfo(getSystemConfiguration());
           }
         });
       }
@@ -1836,7 +1843,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       
       final Runnable ah = new LoggingRunnable(log, new AssignmentHandler(extent));
       // Root tablet assignment must take place immediately
-      if (extent.compareTo(Constants.ROOT_TABLET_EXTENT) == 0) {
+      if (extent.isRootTablet()) {
         new Thread("Root Tablet Assignment") {
           public void run() {
             ah.run();
@@ -1849,7 +1856,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           }
         }.start();
       } else {
-        if (extent.getTableId().compareTo(new Text(Constants.METADATA_TABLE_ID)) == 0) {
+        if (extent.isMeta()) {
           resourceManager.addMetaDataAssignment(ah);
         } else {
           resourceManager.addAssignment(ah);
@@ -1935,7 +1942,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       Halt.halt(0, new Runnable() {
         public void run() {
           log.info("Master requested tablet server halt");
-          logGCInfo();
+          logGCInfo(getSystemConfiguration());
           serverStopRequested = true;
           try {
             tabletServerLock.unlock();
@@ -2055,12 +2062,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   }
   
   private class MajorCompactor implements Runnable {
-    private AccumuloConfiguration acuConf = ServerConfiguration.getSystemConfiguration();
     
     public void run() {
       while (!majorCompactorDisabled) {
         try {
-          UtilWaitThread.sleep(acuConf.getTimeInMillis(Property.TSERV_MAJC_DELAY));
+          UtilWaitThread.sleep(getSystemConfiguration().getTimeInMillis(Property.TSERV_MAJC_DELAY));
           
           TreeMap<KeyExtent,Tablet> copyOnlineTablets = new TreeMap<KeyExtent,Tablet>();
           
@@ -2092,8 +2098,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
               continue;
             }
             
-            int maxLogEntriesPerTablet = ServerConfiguration.getTableConfiguration(tablet.getExtent().getTableId().toString()).getCount(
-                Property.TABLE_MINC_LOGS_MAX);
+            int maxLogEntriesPerTablet = getTableConfiguration(tablet.getExtent()).getCount(Property.TABLE_MINC_LOGS_MAX);
             
             if (tablet.getLogCount() >= maxLogEntriesPerTablet) {
               log.debug("Initiating minor compaction for " + tablet.getExtent() + " because it has " + tablet.getLogCount() + " write ahead logs");
@@ -2108,7 +2113,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             }
           }
           
-          int idleCompactionsToStart = Math.max(1, acuConf.getCount(Property.TSERV_MAJC_MAXCONCURRENT) / 2);
+          int idleCompactionsToStart = Math.max(1, getSystemConfiguration().getCount(Property.TSERV_MAJC_MAXCONCURRENT) / 2);
           
           if (numMajorCompactionsInProgress < idleCompactionsToStart) {
             // system is not major compacting, can schedule some
@@ -2308,8 +2313,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     public void run() {
       log.info(clientAddress + ": got assignment from master: " + extent);
       
-      final boolean isMetaDataTablet = extent.getTableId().toString().compareTo(Constants.METADATA_TABLE_ID) == 0;
-      
       synchronized (unopenedTablets) {
         synchronized (openingTablets) {
           synchronized (onlineTablets) {
@@ -2461,8 +2464,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             public void run() {
               log.info("adding tablet " + extent + " back to the assignment pool (retry " + retryAttempt + ")");
               AssignmentHandler handler = new AssignmentHandler(extentToOpen, retryAttempt + 1);
-              if (isMetaDataTablet) {
-                if (Constants.ROOT_TABLET_EXTENT.equals(extent)) {
+              if (extent.isMeta()) {
+                if (extent.isRootTablet()) {
                   new Thread(new LoggingRunnable(log, handler), "Root tablet assignment retry").start();
                 } else {
                   resourceManager.addMetaDataAssignment(handler);
@@ -2554,8 +2557,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     MetadataTable.addLogEntries(SecurityConstants.getSystemCredentials(), entries, getLock());
   }
   
-  private int startServer(Property portHint, TProcessor processor, String threadName) throws UnknownHostException {
-    ServerPort sp = TServerUtils.startServer(portHint, processor, this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
+  private int startServer(AccumuloConfiguration conf, Property portHint, TProcessor processor, String threadName) throws UnknownHostException {
+    ServerPort sp = TServerUtils.startServer(conf, portHint, processor, this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
         Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK);
     this.server = sp.server;
     return sp.port;
@@ -2581,7 +2584,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         return null;
       }
       MasterClientService.Iface client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, Property.MASTER_CLIENTPORT,
-          Property.GENERAL_RPC_TIMEOUT, ServerConfiguration.getSystemConfiguration());
+          Property.GENERAL_RPC_TIMEOUT, getSystemConfiguration());
       // log.info("Listener API to master has been opened");
       return client;
     } catch (Exception e) {
@@ -2598,7 +2601,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     // start listening for client connection last
     TabletClientService.Iface tch = TraceWrap.service(new ThriftClientHandler());
     TabletClientService.Processor processor = new TabletClientService.Processor(tch);
-    int port = startServer(Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
+    int port = startServer(getSystemConfiguration(), Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
     log.info("port = " + port);
     return port;
   }
@@ -2624,7 +2627,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             public void run() {
               if (!serverStopRequested)
                 log.fatal("Lost tablet server lock (reason = " + reason + "), exiting.");
-              logGCInfo();
+              logGCInfo(getSystemConfiguration());
             }
           });
         }
@@ -2763,7 +2766,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       log.warn("Failed to close filesystem : " + e.getMessage(), e);
     }
     
-    logGCInfo();
+    logGCInfo(getSystemConfiguration());
     
     log.info("TServerInfo: stop requested. exiting ... ");
     
@@ -2781,7 +2784,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     for (int tries = 0; tries < 3; tries++) {
       try {
         log.debug("verifying extent " + extent);
-        if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+        if (extent.isRootTablet()) {
           TreeMap<KeyExtent,Text> set = new TreeMap<KeyExtent,Text>();
           set.put(extent, new Text(Constants.ZROOT_TABLET));
           return set;
@@ -2934,9 +2937,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     log.info("Tablet server starting on " + hostname);
     authenticator = ZKAuthenticator.getInstance();
     clientAddress = new InetSocketAddress(hostname, 0);
-    logger = new TabletServerLogger(this, ServerConfiguration.getSystemConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE));
+    logger = new TabletServerLogger(this, getSystemConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE));
     
-    if (ServerConfiguration.getSystemConfiguration().getBoolean(Property.TSERV_LOCK_MEMORY)) {
+    if (getSystemConfiguration().getBoolean(Property.TSERV_LOCK_MEMORY)) {
       String path = "lib/native/mlock/" + System.mapLibraryName("MLock-" + Platform.getPlatform());
       path = new File(path).getAbsolutePath();
       try {
@@ -2951,18 +2954,18 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       }
     }
     
-    FileSystemMonitor.start(Property.TSERV_MONITOR_FS);
+    FileSystemMonitor.start(getSystemConfiguration(), Property.TSERV_MONITOR_FS);
     
     TimerTask gcDebugTask = new TimerTask() {
       @Override
       public void run() {
-        logGCInfo();
+        logGCInfo(getSystemConfiguration());
       }
     };
     
     SimpleTimer.getInstance().schedule(gcDebugTask, 0, 1000);
     
-    this.resourceManager = new TabletServerResourceManager(fs);
+    this.resourceManager = new TabletServerResourceManager(instance, fs);
     
     lastPingTime = System.currentTimeMillis();
     
@@ -2975,7 +2978,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     majorCompactorThread.setName("Split/MajC initiator");
     majorCompactorThread.start();
     
-    String className = ServerConfiguration.getSystemConfiguration().get(Property.TSERV_LOGGER_STRATEGY);
+    String className = getSystemConfiguration().get(Property.TSERV_LOGGER_STRATEGY);
     Class<? extends LoggerStrategy> klass = DEFAULT_LOGGER_STRATEGY;
     try {
       klass = AccumuloClassLoader.loadClass(className, LoggerStrategy.class);
@@ -2985,6 +2988,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     try {
       Constructor<? extends LoggerStrategy> constructor = klass.getConstructor(TabletServer.class);
       loggerStrategy = constructor.newInstance(this);
+      loggerStrategy.init(serverConfig);
     } catch (Exception ex) {
       log.warn("Unable to create object of type " + klass.getName() + " using " + DEFAULT_LOGGER_STRATEGY.getName());
     }
@@ -3088,10 +3092,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   public static void main(String[] args) throws IOException {
     try {
       FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
-      Accumulo.init(fs, "tserver");
       String hostname = Accumulo.getLocalAddress(args);
       Instance instance = HdfsZooInstance.getInstance();
-      TabletServer server = new TabletServer(instance, fs);
+      ServerConfiguration conf = new ServerConfiguration(instance);
+      Accumulo.init(fs, conf, "tserver");
+      TabletServer server = new TabletServer(conf, fs);
       server.config(hostname);
       Accumulo.enableTracing(hostname, "tserver");
       server.run();
@@ -3140,8 +3145,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private final AtomicInteger logIdGenerator = new AtomicInteger();
   
   public int createLogId(KeyExtent tablet) {
-    String table = tablet.getTableId().toString();
-    AccumuloConfiguration acuTableConf = ServerConfiguration.getTableConfiguration(table);
+    AccumuloConfiguration acuTableConf = getTableConfiguration(tablet);
     if (acuTableConf.getBoolean(Property.TABLE_WALOG_ENABLED)) {
       return logIdGenerator.incrementAndGet();
     }
@@ -3316,4 +3320,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     return METRICS_PREFIX;
   }
   
+  // public AccumuloConfiguration getTableConfiguration(String tableId) {
+  // return ServerConfiguration.getTableConfiguration(instance, tableId);
+  // }
+
+  public TableConfiguration getTableConfiguration(KeyExtent extent) {
+    return ServerConfiguration.getTableConfiguration(instance, extent.getTableId().toString());
+  }
+
 }

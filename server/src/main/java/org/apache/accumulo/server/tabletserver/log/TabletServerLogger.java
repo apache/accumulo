@@ -38,7 +38,6 @@ import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.tabletserver.thrift.LoggerClosedException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletMutations;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.tabletserver.Tablet;
 import org.apache.accumulo.server.tabletserver.Tablet.CommitSession;
 import org.apache.accumulo.server.tabletserver.TabletServer;
@@ -79,8 +78,7 @@ public class TabletServerLogger {
   private final AtomicInteger seqGen = new AtomicInteger();
   
   private static boolean enabled(Tablet tablet) {
-    String table = tablet.getExtent().getTableId().toString();
-    return ServerConfiguration.getTableConfiguration(table).getBoolean(Property.TABLE_WALOG_ENABLED);
+    return tablet.getTableConfiguration().getBoolean(Property.TABLE_WALOG_ENABLED);
   }
   
   private static boolean enabled(CommitSession commitSession) {
@@ -190,7 +188,7 @@ public class TabletServerLogger {
         if (!loggerAddresses.isEmpty()) {
           for (String logger : loggerAddresses) {
             try {
-              loggers.add(new RemoteLogger(logger, UUID.randomUUID()));
+              loggers.add(new RemoteLogger(logger, UUID.randomUUID(), tserver.getSystemConfiguration()));
             } catch (LoggerClosedException t) {
               close();
               break;

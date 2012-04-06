@@ -134,7 +134,7 @@ public class SecurityConstants {
       md.update(Constants.VERSION.getBytes());
       md.update(HdfsZooInstance.getInstance().getInstanceID().getBytes());
       
-      for (Entry<String,String> entry : ServerConfiguration.getSystemConfiguration()) {
+      for (Entry<String,String> entry : ServerConfiguration.getSiteConfiguration()) {
         // only include instance properties
         if (entry.getKey().startsWith(Property.INSTANCE_PREFIX.toString())) {
           md.update(entry.getKey().getBytes());

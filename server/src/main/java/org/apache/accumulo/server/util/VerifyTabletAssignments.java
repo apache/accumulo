@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.thrift.InitialMultiScan;
@@ -127,13 +128,14 @@ public class VerifyTabletAssignments {
     }
     
     Connector conn = instance.getConnector(user, passw.getBytes());
-    
+    ServerConfiguration conf = new ServerConfiguration(instance);
     for (String table : conn.tableOperations().list())
-      checkTable(user, passw, table, null, cl.hasOption(verboseOption.getOpt()));
+      checkTable(conf.getConfiguration(), user, passw, table, null, cl.hasOption(verboseOption.getOpt()));
     
   }
   
-  private static void checkTable(final String user, final String pass, String table, HashSet<KeyExtent> check, boolean verbose) throws AccumuloException,
+  private static void checkTable(final AccumuloConfiguration conf, final String user, final String pass, String table, HashSet<KeyExtent> check, boolean verbose)
+      throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, InterruptedException {
     
     if (check == null)
@@ -176,7 +178,7 @@ public class VerifyTabletAssignments {
         @Override
         public void run() {
           try {
-            checkTabletServer(user, ByteBuffer.wrap(pass.getBytes()), entry, failures);
+            checkTabletServer(conf, user, ByteBuffer.wrap(pass.getBytes()), entry, failures);
           } catch (Exception e) {
             System.err.println("Failure on ts " + entry.getKey() + " " + e.getMessage());
             e.printStackTrace();
@@ -194,7 +196,7 @@ public class VerifyTabletAssignments {
     while (!tp.awaitTermination(1, TimeUnit.HOURS)) {}
     
     if (failures.size() > 0)
-      checkTable(user, pass, table, failures, verbose);
+      checkTable(conf, user, pass, table, failures, verbose);
   }
   
   private static void checkFailures(String server, HashSet<KeyExtent> failures, MultiScanResult scanResult) {
@@ -205,9 +207,10 @@ public class VerifyTabletAssignments {
     }
   }
   
-  private static void checkTabletServer(final String user, final ByteBuffer pass, Entry<String,List<KeyExtent>> entry, HashSet<KeyExtent> failures)
+  private static void checkTabletServer(AccumuloConfiguration conf, final String user, final ByteBuffer pass, Entry<String,List<KeyExtent>> entry,
+      HashSet<KeyExtent> failures)
       throws ThriftSecurityException, TException, NoSuchScanIDException {
-    TabletClientService.Iface client = ThriftUtil.getTServerClient(entry.getKey(), ServerConfiguration.getSystemConfiguration());
+    TabletClientService.Iface client = ThriftUtil.getTServerClient(entry.getKey(), conf);
     
     AuthInfo st = new AuthInfo(user, pass, HdfsZooInstance.getInstance().getInstanceID());
     Map<TKeyExtent,List<TRange>> batch = new TreeMap<TKeyExtent,List<TRange>>();

@@ -24,9 +24,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.log4j.net.SocketNode;
@@ -70,9 +70,9 @@ public class LogService extends org.apache.log4j.AppenderSkeleton {
     }
   }
   
-  static void startLogListener() {
+  static void startLogListener(AccumuloConfiguration conf) {
     try {
-      new Daemon(new SocketServer(ServerConfiguration.getSystemConfiguration().getPort(Property.MONITOR_LOG4J_PORT))).start();
+      new Daemon(new SocketServer(conf.getPort(Property.MONITOR_LOG4J_PORT))).start();
     } catch (Throwable t) {
       log.info("Unable to listen to cluster-wide ports", t);
     }

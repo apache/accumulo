@@ -79,7 +79,7 @@ public class Accumulo {
     }
   }
   
-  public static void init(FileSystem fs, String application) throws UnknownHostException {
+  public static void init(FileSystem fs, ServerConfiguration config, String application) throws UnknownHostException {
     
     System.setProperty("org.apache.accumulo.core.application", application);
     
@@ -120,7 +120,7 @@ public class Accumulo {
     }
     
     TreeMap<String,String> sortedProps = new TreeMap<String,String>();
-    for (Entry<String,String> entry : ServerConfiguration.getSystemConfiguration())
+    for (Entry<String,String> entry : config.getConfiguration())
       sortedProps.put(entry.getKey(), entry.getValue());
     
     for (Entry<String,String> entry : sortedProps.entrySet()) {

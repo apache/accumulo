@@ -266,7 +266,7 @@ public class DefaultServlet extends BasicServlet {
       String consumed = "Unknown";
       String diskUsed = "Unknown";
       try {
-        Path path = new Path(ServerConfiguration.getSystemConfiguration().get(Property.INSTANCE_DFS_DIR));
+        Path path = new Path(Monitor.getSystemConfiguration().get(Property.INSTANCE_DFS_DIR));
         log.debug("Reading the content summary for " + path);
         ContentSummary acu = fs.getContentSummary(path);
         consumed = String.format("%.2f%%", acu.getSpaceConsumed() * 100. / fs.getUsed());

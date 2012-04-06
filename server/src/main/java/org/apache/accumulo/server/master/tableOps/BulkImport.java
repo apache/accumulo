@@ -337,24 +337,10 @@ class CompleteBulkImport extends MasterRepo {
 class LoadFiles extends MasterRepo {
   
   private static final long serialVersionUID = 1L;
-  final static int THREAD_POOL_SIZE = ServerConfiguration.getSystemConfiguration().getCount(Property.MASTER_BULK_THREADPOOL_SIZE);
   
   private static ExecutorService threadPool = null;
   static {
-    if (threadPool == null) {
-      ThreadFactory threadFactory = new ThreadFactory() {
-        int count = 0;
-        
-        @Override
-        public Thread newThread(Runnable r) {
-          return new Daemon(r, "bulk loader " + count++);
-        }
-      };
-      ThreadPoolExecutor pool = new ThreadPoolExecutor(THREAD_POOL_SIZE, THREAD_POOL_SIZE, 1l, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),
-          threadFactory);
-      pool.allowCoreThreadTimeOut(true);
-      threadPool = new TraceExecutorService(pool);
-    }
+
   }
   private static final Logger log = Logger.getLogger(BulkImport.class);
   
@@ -379,6 +365,24 @@ class LoadFiles extends MasterRepo {
     return 0;
   }
   
+  synchronized void initializeThreadPool(Master master) {
+    if (threadPool == null) {
+      int THREAD_POOL_SIZE = master.getSystemConfiguration().getCount(Property.MASTER_BULK_THREADPOOL_SIZE);
+      ThreadFactory threadFactory = new ThreadFactory() {
+        int count = 0;
+        
+        @Override
+        public Thread newThread(Runnable r) {
+          return new Daemon(r, "bulk loader " + count++);
+        }
+      };
+      ThreadPoolExecutor pool = new ThreadPoolExecutor(THREAD_POOL_SIZE, THREAD_POOL_SIZE, 1l, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),
+          threadFactory);
+      pool.allowCoreThreadTimeOut(true);
+      threadPool = new TraceExecutorService(pool);
+    }
+  }
+
   @Override
   public Repo<Master> call(final long tid, final Master master) throws Exception {
     final SiteConfiguration conf = ServerConfiguration.getSiteConfiguration();

@@ -22,6 +22,12 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 
 public abstract class LoggerStrategy {
+  private ServerConfiguration configuration = null;
+  
+  public void init(ServerConfiguration configuration) {
+    this.configuration = configuration;
+  }
+
   // Called by the tablet server to get the list of loggers to use from the available set
   public abstract Set<String> getLoggers(Set<String> allLoggers);
   
@@ -29,6 +35,6 @@ public abstract class LoggerStrategy {
   public abstract void preferLoggers(Set<String> preference);
   
   public int getNumberOfLoggersToUse() {
-    return ServerConfiguration.getSystemConfiguration().getCount(Property.TSERV_LOGGER_COUNT);
+    return configuration.getConfiguration().getCount(Property.TSERV_LOGGER_COUNT);
   }
 }

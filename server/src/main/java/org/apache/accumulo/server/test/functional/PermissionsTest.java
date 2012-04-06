@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -140,7 +141,7 @@ public class PermissionsTest {
             throw new IllegalStateException("Should NOT be able to set a table property");
           } catch (AccumuloSecurityException e) {
             if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-                || ServerConfiguration.getTableConfiguration(tableId).get(Property.TABLE_BLOOM_ERRORRATE).equals("003.14159%"))
+                || ServerConfiguration.getTableConfiguration(root_conn.getInstance(), tableId).get(Property.TABLE_BLOOM_ERRORRATE).equals("003.14159%"))
               throw e;
           }
           root_conn.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
@@ -149,7 +150,8 @@ public class PermissionsTest {
             throw new IllegalStateException("Should NOT be able to remove a table property");
           } catch (AccumuloSecurityException e) {
             if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED
-                || !ServerConfiguration.getTableConfiguration(tableId).get(Property.TABLE_BLOOM_ERRORRATE).equals("003.14159%"))
+                || !ServerConfiguration.getTableConfiguration(root_conn.getInstance(), tableId).get(Property.TABLE_BLOOM_ERRORRATE)
+                    .equals("003.14159%"))
               throw e;
           }
           String table2 = tableName + "2";
@@ -227,11 +229,12 @@ public class PermissionsTest {
           String table2 = tableName + "2";
           root_conn.tableOperations().create(tableName);
           tableId = Tables.getNameToIdMap(root_conn.getInstance()).get(tableName);
+          Instance instance = root_conn.getInstance();
           test_user_conn.tableOperations().setProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey(), "003.14159%");
-          if (!ServerConfiguration.getTableConfiguration(tableId).get(Property.TABLE_BLOOM_ERRORRATE).equals("003.14159%"))
+          if (!ServerConfiguration.getTableConfiguration(instance, tableId).get(Property.TABLE_BLOOM_ERRORRATE).equals("003.14159%"))
             throw new IllegalStateException("Should be able to set a table property");
           test_user_conn.tableOperations().removeProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey());
-          if (ServerConfiguration.getTableConfiguration(tableId).get(Property.TABLE_BLOOM_ERRORRATE).equals("003.14159%"))
+          if (ServerConfiguration.getTableConfiguration(instance, tableId).get(Property.TABLE_BLOOM_ERRORRATE).equals("003.14159%"))
             throw new IllegalStateException("Should be able to remove a table property");
           test_user_conn.tableOperations().rename(tableName, table2);
           if (root_conn.tableOperations().list().contains(tableName) || !root_conn.tableOperations().list().contains(table2))

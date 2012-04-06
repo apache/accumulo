@@ -56,6 +56,7 @@ import org.apache.accumulo.core.client.impl.ThriftTransportPool;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -331,6 +332,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
 
   private AtomicBoolean upgradeMetadataRunning = new AtomicBoolean(false);
 
+  private ServerConfiguration serverConfig;
+
   private void upgradeMetadata() {
     if (Accumulo.getAccumuloPersistentVersion(fs) == Constants.PREV_DATA_VERSION) {
       if (upgradeMetadataRunning.compareAndSet(false, true)) {
@@ -344,7 +347,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
 
               BatchWriter bw = getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 4);
               
-              FileStatus[] tables = fs.globStatus(new Path(Constants.getTablesDir(ServerConfiguration.getSystemConfiguration()) + "/*"));
+              FileStatus[] tables = fs.globStatus(new Path(Constants.getTablesDir(getSystemConfiguration()) + "/*"));
               for (FileStatus tableDir : tables) {
                 FileStatus[] bulkDirs = fs.globStatus(new Path(tableDir.getPath() + "/bulk_*"));
                 for (FileStatus bulkDir : bulkDirs) {
@@ -509,8 +512,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   }
   
   // @TODO: maybe move this to Property? We do this in TabletServer, Master, TableLoadBalancer, etc.
-  public static <T> T createInstanceFromPropertyName(Property property, Class<T> base, T defaultInstance) {
-    String clazzName = ServerConfiguration.getSystemConfiguration().get(property);
+  public static <T> T createInstanceFromPropertyName(AccumuloConfiguration conf, Property property, Class<T> base, T defaultInstance) {
+    String clazzName = conf.get(property);
     T instance = null;
     
     try {
@@ -528,18 +531,22 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     return instance;
   }
   
-  public Master(Instance instance, FileSystem fs, String hostname) throws IOException {
-    this.instance = instance;
+  public Master(ServerConfiguration config, FileSystem fs, String hostname) throws IOException {
+    this.serverConfig = config;
+    this.instance = config.getInstance();
     this.fs = TraceFileSystem.wrap(fs);
     this.hostname = hostname;
+    
+    AccumuloConfiguration aconf = serverConfig.getConfiguration();
 
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
-    ThriftTransportPool.getInstance().setIdleTime(ServerConfiguration.getSiteConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+    ThriftTransportPool.getInstance().setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
     authenticator = ZKAuthenticator.getInstance();
-    tserverSet = new LiveTServerSet(instance, this);
-    this.tabletBalancer = createInstanceFromPropertyName(Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
-    this.loggerBalancer = createInstanceFromPropertyName(Property.MASTER_LOGGER_BALANCER, LoggerBalancer.class, new SimpleLoggerBalancer());
+    tserverSet = new LiveTServerSet(instance, config.getConfiguration(), this);
+    this.tabletBalancer = createInstanceFromPropertyName(aconf, Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
+    this.tabletBalancer.init(serverConfig);
+    this.loggerBalancer = createInstanceFromPropertyName(aconf, Property.MASTER_LOGGER_BALANCER, LoggerBalancer.class, new SimpleLoggerBalancer());
   }
   
   public TServerConnection getConnection(TServerInstance server) {
@@ -1173,11 +1180,11 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       case HAVE_LOCK: // fall-through intended
       case INITIAL: // fall-through intended
       case SAFE_MODE:
-        if (tls.extent.getTableId().equals(METADATA_TABLE_ID))
+        if (tls.extent.isMeta())
           return TabletGoalState.HOSTED;
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_METADATA_TABLETS:
-        if (tls.extent.equals(Constants.ROOT_TABLET_EXTENT))
+        if (tls.extent.isRootTablet())
           return TabletGoalState.HOSTED;
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_ROOT_TABLET:
@@ -1929,7 +1936,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       TServerInstance instance = null;
       int crazyHoldTime = 0;
       int someHoldTime = 0;
-      final long maxWait = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.TSERV_HOLD_TIME_SUICIDE);
+      final long maxWait = getSystemConfiguration().getTimeInMillis(Property.TSERV_HOLD_TIME_SUICIDE);
       for (Entry<TServerInstance,TabletServerStatus> entry : tserverStatus.entrySet()) {
         if (entry.getValue().getHoldTime() > 0) {
           someHoldTime++;
@@ -1959,7 +1966,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       }
       List<String> logNames = new ArrayList<String>(loggers.getLoggersFromZooKeeper().values());
       Map<LoggerUser,List<String>> assignmentsOut = new HashMap<LoggerUser,List<String>>();
-      int loggersPerServer = ServerConfiguration.getSystemConfiguration().getCount(Property.TSERV_LOGGER_COUNT);
+      int loggersPerServer = getSystemConfiguration().getCount(Property.TSERV_LOGGER_COUNT);
       loggerBalancer.balance(logUsers, logNames, assignmentsOut, loggersPerServer);
       for (Entry<LoggerUser,List<String>> entry : assignmentsOut.entrySet()) {
         TServerUsesLoggers tserver = (TServerUsesLoggers) entry.getKey();
@@ -2040,11 +2047,11 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
     TableManager.getInstance().addObserver(this);
     
-    recovery = new CoordinateRecoveryTask(fs);
+    recovery = new CoordinateRecoveryTask(fs, getSystemConfiguration());
     Thread recoveryThread = new Daemon(new LoggingRunnable(log, recovery), "Recovery Status");
     recoveryThread.start();
     
-    loggers = new TabletServerLoggers(this, ServerConfiguration.getSystemConfiguration());
+    loggers = new TabletServerLoggers(this, getSystemConfiguration());
     loggers.scanZooKeeperForUpdates();
     
     StatusThread statusThread = new StatusThread();
@@ -2076,7 +2083,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     }
     
     Processor processor = new MasterClientService.Processor(TraceWrap.service(new MasterClientServiceHandler()));
-    clientService = TServerUtils.startServer(Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
+    clientService = TServerUtils.startServer(getSystemConfiguration(), Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
         Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK).server;
     
     while (!clientService.isServing()) {
@@ -2116,8 +2123,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       }
     };
     long current = System.currentTimeMillis();
-    final long waitTime = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    final String masterClientAddress = hostname + ":" + ServerConfiguration.getSystemConfiguration().getPort(Property.MASTER_CLIENTPORT);
+    final long waitTime = getSystemConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
+    final String masterClientAddress = hostname + ":" + getSystemConfiguration().getPort(Property.MASTER_CLIENTPORT);
     
     boolean locked = false;
     while (System.currentTimeMillis() - current < waitTime) {
@@ -2144,9 +2151,11 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   public static void main(String[] args) throws Exception {
     try {
       FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
-      Accumulo.init(fs, "master");
       String hostname = Accumulo.getLocalAddress(args);
-      Master master = new Master(HdfsZooInstance.getInstance(), fs, hostname);
+      Instance instance = HdfsZooInstance.getInstance();
+      ServerConfiguration conf = new ServerConfiguration(instance);
+      Accumulo.init(fs, conf, "master");
+      Master master = new Master(conf, fs, hostname);
       Accumulo.enableTracing(hostname, "master");
       master.run();
     } catch (Exception ex) {
@@ -2157,7 +2166,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   @Override
   public void newLogger(String address) {
     try {
-      RemoteLogger remote = new RemoteLogger(address);
+      RemoteLogger remote = new RemoteLogger(address, getSystemConfiguration());
       for (String onDisk : remote.getClosedLogs()) {
         Path path = new Path(ServerConstants.getRecoveryDir(), onDisk + ".failed");
         if (fs.exists(path)) {
@@ -2301,4 +2310,12 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     return this.instance;
   }
   
+  public AccumuloConfiguration getSystemConfiguration() {
+    return serverConfig.getConfiguration();
+  }
+  
+  public ServerConfiguration getConfiguration() {
+    return serverConfig;
+  }
+
 }

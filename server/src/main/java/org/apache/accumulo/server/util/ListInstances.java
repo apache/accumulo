@@ -56,7 +56,7 @@ public class ListInstances {
     if (args.length == 1) {
       zooKeepers = args[0];
     } else {
-      zooKeepers = ServerConfiguration.getSystemConfiguration().get(Property.INSTANCE_ZK_HOST);
+      zooKeepers = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST);
     }
     
     System.out.println("INFO : Using ZooKeepers " + zooKeepers);

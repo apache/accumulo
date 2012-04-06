@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.conf;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -30,10 +31,10 @@ class TableConfWatcher implements Watcher {
   }
   
   private static final Logger log = Logger.getLogger(TableConfWatcher.class);
-  private String instanceId = null;
+  private Instance instance = null;
   
-  TableConfWatcher(String instanceId) {
-    this.instanceId = instanceId;
+  TableConfWatcher(Instance instance) {
+    this.instance = instance;
   }
   
   @Override
@@ -42,7 +43,7 @@ class TableConfWatcher implements Watcher {
     if (log.isTraceEnabled())
       log.trace("WatchEvent : " + path + " " + event.getState() + " " + event.getType());
     
-    String tablesPrefix = ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/";
+    String tablesPrefix = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/";
     
     String tableId = null;
     String key = null;
@@ -68,10 +69,10 @@ class TableConfWatcher implements Watcher {
         if (log.isTraceEnabled())
           log.trace("EventNodeDataChanged " + event.getPath());
         if (key != null)
-          ServerConfiguration.getTableConfiguration(instanceId, tableId).propertyChanged(key);
+          ServerConfiguration.getTableConfiguration(instance, tableId).propertyChanged(key);
         break;
       case NodeChildrenChanged:
-        ServerConfiguration.getTableConfiguration(instanceId, tableId).propertiesChanged(key);
+        ServerConfiguration.getTableConfiguration(instance, tableId).propertiesChanged(key);
         break;
       case NodeDeleted:
         if (key == null) {

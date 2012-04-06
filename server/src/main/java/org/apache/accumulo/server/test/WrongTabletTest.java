@@ -32,8 +32,9 @@ public class WrongTabletTest {
   
   public static void main(String[] args) {
     String location = args[0];
+    ServerConfiguration conf = new ServerConfiguration(HdfsZooInstance.getInstance());
     try {
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, ServerConfiguration.getSystemConfiguration());
+      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, conf.getConfiguration());
       
       Mutation mutation = new Mutation(new Text("row_0003750001"));
       // mutation.set(new Text("colf:colq"), new Value("val".getBytes()));

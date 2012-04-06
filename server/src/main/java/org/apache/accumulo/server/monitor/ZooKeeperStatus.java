@@ -65,7 +65,7 @@ public class ZooKeeperStatus implements Runnable {
       
       List<ZooKeeperState> update = new ArrayList<ZooKeeperState>();
       
-      String zookeepers[] = ServerConfiguration.getSystemConfiguration().get(Property.INSTANCE_ZK_HOST).split(",");
+      String zookeepers[] = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST).split(",");
       for (String keeper : zookeepers) {
         int clients = 0;
         String mode = "unknown";

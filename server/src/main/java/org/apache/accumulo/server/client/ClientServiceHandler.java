@@ -56,8 +56,10 @@ public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = Logger.getLogger(ClientServiceHandler.class);
   private static Authenticator authenticator = ZKAuthenticator.getInstance();
   private final TransactionWatcher transactionWatcher;
+  private final Instance instance;
   
-  public ClientServiceHandler(TransactionWatcher transactionWatcher) {
+  public ClientServiceHandler(Instance instance, TransactionWatcher transactionWatcher) {
+    this.instance = instance;
     this.transactionWatcher = transactionWatcher;
   }
   
@@ -85,7 +87,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   
   @Override
   public String getZooKeepers() {
-    return ServerConfiguration.getSystemConfiguration().get(Property.INSTANCE_ZK_HOST);
+    return instance.getZooKeepers();
   }
   
   @Override
@@ -231,7 +233,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public Map<String,String> getConfiguration(ConfigurationType type) throws TException {
     switch (type) {
       case CURRENT:
-        return conf(ServerConfiguration.getSystemConfiguration());
+        return conf(new ServerConfiguration(instance).getConfiguration());
       case SITE:
         return conf(ServerConfiguration.getSiteConfiguration());
       case DEFAULT:
@@ -242,9 +244,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   
   @Override
   public Map<String,String> getTableConfiguration(String tableName) throws TException, ThriftTableOperationException {
-    Instance instance = HdfsZooInstance.getInstance();
     String tableId = checkTableId(tableName, null);
-    return conf(ServerConfiguration.getTableConfiguration(instance.getInstanceID(), tableId));
+    return conf(new ServerConfiguration(instance).getTableConfiguration(tableId));
   }
   
   @Override
@@ -255,7 +256,7 @@ public class ClientServiceHandler implements ClientService.Iface {
         throw new AccumuloSecurityException(credentials.getUser(), SecurityErrorCode.PERMISSION_DENIED);
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
         public List<String> call() throws Exception {
-          return BulkImporter.bulkLoad(ServerConfiguration.getSystemConfiguration(), HdfsZooInstance.getInstance(), credentials, tid, tableId, files, errorDir,
+          return BulkImporter.bulkLoad(new ServerConfiguration(instance).getConfiguration(), instance, credentials, tid, tableId, files, errorDir,
               setTime);
         }
       });

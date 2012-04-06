@@ -16,13 +16,15 @@
  */
 package org.apache.accumulo.server.conf;
 
+import org.apache.accumulo.server.client.HdfsZooInstance;
+
 public class ConfigSanityCheck {
   
   /**
    * @param args
    */
   public static void main(String[] args) {
-    ServerConfiguration.getSystemConfiguration();
+    new ServerConfiguration(HdfsZooInstance.getInstance()).getConfiguration();
   }
   
 }

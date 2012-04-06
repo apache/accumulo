@@ -36,7 +36,6 @@ import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
 import org.apache.accumulo.server.monitor.LogService;
 import org.apache.accumulo.server.monitor.Monitor;
@@ -107,7 +106,7 @@ public class MasterServlet extends BasicServlet {
           long diff = System.currentTimeMillis() - start;
           gcStatus = label + " " + DateFormat.getInstance().format(new Date(start));
           gcStatus = gcStatus.replace(" ", "&nbsp;");
-          long normalDelay = ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
+          long normalDelay = Monitor.getSystemConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
           if (diff > normalDelay * 2)
             gcStatus = "<span class='warning'>" + gcStatus + "</span>";
         }
@@ -168,7 +167,6 @@ public class MasterServlet extends BasicServlet {
   
   private void doRecoveryList(HttpServletRequest req, StringBuilder sb) {
     MasterMonitorInfo mmi = Monitor.getMmi();
-    boolean sortingUsesMapReduce = ServerConfiguration.getSystemConfiguration().getBoolean(Property.MASTER_RECOVERY_SORT_MAPREDUCE);
     if (mmi != null) {
       List<RecoveryStatus> jobs = mmi.recovery;
       if (jobs != null && jobs.size() > 0) {
@@ -177,13 +175,7 @@ public class MasterServlet extends BasicServlet {
         recoveryTable.addSortableColumn("Server", new LoggerLinkType(), null);
         recoveryTable.addSortableColumn("Log");
         recoveryTable.addSortableColumn("Time", new DurationType(), null);
-        if (sortingUsesMapReduce) {
-          recoveryTable.addSortableColumn("Copy", new ProgressChartType(), null);
-          recoveryTable.addSortableColumn("Map", new ProgressChartType(), null);
-          recoveryTable.addSortableColumn("Reduce", new ProgressChartType(), null);
-        } else {
-          recoveryTable.addSortableColumn("Copy/Sort", new ProgressChartType(), null);
-        }
+        recoveryTable.addSortableColumn("Copy/Sort", new ProgressChartType(), null);
         
         for (RecoveryStatus recovery : jobs) {
           TableRow row = recoveryTable.prepareRow();
@@ -191,10 +183,6 @@ public class MasterServlet extends BasicServlet {
           row.add(recovery.name);
           row.add((long) recovery.runtime);
           row.add(recovery.copyProgress);
-          if (sortingUsesMapReduce) {
-            row.add(recovery.mapProgress);
-            row.add(recovery.reduceProgress);
-          }
           recoveryTable.addRow(row);
         }
         recoveryTable.generate(req, sb);

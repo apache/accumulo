@@ -27,7 +27,6 @@ import java.util.concurrent.Callable;
 
 import org.apache.accumulo.cloudtrace.instrument.Span;
 import org.apache.accumulo.cloudtrace.instrument.Trace;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -36,8 +35,8 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.CountingIterator;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
@@ -45,7 +44,6 @@ import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
@@ -115,12 +113,11 @@ public class Compactor implements Callable<CompactionStats> {
     
     try {
       FileOperations fileFactory = FileOperations.getInstance();
-      AccumuloConfiguration tableConf = ServerConfiguration.getTableConfiguration(extent.getTableId().toString());
-      mfw = fileFactory.openWriter(outputFile, fs, conf, tableConf);
+      mfw = fileFactory.openWriter(outputFile, fs, conf, acuTableConf);
       
       Map<String,Set<ByteSequence>> lGroups;
       try {
-        lGroups = LocalityGroupUtil.getLocalityGroups(tableConf);
+        lGroups = LocalityGroupUtil.getLocalityGroups(acuTableConf);
       } catch (LocalityGroupConfigurationError e) {
         throw new IOException(e);
       }
@@ -146,7 +143,7 @@ public class Compactor implements Callable<CompactionStats> {
       
       // Verify the file, since hadoop 0.20.2 sometimes lies about the success of close()
       try {
-        FileSKVIterator openReader = fileFactory.openReader(outputFile, false, fs, conf, tableConf);
+        FileSKVIterator openReader = fileFactory.openReader(outputFile, false, fs, conf, acuTableConf);
         openReader.close();
       } catch (IOException ex) {
         log.error("Verification of successful compaction fails!!! " + extent + " " + outputFile, ex);
@@ -156,7 +153,7 @@ public class Compactor implements Callable<CompactionStats> {
       log.debug(String.format("Compaction %s %,d read | %,d written | %,6d entries/sec | %6.3f secs", extent, majCStats.getEntriesRead(),
           majCStats.getEntriesWritten(), (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0));
       
-      majCStats.setFileSize(fileFactory.getFileSize(outputFile, fs, conf, ServerConfiguration.getTableConfiguration(extent.getTableId().toString())));
+      majCStats.setFileSize(fileFactory.getFileSize(outputFile, fs, conf, acuTableConf));
       return majCStats;
     } catch (IOException e) {
       log.error(e, e);
@@ -194,9 +191,7 @@ public class Compactor implements Callable<CompactionStats> {
         
         FileSKVIterator reader;
         
-        AccumuloConfiguration tableConf = ServerConfiguration.getTableConfiguration(extent.getTableId().toString());
-        
-        reader = fileFactory.openReader(mapFile, false, fs, conf, tableConf);
+        reader = fileFactory.openReader(mapFile, false, fs, conf, acuTableConf);
         
         readers.add(reader);
         

@@ -21,9 +21,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -61,7 +61,7 @@ public class TableConfiguration extends AccumuloConfiguration {
     if (tablePropCache == null)
       synchronized (TableConfiguration.class) {
         if (tablePropCache == null)
-          tablePropCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new TableConfWatcher(inst.getInstanceID()));
+          tablePropCache = new ZooCache(inst.getZooKeepers(), inst.getZooKeepersSessionTimeOut(), new TableConfWatcher(inst));
       }
     return tablePropCache;
   }
@@ -146,5 +146,9 @@ public class TableConfiguration extends AccumuloConfiguration {
     }
     
     return entries.entrySet().iterator();
+  }
+  
+  public String getTableId() {
+    return table;
   }
 }

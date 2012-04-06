@@ -30,8 +30,8 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -134,8 +134,8 @@ public class FileSystemMonitor {
     }
   }
   
-  public static void start(Property prop) {
-    if (ServerConfiguration.getSystemConfiguration().getBoolean(prop)) {
+  public static void start(AccumuloConfiguration conf, Property prop) {
+    if (conf.getBoolean(prop)) {
       if (new File(PROC_MOUNTS).exists()) {
         try {
           new FileSystemMonitor(PROC_MOUNTS, 60000);

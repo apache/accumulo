@@ -46,12 +46,13 @@ public class DumpTabletsOnServer {
       System.exit(-1);
     }
     Instance instance = HdfsZooInstance.getInstance();
+    ServerConfiguration conf = new ServerConfiguration(instance);
     String tableId = Tables.getTableId(instance, args[1]);
     if (tableId == null) {
       System.err.println("Cannot find table " + args[1] + " in zookeeper");
       System.exit(-1);
     }
-    List<TabletStats> onlineTabletsForTable = ThriftUtil.getTServerClient(args[0], ServerConfiguration.getSystemConfiguration()).getTabletStats(null,
+    List<TabletStats> onlineTabletsForTable = ThriftUtil.getTServerClient(args[0], conf.getConfiguration()).getTabletStats(null,
         SecurityConstants.getSystemCredentials(), tableId);
     for (TabletStats stats : onlineTabletsForTable) {
       print("%s", stats.extent);

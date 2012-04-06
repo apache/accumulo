@@ -114,12 +114,14 @@ public class LogService implements MutationLogger.Iface, Watcher {
   
   public static void main(String[] args) throws Exception {
     LogService logService;
-    FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
-    Accumulo.init(fs, "logger");
+    Instance instance = HdfsZooInstance.getInstance();
+    ServerConfiguration conf = new ServerConfiguration(instance);
+    FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), conf.getConfiguration());
+    Accumulo.init(fs, conf, "logger");
     
     String hostname = Accumulo.getLocalAddress(args);
     try {
-      logService = new LogService(HdfsZooInstance.getInstance(), fs, hostname);
+      logService = new LogService(conf, fs, hostname);
     } catch (Exception e) {
       LOG.fatal("Failed to initialize log service args=" + Arrays.asList(args), e);
       throw e;
@@ -132,13 +134,14 @@ public class LogService implements MutationLogger.Iface, Watcher {
     }
   }
   
-  public LogService(Instance instance, FileSystem fs, String hostname) throws UnknownHostException, KeeperException, InterruptedException, IOException {
-    this.instance = instance;
-    FileSystemMonitor.start(Property.LOGGER_MONITOR_FS);
+  public LogService(ServerConfiguration config, FileSystem fs, String hostname) throws UnknownHostException, KeeperException, InterruptedException, IOException {
+    this.instance = config.getInstance();
+    AccumuloConfiguration acuConf = config.getConfiguration();
+    FileSystemMonitor.start(acuConf, Property.LOGGER_MONITOR_FS);
     
     fs = TraceFileSystem.wrap(fs);
     final Set<String> rootDirs = new HashSet<String>();
-    for (String root : ServerConfiguration.getSystemConfiguration().get(Property.LOGGER_DIR).split(",")) {
+    for (String root : acuConf.get(Property.LOGGER_DIR).split(",")) {
       if (!root.startsWith("/"))
         root = System.getenv("ACCUMULO_HOME") + "/" + root;
       else if (root.equals(""))
@@ -173,9 +176,8 @@ public class LogService implements MutationLogger.Iface, Watcher {
     }
     
     authenticator = ZKAuthenticator.getInstance();
-    int poolSize = ServerConfiguration.getSystemConfiguration().getCount(Property.LOGGER_COPY_THREADPOOL_SIZE);
-    boolean archive = ServerConfiguration.getSystemConfiguration().getBoolean(Property.LOGGER_ARCHIVE);
-    AccumuloConfiguration acuConf = ServerConfiguration.getSystemConfiguration();
+    int poolSize = acuConf.getCount(Property.LOGGER_COPY_THREADPOOL_SIZE);
+    boolean archive = acuConf.getBoolean(Property.LOGGER_ARCHIVE);
     writer_ = new LogWriter(acuConf, fs, rootDirs, instance.getInstanceID(), poolSize, archive);
     InvocationHandler h = new InvocationHandler() {
       @Override
@@ -210,7 +212,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
     writer = (MutationLogger.Iface) Proxy.newProxyInstance(MutationLogger.Iface.class.getClassLoader(), new Class[] {MutationLogger.Iface.class}, h);
     // Create the thrift-based logging service
     MutationLogger.Processor processor = new MutationLogger.Processor(TraceWrap.service(this));
-    ServerPort sp = TServerUtils.startServer(Property.LOGGER_PORT, processor, this.getClass().getSimpleName(), "Logger Client Service Handler",
+    ServerPort sp = TServerUtils.startServer(acuConf, Property.LOGGER_PORT, processor, this.getClass().getSimpleName(), "Logger Client Service Handler",
         Property.LOGGER_PORTSEARCH, Property.LOGGER_MINTHREADS, Property.LOGGER_THREADCHECK);
     service = sp.server;
     InetSocketAddress address = new InetSocketAddress(hostname, sp.port);

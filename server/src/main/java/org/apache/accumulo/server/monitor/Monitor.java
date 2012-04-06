@@ -30,6 +30,7 @@ import java.util.Set;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
@@ -140,6 +141,8 @@ public class Monitor {
   private static GCStatus gcStatus;
   
   private static Instance instance;
+  
+  private static ServerConfiguration config;
   
   public static Map<String,Double> summarizeTableStats(MasterMonitorInfo mmi) {
     Map<String,Double> compactingByTable = new HashMap<String,Double>();
@@ -399,7 +402,7 @@ public class Monitor {
       Instance instance = HdfsZooInstance.getInstance();
       String zooKeepers = instance.getZooKeepers();
       log.debug("connecting to zookeepers " + zooKeepers);
-      ZooKeeper zk = new ZooKeeper(zooKeepers, (int) ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), new Watcher() {
+      ZooKeeper zk = new ZooKeeper(zooKeepers, (int) config.getConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), new Watcher() {
         @Override
         public void process(WatchedEvent event) {}
       });
@@ -409,7 +412,7 @@ public class Monitor {
         if (locks != null && locks.size() > 0) {
           Collections.sort(locks);
           InetSocketAddress address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null, null))).getAddress(Service.GC_CLIENT);
-          GCMonitorService.Iface client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, ServerConfiguration.getSystemConfiguration());
+          GCMonitorService.Iface client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, config.getConfiguration());
           try {
             result = client.getStatus(null, SecurityConstants.getSystemCredentials());
           } finally {
@@ -427,9 +430,10 @@ public class Monitor {
   
   public static void main(String[] args) throws Exception {
     FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
-    Accumulo.init(fs, "monitor");
     String hostname = Accumulo.getLocalAddress(args);
     instance = HdfsZooInstance.getInstance();
+    config = new ServerConfiguration(instance);
+    Accumulo.init(fs, config, "monitor");
     Monitor monitor = new Monitor();
     Accumulo.enableTracing(hostname, "monitor");
     monitor.run(hostname);
@@ -439,7 +443,7 @@ public class Monitor {
   
   public void run(String hostname) {
     Monitor.START_TIME = System.currentTimeMillis();
-    int port = ServerConfiguration.getSystemConfiguration().getPort(Property.MONITOR_PORT);
+    int port = config.getConfiguration().getPort(Property.MONITOR_PORT);
     EmbeddedWebServer server;
     try {
       log.debug("Creating monitor on port " + port);
@@ -463,7 +467,7 @@ public class Monitor {
     server.addServlet(Summary.class, "/trace/summary");
     server.addServlet(ListType.class, "/trace/listType");
     server.addServlet(ShowTrace.class, "/trace/show");
-    LogService.startLogListener();
+    LogService.startLogListener(Monitor.getSystemConfiguration());
     server.start();
     
     new Daemon(new LoggingRunnable(log, new ZooKeeperStatus()), "ZooKeeperStatus").start();
@@ -615,5 +619,12 @@ public class Monitor {
     synchronized (dataCacheHitRateOverTime) {
       return new ArrayList<Pair<Long,Double>>(dataCacheHitRateOverTime);
     }
+  }
+  
+  /**
+   * @return
+   */
+  public static AccumuloConfiguration getSystemConfiguration() {
+    return config.getConfiguration();
   }
 }

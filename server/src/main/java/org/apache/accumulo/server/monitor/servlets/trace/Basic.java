@@ -30,7 +30,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.TraceDump;
 import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.monitor.servlets.BasicServlet;
 
 abstract class Basic extends BasicServlet {
@@ -63,7 +63,7 @@ abstract class Basic extends BasicServlet {
   }
   
   protected Scanner getScanner(StringBuilder sb) throws AccumuloException {
-    AccumuloConfiguration conf = ServerConfiguration.getSystemConfiguration();
+    AccumuloConfiguration conf = Monitor.getSystemConfiguration();
     String user = conf.get(Property.TRACE_USER);
     byte[] passwd = conf.get(Property.TRACE_PASSWORD).getBytes();
     String table = conf.get(Property.TRACE_TABLE);

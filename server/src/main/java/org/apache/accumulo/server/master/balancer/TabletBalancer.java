@@ -26,8 +26,8 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
+import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
@@ -40,6 +40,15 @@ import org.apache.thrift.transport.TTransportException;
 public abstract class TabletBalancer {
   
   private static final Logger log = Logger.getLogger(TabletBalancer.class);
+  
+  protected ServerConfiguration configuration;
+
+  /**
+   * Initialize the TabletBalancer. This gives the balancer the opportunity to read the configuration.
+   */
+  public void init(ServerConfiguration conf) {
+    configuration = conf;
+  }
   
   /**
    * Assign tablets to tablet servers. This method is called whenever the master finds tablets that are unassigned.
@@ -86,7 +95,7 @@ public abstract class TabletBalancer {
    */
   public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
     log.debug("Scanning tablet server " + tserver + " for table " + tableId);
-    Iface client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), tserver.getLocation(), ServerConfiguration.getSystemConfiguration());
+    Iface client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), tserver.getLocation(), configuration.getConfiguration());
     try {
       List<TabletStats> onlineTabletsForTable = client.getTabletStats(null, SecurityConstants.getSystemCredentials(), tableId);
       return onlineTabletsForTable;

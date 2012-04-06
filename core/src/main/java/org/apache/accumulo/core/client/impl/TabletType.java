@@ -25,9 +25,9 @@ public enum TabletType {
   ROOT, METADATA, USER;
   
   public static TabletType type(KeyExtent ke) {
-    if (ke.equals(Constants.ROOT_TABLET_EXTENT))
+    if (ke.isRootTablet())
       return ROOT;
-    if (ke.getTableId().toString().equals(Constants.METADATA_TABLE_ID))
+    if (ke.isMeta())
       return METADATA;
     return USER;
   }

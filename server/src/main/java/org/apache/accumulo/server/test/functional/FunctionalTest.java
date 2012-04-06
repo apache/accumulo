@@ -161,7 +161,7 @@ public abstract class FunctionalTest {
   }
   
   protected Instance getInstance() {
-    return new ZooKeeperInstance(getInstanceName(), ServerConfiguration.getSystemConfiguration().get(Property.INSTANCE_ZK_HOST));
+    return new ZooKeeperInstance(getInstanceName(), ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST));
   }
   
   protected void setInstanceName(String instanceName) {

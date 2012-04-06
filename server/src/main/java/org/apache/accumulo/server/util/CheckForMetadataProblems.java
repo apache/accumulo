@@ -21,11 +21,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.Writer;
@@ -35,8 +36,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.client.HdfsZooInstance;
+import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -102,15 +106,15 @@ public class CheckForMetadataProblems {
       sawProblems = true;
   }
   
-  public static void checkMetadataTableEntries(boolean offline, boolean patch) throws Exception {
+  public static void checkMetadataTableEntries(ServerConfiguration conf, FileSystem fs, boolean offline, boolean patch) throws Exception {
     Map<String,TreeSet<KeyExtent>> tables = new HashMap<String,TreeSet<KeyExtent>>();
     
     Scanner scanner;
     
     if (offline) {
-      scanner = new OfflineMetadataScanner();
+      scanner = new OfflineMetadataScanner(conf.getConfiguration(), fs);
     } else {
-      scanner = new ScannerImpl(HdfsZooInstance.getInstance(), new AuthInfo(user, ByteBuffer.wrap(pass), HdfsZooInstance.getInstance().getInstanceID()),
+      scanner = new ScannerImpl(conf.getInstance(), new AuthInfo(user, ByteBuffer.wrap(pass), conf.getInstance().getInstanceID()),
           Constants.METADATA_TABLE_ID, Constants.NO_AUTHS);
     }
     
@@ -215,12 +219,16 @@ public class CheckForMetadataProblems {
   public static void main(String[] args) throws Exception {
     args = processOptions(args);
     
+    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
+    Instance instance = HdfsZooInstance.getInstance();
+    ServerConfiguration conf = new ServerConfiguration(instance);
+
     if (args.length == 2) {
       user = args[0];
       pass = args[1].getBytes();
-      checkMetadataTableEntries(offline, fix);
+      checkMetadataTableEntries(conf, fs, offline, fix);
     } else if (args.length == 0 && offline) {
-      checkMetadataTableEntries(offline, fix);
+      checkMetadataTableEntries(conf, fs, offline, fix);
     } else {
       System.out.println("Usage: " + CheckForMetadataProblems.class.getName() + " (--offline)|([--debug] [--fix] <username> <password>)");
       System.exit(-1);

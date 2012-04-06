@@ -51,6 +51,7 @@ import org.apache.accumulo.core.client.impl.BatchWriterImpl;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.client.impl.ThriftScanner;
 import org.apache.accumulo.core.client.impl.Writer;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -231,7 +232,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   }
   
   public static void updateTabletFlushID(KeyExtent extent, long flushID, AuthInfo credentials, ZooLock zooLock) {
-    if (!extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+    if (!extent.isRootTablet()) {
       Mutation m = new Mutation(extent.getMetadataEntry());
       ColumnFQ.put(m, Constants.METADATA_FLUSH_COLUMN, new Value((flushID + "").getBytes()));
       update(credentials, zooLock, m);
@@ -239,7 +240,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   }
   
   public static void updateTabletCompactID(KeyExtent extent, long compactID, AuthInfo credentials, ZooLock zooLock) {
-    if (!extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+    if (!extent.isRootTablet()) {
       Mutation m = new Mutation(extent.getMetadataEntry());
       ColumnFQ.put(m, Constants.METADATA_COMPACT_COLUMN, new Value((compactID + "").getBytes()));
       update(credentials, zooLock, m);
@@ -322,12 +323,13 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     return results;
   }
   
-  public static boolean getBatchFromRootTablet(AuthInfo credentials, Text startRow, SortedMap<Key,Value> results, SortedSet<Column> columns,
+  public static boolean getBatchFromRootTablet(AccumuloConfiguration conf, AuthInfo credentials, Text startRow, SortedMap<Key,Value> results,
+      SortedSet<Column> columns,
       boolean skipStartRow, int size) throws AccumuloSecurityException {
     while (true) {
       try {
         return ThriftScanner.getBatchFromServer(credentials, startRow, Constants.ROOT_TABLET_EXTENT, HdfsZooInstance.getInstance().getRootTabletLocation(),
-            results, columns, skipStartRow, size, Constants.NO_AUTHS, true, ServerConfiguration.getSystemConfiguration());
+            results, columns, skipStartRow, size, Constants.NO_AUTHS, true, conf);
       } catch (NotServingTabletException e) {
         UtilWaitThread.sleep(100);
       } catch (AccumuloException e) {
@@ -341,24 +343,24 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
    * convenience method for reading a metadata tablet's data file entries from the root tablet
    * 
    */
-  public static SortedMap<Key,Value> getRootMetadataDataFileEntries(KeyExtent extent, AuthInfo credentials) {
+  public static SortedMap<Key,Value> getRootMetadataDataFileEntries(AccumuloConfiguration conf, KeyExtent extent, AuthInfo credentials) {
     SortedSet<Column> columns = new TreeSet<Column>();
     columns.add(new Column(TextUtil.getBytes(Constants.METADATA_DATAFILE_COLUMN_FAMILY), null, null));
-    return getRootMetadataDataEntries(extent, columns, credentials);
+    return getRootMetadataDataEntries(conf, extent, columns, credentials);
   }
   
-  public static SortedMap<Key,Value> getRootMetadataDataEntries(KeyExtent extent, SortedSet<Column> columns, AuthInfo credentials) {
+  public static SortedMap<Key,Value> getRootMetadataDataEntries(AccumuloConfiguration conf, KeyExtent extent, SortedSet<Column> columns, AuthInfo credentials) {
     
     try {
       SortedMap<Key,Value> entries = new TreeMap<Key,Value>();
       
       Text metadataEntry = extent.getMetadataEntry();
       Text startRow;
-      boolean more = getBatchFromRootTablet(credentials, metadataEntry, entries, columns, false, Constants.SCAN_BATCH_SIZE);
+      boolean more = getBatchFromRootTablet(conf, credentials, metadataEntry, entries, columns, false, Constants.SCAN_BATCH_SIZE);
       
       while (more) {
         startRow = entries.lastKey().getRow(); // set end row
-        more = getBatchFromRootTablet(credentials, startRow, entries, columns, false, Constants.SCAN_BATCH_SIZE);
+        more = getBatchFromRootTablet(conf, credentials, startRow, entries, columns, false, Constants.SCAN_BATCH_SIZE);
       }
       
       Iterator<Key> iter = entries.keySet().iterator();
@@ -813,7 +815,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
       return;
     // entries should be a complete log set, so we should only need to write the first entry
     LogEntry entry = entries.get(0);
-    if (entry.extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+    if (entry.extent.isRootTablet()) {
       String root = getZookeeperLogLocation();
       while (true) {
         try {
@@ -856,7 +858,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     ArrayList<LogEntry> result = new ArrayList<LogEntry>();
     TreeMap<String,DataFileValue> sizes = new TreeMap<String,DataFileValue>();
     
-    if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+    if (extent.isRootTablet()) {
       getRootLogEntries(result);
       FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));
       FileStatus[] files = fs.listStatus(new Path(ServerConstants.getRootTabletDir()));
@@ -992,7 +994,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   
   public static void removeUnusedWALEntries(KeyExtent extent, List<LogEntry> logEntries, ZooLock zooLock) {
     for (LogEntry entry : logEntries) {
-      if (entry.extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+      if (entry.extent.isRootTablet()) {
         String root = getZookeeperLogLocation();
         while (true) {
           try {

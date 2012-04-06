@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.accumulo.cloudtrace.instrument.Span;
 import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
@@ -40,7 +41,6 @@ import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.util.MetadataTable.LogEntry;
@@ -58,7 +58,15 @@ import org.apache.zookeeper.KeeperException;
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = Logger.getLogger(GarbageCollectWriteAheadLogs.class);
   
-  public static void collect(FileSystem fs, GCStatus status) {
+  private final AccumuloConfiguration conf;
+  private final FileSystem fs;
+  
+  GarbageCollectWriteAheadLogs(FileSystem fs, AccumuloConfiguration conf) {
+    this.fs = fs;
+    this.conf = conf;
+  }
+
+  public void collect(GCStatus status) {
     
     Span span = Trace.start("scanServers");
     try {
@@ -88,7 +96,7 @@ public class GarbageCollectWriteAheadLogs {
       span = Trace.start("removeFiles");
       Map<String,ArrayList<String>> serverToFileMap = mapServersToFiles(fileToServerMap);
       
-      count = removeFiles(fs, serverToFileMap, status);
+      count = removeFiles(serverToFileMap, status);
       
       long removeStop = System.currentTimeMillis();
       log.info(String.format("%d total logs removed from %d servers in %.2f seconds", count, serverToFileMap.size(), (removeStop - logEntryScanStop) / 1000.));
@@ -103,7 +111,7 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
   
-  private static int removeFiles(final FileSystem fs, Map<String,ArrayList<String>> serverToFileMap, final GCStatus status) {
+  private int removeFiles(Map<String,ArrayList<String>> serverToFileMap, final GCStatus status) {
     final AtomicInteger count = new AtomicInteger();
     ExecutorService threadPool = java.util.concurrent.Executors.newCachedThreadPool();
     
@@ -114,8 +122,7 @@ public class GarbageCollectWriteAheadLogs {
         @Override
         public void run() {
           try {
-            Iface logger = ThriftUtil.getClient(new MutationLogger.Client.Factory(), server, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT,
-                ServerConfiguration.getSystemConfiguration());
+            Iface logger = ThriftUtil.getClient(new MutationLogger.Client.Factory(), server, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT, conf);
             try {
               count.addAndGet(files.size());
               log.debug(String.format("removing %d files from %s", files.size(), server));
@@ -186,7 +193,7 @@ public class GarbageCollectWriteAheadLogs {
     return count;
   }
   
-  private static int scanServers(Map<String,String> fileToServerMap) throws Exception {
+  private int scanServers(Map<String,String> fileToServerMap) throws Exception {
     int count = 0;
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
     String loggersDir = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZLOGGERS;
@@ -198,8 +205,7 @@ public class GarbageCollectWriteAheadLogs {
       try {
         byte[] data = zk.getData(loggersDir + "/" + server, null);
         address = new String(data);
-        Iface logger = ThriftUtil.getClient(new MutationLogger.Client.Factory(), address, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT,
-            ServerConfiguration.getSystemConfiguration());
+        Iface logger = ThriftUtil.getClient(new MutationLogger.Client.Factory(), address, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT, conf);
         for (String log : logger.getClosedLogs(null, SecurityConstants.getSystemCredentials())) {
           fileToServerMap.put(log, address);
         }

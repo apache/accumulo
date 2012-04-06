@@ -26,7 +26,6 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.fate.Repo;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.tableOps.MasterRepo;
@@ -60,7 +59,7 @@ public class DisconnectLogger extends MasterRepo {
         InetSocketAddress addr = AddressUtil.parseAddress(entry.getValue(), 0);
         if (addr.getAddress().getHostAddress().equals(location)) {
           foundMatch = true;
-          MutationLogger.Iface client = ThriftUtil.getClient(new MutationLogger.Client.Factory(), addr, ServerConfiguration.getSystemConfiguration());
+          MutationLogger.Iface client = ThriftUtil.getClient(new MutationLogger.Client.Factory(), addr, m.getSystemConfiguration());
           try {
             client.beginShutdown(null, SecurityConstants.getSystemCredentials());
           } catch (Exception ex) {

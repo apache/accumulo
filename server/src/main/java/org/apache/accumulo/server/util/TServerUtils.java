@@ -33,13 +33,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.TBufferedSocket;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.thrift.metrics.ThriftMetrics;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.log4j.Logger;
@@ -88,18 +88,19 @@ public class TServerUtils {
    * @throws UnknownHostException
    *           when we don't know our own address
    */
-  public static ServerPort startServer(Property portHintProperty, TProcessor processor, String serverName, String threadName, Property portSearchProperty,
+  public static ServerPort startServer(AccumuloConfiguration conf, Property portHintProperty, TProcessor processor, String serverName, String threadName,
+      Property portSearchProperty,
       Property minThreadProperty, Property timeBetweenThreadChecksProperty) throws UnknownHostException {
-    int portHint = ServerConfiguration.getSystemConfiguration().getPort(portHintProperty);
+    int portHint = conf.getPort(portHintProperty);
     int minThreads = 2;
     if (minThreadProperty != null)
-      minThreads = ServerConfiguration.getSystemConfiguration().getCount(minThreadProperty);
+      minThreads = conf.getCount(minThreadProperty);
     long timeBetweenThreadChecks = 1000;
     if (timeBetweenThreadChecksProperty != null)
-      timeBetweenThreadChecks = ServerConfiguration.getSystemConfiguration().getTimeInMillis(timeBetweenThreadChecksProperty);
+      timeBetweenThreadChecks = conf.getTimeInMillis(timeBetweenThreadChecksProperty);
     boolean portSearch = false;
     if (portSearchProperty != null)
-      portSearch = ServerConfiguration.getSystemConfiguration().getBoolean(portSearchProperty);
+      portSearch = conf.getBoolean(portSearchProperty);
     Random random = new Random();
     for (int j = 0; j < 100; j++) {
       

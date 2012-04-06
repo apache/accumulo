@@ -44,6 +44,11 @@ public class TableLoadBalancer extends TabletBalancer {
   private static final Logger log = Logger.getLogger(TableLoadBalancer.class);
   
   Map<String,TabletBalancer> perTableBalancers = new HashMap<String,TabletBalancer>();
+  ServerConfiguration config;
+  
+  public void init(ServerConfiguration config) {
+    this.config = config;
+  }
   
   private TabletBalancer constructNewBalancerForTable(String clazzName, String table) throws Exception {
     Class<? extends TabletBalancer> clazz = AccumuloClassLoader.loadClass(clazzName, TabletBalancer.class);
@@ -52,7 +57,7 @@ public class TableLoadBalancer extends TabletBalancer {
   }
   
   protected String getLoadBalancerClassNameForTable(String table) {
-    return ServerConfiguration.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
+    return config.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
   }
   
   protected TabletBalancer getBalancerForTable(String table) {
