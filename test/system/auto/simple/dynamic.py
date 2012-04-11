@@ -67,9 +67,13 @@ public class StringSummation%s implements org.apache.accumulo.core.iterators.agg
 ''' % rand)
         fp.close()
 
+        handle = self.runOn(self.masterHost(), [self.accumulo_sh(), 'classpath'])
+        out, err = handle.communicate()
+        path = ':'.join(out.split('\n')[1:])
+
         self.runWait("javac -cp %s:%s %s" % (
+            path,
             os.path.join(ACCUMULO_HOME,'src','core','target','classes'),
-            glob.glob(os.path.join(ACCUMULO_HOME,'lib','accumulo-core*.jar'))[0],
             os.path.join(ACCUMULO_HOME,'target','dynamictest%s' % rand,'accumulo','test','StringSummation%s.java' % rand)
             ))
         self.runWait("jar -cf %s -C %s accumulo/" % (
