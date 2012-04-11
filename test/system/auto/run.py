@@ -264,6 +264,10 @@ def main():
 
     assignOptions(filtered, options)
 
+    if not os.environ.get('ZOOKEEPER_HOME', None):
+       print "ZOOKEEPER_HOME needs to be set"
+       sys.exit(1)
+
     runner = TestRunner()
     
     suite = unittest.TestSuite()

@@ -72,11 +72,11 @@ import org.apache.thrift.TException;
 
 public class NullTserver {
   
-  private static class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
+  public static class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
     
     private long updateSession = 1;
     
-    ThriftClientHandler(Instance instance, TransactionWatcher watcher) {
+    public ThriftClientHandler(Instance instance, TransactionWatcher watcher) {
       super(instance, watcher);
     }
     
