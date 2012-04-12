@@ -94,28 +94,58 @@ public class LiveTServerSet implements Watcher {
     }
     
     synchronized public void assignTablet(ZooLock lock, KeyExtent extent) throws TException {
-      client.loadTablet(null, SecurityConstants.systemCredentials, lockString(lock), extent.toThrift());
+      try {
+        client.loadTablet(null, SecurityConstants.systemCredentials, lockString(lock), extent.toThrift());
+      } catch (TException ex) {
+        close();
+        throw ex;
+      }
     }
     
     synchronized public void unloadTablet(ZooLock lock, KeyExtent extent, boolean save) throws TException {
-      client.unloadTablet(null, SecurityConstants.systemCredentials, lockString(lock), extent.toThrift(), save);
+      try {
+        client.unloadTablet(null, SecurityConstants.systemCredentials, lockString(lock), extent.toThrift(), save);
+      } catch (TException ex) {
+        close();
+        throw ex;
+      }
     }
     
     synchronized public TabletServerStatus getTableMap() throws TException, ThriftSecurityException {
-      return client.getTabletServerStatus(null, SecurityConstants.systemCredentials);
+      try {
+        return client.getTabletServerStatus(null, SecurityConstants.systemCredentials);
+      } catch (TException ex) {
+        close();
+        throw ex;
+      }
     }
     
     synchronized public void halt(ZooLock lock) throws TException, ThriftSecurityException {
-      if (client != null)
-        client.halt(null, SecurityConstants.systemCredentials, lockString(lock));
+      try {
+        if (client != null)
+          client.halt(null, SecurityConstants.systemCredentials, lockString(lock));
+      } catch (TException ex) {
+        close();
+        throw ex;
+      }
     }
     
     synchronized public void flush(ZooLock lock, String tableName) throws TException {
-      client.flush(null, SecurityConstants.systemCredentials, lockString(lock), Collections.singleton(tableName));
+      try {
+        client.flush(null, SecurityConstants.systemCredentials, lockString(lock), Collections.singleton(tableName));
+      } catch (TException ex) {
+        close();
+        throw ex;
+      }
     }
     
     synchronized public void useLoggers(Set<String> loggers) throws TException {
-      client.useLoggers(null, SecurityConstants.systemCredentials, loggers);
+      try {
+        client.useLoggers(null, SecurityConstants.systemCredentials, loggers);
+      } catch (TException ex) {
+        close();
+        throw ex;
+      }
     }
   }
   
