@@ -1250,7 +1250,7 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
       synchronized (migrations) {
         notFound.addAll(migrations.keySet());
       }
-      notFound.remove(found);
+      notFound.removeAll(found);
       for (KeyExtent extent : notFound) {
         log.info("Canceling migration of " + extent + " to " + migrations.get(extent) + ": tablet no longer exists (probably due to a split)");
         migrations.remove(extent);
