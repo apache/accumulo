@@ -130,7 +130,7 @@ public class SimpleGarbageCollector implements Iface {
   
   private int numDeleteThreads;
   
-  private ServerConfiguration conf;
+  private Instance instance;
   
   public static void main(String[] args) throws UnknownHostException, IOException {
     Instance instance = HdfsZooInstance.getInstance(); 
@@ -159,7 +159,7 @@ public class SimpleGarbageCollector implements Iface {
       throw new IllegalArgumentException(str, e);
     }
     
-    gc.init(fs, serverConf, SecurityConstants.getSystemCredentials());
+    gc.init(fs, instance, SecurityConstants.getSystemCredentials());
     Accumulo.enableTracing(address, "gc");
     gc.run();
   }
@@ -183,14 +183,14 @@ public class SimpleGarbageCollector implements Iface {
     this.address = address;
   }
 
-  public void init(FileSystem fs, ServerConfiguration conf, AuthInfo credentials) {
+  public void init(FileSystem fs, Instance instance, AuthInfo credentials) {
     this.fs = TraceFileSystem.wrap(fs);
     this.credentials = credentials;
-    this.conf = conf;
+    this.instance = instance;
     
-    gcStartDelay = conf.getConfiguration().getTimeInMillis(Property.GC_CYCLE_START);
-    long gcDelay = conf.getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
-    numDeleteThreads = conf.getConfiguration().getCount(Property.GC_DELETE_THREADS);
+    gcStartDelay = instance.getConfiguration().getTimeInMillis(Property.GC_CYCLE_START);
+    long gcDelay = instance.getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
+    numDeleteThreads = instance.getConfiguration().getCount(Property.GC_DELETE_THREADS);
     log.info("start delay: " + (offline ? 0 + " sec (offline)" : gcStartDelay + " milliseconds"));
     log.info("time delay: " + gcDelay + " milliseconds");
     log.info("safemode: " + safemode);
@@ -296,7 +296,7 @@ public class SimpleGarbageCollector implements Iface {
       
       // Clean up any unused write-ahead logs
       Span waLogs = Trace.start("walogs");
-      GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(fs, conf.getConfiguration());
+      GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(fs, instance.getConfiguration());
       try {
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
@@ -308,7 +308,7 @@ public class SimpleGarbageCollector implements Iface {
       
       Trace.offNoFlush();
       try {
-        long gcDelay = conf.getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
+        long gcDelay = instance.getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
         log.debug("Sleeping for " + gcDelay + " milliseconds");
         Thread.sleep(gcDelay);
       } catch (InterruptedException e) {
@@ -333,8 +333,8 @@ public class SimpleGarbageCollector implements Iface {
       }
     }
     
-    Tables.clearCache(conf.getInstance());
-    Set<String> tableIdsInZookeeper = Tables.getIdToNameMap(conf.getInstance()).keySet();
+    Tables.clearCache(instance);
+    Set<String> tableIdsInZookeeper = Tables.getIdToNameMap(instance).keySet();
     
     tableIdsWithDeletes.removeAll(tableIdsInZookeeper);
     
@@ -374,7 +374,7 @@ public class SimpleGarbageCollector implements Iface {
   
   private InetSocketAddress startStatsService() throws UnknownHostException {
     GCMonitorService.Processor processor = new GCMonitorService.Processor(TraceWrap.service(this));
-    int port = conf.getConfiguration().getPort(Property.GC_PORT);
+    int port = instance.getConfiguration().getPort(Property.GC_PORT);
     try {
       TServerUtils.startTServer(port, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000);
     } catch (Exception ex) {
@@ -409,7 +409,7 @@ public class SimpleGarbageCollector implements Iface {
       return candidates;
     }
     
-    Scanner scanner = conf.getInstance().getConnector(credentials).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    Scanner scanner = instance.getConnector(credentials).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
 
     if (continueKey != null) {
       // want to ensure GC makes progress... if the 1st N deletes are stable and we keep processing them, then will never inspect deletes after N
@@ -451,13 +451,13 @@ public class SimpleGarbageCollector implements Iface {
     Scanner scanner;
     if (offline) {
       try {
-        scanner = new OfflineMetadataScanner(conf.getConfiguration(), fs);
+        scanner = new OfflineMetadataScanner(instance.getConfiguration(), fs);
       } catch (IOException e) {
         throw new IllegalStateException("Unable to create offline metadata scanner", e);
       }
     } else {
       try {
-        scanner = new IsolatedScanner(conf.getInstance().getConnector(credentials).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
+        scanner = new IsolatedScanner(instance.getConnector(credentials).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
       } catch (AccumuloSecurityException ex) {
         throw new AccumuloException(ex);
       } catch (TableNotFoundException ex) {
@@ -548,7 +548,7 @@ public class SimpleGarbageCollector implements Iface {
     if (!offline) {
       Connector c;
       try {
-        c = conf.getInstance().getConnector(SecurityConstants.getSystemCredentials());
+        c = instance.getConnector(SecurityConstants.getSystemCredentials());
         writer = c.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 3);
       } catch (Exception e) {
         log.error("Unable to create writer to remove file from the !METADATA table", e);
