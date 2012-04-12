@@ -272,7 +272,7 @@ public class SimpleGarbageCollector implements Iface {
       waLogs.stop();
       gcSpan.stop();
       
-      Trace.off();
+      Trace.offNoFlush();
       try {
         log.debug("Sleeping for " + gcDelay + " milliseconds");
         Thread.sleep(gcDelay);
