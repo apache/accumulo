@@ -35,7 +35,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
@@ -95,12 +94,11 @@ public class TestConfirmDeletes {
   private void test1(String[] metadata, String[] deletes, int expectedInitial, int expected) throws Exception {
     Instance instance = new MockInstance();
     FileSystem fs = FileSystem.getLocal(CachedConfiguration.getInstance());
-    ServerConfiguration conf = new ServerConfiguration(instance);
     
     load(instance, metadata, deletes);
 
     SimpleGarbageCollector gc = new SimpleGarbageCollector();
-    gc.init(fs, conf, auth);
+    gc.init(fs, instance, auth);
     SortedSet<String> candidates = gc.getCandidates();
     Assert.assertEquals(expectedInitial, candidates.size());
     gc.confirmDeletes(candidates);
