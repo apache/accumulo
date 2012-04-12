@@ -252,7 +252,7 @@ public class DefaultServlet extends BasicServlet {
       try {
         ContentSummary all = fs.getContentSummary(new Path("/"));
         ContentSummary acu = fs.getContentSummary(new Path(AccumuloConfiguration.getSystemConfiguration().get(Property.INSTANCE_DFS_DIR)));
-        consumed = String.format("%.2f%%", acu.getSpaceConsumed() * 100. / all.getSpaceConsumed());
+        consumed = String.format("%.2f%%", acu.getLength() / (all.getLength() / 100.));
         diskUsed = bytes(acu.getSpaceConsumed());
       } catch (Exception e) {
         log.debug(e, e);
