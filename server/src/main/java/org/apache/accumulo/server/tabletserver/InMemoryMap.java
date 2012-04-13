@@ -51,7 +51,6 @@ import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
@@ -528,7 +527,7 @@ public class InMemoryMap {
     int mc = kvCount.get();
     MemoryDataSource mds = new MemoryDataSource();
     SourceSwitchingIterator ssi = new SourceSwitchingIterator(new MemoryDataSource());
-    MemoryIterator mi = new MemoryIterator(new ColumnFamilySkippingIterator(new PartialMutationSkippingIterator(ssi, mc)));
+    MemoryIterator mi = new MemoryIterator(new PartialMutationSkippingIterator(ssi, mc));
     mi.setSSI(ssi);
     mi.setMDS(mds);
     activeIters.add(mi);
@@ -541,7 +540,7 @@ public class InMemoryMap {
       throw new IllegalStateException("Memory map in unexpected state : nextKVCount = " + nextKVCount.get() + " kvCount = "
           + kvCount.get());
     
-    return new ColumnFamilySkippingIterator(map.skvIterator());
+    return map.skvIterator();
   }
   
   private boolean deleted = false;

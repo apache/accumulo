@@ -86,6 +86,9 @@ public class SparseColumnFamilyTest extends FunctionalTest {
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
       if (iter.hasNext()) {
         Entry<Key,Value> entry = iter.next();
+        if (!"001".equals(entry.getKey().getColumnFamilyData().toString())) {
+          throw new Exception();
+        }
       }
       long t2 = System.currentTimeMillis();
       

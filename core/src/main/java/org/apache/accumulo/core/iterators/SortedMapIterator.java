@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.Map.Entry;
+import java.util.SortedMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -99,10 +99,6 @@ public class SortedMapIterator implements InterruptibleIterator {
   
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-    
-    if (columnFamilies.size() != 0 || inclusive) {
-      throw new IllegalArgumentException("I do not know how to filter column families");
-    }
     
     if (interruptFlag != null && interruptFlag.get())
       throw new IterationInterruptedException();

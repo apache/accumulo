@@ -44,7 +44,6 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.FileCFSkippingIterator;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.NoSuchMetaStoreException;
@@ -965,17 +964,12 @@ public class RFile {
       
       for (LocalityGroupReader lgr : lgReaders) {
         
-        // when exclude is set to true it means this locality group contains
-        // unwanted column families
-        boolean exclude = false;
-        
         // when include is set to true it means this locality groups contains
         // wanted column families
         boolean include = false;
         
         if (cfSet.size() == 0) {
           include = !inclusive;
-          exclude = false;
         } else if (lgr.isDefaultLocalityGroup && lgr.columnFamilies == null) {
           // do not know what column families are in the default locality group,
           // only know what column families are not in it
@@ -983,14 +977,12 @@ public class RFile {
           if (inclusive) {
             if (!nonDefaultColumnFamilies.containsAll(cfSet)) {
               // default LG may contain wanted and unwanted column families
-              exclude = true;
               include = true;
             }// else - everything wanted is in other locality groups, so nothing to do
           } else {
             // must include, if all excluded column families are in other locality groups
             // then there are not unwanted column families in default LG
             include = true;
-            exclude = !nonDefaultColumnFamilies.containsAll(cfSet);
           }
         } else {
           /*
@@ -1000,28 +992,17 @@ public class RFile {
           
           for (Entry<ByteSequence,Count> entry : lgr.columnFamilies.entrySet())
             if (entry.getValue().count > 0)
-              if (cfSet.contains(entry.getKey()))
+              if (cfSet.contains(entry.getKey())) {
                 if (inclusive)
                   include = true;
-                else
-                  exclude = true;
-              else if (inclusive)
-                exclude = true;
-              else
+              } else if (!inclusive) {
                 include = true;
+              }
         }
         
         if (include) {
-          if (exclude) {
-            // want a subset of what is in the locality group, therefore filtering is need
-            FileCFSkippingIterator cfe = new FileCFSkippingIterator(lgr);
-            cfe.seek(range, cfSet, inclusive);
-            addSource(cfe);
-          } else {
-            // want everything in this locality group, therefore no filtering is needed
-            lgr.seek(range, EMPTY_CF_SET, false);
-            addSource(lgr);
-          }
+          lgr.seek(range, EMPTY_CF_SET, false);
+          addSource(lgr);
           numLGSeeked++;
         }// every column family is excluded, zero count, or not present
       }

@@ -29,7 +29,6 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.FileCFSkippingIterator;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
@@ -137,7 +136,7 @@ public class MapFileOperations extends FileOperations {
   
   @Override
   public FileSKVIterator openReader(String file, boolean seekToBeginning, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
-    FileSKVIterator iter = new FileCFSkippingIterator(new RangeIterator(new MapFileIterator(acuconf, fs, file, conf)));
+    FileSKVIterator iter = new RangeIterator(new MapFileIterator(acuconf, fs, file, conf));
     
     if (seekToBeginning)
       iter.seek(new Range(new Key(), null), new ArrayList<ByteSequence>(), false);
@@ -168,10 +167,6 @@ public class MapFileOperations extends FileOperations {
     MapFileIterator mfIter = new MapFileIterator(tableConf, fs, file, conf);
     
     FileSKVIterator iter = new RangeIterator(mfIter);
-    
-    if (columnFamilies.size() != 0 || inclusive) {
-      iter = new FileCFSkippingIterator(iter);
-    }
     
     iter.seek(range, columnFamilies, inclusive);
     

@@ -24,8 +24,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -668,10 +668,6 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-      
-      if (columnFamilies.size() != 0 || inclusive) {
-        throw new IllegalArgumentException("I do not know how to filter column families");
-      }
       
       if (interruptFlag != null && interruptFlag.get())
         throw new IterationInterruptedException();

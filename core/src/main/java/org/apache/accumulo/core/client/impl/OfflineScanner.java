@@ -47,6 +47,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
@@ -313,7 +314,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     DeletingIterator delIter = new DeletingIterator(multiIter, false);
     
-    ColumnQualifierFilter colFilter = new ColumnQualifierFilter(delIter, new HashSet<Column>(options.fetchedColumns));
+    ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
+    
+    ColumnQualifierFilter colFilter = new ColumnQualifierFilter(cfsi, new HashSet<Column>(options.fetchedColumns));
     
     byte[] defaultSecurityLabel;
     
