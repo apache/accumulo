@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
+import org.apache.accumulo.core.iterators.system.SynchronizedIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.io.Writable;
@@ -215,7 +216,8 @@ public class IteratorUtil {
   @SuppressWarnings("unchecked")
   public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(SortedKeyValueIterator<K,V> source,
       Collection<IterInfo> iters, Map<String,Map<String,String>> iterOpts, IteratorEnvironment env, boolean useAccumuloClassLoader) throws IOException {
-    SortedKeyValueIterator<K,V> prev = source;
+    // wrap the source in a SynchronizedIterator in case any of the additional configured iterators want to use threading
+    SortedKeyValueIterator<K,V> prev = new SynchronizedIterator<K,V>(source);
     
     try {
       for (IterInfo iterInfo : iters) {
