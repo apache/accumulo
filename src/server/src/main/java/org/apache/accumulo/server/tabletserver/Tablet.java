@@ -74,6 +74,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
@@ -2076,7 +2077,9 @@ public class Tablet {
       
       DeletingIterator delIter = new DeletingIterator(multiIter, false);
       
-      ColumnQualifierFilter colFilter = new ColumnQualifierFilter(delIter, options.columnSet);
+      ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
+      
+      ColumnQualifierFilter colFilter = new ColumnQualifierFilter(cfsi, options.columnSet);
       
       VisibilityFilter visFilter = new VisibilityFilter(colFilter, options.authorizations, options.defaultLabels);
       

@@ -433,11 +433,12 @@ public class CollectTabletStats {
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(mapfiles.size() + 1);
     
     iters.addAll(mapfiles);
-    iters.add(new ColumnFamilySkippingIterator(smi));
+    iters.add(smi);
     
     MultiIterator multiIter = new MultiIterator(iters, ke);
     DeletingIterator delIter = new DeletingIterator(multiIter, false);
-    ColumnQualifierFilter colFilter = new ColumnQualifierFilter(delIter, columnSet);
+    ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
+    ColumnQualifierFilter colFilter = new ColumnQualifierFilter(cfsi, columnSet);
     VisibilityFilter visFilter = new VisibilityFilter(colFilter, authorizations, defaultLabels);
     
     if (useTableIterators)

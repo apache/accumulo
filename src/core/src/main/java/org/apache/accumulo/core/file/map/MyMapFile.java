@@ -809,10 +809,6 @@ public class MyMapFile {
     
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
       
-      if (columnFamilies.size() != 0 || inclusive) {
-        throw new IllegalArgumentException("I do not know how to filter column families");
-      }
-      
       if (range == null)
         throw new IllegalArgumentException("Cannot seek to null range");
       

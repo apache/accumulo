@@ -29,10 +29,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ZooConfiguration;
-import org.apache.accumulo.server.tabletserver.InMemoryMap;
 import org.apache.accumulo.server.tabletserver.InMemoryMap.MemoryIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
@@ -245,6 +245,7 @@ public class InMemoryMapTest extends TestCase {
     }
     
     MemoryIterator ski1 = imm.skvIterator();
+    ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(ski1);
     
     imm.delete(0);
     
@@ -252,9 +253,9 @@ public class InMemoryMapTest extends TestCase {
     columns.add(new ArrayByteSequence("bar"));
     
     // this seek resulted in an infinite loop before a bug was fixed
-    ski1.seek(new Range("r1"), columns, true);
+    cfsi.seek(new Range("r1"), columns, true);
     
-    assertFalse(ski1.hasTop());
+    assertFalse(cfsi.hasTop());
     
     ski1.close();
   }

@@ -36,8 +36,9 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iterators.system.CountingIterator;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
@@ -247,7 +248,9 @@ public class Compactor implements Callable<CompactionStats> {
       
       CountingIterator citr = new CountingIterator(new MultiIterator(iters, extent.toDataRange()));
       DeletingIterator delIter = new DeletingIterator(citr, propogateDeletes);
+      ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
       
+
       // if(env.getIteratorScope() )
       
       TabletIteratorEnvironment iterEnv;
@@ -258,7 +261,7 @@ public class Compactor implements Callable<CompactionStats> {
       else
         throw new IllegalArgumentException();
       
-      SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(env.getIteratorScope(), delIter, extent, acuTableConf,
+      SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(env.getIteratorScope(), cfsi, extent, acuTableConf,
           iterEnv));
       
       itr.seek(extent.toDataRange(), columnFamilies, inclusive);
