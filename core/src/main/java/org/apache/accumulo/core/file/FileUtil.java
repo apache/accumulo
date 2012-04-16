@@ -105,7 +105,6 @@ public class FileUtil {
       return paths;
     
     String newDir = String.format("%s/pass_%04d", tmpDir, pass);
-    fs.mkdirs(new Path(newDir));
     
     int start = 0;
     
@@ -119,13 +118,12 @@ public class FileUtil {
       
       start = end;
       
-      String newMapFile = String.format("%s/" + RFile.EXTENSION + "_%04d", newDir, count++);
-      fs.mkdirs(new Path(newMapFile));
+      String newMapFile = String.format("%s/%04d." + RFile.EXTENSION, newDir, count++);
       
-      String outFile = String.format("%s/index", newMapFile);
       outFiles.add(newMapFile);
       
-      FileSKVWriter writer = new RFileOperations().openWriter(outFile, fs, conf, acuConf);
+      FileSKVWriter writer = new RFileOperations().openWriter(newMapFile, fs, conf, acuConf);
+      writer.startDefaultLocalityGroup();
       List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<SortedKeyValueIterator<Key,Value>>(inFiles.size());
       
       FileSKVIterator reader = null;
@@ -291,7 +289,7 @@ public class FileUtil {
       
       long numKeys = 0;
       
-      numKeys = countIndexEntries(acuConf, prevEndRow, endRow, mapFiles, useIndex, conf, fs, readers);
+      numKeys = countIndexEntries(acuConf, prevEndRow, endRow, mapFiles, tmpDir == null ? useIndex : false, conf, fs, readers);
       
       if (numKeys == 0) {
         if (useIndex) {
