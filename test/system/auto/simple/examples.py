@@ -70,7 +70,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                      'dataTable',
                      visibility,
                      100000,
-                     ACCUMULO_HOME+"/src")
+                     ACCUMULO_HOME+"/server")
         self.comment("  searching for a file")
         handle = self.runOn('localhost', [self.accumulo_sh(), 'org.apache.accumulo.examples.simple.dirlist.QueryUtil',
                                           INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD,
@@ -97,7 +97,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.ashell('createtable bloom_test\nconfig -t bloom_test -s table.bloom.enabled=true\n')
         self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.client.RandomBatchWriter', '-s', '7',
                      INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD, 'bloom_test',
-                     '1000000', '0', '1000000000', '50', '2000000', '60000', '3' 'A')
+                     '1000000', '0', '1000000000', '50', '2000000', '60000', '3', 'A')
         self.ashell('flush -t bloom_test -w\n')
         now = time.time()
         self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.client.RandomBatchScanner', '-s', '7',
