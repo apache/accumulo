@@ -94,13 +94,13 @@ class TestUtilsMixin:
         cmd = map(str, cmd)
         log.debug('%s: %s', host, ' '.join(cmd))
         if host == 'localhost':
-            os.environ['ACCUMULO_TSERVER_OPTS']='-Xmx700m '
+            os.environ['ACCUMULO_TSERVER_OPTS']='-Xmx700m -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=75 '
             os.environ['ACCUMULO_GENERAL_OPTS']='-Dorg.apache.accumulo.config.file=%s ' % SITE
             os.environ['ACCUMULO_LOG_DIR']= ACCUMULO_HOME + '/logs/' + ID
             return Popen(cmd, stdout=PIPE, stderr=PIPE, **opts)
         else:
             cp = 'HADOOP_CLASSPATH=%s' % os.environ.get('HADOOP_CLASSPATH','')
-            jo = "ACCUMULO_TSERVER_OPTS='-Xmx700m '"
+            jo = "ACCUMULO_TSERVER_OPTS='-Xmx700m -XX:+UseConcMarkSweepGC -XX:CMSInitiatingOccupancyFraction=75 '"
             go = "ACCUMULO_GENERAL_OPTS='-Dorg.apache.accumulo.config.file=%s'" % SITE
             ld = 'ACCUMULO_LOG_DIR=%s/logs/%s' % (ACCUMULO_HOME, ID)
             execcmd = ['ssh', '-q', host, cp, jo, go, ld] + quote(cmd)
