@@ -20,7 +20,7 @@ import unittest
 import time
 import sys
 import subprocess
-import md5
+import hashlib
 import base64
 import re
 import glob
@@ -116,7 +116,7 @@ class MapReduceTest(TestUtilsMixin,unittest.TestCase):
         return val_list
     
     def checkResults(self):
-        control_values = [base64.b64encode(md5.new("row%s"%(i)).digest()) for i in range(10)]
+        control_values = [base64.b64encode(hashlib.md5("row%s"%(i)).digest()) for i in range(10)]
         experiment_values = self.retrieveValues(self.output_tablename, self.output_cfcq)
         self.failIf(len(control_values) != len(experiment_values), "List aren't the same length")
         diff=[ev for ev in experiment_values if ev not in control_values]
@@ -124,7 +124,7 @@ class MapReduceTest(TestUtilsMixin,unittest.TestCase):
     
     def fakeMRResults(self):
         vals = self.retrieveValues(self.input_tablename, self.input_cfcq)
-        values = ["insert %s %s %s\n" % (i,self.output_cfcq.replace(":"," "),base64.b64encode(md5.new("row%s" % i).digest())) for i in range(10,20)]
+        values = ["insert %s %s %s\n" % (i,self.output_cfcq.replace(":"," "),base64.b64encode(hashlib.md5("row%s" % i).digest())) for i in range(10,20)]
         input = "table %s\n" % (self.input_tablename,)+"".join(values)
         out,err,code = self.rootShell(self.masterHost(),input)
         #print "FAKE",out
