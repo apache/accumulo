@@ -385,6 +385,7 @@ class LoadFiles extends MasterRepo {
 
   @Override
   public Repo<Master> call(final long tid, final Master master) throws Exception {
+    initializeThreadPool(master);
     final SiteConfiguration conf = ServerConfiguration.getSiteConfiguration();
     FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.FileUtil.getFileSystem(CachedConfiguration.getInstance(),
         ServerConfiguration.getSiteConfiguration()));
