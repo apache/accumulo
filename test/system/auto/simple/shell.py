@@ -27,7 +27,7 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
     Some other shell functions are tests in the systemp and tablep tests"""
     
     command_list = [ "help", "tables", "table", "createtable", "deletetable", 
-                    "insert", "selectrow", "select", "scan", "user", "users", "delete",
+                    "insert", "scan", "user", "users", "delete",
                     "flush", "config", "setiter", "deleteiter", "whoami", "debug",
                     "tablepermissions", "userpermissions", "authenticate", "createuser",
                     "dropuser", "passwd", "setauths", "getauths", "grant", "revoke" ]
@@ -51,8 +51,6 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         self.deletetableTest()
         self.scanTest()
         self.insertTest()
-        self.selectrowTest()
-        self.selectTest()
         self.flushTest()
         self.whoamiTest()
         self.getauthsTest()
@@ -220,7 +218,7 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
             else:
                 if line[-10:] == "> help -np":
                     startLooking = True
-        log.debug("missing commands:" + "".join(commands))
+        log.debug("missing commands:" + ", ".join(commands))
         self.failIf(len(commands) > 0, "help command doesn't cover all the commands") 
         
     def tablesTest(self):
@@ -336,30 +334,6 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         input = "table test_insert_table\ninsert a b c d\n"
         out, err, code = self.rootShell(self.masterHost(), input)
         self.processResult(out, err, code)
-        
-    def selectrowTest(self):
-        input = "createtable test_select_table\ninsert one two three four\n"
-        out, err, code = self.rootShell(self.masterHost(), input)
-        self.processResult(out, err, code)
-        input = "table test_select_table\nselectrow one -np\n"
-        out, err, code = self.rootShell(self.masterHost(), input)
-        self.processResult(out, err, code)
-        self.failUnless(out.find("one") >= 0 and out.find("two") >= 0 and 
-                        out.find("three") >= 0 and out.find("four") >= 0, 
-                        "selectrow command did not return all the values")
-        self.failUnless(out.find("one") < out.find("two") < 
-                        out.find("three") < out.find("four"), 
-                        "selectrow command did not return the values in the right order")
-        
-    def selectTest(self):
-        input = "createtable test_select_table2\ninsert one two three seven\n"
-        out, err, code = self.rootShell(self.masterHost(), input)
-        self.processResult(out, err, code)
-        input = "table test_select_table2\nselect one two three -np\n"
-        out, err, code = self.rootShell(self.masterHost(), input)
-        self.processResult(out, err, code)
-        self.failUnless(out.find("seven") >= 0, 
-                        "select command did not return the correct values")
         
     def flushTest(self):
         input = "flush -t !METADATA\n"
