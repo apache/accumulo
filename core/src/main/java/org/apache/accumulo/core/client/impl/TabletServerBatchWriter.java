@@ -761,6 +761,7 @@ public class TabletServerBatchWriter {
               client.update(null, credentials, entry.getKey().toThrift(), entry.getValue().get(0).toThrift());
             } catch (NotServingTabletException e) {
               allFailures.addAll(entry.getKey().getTableId().toString(), entry.getValue());
+              TabletLocator.getInstance(instance, credentials, new Text(entry.getKey().getTableId())).invalidateCache(entry.getKey());
             } catch (ConstraintViolationException e) {
               updatedConstraintViolations(Translator.translate(e.violationSummaries, Translator.TCVST));
             }
