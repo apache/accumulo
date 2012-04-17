@@ -403,7 +403,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td><b><a href='#MEMORY'>memory</a></b></td>
     <td>yes</td>
     <td><pre>1G</pre></td>
-    <td>Maximum amount of memory all tablets in memory maps can use.</td>
+    <td>Maximum amount of memory that can be used to buffer data written to a tablet server.  There are two other properties that can effectively limit memory usage table.compaction.minor.logs.threshold and tserver.walog.max.size.  Ensure that table.compaction.minor.logs.threshold * tserver.walog.max.size >= this property.</td>
    </tr>
    <tr >
     <td>tserver.memory.maps.native.enabled</td>
@@ -501,7 +501,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td><b><a href='#MEMORY'>memory</a></b></td>
     <td>yes</td>
     <td><pre>1G</pre></td>
-    <td>The maximum size for each write-ahead log</td>
+    <td>The maximum size for each write-ahead log.  See comment for property tserver.memory.maps.max</td>
    </tr>
    <tr><td colspan='5'><a name='LOGGER_PREFIX' class='large'>logger.*</a></td></tr>
    <tr><td colspan='5'><i>Properties in this category affect the behavior of the write-ahead logger servers</i></td></tr>
@@ -775,7 +775,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td><b><a href='#COUNT'>count</a></b></td>
     <td>yes</td>
     <td><pre>3</pre></td>
-    <td>When there are more than this many write-ahead logs against a tablet, it will be minor compacted.</td>
+    <td>When there are more than this many write-ahead logs against a tablet, it will be minor compacted.  See comment for property tserver.memory.maps.max</td>
    </tr>
    <tr >
     <td>table.failures.ignore</td>
