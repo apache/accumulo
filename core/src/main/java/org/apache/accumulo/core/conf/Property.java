@@ -79,7 +79,8 @@ public enum Property {
       "To find a tablets split points, all index files are opened. This setting determines how many index "
           + "files can be opened at once. When there are more index files than this setting multiple passes "
           + "must be made, which is slower. However opening too many files at once can cause problems."),
-  TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1G", PropertyType.MEMORY, "The maximum size for each write-ahead log"),
+  TSERV_WALOG_MAX_SIZE("tserver.walog.max.size", "1G", PropertyType.MEMORY,
+      "The maximum size for each write-ahead log.  See comment for property tserver.memory.maps.max"),
   TSERV_MAJC_DELAY("tserver.compaction.major.delay", "30s", PropertyType.TIMEDURATION,
       "Time a tablet server will sleep between checking which tablets need compaction."),
   TSERV_MAJC_THREAD_MAXOPEN("tserver.compaction.major.thread.files.open.max", "10", PropertyType.COUNT,
@@ -90,7 +91,11 @@ public enum Property {
       + "This setting determines how much time an unused map file should be kept open until it is closed."),
   TSERV_NATIVEMAP_ENABLED("tserver.memory.maps.native.enabled", "true", PropertyType.BOOLEAN,
       "An in-memory data store for accumulo implemented in c++ that increases the amount of data " + "accumulo can hold in memory and avoids Java GC pauses."),
-  TSERV_MAXMEM("tserver.memory.maps.max", "1G", PropertyType.MEMORY, "Maximum amount of memory all tablets in memory maps can use."),
+  TSERV_MAXMEM(
+      "tserver.memory.maps.max",
+      "1G",
+      PropertyType.MEMORY,
+      "Maximum amount of memory that can be used to buffer data written to a tablet server.  There are two other properties that can effectively limit memory usage table.compaction.minor.logs.threshold and tserver.walog.max.size.  Ensure that table.compaction.minor.logs.threshold * tserver.walog.max.size >= this property."),
   TSERV_MEM_MGMT("tserver.memory.manager", "org.apache.accumulo.server.tabletserver.LargestFirstMemoryManager", PropertyType.CLASSNAME,
       "An implementation of MemoryManger that accumulo will use."),
   TSERV_SESSION_MAXIDLE("tserver.session.idle.max", "1m", PropertyType.TIMEDURATION, "maximum idle time for a session"),
@@ -208,7 +213,7 @@ public enum Property {
           + "compactions only take place for tablets that have one or more map files."),
   TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.MEMORY, "When combined size of files exceeds this amount a tablet is split."),
   TABLE_MINC_LOGS_MAX("table.compaction.minor.logs.threshold", "3", PropertyType.COUNT,
-      "When there are more than this many write-ahead logs against a tablet, it will be minor compacted."),
+      "When there are more than this many write-ahead logs against a tablet, it will be minor compacted.  See comment for property tserver.memory.maps.max"),
   TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,
       "After a tablet has been idle (no mutations) for this time period it may have its "
           + "in-memory map flushed to disk in a minor compaction.  There is no guarantee an idle " + "tablet will be compacted."),
