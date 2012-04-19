@@ -339,47 +339,6 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     
   }
   
-  /**
-   * convenience method for reading a metadata tablet's data file entries from the root tablet
-   * 
-   */
-  public static SortedMap<Key,Value> getRootMetadataDataFileEntries(AccumuloConfiguration conf, KeyExtent extent, AuthInfo credentials) {
-    SortedSet<Column> columns = new TreeSet<Column>();
-    columns.add(new Column(TextUtil.getBytes(Constants.METADATA_DATAFILE_COLUMN_FAMILY), null, null));
-    return getRootMetadataDataEntries(conf, extent, columns, credentials);
-  }
-  
-  public static SortedMap<Key,Value> getRootMetadataDataEntries(AccumuloConfiguration conf, KeyExtent extent, SortedSet<Column> columns, AuthInfo credentials) {
-    
-    try {
-      SortedMap<Key,Value> entries = new TreeMap<Key,Value>();
-      
-      Text metadataEntry = extent.getMetadataEntry();
-      Text startRow;
-      boolean more = getBatchFromRootTablet(conf, credentials, metadataEntry, entries, columns, false, Constants.SCAN_BATCH_SIZE);
-      
-      while (more) {
-        startRow = entries.lastKey().getRow(); // set end row
-        more = getBatchFromRootTablet(conf, credentials, startRow, entries, columns, false, Constants.SCAN_BATCH_SIZE);
-      }
-      
-      Iterator<Key> iter = entries.keySet().iterator();
-      while (iter.hasNext()) {
-        Key key = iter.next();
-        if (key.compareRow(metadataEntry) != 0) {
-          iter.remove();
-        }
-      }
-      
-      return entries;
-      
-    } catch (AccumuloSecurityException e) {
-      log.warn("Unauthorized access...");
-      return new TreeMap<Key,Value>();
-    }
-    
-  }
-  
   public static boolean recordRootTabletLocation(String address) {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     for (int i = 0; i < SAVE_ROOT_TABLET_RETRIES; i++) {
