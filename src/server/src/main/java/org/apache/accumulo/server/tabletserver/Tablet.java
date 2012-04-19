@@ -1032,10 +1032,6 @@ public class Tablet {
     
     if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
       return null;
-    } else if (extent.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
-      SortedSet<Column> columns = new TreeSet<Column>();
-      columns.add(Constants.METADATA_TIME_COLUMN.toColumn());
-      entries = MetadataTable.getRootMetadataDataEntries(extent, columns, SecurityConstants.systemCredentials);
     } else {
       entries = new TreeMap<Key,Value>();
       Text rowName = extent.getMetadataEntry();
@@ -1077,44 +1073,39 @@ public class Tablet {
       
       SortedMap<Key,Value> datafilesMetadata;
       
-      if (extent.getTableId().toString().equals(Constants.METADATA_TABLE_ID)) {
-        datafilesMetadata = MetadataTable.getRootMetadataDataFileEntries(extent, SecurityConstants.systemCredentials);
-      } else {
-        
-        Text rowName = extent.getMetadataEntry();
-        
-        if (tabletsKeyValues != null && tabletsKeyValues.size() > 0) {
-          datafilesMetadata = new TreeMap<Key,Value>();
-          for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
-            if (entry.getKey().compareRow(rowName) == 0 && entry.getKey().compareColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY) == 0) {
-              datafilesMetadata.put(new Key(entry.getKey()), new Value(entry.getValue()));
-            }
-          }
-        } else {
-          
-          ScannerImpl mdScanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.systemCredentials, Constants.METADATA_TABLE_ID,
-              Constants.NO_AUTHS);
-          
-          // Commented out because when no data file is present, each tablet will scan through metadata table and return nothing
-          // reduced batch size to improve performance
-          // changed here after endKeys were implemented from 10 to 1000
-          mdScanner.setBatchSize(1000);
-          
-          // leave these in, again, now using endKey for safety
-          mdScanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
-          
-          mdScanner.setRange(new Range(rowName));
-          
-          datafilesMetadata = new TreeMap<Key,Value>();
-          
-          for (Entry<Key,Value> entry : mdScanner) {
-            
-            if (entry.getKey().compareRow(rowName) != 0) {
-              break;
-            }
-            
+      Text rowName = extent.getMetadataEntry();
+      
+      if (tabletsKeyValues != null && tabletsKeyValues.size() > 0) {
+        datafilesMetadata = new TreeMap<Key,Value>();
+        for (Entry<Key,Value> entry : tabletsKeyValues.entrySet()) {
+          if (entry.getKey().compareRow(rowName) == 0 && entry.getKey().compareColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY) == 0) {
             datafilesMetadata.put(new Key(entry.getKey()), new Value(entry.getValue()));
           }
+        }
+      } else {
+        
+        ScannerImpl mdScanner = new ScannerImpl(HdfsZooInstance.getInstance(), SecurityConstants.systemCredentials, Constants.METADATA_TABLE_ID,
+            Constants.NO_AUTHS);
+        
+        // Commented out because when no data file is present, each tablet will scan through metadata table and return nothing
+        // reduced batch size to improve performance
+        // changed here after endKeys were implemented from 10 to 1000
+        mdScanner.setBatchSize(1000);
+        
+        // leave these in, again, now using endKey for safety
+        mdScanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
+        
+        mdScanner.setRange(new Range(rowName));
+        
+        datafilesMetadata = new TreeMap<Key,Value>();
+        
+        for (Entry<Key,Value> entry : mdScanner) {
+          
+          if (entry.getKey().compareRow(rowName) != 0) {
+            break;
+          }
+          
+          datafilesMetadata.put(new Key(entry.getKey()), new Value(entry.getValue()));
         }
       }
       

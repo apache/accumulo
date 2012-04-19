@@ -304,13 +304,13 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
    * convenience method for reading a metadata tablet's data file entries from the root tablet
    * 
    */
-  public static SortedMap<Key,Value> getRootMetadataDataFileEntries(KeyExtent extent, AuthInfo credentials) {
+  private static SortedMap<Key,Value> getRootMetadataDataFileEntries(KeyExtent extent, AuthInfo credentials) {
     SortedSet<Column> columns = new TreeSet<Column>();
     columns.add(new Column(TextUtil.getBytes(Constants.METADATA_DATAFILE_COLUMN_FAMILY), null, null));
     return getRootMetadataDataEntries(extent, columns, credentials);
   }
   
-  public static SortedMap<Key,Value> getRootMetadataDataEntries(KeyExtent extent, SortedSet<Column> columns, AuthInfo credentials) {
+  private static SortedMap<Key,Value> getRootMetadataDataEntries(KeyExtent extent, SortedSet<Column> columns, AuthInfo credentials) {
     
     try {
       SortedMap<Key,Value> entries = new TreeMap<Key,Value>();
