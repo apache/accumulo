@@ -158,7 +158,7 @@ indexScanner.setRange(new Range(term, term));
 
 // we retrieve the matching rowIDs and create a set of ranges
 for(Entry<Key,Value> entry : indexScanner)
-    matchingRows.add(new Text(entry.getValue()));
+    matchingRows.add(new Text(entry.getKey().getColumnQualifier()));
 
 // now we pass the set of rowIDs to the batch scanner to retrieve them
 BatchScanner bscan = conn.createBatchScanner("table", auths, 10);
@@ -167,7 +167,7 @@ bscan.setRanges(matchingRows);
 bscan.fetchFamily("attributes");
 
 for(Entry<Key,Value> entry : scan)
-    System.out.println(e.getValue());
+    System.out.println(entry.getValue());
 \end{verbatim}
 \normalsize
 
