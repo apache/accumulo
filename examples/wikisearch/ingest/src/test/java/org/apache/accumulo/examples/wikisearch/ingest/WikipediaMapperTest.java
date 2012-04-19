@@ -34,8 +34,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.examples.wikisearch.ingest.WikipediaConfiguration;
-import org.apache.accumulo.examples.wikisearch.ingest.WikipediaMapper;
+import org.apache.accumulo.core.util.ContextFactory;
 import org.apache.accumulo.examples.wikisearch.reader.AggregatingRecordReader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -47,7 +46,6 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputCommitter;
 import org.junit.Before;
@@ -118,8 +116,7 @@ public class WikipediaMapperTest {
     writerMap.put(new Text(INDEX_TABLE_NAME), c.createBatchWriter(INDEX_TABLE_NAME, 1000L, 1000L, 1));
     writerMap.put(new Text(RINDEX_TABLE_NAME), c.createBatchWriter(RINDEX_TABLE_NAME, 1000L, 1000L, 1));
     
-    TaskAttemptID id = new TaskAttemptID();
-    TaskAttemptContext context = new TaskAttemptContext(conf, id);
+    TaskAttemptContext context = ContextFactory.createTaskAttemptContext(conf);
     
     RawLocalFileSystem fs = new RawLocalFileSystem();
     fs.setConf(conf);
@@ -141,7 +138,7 @@ public class WikipediaMapperTest {
     WikipediaMapper mapper = new WikipediaMapper();
     
     // Load data into Mock Accumulo
-    Mapper<LongWritable,Text,Text,Mutation>.Context con = mapper.new Context(conf, id, rr, rw, oc, sr, split);
+    Mapper<LongWritable,Text,Text,Mutation>.Context con = ContextFactory.createMapContext(mapper, context, rr, rw, oc, sr, split);
     mapper.run(con);
     
     // Flush and close record writers.
