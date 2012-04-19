@@ -45,8 +45,8 @@ public class InsertWithOutputFormat extends Configured implements Tool {
     }
     Text tableName = new Text(args[4]);
     Job job = new Job(getConf());
-    AccumuloOutputFormat.setZooKeeperInstance(job, args[0], args[1]);
-    AccumuloOutputFormat.setOutputInfo(job, args[3], args[4].getBytes(), true, null);
+    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
+    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), args[2], args[3].getBytes(), true, null);
     job.setOutputFormatClass(AccumuloOutputFormat.class);
     
     // when running a mapreduce, you won't need to instantiate the output

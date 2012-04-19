@@ -90,7 +90,7 @@ public class ChunkInputFormatTest extends TestCase {
     ChunkInputFormat.setMockInstance(job.getConfiguration(), "instance1");
     ChunkInputFormat cif = new ChunkInputFormat();
     RangeInputSplit ris = new RangeInputSplit();
-    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
+    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job.getConfiguration());
     RecordReader<List<Entry<Key,Value>>,InputStream> rr = cif.createRecordReader(ris, tac);
     rr.initialize(ris, tac);
     
@@ -141,7 +141,7 @@ public class ChunkInputFormatTest extends TestCase {
     ChunkInputFormat.setMockInstance(job.getConfiguration(), "instance2");
     ChunkInputFormat cif = new ChunkInputFormat();
     RangeInputSplit ris = new RangeInputSplit();
-    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
+    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job.getConfiguration());
     RecordReader<List<Entry<Key,Value>>,InputStream> crr = cif.createRecordReader(ris, tac);
     crr.initialize(ris, tac);
     
@@ -180,7 +180,7 @@ public class ChunkInputFormatTest extends TestCase {
     ChunkInputFormat.setMockInstance(job.getConfiguration(), "instance3");
     ChunkInputFormat cif = new ChunkInputFormat();
     RangeInputSplit ris = new RangeInputSplit();
-    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job);
+    TaskAttemptContext tac = ContextFactory.createTaskAttemptContext(job.getConfiguration());
     RecordReader<List<Entry<Key,Value>>,InputStream> crr = cif.createRecordReader(ris, tac);
     crr.initialize(ris, tac);
     
