@@ -29,6 +29,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.tabletserver.thrift.LogCopyInfo;
 import org.apache.accumulo.core.tabletserver.thrift.LogFile;
 import org.apache.accumulo.core.tabletserver.thrift.LoggerClosedException;
 import org.apache.accumulo.core.tabletserver.thrift.MutationLogger;
@@ -277,7 +278,7 @@ public class RemoteLogger {
     client.minorCompactionStarted(null, logFile.id, seq, tid, fqfn);
   }
   
-  public synchronized long startCopy(String name, String fullyQualifiedFileName) throws ThriftSecurityException, TException {
+  public synchronized LogCopyInfo startCopy(String name, String fullyQualifiedFileName) throws ThriftSecurityException, TException {
     return client.startCopy(null, SecurityConstants.getSystemCredentials(), name, fullyQualifiedFileName, true);
   }
   

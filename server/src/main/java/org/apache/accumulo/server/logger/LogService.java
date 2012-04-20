@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.accumulo.cloudtrace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.cloudtrace.thrift.TInfo;
@@ -46,6 +47,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.tabletserver.thrift.LogCopyInfo;
 import org.apache.accumulo.core.tabletserver.thrift.LogFile;
 import org.apache.accumulo.core.tabletserver.thrift.LoggerClosedException;
 import org.apache.accumulo.core.tabletserver.thrift.MutationLogger;
@@ -56,6 +58,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.logger.LogWriter.LogWriteException;
@@ -69,6 +72,7 @@ import org.apache.accumulo.server.util.TServerUtils.ServerPort;
 import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TBase;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
@@ -77,7 +81,6 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
-
 
 /**
  * A Mutation logging service.
@@ -97,6 +100,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
   private ShutdownState shutdownState = ShutdownState.STARTED;
   private final List<FileLock> fileLocks = new ArrayList<FileLock>();
   private final String addressString;
+  private String ephemeralNode;
   
   enum ShutdownState {
     STARTED, REGISTERED, WAITING_FOR_HALT, HALT
@@ -179,6 +183,10 @@ public class LogService implements MutationLogger.Iface, Watcher {
     int poolSize = acuConf.getCount(Property.LOGGER_COPY_THREADPOOL_SIZE);
     boolean archive = acuConf.getBoolean(Property.LOGGER_ARCHIVE);
     writer_ = new LogWriter(acuConf, fs, rootDirs, instance.getInstanceID(), poolSize, archive);
+    
+    // call before putting this service online
+    removeIncompleteCopies(acuConf, fs, rootDirs);
+
     InvocationHandler h = new InvocationHandler() {
       @Override
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
@@ -221,6 +229,37 @@ public class LogService implements MutationLogger.Iface, Watcher {
     this.switchState(ShutdownState.REGISTERED);
   }
   
+  /**
+   * @param acuConf
+   * @param fs
+   * @param rootDirs
+   * @throws IOException
+   */
+  private void removeIncompleteCopies(AccumuloConfiguration acuConf, FileSystem fs, Set<String> rootDirs) throws IOException {
+
+    Set<String> walogs = new HashSet<String>();
+    for (String root : rootDirs) {
+      File rootFile = new File(root);
+      for (File walog : rootFile.listFiles()) {
+        try {
+          UUID.fromString(walog.getName());
+          walogs.add(walog.getName());
+        } catch (IllegalArgumentException iea) {
+          LOG.debug("Ignoring " + walog.getName());
+        }
+      }
+    }
+    
+    // look for .recovered that are not finished
+    for (String walog : walogs) {
+      Path path = new Path(ServerConstants.getRecoveryDir() + "/" + walog + ".recovered");
+      if (fs.exists(path) && !fs.exists(new Path(path, "finished"))) {
+        LOG.debug("Incomplete copy/sort in dfs, deleting " + path);
+        fs.delete(path, true);
+      }
+    }
+  }
+
   public void run() {
     try {
       while (!service.isServing()) {
@@ -244,6 +283,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
       String path = ZooUtil.getRoot(instance) + zooDir;
       path += "/logger-";
       path = zoo.putEphemeralSequential(path, addressString.getBytes());
+      ephemeralNode = path;
       zoo.exists(path, this);
     } catch (Exception ex) {
       throw new RuntimeException("Unexpected error creating zookeeper entry " + zooDir);
@@ -269,10 +309,12 @@ public class LogService implements MutationLogger.Iface, Watcher {
   }
   
   @Override
-  public long startCopy(TInfo info, AuthInfo credentials, String localLog, String fullyQualifiedFileName, boolean sort) throws ThriftSecurityException,
+  public LogCopyInfo startCopy(TInfo info, AuthInfo credentials, String localLog, String fullyQualifiedFileName, boolean sort) throws ThriftSecurityException,
       TException {
     checkForSystemPrivs("copy", credentials);
-    return writer.startCopy(null, credentials, localLog, fullyQualifiedFileName, sort);
+    LogCopyInfo lci = writer.startCopy(null, credentials, localLog, fullyQualifiedFileName, sort);
+    lci.loggerZNode = ephemeralNode;
+    return lci;
   }
   
   @Override
