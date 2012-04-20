@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.tabletserver.thrift.LogCopyInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -39,6 +40,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.tabletserver.log.RemoteLogger;
 import org.apache.accumulo.server.trace.TraceFileSystem;
+import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileStatus;
@@ -57,6 +59,8 @@ public class CoordinateRecoveryTask implements Runnable {
   private Map<String,RecoveryJob> processing = new HashMap<String,RecoveryJob>();
   
   private boolean stop = false;
+  
+  private ZooCache zcache;
   
   private static String fullName(String name) {
     return ServerConstants.getRecoveryDir() + "/" + name;
@@ -118,6 +122,7 @@ public class CoordinateRecoveryTask implements Runnable {
     Job sortJob = null;
     boolean useMapReduce = ServerConfiguration.getSystemConfiguration().getBoolean(Property.MASTER_RECOVERY_SORT_MAPREDUCE);
     JobComplete notify = null;
+    String loggerZNode;
     
     RecoveryJob(LogFile entry, JobComplete callback) throws Exception {
       logFile = entry;
@@ -132,7 +137,9 @@ public class CoordinateRecoveryTask implements Runnable {
         RemoteLogger logger = new RemoteLogger(logFile.server);
         String base = logFile.unsortedFileName();
         log.debug("Starting to copy " + logFile.file + " from " + logFile.server);
-        copySize = logger.startCopy(logFile.file, base, !useMapReduce);
+        LogCopyInfo lci = logger.startCopy(logFile.file, base, !useMapReduce);
+        copySize = lci.fileSize;
+        loggerZNode = lci.loggerZNode;
       } catch (Throwable t) {
         log.warn("Unable to recover " + logFile + "(" + t + ")", t);
         fail();
@@ -162,6 +169,11 @@ public class CoordinateRecoveryTask implements Runnable {
         return true;
       }
       
+      if (zcache.get(loggerZNode) == null) {
+        log.debug("zknode " + loggerZNode + " is gone, copy " + logFile.file + " from " + logFile.server + " assumed dead");
+        return true;
+      }
+
       if (elapsedMillis() > ServerConfiguration.getSystemConfiguration().getTimeInMillis(Property.MASTER_RECOVERY_MAXTIME)) {
         log.warn("Recovery taking too long, giving up");
         if (sortJob != null)
@@ -249,6 +261,7 @@ public class CoordinateRecoveryTask implements Runnable {
   
   public CoordinateRecoveryTask(FileSystem fs) {
     this.fs = fs;
+    zcache = new ZooCache();
   }
   
   public boolean recover(AuthInfo credentials, KeyExtent extent, Collection<Collection<String>> entries, JobComplete notify) {

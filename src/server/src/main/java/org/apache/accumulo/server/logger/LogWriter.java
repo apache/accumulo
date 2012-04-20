@@ -52,6 +52,7 @@ import org.apache.accumulo.core.data.thrift.TKeyExtent;
 import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.tabletserver.thrift.LogCopyInfo;
 import org.apache.accumulo.core.tabletserver.thrift.LogFile;
 import org.apache.accumulo.core.tabletserver.thrift.MutationLogger;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchLogIDException;
@@ -234,7 +235,7 @@ class LogWriter implements MutationLogger.Iface {
   }
   
   @Override
-  public long startCopy(TInfo info, AuthInfo credentials, final String localLog, final String fullyQualifiedFileName, final boolean sort) {
+  public LogCopyInfo startCopy(TInfo info, AuthInfo credentials, final String localLog, final String fullyQualifiedFileName, final boolean sort) {
     log.info("Copying " + localLog + " to " + fullyQualifiedFileName);
     final long t1 = System.currentTimeMillis();
     try {
@@ -314,6 +315,7 @@ class LogWriter implements MutationLogger.Iface {
               memorySize = 0;
             }
           }
+
           if (!kv.isEmpty())
             writeSortedEntries(dest, part++, kv);
           fs.create(new Path(dest, "finished")).close();
@@ -380,7 +382,7 @@ class LogWriter implements MutationLogger.Iface {
         log.info("Copying " + localLog + " complete");
       }
     });
-    return result;
+    return new LogCopyInfo(result, null);
   }
   
   @Override

@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
     public void close(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, long id) throws NoSuchLogIDException, LoggerClosedException, org.apache.thrift.TException;
 
-    public long startCopy(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String name, String fullyQualifiedFileName, boolean sort) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public LogCopyInfo startCopy(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String name, String fullyQualifiedFileName, boolean sort) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
     public List<String> getClosedLogs(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
@@ -412,7 +412,7 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public long startCopy(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String name, String fullyQualifiedFileName, boolean sort) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public LogCopyInfo startCopy(org.apache.accumulo.cloudtrace.thrift.TInfo tinfo, org.apache.accumulo.core.security.thrift.AuthInfo credentials, String name, String fullyQualifiedFileName, boolean sort) throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_startCopy(tinfo, credentials, name, fullyQualifiedFileName, sort);
       return recv_startCopy();
@@ -432,7 +432,7 @@ import org.slf4j.LoggerFactory;
       oprot_.getTransport().flush();
     }
 
-    public long recv_startCopy() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public LogCopyInfo recv_startCopy() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       org.apache.thrift.protocol.TMessage msg = iprot_.readMessageBegin();
       if (msg.type == org.apache.thrift.protocol.TMessageType.EXCEPTION) {
@@ -904,7 +904,7 @@ import org.slf4j.LoggerFactory;
         prot.writeMessageEnd();
       }
 
-      public long getResult() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException {
+      public LogCopyInfo getResult() throws org.apache.accumulo.core.security.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new IllegalStateException("Method call not finished!");
         }
@@ -1400,7 +1400,6 @@ import org.slf4j.LoggerFactory;
         startCopy_result result = new startCopy_result();
         try {
           result.success = iface_.startCopy(args.tinfo, args.credentials, args.name, args.fullyQualifiedFileName, args.sort);
-          result.setSuccessIsSet(true);
         } catch (org.apache.accumulo.core.security.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (Throwable th) {
@@ -8945,10 +8944,10 @@ import org.slf4j.LoggerFactory;
   public static class startCopy_result implements org.apache.thrift.TBase<startCopy_result, startCopy_result._Fields>, java.io.Serializable, Cloneable   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("startCopy_result");
 
-    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.I64, (short)0);
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
-    public long success;
+    public LogCopyInfo success;
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException sec;
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -9013,14 +9012,12 @@ import org.slf4j.LoggerFactory;
     }
 
     // isset id assignments
-    private static final int __SUCCESS_ISSET_ID = 0;
-    private BitSet __isset_bit_vector = new BitSet(1);
 
     public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, LogCopyInfo.class)));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRUCT)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
@@ -9031,12 +9028,11 @@ import org.slf4j.LoggerFactory;
     }
 
     public startCopy_result(
-      long success,
+      LogCopyInfo success,
       org.apache.accumulo.core.security.thrift.ThriftSecurityException sec)
     {
       this();
       this.success = success;
-      setSuccessIsSet(true);
       this.sec = sec;
     }
 
@@ -9044,9 +9040,9 @@ import org.slf4j.LoggerFactory;
      * Performs a deep copy on <i>other</i>.
      */
     public startCopy_result(startCopy_result other) {
-      __isset_bit_vector.clear();
-      __isset_bit_vector.or(other.__isset_bit_vector);
-      this.success = other.success;
+      if (other.isSetSuccess()) {
+        this.success = new LogCopyInfo(other.success);
+      }
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.security.thrift.ThriftSecurityException(other.sec);
       }
@@ -9058,32 +9054,32 @@ import org.slf4j.LoggerFactory;
 
     @Override
     public void clear() {
-      setSuccessIsSet(false);
-      this.success = 0;
+      this.success = null;
       this.sec = null;
     }
 
-    public long getSuccess() {
+    public LogCopyInfo getSuccess() {
       return this.success;
     }
 
-    public startCopy_result setSuccess(long success) {
+    public startCopy_result setSuccess(LogCopyInfo success) {
       this.success = success;
-      setSuccessIsSet(true);
       return this;
     }
 
     public void unsetSuccess() {
-      __isset_bit_vector.clear(__SUCCESS_ISSET_ID);
+      this.success = null;
     }
 
     /** Returns true if field success is set (has been assigned a value) and false otherwise */
     public boolean isSetSuccess() {
-      return __isset_bit_vector.get(__SUCCESS_ISSET_ID);
+      return this.success != null;
     }
 
     public void setSuccessIsSet(boolean value) {
-      __isset_bit_vector.set(__SUCCESS_ISSET_ID, value);
+      if (!value) {
+        this.success = null;
+      }
     }
 
     public org.apache.accumulo.core.security.thrift.ThriftSecurityException getSec() {
@@ -9116,7 +9112,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetSuccess();
         } else {
-          setSuccess((Long)value);
+          setSuccess((LogCopyInfo)value);
         }
         break;
 
@@ -9134,7 +9130,7 @@ import org.slf4j.LoggerFactory;
     public Object getFieldValue(_Fields field) {
       switch (field) {
       case SUCCESS:
-        return new Long(getSuccess());
+        return getSuccess();
 
       case SEC:
         return getSec();
@@ -9171,12 +9167,12 @@ import org.slf4j.LoggerFactory;
       if (that == null)
         return false;
 
-      boolean this_present_success = true;
-      boolean that_present_success = true;
+      boolean this_present_success = true && this.isSetSuccess();
+      boolean that_present_success = true && that.isSetSuccess();
       if (this_present_success || that_present_success) {
         if (!(this_present_success && that_present_success))
           return false;
-        if (this.success != that.success)
+        if (!this.success.equals(that.success))
           return false;
       }
 
@@ -9243,9 +9239,9 @@ import org.slf4j.LoggerFactory;
         }
         switch (field.id) {
           case 0: // SUCCESS
-            if (field.type == org.apache.thrift.protocol.TType.I64) {
-              this.success = iprot.readI64();
-              setSuccessIsSet(true);
+            if (field.type == org.apache.thrift.protocol.TType.STRUCT) {
+              this.success = new LogCopyInfo();
+              this.success.read(iprot);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
             }
@@ -9274,7 +9270,7 @@ import org.slf4j.LoggerFactory;
 
       if (this.isSetSuccess()) {
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
-        oprot.writeI64(this.success);
+        this.success.write(oprot);
         oprot.writeFieldEnd();
       } else if (this.isSetSec()) {
         oprot.writeFieldBegin(SEC_FIELD_DESC);
@@ -9291,7 +9287,11 @@ import org.slf4j.LoggerFactory;
       boolean first = true;
 
       sb.append("success:");
-      sb.append(this.success);
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
       first = false;
       if (!first) sb.append(", ");
       sb.append("sec:");

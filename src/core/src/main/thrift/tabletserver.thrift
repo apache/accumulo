@@ -169,6 +169,10 @@ struct TabletMutations {
 	3:list<data.TMutation> mutations
 }
 
+struct LogCopyInfo {
+	1:i64 fileSize,
+	2:string loggerZNode
+}
 
 service MutationLogger {
     LogFile create(3:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string tserverSession) throws (1:security.ThriftSecurityException sec, 2:LoggerClosedException lce),
@@ -182,7 +186,7 @@ service MutationLogger {
     void close(2:cloudtrace.TInfo tinfo, 1:LogID id) throws (1:NoSuchLogIDException nsli, 2:LoggerClosedException lce),
 
     // close a log file and initiate the push to HDFS
-    i64 startCopy(4:cloudtrace.TInfo tinfo,
+    LogCopyInfo startCopy(4:cloudtrace.TInfo tinfo,
                   1:security.AuthInfo credentials,
                   2:string name, 
                   3:string fullyQualifiedFileName,
