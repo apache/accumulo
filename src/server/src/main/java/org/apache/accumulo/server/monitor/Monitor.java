@@ -67,6 +67,7 @@ import org.apache.accumulo.server.monitor.servlets.trace.Summary;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.EmbeddedWebServer;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
@@ -422,6 +423,7 @@ public class Monitor {
   }
   
   public static void main(String[] args) {
+    SecurityUtil.serverLogin();
     new Monitor().run(args);
   }
   

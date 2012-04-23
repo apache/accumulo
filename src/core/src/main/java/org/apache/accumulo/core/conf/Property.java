@@ -45,11 +45,13 @@ public enum Property {
   GENERAL_CLASSPATHS(AccumuloClassLoader.CLASSPATH_PROPERTY_NAME, AccumuloClassLoader.DEFAULT_CLASSPATH_VALUE, PropertyType.STRING,
       "A list of all of the places to look for a class. Order does matter, as it will look for the jar "
           + "starting in the first location to the last. Please note, hadoop conf and hadoop lib directories NEED to be here, "
-          + "along with accumulo lib and zookeeper directory. Supports full regex on filename alone."), // needs special treatment in accumulo start
-                                                                                                        // jar
+          + "along with accumulo lib and zookeeper directory. Supports full regex on filename alone."), // needs special treatment in accumulo start jar
   GENERAL_DYNAMIC_CLASSPATHS(AccumuloClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME, AccumuloClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE, PropertyType.STRING,
       "A list of all of the places where changes in jars or classes will force a reload of the classloader."),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION, "Time to wait on I/O for simple, short RPC calls"),
+  GENERAL_KERBEROS_KEYTAB("general.kerberos.keytab", "", PropertyType.PATH, "Path to the kerberos keytab to use. Leave blank if not using kerberoized hdfs"),
+  GENERAL_KERBEROS_PRINCIPAL("general.kerberos.principal", "", PropertyType.STRING, "Name of the kerberos principal to use. _HOST will automatically be "
+      + "replaced by the machines hostname in the hostname portion of the principal. Leave blank if not using kerberoized hdfs"),
   
   // properties that are specific to master server behavior
   MASTER_PREFIX("master.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the master server"),

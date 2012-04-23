@@ -62,6 +62,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.logger.LogWriter.LogWriteException;
 import org.apache.accumulo.server.security.Authenticator;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.FileSystemMonitor;
@@ -121,7 +122,8 @@ public class LogService implements MutationLogger.Iface, Watcher {
   
   public static void main(String[] args) throws Exception {
     LogService logService;
-    
+    SecurityUtil.serverLogin();
+
     try {
       logService = new LogService(args);
     } catch (Exception e) {

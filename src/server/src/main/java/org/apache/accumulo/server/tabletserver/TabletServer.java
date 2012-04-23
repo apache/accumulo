@@ -145,6 +145,7 @@ import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.security.Authenticator;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.accumulo.server.tabletserver.Tablet.CommitSession;
 import org.apache.accumulo.server.tabletserver.Tablet.KVEntry;
@@ -223,6 +224,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   public TabletServer() {
     super();
+    watcher = new TransactionWatcher();
+
     SimpleTimer.getInstance().schedule(new TimerTask() {
       @Override
       public void run() {
@@ -810,7 +813,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
   }
   
-  TransactionWatcher watcher = new TransactionWatcher();
+  TransactionWatcher watcher;
   
   private class ThriftClientHandler extends ClientServiceHandler implements TabletClientService.Iface {
     
@@ -2651,6 +2654,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   // main loop listens for client requests
   public void run() {
+    SecurityUtil.serverLogin();
+
     int clientPort = 0;
     try {
       clientPort = startTabletClientService();
@@ -3102,6 +3107,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   public static void main(String[] args) throws IOException {
     try {
+      SecurityUtil.serverLogin();
+      
       TabletServer server = new TabletServer();
       server.config(args);
       server.run();

@@ -39,6 +39,7 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -219,6 +220,7 @@ public class TraceServer implements Watcher {
   }
   
   public static void main(String[] args) throws Exception {
+    SecurityUtil.serverLogin();
     TraceServer server = new TraceServer(args);
     server.run();
     log.info("tracer stopping");

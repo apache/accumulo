@@ -141,6 +141,7 @@ import org.apache.accumulo.server.master.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.security.Authenticator;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.tabletserver.log.RemoteLogger;
@@ -529,7 +530,6 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   }
   
   public Master(String[] args) throws IOException {
-    
     Accumulo.init("master");
     
     log.info("Version " + Constants.VERSION);
@@ -2151,6 +2151,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   
   public static void main(String[] args) throws Exception {
     try {
+      SecurityUtil.serverLogin();
+      
       Master master = new Master(args);
       master.run();
     } catch (Exception ex) {

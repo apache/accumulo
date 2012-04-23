@@ -155,6 +155,20 @@ $HADOOP_HOME/lib/[^.].*.jar,
     <td>A list of all of the places where changes in jars or classes will force a reload of the classloader.</td>
    </tr>
    <tr class='highlight'>
+    <td>general.kerberos.keytab</td>
+    <td><b><a href='#PATH'>path</a></b></td>
+    <td>no</td>
+    <td><pre>&nbsp;</pre></td>
+    <td>Path to the kerberos keytab to use. Leave blank if not using kerberoized hdfs</td>
+   </tr>
+   <tr >
+    <td>general.kerberos.principal</td>
+    <td><b><a href='#STRING'>string</a></b></td>
+    <td>no</td>
+    <td><pre>&nbsp;</pre></td>
+    <td>Name of the kerberos principal to use. _HOST will automatically be replaced by the machines hostname in the hostname portion of the principal. Leave blank if not using kerberoized hdfs</td>
+   </tr>
+   <tr class='highlight'>
     <td>general.rpc.timeout</td>
     <td><b><a href='#TIMEDURATION'>duration</a></b></td>
     <td>no</td>

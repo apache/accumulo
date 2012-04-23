@@ -49,6 +49,7 @@ import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
@@ -423,7 +424,10 @@ public class Initialize {
     
     try {
       Configuration conf = CachedConfiguration.getInstance();
+      SecurityUtil.serverLogin();
+      
       FileSystem fs = FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration());
+
       if (justSecurity) {
         if (isInitialized(fs))
           initSecurity(HdfsZooInstance.getInstance().getInstanceID(), getRootPassword());

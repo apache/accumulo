@@ -75,6 +75,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.OfflineMetadataScanner;
@@ -122,6 +123,8 @@ public class SimpleGarbageCollector implements Iface {
   private int numDeleteThreads;
   
   public static void main(String[] args) throws UnknownHostException, IOException {
+    SecurityUtil.serverLogin();
+
     Accumulo.init("gc");
     SimpleGarbageCollector gc = new SimpleGarbageCollector(args);
     
@@ -185,7 +188,7 @@ public class SimpleGarbageCollector implements Iface {
   
   private void run() {
     long tStart, tStop;
-    
+
     // Sleep for an initial period, giving the master time to start up and
     // old data files to be unused
     if (!offline) {
