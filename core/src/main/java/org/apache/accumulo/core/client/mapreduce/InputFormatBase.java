@@ -139,7 +139,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   private static final String ITERATORS_DELIM = ",";
   
   private static final String READ_OFFLINE = PREFIX + ".read.offline";
-
+  
   /**
    * Enable or disable use of the {@link IsolatedScanner} in this configuration object. By default it is not enabled.
    * 
@@ -610,9 +610,9 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static boolean isOfflineScan(Configuration conf) {
     return conf.getBoolean(READ_OFFLINE, false);
   }
-
+  
   // Return a list of the iterator settings (for iterators to apply to a scanner)
-
+  
   /**
    * Gets a list of the iterator settings (for iterators to apply to a scanner) from this configuration.
    * 
@@ -716,41 +716,45 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
      * Initialize a scanner over the given input split using this task attempt configuration.
      */
     public void initialize(InputSplit inSplit, TaskAttemptContext attempt) throws IOException {
+      initialize(inSplit, attempt.getConfiguration());
+    }
+    
+    public void initialize(InputSplit inSplit, Configuration conf) throws IOException {
       Scanner scanner;
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.range);
-      Instance instance = getInstance(attempt.getConfiguration());
-      String user = getUsername(attempt.getConfiguration());
-      byte[] password = getPassword(attempt.getConfiguration());
-      Authorizations authorizations = getAuthorizations(attempt.getConfiguration());
+      Instance instance = getInstance(conf);
+      String user = getUsername(conf);
+      byte[] password = getPassword(conf);
+      Authorizations authorizations = getAuthorizations(conf);
       
       try {
         log.debug("Creating connector with user: " + user);
         Connector conn = instance.getConnector(user, password);
-        log.debug("Creating scanner for table: " + getTablename(attempt.getConfiguration()));
+        log.debug("Creating scanner for table: " + getTablename(conf));
         log.debug("Authorizations are: " + authorizations);
-        if (isOfflineScan(attempt.getConfiguration())) {
+        if (isOfflineScan(conf)) {
           scanner = new OfflineScanner(instance, new AuthInfo(user, ByteBuffer.wrap(password), instance.getInstanceID()), Tables.getTableId(instance,
-              getTablename(attempt.getConfiguration())), authorizations);
+              getTablename(conf)), authorizations);
         } else {
-          scanner = conn.createScanner(getTablename(attempt.getConfiguration()), authorizations);
+          scanner = conn.createScanner(getTablename(conf), authorizations);
         }
-        if (isIsolated(attempt.getConfiguration())) {
+        if (isIsolated(conf)) {
           log.info("Creating isolated scanner");
           scanner = new IsolatedScanner(scanner);
         }
-        if (usesLocalIterators(attempt.getConfiguration())) {
+        if (usesLocalIterators(conf)) {
           log.info("Using local iterators");
           scanner = new ClientSideIteratorScanner(scanner);
         }
-        setupMaxVersions(attempt.getConfiguration(), scanner);
-        setupIterators(attempt.getConfiguration(), scanner);
+        setupMaxVersions(conf, scanner);
+        setupIterators(conf, scanner);
       } catch (Exception e) {
         throw new IOException(e);
       }
       
       // setup a scanner within the bounds of this split
-      for (Pair<Text,Text> c : getFetchedColumns(attempt.getConfiguration())) {
+      for (Pair<Text,Text> c : getFetchedColumns(conf)) {
         if (c.getSecond() != null) {
           log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
           scanner.fetchColumn(c.getFirst(), c.getSecond());
@@ -792,13 +796,13 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     }
   }
   
-  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobContext job, String tableName, List<Range> ranges) throws TableNotFoundException,
+  Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(Configuration conf, String tableName, List<Range> ranges) throws TableNotFoundException,
       AccumuloException, AccumuloSecurityException {
     
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
-
-    Instance instance = getInstance(job.getConfiguration());
-    Connector conn = instance.getConnector(getUsername(job.getConfiguration()), getPassword(job.getConfiguration()));
+    
+    Instance instance = getInstance(conf);
+    Connector conn = instance.getConnector(getUsername(conf), getPassword(conf));
     String tableId = Tables.getTableId(instance, tableName);
     
     if (Tables.getTableState(instance, tableId) != TableState.OFFLINE) {
@@ -807,7 +811,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         throw new AccumuloException("Table is online " + tableName + "(" + tableId + ") cannot scan table in offline mode ");
       }
     }
-
+    
     for (Range range : ranges) {
       Text startRow;
       
@@ -827,9 +831,9 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       RowIterator rowIter = new RowIterator(scanner);
       
       // TODO check that extents match prev extent
-
+      
       KeyExtent lastExtent = null;
-
+      
       while (rowIter.hasNext()) {
         Iterator<Entry<Key,Value>> row = rowIter.next();
         String last = "";
@@ -848,7 +852,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
               || key.getColumnFamily().equals(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY)) {
             location = entry.getValue().toString();
           }
-
+          
           if (Constants.METADATA_PREV_ROW_COLUMN.hasColumns(key)) {
             extent = new KeyExtent(key.getRow(), entry.getValue());
           }
@@ -857,15 +861,15 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         
         if (location != null)
           return null;
-
+        
         if (!extent.getTableId().toString().equals(tableId)) {
           throw new AccumuloException("Saw unexpected table Id " + tableId + " " + extent);
         }
-
+        
         if (lastExtent != null && !extent.isPreviousExtent(lastExtent)) {
           throw new AccumuloException(" " + lastExtent + " is not previous extent " + extent);
         }
-
+        
         Map<KeyExtent,List<Range>> tabletRanges = binnedRanges.get(last);
         if (tabletRanges == null) {
           tabletRanges = new HashMap<KeyExtent,List<Range>>();
@@ -879,29 +883,33 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         }
         
         rangeList.add(range);
-
+        
         if (extent.getEndRow() == null || range.afterEndKey(new Key(extent.getEndRow()).followingKey(PartialKey.ROW))) {
           break;
         }
         
         lastExtent = extent;
       }
-
+      
     }
     
     return binnedRanges;
   }
-
+  
   /**
    * Read the metadata table to get tablets and match up ranges to them.
    */
   public List<InputSplit> getSplits(JobContext job) throws IOException {
-    log.setLevel(getLogLevel(job.getConfiguration()));
-    validateOptions(job.getConfiguration());
+    return getSplits(job.getConfiguration());
+  }
+  
+  public List<InputSplit> getSplits(Configuration conf) throws IOException {
+    log.setLevel(getLogLevel(conf));
+    validateOptions(conf);
     
-    String tableName = getTablename(job.getConfiguration());
-    boolean autoAdjust = getAutoAdjustRanges(job.getConfiguration());
-    List<Range> ranges = autoAdjust ? Range.mergeOverlapping(getRanges(job.getConfiguration())) : getRanges(job.getConfiguration());
+    String tableName = getTablename(conf);
+    boolean autoAdjust = getAutoAdjustRanges(conf);
+    List<Range> ranges = autoAdjust ? Range.mergeOverlapping(getRanges(conf)) : getRanges(conf);
     
     if (ranges.isEmpty()) {
       ranges = new ArrayList<Range>(1);
@@ -912,17 +920,17 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     TabletLocator tl;
     try {
-      if (isOfflineScan(job.getConfiguration())) {
-        binnedRanges = binOfflineTable(job, tableName, ranges);
+      if (isOfflineScan(conf)) {
+        binnedRanges = binOfflineTable(conf, tableName, ranges);
         while (binnedRanges == null) {
           // Some tablets were still online, try again
           UtilWaitThread.sleep(100 + (int) (Math.random() * 100)); // sleep randomly between 100 and 200 ms
-          binnedRanges = binOfflineTable(job, tableName, ranges);
+          binnedRanges = binOfflineTable(conf, tableName, ranges);
         }
       } else {
-        Instance instance = getInstance(job.getConfiguration());
+        Instance instance = getInstance(conf);
         String tableId = null;
-        tl = getTabletLocator(job.getConfiguration());
+        tl = getTabletLocator(conf);
         while (!tl.binRanges(ranges, binnedRanges).isEmpty()) {
           if (!(instance instanceof MockInstance)) {
             if (tableId == null)
@@ -994,8 +1002,17 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       locations = new String[0];
     }
     
+    public RangeInputSplit(RangeInputSplit split) throws IOException {
+      this.setRange(split.getRange());
+      this.setLocations(split.getLocations());
+    }
+    
     public Range getRange() {
       return range;
+    }
+    
+    public void setRange(Range range) {
+      this.range = range;
     }
     
     private static byte[] extractBytes(ByteSequence seq, int numBytes) {
@@ -1066,6 +1083,10 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     
     public String[] getLocations() throws IOException {
       return locations;
+    }
+    
+    public void setLocations(String[] locations) {
+      this.locations = locations;
     }
     
     public void readFields(DataInput in) throws IOException {

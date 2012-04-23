@@ -142,7 +142,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   public static void setMaxWriteThreads(Configuration conf, int numberOfThreads) {
     conf.setInt(NUM_WRITE_THREADS, numberOfThreads);
   }
-
+  
   public static void setLogLevel(Configuration conf, Level level) {
     ArgumentChecker.notNull(level);
     conf.setInt(LOGLEVEL, level.toInt());
@@ -200,7 +200,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     return conf.getBoolean(SIMULATE, false);
   }
   
-  private static class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
+  protected static class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private MultiTableBatchWriter mtbw = null;
     private HashMap<Text,BatchWriter> bws = null;
     private Text defaultTableName = null;
@@ -213,25 +213,24 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     
     private Connector conn;
     
-    AccumuloRecordWriter(TaskAttemptContext attempt) throws AccumuloException, AccumuloSecurityException {
-      Level l = getLogLevel(attempt.getConfiguration());
+    protected AccumuloRecordWriter(Configuration conf) throws AccumuloException, AccumuloSecurityException {
+      Level l = getLogLevel(conf);
       if (l != null)
-        log.setLevel(getLogLevel(attempt.getConfiguration()));
-      this.simulate = getSimulationMode(attempt.getConfiguration());
-      this.createTables = canCreateTables(attempt.getConfiguration());
+        log.setLevel(getLogLevel(conf));
+      this.simulate = getSimulationMode(conf);
+      this.createTables = canCreateTables(conf);
       
       if (simulate)
         log.info("Simulating output only. No writes to tables will occur");
       
       this.bws = new HashMap<Text,BatchWriter>();
       
-      String tname = getDefaultTableName(attempt.getConfiguration());
+      String tname = getDefaultTableName(conf);
       this.defaultTableName = (tname == null) ? null : new Text(tname);
       
       if (!simulate) {
-        this.conn = getInstance(attempt.getConfiguration()).getConnector(getUsername(attempt.getConfiguration()), getPassword(attempt.getConfiguration()));
-        mtbw = conn.createMultiTableBatchWriter(getMaxMutationBufferSize(attempt.getConfiguration()), getMaxLatency(attempt.getConfiguration()),
-            getMaxWriteThreads(attempt.getConfiguration()));
+        this.conn = getInstance(conf).getConnector(getUsername(conf), getPassword(conf));
+        mtbw = conn.createMultiTableBatchWriter(getMaxMutationBufferSize(conf), getMaxLatency(conf), getMaxWriteThreads(conf));
       }
     }
     
@@ -355,14 +354,17 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   
   @Override
   public void checkOutputSpecs(JobContext job) throws IOException {
-    Configuration conf = job.getConfiguration();
+    checkOutputSpecs(job.getConfiguration());
+  }
+  
+  public void checkOutputSpecs(Configuration conf) throws IOException {
     if (!conf.getBoolean(OUTPUT_INFO_HAS_BEEN_SET, false))
       throw new IOException("Output info has not been set.");
     if (!conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
       throw new IOException("Instance info has not been set.");
     try {
-      Connector c = getInstance(job.getConfiguration()).getConnector(getUsername(job.getConfiguration()), getPassword(job.getConfiguration()));
-      if (!c.securityOperations().authenticateUser(getUsername(job.getConfiguration()), getPassword(job.getConfiguration())))
+      Connector c = getInstance(conf).getConnector(getUsername(conf), getPassword(conf));
+      if (!c.securityOperations().authenticateUser(getUsername(conf), getPassword(conf)))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException e) {
       throw new IOException(e);
@@ -379,7 +381,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   @Override
   public RecordWriter<Text,Mutation> getRecordWriter(TaskAttemptContext attempt) throws IOException {
     try {
-      return new AccumuloRecordWriter(attempt);
+      return new AccumuloRecordWriter(attempt.getConfiguration());
     } catch (Exception e) {
       throw new IOException(e);
     }
