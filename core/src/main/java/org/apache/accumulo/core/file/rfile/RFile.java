@@ -103,7 +103,7 @@ public class RFile {
     private String name;
     private Set<ByteSequence> previousColumnFamilies;
     
-    private MultiLevelIndex.Writer indexWriter;
+    private MultiLevelIndex.BufferedWriter indexWriter;
     private MultiLevelIndex.Reader indexReader;
     
     public LocalityGroupMetadata(int version, BlockFileReader br) {
@@ -117,7 +117,7 @@ public class RFile {
       columnFamilies = new HashMap<ByteSequence,Count>();
       previousColumnFamilies = pcf;
       
-      indexWriter = new MultiLevelIndex.Writer(bfw, indexBlockSize);
+      indexWriter = new MultiLevelIndex.BufferedWriter(new MultiLevelIndex.Writer(bfw, indexBlockSize));
     }
     
     public LocalityGroupMetadata(String name, Set<ByteSequence> cfset, int nextBlock, int indexBlockSize, BlockFileWriter bfw) {
@@ -129,7 +129,7 @@ public class RFile {
         columnFamilies.put(cf, new Count(0));
       }
       
-      indexWriter = new MultiLevelIndex.Writer(bfw, indexBlockSize);
+      indexWriter = new MultiLevelIndex.BufferedWriter(new MultiLevelIndex.Writer(bfw, indexBlockSize));
     }
     
     private Key getFirstKey() {
