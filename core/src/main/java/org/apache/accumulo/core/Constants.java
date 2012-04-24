@@ -126,6 +126,8 @@ public class Constants {
   
   public static final KeyExtent ROOT_TABLET_EXTENT = new KeyExtent(new Text(METADATA_TABLE_ID), KeyExtent.getMetadataEntry(new Text(METADATA_TABLE_ID), null),
       null);
+  public static final Range METADATA_ROOT_TABLET_KEYSPACE = new Range(ROOT_TABLET_EXTENT.getMetadataEntry(), false, KeyExtent.getMetadataEntry(new Text(
+      METADATA_TABLE_ID), null), true);
   
   public static final String VALUE_ENCODING = "UTF-8";
   
@@ -156,6 +158,7 @@ public class Constants {
   public static final String OLD_PACKAGE_NAME = "cloudbase";
   public static final String VALID_TABLE_NAME_REGEX = "^\\w+$";
   public static final String MAPFILE_EXTENSION = "map";
+  public static final String GENERATED_TABLET_DIRECTORY_PREFIX = "t-";
   
   public static String getBaseDir(AccumuloConfiguration conf) {
     return conf.get(Property.INSTANCE_DFS_DIR);

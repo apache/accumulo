@@ -33,9 +33,7 @@ public class RootTabletStateStore extends MetaDataStateStore {
   
   @Override
   public Iterator<TabletLocationState> iterator() {
-    Range range = new Range(Constants.ROOT_TABLET_EXTENT.getMetadataEntry(), false, KeyExtent.getMetadataEntry(new Text(Constants.METADATA_TABLE_ID), null),
-        true);
-    return new MetaDataTableScanner(instance, auths, range, state);
+    return new MetaDataTableScanner(instance, auths, Constants.METADATA_ROOT_TABLET_KEYSPACE, state);
   }
   
   @Override

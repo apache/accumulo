@@ -105,6 +105,11 @@ public class MergeStats {
       log.info("failed to see any tablets for this range, ignoring " + info.getRange());
       return state;
     }
+    if (total == 1 && info.getRange().isMeta()) {
+      // root tablet watcher trying to merge metadata tablets it won't even scan
+      log.debug("ignoring merge of " + info.getRange());
+      return state;
+    }
     if (state == MergeState.SPLITTING) {
       log.info(hosted + " are hosted, total " + total);
       if (!info.isDelete() && total == 1) {
@@ -178,6 +183,8 @@ public class MergeStats {
     Text tableId = extent.getTableId();
     Text first = KeyExtent.getMetadataEntry(tableId, start);
     Range range = new Range(first, false, null, true);
+    if (extent.isMeta())
+      range = new Range(Constants.METADATA_ROOT_TABLET_KEYSPACE);
     scanner.setRange(range);
     KeyExtent prevExtent = null;
 

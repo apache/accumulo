@@ -982,12 +982,18 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           String tableName = ByteBufferUtil.toString(arguments.get(0));
           Text startRow = ByteBufferUtil.toText(arguments.get(1));
           Text endRow = ByteBufferUtil.toText(arguments.get(2));
-          
           final String tableId = checkTableId(tableName, TableOperation.MERGE);
-          checkNotMetadataTable(tableName, TableOperation.MERGE);
+          if (tableName.equals(Constants.METADATA_TABLE_NAME)) {
+            if (startRow.compareTo(new Text("0")) < 0) {
+              startRow = new Text("0");
+              if (endRow.getLength() != 0 && endRow.compareTo(startRow) < 0)
+                throw new ThriftTableOperationException(null, tableName, TableOperation.MERGE, TableOperationExceptionType.OTHER,
+                    "end-row specification is in the root tablet, which cannot be merged or split");
+            }
+          }
+          log.debug("Creating merge op: " + tableId + " " + startRow + " " + endRow);
           verify(c, tableId, TableOperation.MERGE,
               check(c, SystemPermission.SYSTEM) || check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
-          
           fate.seedTransaction(opid, new TraceRepo<Master>(new TableRangeOp(MergeInfo.Operation.MERGE, tableId, startRow, endRow)), autoCleanup);
           break;
         }
@@ -1625,6 +1631,9 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         start = new Text();
       }
       Range scanRange = new Range(KeyExtent.getMetadataEntry(range.getTableId(), start), false, stopRow, false);
+      if (range.isMeta())
+        scanRange = scanRange.clip(Constants.METADATA_ROOT_TABLET_KEYSPACE);
+
       BatchWriter bw = null;
       try {
         long fileCount = 0;
@@ -1651,14 +1660,18 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           } else if (Constants.METADATA_TIME_COLUMN.hasColumns(key)) {
             maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, value.toString());
           } else if (Constants.METADATA_DIRECTORY_COLUMN.hasColumns(key)) {
-            bw.addMutation(MetadataTable.createDeleteMutation(range.getTableId().toString(), entry.getValue().toString()));
+            if (!range.isMeta())
+              bw.addMutation(MetadataTable.createDeleteMutation(range.getTableId().toString(), entry.getValue().toString()));
           }
         }
         
         // read the logical time from the last tablet in the merge range, it is not included in
         // the loop above
         scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-        scanner.setRange(new Range(stopRow));
+        Range last = new Range(stopRow);
+        if (range.isMeta())
+          last = last.clip(Constants.METADATA_ROOT_TABLET_KEYSPACE);
+        scanner.setRange(last);
         ColumnFQ.fetch(scanner, Constants.METADATA_TIME_COLUMN);
         for (Entry<Key,Value> entry : scanner) {
           if (Constants.METADATA_TIME_COLUMN.hasColumns(entry.getKey())) {
@@ -2316,6 +2329,10 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   
   public ServerConfiguration getConfiguration() {
     return serverConfig;
+  }
+  
+  public FileSystem getFileSystem() {
+    return this.fs;
   }
 
 }

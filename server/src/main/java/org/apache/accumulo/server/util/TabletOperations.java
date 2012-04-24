@@ -45,7 +45,7 @@ public class TabletOperations {
             return lowDirectory;
           log.warn("Failed to create " + lowDirectoryPath + " for unknown reason");
         } else {
-          lowDirectory = "/t-" + namer.getNextName();
+          lowDirectory = "/" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
           Path lowDirectoryPath = new Path(tableDir + lowDirectory);
           if (fs.exists(lowDirectoryPath))
             throw new IllegalStateException("Dir exist when it should not " + lowDirectoryPath);
