@@ -346,6 +346,60 @@ public class MultiLevelIndex {
     
   }
   
+  /**
+   * this class buffers writes to the index so that chunks of index blocks are contiguous in the file instead of having index blocks sprinkled throughout the
+   * file making scans of the entire index slow.
+   */
+  public static class BufferedWriter {
+    
+    private Writer writer;
+    private DataOutputStream buffer;
+    private int buffered;
+    private ByteArrayOutputStream baos;
+    
+    public BufferedWriter(Writer writer) {
+      this.writer = writer;
+      baos = new ByteArrayOutputStream(1 << 20);
+      buffer = new DataOutputStream(baos);
+      buffered = 0;
+    }
+    
+    private void flush() throws IOException {
+      buffer.close();
+      
+      DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
+      
+      IndexEntry ie = new IndexEntry(true);
+      for (int i = 0; i < buffered; i++) {
+        ie.readFields(dis);
+        writer.add(ie.getKey(), ie.getNumEntries(), ie.getOffset(), ie.getCompressedSize(), ie.getRawSize());
+      }
+      
+      buffered = 0;
+      baos = new ByteArrayOutputStream(1 << 20);
+      buffer = new DataOutputStream(baos);
+      
+    }
+    
+    public void add(Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {
+      if (buffer.size() > (10 * 1 << 20)) {
+        flush();
+      }
+      
+      new IndexEntry(key, data, offset, compressedSize, rawSize).write(buffer);
+      buffered++;
+    }
+    
+    public void addLast(Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {
+      flush();
+      writer.addLast(key, data, offset, compressedSize, rawSize);
+    }
+    
+    public void close(DataOutput out) throws IOException {
+      writer.close(out);
+    }
+  }
+
   public static class Writer {
     private int threshold;
     

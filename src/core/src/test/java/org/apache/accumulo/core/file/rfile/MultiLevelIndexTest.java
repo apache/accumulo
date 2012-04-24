@@ -26,11 +26,11 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.file.blockfile.ABlockWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.BlockRead;
-import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.file.rfile.MultiLevelIndex.BufferedWriter;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader;
-import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Writer;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
+import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Writer;
 import org.apache.accumulo.core.file.rfile.RFileTest.SeekableByteArrayInputStream;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -55,7 +55,7 @@ public class MultiLevelIndexTest extends TestCase {
     FSDataOutputStream dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
     CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(dos, "gz", CachedConfiguration.getInstance());
     
-    Writer mliw = new Writer(_cbw, maxBlockSize);
+    BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
     
     for (int i = 0; i < num; i++)
       mliw.add(new Key(String.format("%05d000", i)), i, 0, 0, 0);
