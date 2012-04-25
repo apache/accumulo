@@ -310,7 +310,7 @@ public class Master implements Listener, NewLoggerWatcher, TableObserver, Curren
           TableCounts counts = entry.getValue();
           TableState tableState = manager.getTableState(tableId.toString());
           if (tableState != null && tableState.equals(TableState.ONLINE)) {
-            result += counts.unassigned() + counts.assignedToDeadServers();
+            result += counts.unassigned() + counts.assignedToDeadServers() + counts.assigned();
           }
         }
       }
