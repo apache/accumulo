@@ -131,8 +131,6 @@ public class Initialize {
       c.printNewline();
     }
     
-    UUID uuid = UUID.randomUUID();
-    
     try {
       if (isInitialized(fs)) {
         log.fatal("It appears this location was previously initialized, exiting ... ");
@@ -152,7 +150,12 @@ public class Initialize {
       return false;
     }
     byte[] rootpass = getRootPassword();
+    return initialize(instanceNamePath, fs, rootpass);
+  }
+  
+  public static boolean initialize(String instanceNamePath, FileSystem fs, byte[] rootpass) {
     
+    UUID uuid = UUID.randomUUID();
     try {
       initZooKeeper(uuid.toString(), instanceNamePath);
     } catch (Exception e) {
@@ -161,7 +164,7 @@ public class Initialize {
     }
     
     try {
-      initFileSystem(fs, conf, uuid);
+      initFileSystem(fs, fs.getConf(), uuid);
     } catch (Exception e) {
       log.fatal("Failed to initialize filesystem", e);
       return false;
