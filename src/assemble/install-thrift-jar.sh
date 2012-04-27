@@ -33,7 +33,13 @@ runAt() {
   ( cd $1 ; echo in `pwd`; shift ; run $@ ) || fail 
 }
 
+LOCAL_MAVEN_REPO=$1
+
+if [ ! -z $LOCAL_MAVEN_REPO ] ; then
+  LOCAL_MAVEN_REPO="-Dmaven.repo.local=$LOCAL_MAVEN_REPO"
+fi
+
 run svn export https://svn.apache.org/repos/asf/thrift/tags/thrift-0.3.0
 runAt thrift-0.3.0/lib/java ant
-run mvn install:install-file -Dfile=thrift-0.3.0/lib/java/libthrift.jar -DgroupId=org.apache.accumulo.thrift -DartifactId=libthrift -Dversion=0.3 -Dpackaging=jar
+run mvn install:install-file $LOCAL_MAVEN_REPO -Dfile=thrift-0.3.0/lib/java/libthrift.jar -DgroupId=org.apache.accumulo.thrift -DartifactId=libthrift -Dversion=0.3 -Dpackaging=jar
 run rm -rf thrift-0.3.0

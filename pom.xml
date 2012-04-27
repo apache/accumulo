@@ -315,37 +315,30 @@
         <artifactId>exec-maven-plugin</artifactId>
         <inherited>false</inherited>
         <version>1.2</version>
-        <configuration>
-          <executable>/bin/bash</executable>
-          <arguments>
-            <argument>docs/src/user_manual/build.sh</argument>
-          </arguments>
-        </configuration>
         <executions>
           <execution>
             <id>user-manual</id>
             <phase>prepare-package</phase>
+            <configuration>
+              <executable>/bin/bash</executable>
+              <arguments>
+                <argument>docs/src/user_manual/build.sh</argument>
+              </arguments>
+            </configuration>
             <goals>
               <goal>exec</goal>
             </goals>
           </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <inherited>false</inherited>
-        <version>1.2</version>
-        <configuration>
-          <executable>/bin/bash</executable>
-          <arguments>
-            <argument>src/assemble/install-thrift-jar.sh</argument>
-          </arguments>
-        </configuration>
-        <executions>
           <execution>
             <id>thrift-jar</id>
             <phase>generate-resources</phase>
+            <configuration>
+              <executable>/bin/bash</executable>
+              <arguments>
+                <argument>src/assemble/install-thrift-jar.sh</argument>
+                <argument>${maven.repo.local}</argument>
+              </arguments>
+            </configuration>
             <goals>
               <goal>exec</goal>
             </goals>
