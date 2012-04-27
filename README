@@ -17,16 +17,12 @@ However, if you only have source code, or you wish to make changes, you need to
 have maven configured to get Accumulo pre-requisites from repositories.  See
 the pom.xml file for the necessary components.
 
-The libthrift 0.3 jar is no longer available from a repository.  To install this jar
-into your local maven repository, run the following commands.
+The libthrift 0.3 jar is no longer available from a repository.  This jar will 
+be automatically built from the thrift tag and installed into your local maven 
+repository during the Accumulo build process via the 
+src/assemble/install-thrift-jar.sh script.
 
-svn export https://svn.apache.org/repos/asf/thrift/tags/thrift-0.3.0
-cd thrift-0.3.0/lib/java/
-ant
-mvn install:install-file -Dfile=libthrift.jar -DgroupId=org.apache.accumulo.thrift \
-   -DartifactId=libthrift -Dversion=0.3 -Dpackaging=jar
-
-Then run the following commands to build Accumulo.
+Run the following commands to build Accumulo.
 
 tar xvzf accumulo-1.3.6-SNAPSHOT-src.tar.gz
 cd accumulo-1.3.6-SNAPSHOT
