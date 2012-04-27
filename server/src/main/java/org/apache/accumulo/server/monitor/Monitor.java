@@ -87,6 +87,7 @@ public class Monitor {
   private static double totalIngestRate = 0.0;
   private static double totalIngestByteRate = 0.0;
   private static double totalQueryRate = 0.0;
+  private static double totalScanRate = 0.0;
   private static double totalQueryByteRate = 0.0;
   private static long totalEntries = 0L;
   private static int totalTabletCount = 0;
@@ -125,6 +126,7 @@ public class Monitor {
   private static List<Pair<Long,Integer>> majorCompactionsOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
   private static List<Pair<Long,Double>> lookupsOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
   private static List<Pair<Long,Integer>> queryRateOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static List<Pair<Long,Integer>> scanRateOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
   private static List<Pair<Long,Double>> queryByteRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
   private static List<Pair<Long,Double>> indexCacheHitRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
   private static List<Pair<Long,Double>> dataCacheHitRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
@@ -186,6 +188,7 @@ public class Monitor {
     total.ingestByteRate += more.ingestByteRate;
     total.queryRate += more.queryRate;
     total.queryByteRate += more.queryByteRate;
+    total.scanRate += more.scanRate;
   }
   
   public static TableInfo summarizeTableStats(TabletServerStatus status) {
@@ -260,6 +263,7 @@ public class Monitor {
     double totalIngestByteRate = 0.;
     double totalQueryRate = 0.;
     double totalQueryByteRate = 0.;
+    double totalScanRate = 0.;
     long totalEntries = 0;
     int totalTabletCount = 0;
     int onlineTabletCount = 0;
@@ -310,6 +314,7 @@ public class Monitor {
         totalIngestRate += summary.ingestRate;
         totalIngestByteRate += summary.ingestByteRate;
         totalQueryRate += summary.queryRate;
+        totalScanRate += summary.scanRate;
         totalQueryByteRate += summary.queryByteRate;
         totalEntries += summary.recs;
         totalHoldTime += server.holdTime;
@@ -340,6 +345,7 @@ public class Monitor {
       totalIngestByteRate = totalIngestByteRate / 1000000.0;
       Monitor.totalIngestByteRate = totalIngestByteRate;
       Monitor.totalQueryRate = totalQueryRate;
+      Monitor.totalScanRate = totalScanRate;
       totalQueryByteRate = totalQueryByteRate / 1000000.0;
       Monitor.totalQueryByteRate = totalQueryByteRate;
       Monitor.totalEntries = totalEntries;
@@ -367,6 +373,8 @@ public class Monitor {
       queryRateOverTime.add(new Pair<Long,Integer>(currentTime, (int) totalQueryRate));
       queryByteRateOverTime.add(new Pair<Long,Double>(currentTime, totalQueryByteRate));
       
+      scanRateOverTime.add(new Pair<Long,Integer>(currentTime, (int) totalScanRate));
+
       calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker, indexCacheRequestTracker);
       calcCacheHitRate(dataCacheHitRateOverTime, currentTime, dataCacheHitTracker, dataCacheRequestTracker);
       
@@ -523,6 +531,10 @@ public class Monitor {
     return totalQueryRate;
   }
   
+  public static double getTotalScanRate() {
+    return totalScanRate;
+  }
+
   public static double getTotalQueryByteRate() {
     return totalQueryByteRate;
   }
@@ -603,6 +615,12 @@ public class Monitor {
     }
   }
   
+  public static List<Pair<Long,Integer>> getScanRateOverTime() {
+    synchronized (scanRateOverTime) {
+      return new ArrayList<Pair<Long,Integer>>(scanRateOverTime);
+    }
+  }
+
   public static List<Pair<Long,Double>> getQueryByteRateOverTime() {
     synchronized (queryByteRateOverTime) {
       return new ArrayList<Pair<Long,Double>>(queryByteRateOverTime);

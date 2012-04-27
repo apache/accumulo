@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField MINOR_FIELD_DESC = new org.apache.thrift.protocol.TField("minor", org.apache.thrift.protocol.TType.STRUCT, (short)9);
   private static final org.apache.thrift.protocol.TField MAJOR_FIELD_DESC = new org.apache.thrift.protocol.TField("major", org.apache.thrift.protocol.TType.STRUCT, (short)10);
   private static final org.apache.thrift.protocol.TField SCANS_FIELD_DESC = new org.apache.thrift.protocol.TField("scans", org.apache.thrift.protocol.TType.STRUCT, (short)11);
+  private static final org.apache.thrift.protocol.TField SCAN_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("scanRate", org.apache.thrift.protocol.TType.DOUBLE, (short)12);
 
   public long recs;
   public long recsInMemory;
@@ -46,6 +47,7 @@ import org.slf4j.LoggerFactory;
   public Compacting minor;
   public Compacting major;
   public Compacting scans;
+  public double scanRate;
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -59,7 +61,8 @@ import org.slf4j.LoggerFactory;
     QUERY_BYTE_RATE((short)8, "queryByteRate"),
     MINOR((short)9, "minor"),
     MAJOR((short)10, "major"),
-    SCANS((short)11, "scans");
+    SCANS((short)11, "scans"),
+    SCAN_RATE((short)12, "scanRate");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -96,6 +99,8 @@ import org.slf4j.LoggerFactory;
           return MAJOR;
         case 11: // SCANS
           return SCANS;
+        case 12: // SCAN_RATE
+          return SCAN_RATE;
         default:
           return null;
       }
@@ -144,7 +149,8 @@ import org.slf4j.LoggerFactory;
   private static final int __INGESTBYTERATE_ISSET_ID = 5;
   private static final int __QUERYRATE_ISSET_ID = 6;
   private static final int __QUERYBYTERATE_ISSET_ID = 7;
-  private BitSet __isset_bit_vector = new BitSet(8);
+  private static final int __SCANRATE_ISSET_ID = 8;
+  private BitSet __isset_bit_vector = new BitSet(9);
 
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -171,6 +177,8 @@ import org.slf4j.LoggerFactory;
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Compacting.class)));
     tmpMap.put(_Fields.SCANS, new org.apache.thrift.meta_data.FieldMetaData("scans", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Compacting.class)));
+    tmpMap.put(_Fields.SCAN_RATE, new org.apache.thrift.meta_data.FieldMetaData("scanRate", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TableInfo.class, metaDataMap);
   }
@@ -189,7 +197,8 @@ import org.slf4j.LoggerFactory;
     double queryByteRate,
     Compacting minor,
     Compacting major,
-    Compacting scans)
+    Compacting scans,
+    double scanRate)
   {
     this();
     this.recs = recs;
@@ -211,6 +220,8 @@ import org.slf4j.LoggerFactory;
     this.minor = minor;
     this.major = major;
     this.scans = scans;
+    this.scanRate = scanRate;
+    setScanRateIsSet(true);
   }
 
   /**
@@ -236,6 +247,7 @@ import org.slf4j.LoggerFactory;
     if (other.isSetScans()) {
       this.scans = new Compacting(other.scans);
     }
+    this.scanRate = other.scanRate;
   }
 
   public TableInfo deepCopy() {
@@ -263,6 +275,8 @@ import org.slf4j.LoggerFactory;
     this.minor = null;
     this.major = null;
     this.scans = null;
+    setScanRateIsSet(false);
+    this.scanRate = 0.0;
   }
 
   public long getRecs() {
@@ -521,6 +535,29 @@ import org.slf4j.LoggerFactory;
     }
   }
 
+  public double getScanRate() {
+    return this.scanRate;
+  }
+
+  public TableInfo setScanRate(double scanRate) {
+    this.scanRate = scanRate;
+    setScanRateIsSet(true);
+    return this;
+  }
+
+  public void unsetScanRate() {
+    __isset_bit_vector.clear(__SCANRATE_ISSET_ID);
+  }
+
+  /** Returns true if field scanRate is set (has been assigned a value) and false otherwise */
+  public boolean isSetScanRate() {
+    return __isset_bit_vector.get(__SCANRATE_ISSET_ID);
+  }
+
+  public void setScanRateIsSet(boolean value) {
+    __isset_bit_vector.set(__SCANRATE_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case RECS:
@@ -611,6 +648,14 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
+    case SCAN_RATE:
+      if (value == null) {
+        unsetScanRate();
+      } else {
+        setScanRate((Double)value);
+      }
+      break;
+
     }
   }
 
@@ -649,6 +694,9 @@ import org.slf4j.LoggerFactory;
     case SCANS:
       return getScans();
 
+    case SCAN_RATE:
+      return new Double(getScanRate());
+
     }
     throw new IllegalStateException();
   }
@@ -682,6 +730,8 @@ import org.slf4j.LoggerFactory;
       return isSetMajor();
     case SCANS:
       return isSetScans();
+    case SCAN_RATE:
+      return isSetScanRate();
     }
     throw new IllegalStateException();
   }
@@ -795,6 +845,15 @@ import org.slf4j.LoggerFactory;
       if (!(this_present_scans && that_present_scans))
         return false;
       if (!this.scans.equals(that.scans))
+        return false;
+    }
+
+    boolean this_present_scanRate = true;
+    boolean that_present_scanRate = true;
+    if (this_present_scanRate || that_present_scanRate) {
+      if (!(this_present_scanRate && that_present_scanRate))
+        return false;
+      if (this.scanRate != that.scanRate)
         return false;
     }
 
@@ -924,6 +983,16 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetScanRate()).compareTo(typedOther.isSetScanRate());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetScanRate()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.scanRate, typedOther.scanRate);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -1029,6 +1098,14 @@ import org.slf4j.LoggerFactory;
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
+        case 12: // SCAN_RATE
+          if (field.type == org.apache.thrift.protocol.TType.DOUBLE) {
+            this.scanRate = iprot.readDouble();
+            setScanRateIsSet(true);
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
         default:
           org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
       }
@@ -1083,6 +1160,9 @@ import org.slf4j.LoggerFactory;
       this.scans.write(oprot);
       oprot.writeFieldEnd();
     }
+    oprot.writeFieldBegin(SCAN_RATE_FIELD_DESC);
+    oprot.writeDouble(this.scanRate);
+    oprot.writeFieldEnd();
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
@@ -1146,6 +1226,10 @@ import org.slf4j.LoggerFactory;
     } else {
       sb.append(this.scans);
     }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("scanRate:");
+    sb.append(this.scanRate);
     first = false;
     sb.append(")");
     return sb.toString();

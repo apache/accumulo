@@ -80,6 +80,7 @@ import org.apache.accumulo.core.iterators.system.InterruptibleIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.iterators.system.SourceSwitchingIterator.DataSource;
+import org.apache.accumulo.core.iterators.system.StatsIterator;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.security.Authorizations;
@@ -430,6 +431,12 @@ public class Tablet {
   
   private volatile long numEntries;
   private volatile long numEntriesInMemory;
+  
+  private AtomicLong seekCount = new AtomicLong(0);
+  // a count of the amount of data read by the iterators
+  private AtomicLong scannedCount = new AtomicLong(0);
+  private Rate scannedRate = new Rate(0.2);
+
   private ConfigurationObserver configObserver;
   
   private TabletServer tabletServer;
@@ -1953,6 +1960,7 @@ public class Tablet {
     private List<MemoryIterator> memIters = null;
     private long fileReservationId;
     private AtomicBoolean interruptFlag;
+    private StatsIterator statsIterator;
     
     ScanOptions options;
     
@@ -2051,7 +2059,9 @@ public class Tablet {
       
       TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(IteratorScope.scan, acuTableConf, fileManager, files);
       
-      DeletingIterator delIter = new DeletingIterator(multiIter, false);
+      statsIterator = new StatsIterator(multiIter, seekCount, scannedCount);
+      
+      DeletingIterator delIter = new DeletingIterator(statsIterator, false);
       
       ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
       
@@ -2083,6 +2093,10 @@ public class Tablet {
         fileManager = null;
       }
       
+      if (statsIterator != null) {
+        statsIterator.report();
+      }
+
     }
     
     public void interrupt() {
@@ -3339,6 +3353,10 @@ public class Tablet {
     this.numEntries = numEntries;
   }
   
+  public long getNumSeeks() {
+    return seekCount.get();
+  }
+
   public long getNumEntries() {
     return numEntries;
   }
@@ -3527,6 +3545,10 @@ public class Tablet {
     return ingestByteRate.rate();
   }
   
+  public double scanRate() {
+    return scannedRate.rate();
+  }
+
   public long totalQueries() {
     return this.queryCount;
   }
@@ -3541,6 +3563,7 @@ public class Tablet {
     queryByteRate.update(now, queryBytes);
     ingestRate.update(now, ingestCount);
     ingestByteRate.update(now, ingestBytes);
+    scannedRate.update(now, scannedCount.get());
   }
   
   public long getSplitCreationTime() {

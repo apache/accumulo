@@ -28,6 +28,8 @@ import java.security.PermissionCollection;
 import java.security.Permissions;
 import java.security.PrivilegedAction;
 import java.security.ProtectionDomain;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.servlet.ServletException;
@@ -151,6 +153,10 @@ public class DefaultServlet extends BasicServlet {
   
   @SuppressWarnings("unchecked")
   private static void plotData(StringBuilder sb, String title, @SuppressWarnings("rawtypes") List data, boolean points) {
+    plotData(sb, title, points, new ArrayList<String>(), data);
+  }
+  
+  private static void plotData(StringBuilder sb, String title, boolean points, List<String> labels, @SuppressWarnings("rawtypes") List... series) {
     sb.append("<div class=\"plotHeading\">");
     sb.append(title);
     sb.append("</div>");
@@ -160,31 +166,52 @@ public class DefaultServlet extends BasicServlet {
     
     sb.append("<script type=\"text/javascript\">\n");
     sb.append("$(function () {\n");
-    sb.append("    var d1 = [");
     
-    String sep = "";
-    for (Pair<Long,? extends Number> point : (List<Pair<Long,? extends Number>>) data) {
-      if (point.getSecond() == null)
-        continue;
+    for (int i = 0; i < series.length; i++) {
       
-      String y;
-      if (point.getSecond() instanceof Double)
-        y = String.format("%1.2f", point.getSecond());
-      else
-        y = point.getSecond().toString();
+      List<Pair<Long,? extends Number>> data = series[i];
+      sb.append("    var d" + i + " = [");
       
-      sb.append(sep);
-      sep = ",";
-      sb.append("[" + point.getFirst() + "," + y + "]");
+      String sep = "";
+      for (Pair<Long,? extends Number> point : data) {
+        if (point.getSecond() == null)
+          continue;
+        
+        String y;
+        if (point.getSecond() instanceof Double)
+          y = String.format("%1.2f", point.getSecond());
+        else
+          y = point.getSecond().toString();
+        
+        sb.append(sep);
+        sep = ",";
+        sb.append("[" + point.getFirst() + "," + y + "]");
+      }
+      sb.append("    ];\n");
     }
     
     String opts = "lines: { show: true }";
     if (points)
       opts = "points: { show: true, radius: 1 }";
     
-    sb.append("    ];\n");
-    sb.append("    $.plot($(\"#" + id + "\"), [{ data: d1, " + opts
-        + ", color:\"red\" }], {yaxis:{}, xaxis:{mode:\"time\",minTickSize: [1, \"minute\"],timeformat: \"%H:%M\", ticks:3}});");
+
+    sb.append("    $.plot($(\"#" + id + "\"),");
+    String sep = "";
+    
+    String colors[] = new String[] {"red", "blue", "green", "black"};
+
+    sb.append("[");
+    for (int i = 0; i < series.length; i++) {
+      sb.append(sep);
+      sep = ",";
+      sb.append("{ ");
+      if (labels.size() > 0) {
+        sb.append("label: \"" + labels.get(i) + "\", ");
+      }
+      sb.append("data: d" + i + ", " + opts + ", color:\"" + colors[i] + "\" }");
+    }
+    sb.append("], ");
+    sb.append("{yaxis:{}, xaxis:{mode:\"time\",minTickSize: [1, \"minute\"],timeformat: \"%H:%M\", ticks:3}});");
     sb.append("   });\n");
     sb.append("</script>\n");
   }
@@ -223,7 +250,7 @@ public class DefaultServlet extends BasicServlet {
     sb.append("<tr><td>\n");
     plotData(sb, "Ingest (Entries/s)", Monitor.getIngestRateOverTime(), false);
     sb.append("</td><td>\n");
-    plotData(sb, "Scan (Entries/s)", Monitor.getQueryRateOverTime(), false);
+    plotData(sb, "Scan (Entries/s)", false, Arrays.asList("Read", "Returned"), Monitor.getScanRateOverTime(), Monitor.getQueryRateOverTime());
     sb.append("</td></tr>\n");
     
     sb.append("<tr><td>\n");
@@ -235,7 +262,7 @@ public class DefaultServlet extends BasicServlet {
     sb.append("<tr><td>\n");
     plotData(sb, "Load Average", Monitor.getLoadOverTime(), false);
     sb.append("</td><td>\n");
-    plotData(sb, "Scan Sessions", Monitor.getLookupsOverTime(), false);
+    plotData(sb, "Seeks", Monitor.getLookupsOverTime(), false);
     sb.append("</td></tr>\n");
     
     sb.append("<tr><td>\n");

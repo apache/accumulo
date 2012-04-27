@@ -140,7 +140,9 @@ public class MasterServlet extends BasicServlet {
       masterStatus.addSortableColumn("Entries", new NumberType<Long>(), "The total number of key/value pairs in Accumulo");
       masterStatus.addSortableColumn("Ingest", new NumberType<Long>(), "The number of Key/Value pairs inserted, per second. "
           + " Note that deleted records are \"inserted\" and will make the ingest " + "rate increase in the near-term.");
-      masterStatus.addSortableColumn("Query", new NumberType<Long>(), "The total number of Key/Value pairs returned as a result of scans.");
+      masterStatus.addSortableColumn("Entries<br />Read", new NumberType<Long>(),
+          "The total number of Key/Value pairs read on the server side.  Not all may be returned because of filtering.");
+      masterStatus.addSortableColumn("Entries<br />Returned", new NumberType<Long>(), "The total number of Key/Value pairs returned as a result of scans.");
       masterStatus.addSortableColumn("Hold&nbsp;Time", new DurationType(0l, 0l), "The maximum amount of time that ingest has been held "
           + "across all servers due to a lack of memory to store the records");
       masterStatus.addSortableColumn("OS&nbsp;Load", new NumberType<Double>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
@@ -154,6 +156,7 @@ public class MasterServlet extends BasicServlet {
       row.add(Monitor.getMmi().unassignedTablets);
       row.add(Monitor.getTotalEntries());
       row.add(Math.round(Monitor.getTotalIngestRate()));
+      row.add(Math.round(Monitor.getTotalScanRate()));
       row.add(Math.round(Monitor.getTotalQueryRate()));
       row.add(Monitor.getTotalHoldTime());
       row.add(ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage());

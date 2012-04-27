@@ -38,6 +38,7 @@ struct TableInfo {
     9:Compacting minor;
     10:Compacting major;
     11:Compacting scans;
+    12:double scanRate;
 }
 
 struct RecoveryStatus {

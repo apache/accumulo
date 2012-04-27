@@ -211,7 +211,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private static HashMap<String,Long> prevGcTime = new HashMap<String,Long>();
   private static long lastMemorySize = 0;
   private static long gcTimeIncreasedCount;
-  private static AtomicLong scanCount = new AtomicLong();
   private static final Class<? extends LoggerStrategy> DEFAULT_LOGGER_STRATEGY = RoundRobinLoggerStrategy.class;
   
   private static final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = 1000;
@@ -1076,8 +1075,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         throw e.asThriftException();
       }
       
-      scanCount.addAndGet(1);
-      
       KeyExtent extent = new KeyExtent(textent);
       
       // wait for any writes that are in flight.. this done to ensure
@@ -1286,7 +1283,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         sessionManager.unreserveSession(sid);
       }
       
-      scanCount.addAndGet(batch.size());
       return new InitialMultiScan(sid, result);
     }
     
@@ -3012,6 +3008,9 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       onlineTabletsCopy = new HashMap<KeyExtent,Tablet>(this.onlineTablets);
     }
     Map<String,TableInfo> tables = new HashMap<String,TableInfo>();
+    
+    long seeks = 0;
+
     for (Entry<KeyExtent,Tablet> entry : onlineTabletsCopy.entrySet()) {
       String tableId = entry.getKey().getTableId().toString();
       TableInfo table = tables.get(tableId);
@@ -3030,6 +3029,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       table.queryByteRate += tablet.queryByteRate();
       table.ingestRate += tablet.ingestRate();
       table.ingestByteRate += tablet.ingestByteRate();
+      table.scanRate += tablet.scanRate();
       long recsInMemory = tablet.getNumEntriesInMemory();
       table.recsInMemory += recsInMemory;
       if (tablet.minorCompactionRunning())
@@ -3040,6 +3040,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         table.major.running++;
       if (tablet.majorCompactionQueued())
         table.major.queued++;
+      seeks += tablet.getNumSeeks();
     }
     
     for (Entry<String,MapCounter<ScanRunState>> entry : scanCounts.entrySet()) {
@@ -3079,7 +3080,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     result.osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
     result.name = getClientAddressString();
     result.holdTime = resourceManager.holdTime();
-    result.lookups = scanCount.get();
+    result.lookups = seeks;
     result.loggers = new HashSet<String>();
     result.indexCacheHits = resourceManager.getIndexCache().getStats().getHitCount();
     result.indexCacheRequest = resourceManager.getIndexCache().getStats().getRequestCount();
