@@ -269,9 +269,10 @@ public class DefaultServlet extends BasicServlet {
         Path path = new Path(Monitor.getSystemConfiguration().get(Property.INSTANCE_DFS_DIR));
         log.debug("Reading the content summary for " + path);
         ContentSummary acu = fs.getContentSummary(path);
-        consumed = String.format("%.2f%%", acu.getSpaceConsumed() * 100. / fs.getUsed());
+        ContentSummary rootSummary = fs.getContentSummary(new Path("/"));
+        consumed = String.format("%.2f%%", acu.getSpaceConsumed() * 100. / rootSummary.getSpaceConsumed());
         diskUsed = bytes(acu.getSpaceConsumed());
-        
+
         boolean highlight = false;
         tableRow(sb, (highlight = !highlight), "Disk&nbsp;Used", diskUsed);
         if (fs.getUsed() != 0)
