@@ -125,7 +125,7 @@ public class ContinuousStatsCollector {
       
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnection(HdfsZooInstance.getInstance());
+        client = MasterClient.getConnectionWithRetry(HdfsZooInstance.getInstance());
         MasterMonitorInfo stats = client.getMasterStats(null, SecurityConstants.getSystemCredentials());
         
         TableInfo all = new TableInfo();

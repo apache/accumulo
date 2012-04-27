@@ -277,17 +277,23 @@ public class Monitor {
         MasterClientService.Iface client = null;
         try {
           client = MasterClient.getConnection(HdfsZooInstance.getInstance());
-          mmi = client.getMasterStats(null, SecurityConstants.getSystemCredentials());
+          if (client != null) {
+            mmi = client.getMasterStats(null, SecurityConstants.getSystemCredentials());
+          } else {
+            mmi = null;
+          }
           Monitor.gcStatus = fetchGcStatus();
           retry = false;
         } catch (Exception e) {
           mmi = null;
           log.info("Error fetching stats: " + e);
-          UtilWaitThread.sleep(1000);
         } finally {
-          if (client != null)
+          if (client != null) {
             MasterClient.close(client);
+          }
         }
+        if (mmi == null)
+          UtilWaitThread.sleep(1000);
       }
       
       int majorCompactions = 0;
