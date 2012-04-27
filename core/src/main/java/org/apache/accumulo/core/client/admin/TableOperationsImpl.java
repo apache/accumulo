@@ -198,7 +198,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (true) {
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnection(instance);
+        client = MasterClient.getConnectionWithRetry(instance);
         return client.beginTableOperation(null, credentials);
       } catch (TTransportException tte) {
         log.debug("Failed to call beginTableOperation(), retrying ... ", tte);
@@ -214,7 +214,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (true) {
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnection(instance);
+        client = MasterClient.getConnectionWithRetry(instance);
         client.executeTableOperation(null, credentials, opid, op, args, opts, autoCleanUp);
         break;
       } catch (TTransportException tte) {
@@ -230,7 +230,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (true) {
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnection(instance);
+        client = MasterClient.getConnectionWithRetry(instance);
         return client.waitForTableOperation(null, credentials, opid);
       } catch (TTransportException tte) {
         log.debug("Failed to call waitForTableOperation(), retrying ... ", tte);
@@ -245,7 +245,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     while (true) {
       MasterClientService.Iface client = null;
       try {
-        client = MasterClient.getConnection(instance);
+        client = MasterClient.getConnectionWithRetry(instance);
         client.finishTableOperation(null, credentials, opid);
         break;
       } catch (TTransportException tte) {
@@ -622,7 +622,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       while (true) {
         MasterClientService.Iface client = null;
         try {
-          client = MasterClient.getConnection(instance);
+          client = MasterClient.getConnectionWithRetry(instance);
           flushID = client.initiateFlush(null, credentials, tableId);
           break;
         } catch (TTransportException tte) {
@@ -636,7 +636,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       while (true) {
         MasterClientService.Iface client = null;
         try {
-          client = MasterClient.getConnection(instance);
+          client = MasterClient.getConnectionWithRetry(instance);
           client.waitForFlush(null, credentials, tableId, TextUtil.getByteBuffer(start), TextUtil.getByteBuffer(end), flushID, wait ? Long.MAX_VALUE : 1);
           break;
         } catch (TTransportException tte) {
@@ -1051,7 +1051,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ArgumentChecker.notNull(tableName, aggregators);
     MasterClientService.Iface client = null;
     try {
-      client = MasterClient.getConnection(instance);
+      client = MasterClient.getConnectionWithRetry(instance);
       for (Entry<String,String> entry : IteratorUtil.generateAggTableProperties(aggregators).entrySet()) {
         client.setTableProperty(null, credentials, tableName, entry.getKey(), entry.getValue());
       }

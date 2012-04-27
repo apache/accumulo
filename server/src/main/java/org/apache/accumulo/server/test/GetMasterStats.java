@@ -42,7 +42,7 @@ public class GetMasterStats {
     MasterClientService.Iface client = null;
     MasterMonitorInfo stats = null;
     try {
-      client = MasterClient.getConnection(HdfsZooInstance.getInstance());
+      client = MasterClient.getConnectionWithRetry(HdfsZooInstance.getInstance());
       stats = client.getMasterStats(null, SecurityConstants.getSystemCredentials());
     } finally {
       if (client != null)

@@ -314,10 +314,10 @@ public class TServersServlet extends BasicServlet {
     for (TabletServerStatus status : tservers) {
       avgLastContact += (now - status.lastContact);
     }
-    
+    final long MINUTES = 3 * 60 * 1000;
     tServerList.addSortableColumn("Server", new TServerLinkType(), null);
     tServerList.addSortableColumn("Hosted&nbsp;Tablets", new NumberType<Integer>(0, Integer.MAX_VALUE), null);
-    tServerList.addSortableColumn("Last&nbsp;Contact", new DurationType(0l, (long) avgLastContact * 4), null);
+    tServerList.addSortableColumn("Last&nbsp;Contact", new DurationType(0l, (long) Math.min(avgLastContact * 4, MINUTES)), null);
     tServerList.addSortableColumn("Entries", new NumberType<Long>(), "The number of key/value pairs.");
     tServerList.addSortableColumn("Ingest", new NumberType<Long>(), "The number of key/value pairs inserted. (Note that deletes are also 'inserted')");
     tServerList.addSortableColumn("Query", new NumberType<Long>(), "The number of key/value pairs returned to clients. (Not the number of scans)");

@@ -34,34 +34,39 @@ import org.apache.thrift.transport.TTransportException;
 public class MasterClient {
   private static final Logger log = Logger.getLogger(MasterClient.class);
   
-  public static MasterClientService.Iface getConnection(Instance instance) throws TTransportException {
+  public static MasterClientService.Iface getConnectionWithRetry(Instance instance) throws TTransportException {
     ArgumentChecker.notNull(instance);
     
     while (true) {
       
-      List<String> locations = instance.getMasterLocations();
-      
-      while (locations.size() == 0) {
-        log.debug("No masters, will retry...");
-        UtilWaitThread.sleep(250);
-        locations = instance.getMasterLocations();
-      }
-      
-      String master = locations.get(0);
-      int portHint = instance.getConfiguration().getPort(Property.MASTER_CLIENTPORT);
-      
-      try {
-        // Master requests can take a long time: don't ever time out
-        MasterClientService.Iface client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), master, Property.MASTER_CLIENTPORT,
-            instance.getConfiguration());
-        return client;
-      } catch (TTransportException tte) {
-        log.debug("Failed to connect to master=" + master + " portHint=" + portHint + ", will retry... ", tte);
-      }
-      
+      MasterClientService.Iface result = getConnection(instance);
+      if (result != null)
+        return result;
       UtilWaitThread.sleep(250);
     }
     
+  }
+  
+  public static MasterClientService.Iface getConnection(Instance instance) {
+    List<String> locations = instance.getMasterLocations();
+    
+    if (locations.size() == 0) {
+      log.debug("No masters...");
+      return null;
+    }
+    
+    String master = locations.get(0);
+    int portHint = instance.getConfiguration().getPort(Property.MASTER_CLIENTPORT);
+    
+    try {
+      // Master requests can take a long time: don't ever time out
+      MasterClientService.Iface client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), master, Property.MASTER_CLIENTPORT,
+          instance.getConfiguration());
+      return client;
+    } catch (TTransportException tte) {
+      log.debug("Failed to connect to master=" + master + " portHint=" + portHint + ", will retry... ", tte);
+      return null;
+    }
   }
   
   public static void close(MasterClientService.Iface iface) {
@@ -77,7 +82,7 @@ public class MasterClient {
     MasterClientService.Iface client = null;
     while (true) {
       try {
-        client = getConnection(instance);
+        client = getConnectionWithRetry(instance);
         return exec.execute(client);
       } catch (TTransportException tte) {
         log.debug("MasterClient request failed, retrying ... ", tte);
@@ -99,7 +104,7 @@ public class MasterClient {
     MasterClientService.Iface client = null;
     while (true) {
       try {
-        client = getConnection(instance);
+        client = getConnectionWithRetry(instance);
         exec.execute(client);
         break;
       } catch (TTransportException tte) {
