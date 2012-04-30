@@ -58,7 +58,6 @@ import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 
-
 /**
  * ResourceManager is responsible for managing the resources of all tablets within a tablet server.
  * 
@@ -177,8 +176,7 @@ public class TabletServerResourceManager {
     fileManager = new FileManager(conf, fs, maxOpenFiles, _dCache, _iCache);
     
     try {
-      Class<? extends MemoryManager> clazz = AccumuloClassLoader.loadClass(acuConf.get(Property.TSERV_MEM_MGMT),
-          MemoryManager.class);
+      Class<? extends MemoryManager> clazz = AccumuloClassLoader.loadClass(acuConf.get(Property.TSERV_MEM_MGMT), MemoryManager.class);
       memoryManager = clazz.newInstance();
       memoryManager.init(conf);
       log.debug("Loaded memory manager : " + memoryManager.getClass().getName());
@@ -196,19 +194,23 @@ public class TabletServerResourceManager {
     SimpleTimer.getInstance().schedule(new TimerTask() {
       @Override
       public void run() {
-        // periodically reset the configurable thread pool sizes
-        List<Pair<ExecutorService, Property>> services = new ArrayList<Pair<ExecutorService, Property>>();
-        services.add(new Pair<ExecutorService,Property>(minorCompactionThreadPool, Property.TSERV_MINC_MAXCONCURRENT));
-        services.add(new Pair<ExecutorService,Property>(majorCompactionThreadPool, Property.TSERV_MAJC_MAXCONCURRENT));
-        services.add(new Pair<ExecutorService,Property>(migrationPool, Property.TSERV_MIGRATE_MAXCONCURRENT));
-        services.add(new Pair<ExecutorService,Property>(readAheadThreadPool, Property.TSERV_READ_AHEAD_MAXCONCURRENT));
-        services.add(new Pair<ExecutorService,Property>(defaultReadAheadThreadPool, Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT));
-        for (Pair<ExecutorService,Property> pair : services) {
-          int count = acuConf.getCount(pair.getSecond());
-          ThreadPoolExecutor tp = (ThreadPoolExecutor) pair.getFirst();
-          if (tp.getMaximumPoolSize() != count) {
-            tp.setMaximumPoolSize(count);
+        try {
+          // periodically reset the configurable thread pool sizes
+          List<Pair<ExecutorService,Property>> services = new ArrayList<Pair<ExecutorService,Property>>();
+          services.add(new Pair<ExecutorService,Property>(minorCompactionThreadPool, Property.TSERV_MINC_MAXCONCURRENT));
+          services.add(new Pair<ExecutorService,Property>(majorCompactionThreadPool, Property.TSERV_MAJC_MAXCONCURRENT));
+          services.add(new Pair<ExecutorService,Property>(migrationPool, Property.TSERV_MIGRATE_MAXCONCURRENT));
+          services.add(new Pair<ExecutorService,Property>(readAheadThreadPool, Property.TSERV_READ_AHEAD_MAXCONCURRENT));
+          services.add(new Pair<ExecutorService,Property>(defaultReadAheadThreadPool, Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT));
+          for (Pair<ExecutorService,Property> pair : services) {
+            int count = acuConf.getCount(pair.getSecond());
+            ThreadPoolExecutor tp = (ThreadPoolExecutor) pair.getFirst();
+            if (tp.getMaximumPoolSize() != count) {
+              tp.setMaximumPoolSize(count);
+            }
           }
+        } catch (Exception e) {
+          log.warn("Failed to change number of threads in pool " + e.getMessage(), e);
         }
       }
     }, 1000, 10 * 1000);
