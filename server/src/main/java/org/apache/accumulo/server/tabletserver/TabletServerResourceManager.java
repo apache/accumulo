@@ -22,9 +22,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
+import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
@@ -45,11 +47,13 @@ import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
 import org.apache.accumulo.server.tabletserver.Tablet.MajorCompactionReason;
 import org.apache.accumulo.server.util.NamingThreadFactory;
+import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
@@ -116,7 +120,7 @@ public class TabletServerResourceManager {
   
   public TabletServerResourceManager(Instance instance, FileSystem fs) {
     this.conf = new ServerConfiguration(instance);
-    AccumuloConfiguration acuConf = conf.getConfiguration();
+    final AccumuloConfiguration acuConf = conf.getConfiguration();
     
     long maxMemory = acuConf.getMemoryInBytes(Property.TSERV_MAXMEM);
     boolean usingNativeMap = acuConf.getBoolean(Property.TSERV_NATIVEMAP_ENABLED) && NativeMap.loadedNativeLibraries();
@@ -187,6 +191,27 @@ public class TabletServerResourceManager {
     }
     
     memMgmt = new MemoryManagementFramework();
+    
+    // do this last since "this" is leaking out to call back code below
+    SimpleTimer.getInstance().schedule(new TimerTask() {
+      @Override
+      public void run() {
+        // periodically reset the configurable thread pool sizes
+        List<Pair<ExecutorService, Property>> services = new ArrayList<Pair<ExecutorService, Property>>();
+        services.add(new Pair<ExecutorService,Property>(minorCompactionThreadPool, Property.TSERV_MINC_MAXCONCURRENT));
+        services.add(new Pair<ExecutorService,Property>(majorCompactionThreadPool, Property.TSERV_MAJC_MAXCONCURRENT));
+        services.add(new Pair<ExecutorService,Property>(migrationPool, Property.TSERV_MIGRATE_MAXCONCURRENT));
+        services.add(new Pair<ExecutorService,Property>(readAheadThreadPool, Property.TSERV_READ_AHEAD_MAXCONCURRENT));
+        services.add(new Pair<ExecutorService,Property>(defaultReadAheadThreadPool, Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT));
+        for (Pair<ExecutorService,Property> pair : services) {
+          int count = acuConf.getCount(pair.getSecond());
+          ThreadPoolExecutor tp = (ThreadPoolExecutor) pair.getFirst();
+          if (tp.getMaximumPoolSize() != count) {
+            tp.setMaximumPoolSize(count);
+          }
+        }
+      }
+    }, 1000, 10 * 1000);
     
   }
   
