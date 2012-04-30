@@ -35,7 +35,9 @@ runAt() {
 
 LOCAL_MAVEN_REPO=$1
 
-if [ ! -z $LOCAL_MAVEN_REPO ] ; then
+if [ "null" = $LOCAL_MAVEN_REPO ] ; then
+  LOCAL_MAVEN_REPO=
+elif [ ! -z $LOCAL_MAVEN_REPO ] ; then
   LOCAL_MAVEN_REPO="-Dmaven.repo.local=$LOCAL_MAVEN_REPO"
 fi
 

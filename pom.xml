@@ -30,6 +30,8 @@
   <packaging>pom</packaging>
   <version>1.3.6-SNAPSHOT</version>
   <name>accumulo</name>
+  
+  <properties><maven.repo.local>null</maven.repo.local></properties>
 
   <url>http://accumulo.apache.org</url>
   <description>Apache Accumulo is a sorted, distributed key/value store based on Google's BigTable design. It is built on top of Apache Hadoop, Zookeeper, and Thrift. It features a few novel improvements on the BigTable design in the form of cell-level access labels and a server-side programming mechanism that can modify key/value pairs at various points in the data management process.</description>
