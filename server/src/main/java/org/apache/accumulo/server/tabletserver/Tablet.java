@@ -1601,6 +1601,7 @@ public class Tablet {
           results.add(kve);
           entriesAdded++;
           lookupResult.bytesAdded += kve.estimateMemoryUsed();
+          lookupResult.dataSize += kve.numBytes();
           
           exceededMemoryUsage = lookupResult.bytesAdded > maxResultsSize;
           
@@ -1669,6 +1670,7 @@ public class Tablet {
   class LookupResult {
     List<Range> unfinishedRanges = new ArrayList<Range>();
     long bytesAdded = 0;
+    long dataSize = 0;
     boolean closed = false;
   }
   
@@ -1691,9 +1693,12 @@ public class Tablet {
     
     ScanDataSource dataSource = new ScanDataSource(authorizations, this.defaultSecurityLabel, columns, ssiList, ssio, interruptFlag);
     
+    LookupResult result = null;
+
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
-      return lookup(iter, ranges, columns, results, maxResultSize);
+      result = lookup(iter, ranges, columns, results, maxResultSize);
+      return result;
     } catch (IOException ioe) {
       dataSource.close(true);
       throw ioe;
@@ -1704,6 +1709,8 @@ public class Tablet {
       
       synchronized (this) {
         queryCount += results.size();
+        if (result != null)
+          queryBytes += result.dataSize;
       }
     }
   }
