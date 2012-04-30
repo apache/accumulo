@@ -63,10 +63,8 @@ public class StatsIterator extends WrappingIterator {
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     super.seek(range, columnFamilies, inclusive);
     seekCounter.incrementAndGet();
-    if (super.hasTop())
-      numRead = 1;
-    else
-      numRead = 0;
+    readCounter.addAndGet(numRead);
+    numRead = 0;
   }
   
   public void report() {

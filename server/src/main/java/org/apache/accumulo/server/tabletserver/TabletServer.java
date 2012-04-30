@@ -2507,6 +2507,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   private static ObjectName OBJECT_NAME = null;
   
+  static AtomicLong seekCount = new AtomicLong(0);
+
   public TabletStatsKeeper getStatsKeeper() {
     return statsKeeper;
   }
@@ -3008,8 +3010,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       onlineTabletsCopy = new HashMap<KeyExtent,Tablet>(this.onlineTablets);
     }
     Map<String,TableInfo> tables = new HashMap<String,TableInfo>();
-    
-    long seeks = 0;
 
     for (Entry<KeyExtent,Tablet> entry : onlineTabletsCopy.entrySet()) {
       String tableId = entry.getKey().getTableId().toString();
@@ -3040,7 +3040,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         table.major.running++;
       if (tablet.majorCompactionQueued())
         table.major.queued++;
-      seeks += tablet.getNumSeeks();
     }
     
     for (Entry<String,MapCounter<ScanRunState>> entry : scanCounts.entrySet()) {
@@ -3080,7 +3079,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     result.osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
     result.name = getClientAddressString();
     result.holdTime = resourceManager.holdTime();
-    result.lookups = seeks;
+    result.lookups = seekCount.get();
     result.loggers = new HashSet<String>();
     result.indexCacheHits = resourceManager.getIndexCache().getStats().getHitCount();
     result.indexCacheRequest = resourceManager.getIndexCache().getStats().getRequestCount();

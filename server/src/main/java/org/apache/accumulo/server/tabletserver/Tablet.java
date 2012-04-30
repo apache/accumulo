@@ -432,7 +432,7 @@ public class Tablet {
   private volatile long numEntries;
   private volatile long numEntriesInMemory;
   
-  private AtomicLong seekCount = new AtomicLong(0);
+
   // a count of the amount of data read by the iterators
   private AtomicLong scannedCount = new AtomicLong(0);
   private Rate scannedRate = new Rate(0.2);
@@ -2066,7 +2066,7 @@ public class Tablet {
       
       TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(IteratorScope.scan, acuTableConf, fileManager, files);
       
-      statsIterator = new StatsIterator(multiIter, seekCount, scannedCount);
+      statsIterator = new StatsIterator(multiIter, TabletServer.seekCount, scannedCount);
       
       DeletingIterator delIter = new DeletingIterator(statsIterator, false);
       
@@ -3358,10 +3358,6 @@ public class Tablet {
     numEntries += tabletMemory.getNumEntries();
     
     this.numEntries = numEntries;
-  }
-  
-  public long getNumSeeks() {
-    return seekCount.get();
   }
 
   public long getNumEntries() {
