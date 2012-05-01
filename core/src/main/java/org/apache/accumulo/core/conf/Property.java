@@ -341,7 +341,7 @@ public enum Property {
   }
   
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
-      Property.TSERV_MAJC_THREAD_MAXOPEN, Property.TSERV_SCAN_MAX_OPENFILES, Property.TSERV_MAJC_MAXCONCURRENT, Property.TSERV_LOGGER_COUNT,
+      Property.TSERV_SCAN_MAX_OPENFILES, Property.TSERV_LOGGER_COUNT,
       Property.LOGGER_PORT, Property.MASTER_CLIENTPORT, Property.GC_PORT);
   
   public static boolean isFixedZooPropertyKey(Property key) {

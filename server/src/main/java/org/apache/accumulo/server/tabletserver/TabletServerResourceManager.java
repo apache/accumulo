@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
@@ -47,7 +46,6 @@ import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
@@ -103,16 +101,41 @@ public class TabletServerResourceManager {
     return tp;
   }
   
+  private ExecutorService addEs(final Property maxThreads, String name, final ThreadPoolExecutor tp) {
+    ExecutorService result = addEs(name, tp);
+    SimpleTimer.getInstance().schedule(new TimerTask() {
+      @Override
+      public void run() {
+        try {
+          int max = conf.getConfiguration().getCount(maxThreads);
+          if (tp.getMaximumPoolSize() != max) {
+            log.info("Changing " + maxThreads.getKey() + " to " + max);
+            tp.setCorePoolSize(max);
+            tp.setMaximumPoolSize(max);
+          }
+        } catch (Throwable t) {
+          log.error(t, t);
+        }
+      }
+      
+    }, 1000, 10 * 1000);
+    return result;
+  }
+
   private ExecutorService createEs(int max, String name) {
     return addEs(name, Executors.newFixedThreadPool(max, new NamingThreadFactory(name)));
   }
   
-  private ExecutorService createEs(int max, String name, BlockingQueue<Runnable> queue) {
-    ThreadPoolExecutor tp = new ThreadPoolExecutor(max, max, 0L, TimeUnit.MILLISECONDS, queue, new NamingThreadFactory(name));
-    
-    return addEs(name, tp);
+  private ExecutorService createEs(Property max, String name) {
+    return createEs(max, name, new LinkedBlockingQueue<Runnable>());
   }
-  
+
+  private ExecutorService createEs(Property max, String name, BlockingQueue<Runnable> queue) {
+    int maxThreads = conf.getConfiguration().getCount(max);
+    ThreadPoolExecutor tp = new ThreadPoolExecutor(maxThreads, maxThreads, 0L, TimeUnit.MILLISECONDS, queue, new NamingThreadFactory(name));
+    return addEs(max, name, tp);
+  }
+
   private ExecutorService createEs(int min, int max, int timeout, String name) {
     return addEs(name, new ThreadPoolExecutor(min, max, timeout, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamingThreadFactory(name)));
   }
@@ -145,11 +168,11 @@ public class TabletServerResourceManager {
       log.warn("In-memory map may not fit into local memory space.");
     }
     
-    minorCompactionThreadPool = createEs(acuConf.getCount(Property.TSERV_MINC_MAXCONCURRENT), "minor compactor");
+    minorCompactionThreadPool = createEs(Property.TSERV_MINC_MAXCONCURRENT, "minor compactor");
     
     // make this thread pool have a priority queue... and execute tablets with the most
     // files first!
-    majorCompactionThreadPool = createEs(acuConf.getCount(Property.TSERV_MAJC_MAXCONCURRENT), "major compactor", new CompactionQueue());
+    majorCompactionThreadPool = createEs(Property.TSERV_MAJC_MAXCONCURRENT, "major compactor", new CompactionQueue());
     rootMajorCompactionThreadPool = createEs(0, 1, 300, "md root major compactor");
     defaultMajorCompactionThreadPool = createEs(0, 1, 300, "md major compactor");
     
@@ -157,7 +180,7 @@ public class TabletServerResourceManager {
     defaultSplitThreadPool = createEs(0, 1, 60, "md splitter");
     
     defaultMigrationPool = createEs(0, 1, 60, "metadata tablet migration");
-    migrationPool = createEs(acuConf.getCount(Property.TSERV_MIGRATE_MAXCONCURRENT), "tablet migration");
+    migrationPool = createEs(Property.TSERV_MIGRATE_MAXCONCURRENT, "tablet migration");
     
     // not sure if concurrent assignments can run safely... even if they could there is probably no benefit at startup because
     // individual tablet servers are already running assignments concurrently... having each individual tablet server run
@@ -166,8 +189,8 @@ public class TabletServerResourceManager {
     
     assignMetaDataPool = createEs(0, 1, 60, "metadata tablet assignment");
     
-    readAheadThreadPool = createEs(acuConf.getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT), "tablet read ahead");
-    defaultReadAheadThreadPool = createEs(acuConf.getCount(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT), "metadata tablets read ahead");
+    readAheadThreadPool = createEs(Property.TSERV_READ_AHEAD_MAXCONCURRENT, "tablet read ahead");
+    defaultReadAheadThreadPool = createEs(Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT, "metadata tablets read ahead");
     
     tabletResources = new HashSet<TabletResourceManager>();
     
@@ -189,32 +212,6 @@ public class TabletServerResourceManager {
     }
     
     memMgmt = new MemoryManagementFramework();
-    
-    // do this last since "this" is leaking out to call back code below
-    SimpleTimer.getInstance().schedule(new TimerTask() {
-      @Override
-      public void run() {
-        try {
-          // periodically reset the configurable thread pool sizes
-          List<Pair<ExecutorService,Property>> services = new ArrayList<Pair<ExecutorService,Property>>();
-          services.add(new Pair<ExecutorService,Property>(minorCompactionThreadPool, Property.TSERV_MINC_MAXCONCURRENT));
-          services.add(new Pair<ExecutorService,Property>(majorCompactionThreadPool, Property.TSERV_MAJC_MAXCONCURRENT));
-          services.add(new Pair<ExecutorService,Property>(migrationPool, Property.TSERV_MIGRATE_MAXCONCURRENT));
-          services.add(new Pair<ExecutorService,Property>(readAheadThreadPool, Property.TSERV_READ_AHEAD_MAXCONCURRENT));
-          services.add(new Pair<ExecutorService,Property>(defaultReadAheadThreadPool, Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT));
-          for (Pair<ExecutorService,Property> pair : services) {
-            int count = acuConf.getCount(pair.getSecond());
-            ThreadPoolExecutor tp = (ThreadPoolExecutor) pair.getFirst();
-            if (tp.getMaximumPoolSize() != count) {
-              tp.setMaximumPoolSize(count);
-            }
-          }
-        } catch (Exception e) {
-          log.warn("Failed to change number of threads in pool " + e.getMessage(), e);
-        }
-      }
-    }, 1000, 10 * 1000);
-    
   }
   
   private static class TabletStateImpl implements TabletState, Cloneable {
