@@ -22,7 +22,7 @@ This tutorial uses the following Java classes, which can be found in org.apache.
  * NumericValueConstraint.java - a constraint that requires numeric string values
 
 This an example of how to create a table with constraints. Below a table is
-create with two example constraints.  One constraints does not allow non alpha
+created with two example constraints.  One constraints does not allow non alpha
 numeric keys.  The other constraint does not allow non numeric values. Two
 inserts that violate these constraints are attempted and denied.  The scan at
 the end shows the inserts were not allowed. 
@@ -51,3 +51,4 @@ the end shows the inserts were not allowed.
     username@instance testConstraints> scan
     r1 cf1:cq1 []    1111
     username@instance testConstraints> 
+

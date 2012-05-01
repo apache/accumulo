@@ -41,7 +41,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
     order = 21
 
     def runExample(self, cmd):
-        self.wait(self.runOn(self.masterHost(), [self.accumulo_sh(),] + cmd))
+        return self.wait(self.runOn(self.masterHost(), [self.accumulo_sh(),] + cmd))
 
     def ashell(self, input):
         out, err, code = self.shell(self.masterHost(), input + '\n')
@@ -58,9 +58,14 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.wait(self.runOn('localhost', cmd))
 
     def runTest(self):
-        self.ashell('createtable %s\nsetauths -u %s -s A,B\nquit\n' %(table, ROOT))
         examplesJar = glob.glob(ACCUMULO_HOME+'/lib/examples-simple*.jar')[0]
 
+	self.comment("Testing MaxMutation constraint")
+	self.ashell('createtable test_ingest\n'
+'config -t test_ingest -s table.constraint.1=org.apache.accumulo.examples.simple.constraints.MaxMutationSize\n')
+        self.assert_(not self.execute(self.accumulo_sh(), 'org.apache.accumulo.server.test.TestIngest', '1', '0', '10000'))
+
+        self.ashell('createtable %s\nsetauths -u %s -s A,B\nquit\n' %(table, ROOT))
         self.comment("Testing dirlist example (a little)")
         self.comment("  ingesting accumulo source")
         self.execute(self.accumulo_sh(), 'org.apache.accumulo.examples.simple.dirlist.Ingest',

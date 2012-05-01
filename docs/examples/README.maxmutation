@@ -1,0 +1,47 @@
+Title: Apache Accumulo MaxMutation Constraints Example
+Notice:    Licensed to the Apache Software Foundation (ASF) under one
+           or more contributor license agreements.  See the NOTICE file
+           distributed with this work for additional information
+           regarding copyright ownership.  The ASF licenses this file
+           to you under the Apache License, Version 2.0 (the
+           "License"); you may not use this file except in compliance
+           with the License.  You may obtain a copy of the License at
+           .
+             http://www.apache.org/licenses/LICENSE-2.0
+           .
+           Unless required by applicable law or agreed to in writing,
+           software distributed under the License is distributed on an
+           "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+           KIND, either express or implied.  See the License for the
+           specific language governing permissions and limitations
+           under the License.
+
+This an example of how to limit the size of mutations that will be accepted into
+a table.  Under the default configuration, accumulo does not provide a limitation
+on the size of mutations that can be ingested.  Poorly behaved writers might
+inadvertently create mutations so large, that they cause the tablet servers
+or logger processes to run out of memory.  A simple contraint can be added to
+a table to reject very large mutations.
+
+    $ ./bin/accumulo shell -u username -p password
+    
+    Shell - Apache Accumulo Interactive Shell
+    - 
+    - version: 1.5.0-SNAPSHOT
+    - instance name: instance
+    - instance id: 00000000-0000-0000-0000-000000000000
+    - 
+    - type 'help' for a list of available commands
+    - 
+    username@instance> createtable test_ingest
+    username@instance test_ingest> config -t test_ingest -s table.constraint.1=org.apache.accumulo.examples.simple.constraints.MaxMutationSize
+    username@instance test_ingest> 
+
+
+Now the table will reject any mutation that is larger than 1/256th of the 
+working memory of the tablet server.  The following command attempts to ingest 
+a single row with 10000 columns, which exceeds the memory limit:
+
+    $ ./bin/accumulo org.apache.accumulo.server.test.TestIngest 1 0 10000
+ERROR : Constraint violates : ConstraintViolationSummary(constrainClass:org.apache.accumulo.examples.simple.constraints.MaxMutationSize, violationCode:0, violationDescription:mutation exceeded maximum size of 188160, numberOfViolatingMutations:1)
+
