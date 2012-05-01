@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -46,6 +47,7 @@ import org.apache.accumulo.examples.wikisearch.ingest.WikipediaMapper;
 import org.apache.accumulo.examples.wikisearch.parser.RangeCalculator;
 import org.apache.accumulo.examples.wikisearch.reader.AggregatingRecordReader;
 import org.apache.accumulo.examples.wikisearch.sample.Document;
+import org.apache.accumulo.examples.wikisearch.sample.Field;
 import org.apache.accumulo.examples.wikisearch.sample.Results;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -158,6 +160,7 @@ public class TestQueryLogic {
     table.setIndexTableName(INDEX_TABLE_NAME);
     table.setReverseIndexTableName(RINDEX_TABLE_NAME);
     table.setUseReadAheadIterator(false);
+    table.setUnevaluatedFields(Collections.singletonList("TEXT"));
   }
   
   void debugQuery(String tableName) throws Exception {
@@ -179,13 +182,14 @@ public class TestQueryLogic {
     List<Document> docs = results.getResults();
     assertEquals(4, docs.size());
     
-    /*
-     * debugQuery(METADATA_TABLE_NAME); debugQuery(TABLE_NAME); debugQuery(INDEX_TABLE_NAME); debugQuery(RINDEX_TABLE_NAME);
-     * 
-     * results = table.runQuery(c, auths, "TEXT == 'abacus'", null, null, null); docs = results.getResults(); assertEquals(4, docs.size()); for (Document doc :
-     * docs) { System.out.println("id: " + doc.getId()); for (Field field : doc.getFields()) System.out.println(field.getFieldName() + " -> " +
-     * field.getFieldValue()); }
-     */
+    results = table.runQuery(c, auths, "TEXT == 'abacus'", null, null, null);
+    docs = results.getResults();
+    assertEquals(1, docs.size());
+    for (Document doc : docs) {
+      System.out.println("id: " + doc.getId());
+      for (Field field : doc.getFields())
+        System.out.println(field.getFieldName() + " -> " + field.getFieldValue());
+    }
   }
   
 }
