@@ -191,53 +191,42 @@ certain column.
 
 
 If you are running on top of hdfs with kerberos enabled, then you need to do
-some extra work. We currently do not internally support kerberos, so you must
-manually manage the accumulo users tickets. First, create an accumulo principal
+some extra work. First, create an Accumulo principal
 
   kadmin.local -q "addprinc -randkey accumulo/<host.domain.name>"
 
 where <host.domain.name> is replaced by a fully qualified domain name. Export
-the principals to a keytab file
+the principals to a keytab file. It is safer to create a unique keytab file for each
+server, but you can also glob them if you wish.
 
   kadmin.local -q "xst -k accumulo.keytab -glob accumulo*"
 
 Place this file in $ACCUMULO_HOME/conf for every host. It should be owned by
 the accumulo user and chmodded to 400. Add the following to the accumulo-env.sh
 
-  kinit -kt $ACCUMULO_HOME/conf/accumulo.keytab accumulo/`hostname -f`
+In the accumulo-site.xml file on each node, add settings for general.kerberos.keytab
+and general.kerberos.principal, where the keytab setting is the absolute path
+to the keytab file ($ACCUMULO_HOME is valid to use) and principal is set to
+accumulo/_HOST@<REALM>, where REALM is set to your kerberos realm. You may use
+_HOST in lieu of your individual host names.
 
-And set the following crontab for every host
+  <property>
+    <name>general.kerberos.keytab</name>
+    <value>$ACCUMULO_HOME/conf/accumulo.keytab</value>
+  </property>
 
-  0 5 * * * kinit -kt $ACCUMULO_HOME/conf/accumulo.keytab accumulo/`hostname -f`
+  <property>
+    <name>general.kerberos.principal</name>
+    <value>accumulo/_HOST@MYREALM</value>
+  </property> 
 
-Additionally, adjust the $ACCUMULO_HOME/conf/monitor.security.policy to change
+You can then start up Accumulo as you would with the accumulo user, and it will
+automatically handle the kerberos keys needed to access hdfs.
 
-  permission java.util.PropertyPermission "*", "read";
-
-to
-  
-  permission java.util.PropertyPermission "*", "read,write";
-
-And add these lines to the end of the policy file
-
-  permission javax.security.auth.AuthPermission "createLoginContext.hadoop-user-kerberos";
-  permission java.lang.RuntimePermission "createSecurityManager";
-  permission javax.security.auth.AuthPermission "doAs";
-  permission javax.security.auth.AuthPermission "getPolicy";
-  permission java.security.SecurityPermission "createAccessControlContext";
-  permission javax.security.auth.AuthPermission "getSubjectFromDomainCombiner";
-  permission java.lang.RuntimePermission "getProtectionDomain";
-  permission javax.security.auth.AuthPermission "modifyPrivateCredentials";
-  permission javax.security.auth.PrivateCredentialPermission "javax.security.auth.kerberos.KerberosTicket javax.security.auth.kerberos.KerberosPrincipal \"*\"", "read";
-  permission javax.security.auth.kerberos.ServicePermission "krbtgt/<REALM>@<REALM>", "initiate";
-  permission javax.security.auth.kerberos.ServicePermission "hdfs/<namenode.domain.name>@<REALM>", "initiate";
-  permission javax.security.auth.kerberos.ServicePermission "mapred/<jobtracker.domain.name>@<REALM>", "initiate";
-
-Where <REALM> is replaced with the kerberos realm for the Hadoop cluster, 
-<namenode.domain.name> is replaced with the fully qualified domain name of the 
-server running the namenode and <jobtracker.domain.name> is replaced with the 
-fully qualified domain name of the server running the job tracker.
-
+Please Note: You may have issues initializing Accumulo while running kerberos HDFS.
+You can resolve this by temporarily granting the accumulo user write access to the
+hdfs root directory, running init, and then revoking write permission in the root 
+directory (be sure to maintain access to the /accumulo directory).
 
 ******************************************************************************
 6. Monitoring Apache Accumulo

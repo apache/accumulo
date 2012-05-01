@@ -63,6 +63,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.logger.LogWriter.LogWriteException;
 import org.apache.accumulo.server.security.Authenticator;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.FileSystemMonitor;
@@ -117,12 +118,13 @@ public class LogService implements MutationLogger.Iface, Watcher {
   }
   
   public static void main(String[] args) throws Exception {
+    SecurityUtil.serverLogin();
+
     LogService logService;
     Instance instance = HdfsZooInstance.getInstance();
     ServerConfiguration conf = new ServerConfiguration(instance);
     FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), conf.getConfiguration());
     Accumulo.init(fs, conf, "logger");
-    
     String hostname = Accumulo.getLocalAddress(args);
     try {
       logService = new LogService(conf, fs, hostname);

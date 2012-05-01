@@ -74,6 +74,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.Halt;
 import org.apache.accumulo.server.util.OfflineMetadataScanner;
@@ -93,7 +94,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
-
 
 public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
@@ -133,7 +133,9 @@ public class SimpleGarbageCollector implements Iface {
   private Instance instance;
   
   public static void main(String[] args) throws UnknownHostException, IOException {
-    Instance instance = HdfsZooInstance.getInstance(); 
+    SecurityUtil.serverLogin();
+    
+    Instance instance = HdfsZooInstance.getInstance();
     ServerConfiguration serverConf = new ServerConfiguration(instance);
     final FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), serverConf.getConfiguration());
     Accumulo.init(fs, serverConf, "gc");
@@ -164,8 +166,7 @@ public class SimpleGarbageCollector implements Iface {
     gc.run();
   }
   
-  public SimpleGarbageCollector() {
-  }
+  public SimpleGarbageCollector() {}
   
   public void setSafeMode() {
     this.safemode = true;

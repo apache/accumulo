@@ -146,6 +146,7 @@ import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.security.Authenticator;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.accumulo.server.tabletserver.Tablet.CommitSession;
 import org.apache.accumulo.server.tabletserver.Tablet.KVEntry;
@@ -200,12 +201,11 @@ import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 
-
 enum ScanRunState {
   QUEUED, RUNNING, FINISHED
 }
 
-public class TabletServer extends AbstractMetricsImpl implements org.apache.accumulo.server.tabletserver.metrics.TabletServerMBean  {
+public class TabletServer extends AbstractMetricsImpl implements org.apache.accumulo.server.tabletserver.metrics.TabletServerMBean {
   private static final Logger log = Logger.getLogger(TabletServer.class);
   
   private static HashMap<String,Long> prevGcTime = new HashMap<String,Long>();
@@ -2653,6 +2653,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   // main loop listens for client requests
   public void run() {
+    SecurityUtil.serverLogin();
+
     int clientPort = 0;
     try {
       clientPort = startTabletClientService();
@@ -3091,6 +3093,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   public static void main(String[] args) throws IOException {
     try {
+      SecurityUtil.serverLogin();
       FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
       String hostname = Accumulo.getLocalAddress(args);
       Instance instance = HdfsZooInstance.getInstance();
