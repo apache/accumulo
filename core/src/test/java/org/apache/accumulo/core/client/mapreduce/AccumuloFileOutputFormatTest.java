@@ -44,7 +44,7 @@ public class AccumuloFileOutputFormatTest {
   public void setup() {
     job = ContextFactory.createJobContext();
     
-    Path file = new Path(System.getenv("ACCUMULO_HOME") + "/target/");
+    Path file = new Path("target/");
     f = new Path(file, "_temporary");
     job.getConfiguration().set("mapred.output.dir", file.toString());
     
