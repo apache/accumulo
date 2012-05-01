@@ -66,7 +66,7 @@ public class GrepCommand extends ScanCommand {
     scanner.setRanges(Collections.singletonList(getRange(cl)));
     
     for (int i = 0; i < cl.getArgs().length; i++)
-      setUpIterator(Integer.MAX_VALUE, "grep" + i, cl.getArgs()[i], scanner);
+      setUpIterator(Integer.MAX_VALUE - cl.getArgs().length + i, "grep" + i, cl.getArgs()[i], scanner);
     
     try {
       // handle columns
