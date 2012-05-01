@@ -67,4 +67,8 @@ public class StandaloneStatusReporter extends StatusReporter {
   public void incrementRecordsProcessed() {
     recordsProcessed++;
   }
+  
+  public float getProgress() {
+    return 0;
+  }
 }

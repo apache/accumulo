@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.examples.wikisearch.logic;
 
+import static org.junit.Assert.assertEquals;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -38,12 +40,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ContextFactory;
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaConfiguration;
+import org.apache.accumulo.examples.wikisearch.ingest.WikipediaIngester;
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaInputFormat.WikipediaInputSplit;
 import org.apache.accumulo.examples.wikisearch.ingest.WikipediaMapper;
 import org.apache.accumulo.examples.wikisearch.parser.RangeCalculator;
 import org.apache.accumulo.examples.wikisearch.reader.AggregatingRecordReader;
 import org.apache.accumulo.examples.wikisearch.sample.Document;
-import org.apache.accumulo.examples.wikisearch.sample.Field;
 import org.apache.accumulo.examples.wikisearch.sample.Results;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -117,11 +119,8 @@ public class TestQueryLogic {
     
     MockInstance i = new MockInstance();
     c = i.getConnector("root", "pass");
+    WikipediaIngester.createTables(c.tableOperations(), TABLE_NAME, false);
     for (String table : TABLE_NAMES) {
-      try {
-        c.tableOperations().delete(table);
-      } catch (Exception ex) {}
-      c.tableOperations().create(table);
       writerMap.put(new Text(table), c.createBatchWriter(table, 1000L, 1000L, 1));
     }
     
@@ -162,7 +161,7 @@ public class TestQueryLogic {
   }
   
   void debugQuery(String tableName) throws Exception {
-    Scanner s = c.createScanner(tableName, new Authorizations());
+    Scanner s = c.createScanner(tableName, new Authorizations("all"));
     Range r = new Range();
     s.setRange(r);
     for (Entry<Key,Value> entry : s)
@@ -170,17 +169,23 @@ public class TestQueryLogic {
   }
   
   @Test
-  public void testTitle() {
+  public void testTitle() throws Exception {
     Logger.getLogger(AbstractQueryLogic.class).setLevel(Level.OFF);
     Logger.getLogger(RangeCalculator.class).setLevel(Level.OFF);
     List<String> auths = new ArrayList<String>();
     auths.add("enwiki");
-    Results results = table.runQuery(c, auths, "TITLE == 'afghanistanhistory'", null, null, null);
-    for (Document doc : results.getResults()) {
-      System.out.println("id: " + doc.getId());
-      for (Field field : doc.getFields())
-        System.out.println(field.getFieldName() + " -> " + field.getFieldValue());
-    }
+    
+    Results results = table.runQuery(c, auths, "TITLE == 'asphalt' or TITLE == 'abacus' or TITLE == 'acid' or TITLE == 'acronym'", null, null, null);
+    List<Document> docs = results.getResults();
+    assertEquals(4, docs.size());
+    
+    /*
+     * debugQuery(METADATA_TABLE_NAME); debugQuery(TABLE_NAME); debugQuery(INDEX_TABLE_NAME); debugQuery(RINDEX_TABLE_NAME);
+     * 
+     * results = table.runQuery(c, auths, "TEXT == 'abacus'", null, null, null); docs = results.getResults(); assertEquals(4, docs.size()); for (Document doc :
+     * docs) { System.out.println("id: " + doc.getId()); for (Field field : doc.getFields()) System.out.println(field.getFieldName() + " -> " +
+     * field.getFieldValue()); }
+     */
   }
   
 }

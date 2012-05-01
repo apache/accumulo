@@ -66,8 +66,8 @@ public class WikipediaIngester extends Configured implements Tool {
     System.exit(res);
   }
   
-  private void createTables(TableOperations tops, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      TableExistsException {
+  public static void createTables(TableOperations tops, String tableName, boolean configureLocalityGroups) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, TableExistsException {
     // Create the shard table
     String indexTableName = tableName + "Index";
     String reverseIndexTableName = tableName + "ReverseIndex";
@@ -94,7 +94,9 @@ public class WikipediaIngester extends Configured implements Tool {
       }
       
       // Set the locality group for the full content column family
-      tops.setLocalityGroups(tableName, Collections.singletonMap("WikipediaDocuments", Collections.singleton(new Text(WikipediaMapper.DOCUMENT_COLUMN_FAMILY))));
+      if (configureLocalityGroups)
+        tops.setLocalityGroups(tableName,
+            Collections.singletonMap("WikipediaDocuments", Collections.singleton(new Text(WikipediaMapper.DOCUMENT_COLUMN_FAMILY))));
       
     }
     
@@ -143,7 +145,7 @@ public class WikipediaIngester extends Configured implements Tool {
     
     TableOperations tops = connector.tableOperations();
     
-    createTables(tops, tablename);
+    createTables(tops, tablename, true);
     
     configureJob(job);
     

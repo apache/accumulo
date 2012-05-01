@@ -35,7 +35,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.hdfs.protocol.FSConstants.SafeModeAction;
+import org.apache.hadoop.hdfs.protocol.FSConstants;
 import org.apache.log4j.Logger;
 import org.apache.log4j.helpers.LogLog;
 import org.apache.log4j.xml.DOMConfigurator;
@@ -55,7 +55,7 @@ public class Accumulo {
       throw new RuntimeException("Unable to set accumulo version: an error occurred.", e);
     }
   }
-
+  
   public static synchronized int getAccumuloPersistentVersion(FileSystem fs) {
     int dataVersion;
     try {
@@ -163,7 +163,7 @@ public class Accumulo {
         if (!(fs instanceof DistributedFileSystem))
           break;
         DistributedFileSystem dfs = (DistributedFileSystem) FileSystem.get(CachedConfiguration.getInstance());
-        if (!dfs.setSafeMode(SafeModeAction.SAFEMODE_GET))
+        if (!dfs.setSafeMode(FSConstants.SafeModeAction.SAFEMODE_GET))
           break;
         log.warn("Waiting for the NameNode to leave safemode");
       } catch (IOException ex) {

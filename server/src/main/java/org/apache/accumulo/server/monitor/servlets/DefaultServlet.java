@@ -55,7 +55,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
-import org.apache.hadoop.hdfs.protocol.FSConstants.DatanodeReportType;
+import org.apache.hadoop.hdfs.protocol.FSConstants;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.hadoop.mapred.ClusterStatus;
 import org.apache.hadoop.mapred.JobClient;
@@ -194,12 +194,11 @@ public class DefaultServlet extends BasicServlet {
     if (points)
       opts = "points: { show: true, radius: 1 }";
     
-
     sb.append("    $.plot($(\"#" + id + "\"),");
     String sep = "";
     
     String colors[] = new String[] {"red", "blue", "green", "black"};
-
+    
     sb.append("[");
     for (int i = 0; i < series.length; i++) {
       sb.append(sep);
@@ -299,7 +298,7 @@ public class DefaultServlet extends BasicServlet {
         ContentSummary rootSummary = fs.getContentSummary(new Path("/"));
         consumed = String.format("%.2f%%", acu.getSpaceConsumed() * 100. / rootSummary.getSpaceConsumed());
         diskUsed = bytes(acu.getSpaceConsumed());
-
+        
         boolean highlight = false;
         tableRow(sb, (highlight = !highlight), "Disk&nbsp;Used", diskUsed);
         if (fs.getUsed() != 0)
@@ -334,8 +333,8 @@ public class DefaultServlet extends BasicServlet {
       tableRow(sb, (highlight = !highlight), "Unreplicated&nbsp;Capacity", bytes(fs.getRawCapacity()));
       tableRow(sb, (highlight = !highlight), "%&nbsp;Used", NumberType.commas(fs.getRawUsed() * 100. / fs.getRawCapacity(), 0, 90, 0, 100) + "%");
       tableRow(sb, (highlight = !highlight), "Corrupt&nbsp;Blocks", NumberType.commas(fs.getCorruptBlocksCount(), 0, 0));
-      DatanodeInfo[] liveNodes = fs.getClient().datanodeReport(DatanodeReportType.LIVE);
-      DatanodeInfo[] deadNodes = fs.getClient().datanodeReport(DatanodeReportType.DEAD);
+      DatanodeInfo[] liveNodes = fs.getClient().datanodeReport(FSConstants.DatanodeReportType.LIVE);
+      DatanodeInfo[] deadNodes = fs.getClient().datanodeReport(FSConstants.DatanodeReportType.DEAD);
       tableRow(sb, (highlight = !highlight), "<a href='" + liveUrl + "'>Live&nbsp;Data&nbsp;Nodes</a>", NumberType.commas(liveNodes.length));
       tableRow(sb, (highlight = !highlight), "<a href='" + deadUrl + "'>Dead&nbsp;Data&nbsp;Nodes</a>", NumberType.commas(deadNodes.length));
       long count = 0;
@@ -356,7 +355,7 @@ public class DefaultServlet extends BasicServlet {
     sb.append("<table>\n");
     try {
       InetSocketAddress address = JobTracker.getAddress(conf);
-
+      
       @SuppressWarnings("deprecation")
       // No alternative api in hadoop 20
       JobClient jc = new JobClient(new org.apache.hadoop.mapred.JobConf(conf));
