@@ -19,7 +19,6 @@ package org.apache.accumulo.core.client.admin;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -32,9 +31,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.BulkImportHelper.AssignmentStats;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -98,23 +95,6 @@ public interface TableOperations {
    *           if the table already exists
    */
   public void create(String tableName, boolean versioningIter, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException;
-  
-  /**
-   * @param tableName
-   *          the name of the table
-   * @param aggregators
-   *          List of aggregators to add
-   * @throws AccumuloSecurityException
-   *           if insufficient permissions to do action
-   * @throws TableNotFoundException
-   *           if table does not exist
-   * @throws AccumuloException
-   *           if a general error occurs
-   * 
-   * @deprecated since 1.4 {@link #attachIterator(String, IteratorSetting)}
-   */
-  public void addAggregators(String tableName, List<? extends PerColumnIteratorConfig> aggregators) throws AccumuloSecurityException, TableNotFoundException,
-      AccumuloException;
   
   /**
    * @param tableName
@@ -409,12 +389,6 @@ public interface TableOperations {
    */
   public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) throws TableNotFoundException, IOException, AccumuloException,
       AccumuloSecurityException;
-  
-  /**
-   * @deprecated Since 1.4 use {@link #importDirectory(String, String, String, boolean)}
-   */
-  public AssignmentStats importDirectory(String tableName, String dir, String failureDir, int numThreads, int numAssignThreads, boolean disableGC)
-      throws IOException, AccumuloException, AccumuloSecurityException;
   
   /**
    * 

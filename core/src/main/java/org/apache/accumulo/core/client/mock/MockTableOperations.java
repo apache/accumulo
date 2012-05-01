@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -30,16 +29,13 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.FindMax;
 import org.apache.accumulo.core.client.admin.TableOperationsHelper;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.BulkImportHelper.AssignmentStats;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.io.Text;
 
@@ -84,17 +80,6 @@ public class MockTableOperations extends TableOperationsHelper {
     if (exists(tableName))
       throw new TableExistsException(tableName, tableName, "");
     acu.createTable(username, tableName, versioningIter, timeType);
-  }
-  
-  /**
-   * @deprecated since 1.4 {@link #attachIterator(String, IteratorSetting)}
-   */
-  @Override
-  public void addAggregators(String tableName, List<? extends PerColumnIteratorConfig> aggregators) throws AccumuloSecurityException, TableNotFoundException,
-      AccumuloException {
-    if (!exists(tableName))
-      throw new TableNotFoundException(tableName, tableName, "");
-    acu.addAggregators(tableName, aggregators);
   }
   
   @Override
@@ -166,12 +151,6 @@ public class MockTableOperations extends TableOperationsHelper {
   public Set<Range> splitRangeByTablets(String tableName, Range range, int maxSplits) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
     return Collections.singleton(range);
-  }
-  
-  @Override
-  public AssignmentStats importDirectory(String tableName, String dir, String failureDir, int numThreads, int numAssignThreads, boolean disableGC)
-      throws IOException, AccumuloException, AccumuloSecurityException {
-    throw new NotImplementedException();
   }
   
   @Override

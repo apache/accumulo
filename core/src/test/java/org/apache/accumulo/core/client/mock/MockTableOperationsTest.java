@@ -36,10 +36,6 @@ public class MockTableOperationsTest {
     Connector conn = instance.getConnector("user", "pass");
     String t = "tableName";
     try {
-      conn.tableOperations().addAggregators(t, null);
-      Assert.fail();
-    } catch (TableNotFoundException e) {}
-    try {
       conn.tableOperations().attachIterator(t, null);
       Assert.fail();
     } catch (TableNotFoundException e) {}

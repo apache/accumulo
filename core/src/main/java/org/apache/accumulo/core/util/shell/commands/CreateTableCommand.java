@@ -18,9 +18,6 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -33,9 +30,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil;
-import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.accumulo.core.security.VisibilityConstraint;
-import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -49,7 +44,6 @@ public class CreateTableCommand extends Command {
   private Option createTableOptCopySplits;
   private Option createTableOptCopyConfig;
   private Option createTableOptSplit;
-  private Option createTableOptAgg;
   private Option createTableOptTimeLogical;
   private Option createTableOptTimeMillis;
   private Option createTableNoDefaultIters;
@@ -73,35 +67,8 @@ public class CreateTableCommand extends Command {
       throw new TableExistsException(null, tableName, null);
     
     SortedSet<Text> partitions = new TreeSet<Text>();
-    List<PerColumnIteratorConfig> aggregators = new ArrayList<PerColumnIteratorConfig>();
     boolean decode = cl.hasOption(base64Opt.getOpt());
     
-    if (cl.hasOption(createTableOptAgg.getOpt())) {
-      Shell.log.warn("aggregators are deprecated");
-      String agg = cl.getOptionValue(createTableOptAgg.getOpt());
-      
-      EscapeTokenizer st = new EscapeTokenizer(agg, "=,");
-      if (st.count() % 2 != 0) {
-        printHelp();
-        return 0;
-      }
-      Iterator<String> iter = st.iterator();
-      while (iter.hasNext()) {
-        String col = iter.next();
-        String className = iter.next();
-        
-        EscapeTokenizer colToks = new EscapeTokenizer(col, ":");
-        Iterator<String> tokIter = colToks.iterator();
-        Text cf = null, cq = null;
-        if (colToks.count() < 1 || colToks.count() > 2)
-          throw new BadArgumentException("column must be in the format cf[:cq]", fullCommand, fullCommand.indexOf(col));
-        cf = new Text(tokIter.next());
-        if (colToks.count() == 2)
-          cq = new Text(tokIter.next());
-        
-        aggregators.add(new PerColumnIteratorConfig(cf, cq, className));
-      }
-    }
     if (cl.hasOption(createTableOptSplit.getOpt())) {
       String f = cl.getOptionValue(createTableOptSplit.getOpt());
       
@@ -133,8 +100,6 @@ public class CreateTableCommand extends Command {
     shellState.getConnector().tableOperations().create(tableName, true, timeType);
     if (partitions.size() > 0)
       shellState.getConnector().tableOperations().addSplits(tableName, partitions);
-    if (aggregators.size() > 0)
-      shellState.getConnector().tableOperations().addAggregators(tableName, aggregators);
     
     shellState.setTableName(tableName); // switch shell to new table
     // context
@@ -204,7 +169,6 @@ public class CreateTableCommand extends Command {
     createTableOptCopyConfig = new Option("cc", "copy-config", true, "table to copy configuration from");
     createTableOptCopySplits = new Option("cs", "copy-splits", true, "table to copy current splits from");
     createTableOptSplit = new Option("sf", "splits-file", true, "file with newline separated list of rows to create a pre-split table");
-    createTableOptAgg = new Option("a", "aggregator", true, "comma separated column=aggregator");
     createTableOptTimeLogical = new Option("tl", "time-logical", false, "use logical time");
     createTableOptTimeMillis = new Option("tm", "time-millis", false, "use time in milliseconds");
     createTableNoDefaultIters = new Option("ndi", "no-default-iterators", false, "prevents creation of the normal default iterator set");
@@ -215,7 +179,6 @@ public class CreateTableCommand extends Command {
     createTableOptCopyConfig.setArgName("table");
     createTableOptCopySplits.setArgName("table");
     createTableOptSplit.setArgName("filename");
-    createTableOptAgg.setArgName("{<columnfamily>[:<columnqualifier>]=<aggregation class>}");
     createTableOptFormatter.setArgName("className");
     
     // Splits and CopySplits are put in an optionsgroup to make them
@@ -234,7 +197,6 @@ public class CreateTableCommand extends Command {
     o.addOptionGroup(splitOrCopySplit);
     o.addOptionGroup(timeGroup);
     o.addOption(createTableOptSplit);
-    o.addOption(createTableOptAgg);
     o.addOption(createTableOptCopyConfig);
     o.addOption(createTableNoDefaultIters);
     o.addOption(createTableOptEVC);

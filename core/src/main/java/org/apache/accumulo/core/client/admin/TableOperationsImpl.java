@@ -37,7 +37,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -69,7 +68,6 @@ import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ArgumentChecker;
-import org.apache.accumulo.core.util.BulkImportHelper.AssignmentStats;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.MetadataTable;
@@ -896,31 +894,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return ranges;
   }
   
-  /**
-   * @deprecated since 1.4 {@link #importDirectory(String, String, String, boolean)}
-   */
-  @Override
-  public AssignmentStats importDirectory(String tableName, String dir, String failureDir, int numThreads, int numAssignThreads, boolean disableGC)
-      throws IOException, AccumuloException, AccumuloSecurityException {
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    Path failPath = new Path(failureDir);
-    FileStatus[] listStatus = fs.listStatus(failPath);
-    if (fs.exists(failPath) && listStatus != null && listStatus.length != 0)
-      throw new AccumuloException("Failure directory exists, and is not empty");
-    if (!fs.exists(failPath))
-      fs.mkdirs(failPath);
-    
-    try {
-      importDirectory(tableName, dir, failureDir, false);
-    } catch (TableNotFoundException ex) {
-      throw new RuntimeException(ex);
-    }
-    // Fake this for backwards compatibility
-    return new AssignmentStats();
-    // return new BulkImportHelper(instance, credentials, tableName).importDirectory(new Path(dir), new Path(failureDir), numThreads, numAssignThreads,
-    // disableGC);
-  }
-  
   @Override
   public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) throws IOException, AccumuloSecurityException,
       TableNotFoundException, AccumuloException {
@@ -1029,47 +1002,4 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Scanner scanner = instance.getConnector(credentials).createScanner(tableName, auths);
     return FindMax.findMax(scanner, startRow, startInclusive, endRow, endInclusive);
   }
-  
-  /**
-   * @param tableName
-   *          the name of the table
-   * @param aggregators
-   *          List of aggregators to add
-   * @throws AccumuloSecurityException
-   *           if insufficient permissions to do action
-   * @throws TableNotFoundException
-   *           if table does not exist
-   * @throws AccumuloException
-   *           if a general error occurs
-   * 
-   * @deprecated since 1.4 {@link #attachIterator(String, IteratorSetting)}
-   */
-  @Override
-  public void addAggregators(String tableName, List<? extends org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig> aggregators)
-      throws AccumuloSecurityException, TableNotFoundException,
-      AccumuloException {
-    ArgumentChecker.notNull(tableName, aggregators);
-    MasterClientService.Iface client = null;
-    try {
-      client = MasterClient.getConnectionWithRetry(instance);
-      for (Entry<String,String> entry : IteratorUtil.generateAggTableProperties(aggregators).entrySet()) {
-        client.setTableProperty(null, credentials, tableName, entry.getKey(), entry.getValue());
-      }
-    } catch (ThriftSecurityException e) {
-      throw new AccumuloSecurityException(e.user, e.code, e);
-    } catch (ThriftTableOperationException e) {
-      switch (e.getType()) {
-        case EXISTS:
-          throw new TableNotFoundException(e);
-        case OTHER:
-        default:
-          throw new AccumuloException(e.getMessage(), e);
-      }
-    } catch (Exception e) {
-      throw new AccumuloException(e.getMessage(), e);
-    } finally {
-      MasterClient.close(client);
-    }
-  }
-  
 }

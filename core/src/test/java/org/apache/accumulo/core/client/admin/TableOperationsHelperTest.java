@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -35,9 +34,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.BulkImportHelper.AssignmentStats;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
@@ -157,12 +154,6 @@ public class TableOperationsHelperTest {
         AccumuloException, AccumuloSecurityException {}
     
     @Override
-    public AssignmentStats importDirectory(String tableName, String dir, String failureDir, int numThreads, int numAssignThreads, boolean disableGC)
-        throws IOException, AccumuloException, AccumuloSecurityException {
-      return null;
-    }
-    
-    @Override
     public void offline(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
       
     }
@@ -187,12 +178,6 @@ public class TableOperationsHelperTest {
       Assert.assertEquals(expected, settings.get(tablename));
     }
     
-    /**
-     * @deprecated since 1.4 {@link #attachIterator(String, IteratorSetting)}
-     */
-    @Override
-    public void addAggregators(String tableName, List<? extends PerColumnIteratorConfig> aggregators) throws AccumuloSecurityException, TableNotFoundException,
-        AccumuloException {}
   }
   
   @Test

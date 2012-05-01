@@ -38,7 +38,6 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
     def runTest(self):
         self.setIterTest()
         self.setScanIterTest()
-        self.aggTest()
         self.iteratorsTest()
         self.createtableTestSplits()
         self.createtableTestCopyConfig()
@@ -118,16 +117,6 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         self.processResult(out, err, code)
         self.failUnless(out.find("IllegalArgumentException") >= 0,
                         "Was able to configure same priority twice")
-        
-    def aggTest(self):
-        input = 'createtable aggtest\nsetiter -t aggtest -n myagg -scan -p 10 -class org.apache.accumulo.core.iterators.user.SummingCombiner\n\ns\n\nSTRING\n\nquit\n'
-        out,err,code = self.rootShell(self.masterHost(),input)
-        self.processResult(out, err, code)
-        input = 'table aggtest\ninsert row1 s c 10\ninsert row1 s c 30\nscan -np\n'
-        out,err,code = self.rootShell(self.masterHost(),input)
-        self.processResult(out, err, code)
-        self.failIf(out.find("row1 s:c []    40") == -1, 
-                        "Config Failed:  aggregation failed")
         
     def classpathTest(self):
         input = 'classpath\n'
