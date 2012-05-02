@@ -34,6 +34,7 @@ import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
@@ -55,7 +56,8 @@ public class MasterServlet extends BasicServlet {
   
   @Override
   protected String getTitle(HttpServletRequest req) {
-    return "Master Server";
+    List<String> masters = Monitor.getInstance().getMasterLocations();
+    return "Master Server" + (masters.size() == 0 ? "" : ":" + AddressUtil.parseAddress(masters.get(0), 0).getHostName());
   }
   
   @Override
@@ -128,7 +130,10 @@ public class MasterServlet extends BasicServlet {
       for (DeadServer down : Monitor.getMmi().deadTabletServers) {
         slaves.add(down.server);
       }
+      List<String> masters = Monitor.getInstance().getMasterLocations();
+      
       Table masterStatus = new Table("masterStatus", "Master&nbsp;Status");
+      masterStatus.addSortableColumn("Master");
       masterStatus.addSortableColumn("#&nbsp;Online<br />Tablet&nbsp;Servers", new NumberType<Integer>((int) (slaves.size() * 0.8 + 1.0), slaves.size(),
           (int) (slaves.size() * 0.6 + 1.0), slaves.size()), "Number of tablet servers currently available");
       masterStatus.addSortableColumn("#&nbsp;Total<br />Tablet&nbsp;Servers", new NumberType<Integer>(), "The total number of tablet servers configured");
@@ -148,6 +153,7 @@ public class MasterServlet extends BasicServlet {
       masterStatus.addSortableColumn("OS&nbsp;Load", new NumberType<Double>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
           "The one-minute load average on the computer that runs the monitor web server.");
       TableRow row = masterStatus.prepareRow();
+      row.add(masters.size() == 0 ? "<div class='error'>Down</div>" : AddressUtil.parseAddress(masters.get(0), 0).getHostName());
       row.add(Monitor.getMmi().tServerInfo.size());
       row.add(slaves.size());
       row.add(Monitor.getMmi().loggers.size());

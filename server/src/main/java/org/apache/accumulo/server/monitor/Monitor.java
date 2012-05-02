@@ -648,10 +648,11 @@ public class Monitor {
     }
   }
   
-  /**
-   * @return
-   */
   public static AccumuloConfiguration getSystemConfiguration() {
     return config.getConfiguration();
+  }
+  
+  public static Instance getInstance() {
+    return instance;
   }
 }
