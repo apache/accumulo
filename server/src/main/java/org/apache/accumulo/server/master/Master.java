@@ -209,7 +209,6 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   final private Map<TServerInstance,AtomicInteger> badServers = Collections.synchronizedMap(new DefaultMap<TServerInstance,AtomicInteger>(new AtomicInteger()));
   final private Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<TServerInstance>());
   final private SortedMap<KeyExtent,TServerInstance> migrations = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
-  final private TabletBalancer tabletBalancer;
   final private EventCoordinator nextEvent = new EventCoordinator();
   final private Object mergeLock = new Object();
   
@@ -217,6 +216,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   private TServer clientService = null;
   private TabletServerLoggers loggers = null;
   private CoordinateRecoveryTask recovery = null;
+  private TabletBalancer tabletBalancer;
   
   private MasterState state = MasterState.INITIAL;
   
@@ -849,12 +849,27 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       Master.this.setMasterGoalState(state);
     }
     
+    private void updatePlugins(String property) {
+      if (property.equals(Property.MASTER_TABLET_BALANCER.getKey())) {
+        TabletBalancer balancer = createInstanceFromPropertyName(instance.getConfiguration(), Property.MASTER_TABLET_BALANCER, TabletBalancer.class,
+            new DefaultLoadBalancer());
+        balancer.init(serverConfig);
+        tabletBalancer = balancer;
+        log.info("tablet balancer changed to " + tabletBalancer.getClass().getName());
+      } else if (property.equals(Property.MASTER_LOGGER_BALANCER.getKey())) {
+        loggerBalancer = createInstanceFromPropertyName(instance.getConfiguration(), Property.MASTER_LOGGER_BALANCER, LoggerBalancer.class,
+            new SimpleLoggerBalancer());
+        log.info("log balancer changed to " + loggerBalancer.getClass().getName());
+      }
+    }
+
     @Override
     public void removeSystemProperty(TInfo info, AuthInfo c, String property) throws ThriftSecurityException, TException {
       
       verify(c, check(c, SystemPermission.SYSTEM));
       try {
         SystemPropUtil.removeSystemProperty(property);
+        updatePlugins(property);
       } catch (Exception e) {
         log.error("Problem removing config property in zookeeper", e);
         throw new TException(e.getMessage());
@@ -866,6 +881,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
       verify(credentials, check(credentials, SystemPermission.SYSTEM));
       try {
         SystemPropUtil.setSystemProperty(property, value);
+        updatePlugins(property);
       } catch (Exception e) {
         log.error("Problem setting config property in zookeeper", e);
         throw new TException(e.getMessage());
