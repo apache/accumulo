@@ -22,11 +22,6 @@ import java.util.List;
 
 import junit.framework.TestCase;
 
-import org.apache.accumulo.core.data.Column;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.data.PartialKey;
-import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.io.Text;
 
 public class RangeTest extends TestCase {

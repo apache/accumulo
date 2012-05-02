@@ -19,8 +19,8 @@ package org.apache.accumulo.core.constraints;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 

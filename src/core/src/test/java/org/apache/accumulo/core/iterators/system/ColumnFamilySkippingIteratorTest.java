@@ -28,8 +28,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
-import org.apache.accumulo.core.iterators.system.CountingIterator;
 import org.apache.hadoop.io.Text;
 
 public class ColumnFamilySkippingIteratorTest extends TestCase {

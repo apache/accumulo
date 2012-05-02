@@ -31,7 +31,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.io.Text;
 

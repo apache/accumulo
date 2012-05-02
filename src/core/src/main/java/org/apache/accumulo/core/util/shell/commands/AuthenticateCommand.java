@@ -23,8 +23,8 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.Token;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 
 public class AuthenticateCommand extends Command {

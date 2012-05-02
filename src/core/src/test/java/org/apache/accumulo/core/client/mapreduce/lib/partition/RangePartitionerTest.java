@@ -18,7 +18,6 @@ package org.apache.accumulo.core.client.mapreduce.lib.partition;
 
 import static org.junit.Assert.assertTrue;
 
-import org.apache.accumulo.core.client.mapreduce.lib.partition.RangePartitioner;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.JobContext;

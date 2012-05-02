@@ -20,9 +20,7 @@ import java.net.InetSocketAddress;
 
 import junit.framework.TestCase;
 
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.hadoop.io.Text;
-
 import org.apache.thrift.transport.TSocket;
 
 /**

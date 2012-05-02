@@ -21,11 +21,6 @@ package org.apache.accumulo.core.file.blockfile.cache;
 
 import java.util.Random;
 
-import org.apache.accumulo.core.file.blockfile.cache.CachedBlock;
-import org.apache.accumulo.core.file.blockfile.cache.ClassSize;
-import org.apache.accumulo.core.file.blockfile.cache.HeapSize;
-import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
-
 import junit.framework.TestCase;
 
 /**

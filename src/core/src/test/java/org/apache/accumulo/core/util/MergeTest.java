@@ -16,17 +16,18 @@
  */
 package org.apache.accumulo.core.util;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.data.KeyExtent;
-import org.apache.accumulo.core.util.Merge;
 import org.apache.accumulo.core.util.Merge.Size;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 public class MergeTest {
   

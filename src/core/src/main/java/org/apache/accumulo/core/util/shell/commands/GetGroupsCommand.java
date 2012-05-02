@@ -17,8 +17,8 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.LocalityGroupUtil;

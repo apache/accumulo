@@ -25,7 +25,6 @@ import junit.framework.Assert;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;

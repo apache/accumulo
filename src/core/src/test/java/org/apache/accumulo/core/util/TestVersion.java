@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.util;
 
-import org.apache.accumulo.core.util.Version;
-
 import junit.framework.TestCase;
 
 public class TestVersion extends TestCase {

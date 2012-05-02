@@ -18,7 +18,6 @@ package org.apache.accumulo.core.util;
 
 import junit.framework.TestCase;
 
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 
 /**

@@ -22,10 +22,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import jline.Completor;
+
 import org.apache.accumulo.core.util.shell.Shell.Command.CompletionSet;
 import org.apache.accumulo.core.util.shell.commands.QuotedStringTokenizer;
-
-import jline.Completor;
 
 public class ShellCompletor implements Completor {
   

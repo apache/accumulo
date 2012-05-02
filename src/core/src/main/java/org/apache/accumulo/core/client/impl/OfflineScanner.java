@@ -110,7 +110,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private KeyExtent currentExtent;
   private Connector conn;
   private String tableId;
-  private AuthInfo credentials;
   private Authorizations authorizations;
   private Instance instance;
   private ScannerOptions options;
@@ -134,7 +133,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     this.tableId = table.toString();
     this.authorizations = authorizations;
-    this.credentials = credentials;
     this.readers = new ArrayList<SortedKeyValueIterator<Key,Value>>();
     
     try {
@@ -232,7 +230,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     if (currentExtent != null && !extent.isPreviousExtent(currentExtent))
       throw new AccumuloException(" " + currentExtent + " is not previous extent " + extent);
     
-    String tablesDir = Constants.getTablesDir(AccumuloConfiguration.getSiteConfiguration());
+    String tablesDir = Constants.getTablesDir(instance.getConfiguration());
     List<String> absFiles = new ArrayList<String>();
     for (String relPath : relFiles) {
       if (relPath.startsWith(".."))
@@ -294,7 +292,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     
     Configuration conf = CachedConfiguration.getInstance();
     
-    FileSystem fs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
+    FileSystem fs = FileUtil.getFileSystem(conf, instance.getConfiguration());
     
     for (SortedKeyValueIterator<Key,Value> reader : readers) {
       ((FileSKVIterator) reader).close();

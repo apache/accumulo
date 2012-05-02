@@ -18,7 +18,6 @@ package org.apache.accumulo.core.iterators.system;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -35,7 +34,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public class ColumnFamilySkippingIterator extends SkippingIterator implements InterruptibleIterator {
   
-  private static final Collection<ByteSequence> EMPTY_SET = Collections.emptySet();
   protected Set<ByteSequence> colFamSet = null;
   protected TreeSet<ByteSequence> sortedColFams = null;
   

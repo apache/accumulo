@@ -22,7 +22,6 @@ import java.util.TreeSet;
 
 import junit.framework.TestCase;
 
-import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.hadoop.io.Text;
 
 public class KeyExtentTest extends TestCase {

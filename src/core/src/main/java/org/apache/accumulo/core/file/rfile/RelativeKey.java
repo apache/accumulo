@@ -22,8 +22,8 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;

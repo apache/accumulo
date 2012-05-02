@@ -20,8 +20,9 @@ package org.apache.accumulo.core.data;
  * limitations under the License.
  */
 
-import java.io.ByteArrayOutputStream;
+import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
+import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
@@ -38,8 +39,6 @@ import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.Logger;
-
-import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 /**
  * A byte sequence that is usable as a key or value. Based on {@link org.apache.hadoop.io.BytesWritable} only this class is NOT resizable and DOES NOT
@@ -249,6 +248,8 @@ public class Value implements WritableComparable<Object> {
   
   /**
    * Convert a long value to a byte array
+   * 
+   * @deprecated since 1.4.1. There is no replacement.
    */
   public static byte[] longToBytes(long val) throws IOException {
     return getBytes(new LongWritable(val));
@@ -256,6 +257,8 @@ public class Value implements WritableComparable<Object> {
   
   /**
    * Converts a byte array to a long value
+   * 
+   * @deprecated since 1.4.1. There is no replacement.
    */
   public static long bytesToLong(byte[] bytes) throws IOException {
     if (bytes == null || bytes.length == 0) {
@@ -266,6 +269,8 @@ public class Value implements WritableComparable<Object> {
   
   /**
    * Converts a string to a byte array in a consistent manner.
+   * 
+   * @deprecated since 1.4.1. There is no replacement.
    */
   public static byte[] stringToBytes(String s) throws UnsupportedEncodingException {
     if (s == null) {
@@ -276,6 +281,8 @@ public class Value implements WritableComparable<Object> {
   
   /**
    * Converts a byte array to a string in a consistent manner.
+   * 
+   * @deprecated since 1.4.1. There is no replacement.
    */
   public static String bytesToString(byte[] bytes) throws UnsupportedEncodingException {
     if (bytes == null || bytes.length == 0) {
@@ -287,6 +294,8 @@ public class Value implements WritableComparable<Object> {
   /**
    * @return The bytes of <code>w</code> gotten by running its {@link Writable#write(java.io.DataOutput)} method.
    * @see #getWritable(byte[], Writable)
+   * 
+   * @deprecated since 1.4.1. There is no replacement.
    */
   public static byte[] getBytes(final Writable w) throws IOException {
     if (w == null) {
@@ -313,6 +322,8 @@ public class Value implements WritableComparable<Object> {
    *          An empty Writable (usually made by calling the null-arg constructor).
    * @return The passed Writable after its readFields has been called fed by the passed <code>bytes</code> array or IllegalArgumentException if passed null or
    *         an empty <code>bytes</code> array.
+   * 
+   * @deprecated since 1.4.1. There is no replacement.
    */
   public static Writable getWritable(final byte[] bytes, final Writable w) throws IOException {
     if (bytes == null || bytes.length == 0) {

@@ -68,6 +68,7 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
@@ -1104,39 +1105,42 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       Scanner scanner;
       split = (RangeInputSplit) inSplit;
       log.debug("Initializing input split: " + split.range);
-      Instance instance = getInstance(attempt.getConfiguration());
-      String user = getUsername(attempt.getConfiguration());
-      byte[] password = getPassword(attempt.getConfiguration());
-      Authorizations authorizations = getAuthorizations(attempt.getConfiguration());
+      Configuration conf = attempt.getConfiguration();
+      Instance instance = getInstance(conf);
+      String user = getUsername(conf);
+      byte[] password = getPassword(conf);
+      Authorizations authorizations = getAuthorizations(conf);
       
       try {
         log.debug("Creating connector with user: " + user);
         Connector conn = instance.getConnector(user, password);
-        log.debug("Creating scanner for table: " + getTablename(attempt.getConfiguration()));
+        log.debug("Creating scanner for table: " + getTablename(conf));
         log.debug("Authorizations are: " + authorizations);
-        if (isOfflineScan(attempt.getConfiguration())) {
+        if (isOfflineScan(conf)) {
           scanner = new OfflineScanner(instance, new AuthInfo(user, ByteBuffer.wrap(password), instance.getInstanceID()), Tables.getTableId(instance,
-              getTablename(attempt.getConfiguration())), authorizations);
+              getTablename(conf)), authorizations);
         } else {
-          scanner = conn.createScanner(getTablename(attempt.getConfiguration()), authorizations);
+          scanner = conn.createScanner(getTablename(conf), authorizations);
         }
-        if (isIsolated(attempt.getConfiguration())) {
+        if (isIsolated(conf)) {
           log.info("Creating isolated scanner");
           scanner = new IsolatedScanner(scanner);
         }
-        if (usesLocalIterators(attempt.getConfiguration())) {
+        if (usesLocalIterators(conf)) {
           log.info("Using local iterators");
           scanner = new ClientSideIteratorScanner(scanner);
         }
-        setupMaxVersions(attempt.getConfiguration(), scanner);
-        setupRegex(attempt, scanner);
-        setupIterators(attempt.getConfiguration(), scanner);
+        setupMaxVersions(conf, scanner);
+        IteratorSetting is = new IteratorSetting(50, RegExFilter.class);
+        RegExFilter.setRegexs(is, conf.get(ROW_REGEX), conf.get(COLUMN_FAMILY_REGEX), conf.get(COLUMN_QUALIFIER_REGEX), null, false);
+        scanner.addScanIterator(is);
+        setupIterators(conf, scanner);
       } catch (Exception e) {
         throw new IOException(e);
       }
       
       // setup a scanner within the bounds of this split
-      for (Pair<Text,Text> c : getFetchedColumns(attempt.getConfiguration())) {
+      for (Pair<Text,Text> c : getFetchedColumns(conf)) {
         if (c.getSecond() != null) {
           log.debug("Fetching column " + c.getFirst() + ":" + c.getSecond());
           scanner.fetchColumn(c.getFirst(), c.getSecond());

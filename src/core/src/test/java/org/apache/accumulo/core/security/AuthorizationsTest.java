@@ -16,9 +16,9 @@
  */
 package org.apache.accumulo.core.security;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.Test;
 

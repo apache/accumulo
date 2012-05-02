@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.data;
 
-import org.apache.accumulo.core.data.Column;
-
 import junit.framework.TestCase;
 
 public class ColumnTest extends TestCase {

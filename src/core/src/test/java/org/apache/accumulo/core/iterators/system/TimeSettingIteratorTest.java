@@ -19,14 +19,13 @@ package org.apache.accumulo.core.iterators.system;
 import java.util.HashSet;
 import java.util.TreeMap;
 
+import junit.framework.TestCase;
+
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
-
-import junit.framework.TestCase;
 
 public class TimeSettingIteratorTest extends TestCase {
   

@@ -20,8 +20,8 @@ import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.ShellCommandException.ErrorCode;
 import org.apache.commons.cli.CommandLine;
 

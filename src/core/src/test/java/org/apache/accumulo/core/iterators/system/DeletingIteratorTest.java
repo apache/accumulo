@@ -19,8 +19,8 @@ package org.apache.accumulo.core.iterators.system;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 import junit.framework.TestCase;
 
@@ -29,7 +29,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
-import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.hadoop.io.Text;
 
 public class DeletingIteratorTest extends TestCase {

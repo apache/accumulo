@@ -19,7 +19,6 @@ package org.apache.accumulo.core.file.rfile.bcfile;
 
 import java.io.IOException;
 import java.io.InputStream;
-
 import java.security.AccessController;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
