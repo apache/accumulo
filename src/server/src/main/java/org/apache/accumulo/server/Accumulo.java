@@ -17,10 +17,13 @@
 package org.apache.accumulo.server;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Map.Entry;
+import java.util.TimerTask;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
@@ -32,6 +35,7 @@ import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.trace.TraceFileSystem;
+import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -145,8 +149,37 @@ public class Accumulo {
       else
         log.info(entry.getKey() + " = " + entry.getValue());
     }
+    
+    monitorSwappiness();
   }
   
+  public static void monitorSwappiness() {
+    SimpleTimer.getInstance().schedule(new TimerTask() {
+      @Override
+      public void run() {
+        try {
+          File swappiness = new File("/proc/sys/vm/swappiness");
+          if (swappiness.exists() && swappiness.canRead()) {
+            InputStream is = new FileInputStream("/proc/sys/vm/swappiness");
+            try {
+              byte[] buffer = new byte[10];
+              int bytes = is.read(buffer);
+              String setting = new String(buffer, 0, bytes);
+              if (bytes > 0 && Integer.parseInt(setting) > 0) {
+                log.warn("System swappiness setting is greater than zero (" + setting + ") which can cause time-sensitive operations to be delayed. "
+                    + " Accumulo is time sensitive because it needs to maintain distributed lock agreement.");
+              }
+            } finally {
+              is.close();
+            }
+          }
+        } catch (Throwable t) {
+          log.error(t, t);
+        }
+      }
+    }, 1000, 10 * 1000);
+  }
+
   public static InetAddress getLocalAddress(String[] args) throws UnknownHostException {
     InetAddress result = InetAddress.getLocalHost();
     for (int i = 0; i < args.length - 1; i++) {
