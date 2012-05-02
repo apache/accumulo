@@ -29,12 +29,10 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.iterators.AggregatingIterator;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.OptionDescriber.IteratorOptions;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.ReqVisFilter;
@@ -52,7 +50,7 @@ import org.apache.commons.cli.Options;
 public class SetIterCommand extends Command {
   
   private Option tableOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt, priorityOpt;
-  private Option aggTypeOpt, ageoffTypeOpt, regexTypeOpt, versionTypeOpt, reqvisTypeOpt, classnameTypeOpt;
+  private Option ageoffTypeOpt, regexTypeOpt, versionTypeOpt, reqvisTypeOpt, classnameTypeOpt;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ShellCommandException {
@@ -74,10 +72,7 @@ public class SetIterCommand extends Command {
     
     Map<String,String> options = new HashMap<String,String>();
     String classname = cl.getOptionValue(classnameTypeOpt.getOpt());
-    if (cl.hasOption(aggTypeOpt.getOpt())) {
-      Shell.log.warn("aggregators are deprecated");
-      classname = AggregatingIterator.class.getName();
-    } else if (cl.hasOption(regexTypeOpt.getOpt()))
+    if (cl.hasOption(regexTypeOpt.getOpt()))
       classname = RegExFilter.class.getName();
     else if (cl.hasOption(ageoffTypeOpt.getOpt()))
       classname = AgeOffFilter.class.getName();
@@ -91,11 +86,6 @@ public class SetIterCommand extends Command {
           + SortedKeyValueIterator.class.getName());
     
     String name = cl.getOptionValue(nameOpt.getOpt(), setUpOptions(shellState.getReader(), classname, options));
-    
-    String aggregatorClass = options.get("aggregatorClass");
-    if (aggregatorClass != null && !shellState.getConnector().instanceOperations().testClassLoad(aggregatorClass, Aggregator.class.getName()))
-      throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + aggregatorClass + " as type "
-          + Aggregator.class.getName());
     
     setTableProperties(cl, shellState, tableName, priority, options, classname, name);
     
@@ -232,14 +222,12 @@ public class SetIterCommand extends Command {
     OptionGroup typeGroup = new OptionGroup();
     classnameTypeOpt = new Option("class", "class-name", true, "a java class type");
     classnameTypeOpt.setArgName("name");
-    aggTypeOpt = new Option("agg", "aggregator", false, "an aggregating type");
     regexTypeOpt = new Option("regex", "regular-expression", false, "a regex matching type");
     versionTypeOpt = new Option("vers", "version", false, "a versioning type");
     reqvisTypeOpt = new Option("reqvis", "require-visibility", false, "a type that omits entries with empty visibilities");
     ageoffTypeOpt = new Option("ageoff", "ageoff", false, "an aging off type");
     
     typeGroup.addOption(classnameTypeOpt);
-    typeGroup.addOption(aggTypeOpt);
     typeGroup.addOption(regexTypeOpt);
     typeGroup.addOption(versionTypeOpt);
     typeGroup.addOption(reqvisTypeOpt);

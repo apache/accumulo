@@ -18,14 +18,12 @@ package org.apache.accumulo.core.client.mock;
 
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -62,14 +60,7 @@ public class MockAccumulo {
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations) {
     return new MockBatchScanner(tables.get(tableName), authorizations);
   }
-  
-  /**
-   * @deprecated since 1.4
-   */
-  public void addAggregators(String tableName, List<? extends PerColumnIteratorConfig> aggregators) {
-    tables.get(tableName).addAggregators(aggregators);
-  }
-  
+
   public void createTable(String username, String tableName, boolean useVersions, TimeType timeType) {
     MockTable t = new MockTable(useVersions, timeType);
     t.userPermissions.put(username, EnumSet.allOf(TablePermission.class));

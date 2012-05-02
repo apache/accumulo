@@ -27,15 +27,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.thrift.IterInfo;
-import org.apache.accumulo.core.iterators.conf.PerColumnIteratorConfig;
 import org.apache.accumulo.core.iterators.system.SynchronizedIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
@@ -57,32 +54,6 @@ public class IteratorUtil {
       return (o1.priority < o2.priority ? -1 : (o1.priority == o2.priority ? 0 : 1));
     }
     
-  }
-  
-  /**
-   * @deprecated since 1.4
-   * @param aggregators
-   * @return A map of Aggregator Table Properties.
-   * 
-   * @see TableOperations#attachIterator(String, IteratorSetting)
-   */
-  public static Map<String,String> generateAggTableProperties(List<? extends PerColumnIteratorConfig> aggregators) {
-    
-    Map<String,String> props = new TreeMap<String,String>();
-    
-    for (IteratorScope iterScope : IteratorScope.values()) {
-      if (aggregators.size() > 0) {
-        props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".agg", "10," + AggregatingIterator.class.getName());
-      }
-    }
-    
-    for (PerColumnIteratorConfig ac : aggregators) {
-      for (IteratorScope iterScope : IteratorScope.values()) {
-        props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".agg.opt." + ac.encodeColumns(), ac.getClassName());
-      }
-    }
-    
-    return props;
   }
   
   public static Map<String,String> generateInitialTableProperties() {

@@ -29,7 +29,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class MockTableOperationsTest {
-  @SuppressWarnings("deprecation")
   @Test
   public void testTableNotFound() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
     Instance instance = new MockInstance("topstest");

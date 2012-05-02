@@ -151,12 +151,12 @@ public class DefaultServlet extends BasicServlet {
   public static final int GRAPH_WIDTH = 450;
   public static final int GRAPH_HEIGHT = 150;
   
-  @SuppressWarnings("unchecked")
   private static void plotData(StringBuilder sb, String title, @SuppressWarnings("rawtypes") List data, boolean points) {
     plotData(sb, title, points, new ArrayList<String>(), data);
   }
   
-  private static void plotData(StringBuilder sb, String title, boolean points, List<String> labels, @SuppressWarnings("rawtypes") List... series) {
+  @SuppressWarnings("rawtypes")
+  private static void plotData(StringBuilder sb, String title, boolean points, List<String> labels, List... series) {
     sb.append("<div class=\"plotHeading\">");
     sb.append(title);
     sb.append("</div>");
@@ -169,6 +169,7 @@ public class DefaultServlet extends BasicServlet {
     
     for (int i = 0; i < series.length; i++) {
       
+      @SuppressWarnings("unchecked")
       List<Pair<Long,? extends Number>> data = series[i];
       sb.append("    var d" + i + " = [");
       
