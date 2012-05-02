@@ -37,14 +37,18 @@ This may take some time if there are large files in the /local/username/workspac
 Note that running this example will create tables dirTable, indexTable, and dataTable in Accumulo that you should delete when you have completed the example.
 If you modify a file or add new files in the directory ingested (e.g. /local/username/workspace), you can run Ingest again to add new information into the Accumulo tables.
 
-To browse the data ingested, use Viewer.java.  Be sure to give the "username" user the authorizations to see the data (in this case, run "setauths -u username -s exampleVis" in the shell, and use the string "exampleVis" as the "auths" in command lines below).
+To browse the data ingested, use Viewer.java.  Be sure to give the "username" user the authorizations to see the data (in this case, run
 
-    $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.Viewer instance zookeepers username password dirTable dataTable auths /local/username/workspace
+    $ ./bin/accumulo shell -u root -e 'setauths -u username -s exampleVis'
+
+then run the Viewer:
+
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.Viewer instance zookeepers username password dirTable dataTable exampleVis /local/username/workspace
 
 To list the contents of specific directories, use QueryUtil.java.
 
-    $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.QueryUtil instance zookeepers username password dirTable auths /local/username
-    $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.QueryUtil instance zookeepers username password dirTable auths /local/username/workspace
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.QueryUtil instance zookeepers username password dirTable exampleVis /local/username
+    $ ./bin/accumulo org.apache.accumulo.examples.simple.dirlist.QueryUtil instance zookeepers username password dirTable exampleVis /local/username/workspace
 
 To perform searches on file or directory names, also use QueryUtil.java.  Search terms must contain no more than one wild card and cannot contain "/".
 *Note* these queries run on the _indexTable_ table instead of the dirTable table.
