@@ -145,13 +145,15 @@ public class Accumulo {
       @Override
       public void run() {
         try {
-          File swappiness = new File("/proc/sys/vm/swappiness");
+          String procFile = "/proc/sys/vm/swappiness";
+          File swappiness = new File(procFile);
           if (swappiness.exists() && swappiness.canRead()) {
-            InputStream is = new FileInputStream("/proc/sys/vm/swappiness");
+            InputStream is = new FileInputStream(procFile);
             try {
               byte[] buffer = new byte[10];
               int bytes = is.read(buffer);
               String setting = new String(buffer, 0, bytes);
+              setting = setting.trim();
               if (bytes > 0 && Integer.parseInt(setting) > 0) {
                 log.warn("System swappiness setting is greater than zero (" + setting + ") which can cause time-sensitive operations to be delayed. "
                     + " Accumulo is time sensitive because it needs to maintain distributed lock agreement.");
