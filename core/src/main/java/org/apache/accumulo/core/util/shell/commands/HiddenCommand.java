@@ -20,10 +20,11 @@ import java.security.SecureRandom;
 import java.util.Random;
 
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.ShellCommandException.ErrorCode;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.codec.binary.Base64;
 
 public class HiddenCommand extends Command {
   private static Random rand = new SecureRandom();
@@ -38,7 +39,10 @@ public class HiddenCommand extends Command {
     if (rand.nextInt(10) == 0) {
       shellState.getReader().beep();
       shellState.getReader().printNewline();
-      shellState.getReader().printString("Sortacus lives!\n");
+      shellState.getReader().printString(
+          new String(Base64.decodeBase64(("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8gIF88LgogICAgLyB8ICd8ICcgXAog"
+              + "ICAvICB8Xy58Xy4gIFwKICAvIC98ICAgICAgfFwgXAogfCB8IHwgfFwvfCB8IHwgfAogfF98IHwgfCAgfCB8IHxffAogICAgIC8gIF9fICBcCiAgICAvICAv"
+              + "ICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvICAvICAgICAgXCB8IHwKIHxfXy8gICAgICAgIFx8X3wK").getBytes())));
       shellState.getReader().printNewline();
     } else
       throw new ShellCommandException(ErrorCode.UNRECOGNIZED_COMMAND, getName());
@@ -53,6 +57,6 @@ public class HiddenCommand extends Command {
   
   @Override
   public String getName() {
-    return "\0\0\0\0";
+    return new String("accvmvlo");
   }
 }

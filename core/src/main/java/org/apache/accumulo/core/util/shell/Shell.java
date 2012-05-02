@@ -167,6 +167,7 @@ public class Shell extends ShellOptions {
   
   private Token rootToken;
   public final Map<String,Command> commandFactory = new TreeMap<String,Command>();
+  public final Map<String,Command[]> commandGrouping = new TreeMap<String,Command[]>();
   protected boolean configError = false;
   
   // exit if true
@@ -279,18 +280,42 @@ public class Shell extends ShellOptions {
     }
     
     rootToken = new Token();
-    Command external[] = {new AboutCommand(), new AddSplitsCommand(), new AuthenticateCommand(), new ByeCommand(), new ClasspathCommand(), new ClearCommand(),
-        new CloneTableCommand(), new ClsCommand(), new CompactCommand(), new ConfigCommand(), new CreateTableCommand(), new CreateUserCommand(),
-        new DebugCommand(), new DeleteCommand(), new DeleteIterCommand(), new DeleteManyCommand(), new DeleteRowsCommand(), new DeleteScanIterCommand(),
-        new DeleteTableCommand(), new DeleteUserCommand(), new DropTableCommand(), new DropUserCommand(), new DUCommand(), new EGrepCommand(),
-        new ExecfileCommand(), new ExitCommand(), new FlushCommand(), new FormatterCommand(), new GetAuthsCommand(), new GetGroupsCommand(),
-        new GetSplitsCommand(), new GrantCommand(), new GrepCommand(), new HelpCommand(), new HiddenCommand(), new HistoryCommand(),
-        new ImportDirectoryCommand(), new InfoCommand(), new InsertCommand(), new ListIterCommand(), new ListScansCommand(), new MaxRowCommand(),
-        new MergeCommand(), new NoTableCommand(), new OfflineCommand(), new OnlineCommand(), new PasswdCommand(), new QuestionCommand(), new QuitCommand(),
-        new RenameTableCommand(), new RevokeCommand(), new ScanCommand(), new SetAuthsCommand(), new SetGroupsCommand(), new SetIterCommand(),
-        new SetScanIterCommand(), new SleepCommand(), new SystemPermissionsCommand(), new TableCommand(), new TablePermissionsCommand(), new TablesCommand(),
-        new TraceCommand(), new UserCommand(), new UserPermissionsCommand(), new UsersCommand(), new WhoAmICommand(),};
-    for (Command cmd : external) {
+    
+    Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(), new EGrepCommand(), new FormatterCommand(),
+        new GrepCommand(), new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
+    Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(), new ListScansCommand(), new TraceCommand()};
+    Command[] execCommands = {new ExecfileCommand(), new HistoryCommand()};
+    Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
+    Command[] helpCommands = {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};
+    Command[] iteratorCommands = {new DeleteIterCommand(), new DeleteScanIterCommand(), new ListIterCommand(), new SetIterCommand(), new SetScanIterCommand()};
+    Command[] otherCommands = {new HiddenCommand()};
+    Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(), new SystemPermissionsCommand(), new TablePermissionsCommand(),
+        new UserPermissionsCommand()};
+    Command[] stateCommands = {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new NoTableCommand(), new SleepCommand(), new TableCommand(),
+        new UserCommand(), new WhoAmICommand()};
+    Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(), new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(),
+        new DUCommand(), new OfflineCommand(), new OnlineCommand(), new RenameTableCommand(), new TablesCommand()};
+    Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new FlushCommand(), new GetGroupsCommand(), new GetSplitsCommand(),
+        new MergeCommand(), new SetGroupsCommand()};
+    Command[] userCommands = {new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(), new PasswdCommand(),
+        new SetAuthsCommand(), new UsersCommand()};
+    commandGrouping.put("-- Writing, Reading, and Removing Data --", dataCommands);
+    commandGrouping.put("-- Debugging Commands -------------------", debuggingCommands);
+    commandGrouping.put("-- Shell Execution Commands -------------", execCommands);
+    commandGrouping.put("-- Exiting Commands ---------------------", exitCommands);
+    commandGrouping.put("-- Help Commands ------------------------", helpCommands);
+    commandGrouping.put("-- Iterator Configuration ---------------", iteratorCommands);
+    commandGrouping.put("-- Permissions Administration Commands --", permissionsCommands);
+    commandGrouping.put("-- Shell State Commands -----------------", stateCommands);
+    commandGrouping.put("-- Table Administration Commands --------", tableCommands);
+    commandGrouping.put("-- Table Control Commands ---------------", tableControlCommands);
+    commandGrouping.put("-- User Administration Commands ---------", userCommands);
+    
+    for (Command[] cmds : commandGrouping.values()) {
+      for (Command cmd : cmds)
+        commandFactory.put(cmd.getName(), cmd);
+    }
+    for (Command cmd : otherCommands) {
       commandFactory.put(cmd.getName(), cmd);
     }
   }
@@ -574,11 +599,13 @@ public class Shell extends ShellOptions {
     options.put(Command.CompletionSet.TABLENAMES, modifiedTablenames);
     options.put(Command.CompletionSet.COMMANDS, commands);
     
-    for (Command c : commandFactory.values()) {
-      c.getOptionsWithHelp(); // prep the options for the command
-      // so that the completion can
-      // include them
-      c.registerCompletion(rootToken, options);
+    for (Command[] cmdGroup : commandGrouping.values()) {
+      for (Command c : cmdGroup) {
+        c.getOptionsWithHelp(); // prep the options for the command
+        // so that the completion can
+        // include them
+        c.registerCompletion(rootToken, options);
+      }
     }
     return new ShellCompletor(rootToken, options);
   }

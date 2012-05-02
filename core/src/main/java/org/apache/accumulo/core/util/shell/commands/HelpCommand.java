@@ -19,6 +19,7 @@ package org.apache.accumulo.core.util.shell.commands;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.util.shell.Shell;
@@ -46,8 +47,9 @@ public class HelpCommand extends Command {
       if (numColumns < 40)
         throw new IllegalArgumentException("numColumns must be at least 40 (was " + numColumns + ")");
       ArrayList<String> output = new ArrayList<String>();
-      for (Command c : shellState.commandFactory.values()) {
-        if (!(c instanceof HiddenCommand)) {
+      for (Entry<String,Command[]> cmdGroup : shellState.commandGrouping.entrySet()) {
+        output.add(cmdGroup.getKey());
+        for (Command c : cmdGroup.getValue()) {
           String n = c.getName();
           String s = c.description();
           if (s == null)
@@ -76,6 +78,7 @@ public class HelpCommand extends Command {
           }
           output.add(String.format("%-" + i + "s  %s  %s", n, dash, s.substring(beginIndex, endIndex)));
         }
+        output.add("");
       }
       shellState.printLines(output.iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
     }
