@@ -20,11 +20,10 @@ package org.apache.accumulo.core.data;
  * limitations under the License.
  */
 
-import java.io.ByteArrayOutputStream;
+import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 import java.io.DataInput;
 import java.io.DataOutput;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -32,14 +31,9 @@ import java.util.List;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.log4j.Logger;
-
-import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 /**
  * A byte sequence that is usable as a key or value. Based on {@link org.apache.hadoop.io.BytesWritable} only this class is NOT resizable and DOES NOT
@@ -151,7 +145,6 @@ public class Value implements WritableComparable<Object> {
     return this.value.length;
   }
   
-  /** {@inheritDoc} */
   public void readFields(final DataInput in) throws IOException {
     this.value = new byte[in.readInt()];
     in.readFully(this.value, 0, this.value.length);
@@ -207,7 +200,7 @@ public class Value implements WritableComparable<Object> {
   @Override
   public String toString() {
     try {
-      return Value.bytesToString(this.value);
+      return new String(get(), Constants.VALUE_ENCODING);
     } catch (UnsupportedEncodingException e) {
       log.error(e.toString());
       return null;
@@ -247,87 +240,4 @@ public class Value implements WritableComparable<Object> {
     return results;
   }
   
-  /**
-   * Convert a long value to a byte array
-   */
-  public static byte[] longToBytes(long val) throws IOException {
-    return getBytes(new LongWritable(val));
-  }
-  
-  /**
-   * Converts a byte array to a long value
-   */
-  public static long bytesToLong(byte[] bytes) throws IOException {
-    if (bytes == null || bytes.length == 0) {
-      return -1L;
-    }
-    return ((LongWritable) getWritable(bytes, new LongWritable())).get();
-  }
-  
-  /**
-   * Converts a string to a byte array in a consistent manner.
-   */
-  public static byte[] stringToBytes(String s) throws UnsupportedEncodingException {
-    if (s == null) {
-      throw new IllegalArgumentException("string cannot be null");
-    }
-    return s.getBytes(Constants.VALUE_ENCODING);
-  }
-  
-  /**
-   * Converts a byte array to a string in a consistent manner.
-   */
-  public static String bytesToString(byte[] bytes) throws UnsupportedEncodingException {
-    if (bytes == null || bytes.length == 0) {
-      return "";
-    }
-    return new String(bytes, Constants.VALUE_ENCODING);
-  }
-  
-  /**
-   * @return The bytes of <code>w</code> gotten by running its {@link Writable#write(java.io.DataOutput)} method.
-   * @see #getWritable(byte[], Writable)
-   */
-  public static byte[] getBytes(final Writable w) throws IOException {
-    if (w == null) {
-      throw new IllegalArgumentException("Writable cannot be null");
-    }
-    ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-    DataOutputStream out = new DataOutputStream(byteStream);
-    try {
-      w.write(out);
-      out.close();
-      out = null;
-      return byteStream.toByteArray();
-    } finally {
-      if (out != null) {
-        out.close();
-      }
-    }
-  }
-  
-  /**
-   * Set bytes into the passed Writable by calling its {@link Writable#readFields(java.io.DataInput)}.
-   * 
-   * @param w
-   *          An empty Writable (usually made by calling the null-arg constructor).
-   * @return The passed Writable after its readFields has been called fed by the passed <code>bytes</code> array or IllegalArgumentException if passed null or
-   *         an empty <code>bytes</code> array.
-   */
-  public static Writable getWritable(final byte[] bytes, final Writable w) throws IOException {
-    if (bytes == null || bytes.length == 0) {
-      throw new IllegalArgumentException("Can't build a writable with empty " + "bytes array");
-    }
-    if (w == null) {
-      throw new IllegalArgumentException("Writable cannot be null");
-    }
-    DataInputBuffer in = new DataInputBuffer();
-    try {
-      in.reset(bytes, bytes.length);
-      w.readFields(in);
-      return w;
-    } finally {
-      in.close();
-    }
-  }
 }
