@@ -541,7 +541,7 @@ public class TableOperationsImpl extends TableOperations {
    */
   public Iterable<Entry<String,String>> getProperties(String tableName) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName);
-    return AccumuloConfiguration.getTableConfiguration(instance.getInstanceID(), Tables.getTableId(instance, tableName));
+    return AccumuloConfiguration.getTableConfiguration(instance.getInstanceID(), Tables.getTableId(instance, tableName), instance);
   }
   
   /**

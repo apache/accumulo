@@ -143,10 +143,14 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   }
   
   public static TableConfiguration getTableConfiguration(String instanceId, String tableId) {
+    return AccumuloConfiguration.getTableConfiguration(instanceId, tableId, null);
+  }
+
+  public static TableConfiguration getTableConfiguration(String instanceId, String tableId, Instance instance) {
     synchronized (tableInstances) {
       TableConfiguration conf = tableInstances.get(tableId);
       if (conf == null) {
-        conf = new TableConfiguration(instanceId, tableId, getZooConfiguration());
+        conf = new TableConfiguration(instanceId, tableId, getZooConfiguration(instance));
         ConfigSanityCheck.validate(conf);
         tableInstances.put(tableId, conf);
       }
