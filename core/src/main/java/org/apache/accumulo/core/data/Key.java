@@ -624,7 +624,8 @@ public class Key implements WritableComparable<Key>, Cloneable {
   @Override
   public int hashCode() {
     return WritableComparator.hashBytes(row, row.length) + WritableComparator.hashBytes(colFamily, colFamily.length)
-        + WritableComparator.hashBytes(colQualifier, colQualifier.length) + WritableComparator.hashBytes(colVisibility, colVisibility.length);
+        + WritableComparator.hashBytes(colQualifier, colQualifier.length) + WritableComparator.hashBytes(colVisibility, colVisibility.length)
+        + (int) (timestamp ^ (timestamp >>> 32));
   }
   
   public static String toPrintableString(byte ba[], int offset, int len, int maxLen) {
