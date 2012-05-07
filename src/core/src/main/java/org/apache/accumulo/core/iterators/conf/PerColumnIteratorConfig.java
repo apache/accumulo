@@ -20,6 +20,9 @@ import org.apache.hadoop.io.Text;
 
 /**
  * @deprecated since 1.4
+ * 
+ * @see org.apache.accumulo.core.client.IteratorSetting.Column
+ * @see org.apache.accumulo.core.iterators.Combiner#setColumns(org.apache.accumulo.core.client.IteratorSetting, java.util.List)
  */
 public class PerColumnIteratorConfig {
   
