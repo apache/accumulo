@@ -25,6 +25,7 @@ import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class DeleteScanIterCommand extends Command {
@@ -73,8 +74,6 @@ public class DeleteScanIterCommand extends Command {
       } else {
         Shell.log.info("No iterator named " + name + " found for table " + tableName);
       }
-    } else {
-      throw new IllegalArgumentException("Must specify one of " + nameOpt.getArgName() + " or " + allOpt.getArgName());
     }
     
     return 0;
@@ -92,15 +91,19 @@ public class DeleteScanIterCommand extends Command {
     tableOpt = new Option(Shell.tableOption, "table", true, "tableName");
     tableOpt.setArgName("table");
     
+    OptionGroup nameGroup = new OptionGroup();
+    
     nameOpt = new Option("n", "name", true, "iterator to delete");
     nameOpt.setArgName("itername");
     
-    allOpt = new Option("a", "all", false, "delete all for tableName");
+    allOpt = new Option("a", "all", false, "delete all scan iterators");
     allOpt.setArgName("all");
     
+    nameGroup.addOption(nameOpt);
+    nameGroup.addOption(allOpt);
+    nameGroup.setRequired(true);
     o.addOption(tableOpt);
-    o.addOption(nameOpt);
-    o.addOption(allOpt);
+    o.addOptionGroup(nameGroup);
     
     return o;
   }

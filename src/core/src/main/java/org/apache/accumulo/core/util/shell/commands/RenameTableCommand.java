@@ -45,7 +45,7 @@ public class RenameTableCommand extends Command {
   
   @Override
   public String description() {
-    return "rename a table";
+    return "renames a table";
   }
   
   public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> completionSet) {

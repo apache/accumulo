@@ -72,11 +72,11 @@ public class DeleteCommand extends Command {
   public Options getOptions() {
     Options o = new Options();
     
-    deleteOptAuths = new Option("l", "authorization-label", true, "formatted authorization label expression");
+    deleteOptAuths = new Option("l", "visibility-label", true, "formatted visibility");
     deleteOptAuths.setArgName("expression");
     o.addOption(deleteOptAuths);
     
-    timestampOpt = new Option("t", "timestamp", true, "timestamp to use for insert");
+    timestampOpt = new Option("t", "timestamp", true, "timestamp to use for deletion");
     timestampOpt.setArgName("timestamp");
     o.addOption(timestampOpt);
     

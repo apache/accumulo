@@ -95,7 +95,7 @@ public class InsertCommand extends Command {
   @Override
   public Options getOptions() {
     Options o = new Options();
-    insertOptAuths = new Option("l", "authorization-label", true, "formatted authorization label expression");
+    insertOptAuths = new Option("l", "visibility-label", true, "formatted visibility");
     insertOptAuths.setArgName("expression");
     o.addOption(insertOptAuths);
     

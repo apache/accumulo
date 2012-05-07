@@ -73,7 +73,7 @@ public class SelectCommand extends Command {
   
   @Override
   public String description() {
-    return "scans for and displays a single record";
+    return "scans for and displays a single entry";
   }
   
   @Override
@@ -86,9 +86,9 @@ public class SelectCommand extends Command {
     Options o = new Options();
     selectOptAuths = new Option("s", "scan-authorizations", true, "scan authorizations");
     selectOptAuths.setArgName("comma-separated-authorizations");
-    timestampOpt = new Option("st", "show-timestamps", false, "enables displaying timestamps");
-    disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
-    tableOpt = new Option(Shell.tableOption, "tableName", true, "table");
+    timestampOpt = new Option("st", "show-timestamps", false, "enable displaying timestamps");
+    disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
+    tableOpt = new Option(Shell.tableOption, "tableName", true, "table to select entry from");
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);
     

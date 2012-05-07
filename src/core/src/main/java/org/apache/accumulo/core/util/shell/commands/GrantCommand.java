@@ -100,9 +100,9 @@ public class GrantCommand extends Command {
     Options o = new Options();
     OptionGroup group = new OptionGroup();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "grant a table permission on this table");
+    tableOpt = new Option(Shell.tableOption, "table", true, "table to grant a table permission for");
     systemOpt = new Option("s", "system", false, "grant a system permission");
-    tablePatternOpt = new Option("p", "pattern", true, "regex pattern of tables to grant permissions on");
+    tablePatternOpt = new Option("p", "pattern", true, "regex pattern of tables to grant permissions for");
     tablePatternOpt.setArgName("pattern");
     
     tableOpt.setArgName("table");

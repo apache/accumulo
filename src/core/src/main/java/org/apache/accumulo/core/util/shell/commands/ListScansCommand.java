@@ -32,7 +32,7 @@ public class ListScansCommand extends Command {
   
   @Override
   public String description() {
-    return "list what scans are currently running in accumulo. See the accumulo.core.client.admin.ActiveScan javadoc for more information about columns.";
+    return "lists what scans are currently running in accumulo. See the accumulo.core.client.admin.ActiveScan javadoc for more information about columns.";
   }
   
   @Override
@@ -65,11 +65,11 @@ public class ListScansCommand extends Command {
   public Options getOptions() {
     Options opts = new Options();
     
-    tserverOption = new Option("ts", "tabletServer", true, "list scans for a specific tablet server");
+    tserverOption = new Option("ts", "tabletServer", true, "tablet server to list scans for");
     tserverOption.setArgName("tablet server");
     opts.addOption(tserverOption);
     
-    disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
+    disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     opts.addOption(disablePaginationOpt);
     
     return opts;

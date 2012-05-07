@@ -84,7 +84,7 @@ public class RevokeCommand extends Command {
     Options o = new Options();
     OptionGroup group = new OptionGroup();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "revoke a table permission on this table");
+    tableOpt = new Option(Shell.tableOption, "table", true, "table to revoke a table permission for");
     systemOpt = new Option("s", "system", false, "revoke a system permission");
     
     tableOpt.setArgName("table");

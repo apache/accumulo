@@ -67,7 +67,7 @@ public class DeleteTableCommand extends Command {
   public Options getOptions() {
     
     Options o = new Options();
-    tableOpt = new Option(Shell.tableOption, "tableName", true, "deletes a table");
+    tableOpt = new Option(Shell.tableOption, "tableName", true, "table to delete");
     o.addOption(tableOpt);
     return o;
     

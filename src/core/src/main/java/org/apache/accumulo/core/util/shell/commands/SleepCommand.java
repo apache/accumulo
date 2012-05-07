@@ -31,7 +31,7 @@ public class SleepCommand extends Command {
   
   @Override
   public String description() {
-    return "sleep for the given number of seconds";
+    return "sleeps for the given number of seconds";
   }
   
   @Override

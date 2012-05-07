@@ -85,10 +85,10 @@ public class SelectrowCommand extends Command {
     selectrowOptAuths = new Option("s", "scan-authorizations", true, "scan authorizations");
     selectrowOptAuths.setArgName("comma-separated-authorizations");
     
-    timestampOpt = new Option("st", "show-timestamps", false, "enables displaying timestamps");
-    disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
+    timestampOpt = new Option("st", "show-timestamps", false, "enable displaying timestamps");
+    disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     
-    tableOpt = new Option(Shell.tableOption, "tableName", true, "table to row select");
+    tableOpt = new Option(Shell.tableOption, "tableName", true, "table to select row from");
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);
     

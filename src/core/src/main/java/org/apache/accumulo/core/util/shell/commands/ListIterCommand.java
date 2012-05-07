@@ -101,16 +101,16 @@ public class ListIterCommand extends Command {
   public Options getOptions() {
     Options o = new Options();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "tableName");
+    tableOpt = new Option(Shell.tableOption, "table", true, "table to list the configured iterators on");
     tableOpt.setArgName("table");
     
-    nameOpt = new Option("n", "name", true, "iterator to delete");
+    nameOpt = new Option("n", "name", true, "iterator to list");
     nameOpt.setArgName("itername");
     
     scopeOpts = new EnumMap<IteratorScope,Option>(IteratorScope.class);
-    scopeOpts.put(IteratorScope.minc, new Option(IteratorScope.minc.name(), "minor-compaction", false, "applied at minor compaction"));
-    scopeOpts.put(IteratorScope.majc, new Option(IteratorScope.majc.name(), "major-compaction", false, "applied at major compaction"));
-    scopeOpts.put(IteratorScope.scan, new Option(IteratorScope.scan.name(), "scan-time", false, "applied at scan time"));
+    scopeOpts.put(IteratorScope.minc, new Option(IteratorScope.minc.name(), "minor-compaction", false, "list iterator for minor compaction scope"));
+    scopeOpts.put(IteratorScope.majc, new Option(IteratorScope.majc.name(), "major-compaction", false, "list iterator for major compaction scope"));
+    scopeOpts.put(IteratorScope.scan, new Option(IteratorScope.scan.name(), "scan-time", false, "list iterator for scan scope"));
     
     o.addOption(tableOpt);
     o.addOption(nameOpt);

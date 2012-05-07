@@ -216,7 +216,7 @@ public class SetIterCommand extends Command {
   public Options getOptions() {
     Options o = new Options();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "tableName");
+    tableOpt = new Option(Shell.tableOption, "table", true, "table to set the iterator on");
     tableOpt.setArgName("table");
     
     priorityOpt = new Option("p", "priority", true, "the order in which the iterator is applied");
@@ -231,13 +231,13 @@ public class SetIterCommand extends Command {
     scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false, "applied at scan time");
     
     OptionGroup typeGroup = new OptionGroup();
-    classnameTypeOpt = new Option("class", "class-name", true, "a java class type");
+    classnameTypeOpt = new Option("class", "class-name", true, "a java class that implements SortedKeyValueIterator");
     classnameTypeOpt.setArgName("name");
-    aggTypeOpt = new Option("agg", "aggregator", false, "an aggregating type");
-    regexTypeOpt = new Option("regex", "regular-expression", false, "a regex matching type");
-    versionTypeOpt = new Option("vers", "version", false, "a versioning type");
-    reqvisTypeOpt = new Option("reqvis", "require-visibility", false, "a type that omits entries with empty visibilities");
-    ageoffTypeOpt = new Option("ageoff", "ageoff", false, "an aging off type");
+    aggTypeOpt = new Option("agg", "aggregator", false, "an aggregating iterator");
+    regexTypeOpt = new Option("regex", "regular-expression", false, "a regex matching iterator");
+    versionTypeOpt = new Option("vers", "version", false, "a versioning iterator");
+    reqvisTypeOpt = new Option("reqvis", "require-visibility", false, "an iterator that omits entries with empty visibilities");
+    ageoffTypeOpt = new Option("ageoff", "ageoff", false, "an aging off iterator");
     
     typeGroup.addOption(classnameTypeOpt);
     typeGroup.addOption(aggTypeOpt);

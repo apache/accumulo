@@ -48,7 +48,7 @@ public class AboutCommand extends Command {
   @Override
   public Options getOptions() {
     Options opts = new Options();
-    verboseOption = new Option("v", "verbose", false, "displays details session information");
+    verboseOption = new Option("v", "verbose", false, "display detailed session information");
     opts.addOption(verboseOption);
     return opts;
   }

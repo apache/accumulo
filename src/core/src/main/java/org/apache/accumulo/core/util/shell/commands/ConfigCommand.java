@@ -59,7 +59,7 @@ public class ConfigCommand extends Command {
   }
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-  IOException, ClassNotFoundException {
+      IOException, ClassNotFoundException {
     reader = shellState.getReader();
     
     String tableName = cl.getOptionValue(tableOpt.getOpt());
@@ -73,13 +73,13 @@ public class ConfigCommand extends Command {
         throw new BadArgumentException("Invalid '=' operator in delete operation.", fullCommand, fullCommand.indexOf('='));
       if (tableName != null) {
         if (!Property.isValidTablePropertyKey(property))
-          Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if its there.");
-
+          Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if it's there.");
+        
         shellState.getConnector().tableOperations().removeProperty(tableName, property);
         Shell.log.debug("Successfully deleted table configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property))
-          Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if its there.");
+          Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if it's there.");
         shellState.getConnector().instanceOperations().removeProperty(property);
         Shell.log.debug("Successfully deleted system configuration option");
       }
@@ -99,7 +99,7 @@ public class ConfigCommand extends Command {
         
         if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey()))
           new ColumnVisibility(value); // validate that it is a valid expression
-
+          
         shellState.getConnector().tableOperations().setProperty(tableName, property, value);
         Shell.log.debug("Successfully set table configuration option.");
       } else {
@@ -217,7 +217,7 @@ public class ConfigCommand extends Command {
     Options o = new Options();
     OptionGroup og = new OptionGroup();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "display/set/delete properties for specified table");
+    tableOpt = new Option(Shell.tableOption, "table", true, "table to display/set/delete properties for");
     deleteOpt = new Option("d", "delete", true, "delete a per-table property");
     setOpt = new Option("s", "set", true, "set a per-table property");
     filterOpt = new Option("f", "filter", true, "show only properties that contain this string");

@@ -78,10 +78,10 @@ public class DeleteManyCommand extends ScanCommand {
   
   @Override
   public Options getOptions() {
-    forceOpt = new Option("f", "force", false, "forces deletion without prompting");
+    forceOpt = new Option("f", "force", false, "force deletion without prompting");
     Options opts = super.getOptions();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "table to be created");
+    tableOpt = new Option(Shell.tableOption, "table", true, "table to delete entries from");
     tableOpt.setArgName("table");
     
     opts.addOption(forceOpt);

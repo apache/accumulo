@@ -48,7 +48,7 @@ public class ExecfileCommand extends Command {
   @Override
   public Options getOptions() {
     Options opts = new Options();
-    verboseOption = new Option("v", "verbose", false, "displays command prompt as commands are executed");
+    verboseOption = new Option("v", "verbose", false, "display command prompt as commands are executed");
     opts.addOption(verboseOption);
     return opts;
   }
