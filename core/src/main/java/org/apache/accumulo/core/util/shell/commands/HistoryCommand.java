@@ -80,8 +80,7 @@ public class HistoryCommand extends Command {
   
   @Override
   public String description() {
-    
-    return ("Generates a list of commands previously executed");
+    return ("generates a list of commands previously executed");
   }
   
   @Override
@@ -93,10 +92,8 @@ public class HistoryCommand extends Command {
   public Options getOptions() {
     Options o = new Options();
     
-    clearHist = new Option("c", "Clears History, takes no arguments.", false, "Clears History File");
-    clearHist.setArgName("");
+    clearHist = new Option("c", "clear", false, "clear history file");
     clearHist.setRequired(false);
-    clearHist.setArgs(0);
     
     o.addOption(clearHist);
     

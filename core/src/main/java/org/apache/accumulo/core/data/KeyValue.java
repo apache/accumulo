@@ -16,10 +16,10 @@
  */
 package org.apache.accumulo.core.data;
 
+import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
+
 import java.nio.ByteBuffer;
 import java.util.Map;
-
-import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 public class KeyValue implements Map.Entry<Key,Value> {
   

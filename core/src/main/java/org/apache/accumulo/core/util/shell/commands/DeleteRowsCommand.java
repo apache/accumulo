@@ -54,7 +54,7 @@ public class DeleteRowsCommand extends Command {
   
   @Override
   public String description() {
-    return "delete a range of rows in a table.  Note that rows matching the start row ARE NOT deleted, but rows matching the end row ARE deleted.";
+    return "deletes a range of rows in a table.  Note that rows matching the start row ARE NOT deleted, but rows matching the end row ARE deleted.";
   }
   
   @Override
@@ -65,7 +65,7 @@ public class DeleteRowsCommand extends Command {
   @Override
   public Options getOptions() {
     Options o = new Options();
-    tableOpt = new Option(Shell.tableOption, "tableName", true, "table to delete row range");
+    tableOpt = new Option(Shell.tableOption, "tableName", true, "table to delete a row range from");
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);
     optStartRow = new Option("b", "begin-row", true, "begin row");

@@ -24,13 +24,10 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.accumulo.core.data.ColumnUpdate;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Value;
+import junit.framework.TestCase;
+
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
-
-import junit.framework.TestCase;
 
 public class MutationTest extends TestCase {
   public void test1() {

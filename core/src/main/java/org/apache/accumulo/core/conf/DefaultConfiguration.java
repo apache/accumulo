@@ -21,10 +21,8 @@ import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.TreeMap;
 import java.util.Map.Entry;
-
-import org.apache.accumulo.core.conf.ConfigSanityCheck;
+import java.util.TreeMap;
 
 public class DefaultConfiguration extends AccumuloConfiguration {
   private static DefaultConfiguration instance = null;

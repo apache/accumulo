@@ -21,8 +21,9 @@
  */
 package org.apache.accumulo.core.data;
 
-import java.io.DataInput;
+import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
+import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -30,8 +31,6 @@ import java.nio.ByteBuffer;
 import org.apache.accumulo.core.data.thrift.TColumn;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
-
-import static org.apache.accumulo.core.util.ByteBufferUtil.toBytes;
 
 public class Column implements WritableComparable<Column> {
   

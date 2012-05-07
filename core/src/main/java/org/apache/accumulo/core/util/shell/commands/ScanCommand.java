@@ -65,7 +65,7 @@ public class ScanCommand extends Command {
       shellState.checkTableState();
       tableName = shellState.getTableName();
     }
-
+    
     // handle first argument, if present, the authorizations list to
     // scan with
     Authorizations auths = getAuths(cl, shellState);
@@ -166,7 +166,7 @@ public class ScanCommand extends Command {
       throw new IllegalArgumentException("Options -" + scanOptRow.getOpt() + " AND (-" + scanOptStartRow.getOpt() + " OR -" + scanOptEndRow.getOpt()
           + ") are mutally exclusive ");
     }
-
+    
     if (cl.hasOption(scanOptRow.getOpt())) {
       return new Range(new Text(cl.getOptionValue(scanOptRow.getOpt())));
     } else {
@@ -199,10 +199,10 @@ public class ScanCommand extends Command {
     scanOptEndRow = new Option("e", "end-row", true, "end row (inclusive)");
     scanOptRow = new Option("r", "row", true, "row to scan");
     scanOptColumns = new Option("c", "columns", true, "comma-separated columns");
-    timestampOpt = new Option("st", "show-timestamps", false, "enables displaying timestamps");
-    disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
+    timestampOpt = new Option("st", "show-timestamps", false, "display timestamps");
+    disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     tableOpt = new Option(Shell.tableOption, "tableName", true, "table to be scanned");
-    showFewOpt = new Option("f", "show few", true, "Only shows certain amount of characters");
+    showFewOpt = new Option("f", "show few", true, "show only a specified number of characters");
     formatterOpt = new Option("fm", "formatter", true, "fully qualified name of the formatter class to use");
     
     scanOptAuths.setArgName("comma-separated-authorizations");

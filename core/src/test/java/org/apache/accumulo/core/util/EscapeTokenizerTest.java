@@ -18,9 +18,9 @@ package org.apache.accumulo.core.util;
 
 import java.util.Iterator;
 
-import org.apache.accumulo.core.util.shell.commands.EscapeTokenizer;
-
 import junit.framework.TestCase;
+
+import org.apache.accumulo.core.util.shell.commands.EscapeTokenizer;
 
 public class EscapeTokenizerTest extends TestCase {
   

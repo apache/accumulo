@@ -22,8 +22,8 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.Token;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -57,10 +57,10 @@ public class SetAuthsCommand extends Command {
   public Options getOptions() {
     Options o = new Options();
     OptionGroup setOrClear = new OptionGroup();
-    scanOptAuths = new Option("s", "scan-authorizations", true, "set the scan authorizations");
+    scanOptAuths = new Option("s", "scan-authorizations", true, "scan authorizations to set");
     scanOptAuths.setArgName("comma-separated-authorizations");
     setOrClear.addOption(scanOptAuths);
-    clearOptAuths = new Option("c", "clear-authorizations", false, "clears the scan authorizations");
+    clearOptAuths = new Option("c", "clear-authorizations", false, "clear the scan authorizations");
     setOrClear.addOption(clearOptAuths);
     setOrClear.setRequired(true);
     o.addOptionGroup(setOrClear);

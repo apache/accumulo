@@ -105,9 +105,9 @@ public class HelpCommand extends Command {
   @Override
   public Options getOptions() {
     Options o = new Options();
-    disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
+    disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     o.addOption(disablePaginationOpt);
-    noWrapOpt = new Option("nw", "no-wrap", false, "disables wrapping of output");
+    noWrapOpt = new Option("nw", "no-wrap", false, "disable wrapping of output");
     o.addOption(noWrapOpt);
     return o;
   }

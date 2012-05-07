@@ -81,7 +81,7 @@ public class MergeCommand extends Command {
   
   @Override
   public String description() {
-    return "merge tablets in a table";
+    return "merges tablets in a table";
   }
   
   @Override

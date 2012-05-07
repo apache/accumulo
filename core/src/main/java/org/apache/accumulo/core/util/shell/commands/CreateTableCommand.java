@@ -168,12 +168,12 @@ public class CreateTableCommand extends Command {
     
     createTableOptCopyConfig = new Option("cc", "copy-config", true, "table to copy configuration from");
     createTableOptCopySplits = new Option("cs", "copy-splits", true, "table to copy current splits from");
-    createTableOptSplit = new Option("sf", "splits-file", true, "file with newline separated list of rows to create a pre-split table");
+    createTableOptSplit = new Option("sf", "splits-file", true, "file with a newline-separated list of rows to split the table with");
     createTableOptTimeLogical = new Option("tl", "time-logical", false, "use logical time");
     createTableOptTimeMillis = new Option("tm", "time-millis", false, "use time in milliseconds");
-    createTableNoDefaultIters = new Option("ndi", "no-default-iterators", false, "prevents creation of the normal default iterator set");
+    createTableNoDefaultIters = new Option("ndi", "no-default-iterators", false, "prevent creation of the normal default iterator set");
     createTableOptEVC = new Option("evc", "enable-visibility-constraint", false,
-        "prevents users from writing data they can not read.  When enabling this may want to consider disabling bulk import and alter table");
+        "prevent users from writing data they cannot read.  When enabling this, consider disabling bulk import and alter table.");
     createTableOptFormatter = new Option("f", "formatter", true, "default formatter to set");
     
     createTableOptCopyConfig.setArgName("table");

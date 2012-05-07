@@ -18,9 +18,6 @@ package org.apache.accumulo.core.security;
 
 import java.io.Serializable;
 
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
-
 public interface VisibilityInterpreter extends Serializable {
   public abstract String getAbbreviatedValue();
   

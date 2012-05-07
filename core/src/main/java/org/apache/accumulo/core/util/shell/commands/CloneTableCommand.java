@@ -26,8 +26,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.Token;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -75,7 +75,7 @@ public class CloneTableCommand extends Command {
   
   @Override
   public String description() {
-    return "clone a table";
+    return "clones a table";
   }
   
   public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> completionSet) {
@@ -87,7 +87,7 @@ public class CloneTableCommand extends Command {
     Options o = new Options();
     setPropsOption = new Option("s", "set", true, "set initial properties before the table comes online. Expects <prop>=<value>{,<prop>=<value>}");
     o.addOption(setPropsOption);
-    excludePropsOption = new Option("e", "exclude", true, "properties that should not be copied from source table. Expects <prop>{,<prop>}");
+    excludePropsOption = new Option("e", "exclude", true, "exclude properties that should not be copied from source table. Expects <prop>{,<prop>}");
     o.addOption(excludePropsOption);
     noFlushOption = new Option("nf", "noFlush", false, "do not flush table data in memory before cloning.");
     o.addOption(noFlushOption);

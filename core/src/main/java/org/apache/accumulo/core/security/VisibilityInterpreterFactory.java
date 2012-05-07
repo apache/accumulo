@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.security;
 
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
 
 public class VisibilityInterpreterFactory {
   private static VisibilityInterpreter interpreter = null;

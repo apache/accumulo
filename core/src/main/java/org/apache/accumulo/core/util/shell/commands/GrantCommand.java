@@ -25,8 +25,8 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.Token;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -100,9 +100,9 @@ public class GrantCommand extends Command {
     Options o = new Options();
     OptionGroup group = new OptionGroup();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "grant a table permission on this table");
+    tableOpt = new Option(Shell.tableOption, "table", true, "table to grant a table permission for");
     systemOpt = new Option("s", "system", false, "grant a system permission");
-    tablePatternOpt = new Option("p", "pattern", true, "regex pattern of tables to grant permissions on");
+    tablePatternOpt = new Option("p", "pattern", true, "regex pattern of tables to grant permissions for");
     tablePatternOpt.setArgName("pattern");
     
     tableOpt.setArgName("table");

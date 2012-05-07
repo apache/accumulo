@@ -24,8 +24,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.Token;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -67,7 +67,7 @@ public class DeleteTableCommand extends Command {
   public Options getOptions() {
     
     Options o = new Options();
-    tableOpt = new Option(Shell.tableOption, "tableName", true, "deletes a table");
+    tableOpt = new Option(Shell.tableOption, "tableName", true, "table to delete");
     o.addOption(tableOpt);
     return o;
     

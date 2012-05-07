@@ -21,8 +21,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.HashSet;
 
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.PropertyType;
 import org.junit.Test;
 
 /**

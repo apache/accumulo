@@ -30,7 +30,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
 
 public class MaxRowCommand extends ScanCommand {
-  private Option tableOpt, optAuths, optStartRow, optEndRow, optStartRowExclusice, optEndRowExclusice;
+  private Option tableOpt, optAuths, optStartRow, optEndRow, optStartRowExclusive, optEndRowExclusive;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ParseException {
@@ -51,8 +51,8 @@ public class MaxRowCommand extends ScanCommand {
     Text startRow = cl.hasOption(optStartRow.getOpt()) ? new Text(cl.getOptionValue(optStartRow.getOpt())) : null;
     Text endRow = cl.hasOption(optEndRow.getOpt()) ? new Text(cl.getOptionValue(optEndRow.getOpt())) : null;
     
-    boolean startInclusive = !cl.hasOption(optStartRowExclusice.getOpt());
-    boolean endInclusive = !cl.hasOption(optEndRowExclusice.getOpt());
+    boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
+    boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
     try {
       Text max = shellState.getConnector().tableOperations().getMaxRow(tableName, getAuths(cl, shellState), startRow, startInclusive, endRow, endInclusive);
       if (max != null)
@@ -75,7 +75,7 @@ public class MaxRowCommand extends ScanCommand {
   
   @Override
   public String description() {
-    return "find the max row in a table within a given range";
+    return "finds the max row in a table within a given range";
   }
   
   @Override
@@ -95,18 +95,18 @@ public class MaxRowCommand extends ScanCommand {
     optEndRow = new Option("e", "end-row", true, "end row");
     optEndRow.setArgName("end-row");
     
-    optStartRowExclusice = new Option("be", "begin-exclusive", false, "make start row exclusive, by defaults it inclusive");
-    optStartRowExclusice.setArgName("begin-exclusive");
+    optStartRowExclusive = new Option("be", "begin-exclusive", false, "make start row exclusive (by default it's inclusive)");
+    optStartRowExclusive.setArgName("begin-exclusive");
     
-    optEndRowExclusice = new Option("ee", "end-exclusive", false, "make end row exclusive, by defaults it inclusive");
-    optEndRowExclusice.setArgName("end-exclusive");
+    optEndRowExclusive = new Option("ee", "end-exclusive", false, "make end row exclusive (by default it's inclusive)");
+    optEndRowExclusive.setArgName("end-exclusive");
     
     opts.addOption(tableOpt);
     opts.addOption(optAuths);
     opts.addOption(optStartRow);
     opts.addOption(optEndRow);
-    opts.addOption(optStartRowExclusice);
-    opts.addOption(optEndRowExclusice);
+    opts.addOption(optStartRowExclusive);
+    opts.addOption(optEndRowExclusive);
     
     return opts;
   }

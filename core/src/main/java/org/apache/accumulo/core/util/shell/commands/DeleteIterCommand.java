@@ -72,16 +72,16 @@ public class DeleteIterCommand extends Command {
   public Options getOptions() {
     Options o = new Options();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "tableName");
+    tableOpt = new Option(Shell.tableOption, "table", true, "table to delete the iterator from");
     tableOpt.setArgName("table");
     
     nameOpt = new Option("n", "name", true, "iterator to delete");
     nameOpt.setArgName("itername");
     nameOpt.setRequired(true);
     
-    mincScopeOpt = new Option(IteratorScope.minc.name(), "minor-compaction", false, "applied at minor compaction");
-    majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false, "applied at major compaction");
-    scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false, "applied at scan time");
+    mincScopeOpt = new Option(IteratorScope.minc.name(), "minor-compaction", false, "remove from minor compaction scope");
+    majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false, "remove from major compaction scope");
+    scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false, "remove from scan scope");
     
     o.addOption(tableOpt);
     o.addOption(nameOpt);

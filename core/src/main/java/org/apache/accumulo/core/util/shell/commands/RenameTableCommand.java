@@ -24,8 +24,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.Token;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 
 public class RenameTableCommand extends Command {
@@ -45,7 +45,7 @@ public class RenameTableCommand extends Command {
   
   @Override
   public String description() {
-    return "rename a table";
+    return "renames a table";
   }
   
   public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> completionSet) {

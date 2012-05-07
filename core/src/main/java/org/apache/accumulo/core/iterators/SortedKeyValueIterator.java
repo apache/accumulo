@@ -76,6 +76,12 @@ public interface SortedKeyValueIterator<K extends WritableComparable<?>,V extend
    * Seeks to the first key in the Range, restricting the resulting K,V pairs to those with the specified columns. An iterator does not have to stop at the end
    * of the range. The whole range is provided so that iterators can make optimizations.
    * 
+   * Seek may be called multiple times with different parameters after {@link #init} is called.
+   * 
+   * Iterators that examine groups of adjacent key/value pairs (e.g. rows) to determine their top key and value should be sure that they properly handle a seek
+   * to a key in the middle of such a group (e.g. the middle of a row). Even if the client always seeks to a range containing an entire group (a,c), the tablet
+   * server could send back a batch of entries corresponding to (a,b], then reseek the iterator to range (b,c) when the scan is continued.
+   * 
    * @param range
    *          <tt>Range</tt> of keys to iterate over.
    * @param columnFamilies

@@ -98,7 +98,7 @@ public class GrepCommand extends ScanCommand {
   @Override
   public Options getOptions() {
     Options opts = super.getOptions();
-    numThreadsOpt = new Option("nt", "num-threads", true, "num threads");
+    numThreadsOpt = new Option("nt", "num-threads", true, "number of threads to use");
     tableOpt = new Option(Shell.tableOption, "tableName", true, "table to grep through");
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);

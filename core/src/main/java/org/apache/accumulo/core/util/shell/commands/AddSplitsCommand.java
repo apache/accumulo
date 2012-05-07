@@ -82,18 +82,18 @@ public class AddSplitsCommand extends Command {
   
   @Override
   public String description() {
-    return "add split points to an existing table";
+    return "adds split points to an existing table";
   }
   
   @Override
   public Options getOptions() {
     Options o = new Options();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "name of a table to add split points to");
+    tableOpt = new Option(Shell.tableOption, "table", true, "name of the table to add split points to");
     tableOpt.setArgName("tableName");
     tableOpt.setRequired(false);
     
-    optSplitsFile = new Option("sf", "splits-file", true, "file with newline separated list of rows to add to table");
+    optSplitsFile = new Option("sf", "splits-file", true, "file with a newline-separated list of rows to split the table with");
     optSplitsFile.setArgName("filename");
     
     base64Opt = new Option("b64", "base64encoded", false, "decode encoded split points");

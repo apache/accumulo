@@ -16,12 +16,11 @@
  */
 package org.apache.accumulo.core.util;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.core.util.StringUtil;
 import org.junit.Test;
 
 public class TestStringUtil {

@@ -21,8 +21,6 @@ package org.apache.accumulo.core.file.blockfile.cache;
 
 import java.util.LinkedList;
 
-import org.apache.accumulo.core.file.blockfile.cache.CachedBlockQueue;
-
 import junit.framework.TestCase;
 
 public class TestCachedBlockQueue extends TestCase {

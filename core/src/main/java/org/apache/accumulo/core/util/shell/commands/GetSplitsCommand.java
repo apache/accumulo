@@ -139,17 +139,17 @@ public class GetSplitsCommand extends Command {
   public Options getOptions() {
     Options opts = new Options();
     
-    outputFileOpt = new Option("o", "output", true, "specifies a local file to write the splits to");
+    outputFileOpt = new Option("o", "output", true, "local file to write the splits to");
     outputFileOpt.setArgName("file");
     
-    maxSplitsOpt = new Option("m", "max", true, "specifies the maximum number of splits to create");
+    maxSplitsOpt = new Option("m", "max", true, "maximum number of splits to return (evenly spaced)");
     maxSplitsOpt.setArgName("num");
     
     base64Opt = new Option("b64", "base64encoded", false, "encode the split points");
     
     verboseOpt = new Option("v", "verbose", false, "print out the tablet information with start/end rows");
     
-    tableOpt = new Option(Shell.tableOption, "tableName", true, "table to get splits on");
+    tableOpt = new Option(Shell.tableOption, "tableName", true, "table to get splits for");
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);
     

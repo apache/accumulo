@@ -88,7 +88,7 @@ public class SetGroupsCommand extends Command {
   public Options getOptions() {
     Options opts = new Options();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "get locality groups for specified table");
+    tableOpt = new Option(Shell.tableOption, "table", true, "table to fetch locality groups for");
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);
     opts.addOption(tableOpt);

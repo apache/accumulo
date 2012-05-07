@@ -17,10 +17,9 @@
 package org.apache.accumulo.core.conf;
 
 import java.util.Iterator;
-import java.util.TreeMap;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
-import org.apache.accumulo.core.conf.ConfigSanityCheck;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
