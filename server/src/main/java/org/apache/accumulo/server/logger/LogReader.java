@@ -58,10 +58,10 @@ public class LogReader {
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs = TraceFileSystem.wrap(FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration()));
     FileSystem local = TraceFileSystem.wrap(FileSystem.getLocal(conf));
-    Option rowOpt = new Option("r", "--row", true, "search for a specific row");
-    Option maxOpt = new Option("m", "--max-mutations", true, "the maximum number of mutations to print per log entry");
-    Option tabletOpt = new Option("t", "--tablet", true, "key extent");
-    Option rowPatternOpt = new Option("p", "--row-pattern", true, "search for a row that matches the given regex");
+    Option rowOpt = new Option("r", "row", true, "search for a specific row");
+    Option maxOpt = new Option("m", "max-mutations", true, "the maximum number of mutations to print per log entry");
+    Option tabletOpt = new Option("t", "tablet", true, "key extent");
+    Option rowPatternOpt = new Option("p", "row-pattern", true, "search for a row that matches the given regex");
     Options options = new Options();
     options.addOption(rowOpt);
     options.addOption(maxOpt);

@@ -18,9 +18,6 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.util.EnumSet;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -29,21 +26,10 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class DeleteIterCommand extends Command {
-  private Option tableOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt;
+  private Option mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    String tableName;
-    
-    if (cl.hasOption(tableOpt.getOpt())) {
-      tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName))
-        throw new TableNotFoundException(null, tableName, null);
-    }
-    
-    else {
-      shellState.checkTableState();
-      tableName = shellState.getTableName();
-    }
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+    String tableName = OptUtil.configureTableOpt(cl, shellState);
     
     String name = cl.getOptionValue(nameOpt.getOpt());
     if (!shellState.getConnector().tableOperations().listIterators(tableName).containsKey(name)) {
@@ -72,9 +58,6 @@ public class DeleteIterCommand extends Command {
   public Options getOptions() {
     Options o = new Options();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "table to delete the iterator from");
-    tableOpt.setArgName("table");
-    
     nameOpt = new Option("n", "name", true, "iterator to delete");
     nameOpt.setArgName("itername");
     nameOpt.setRequired(true);
@@ -83,7 +66,7 @@ public class DeleteIterCommand extends Command {
     majcScopeOpt = new Option(IteratorScope.majc.name(), "major-compaction", false, "remove from major compaction scope");
     scanScopeOpt = new Option(IteratorScope.scan.name(), "scan-time", false, "remove from scan scope");
     
-    o.addOption(tableOpt);
+    o.addOption(OptUtil.tableOpt("table to delete the iterator from"));
     o.addOption(nameOpt);
     
     o.addOption(mincScopeOpt);

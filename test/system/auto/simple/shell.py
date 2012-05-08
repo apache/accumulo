@@ -63,7 +63,7 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         input = 'createtable setitertest\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
-        input = 'setiter -t setitertest -n mymax -scan -p 10 -class org.apache.accumulo.core.iterators.user.MaxCombiner\n\ncf1\n\nSTRING\n'
+        input = 'table setitertest\nsetiter -n mymax -scan -p 10 -class org.apache.accumulo.core.iterators.user.MaxCombiner\n\ncf1\n\nSTRING\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
         input = 'setiter -t setitertest -n mymax -scan -p 10 -class org.apache.accumulo.core.iterators.user.MinCombiner\n\ncf2\n\nSTRING\n'
@@ -97,11 +97,21 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         self.processResult(out, err, code)
         self.failIf(out.find("row cf:cq []    val1") == -1 or out.find("row cf:cq []    val2") == -1,
                         "SetScanIter Failed:  versioning override failed")
+        input = 'table setscanitertest\nsetscaniter -n vers -p 20 -class org.apache.accumulo.core.iterators.user.VersioningIterator\n2\nscan -np\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        self.failIf(out.find("row cf:cq []    val1") == -1 or out.find("row cf:cq []    val2") == -1,
+                        "SetScanIter Failed:  set on current table failed") 
         input = 'setscaniter -t setscanitertest -n vers -p 20 -class org.apache.accumulo.core.iterators.user.VersioningIterator\n2\ndeletescaniter -t setscanitertest -n vers\ntable setscanitertest\nscan -np\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
         self.failIf(out.find("row cf:cq []    val1") == 1 or out.find("row cf:cq []    val2") == -1,
                         "SetScanIter Failed:  deletescaniter (single) failed")
+        input = 'table setscanitertest\nsetscaniter -n vers -p 20 -class org.apache.accumulo.core.iterators.user.VersioningIterator\n2\ndeletescaniter -n vers\ntable setscanitertest\nscan -np\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        self.failIf(out.find("row cf:cq []    val1") == 1 or out.find("row cf:cq []    val2") == -1,
+                        "SetScanIter Failed:  deletescaniter on current table failed")
         input = 'setscaniter -t setscanitertest -n vers -p 20 -class org.apache.accumulo.core.iterators.user.VersioningIterator\n2\ndeletescaniter -t setscanitertest -a\ntable setscanitertest\nscan -np\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
@@ -153,13 +163,28 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         input = 'deleteiter -t filtertest -n myfilter -scan\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
-        input = 'config -t filtertest -np\n'
+        input = 'config filtertest -np\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
         self.failUnless(out.find("table.iterator.scan.myfilter.opt.ttl") == -1, 
                         "Config Failed:  Iterator doesn't exist in the config")
-
-
+        input = 'table filtertest\nsetiter -n myfilter -scan -p 10 -class org.apache.accumulo.core.iterators.user.AgeOffFilter\n\n4000\n\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        input = 'config -t filtertest -np\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        self.failIf(out.find("table.iterator.scan.myfilter.opt.ttl") == -1,
+                        "Config Failed:  Iterator doesn't exist in the config")
+        input = 'table filtertest\ndeleteiter -n myfilter -scan\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        input = 'config filtertest -np\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        self.failUnless(out.find("table.iterator.scan.myfilter.opt.ttl") == -1,
+                        "Config Failed:  Iterator doesn't exist in the config")
+        
     def configTest(self):
         cf_option = "table.scan.max.memory"
         cf_value = "9361234"
@@ -280,14 +305,42 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         input = 'table !METADATA\nscan\n'
         out,err,code = self.rootShell(self.masterHost(),input)
         self.processResult(out, err, code)
-        count = 0
         testSplitsID = self.getTableId('test_splits')
         for a in out.split("\n"):
             if a.startswith(testSplitsID+';'):
                 split = a.split()[0].split(";",1)[1]
                 splits.remove(split)
-        self.failUnless(len(a) == 0, 
+        self.failUnless(len(splits) == 0, 
                         "CreateTable Failed:  Splits were not copied correctly")
+        input = 'createtable test_splits_2\naddsplits one\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        input = 'table !METADATA\nscan\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        splitTestID = self.getTableId('test_splits_2')
+        splits = []
+        for a in out.split("\n"):
+            if a.startswith(splitTestID+';'):
+                split = a.split()[0].split(";",1)[1]
+                splits.append(split)
+        log.debug(splits)
+        self.failUnless(len(splits) == 1*5 and splits[0] == 'one',
+                        "CreateTable Failed:  Splits were not created correctly (add one split)")
+        input = 'createtable test_splits_3\naddsplits -sf %s\n' % splits_file 
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        input = 'table !METADATA\nscan\n'
+        out,err,code = self.rootShell(self.masterHost(),input)
+        self.processResult(out, err, code)
+        splitTestID = self.getTableId('test_splits_3')
+        splits = []
+        for a in out.split("\n"):
+            if a.startswith(splitTestID+';'):
+                split = a.split()[0].split(";",1)[1]
+                splits.append(split)
+        self.failUnless(len(splits) == 190*5,
+                        "CreateTable Failed:  Splits were not created correctly (addsplits from file)")
     
     def deletetableTest(self):
         create = "createtable test_delete_table\n"
@@ -295,7 +348,7 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         self.processResult(out, err, code)
         self.failUnless(out.split("\n")[-1].find("test_table >"), 
                         "createtable command did not switch contexts to the new table")
-        delete = "deletetable test_delete_table\n"
+        delete = "deletetable -t test_delete_table\ny\n"
         out, err, code = self.rootShell(self.masterHost(), delete)
         self.processResult(out, err, code)
         input = "tables\n"
@@ -303,6 +356,23 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         self.processResult(out, err, code)
         self.failIf(out.find("test_delete_table") >= 0, 
                         "deletetable command did not delete the table" )
+        delete = "createtable test_delete_table1\ncreatetable test_delete_table2\ndeletetable -p test_delete_table.* -f\n"
+        out, err, code = self.rootShell(self.masterHost(), delete)
+        self.processResult(out, err, code)
+        input = "tables\n"
+        out, err, code = self.rootShell(self.masterHost(), input)
+        self.processResult(out, err, code)
+        self.failIf(out.find("test_delete_table") >= 0,
+                        "deletetable -p command did not delete the tables" )
+        delete = "createtable test_delete_table\ndeletetable\ny\n"
+        out, err, code = self.rootShell(self.masterHost(), delete)
+        self.processResult(out, err, code)
+        input = "tables\n"
+        out, err, code = self.rootShell(self.masterHost(), input)
+        self.processResult(out, err, code)
+        self.failIf(out.find("test_delete_table") >= 0,
+                        "deletetable command did not delete the current table" )
+
         
     def scanTest(self):
         input = "createtable test_scan_table\n"
@@ -310,10 +380,35 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         self.processResult(out, err, code)
         input = "table test_scan_table\ninsert one two three four\nscan\n"
         out, err, code = self.rootShell(self.masterHost(), input)
+        self.processResult(out, err, code)
         self.failUnless(out.find("one") >= 0 and out.find("two") >= 0 and 
                         out.find("three") >= 0 and out.find("four") >= 0 and
                         out.find("one") < out.find("two") < 
                         out.find("three") < out.find("four"), 
+                                    "scan command did not return the correct results")
+        input = "table test_scan_table\ndelete one two three\n"
+        out, err, code = self.rootShell(self.masterHost(), input)
+        self.processResult(out, err, code)
+        input = "table test_scan_table\nscan\n"
+        out, err, code = self.rootShell(self.masterHost(), input)
+        self.processResult(out, err, code)
+        self.failIf((out.find("one") >= 0) or (out.find("two") >= 0) or (out.find("three") >= 0),
+                                    "scan command did not return the correct results")
+        input = "table test_scan_table\ninsert one two three four -ts 42\nscan\n"
+        out, err, code = self.rootShell(self.masterHost(), input)
+        self.processResult(out, err, code)
+        self.failUnless(out.find("one") >= 0 and out.find("two") >= 0 and
+                        out.find("three") >= 0 and out.find("four") >= 0 and
+                        out.find("one") < out.find("two") <
+                        out.find("three") < out.find("four"),
+                                    "scan command did not return the correct results")
+        input = "table test_scan_table\ndelete one two three -ts 42\n"
+        out, err, code = self.rootShell(self.masterHost(), input)
+        self.processResult(out, err, code)
+        input = "table test_scan_table\nscan\n"
+        out, err, code = self.rootShell(self.masterHost(), input)
+        self.processResult(out, err, code)
+        self.failIf(out.find("one") >= 0 or out.find("two") >= 0 or out.find("three") >= 0,
                                     "scan command did not return the correct results")
         
     def insertTest(self):

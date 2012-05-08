@@ -21,40 +21,26 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
 
 public class MaxRowCommand extends ScanCommand {
-  private Option tableOpt, optAuths, optStartRow, optEndRow, optStartRowExclusive, optEndRowExclusive;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ParseException {
+    String tableName = OptUtil.configureTableOpt(cl, shellState);
+    Range range = getRange(cl);
+    Authorizations auths = getAuths(cl, shellState);
+    Text startRow = range.getStartKey() == null ? null : range.getStartKey().getRow();
+    Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
     
-    String tableName;
-    
-    if (cl.hasOption(tableOpt.getOpt())) {
-      tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName))
-        throw new TableNotFoundException(null, tableName, null);
-    }
-    
-    else {
-      shellState.checkTableState();
-      tableName = shellState.getTableName();
-    }
-    
-    Text startRow = cl.hasOption(optStartRow.getOpt()) ? new Text(cl.getOptionValue(optStartRow.getOpt())) : null;
-    Text endRow = cl.hasOption(optEndRow.getOpt()) ? new Text(cl.getOptionValue(optEndRow.getOpt())) : null;
-    
-    boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
-    boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
     try {
-      Text max = shellState.getConnector().tableOperations().getMaxRow(tableName, getAuths(cl, shellState), startRow, startInclusive, endRow, endInclusive);
+      Text max = shellState.getConnector().tableOperations()
+          .getMaxRow(tableName, auths, startRow, range.isStartKeyInclusive(), endRow, range.isEndKeyInclusive());
       if (max != null)
         shellState.getReader().printString(max.toString() + "\n");
     } catch (Exception e) {
@@ -64,50 +50,8 @@ public class MaxRowCommand extends ScanCommand {
     return 0;
   }
   
-  protected Authorizations getAuths(CommandLine cl, Shell shellState) throws AccumuloSecurityException, AccumuloException {
-    String user = shellState.getConnector().whoami();
-    Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
-    if (cl.hasOption(optAuths.getOpt())) {
-      auths = CreateUserCommand.parseAuthorizations(cl.getOptionValue(optAuths.getOpt()));
-    }
-    return auths;
-  }
-  
   @Override
   public String description() {
     return "finds the max row in a table within a given range";
-  }
-  
-  @Override
-  public Options getOptions() {
-    
-    Options opts = new Options();
-    
-    tableOpt = new Option(Shell.tableOption, "table", true, "table to be created");
-    tableOpt.setArgName("table");
-    
-    optAuths = new Option("s", "scan-authorizations", true, "scan authorizations (all user auths are used if this argument is not specified)");
-    optAuths.setArgName("comma-separated-authorizations");
-    
-    optStartRow = new Option("b", "begin-row", true, "begin row");
-    optStartRow.setArgName("begin-row");
-    
-    optEndRow = new Option("e", "end-row", true, "end row");
-    optEndRow.setArgName("end-row");
-    
-    optStartRowExclusive = new Option("be", "begin-exclusive", false, "make start row exclusive (by default it's inclusive)");
-    optStartRowExclusive.setArgName("begin-exclusive");
-    
-    optEndRowExclusive = new Option("ee", "end-exclusive", false, "make end row exclusive (by default it's inclusive)");
-    optEndRowExclusive.setArgName("end-exclusive");
-    
-    opts.addOption(tableOpt);
-    opts.addOption(optAuths);
-    opts.addOption(optStartRow);
-    opts.addOption(optEndRow);
-    opts.addOption(optStartRowExclusive);
-    opts.addOption(optEndRowExclusive);
-    
-    return opts;
   }
 }

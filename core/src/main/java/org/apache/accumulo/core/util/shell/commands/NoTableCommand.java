@@ -33,10 +33,6 @@ public class NoTableCommand extends Command {
     return "returns to a tableless shell state";
   }
   
-  public String usage() {
-    return getName();
-  }
-  
   @Override
   public int numArgs() {
     return 0;

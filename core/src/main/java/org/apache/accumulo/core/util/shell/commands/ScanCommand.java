@@ -25,7 +25,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -38,32 +37,23 @@ import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
 
 public class ScanCommand extends Command {
   
-  private Option scanOptAuths, scanOptStartRow, scanOptEndRow, scanOptRow, scanOptColumns, disablePaginationOpt, tableOpt, showFewOpt, formatterOpt;
+  private Option scanOptAuths, scanOptStartRow, scanOptEndRow, scanOptRow, scanOptColumns, disablePaginationOpt, showFewOpt, formatterOpt;
   protected Option timestampOpt;
+  private Option optStartRowExclusive;
+  private Option optEndRowExclusive;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      IOException, ParseException {
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+    String tableName = OptUtil.configureTableOpt(cl, shellState);
     
-    String tableName;
     Class<? extends Formatter> formatter = null;
     
-    if (cl.hasOption(tableOpt.getOpt())) {
-      tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName))
-        throw new TableNotFoundException(null, tableName, null);
-      
-      // Use the configured formatter unless one was provided
-      if (!cl.hasOption(formatterOpt.getOpt())) {
-        formatter = FormatterCommand.getCurrentFormatter(tableName, shellState);
-      }
-    } else {
-      shellState.checkTableState();
-      tableName = shellState.getTableName();
+    // Use the configured formatter unless one was provided
+    if (!cl.hasOption(formatterOpt.getOpt())) {
+      formatter = FormatterCommand.getCurrentFormatter(tableName, shellState);
     }
     
     // handle first argument, if present, the authorizations list to
@@ -172,7 +162,9 @@ public class ScanCommand extends Command {
     } else {
       Text startRow = cl.hasOption(scanOptStartRow.getOpt()) ? new Text(cl.getOptionValue(scanOptStartRow.getOpt())) : null;
       Text endRow = cl.hasOption(scanOptEndRow.getOpt()) ? new Text(cl.getOptionValue(scanOptEndRow.getOpt())) : null;
-      return new Range(startRow, endRow);
+      boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
+      boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
+      return new Range(startRow, startInclusive, endRow, endInclusive);
     }
   }
   
@@ -197,11 +189,14 @@ public class ScanCommand extends Command {
     scanOptAuths = new Option("s", "scan-authorizations", true, "scan authorizations (all user auths are used if this argument is not specified)");
     scanOptStartRow = new Option("b", "begin-row", true, "begin row (inclusive)");
     scanOptEndRow = new Option("e", "end-row", true, "end row (inclusive)");
+    optStartRowExclusive = new Option("be", "begin-exclusive", false, "make start row exclusive (by default it's inclusive)");
+    optStartRowExclusive.setArgName("begin-exclusive");
+    optEndRowExclusive = new Option("ee", "end-exclusive", false, "make end row exclusive (by default it's inclusive)");
+    optEndRowExclusive.setArgName("end-exclusive");
     scanOptRow = new Option("r", "row", true, "row to scan");
     scanOptColumns = new Option("c", "columns", true, "comma-separated columns");
     timestampOpt = new Option("st", "show-timestamps", false, "display timestamps");
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
-    tableOpt = new Option(Shell.tableOption, "tableName", true, "table to be scanned");
     showFewOpt = new Option("f", "show few", true, "show only a specified number of characters");
     formatterOpt = new Option("fm", "formatter", true, "fully qualified name of the formatter class to use");
     
@@ -210,8 +205,6 @@ public class ScanCommand extends Command {
     scanOptStartRow.setArgName("start-row");
     scanOptEndRow.setArgName("end-row");
     scanOptColumns.setArgName("<columnfamily>[:<columnqualifier>]{,<columnfamily>[:<columnqualifier>]}");
-    tableOpt.setArgName("table");
-    tableOpt.setRequired(false);
     showFewOpt.setRequired(false);
     showFewOpt.setArgName("int");
     formatterOpt.setArgName("className");
@@ -220,10 +213,12 @@ public class ScanCommand extends Command {
     o.addOption(scanOptRow);
     o.addOption(scanOptStartRow);
     o.addOption(scanOptEndRow);
+    o.addOption(optStartRowExclusive);
+    o.addOption(optEndRowExclusive);
     o.addOption(scanOptColumns);
     o.addOption(timestampOpt);
     o.addOption(disablePaginationOpt);
-    o.addOption(tableOpt);
+    o.addOption(OptUtil.tableOpt("table to be scanned"));
     o.addOption(showFewOpt);
     o.addOption(formatterOpt);
     

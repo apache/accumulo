@@ -46,24 +46,12 @@ import org.apache.hadoop.io.Text;
 
 public class GetSplitsCommand extends Command {
   
-  private Option outputFileOpt, maxSplitsOpt, base64Opt, verboseOpt, tableOpt;
+  private Option outputFileOpt, maxSplitsOpt, base64Opt, verboseOpt;
   
   @Override
   public int execute(String fullCommand, CommandLine cl, final Shell shellState) throws IOException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    
-    String tableName;
-    
-    if (cl.hasOption(tableOpt.getOpt())) {
-      tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName))
-        throw new TableNotFoundException(null, tableName, null);
-    }
-    
-    else {
-      shellState.checkTableState();
-      tableName = shellState.getTableName();
-    }
+    String tableName = OptUtil.configureTableOpt(cl, shellState);
     
     final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
     final String m = cl.getOptionValue(maxSplitsOpt.getOpt());
@@ -149,15 +137,11 @@ public class GetSplitsCommand extends Command {
     
     verboseOpt = new Option("v", "verbose", false, "print out the tablet information with start/end rows");
     
-    tableOpt = new Option(Shell.tableOption, "tableName", true, "table to get splits for");
-    tableOpt.setArgName("table");
-    tableOpt.setRequired(false);
-    
     opts.addOption(outputFileOpt);
     opts.addOption(maxSplitsOpt);
     opts.addOption(base64Opt);
     opts.addOption(verboseOpt);
-    opts.addOption(tableOpt);
+    opts.addOption(OptUtil.tableOpt("table to get splits for"));
     
     return opts;
   }

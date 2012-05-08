@@ -39,4 +39,8 @@ public class SleepCommand extends Command {
     return 1;
   }
   
+  @Override
+  public String usage() {
+    return getName() + " <seconds>";
+  }
 }

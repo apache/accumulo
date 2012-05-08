@@ -20,7 +20,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -29,22 +28,11 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class DeleteScanIterCommand extends Command {
-  private Option tableOpt, nameOpt, allOpt;
+  private Option nameOpt, allOpt;
   
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName;
-    
-    if (cl.hasOption(tableOpt.getOpt())) {
-      tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName))
-        throw new TableNotFoundException(null, tableName, null);
-    }
-    
-    else {
-      shellState.checkTableState();
-      tableName = shellState.getTableName();
-    }
+    String tableName = OptUtil.configureTableOpt(cl, shellState);
     
     if (cl.hasOption(allOpt.getOpt())) {
       List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.remove(tableName);
@@ -88,9 +76,6 @@ public class DeleteScanIterCommand extends Command {
   public Options getOptions() {
     Options o = new Options();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "tableName");
-    tableOpt.setArgName("table");
-    
     OptionGroup nameGroup = new OptionGroup();
     
     nameOpt = new Option("n", "name", true, "iterator to delete");
@@ -102,8 +87,8 @@ public class DeleteScanIterCommand extends Command {
     nameGroup.addOption(nameOpt);
     nameGroup.addOption(allOpt);
     nameGroup.setRequired(true);
-    o.addOption(tableOpt);
     o.addOptionGroup(nameGroup);
+    o.addOption(OptUtil.tableOpt("table to delete scan iterators from"));
     
     return o;
   }

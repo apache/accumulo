@@ -41,6 +41,11 @@ public class ExecfileCommand extends Command {
   }
   
   @Override
+  public String usage() {
+    return getName() + " <fileName>";
+  }
+  
+  @Override
   public int numArgs() {
     return 1;
   }

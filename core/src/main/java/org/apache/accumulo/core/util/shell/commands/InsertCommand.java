@@ -99,7 +99,7 @@ public class InsertCommand extends Command {
     insertOptAuths.setArgName("expression");
     o.addOption(insertOptAuths);
     
-    timestampOpt = new Option("t", "timestamp", true, "timestamp to use for insert");
+    timestampOpt = new Option("ts", "timestamp", true, "timestamp to use for insert");
     timestampOpt.setArgName("timestamp");
     o.addOption(timestampOpt);
     

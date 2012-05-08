@@ -20,18 +20,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class SetGroupsCommand extends Command {
-  
-  private Option tableOpt;
-  
   @Override
   public String description() {
     return "sets the locality groups for a given table (for binary or commas, use Java API)";
@@ -39,19 +34,7 @@ public class SetGroupsCommand extends Command {
   
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    
-    String tableName;
-    
-    if (cl.hasOption(tableOpt.getOpt())) {
-      tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName))
-        throw new TableNotFoundException(null, tableName, null);
-    }
-    
-    else {
-      shellState.checkTableState();
-      tableName = shellState.getTableName();
-    }
+    String tableName = OptUtil.configureTableOpt(cl, shellState);
     
     HashMap<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
     
@@ -87,11 +70,7 @@ public class SetGroupsCommand extends Command {
   @Override
   public Options getOptions() {
     Options opts = new Options();
-    
-    tableOpt = new Option(Shell.tableOption, "table", true, "table to fetch locality groups for");
-    tableOpt.setArgName("table");
-    tableOpt.setRequired(false);
-    opts.addOption(tableOpt);
+    opts.addOption(OptUtil.tableOpt("table to fetch locality groups for"));
     return opts;
   }
   

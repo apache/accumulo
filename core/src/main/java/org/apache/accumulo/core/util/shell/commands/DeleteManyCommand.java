@@ -34,23 +34,12 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 public class DeleteManyCommand extends ScanCommand {
-  private Option forceOpt, tableOpt;
+  private Option forceOpt;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ParseException {
+    String tableName = OptUtil.configureTableOpt(cl, shellState);
     
-    String tableName;
-    
-    if (cl.hasOption(tableOpt.getOpt())) {
-      tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName))
-        throw new TableNotFoundException(null, tableName, null);
-    }
-    
-    else {
-      shellState.checkTableState();
-      tableName = shellState.getTableName();
-    }
     // handle first argument, if present, the authorizations list to
     // scan with
     Authorizations auths = getAuths(cl, shellState);
@@ -80,12 +69,8 @@ public class DeleteManyCommand extends ScanCommand {
   public Options getOptions() {
     forceOpt = new Option("f", "force", false, "force deletion without prompting");
     Options opts = super.getOptions();
-    
-    tableOpt = new Option(Shell.tableOption, "table", true, "table to delete entries from");
-    tableOpt.setArgName("table");
-    
     opts.addOption(forceOpt);
-    opts.addOption(tableOpt);
+    opts.addOption(OptUtil.tableOpt("table to delete entries from"));
     return opts;
   }
   

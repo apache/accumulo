@@ -34,23 +34,12 @@ import org.apache.commons.cli.Options;
 
 public class GrepCommand extends ScanCommand {
   
-  private Option numThreadsOpt, tableOpt;
+  private Option numThreadsOpt;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, MissingArgumentException {
     
-    String tableName;
-    
-    if (cl.hasOption(tableOpt.getOpt())) {
-      tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName))
-        throw new TableNotFoundException(null, tableName, null);
-    }
-    
-    else {
-      shellState.checkTableState();
-      tableName = shellState.getTableName();
-    }
+    String tableName = OptUtil.configureTableOpt(cl, shellState);
     
     if (cl.getArgList().isEmpty())
       throw new MissingArgumentException("No terms specified");
@@ -99,11 +88,6 @@ public class GrepCommand extends ScanCommand {
   public Options getOptions() {
     Options opts = super.getOptions();
     numThreadsOpt = new Option("nt", "num-threads", true, "number of threads to use");
-    tableOpt = new Option(Shell.tableOption, "tableName", true, "table to grep through");
-    tableOpt.setArgName("table");
-    tableOpt.setRequired(false);
-    
-    opts.addOption(tableOpt);
     opts.addOption(numThreadsOpt);
     return opts;
   }

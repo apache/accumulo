@@ -19,28 +19,28 @@ package org.apache.accumulo.core.util.shell.commands;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.Shell.TableOperation;
 import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
-public class GrantCommand extends Command {
-  private Option systemOpt, tableOpt, userOpt;
-  private Option tablePatternOpt;
+public class GrantCommand extends TableOperation {
+  private Option systemOpt, userOpt;
+  private String user;
+  private String[] permission;
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException {
-    String user = cl.hasOption(userOpt.getOpt()) ? cl.getOptionValue(userOpt.getOpt()) : shellState.getConnector().whoami();
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+    user = cl.hasOption(userOpt.getOpt()) ? cl.getOptionValue(userOpt.getOpt()) : shellState.getConnector().whoami();
     
-    String permission[] = cl.getArgs()[0].split("\\.", 2);
+    permission = cl.getArgs()[0].split("\\.", 2);
     if (cl.hasOption(systemOpt.getOpt()) && permission[0].equalsIgnoreCase("System")) {
       try {
         shellState.getConnector().securityOperations().grantSystemPermission(user, SystemPermission.valueOf(permission[1]));
@@ -49,32 +49,21 @@ public class GrantCommand extends Command {
         throw new BadArgumentException("No such system permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
       }
     } else if (permission[0].equalsIgnoreCase("Table")) {
-      if (cl.hasOption(tableOpt.getOpt())) {
-        String tableName = cl.getOptionValue(tableOpt.getOpt());
-        try {
-          shellState.getConnector().securityOperations().grantTablePermission(user, tableName, TablePermission.valueOf(permission[1]));
-          Shell.log.debug("Granted " + user + " the " + permission[1] + " permission on table " + tableName);
-        } catch (IllegalArgumentException e) {
-          throw new BadArgumentException("No such table permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
-        }
-      } else if (cl.hasOption(tablePatternOpt.getOpt())) {
-        for (String tableName : shellState.getConnector().tableOperations().list()) {
-          if (tableName.matches(cl.getOptionValue(tablePatternOpt.getOpt()))) {
-            try {
-              shellState.getConnector().securityOperations().grantTablePermission(user, tableName, TablePermission.valueOf(permission[1]));
-              Shell.log.debug("Granted " + user + " the " + permission[1] + " permission on table " + tableName);
-            } catch (IllegalArgumentException e) {
-              throw new BadArgumentException("No such table permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
-            }
-          }
-        }
-      } else {
-        throw new BadArgumentException("You must provide a table name", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
-      }
+      super.execute(fullCommand, cl, shellState);
     } else {
       throw new BadArgumentException("Unrecognized permission", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
     }
     return 0;
+  }
+  
+  @Override
+  protected void doTableOp(Shell shellState, String tableName) throws Exception {
+    try {
+      shellState.getConnector().securityOperations().grantTablePermission(user, tableName, TablePermission.valueOf(permission[1]));
+      Shell.log.debug("Granted " + user + " the " + permission[1] + " permission on table " + tableName);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException("No such table permission", e);
+    }
   }
   
   @Override
@@ -97,20 +86,16 @@ public class GrantCommand extends Command {
   
   @Override
   public Options getOptions() {
+    super.getOptions();
     Options o = new Options();
+    
     OptionGroup group = new OptionGroup();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "table to grant a table permission for");
     systemOpt = new Option("s", "system", false, "grant a system permission");
-    tablePatternOpt = new Option("p", "pattern", true, "regex pattern of tables to grant permissions for");
-    tablePatternOpt.setArgName("pattern");
-    
-    tableOpt.setArgName("table");
     
     group.addOption(systemOpt);
-    group.addOption(tableOpt);
-    group.addOption(tablePatternOpt);
-    group.setRequired(true);
+    group.addOption(optTableName);
+    group.addOption(optTablePattern);
     
     o.addOptionGroup(group);
     userOpt = new Option(Shell.userOption, "user", true, "user to operate on");

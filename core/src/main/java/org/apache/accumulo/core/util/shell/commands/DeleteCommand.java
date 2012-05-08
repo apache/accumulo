@@ -76,7 +76,7 @@ public class DeleteCommand extends Command {
     deleteOptAuths.setArgName("expression");
     o.addOption(deleteOptAuths);
     
-    timestampOpt = new Option("t", "timestamp", true, "timestamp to use for deletion");
+    timestampOpt = new Option("ts", "timestamp", true, "timestamp to use for deletion");
     timestampOpt.setArgName("timestamp");
     o.addOption(timestampOpt);
     

@@ -49,24 +49,12 @@ import org.apache.commons.cli.Options;
 
 public class SetIterCommand extends Command {
   
-  private Option tableOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt, priorityOpt;
+  private Option mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt, priorityOpt;
   private Option ageoffTypeOpt, regexTypeOpt, versionTypeOpt, reqvisTypeOpt, classnameTypeOpt;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ShellCommandException {
-    
-    String tableName;
-    
-    if (cl.hasOption(tableOpt.getOpt())) {
-      tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName))
-        throw new TableNotFoundException(null, tableName, null);
-    }
-    
-    else {
-      shellState.checkTableState();
-      tableName = shellState.getTableName();
-    }
+    String tableName = OptUtil.configureTableOpt(cl, shellState);
     
     int priority = Integer.parseInt(cl.getOptionValue(priorityOpt.getOpt()));
     
@@ -205,9 +193,6 @@ public class SetIterCommand extends Command {
   public Options getOptions() {
     Options o = new Options();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "tableName");
-    tableOpt.setArgName("table");
-    
     priorityOpt = new Option("p", "priority", true, "the order in which the iterator is applied");
     priorityOpt.setArgName("pri");
     priorityOpt.setRequired(true);
@@ -234,7 +219,7 @@ public class SetIterCommand extends Command {
     typeGroup.addOption(ageoffTypeOpt);
     typeGroup.setRequired(true);
     
-    o.addOption(tableOpt);
+    o.addOption(OptUtil.tableOpt("table to configure iterators on"));
     o.addOption(priorityOpt);
     o.addOption(nameOpt);
     o.addOption(mincScopeOpt);

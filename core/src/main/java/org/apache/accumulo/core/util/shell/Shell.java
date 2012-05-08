@@ -73,6 +73,7 @@ import org.apache.accumulo.core.util.shell.commands.CloneTableCommand;
 import org.apache.accumulo.core.util.shell.commands.ClsCommand;
 import org.apache.accumulo.core.util.shell.commands.CompactCommand;
 import org.apache.accumulo.core.util.shell.commands.ConfigCommand;
+import org.apache.accumulo.core.util.shell.commands.ConstraintCommand;
 import org.apache.accumulo.core.util.shell.commands.CreateTableCommand;
 import org.apache.accumulo.core.util.shell.commands.CreateUserCommand;
 import org.apache.accumulo.core.util.shell.commands.DUCommand;
@@ -295,8 +296,8 @@ public class Shell extends ShellOptions {
         new UserCommand(), new WhoAmICommand()};
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(), new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(),
         new DUCommand(), new OfflineCommand(), new OnlineCommand(), new RenameTableCommand(), new TablesCommand()};
-    Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new FlushCommand(), new GetGroupsCommand(), new GetSplitsCommand(),
-        new MergeCommand(), new SetGroupsCommand()};
+    Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(),
+        new GetSplitsCommand(), new MergeCommand(), new SetGroupsCommand()};
     Command[] userCommands = {new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(), new PasswdCommand(),
         new SetAuthsCommand(), new UsersCommand()};
     commandGrouping.put("-- Writing, Reading, and Removing Data --", dataCommands);
@@ -659,6 +660,10 @@ public class Shell extends ShellOptions {
     
     public abstract String description();
     
+    /**
+     * If the number of arguments is not always zero (not including those arguments handled through Options), make sure to override the {@link #usage()} method.
+     * Otherwise, {@link #usage()} does need to be overridden.
+     */
     public abstract int numArgs();
     
     // OPTIONAL methods to override:
@@ -708,56 +713,48 @@ public class Shell extends ShellOptions {
   
   public static abstract class TableOperation extends Command {
     
-    private Option optTablePattern, optTableName;
+    protected Option optTablePattern, optTableName;
+    private boolean force = true;
     
     public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-      
-      String originalTable = "";
-      
-      if (shellState.getTableName() != "") {
-        originalTable = shellState.getTableName();
+      // populate the tableSet set with the tables you want to operate on
+      SortedSet<String> tableSet = new TreeSet<String>();
+      if (cl.hasOption(optTablePattern.getOpt())) {
+        for (String table : shellState.getConnector().tableOperations().list())
+          if (table.matches(cl.getOptionValue(optTablePattern.getOpt())))
+            tableSet.add(table);
+      } else if (cl.hasOption(optTableName.getOpt())) {
+        tableSet.add(cl.getOptionValue(optTableName.getOpt()));
+      } else {
+        shellState.checkTableState();
+        tableSet.add(shellState.getTableName());
       }
       
-      if (cl.hasOption(optTableName.getOpt())) {
-        String tableName = cl.getOptionValue(optTableName.getOpt());
-        shellState.setTableName(tableName);
-      }
+      if (tableSet.isEmpty())
+        log.warn("No tables found that match your criteria");
       
-      try {
-        // populate the tablesToFlush set with the tables you want to flush
-        SortedSet<String> tablesToFlush = new TreeSet<String>();
-        if (cl.hasOption(optTablePattern.getOpt())) {
-          for (String table : shellState.getConnector().tableOperations().list())
-            if (table.matches(cl.getOptionValue(optTablePattern.getOpt())))
-              tablesToFlush.add(table);
-        } else if (cl.hasOption(optTableName.getOpt())) {
-          tablesToFlush.add(cl.getOptionValue(optTableName.getOpt()));
+      boolean more = true;
+      // flush the tables
+      for (String tableName : tableSet) {
+        if (!more)
+          break;
+        if (!shellState.getConnector().tableOperations().exists(tableName))
+          throw new TableNotFoundException(null, tableName, null);
+        boolean operate = true;
+        if (!force) {
+          shellState.getReader().flushConsole();
+          String line = shellState.getReader().readLine(getName() + " { " + tableName + " } (yes|no)? ");
+          more = line != null;
+          operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
         }
-        
-        else {
-          shellState.checkTableState();
-          tablesToFlush.add(shellState.getTableName());
-        }
-        
-        if (tablesToFlush.isEmpty())
-          log.warn("No tables found that match your criteria");
-        
-        // flush the tables
-        for (String tableName : tablesToFlush) {
-          if (!shellState.getConnector().tableOperations().exists(tableName))
-            throw new TableNotFoundException(null, tableName, null);
+        if (operate)
           doTableOp(shellState, tableName);
-        }
-      }
-      
-      finally {
-        shellState.setTableName(originalTable);
       }
       
       return 0;
     }
     
-    protected abstract void doTableOp(Shell shellState, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+    protected abstract void doTableOp(Shell shellState, String tableName) throws Exception;
     
     @Override
     public String description() {
@@ -768,10 +765,10 @@ public class Shell extends ShellOptions {
     public Options getOptions() {
       Options o = new Options();
       
-      optTablePattern = new Option("p", "pattern", true, "regex pattern of table names to flush");
+      optTablePattern = new Option("p", "pattern", true, "regex pattern of table names to operate on");
       optTablePattern.setArgName("pattern");
       
-      optTableName = new Option(tableOption, "table", true, "name of a table to flush");
+      optTableName = new Option(tableOption, "table", true, "name of a table to operate on");
       optTableName.setArgName("tableName");
       
       OptionGroup opg = new OptionGroup();
@@ -787,6 +784,14 @@ public class Shell extends ShellOptions {
     @Override
     public int numArgs() {
       return 0;
+    }
+    
+    protected void force() {
+      force = true;
+    }
+    
+    protected void noForce() {
+      force = false;
     }
   }
   

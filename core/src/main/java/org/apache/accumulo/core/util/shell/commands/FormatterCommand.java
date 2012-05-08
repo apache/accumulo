@@ -32,7 +32,7 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class FormatterCommand extends Command {
-  private Option removeFormatterOption, formatterClassOption, listClassOption, tableOption;
+  private Option removeFormatterOption, formatterClassOption, listClassOption;
   
   @Override
   public String description() {
@@ -41,11 +41,7 @@ public class FormatterCommand extends Command {
   
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = shellState.getTableName();
-    
-    if (cl.hasOption(tableOption.getOpt())) {
-      tableName = cl.getOptionValue(tableOption.getOpt());
-    }
+    String tableName = OptUtil.configureTableOpt(cl, shellState);
     
     if (cl.hasOption(removeFormatterOption.getOpt())) {
       // Remove the property
@@ -57,7 +53,7 @@ public class FormatterCommand extends Command {
       Iterator<Entry<String,String>> iter = shellState.getConnector().tableOperations().getProperties(tableName).iterator();
       
       while (iter.hasNext()) {
-        Entry<String, String> ent = iter.next();
+        Entry<String,String> ent = iter.next();
         
         // List all parameters with the property name
         if (ent.getKey().startsWith(Property.TABLE_FORMATTER_CLASS.toString())) {
@@ -76,7 +72,7 @@ public class FormatterCommand extends Command {
   }
   
   public static Class<? extends Formatter> getCurrentFormatter(String tableName, Shell shellState) {
-    Iterator<Entry<String, String>> props;
+    Iterator<Entry<String,String>> props;
     try {
       props = shellState.getConnector().tableOperations().getProperties(tableName).iterator();
     } catch (AccumuloException e) {
@@ -86,7 +82,7 @@ public class FormatterCommand extends Command {
     }
     
     while (props.hasNext()) {
-      Entry<String, String> ent = props.next();
+      Entry<String,String> ent = props.next();
       if (ent.getKey().equals(Property.TABLE_FORMATTER_CLASS.toString())) {
         Class<? extends Formatter> formatter;
         try {
@@ -107,11 +103,6 @@ public class FormatterCommand extends Command {
     Options o = new Options();
     OptionGroup actionGroup = new OptionGroup();
     
-    // Table and formatter class name
-    tableOption = new Option("t", "table", true, "table to set the formatter on");
-    tableOption.setArgName("table");
-    tableOption.setRequired(false);
-    
     formatterClassOption = new Option("f", "formatter", true, "fully qualified name of the formatter class to use");
     formatterClassOption.setArgName("className");
     
@@ -125,7 +116,7 @@ public class FormatterCommand extends Command {
     actionGroup.setRequired(true);
     
     o.addOptionGroup(actionGroup);
-    o.addOption(tableOption);
+    o.addOption(OptUtil.tableOpt("table to set the formatter on"));
     
     return o;
   }

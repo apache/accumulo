@@ -20,34 +20,18 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class GetGroupsCommand extends Command {
   
-  private Option tableOpt;
-  
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    
-    String tableName;
-    
-    if (cl.hasOption(tableOpt.getOpt())) {
-      tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName))
-        throw new TableNotFoundException(null, tableName, null);
-    }
-    
-    else {
-      shellState.checkTableState();
-      tableName = shellState.getTableName();
-    }
+    String tableName = OptUtil.configureTableOpt(cl, shellState);
     
     Map<String,Set<Text>> groups = shellState.getConnector().tableOperations().getLocalityGroups(tableName);
     
@@ -70,12 +54,7 @@ public class GetGroupsCommand extends Command {
   @Override
   public Options getOptions() {
     Options opts = new Options();
-    
-    tableOpt = new Option(Shell.tableOption, "table", true, "table to fetch locality groups from");
-    tableOpt.setArgName("table");
-    tableOpt.setRequired(false);
-    opts.addOption(tableOpt);
+    opts.addOption(OptUtil.tableOpt("table to fetch locality groups from"));
     return opts;
   }
-  
 }

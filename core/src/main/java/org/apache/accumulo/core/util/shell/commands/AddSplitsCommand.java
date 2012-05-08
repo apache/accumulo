@@ -17,11 +17,8 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -33,23 +30,10 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Text;
 
 public class AddSplitsCommand extends Command {
-  private Option tableOpt, optSplitsFile, base64Opt;
+  private Option optSplitsFile, base64Opt;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      MissingArgumentException, FileNotFoundException {
-    String tableName;
-    
-    if (cl.hasOption(tableOpt.getOpt())) {
-      tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName))
-        throw new TableNotFoundException(null, tableName, null);
-    }
-    
-    else {
-      shellState.checkTableState();
-      tableName = shellState.getTableName();
-    }
-    
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+    String tableName = OptUtil.configureTableOpt(cl, shellState);
     boolean decode = cl.hasOption(base64Opt.getOpt());
     
     TreeSet<Text> splits = new TreeSet<Text>();
@@ -89,16 +73,12 @@ public class AddSplitsCommand extends Command {
   public Options getOptions() {
     Options o = new Options();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "name of the table to add split points to");
-    tableOpt.setArgName("tableName");
-    tableOpt.setRequired(false);
-    
     optSplitsFile = new Option("sf", "splits-file", true, "file with a newline-separated list of rows to split the table with");
     optSplitsFile.setArgName("filename");
     
     base64Opt = new Option("b64", "base64encoded", false, "decode encoded split points");
     
-    o.addOption(tableOpt);
+    o.addOption(OptUtil.tableOpt("name of the table to add split points to"));
     o.addOption(optSplitsFile);
     o.addOption(base64Opt);
     return o;

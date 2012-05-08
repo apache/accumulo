@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -31,21 +30,12 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class ListIterCommand extends Command {
-  private Option tableOpt, nameOpt;
+  private Option nameOpt;
   private Map<IteratorScope,Option> scopeOpts;
   
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName;
-    
-    if (cl.hasOption(tableOpt.getOpt())) {
-      tableName = cl.getOptionValue(tableOpt.getOpt());
-      if (!shellState.getConnector().tableOperations().exists(tableName))
-        throw new TableNotFoundException(null, tableName, null);
-    } else {
-      shellState.checkTableState();
-      tableName = shellState.getTableName();
-    }
+    String tableName = OptUtil.configureTableOpt(cl, shellState);
     
     Map<String,EnumSet<IteratorScope>> iterators = shellState.getConnector().tableOperations().listIterators(tableName);
     
@@ -101,9 +91,6 @@ public class ListIterCommand extends Command {
   public Options getOptions() {
     Options o = new Options();
     
-    tableOpt = new Option(Shell.tableOption, "table", true, "table to list the configured iterators on");
-    tableOpt.setArgName("table");
-    
     nameOpt = new Option("n", "name", true, "iterator to list");
     nameOpt.setArgName("itername");
     
@@ -112,7 +99,7 @@ public class ListIterCommand extends Command {
     scopeOpts.put(IteratorScope.majc, new Option(IteratorScope.majc.name(), "major-compaction", false, "list iterator for major compaction scope"));
     scopeOpts.put(IteratorScope.scan, new Option(IteratorScope.scan.name(), "scan-time", false, "list iterator for scan scope"));
     
-    o.addOption(tableOpt);
+    o.addOption(OptUtil.tableOpt("table to list the configured iterators on"));
     o.addOption(nameOpt);
     
     for (Option opt : scopeOpts.values()) {
