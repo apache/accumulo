@@ -115,6 +115,11 @@ public class Initialize {
     
     log.info("Accumulo data dir is " + ServerConstants.getBaseDir());
     log.info("Zookeeper server is " + ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST));
+    log.info("Checking if Zookeeper is available. If this hangs, then you need to make sure zookeeper is running");
+    if (!zookeeperAvailable()) {
+      log.fatal("Zookeeper needs to be up and running in order to init. Exiting ...");
+      return false;
+    }
     if (ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_SECRET).equals(Property.INSTANCE_SECRET.getDefaultValue())) {
       ConsoleReader c = getConsoleReader();
       c.beep();
@@ -180,6 +185,20 @@ public class Initialize {
     return true;
   }
   
+  /**
+   * @return
+   */
+  private static boolean zookeeperAvailable() {
+    IZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    try {
+      return zoo.exists("/");
+    } catch (KeeperException e) {
+      return false;
+    } catch (InterruptedException e) {
+      return false;
+    }
+  }
+
   private static void initFileSystem(FileSystem fs, Configuration conf, UUID uuid) throws IOException {
     FileStatus fstat;
     
