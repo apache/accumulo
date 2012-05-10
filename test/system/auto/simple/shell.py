@@ -372,7 +372,14 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         self.processResult(out, err, code)
         self.failIf(out.find("test_delete_table") >= 0,
                         "deletetable command did not delete the current table" )
-
+        delete = "createtable test_delete_table\ndeletetable test_delete_table -f\n"
+        out, err, code = self.rootShell(self.masterHost(), delete)
+        self.processResult(out, err, code)
+        input = "tables\n"
+        out, err, code = self.rootShell(self.masterHost(), input)
+        self.processResult(out, err, code)
+        self.failIf(out.find("test_delete_table") >= 0,
+                        "deletetable command did not delete the current table" )
         
     def scanTest(self):
         input = "createtable test_scan_table\n"
@@ -420,10 +427,20 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         self.processResult(out, err, code)
         
     def flushTest(self):
-        input = "flush -t !METADATA\n"
+        input = "flush -t !METADATA -w\n"
         out, err, code = self.rootShell(self.masterHost(), input)
         self.processResult(out, err, code)
-        self.failUnless(out.find("Flush of table !METADATA initiated") >= 0, 
+        self.failUnless(out.find("Flush of table !METADATA completed") >= 0, 
+                        "flush command did not flush the tables")
+        input = "flush !METADATA -w\n"
+        out, err, code = self.rootShell(self.masterHost(), input)
+        self.processResult(out, err, code)
+        self.failUnless(out.find("Flush of table !METADATA completed") >= 0,
+                        "flush command did not flush the tables")
+        input = "table !METADATA\nflush -w\n"
+        out, err, code = self.rootShell(self.masterHost(), input)
+        self.processResult(out, err, code)
+        self.failUnless(out.find("Flush of table !METADATA completed") >= 0,
                         "flush command did not flush the tables")
         
     def whoamiTest(self):

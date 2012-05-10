@@ -21,10 +21,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.Shell.TableOperation;
 
 public class OfflineCommand extends TableOperation {
-  
   @Override
   public String description() {
     return "starts the process of taking table offline";

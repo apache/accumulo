@@ -32,9 +32,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.UUID;
 
 import jline.ConsoleReader;
@@ -138,7 +136,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.MissingArgumentException;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.fs.Path;
@@ -708,90 +705,6 @@ public class Shell extends ShellOptions {
     // General Options are empty
     public Options getOptions() {
       return new Options();
-    }
-  }
-  
-  public static abstract class TableOperation extends Command {
-    
-    protected Option optTablePattern, optTableName;
-    private boolean force = true;
-    
-    public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-      // populate the tableSet set with the tables you want to operate on
-      SortedSet<String> tableSet = new TreeSet<String>();
-      if (cl.hasOption(optTablePattern.getOpt())) {
-        for (String table : shellState.getConnector().tableOperations().list())
-          if (table.matches(cl.getOptionValue(optTablePattern.getOpt())))
-            tableSet.add(table);
-      } else if (cl.hasOption(optTableName.getOpt())) {
-        tableSet.add(cl.getOptionValue(optTableName.getOpt()));
-      } else {
-        shellState.checkTableState();
-        tableSet.add(shellState.getTableName());
-      }
-      
-      if (tableSet.isEmpty())
-        log.warn("No tables found that match your criteria");
-      
-      boolean more = true;
-      // flush the tables
-      for (String tableName : tableSet) {
-        if (!more)
-          break;
-        if (!shellState.getConnector().tableOperations().exists(tableName))
-          throw new TableNotFoundException(null, tableName, null);
-        boolean operate = true;
-        if (!force) {
-          shellState.getReader().flushConsole();
-          String line = shellState.getReader().readLine(getName() + " { " + tableName + " } (yes|no)? ");
-          more = line != null;
-          operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
-        }
-        if (operate)
-          doTableOp(shellState, tableName);
-      }
-      
-      return 0;
-    }
-    
-    protected abstract void doTableOp(Shell shellState, String tableName) throws Exception;
-    
-    @Override
-    public String description() {
-      return "makes a best effort to flush tables from memory to disk";
-    }
-    
-    @Override
-    public Options getOptions() {
-      Options o = new Options();
-      
-      optTablePattern = new Option("p", "pattern", true, "regex pattern of table names to operate on");
-      optTablePattern.setArgName("pattern");
-      
-      optTableName = new Option(tableOption, "table", true, "name of a table to operate on");
-      optTableName.setArgName("tableName");
-      
-      OptionGroup opg = new OptionGroup();
-      
-      opg.addOption(optTablePattern);
-      opg.addOption(optTableName);
-      
-      o.addOptionGroup(opg);
-      
-      return o;
-    }
-    
-    @Override
-    public int numArgs() {
-      return 0;
-    }
-    
-    protected void force() {
-      force = true;
-    }
-    
-    protected void noForce() {
-      force = false;
     }
   }
   

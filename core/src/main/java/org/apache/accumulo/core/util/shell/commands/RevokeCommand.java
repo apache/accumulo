@@ -24,7 +24,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
-import org.apache.accumulo.core.util.shell.Shell.TableOperation;
 import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -32,6 +31,10 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class RevokeCommand extends TableOperation {
+  {
+    disableUnflaggedTableOptions();
+  }
+  
   private Option systemOpt, userOpt;
   private String user;
   private String[] permission;
