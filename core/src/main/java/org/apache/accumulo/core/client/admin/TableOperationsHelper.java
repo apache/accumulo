@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -30,12 +31,12 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 
 public abstract class TableOperationsHelper implements TableOperations {
-
+  
   @Override
   public void attachIterator(String tableName, IteratorSetting setting) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     attachIterator(tableName, setting, EnumSet.allOf(IteratorScope.class));
   }
-
+  
   @Override
   public void attachIterator(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloSecurityException, AccumuloException,
       TableNotFoundException {
@@ -147,5 +148,54 @@ public abstract class TableOperationsHelper implements TableOperations {
       if (optionConflicts.size() > 0)
         throw new IllegalArgumentException("iterator options conflict for " + setting.getName() + ": " + optionConflicts);
     }
+  }
+  
+  @Override
+  public int addConstraint(String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    TreeSet<Integer> constraintNumbers = new TreeSet<Integer>();
+    TreeMap<String,Integer> constraintClasses = new TreeMap<String,Integer>();
+    int i;
+    for (Entry<String,String> property : this.getProperties(tableName)) {
+      if (property.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.toString())) {
+        try {
+          i = Integer.parseInt(property.getKey().substring(Property.TABLE_CONSTRAINT_PREFIX.toString().length()));
+        } catch (NumberFormatException e) {
+          throw new AccumuloException("Bad key for existing constraint: " + property.toString());
+        }
+        constraintNumbers.add(i);
+        constraintClasses.put(property.getValue(), i);
+      }
+    }
+    i = 1;
+    while (constraintNumbers.contains(i))
+      i++;
+    if (constraintClasses.containsKey(constraintClassName))
+      throw new AccumuloException("Constraint " + constraintClassName + " already exists for table " + tableName + " with number "
+          + constraintClasses.get(constraintClassName));
+    this.setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.toString() + i, constraintClassName);
+    return i;
+  }
+  
+  @Override
+  public void removeConstraint(String tableName, int number) throws AccumuloException, AccumuloSecurityException {
+    this.removeProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.toString() + number);
+  }
+  
+  @Override
+  public Map<String,Integer> listConstraints(String tableName) throws AccumuloException, TableNotFoundException {
+    Map<String,Integer> constraints = new TreeMap<String,Integer>();
+    for (Entry<String,String> property : this.getProperties(tableName)) {
+      if (property.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.toString())) {
+        if (constraints.containsKey(property.getValue()))
+          throw new AccumuloException("Same constraint configured twice: " + property.getKey() + "=" + Property.TABLE_CONSTRAINT_PREFIX
+              + constraints.get(property.getValue()) + "=" + property.getKey());
+        try {
+          constraints.put(property.getValue(), Integer.parseInt(property.getKey().substring(Property.TABLE_CONSTRAINT_PREFIX.toString().length())));
+        } catch (NumberFormatException e) {
+          throw new AccumuloException("Bad key for existing constraint: " + property.toString());
+        }
+      }
+    }
+    return constraints;
   }
 }

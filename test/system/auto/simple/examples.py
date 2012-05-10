@@ -62,9 +62,12 @@ class Examples(TestUtilsMixin, unittest.TestCase):
 
 	self.comment("Testing MaxMutation constraint")
 	self.ashell('createtable test_ingest\n'
-'config -t test_ingest -s table.constraint.1=org.apache.accumulo.examples.simple.constraints.MaxMutationSize\n')
-        self.assert_(not self.execute(self.accumulo_sh(), 'org.apache.accumulo.server.test.TestIngest', '1', '0', '10000'))
-
+                    'constraint -a org.apache.accumulo.examples.simple.constraints.MaxMutationSize\n')
+        handle = self.runOn('localhost', [self.accumulo_sh(), 'org.apache.accumulo.server.test.TestIngest', '1', '0', '10000'])
+        out, err = handle.communicate()
+        self.failIf(handle.returncode==0)
+        self.failUnless(err.find("MutationsRejectedException: # constraint violations : 1") >= 0, "Was able to insert a mutation larger than max size")
+        
         self.ashell('createtable %s\nsetauths -u %s -s A,B\nquit\n' %(table, ROOT))
         self.comment("Testing dirlist example (a little)")
         self.comment("  ingesting accumulo source")
@@ -212,7 +215,7 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.wait(self.runOn(self.masterHost(), [
             'hadoop', 'fs', '-copyFromLocal', ACCUMULO_HOME + "/README", "/tmp/wc/Accumulo.README"
             ]))
-        self.ashell('createtable wordCount -a count=org.apache.accumulo.core.iterators.aggregation.StringSummation\nquit\n')
+        self.ashell('createtable wordCount\nsetiter -scan -majc -minc -p 10 -n sum -class org.apache.accumulo.core.iterators.user.SummingCombiner\n\ncount\n\nSTRING\nquit\n')
         self.wait(self.runOn(self.masterHost(), [
             ACCUMULO_HOME+'/bin/tool.sh',
             examplesJar,
@@ -264,8 +267,8 @@ class Examples(TestUtilsMixin, unittest.TestCase):
         self.comment("Using some example constraints")
         self.ashell('\n'.join([
             'createtable testConstraints',
-            'config -t testConstraints -s table.constraint.1=org.apache.accumulo.simple.examples.constraints.NumericValueConstraint',
-            'config -t testConstraints -s table.constraint.2=org.apache.accumulo.simple.examples.constraints.AlphaNumKeyConstraint',
+            'constraint -t testConstraints -a org.apache.accumulo.examples.simple.constraints.NumericValueConstraint',
+            'constraint -t testConstraints -a org.apache.accumulo.examples.simple.constraints.AlphaNumKeyConstraint',
             'insert r1 cf1 cq1 1111',
             'insert r1 cf1 cq1 ABC',
             'scan',

@@ -123,23 +123,11 @@ public class CreateTableCommand extends Command {
     }
     
     if (cl.hasOption(createTableOptEVC.getOpt())) {
-      int max = 0;
-      Iterable<Entry<String,String>> props = shellState.getConnector().tableOperations().getProperties(tableName);
-      boolean vcSet = false;
-      for (Entry<String,String> entry : props) {
-        if (entry.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())) {
-          int num = Integer.parseInt(entry.getKey().substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()));
-          if (num > max)
-            max = num;
-          
-          if (entry.getValue().equals(VisibilityConstraint.class.getName()))
-            vcSet = true;
-        }
+      try {
+        shellState.getConnector().tableOperations().addConstraint(tableName, VisibilityConstraint.class.getName());
+      } catch (AccumuloException e) {
+        Shell.log.warn(e.getMessage() + " while setting visibility constraint, but table was created");
       }
-      
-      if (!vcSet)
-        shellState.getConnector().tableOperations()
-            .setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.getKey() + (max + 1), VisibilityConstraint.class.getName());
     }
     
     // Load custom formatter if set

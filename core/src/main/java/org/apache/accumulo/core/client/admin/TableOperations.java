@@ -529,4 +529,45 @@ public interface TableOperations {
    *           if the setting conflicts with any existing iterators
    */
   public void checkIteratorConflicts(String tableName, IteratorSetting setting, EnumSet<IteratorScope> scopes) throws AccumuloException, TableNotFoundException;
+  
+  /**
+   * Add a new constraint to a table.
+   * 
+   * @param tableName
+   *          the name of the table
+   * @param constraintClassName
+   *          the full name of the constraint class
+   * @return the unique number assigned to the constraint
+   * @throws AccumuloException
+   *           thrown if the constraint has already been added to the table or if there are errors in the configuration of existing constraints
+   * @throws AccumuloSecurityException
+   *           thrown if the user doesn't have permission to add the constraint
+   * @throws TableNotFoundException
+   */
+  public int addConstraint(String tableName, String constraintClassName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
+  
+  /**
+   * Remove a constraint from a table.
+   * 
+   * @param tableName
+   *          the name of the table
+   * @param number
+   *          the unique number assigned to the constraint
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   *           thrown if the user doesn't have permission to remove the constraint
+   */
+  public void removeConstraint(String tableName, int number) throws AccumuloException, AccumuloSecurityException;
+  
+  /**
+   * List constraints on a table with their assigned numbers.
+   * 
+   * @param tableName
+   *          the name of the table
+   * @return a map from constraint class name to assigned number
+   * @throws AccumuloException
+   *           thrown if there are errors in the configuration of existing constraints
+   * @throws TableNotFoundException
+   */
+  public Map<String,Integer> listConstraints(String tableName) throws AccumuloException, TableNotFoundException;
 }

@@ -17,10 +17,7 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.util.Map.Entry;
-import java.util.TreeMap;
-import java.util.TreeSet;
 
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -37,49 +34,24 @@ public class ConstraintCommand extends Command {
     
     switch (OptUtil.configureAldOpt(cl)) {
       case ADD:
-        TreeSet<Integer> constraintNumbers = new TreeSet<Integer>();
-        TreeMap<String,Integer> constraintClasses = new TreeMap<String,Integer>();
-        for (Entry<String,String> property : shellState.getConnector().tableOperations().getProperties(tableName)) {
-          if (property.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.toString())) {
-            i = Integer.parseInt(property.getKey().substring(Property.TABLE_CONSTRAINT_PREFIX.toString().length()));
-            constraintNumbers.add(i);
-            constraintClasses.put(property.getValue(), i);
-          }
-        }
-        i = 1;
-        while (constraintNumbers.contains(i))
-          i++;
         for (String constraint : cl.getArgs()) {
-          if (constraintClasses.containsKey(constraint)) {
-            shellState.getReader().printString(
-                "Constraint " + constraint + " already exists for table " + tableName + " with number " + constraintClasses.get(constraint) + "\n");
-            continue;
-          }
           if (!shellState.getConnector().instanceOperations().testClassLoad(constraint, Constraint.class.getName()))
             throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + constraint + " as type "
                 + Constraint.class.getName());
-          shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.toString() + i, constraint);
+          i = shellState.getConnector().tableOperations().addConstraint(tableName, constraint);
           shellState.getReader().printString("Added constraint " + constraint + " to table " + tableName + " with number " + i + "\n");
-          i++;
-          while (constraintNumbers.contains(i))
-            i++;
         }
         break;
       case DELETE:
         for (String constraint : cl.getArgs()) {
           i = Integer.parseInt(constraint);
-          shellState.getConnector().tableOperations().removeProperty(tableName, Property.TABLE_CONSTRAINT_PREFIX.toString() + i);
+          shellState.getConnector().tableOperations().removeConstraint(tableName, i);
           shellState.getReader().printString("Removed constraint " + i + " from table " + tableName + "\n");
         }
         break;
       case LIST:
-        TreeMap<String,String> properties = new TreeMap<String,String>();
-        for (Entry<String,String> property : shellState.getConnector().tableOperations().getProperties(tableName)) {
-          if (property.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.toString()))
-            properties.put(property.getKey(), property.getValue());
-        }
-        for (Entry<String,String> property : properties.entrySet())
-          shellState.getReader().printString(property.toString());
+        for (Entry<String,Integer> property : shellState.getConnector().tableOperations().listConstraints(tableName).entrySet())
+          shellState.getReader().printString(property.toString() + "\n");
     }
     
     return 0;

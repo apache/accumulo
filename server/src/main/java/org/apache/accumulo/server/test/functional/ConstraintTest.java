@@ -139,7 +139,7 @@ public class ConstraintTest extends FunctionalTest {
     }
     
     // remove the numeric value constraint
-    getConnector().tableOperations().removeProperty("ct", Property.TABLE_CONSTRAINT_PREFIX + "1");
+    getConnector().tableOperations().removeConstraint("ct", 1);
     UtilWaitThread.sleep(1000);
     
     // now should be able to add a non numeric value
