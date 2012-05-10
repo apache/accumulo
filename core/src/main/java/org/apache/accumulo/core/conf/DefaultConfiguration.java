@@ -102,7 +102,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
           if (Property.isValidZooPropertyKey(prop.getKey())) {
             zoo = "yes";
             if (Property.isFixedZooPropertyKey(prop)) {
-              zoo = "yes but requires restart";
+              zoo = "yes but requires restart of the " + prop.getKey().split(".")[0];
             }
           }
           doc.println("    <td>" + zoo + "</td>");
