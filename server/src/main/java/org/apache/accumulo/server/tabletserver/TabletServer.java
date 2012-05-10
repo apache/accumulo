@@ -896,9 +896,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       public void run() {
         
         ScanSession scanSession = (ScanSession) sessionManager.getSession(scanID);
-        
+        String oldThreadName = Thread.currentThread().getName();
+
         try {
           runState.set(ScanRunState.RUNNING);
+          Thread.currentThread().setName(
+              "User: " + scanSession.user + " Start: " + scanSession.startTime + " Client: " + scanSession.client + " Tablet: " + scanSession.extent);
+
           if (isCancelled() || scanSession == null)
             return;
           
@@ -934,6 +938,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           addResult(e);
         } finally {
           runState.set(ScanRunState.FINISHED);
+          Thread.currentThread().setName(oldThreadName);
         }
         
       }
@@ -950,12 +955,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       @Override
       public void run() {
         MultiScanSession session = (MultiScanSession) sessionManager.getSession(scanID);
+        String oldThreadName = Thread.currentThread().getName();
         
         try {
           runState.set(ScanRunState.RUNNING);
+          Thread.currentThread().setName("Client: " + session.client + " User: " + session.user + " Start: " + session.startTime + " Table: ");
           if (isCancelled() || session == null)
             return;
-          
+
           long maxResultsSize = acuConf.getMemoryInBytes(Property.TABLE_SCAN_MAXMEM);
           long bytesAdded = 0;
           long maxScanTime = 4000;
@@ -971,8 +978,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           
           Iterator<Entry<KeyExtent,List<Range>>> iter = session.queries.entrySet().iterator();
           
-          // check the time so that the read ahead thread is not
-          // monopolized
+          // check the time so that the read ahead thread is not monopolized
           while (iter.hasNext() && bytesAdded < maxResultsSize && (System.currentTimeMillis() - startTime) < maxScanTime) {
             Entry<KeyExtent,List<Range>> entry = iter.next();
             
@@ -984,6 +990,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
               failures.put(entry.getKey(), entry.getValue());
               continue;
             }
+            Thread.currentThread().setName(
+                "Client: " + session.client + " User: " + session.user + " Start: " + session.startTime + " Tablet: " + entry.getKey().toString());
             
             LookupResult lookupResult;
             try {
@@ -1051,6 +1059,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           log.warn("exception while doing multi-scan ", e);
           addResult(e);
         } finally {
+          Thread.currentThread().setName(oldThreadName);
           runState.set(ScanRunState.FINISHED);
         }
       }
