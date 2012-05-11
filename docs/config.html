@@ -202,7 +202,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
    <tr >
     <td>master.port.client</td>
     <td><b><a href='#PORT'>port</a></b></td>
-    <td>yes but requires restart</td>
+    <td>yes but requires restart of the master</td>
     <td><pre>9999</pre></td>
     <td>The port used for handling client connections on the master</td>
    </tr>
@@ -324,7 +324,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
    <tr >
     <td>tserver.compaction.major.concurrent.max</td>
     <td><b><a href='#COUNT'>count</a></b></td>
-    <td>yes but requires restart</td>
+    <td>yes but requires restart of the tserver</td>
     <td><pre>3</pre></td>
     <td>The maximum number of concurrent major compactions for a tablet server</td>
    </tr>
@@ -338,7 +338,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
    <tr >
     <td>tserver.compaction.major.thread.files.open.max</td>
     <td><b><a href='#COUNT'>count</a></b></td>
-    <td>yes but requires restart</td>
+    <td>yes but requires restart of the tserver</td>
     <td><pre>10</pre></td>
     <td>Max number of files a major compaction thread can open at once. </td>
    </tr>
@@ -380,7 +380,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
    <tr >
     <td>tserver.logger.count</td>
     <td><b><a href='#COUNT'>count</a></b></td>
-    <td>yes but requires restart</td>
+    <td>yes but requires restart of the tserver</td>
     <td><pre>2</pre></td>
     <td>The number of loggers that each tablet server should use.</td>
    </tr>
@@ -422,7 +422,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
    <tr >
     <td>tserver.memory.maps.native.enabled</td>
     <td><b><a href='#BOOLEAN'>boolean</a></b></td>
-    <td>yes but requires restart</td>
+    <td>yes but requires restart of the tserver</td>
     <td><pre>true</pre></td>
     <td>An in-memory data store for accumulo implemented in c++ that increases the amount of data accumulo can hold in memory and avoids Java GC pauses.</td>
    </tr>
@@ -457,7 +457,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
    <tr class='highlight'>
     <td>tserver.port.client</td>
     <td><b><a href='#PORT'>port</a></b></td>
-    <td>yes but requires restart</td>
+    <td>yes but requires restart of the tserver</td>
     <td><pre>9997</pre></td>
     <td>The port used for handling client connections on the tablet servers</td>
    </tr>
@@ -478,7 +478,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
    <tr >
     <td>tserver.scan.files.open.max</td>
     <td><b><a href='#COUNT'>count</a></b></td>
-    <td>yes but requires restart</td>
+    <td>yes but requires restart of the tserver</td>
     <td><pre>100</pre></td>
     <td>Maximum total map files that all tablets in a tablet server can open for scans. </td>
    </tr>
@@ -558,7 +558,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
    <tr >
     <td>logger.port.client</td>
     <td><b><a href='#PORT'>port</a></b></td>
-    <td>yes but requires restart</td>
+    <td>yes but requires restart of the logger</td>
     <td><pre>11224</pre></td>
     <td>The port used for write-ahead logger services</td>
    </tr>
@@ -617,7 +617,7 @@ $HADOOP_HOME/lib/[^.].*.jar,
    <tr class='highlight'>
     <td>gc.port.client</td>
     <td><b><a href='#PORT'>port</a></b></td>
-    <td>yes but requires restart</td>
+    <td>yes but requires restart of the gc</td>
     <td><pre>50091</pre></td>
     <td>The listening port for the garbage collector's monitor service</td>
    </tr>
