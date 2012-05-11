@@ -32,7 +32,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.security.SecurityConstants;
@@ -44,11 +43,6 @@ public class TableLoadBalancer extends TabletBalancer {
   private static final Logger log = Logger.getLogger(TableLoadBalancer.class);
   
   Map<String,TabletBalancer> perTableBalancers = new HashMap<String,TabletBalancer>();
-  ServerConfiguration config;
-  
-  public void init(ServerConfiguration config) {
-    this.config = config;
-  }
   
   private TabletBalancer constructNewBalancerForTable(String clazzName, String table) throws Exception {
     Class<? extends TabletBalancer> clazz = AccumuloClassLoader.loadClass(clazzName, TabletBalancer.class);
@@ -57,7 +51,7 @@ public class TableLoadBalancer extends TabletBalancer {
   }
   
   protected String getLoadBalancerClassNameForTable(String table) {
-    return config.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
+    return configuration.getTableConfiguration(table).get(Property.TABLE_LOAD_BALANCER);
   }
   
   protected TabletBalancer getBalancerForTable(String table) {
