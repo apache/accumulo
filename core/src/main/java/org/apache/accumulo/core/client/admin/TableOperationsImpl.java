@@ -848,6 +848,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     String tableId = Tables.getTableId(instance, tableName);
     TabletLocator tl = TabletLocator.getInstance(instance, credentials, new Text(tableId));
+    // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
+    tl.invalidateCache();
     while (!tl.binRanges(Collections.singletonList(range), binnedRanges).isEmpty()) {
       if (!Tables.exists(instance, tableId))
         throw new TableDeletedException(tableId);
@@ -858,6 +860,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       // sleep randomly between 100 and 200ms
       UtilWaitThread.sleep(100 + (int) (Math.random() * 100));
       binnedRanges.clear();
+      tl.invalidateCache();
     }
     
     // group key extents to get <= maxSplits

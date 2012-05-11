@@ -963,6 +963,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         Instance instance = getInstance(conf);
         String tableId = null;
         tl = getTabletLocator(conf);
+        // its possible that the cache could contain complete, but old information about a tables tablets... so clear it
+        tl.invalidateCache();
         while (!tl.binRanges(ranges, binnedRanges).isEmpty()) {
           if (!(instance instanceof MockInstance)) {
             if (tableId == null)
@@ -975,6 +977,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
           binnedRanges.clear();
           log.warn("Unable to locate bins for specified ranges. Retrying.");
           UtilWaitThread.sleep(100 + (int) (Math.random() * 100)); // sleep randomly between 100 and 200 ms
+          tl.invalidateCache();
         }
       }
     } catch (Exception e) {
