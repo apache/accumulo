@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -24,6 +25,9 @@ import java.util.TreeMap;
 
 import jline.ConsoleReader;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -37,7 +41,7 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class ConfigCommand extends Command {
-  private Option deleteOpt, setOpt, filterOpt, disablePaginationOpt;
+  private Option tableOpt, deleteOpt, setOpt, filterOpt, disablePaginationOpt;
   
   private int COL1 = 8, COL2 = 7;
   private ConsoleReader reader;
@@ -54,9 +58,13 @@ public class ConfigCommand extends Command {
     root.addSubcommand(cmd);
   }
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+      IOException, ClassNotFoundException {
     reader = shellState.getReader();
+    
+    String tableName = cl.getOptionValue(tableOpt.getOpt());
+    if (tableName != null && !shellState.getConnector().tableOperations().exists(tableName))
+      throw new TableNotFoundException(null, tableName, null);
     
     if (cl.hasOption(deleteOpt.getOpt())) {
       // delete property from table
@@ -66,6 +74,7 @@ public class ConfigCommand extends Command {
       if (tableName != null) {
         if (!Property.isValidTablePropertyKey(property))
           Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if it's there.");
+        
         shellState.getConnector().tableOperations().removeProperty(tableName, property);
         Shell.log.debug("Successfully deleted table configuration option.");
       } else {
@@ -208,11 +217,13 @@ public class ConfigCommand extends Command {
     Options o = new Options();
     OptionGroup og = new OptionGroup();
     
+    tableOpt = new Option(Shell.tableOption, "table", true, "table to display/set/delete properties for");
     deleteOpt = new Option("d", "delete", true, "delete a per-table property");
     setOpt = new Option("s", "set", true, "set a per-table property");
     filterOpt = new Option("f", "filter", true, "show only properties that contain this string");
     disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
     
+    tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
     setOpt.setArgName("property=value");
     filterOpt.setArgName("string");
@@ -221,7 +232,7 @@ public class ConfigCommand extends Command {
     og.addOption(setOpt);
     og.addOption(filterOpt);
     
-    o.addOption(OptUtil.tableOpt("table to display/set/delete properties for"));
+    o.addOption(tableOpt);
     o.addOptionGroup(og);
     o.addOption(disablePaginationOpt);
     
