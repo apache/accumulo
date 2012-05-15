@@ -54,6 +54,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.monitor.servlets.DefaultServlet;
 import org.apache.accumulo.server.monitor.servlets.GcStatusServlet;
+import org.apache.accumulo.server.monitor.servlets.JSONServlet;
 import org.apache.accumulo.server.monitor.servlets.LogServlet;
 import org.apache.accumulo.server.monitor.servlets.LoggersServlet;
 import org.apache.accumulo.server.monitor.servlets.MasterServlet;
@@ -480,6 +481,7 @@ public class Monitor {
     server.addServlet(GcStatusServlet.class, "/gc");
     server.addServlet(LogServlet.class, "/log");
     server.addServlet(XMLServlet.class, "/xml");
+    server.addServlet(JSONServlet.class, "/json");
     server.addServlet(VisServlet.class, "/vis");
     server.addServlet(Summary.class, "/trace/summary");
     server.addServlet(ListType.class, "/trace/listType");

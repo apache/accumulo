@@ -17,27 +17,23 @@
 
 <script type='text/javascript'>
 // size and spacing variables
-var numDots = 0; // number of dots to draw
-var numLive = 0;
 var dotSpacing = 10; // spacing between centers of dots (radius)
 var dotPadding = 0.5; // dot padding
 var minDotRadius = 3; // min dot radius
 var maxDotRadius = dotSpacing - dotPadding;
 
 // arrays of information about each dot
-var dotSize = new Array(numDots); // current sizes
-var dotSizeGrowing = new Array(numDots); // true when dot size is growing, false when shrinking
-var ids = new Array(numDots); // server ids
+var stats = {'servers': []};
+var dots = new Array(0); // current sizes and change directions
 var mousedDot = -1; // the dot currently under the mouse
 
-var allStats = new Array(numDots);
 var colorPalette = ['#0000CC', '#0014B8', '#0029A3', '#003D8F', '#00527A', '#006666', '#007A52', '#008F3D', '#00A329', '#00B814', '#00CC00', '#14D100', '#29D600', '#3DDB00', '#52E000', '#66E600', '#7AEB00', '#8FF000', '#A3F500', '#B8FA00', '#CCFF00', '#CCFF00', '#CCF200', '#CCE600', '#CCD900', '#CCCC00', '#CCBF00', '#CCB200', '#CCA600', '#CC9900', '#CC8C00', '#CC8000', '#CC7300', '#CC6600', '#CC5900', '#CC4C00', '#CC4000', '#CC3300', '#CC2600', '#CC1A00', '#CC0D00', '#CC0000'];
 
 var nullColor = '#F5F8FA';
 var deadColor = '#B000CC';
 
 // animation variables
-var frame = 0;
+var drawing = false;
 var canvas = document.getElementById('visCanvas');
 var context = canvas.getContext('2d');
 
@@ -50,20 +46,22 @@ canvas.addEventListener('click', goToServer, false);
 
 // initialize settings based on request parameters
 var main = document.getElementById('main');
-var speedStatType = document.getElementById('motion').selectedIndex; // index into statName
-var colorStatType = document.getElementById('color').selectedIndex; // index into statName
+var speedStatType;
+var colorStatType;
 var useCircles = true;
 setShape(document.getElementById('shape'));
 setSize(document.getElementById('size'));
+setMotion(document.getElementById('motion'));
+setColor(document.getElementById('color'));
 
 // xml loading variables
 var xmlReturned = true;
 var xmlhttp=new XMLHttpRequest(); // don't bother allowing for IE 5 or 6 since canvas won't work
-xmlhttp.overrideMimeType("text/xml");
 xmlhttp.onreadystatechange=function() {
   handleNewData();
 }
 self.setInterval("getXML()",5000);
+//self.setInterval("drawDots()",20);
 
 window.requestAnimFrame = (function(callback){
   return window.requestAnimationFrame ||
@@ -80,110 +78,76 @@ function handleNewData() {
   if (xmlhttp.readyState!=4) {
     return;
   }
-  if (xmlhttp.status!=200 || xmlhttp.responseXML==null) {
+  if (xmlhttp.status!=200 || xmlhttp.responseText==null) {
     xmlReturned = true;
     return;
   }
-  var statinfo = new Array(numNormalStats);
-  for (j=0; j < numNormalStats; j++)
-    statinfo[j] = xmlhttp.responseXML.getElementsByTagName(statName[j]);
-  var deadinfo = xmlhttp.responseXML.getElementsByTagName('deadTabletServer');
-  var badinfo = xmlhttp.responseXML.getElementsByTagName('badTabletServer');
-  var idinfo = xmlhttp.responseXML.getElementsByTagName('server');
-  var hostinfo = xmlhttp.responseXML.getElementsByTagName('hostname');
-  
-  var statValues = new Array(numNormalStats);
-  for (i=0; i < idinfo.length; i++) {
-    var info = idinfo[i].attributes[0].nodeValue;
-    var host = hostinfo[i].childNodes[0].nodeValue;
-    for (j=0; j < numNormalStats; j++) {
-      statValues[j] = Math.max(0,Math.floor(significance[j]*parseFloat(statinfo[j][i].childNodes[0].nodeValue))/significance[j]);
+  var newstats = eval('(' + xmlhttp.responseText + ')');
+  for (var i in newstats.servers) {
+    for (var s in statNames) {
+      if (statNames[s])
+        continue;
+      newstats.servers[i][s] = Math.max(0,Math.floor(significance[s]*newstats.servers[i][s])/significance[s]);
+      if (adjustMax[s])
+        maxStatValues[s] = Math.max(newstats.servers[i][s],maxStatValues[s]);
     }
-    setStats(statValues,i);
-    setDotInfo(info,host,i);
   }
-  numLive = idinfo.length;
-  resetOverallStats();
   
-  for (i=idinfo.length,j=0; j < deadinfo.length; i++,j++) {
-    setDotInfo(deadinfo[j].attributes[0].nodeValue,'',i);
-  }
-  for (i=idinfo.length+deadinfo.length,j=0; j < badinfo.length; i++,j++) {
-    setDotInfo(badinfo[j].attributes[0].nodeValue,'',i);
-  }
-  if (numDots != idinfo.length + deadinfo.length + badinfo.length)
-    drawGrid();
-  numDots = idinfo.length + deadinfo.length + badinfo.length;
+  initDerivedInfo(newstats);
+  var oldstats = stats;
+  while(drawing) {}
+  stats = newstats;
+  delete oldstats;
   xmlReturned = true;
 }
 
-// set the data for a given server
-function setStats(statValues,index) {
-  var newStats = new Array(numNormalStats+3);
-  for (j=0; j < numNormalStats; j++) {
-    if (adjustMax[j])
-      maxStatValue[j] = Math.max(statValues[j],maxStatValue[j]);
-    newStats[j] = statValues[j];
-  }
-  setOverallStats(newStats);
-  if (index >= allStats.length)
-    allStats.push(newStats);
-  else
-    allStats[index] = newStats;
-}
-
 // set max and average
-function setOverallStats(statValues) {
-  avgStat = 0;
-  maxStat = 0;
-  maxIndex = 0;
-  for (j=0; j < numNormalStats; j++) {
-    normStat = statValues[j]/maxStatValue[j];
+function setDerivedStats(serverStats) {
+  var avgStat = 0;
+  var maxStat = 0;
+  var maxIndex = 0;
+  for (var s in statNames) {
+    if (statNames[s])
+      continue;
+    normStat = serverStats[s]/maxStatValues[s];
     if (normStat > 0)
       avgStat += normStat;
     if (maxStat < normStat) {
       maxStat = normStat;
-      maxIndex = j;
+      maxIndex = s;
     }
   }
-  avgStat = avgStat/numNormalStats;
-  maxStat = Math.min(1,maxStat);
-  statValues[numNormalStats] = Math.floor(significance[numNormalStats]*avgStat)/significance[numNormalStats];
-  statValues[numNormalStats+1] = Math.floor(significance[numNormalStats+1]*maxStat)/significance[numNormalStats+1];
-  statValues[numNormalStats+2] = maxIndex;
+  serverStats.allmax = Math.floor(significance.allmax*Math.min(1,maxStat))/significance.allmax;
+  serverStats.allavg = Math.floor(significance.allavg*avgStat/numNormalStats)/significance.allavg;
+  serverStats.maxStat = maxIndex;
 }
 
-// reset max and average for all servers (global maxes may have changed)
-function resetOverallStats() {
-  for (i=0; i < numLive; i++) {
-    setOverallStats(allStats[i]);
-  }
-}
-
-// initialize or update dot info
-function setDotInfo(id,host,index) {
-  if (index >= ids.length) {
-    ids.push([id,host]);
-    dotSize.push(maxDotRadius);
-    dotSizeGrowing.push(false);
-  } else {
-    ids[index] = [id,host];
-    // keep existing size and direction
+function initDerivedInfo(newstats) {
+  for (var i in newstats.servers) {
+    if ('dead' in newstats.servers[i] || 'bad' in newstats.servers[i]) {
+      continue;
+    }
+    if (i >= dots.length) {
+      dots.push({'size': maxDotRadius, 'growing': false});
+    }
+    setDerivedStats(newstats.servers[i]);
   }
 }
 
 // construct server info for hover
-function getInfo(i) {
-  var extra = '<strong>' + ids[i][0] + '</strong>';
-  if (i < numLive) {
-    extra = extra + ' (' + ids[i][1] + ')';
-    for (j=0; j < numNormalStats; j++) {
-      if (j % 4 == 0)
-        extra = extra + '<br>\n';
-      extra = extra + '&nbsp;&nbsp;' + statName[j] + ': <strong>' + allStats[i][j] + '</strong>';
-    }
-    extra = extra + '<br>\n&nbsp;&nbsp;avg: <strong>' + allStats[i][numNormalStats] + '</strong>&nbsp;&nbsp;max: <strong>' + allStats[i][numNormalStats+1] + '</strong> (' + statName[allStats[i][numNormalStats+2]] + ')';
+function getInfo(serverStats) {
+  var extra = '<strong>' + serverStats.ip + '</strong>';
+  if ('dead' in serverStats || 'bad' in serverStats)
+    return extra;
+  extra = extra + ' (' + serverStats.hostname + ')';
+  var j = 0;
+  for (var s in statNames) {
+    if (j % 4 == 0)
+      extra = extra + '<br>\n';
+    extra = extra + '&nbsp;&nbsp;' + s + ': <strong>' + serverStats[s] + '</strong>';
+    j++;
   }
+  extra = extra + ' (' + serverStats.maxStat + ')';
   return extra;
 }
 
@@ -191,7 +155,7 @@ function getInfo(i) {
 function getXML() {
   if (xmlReturned == true) {
     xmlReturned = false;
-    xmlhttp.open('POST',xmlurl,true);
+    xmlhttp.open('POST',jsonurl,true);
     xmlhttp.send();
   }
 }
@@ -200,54 +164,58 @@ function getXML() {
 function drawDots() {
   requestAnimFrame(drawDots);
   
-  frame++;
-  
-  var width = Math.ceil(Math.sqrt(numDots));
-  var height = Math.ceil(numDots/width);
+  var width = Math.ceil(Math.sqrt(stats.servers.length));
+  var height = Math.ceil(stats.servers.length/width);
   var x;
   var y;
+  var server
   var sizeChange;
-  for (i=0; i < numDots; i++) {
-    if (Math.floor(dotSize[i]) > maxDotRadius) {
+  drawing = true;
+  for (var i in stats.servers) {
+    server = stats.servers[i];
+    x = i % width;
+    y = Math.floor(i / width);
+    if ('bad' in server || 'dead' in server) {
+      strokeDot(x,y,maxDotRadius-1,deadColor);
+      continue;
+    }
+    if (Math.floor(dots[i].size) > maxDotRadius) {
       // check for resize by the user
-      dotSize[i] = maxDotRadius;
-    } else if (i >= numLive || allStats[i][speedStatType]<=0) {
+      dots[i].size = maxDotRadius;
+    } else if (server[speedStatType]<=0) {
       // if not changing size, increase to max radius
-      if (dotSize[i] < maxDotRadius)
-        dotSize[i] = dotSize[i] + 1;
-      if (dotSize[i] > maxDotRadius)
-        dotSize[i] = maxDotRadius;
+      if (dots[i].size < maxDotRadius)
+        dots[i].size = dots[i].size + 1;
+      if (dots[i].size > maxDotRadius)
+        dots[i].size = maxDotRadius;
     } else {
       sizeChange = getStat(i,speedStatType);
-      if (dotSizeGrowing[i]) {
-        dotSize[i] = dotSize[i] + sizeChange;
-        if (dotSize[i] + sizeChange > maxDotRadius) {
-          dotSizeGrowing[i] = false;
+      if (dots[i].growing) {
+        dots[i].size = dots[i].size + sizeChange;
+        if (dots[i].size + sizeChange > maxDotRadius) {
+          dots[i].growing = false;
         }
       }
       else {
-        dotSize[i] = dotSize[i] - sizeChange;
-        if (dotSize[i] - sizeChange < minDotRadius) {
-          dotSizeGrowing[i] = true;
+        dots[i].size = dots[i].size - sizeChange;
+        if (dots[i].size - sizeChange < minDotRadius) {
+          dots[i].growing = true;
         }
       }
     }
-    x = i % width;
-    y = Math.floor(i / width);
-    if (i >= numLive)
-      strokeDot(x,y,maxDotRadius-1,deadColor);
-    else
-      drawDot(x,y,Math.floor(dotSize[i]),getColor(getStat(i,colorStatType)));
+    drawDot(x,y,Math.floor(dots[i].size),getColor(getStat(i,colorStatType)));
   }
-  if (mousedDot >= 0 && mousedDot < numDots)
-    document.getElementById('vishoverinfo').innerHTML=getInfo(mousedDot);
+  // mousedDot shouldn't be set to an invalid dot, but stats might have changed since then
+  if (mousedDot >= 0 && mousedDot < stats.servers.length)
+    document.getElementById('vishoverinfo').innerHTML=getInfo(stats.servers[mousedDot]);
+  drawing = false;
 }
 
 // fill in a few grey dots
 function drawGrid() {
   context.clearRect(0, 0, canvas.width, canvas.height);
-  for (i=0,k=0; i < canvas.width; i+=dotSpacing*2,k++) {
-    for (j=0,l=0; j < canvas.height; j+=dotSpacing*2,l++) {
+  for (var i=0, k=0; i < canvas.width; i+=dotSpacing*2,k++) {
+    for (var j=0, l=0; j < canvas.height; j+=dotSpacing*2,l++) {
       drawDot(k,l,maxDotRadius,nullColor);
     }
   }
@@ -255,8 +223,8 @@ function drawGrid() {
 
 // fill a dot specified by indices into dot grid
 function drawDot(i,j,r,c) {
-  x = i*dotSpacing*2 + dotSpacing;
-  y = j*dotSpacing*2 + dotSpacing;
+  var x = i*dotSpacing*2 + dotSpacing;
+  var y = j*dotSpacing*2 + dotSpacing;
   context.clearRect(x-dotSpacing, y-dotSpacing, dotSpacing*2, dotSpacing*2);
   if (useCircles)
     fillCircle(x,y,r-dotPadding,c);
@@ -266,8 +234,8 @@ function drawDot(i,j,r,c) {
 
 // stroke a dot specified by indices into dot grid
 function strokeDot(i,j,r,c) {
-  x = i*dotSpacing*2 + dotSpacing;
-  y = j*dotSpacing*2 + dotSpacing;
+  var x = i*dotSpacing*2 + dotSpacing;
+  var y = j*dotSpacing*2 + dotSpacing;
   context.clearRect(x-dotSpacing, y-dotSpacing, dotSpacing*2, dotSpacing*2);
   if (useCircles)
     strokeCircle(x,y,r-dotPadding,c);
@@ -276,7 +244,7 @@ function strokeDot(i,j,r,c) {
 }
 
 function getStat(dotIndex,statIndex) {
-  return Math.min(1,allStats[dotIndex][statIndex]/maxStatValue[statIndex]);
+  return Math.min(1,stats.servers[dotIndex][statIndex]/maxStatValues[statIndex]);
 }
 
 // translate color between 0 and maxObservedColor into an html color code
@@ -358,13 +326,27 @@ function setSize(obj) {
 
 // callback for motion selection
 function setMotion(obj) {
-  speedStatType = obj.selectedIndex;
+  var i = 0;
+  for (var s in statNames) {
+    if (i==obj.selectedIndex) {
+      speedStatType = s;
+      break;
+    }
+    i++;
+  }
   setState();
 }
 
 // callback for color selection
 function setColor(obj) {
-  colorStatType = obj.selectedIndex;
+  var i = 0;
+  for (var s in statNames) {
+    if (i==obj.selectedIndex) {
+      colorStatType = s;
+      break;
+    }
+    i++;
+  }
   setState();
 }
 
@@ -387,9 +369,11 @@ function showId(e) {
   }
   var relx = x - canvas.offsetLeft - main.offsetLeft;
   var rely = y - canvas.offsetTop - main.offsetTop;
-  var width = Math.ceil(Math.sqrt(numDots));
-  mousedDot = Math.floor(relx/(dotSpacing*2)) + width*Math.floor(rely/(dotSpacing*2));
-  if (relx < (width*dotSpacing*2) && mousedDot >= 0 && mousedDot < numDots) {
+  var width = Math.ceil(Math.sqrt(stats.servers.length));
+  gotDot = Math.floor(relx/(dotSpacing*2)) + width*Math.floor(rely/(dotSpacing*2));
+  mousedDot = -1;
+  if (relx < (width*dotSpacing*2) && gotDot >= 0 && gotDot < stats.servers.length) {
+    mousedDot = gotDot;
     document.getElementById('vishoverinfo').style.left=relx+canvas.offsetLeft;
     document.getElementById('vishoverinfo').style.top=Math.max(0,rely+canvas.offsetTop-70);
     document.getElementById('vishoverinfo').style.visibility='visible';
@@ -400,14 +384,15 @@ function showId(e) {
 }
 
 function setState() {
-  var url = visurl+'?shape='+(useCircles?'circles':'squares')+'&size='+(dotSpacing*2)+'&motion='+statName[speedStatType]+'&color='+statName[colorStatType];
+  var url = visurl+'?shape='+(useCircles?'circles':'squares')+'&size='+(dotSpacing*2)+'&motion='+speedStatType+'&color='+colorStatType;
   window.history.replaceState(window.history.state,'Server Activity',url);
 }
 
 // go to server page on click
 function goToServer(e) {
-  if (mousedDot >= 0 && mousedDot < numDots)
-    window.location = serverurl + ids[mousedDot][0];
+  // mousedDot shouldn't be set to an invalid dot, but stats might have changed since then
+  if (mousedDot >= 0 && mousedDot < stats.servers.length)
+    window.location = serverurl + stats.servers[mousedDot].ip;
 }
 
 window.onload = function() {

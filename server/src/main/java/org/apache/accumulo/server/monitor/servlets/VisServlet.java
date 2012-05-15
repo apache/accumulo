@@ -204,30 +204,30 @@ public class VisServlet extends BasicServlet {
     // initialization of some javascript variables
     sb.append("<script type='text/javascript'>\n");
     sb.append("var numCores = " + ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors() + ";\n");
-    sb.append("var xmlurl = '" + url + "xml';\n");
+    sb.append("var jsonurl = '" + url + "json';\n");
     sb.append("var visurl = '" + url + "vis';\n");
     sb.append("var serverurl = '" + url + "tservers?s=';\n\n");
     sb.append("// observable stats that can be connected to motion or color\n");
-    sb.append("var statName = [");
+    sb.append("var statNames = {");
     for (StatType st : StatType.values())
-      sb.append("'").append(st).append("',");
+      sb.append("'").append(st).append("': ").append(st.derived).append(",");
     sb.setLength(sb.length() - 1);
-    sb.append("];\n");
-    sb.append("var maxStatValue = [");
+    sb.append("};\n");
+    sb.append("var maxStatValues = {");
     for (StatType st : StatType.values())
-      sb.append(st.getMax()).append(",");
-    sb.setLength(sb.length() - 1);
-    sb.append("]; // initial values that are system-dependent may increase based on observed values\n");
-    sb.append("var adjustMax = [");
+      sb.append("'").append(st).append("': ").append(st.getMax()).append(", ");
+    sb.setLength(sb.length() - 2);
+    sb.append("}; // initial values that are system-dependent may increase based on observed values\n");
+    sb.append("var adjustMax = {");
     for (StatType st : StatType.values())
-      sb.append(st.getAdjustMax()).append(",");
-    sb.setLength(sb.length() - 1);
-    sb.append("]; // whether to allow increases in the max based on observed values\n");
-    sb.append("var significance = [");
+      sb.append("'").append(st).append("': ").append(st.getAdjustMax()).append(", ");
+    sb.setLength(sb.length() - 2);
+    sb.append("}; // whether to allow increases in the max based on observed values\n");
+    sb.append("var significance = {");
     for (StatType st : StatType.values())
-      sb.append(st.getSignificance()).append(",");
-    sb.setLength(sb.length() - 1);
-    sb.append("]; // values will be converted by floor(this*value)/this\n");
+      sb.append("'").append(st).append("': ").append(st.getSignificance()).append(", ");
+    sb.setLength(sb.length() - 2);
+    sb.append("}; // values will be converted by floor(this*value)/this\n");
     sb.append("var numNormalStats = ").append(StatType.values().length - StatType.numDerived()).append(";\n");
     sb.append("</script>\n");
     

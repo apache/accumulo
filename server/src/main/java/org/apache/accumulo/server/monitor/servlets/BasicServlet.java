@@ -115,6 +115,22 @@ abstract public class BasicServlet extends HttpServlet {
     }
     
     // BEGIN PAGE
+    sb.append("<!--\n");
+    sb.append("  Licensed to the Apache Software Foundation (ASF) under one or more\n");
+    sb.append("  contributor license agreements.  See the NOTICE file distributed with\n");
+    sb.append("  this work for additional information regarding copyright ownership.\n");
+    sb.append("  The ASF licenses this file to You under the Apache License, Version 2.0\n");
+    sb.append("  (the \"License\"); you may not use this file except in compliance with\n");
+    sb.append("  the License.  You may obtain a copy of the License at\n");
+    sb.append("\n");
+    sb.append("    http://www.apache.org/licenses/LICENSE-2.0\n");
+    sb.append("\n");
+    sb.append("  Unless required by applicable law or agreed to in writing, software\n");
+    sb.append("  distributed under the License is distributed on an \"AS IS\" BASIS,\n");
+    sb.append("  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n");
+    sb.append("  See the License for the specific language governing permissions and\n");
+    sb.append("  limitations under the License.\n");
+    sb.append("-->\n");
     sb.append("<html>\n");
     
     // BEGIN HEADER
@@ -172,7 +188,8 @@ abstract public class BasicServlet extends HttpServlet {
     if (numProblems > 0)
       sb.append("<span class='error'><a href='/problems'>Table&nbsp;Problems&nbsp;<span class='smalltext'>(" + numProblems + ")</a></span></span><br />\n");
     sb.append("<hr />\n");
-    sb.append("<a href='/xml'>XML</a><hr />\n");
+    sb.append("<a href='/xml'>XML</a><br />\n");
+    sb.append("<a href='/json'>JSON</a><hr />\n");
     sb.append("<div class='smalltext'>[<a href='").append("/op?action=refresh&value=").append(refresh < 1 ? "5" : "-1");
     sb.append("&redir=").append(currentPage(req)).append("'>");
     sb.append(refresh < 1 ? "en" : "dis").append("able&nbsp;auto-refresh</a>]</div>\n");
