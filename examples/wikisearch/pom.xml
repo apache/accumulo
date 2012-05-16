@@ -182,26 +182,6 @@
         <version>${version.commons-lang}</version>
       </dependency>
       <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-core</artifactId>
-        <version>${version.accumulo}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.hadoop</groupId>
-        <artifactId>zookeeper</artifactId>
-        <version>${version.zookeeper}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.thrift</groupId>
-        <artifactId>libthrift</artifactId>
-        <version>${version.libthrift}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.accumulo</groupId>
-        <artifactId>cloudtrace</artifactId>
-        <version>${version.accumulo}</version>
-      </dependency>
-      <dependency>
         <groupId>com.google.collections</groupId>
         <artifactId>google-collections</artifactId>
         <version>${version.googlecollections}</version>
@@ -218,13 +198,13 @@
       </dependency>
       <dependency>
         <groupId>org.apache.lucene</groupId>
-        <artifactId>lucene-analyzers</artifactId>
-        <version>${version.lucene-analyzers}</version>
+        <artifactId>lucene-wikipedia</artifactId>
+        <version>${version.lucene-wikipedia}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.lucene</groupId>
-        <artifactId>lucene-wikipedia</artifactId>
-        <version>${version.lucene-wikipedia}</version>
+        <artifactId>lucene-analyzers</artifactId>
+        <version>${version.lucene-analyzers}</version>
       </dependency>
       <dependency>
         <groupId>com.google.protobuf</groupId>
@@ -242,9 +222,14 @@
         <version>${version.minlog}</version>
       </dependency>
       <dependency>
-      	<groupId>com.sun.jersey</groupId>
-      	<artifactId>jersey-server</artifactId>
-      	<version>1.11</version>
+    	  <groupId>com.sun.jersey</groupId>
+    	  <artifactId>jersey-server</artifactId>
+        <version>1.11</version>
+      </dependency>
+      <dependency>
+    	  <groupId>com.sun.jersey</groupId>
+    	  <artifactId>jersey-core</artifactId>
+        <version>1.11</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
