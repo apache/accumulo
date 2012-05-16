@@ -35,10 +35,6 @@ export ACCUMULO_HOME=`cd $ACCUMULO_HOME; pwd`
 
 if [ -f $ACCUMULO_HOME/conf/accumulo-env.sh ] ; then
 . $ACCUMULO_HOME/conf/accumulo-env.sh
-else
-  echo "${ACCUMULO_HOME}/conf/accumulo-env.sh does not exist. Please make sure you configure Accumulo before you run anything"
-  echo "We provide examples you can copy in ${ACCUMULO_HOME}/conf/examples/ which are set up for your memory footprint"
-  exit 1
 fi
 
 if [ -z ${ACCUMULO_LOG_DIR} ]; then

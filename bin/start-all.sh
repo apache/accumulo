@@ -22,6 +22,13 @@ bin=`cd "$bin"; pwd`
 . "$bin"/config.sh
 unset DISPLAY
 
+if [ ! -f $ACCUMULO_HOME/conf/accumulo-env.sh ] ; then
+  echo "${ACCUMULO_HOME}/conf/accumulo-env.sh does not exist. Please make sure you configure Accumulo before you run anything"
+  echo "We provide examples you can copy in ${ACCUMULO_HOME}/conf/examples/ which are set up for your memory footprint"
+  exit 1
+fi
+
+
 if [ -z $ZOOKEEPER_HOME ] ; then
     echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
     exit 1
