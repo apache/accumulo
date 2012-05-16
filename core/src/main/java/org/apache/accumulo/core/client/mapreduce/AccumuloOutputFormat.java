@@ -108,10 +108,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the output format will create new tables as necessary. Table names can only be alpha-numeric and underscores.
    * @param defaultTable
    *          the table to use when the tablename is null in the write call
-   * @throws IOException
-   *           Thrown when there are issues creating the file distributed with the users info
    */
-  public static void setOutputInfo(Configuration conf, String user, byte[] passwd, boolean createTables, String defaultTable) throws IOException {
+  public static void setOutputInfo(Configuration conf, String user, byte[] passwd, boolean createTables, String defaultTable) {
     if (conf.getBoolean(OUTPUT_INFO_HAS_BEEN_SET, false))
       throw new IllegalStateException("Output info can only be set once per job");
     conf.setBoolean(OUTPUT_INFO_HAS_BEEN_SET, true);
@@ -122,19 +120,23 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     if (defaultTable != null)
       conf.set(DEFAULT_TABLE_NAME, defaultTable);
     
-    FileSystem fs = FileSystem.get(conf);
-    Path file = new Path(fs.getWorkingDirectory(), conf.get("mapred.job.name") + System.currentTimeMillis() + ".pw");
-    conf.set(PASSWORD_PATH, file.toString());
-    FSDataOutputStream fos = fs.create(file, false);
-    fs.setPermission(file, new FsPermission(FsAction.ALL, FsAction.NONE, FsAction.NONE));
-    fs.deleteOnExit(file);
-    
-    byte[] encodedPw = Base64.encodeBase64(passwd);
-    fos.writeInt(encodedPw.length);
-    fos.write(encodedPw);
-    fos.close();
-    
-    DistributedCache.addCacheFile(file.toUri(), conf);
+    try {
+      FileSystem fs = FileSystem.get(conf);
+      Path file = new Path(fs.getWorkingDirectory(), conf.get("mapred.job.name") + System.currentTimeMillis() + ".pw");
+      conf.set(PASSWORD_PATH, file.toString());
+      FSDataOutputStream fos = fs.create(file, false);
+      fs.setPermission(file, new FsPermission(FsAction.ALL, FsAction.NONE, FsAction.NONE));
+      fs.deleteOnExit(file);
+      
+      byte[] encodedPw = Base64.encodeBase64(passwd);
+      fos.writeInt(encodedPw.length);
+      fos.write(encodedPw);
+      fos.close();
+      
+      DistributedCache.addCacheFile(file.toUri(), conf);
+    } catch (IOException ioe) {
+      throw new RuntimeException(ioe);
+    }
 
   }
   
