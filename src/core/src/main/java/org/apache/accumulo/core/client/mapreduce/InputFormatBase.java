@@ -194,10 +194,9 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   /**
-   * @throws IOException
    * @deprecated Use {@link #setInputInfo(Configuration,String,byte[],String,Authorizations)} instead
    */
-  public static void setInputInfo(JobContext job, String user, byte[] passwd, String table, Authorizations auths) throws IOException {
+  public static void setInputInfo(JobContext job, String user, byte[] passwd, String table, Authorizations auths) {
     setInputInfo(job.getConfiguration(), user, passwd, table, auths);
   }
   
@@ -214,9 +213,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    *          the table to read
    * @param auths
    *          the authorizations used to restrict data read
-   * @throws IOException
    */
-  public static void setInputInfo(Configuration conf, String user, byte[] passwd, String table, Authorizations auths) throws IOException {
+  public static void setInputInfo(Configuration conf, String user, byte[] passwd, String table, Authorizations auths) {
     if (conf.getBoolean(INPUT_INFO_HAS_BEEN_SET, false))
       throw new IllegalStateException("Input info can only be set once per job");
     conf.setBoolean(INPUT_INFO_HAS_BEEN_SET, true);
@@ -227,19 +225,24 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     if (auths != null && !auths.isEmpty())
       conf.set(AUTHORIZATIONS, auths.serialize());
     
-    FileSystem fs = FileSystem.get(conf);
-    Path file = new Path(fs.getWorkingDirectory(), conf.get("mapred.job.name") + System.currentTimeMillis() + ".pw");
-    conf.set(PASSWORD_PATH, file.toString());
-    FSDataOutputStream fos = fs.create(file, false);
-    fs.setPermission(file, new FsPermission(FsAction.ALL, FsAction.NONE, FsAction.NONE));
-    fs.deleteOnExit(file);
+    try {
+      FileSystem fs = FileSystem.get(conf);
+      Path file = new Path(fs.getWorkingDirectory(), conf.get("mapred.job.name") + System.currentTimeMillis() + ".pw");
+      conf.set(PASSWORD_PATH, file.toString());
+      FSDataOutputStream fos = fs.create(file, false);
+      fs.setPermission(file, new FsPermission(FsAction.ALL, FsAction.NONE, FsAction.NONE));
+      fs.deleteOnExit(file);
+      
+      byte[] encodedPw = Base64.encodeBase64(passwd);
+      fos.writeInt(encodedPw.length);
+      fos.write(encodedPw);
+      fos.close();
+      
+      DistributedCache.addCacheFile(file.toUri(), conf);
+    } catch (IOException ioe) {
+      throw new RuntimeException(ioe);
+    }
 
-    byte[] encodedPw = Base64.encodeBase64(passwd);
-    fos.writeInt(encodedPw.length);
-    fos.write(encodedPw);
-    fos.close();
-    
-    DistributedCache.addCacheFile(file.toUri(), conf);
   }
   
   /**
