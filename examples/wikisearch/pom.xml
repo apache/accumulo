@@ -18,9 +18,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-        <artifactId>accumulo-examples</artifactId>
-        <groupId>org.apache.accumulo</groupId>
-        <version>1.5.0-SNAPSHOT</version>
+    <artifactId>accumulo-examples</artifactId>
+    <groupId>org.apache.accumulo</groupId>
+    <version>1.5.0-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-wikisearch</artifactId>
   <packaging>pom</packaging>
@@ -222,13 +222,13 @@
         <version>${version.minlog}</version>
       </dependency>
       <dependency>
-    	  <groupId>com.sun.jersey</groupId>
-    	  <artifactId>jersey-server</artifactId>
+        <groupId>com.sun.jersey</groupId>
+        <artifactId>jersey-server</artifactId>
         <version>1.11</version>
       </dependency>
       <dependency>
-    	  <groupId>com.sun.jersey</groupId>
-    	  <artifactId>jersey-core</artifactId>
+        <groupId>com.sun.jersey</groupId>
+        <artifactId>jersey-core</artifactId>
         <version>1.11</version>
       </dependency>
     </dependencies>

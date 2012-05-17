@@ -34,7 +34,7 @@
 
   <organization>
     <name>Apache Accumulo Project</name>
-      <url>http://accumulo.apache.org/</url>
+    <url>http://accumulo.apache.org/</url>
   </organization>
 
   <distributionManagement>
@@ -58,11 +58,11 @@
     <extensions>
       <!-- enable ssh deployment of site with maven 3 -->
       <extension>
- 	<groupId>org.apache.maven.wagon</groupId>
- 	<artifactId>wagon-ssh</artifactId>
- 	<version>2.2</version>
-       </extension>
-     </extensions>    
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-ssh</artifactId>
+        <version>2.2</version>
+      </extension>
+    </extensions>
     <defaultGoal>package</defaultGoal>
     <plugins>
       <plugin>
@@ -197,42 +197,42 @@
 
     <pluginManagement>
       <plugins>
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <archive>
-            <manifest>
-              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
-            </manifest>
-            <manifestEntries>
-              <Implementation-Build>${buildNumber}</Implementation-Build>
-              <Implementation-Timestamp>${timestamp}</Implementation-Timestamp>
-            </manifestEntries>
-          </archive>
-        </configuration>
-      </plugin>
-	<plugin>
-	  <artifactId>maven-resources-plugin</artifactId>
-	  <version>2.5</version>
-	</plugin>
-	<plugin>
-	  <artifactId>maven-compiler-plugin</artifactId>
-	  <version>2.3.2</version>
-	</plugin>
-	<plugin>
-	  <artifactId>maven-javadoc-plugin</artifactId>
-	  <version>2.8.1</version>
-	</plugin>
-	<plugin>
-	  <artifactId>maven-surefire-plugin</artifactId>
-	  <version>2.12</version>
-	</plugin>
-	<plugin>
-	  <groupId>org.apache.maven.plugins</groupId>
-	  <artifactId>maven-enforcer-plugin</artifactId>
-	  <version>1.0.1</version>
-	</plugin>
+        <plugin>
+          <artifactId>maven-jar-plugin</artifactId>
+          <configuration>
+            <archive>
+              <manifest>
+                <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+              </manifest>
+              <manifestEntries>
+                <Implementation-Build>${buildNumber}</Implementation-Build>
+                <Implementation-Timestamp>${timestamp}</Implementation-Timestamp>
+              </manifestEntries>
+            </archive>
+          </configuration>
+        </plugin>
+        <plugin>
+          <artifactId>maven-resources-plugin</artifactId>
+          <version>2.5</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>2.3.2</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>2.8.1</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.12</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>1.0.1</version>
+        </plugin>
         <plugin>
           <artifactId>maven-assembly-plugin</artifactId>
           <version>2.2.1</version>
@@ -242,11 +242,11 @@
           <artifactId>exec-maven-plugin</artifactId>
           <version>1.2.1</version>
         </plugin>
-	<plugin>
-	  <groupId>org.apache.maven.plugins</groupId>
-	  <artifactId>maven-dependency-plugin</artifactId>
-	  <version>2.3</version>
-	</plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>2.3</version>
+        </plugin>
         <plugin>
           <groupId>org.eclipse.m2e</groupId>
           <artifactId>lifecycle-mapping</artifactId>
@@ -264,7 +264,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <ignore/>
+                    <ignore />
                   </action>
                 </pluginExecution>
                 <pluginExecution>
@@ -290,7 +290,7 @@
                     </goals>
                   </pluginExecutionFilter>
                   <action>
-                    <ignore/>
+                    <ignore />
                   </action>
                 </pluginExecution>
                 <pluginExecution>
@@ -315,19 +315,19 @@
           <artifactId>rpm-maven-plugin</artifactId>
           <version>2.1-alpha-1</version>
         </plugin>
-	<plugin>
-	  <groupId>org.apache.maven.plugins</groupId>
-	  <artifactId>maven-site-plugin</artifactId>
-	  <version>3.0</version>
-	  <executions>
-          <execution>
-            <id>attach-descriptor</id>
-            <goals>
-              <goal>attach-descriptor</goal>
-            </goals>
-          </execution>
-        </executions>
-	</plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-site-plugin</artifactId>
+          <version>3.0</version>
+          <executions>
+            <execution>
+              <id>attach-descriptor</id>
+              <goals>
+                <goal>attach-descriptor</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
@@ -378,23 +378,23 @@
         <version>2.8.1</version>
       </plugin>
       <plugin>
-	<groupId>org.apache.maven.plugins</groupId>
-	<artifactId>maven-project-info-reports-plugin</artifactId>
-	<version>2.4</version>
-	<configuration>
-	  <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
-	</configuration>
-	<reportSets>
-	  <reportSet>
-	    <reports>
-	      <report>summary</report>
-	      <report>index</report>
-	      <report>dependencies</report>
-	      <report>issue-tracking</report>
-	      <report>scm</report>
-	    </reports>
-	  </reportSet>
-	</reportSets>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <version>2.4</version>
+        <configuration>
+          <dependencyLocationsEnabled>false</dependencyLocationsEnabled>
+        </configuration>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>summary</report>
+              <report>index</report>
+              <report>dependencies</report>
+              <report>issue-tracking</report>
+              <report>scm</report>
+            </reports>
+          </reportSet>
+        </reportSets>
       </plugin>
     </plugins>
   </reporting>
@@ -539,11 +539,6 @@
         <groupId>commons-configuration</groupId>
         <artifactId>commons-configuration</artifactId>
         <version>1.5</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-logging</groupId>
-        <artifactId>commons-logging</artifactId>
-        <version>1.0.4</version>
       </dependency>
       <dependency>
         <groupId>commons-cli</groupId>
