@@ -31,7 +31,7 @@ public class GetGroupsCommand extends Command {
   
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
+    String tableName = OptUtil.getTableOpt(cl, shellState);
     
     Map<String,Set<Text>> groups = shellState.getConnector().tableOperations().getLocalityGroups(tableName);
     

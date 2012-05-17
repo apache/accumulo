@@ -149,6 +149,7 @@ public class Shell extends ShellOptions {
   public static final Logger log = Logger.getLogger(Shell.class);
   private static final Logger audit = Logger.getLogger(Shell.class.getName() + ".audit");
   
+  public static final String CHARSET = "ISO-8859-1";
   public static final int NO_FIXED_ARG_LENGTH_CHECK = -1;
   private static final String SHELL_DESCRIPTION = "Shell - Apache Accumulo Interactive Shell";
   private static final String DEFAULT_AUTH_TIMEOUT = "60"; // in minutes
@@ -861,6 +862,14 @@ public class Shell extends ShellOptions {
     PrintWriter pw = new PrintWriter(System.err);
     new HelpFormatter().printHelp(pw, width, usage, description, opts, 2, 5, null, true);
     pw.flush();
+  }
+  
+  public int getExitCode() {
+    return exitCode;
+  }
+  
+  public void resetExitCode() {
+    exitCode = 0;
   }
   
   public void setExit(boolean exit) {

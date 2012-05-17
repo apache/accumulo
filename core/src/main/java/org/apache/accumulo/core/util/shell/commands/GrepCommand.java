@@ -39,7 +39,7 @@ public class GrepCommand extends ScanCommand {
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, MissingArgumentException {
     
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
+    String tableName = OptUtil.getTableOpt(cl, shellState);
     
     if (cl.getArgList().isEmpty())
       throw new MissingArgumentException("No terms specified");

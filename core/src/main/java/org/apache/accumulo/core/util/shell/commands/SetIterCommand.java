@@ -54,7 +54,7 @@ public class SetIterCommand extends Command {
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ShellCommandException {
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
+    String tableName = OptUtil.getTableOpt(cl, shellState);
     
     int priority = Integer.parseInt(cl.getOptionValue(priorityOpt.getOpt()));
     

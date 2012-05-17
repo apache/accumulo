@@ -29,7 +29,7 @@ public class DeleteIterCommand extends Command {
   private Option mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
+    String tableName = OptUtil.getTableOpt(cl, shellState);
     
     String name = cl.getOptionValue(nameOpt.getOpt());
     if (!shellState.getConnector().tableOperations().listIterators(tableName).containsKey(name)) {

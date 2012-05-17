@@ -32,7 +32,7 @@ public class DeleteScanIterCommand extends Command {
   
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
+    String tableName = OptUtil.getTableOpt(cl, shellState);
     
     if (cl.hasOption(allOpt.getOpt())) {
       List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.remove(tableName);

@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -41,13 +42,13 @@ import org.apache.hadoop.io.Text;
 
 public class ScanCommand extends Command {
   
-  private Option scanOptAuths, scanOptStartRow, scanOptEndRow, scanOptRow, scanOptColumns, disablePaginationOpt, showFewOpt, formatterOpt;
+  private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, showFewOpt, formatterOpt;
   protected Option timestampOpt;
   private Option optStartRowExclusive;
   private Option optEndRowExclusive;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
+    String tableName = OptUtil.getTableOpt(cl, shellState);
     
     Class<? extends Formatter> formatter = null;
     
@@ -138,30 +139,30 @@ public class ScanCommand extends Command {
     shellState.printBinaryRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
   }
   
-  protected void fetchColumns(CommandLine cl, ScannerBase scanner) {
+  protected void fetchColumns(CommandLine cl, ScannerBase scanner) throws UnsupportedEncodingException {
     if (cl.hasOption(scanOptColumns.getOpt())) {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
         String sa[] = a.split(":", 2);
         if (sa.length == 1)
-          scanner.fetchColumnFamily(new Text(a));
+          scanner.fetchColumnFamily(new Text(a.getBytes(Shell.CHARSET)));
         else
-          scanner.fetchColumn(new Text(sa[0]), new Text(sa[1]));
+          scanner.fetchColumn(new Text(sa[0].getBytes(Shell.CHARSET)), new Text(sa[1].getBytes(Shell.CHARSET)));
       }
     }
   }
   
-  protected Range getRange(CommandLine cl) {
-    if ((cl.hasOption(scanOptStartRow.getOpt()) || cl.hasOption(scanOptEndRow.getOpt())) && cl.hasOption(scanOptRow.getOpt())) {
+  protected Range getRange(CommandLine cl) throws UnsupportedEncodingException {
+    if ((cl.hasOption(OptUtil.START_ROW_OPT) || cl.hasOption(OptUtil.END_ROW_OPT)) && cl.hasOption(scanOptRow.getOpt())) {
       // did not see a way to make commons cli do this check... it has mutually exclusive options but does not support the or
-      throw new IllegalArgumentException("Options -" + scanOptRow.getOpt() + " AND (-" + scanOptStartRow.getOpt() + " OR -" + scanOptEndRow.getOpt()
+      throw new IllegalArgumentException("Options -" + scanOptRow.getOpt() + " AND (-" + OptUtil.START_ROW_OPT + " OR -" + OptUtil.END_ROW_OPT
           + ") are mutally exclusive ");
     }
     
     if (cl.hasOption(scanOptRow.getOpt())) {
-      return new Range(new Text(cl.getOptionValue(scanOptRow.getOpt())));
+      return new Range(new Text(cl.getOptionValue(scanOptRow.getOpt()).getBytes(Shell.CHARSET)));
     } else {
-      Text startRow = cl.hasOption(scanOptStartRow.getOpt()) ? new Text(cl.getOptionValue(scanOptStartRow.getOpt())) : null;
-      Text endRow = cl.hasOption(scanOptEndRow.getOpt()) ? new Text(cl.getOptionValue(scanOptEndRow.getOpt())) : null;
+      Text startRow = OptUtil.getStartRow(cl);
+      Text endRow = OptUtil.getEndRow(cl);
       boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
       boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
       return new Range(startRow, startInclusive, endRow, endInclusive);
@@ -187,8 +188,6 @@ public class ScanCommand extends Command {
     Options o = new Options();
     
     scanOptAuths = new Option("s", "scan-authorizations", true, "scan authorizations (all user auths are used if this argument is not specified)");
-    scanOptStartRow = new Option("b", "begin-row", true, "begin row (inclusive)");
-    scanOptEndRow = new Option("e", "end-row", true, "end row (inclusive)");
     optStartRowExclusive = new Option("be", "begin-exclusive", false, "make start row exclusive (by default it's inclusive)");
     optStartRowExclusive.setArgName("begin-exclusive");
     optEndRowExclusive = new Option("ee", "end-exclusive", false, "make end row exclusive (by default it's inclusive)");
@@ -202,8 +201,6 @@ public class ScanCommand extends Command {
     
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
-    scanOptStartRow.setArgName("start-row");
-    scanOptEndRow.setArgName("end-row");
     scanOptColumns.setArgName("<columnfamily>[:<columnqualifier>]{,<columnfamily>[:<columnqualifier>]}");
     showFewOpt.setRequired(false);
     showFewOpt.setArgName("int");
@@ -211,8 +208,8 @@ public class ScanCommand extends Command {
     
     o.addOption(scanOptAuths);
     o.addOption(scanOptRow);
-    o.addOption(scanOptStartRow);
-    o.addOption(scanOptEndRow);
+    o.addOption(OptUtil.startRowOpt());
+    o.addOption(OptUtil.endRowOpt());
     o.addOption(optStartRowExclusive);
     o.addOption(optEndRowExclusive);
     o.addOption(scanOptColumns);

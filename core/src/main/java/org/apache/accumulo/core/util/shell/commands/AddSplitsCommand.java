@@ -33,7 +33,7 @@ public class AddSplitsCommand extends Command {
   private Option optSplitsFile, base64Opt;
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
+    String tableName = OptUtil.getTableOpt(cl, shellState);
     boolean decode = cl.hasOption(base64Opt.getOpt());
     
     TreeSet<Text> splits = new TreeSet<Text>();
@@ -53,7 +53,7 @@ public class AddSplitsCommand extends Command {
         throw new MissingArgumentException("No split points specified");
       
       for (String s : cl.getArgs()) {
-        splits.add(new Text(s));
+        splits.add(new Text(s.getBytes(Shell.CHARSET)));
       }
     }
     
@@ -76,7 +76,7 @@ public class AddSplitsCommand extends Command {
     optSplitsFile = new Option("sf", "splits-file", true, "file with a newline-separated list of rows to split the table with");
     optSplitsFile.setArgName("filename");
     
-    base64Opt = new Option("b64", "base64encoded", false, "decode encoded split points");
+    base64Opt = new Option("b64", "base64encoded", false, "decode encoded split points (splits file only)");
     
     o.addOption(OptUtil.tableOpt("name of the table to add split points to"));
     o.addOption(optSplitsFile);

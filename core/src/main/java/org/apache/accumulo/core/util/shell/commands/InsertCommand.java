@@ -44,22 +44,23 @@ public class InsertCommand extends Command {
       IOException, ConstraintViolationException {
     shellState.checkTableState();
     
-    Mutation m = new Mutation(new Text(cl.getArgs()[0]));
+    Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
+    Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
+    Text colq = new Text(cl.getArgs()[2].getBytes(Shell.CHARSET));
+    Value val = new Value(cl.getArgs()[3].getBytes(Shell.CHARSET));
     
     if (cl.hasOption(insertOptAuths.getOpt())) {
       ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(insertOptAuths.getOpt()));
       Shell.log.debug("Authorization label will be set to: " + le.toString());
       
       if (cl.hasOption(timestampOpt.getOpt()))
-        m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())),
-            new Value(cl.getArgs()[3].getBytes()));
+        m.put(colf, colq, le, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())), val);
       else
-        m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le, new Value(cl.getArgs()[3].getBytes()));
+        m.put(colf, colq, le, val);
     } else if (cl.hasOption(timestampOpt.getOpt()))
-      m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())),
-          new Value(cl.getArgs()[3].getBytes()));
+      m.put(colf, colq, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())), val);
     else
-      m.put(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), new Value(cl.getArgs()[3].getBytes()));
+      m.put(colf, colq, val);
     
     BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), m.estimatedMemoryUsed() + 0L, 0L, 1);
     bw.addMutation(m);

@@ -25,7 +25,7 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class CompactCommand extends TableOperation {
-  private Option optStartRow, optEndRow, noFlushOption, waitOpt;
+  private Option noFlushOption, waitOpt;
   private boolean flush;
   private Text startRow;
   private Text endRow;
@@ -55,12 +55,8 @@ public class CompactCommand extends TableOperation {
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     flush = !cl.hasOption(noFlushOption.getOpt());
-    startRow = null;
-    if (cl.hasOption(optStartRow.getOpt()))
-      startRow = new Text(cl.getOptionValue(optStartRow.getOpt()));
-    endRow = null;
-    if (cl.hasOption(optEndRow.getOpt()))
-      endRow = new Text(cl.getOptionValue(optEndRow.getOpt()));
+    startRow = OptUtil.getStartRow(cl);
+    endRow = OptUtil.getEndRow(cl);
     wait = cl.hasOption(waitOpt.getOpt());
     
     return super.execute(fullCommand, cl, shellState);
@@ -70,10 +66,8 @@ public class CompactCommand extends TableOperation {
   public Options getOptions() {
     Options opts = super.getOptions();
     
-    optStartRow = new Option("b", "begin-row", true, "begin row");
-    opts.addOption(optStartRow);
-    optEndRow = new Option("e", "end-row", true, "end row");
-    opts.addOption(optEndRow);
+    opts.addOption(OptUtil.startRowOpt());
+    opts.addOption(OptUtil.endRowOpt());
     noFlushOption = new Option("nf", "noFlush", false, "do not flush table data in memory before compacting.");
     opts.addOption(noFlushOption);
     waitOpt = new Option("w", "wait", false, "wait for compact to finish");

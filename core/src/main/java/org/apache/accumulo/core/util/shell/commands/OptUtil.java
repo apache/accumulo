@@ -16,20 +16,26 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import java.io.UnsupportedEncodingException;
+
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
+import org.apache.hadoop.io.Text;
 
 public abstract class OptUtil {
-  public static String configureTableOpt(CommandLine cl, Shell shellState) throws TableNotFoundException {
+  public static final String START_ROW_OPT = "b";
+  public static final String END_ROW_OPT = "e";
+  
+  public static String getTableOpt(CommandLine cl, Shell shellState) throws TableNotFoundException {
     String tableName;
     
     if (cl.hasOption(Shell.tableOption)) {
       tableName = cl.getOptionValue(Shell.tableOption);
       if (!shellState.getConnector().tableOperations().exists(tableName))
-        throw new TableNotFoundException(null, tableName, null);
+        throw new TableNotFoundException(tableName, tableName, "specified table that doesn't exist");
     } else {
       shellState.checkTableState();
       tableName = shellState.getTableName();
@@ -59,7 +65,7 @@ public abstract class OptUtil {
     }
   }
   
-  public static AdlOpt configureAldOpt(CommandLine cl) {
+  public static AdlOpt getAldOpt(CommandLine cl) {
     if (cl.hasOption(AdlOpt.ADD.opt)) {
       return AdlOpt.ADD;
     } else if (cl.hasOption(AdlOpt.DELETE.opt)) {
@@ -79,5 +85,31 @@ public abstract class OptUtil {
     og.addOption(listOpt);
     og.setRequired(true);
     return og;
+  }
+  
+  public static Option startRowOpt() {
+    Option o = new Option(START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
+    o.setArgName("begin-row");
+    return o;
+  }
+  
+  public static Option endRowOpt() {
+    Option o = new Option(END_ROW_OPT, "end-row", true, "end row (inclusive)");
+    o.setArgName("end-row");
+    return o;
+  }
+  
+  public static Text getStartRow(CommandLine cl) throws UnsupportedEncodingException {
+    if (cl.hasOption(START_ROW_OPT))
+      return new Text(cl.getOptionValue(START_ROW_OPT).getBytes(Shell.CHARSET));
+    else
+      return null;
+  }
+  
+  public static Text getEndRow(CommandLine cl) throws UnsupportedEncodingException {
+    if (cl.hasOption(END_ROW_OPT))
+      return new Text(cl.getOptionValue(END_ROW_OPT).getBytes(Shell.CHARSET));
+    else
+      return null;
   }
 }

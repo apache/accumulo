@@ -34,7 +34,7 @@ public class SetGroupsCommand extends Command {
   
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
+    String tableName = OptUtil.getTableOpt(cl, shellState);
     
     HashMap<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
     
@@ -46,7 +46,7 @@ public class SetGroupsCommand extends Command {
       HashSet<Text> colFams = new HashSet<Text>();
       
       for (String family : sa[1].split(",")) {
-        colFams.add(new Text(family));
+        colFams.add(new Text(family.getBytes(Shell.CHARSET)));
       }
       
       groups.put(group, colFams);

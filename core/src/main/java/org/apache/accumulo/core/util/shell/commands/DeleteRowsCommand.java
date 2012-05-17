@@ -24,17 +24,13 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class DeleteRowsCommand extends Command {
-  private Option optStartRow, optEndRow, forceOpt;
+  private Option forceOpt;
   
   @Override
   public int execute(String fullCommand, CommandLine cl, final Shell shellState) throws Exception {
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
-    Text startRow = null;
-    if (cl.hasOption(optStartRow.getOpt()))
-      startRow = new Text(cl.getOptionValue(optStartRow.getOpt()));
-    Text endRow = null;
-    if (cl.hasOption(optEndRow.getOpt()))
-      endRow = new Text(cl.getOptionValue(optEndRow.getOpt()));
+    String tableName = OptUtil.getTableOpt(cl, shellState);
+    Text startRow = OptUtil.getStartRow(cl);
+    Text endRow = OptUtil.getEndRow(cl);
     if (!cl.hasOption(forceOpt.getOpt()) && (startRow == null || endRow == null)) {
       shellState.getReader().printString("Not deleting unbounded range. Specify both ends, or use --force\n");
       return 1;
@@ -56,11 +52,9 @@ public class DeleteRowsCommand extends Command {
   @Override
   public Options getOptions() {
     Options o = new Options();
-    optStartRow = new Option("b", "begin-row", true, "begin row");
-    optEndRow = new Option("e", "end-row", true, "end row");
     forceOpt = new Option("f", "force", false, "delete data even if start or end are not specified");
-    o.addOption(optStartRow);
-    o.addOption(optEndRow);
+    o.addOption(OptUtil.startRowOpt());
+    o.addOption(OptUtil.endRowOpt());
     o.addOption(OptUtil.tableOpt("table to delete a row range from"));
     o.addOption(forceOpt);
     return o;

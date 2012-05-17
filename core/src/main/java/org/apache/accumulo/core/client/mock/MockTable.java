@@ -16,11 +16,14 @@
  */
 package org.apache.accumulo.core.client.mock;
 
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.apache.accumulo.core.client.admin.TimeType;
@@ -32,6 +35,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.hadoop.io.Text;
 
 public class MockTable {
   
@@ -82,6 +86,7 @@ public class MockTable {
   final Map<String,String> settings;
   Map<String,EnumSet<TablePermission>> userPermissions = new HashMap<String,EnumSet<TablePermission>>();
   private TimeType timeType;
+  SortedSet<Text> splits = new TreeSet<Text>();
   
   MockTable(boolean useVersions, TimeType timeType) {
     this.timeType = timeType;
@@ -109,5 +114,13 @@ public class MockTable {
       
       table.put(new MockMemKey(key, mutationCount), new Value(u.getValue()));
     }
+  }
+  
+  public void addSplits(SortedSet<Text> partitionKeys) {
+    splits.addAll(partitionKeys);
+  }
+  
+  public Collection<Text> getSplits() {
+    return splits;
   }
 }

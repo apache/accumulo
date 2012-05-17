@@ -41,7 +41,7 @@ public class FormatterCommand extends Command {
   
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
+    String tableName = OptUtil.getTableOpt(cl, shellState);
     
     if (cl.hasOption(removeFormatterOption.getOpt())) {
       // Remove the property

@@ -28,20 +28,16 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class MergeCommand extends Command {
-  private Option mergeOptStartRow, mergeOptEndRow, verboseOpt, forceOpt, sizeOpt;
+  private Option verboseOpt, forceOpt, sizeOpt;
   
   @Override
   public int execute(String fullCommand, CommandLine cl, final Shell shellState) throws Exception {
     boolean verbose = shellState.isVerbose();
     boolean force = false;
     long size = -1;
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
-    Text startRow = null;
-    if (cl.hasOption(mergeOptStartRow.getOpt()))
-      startRow = new Text(cl.getOptionValue(mergeOptStartRow.getOpt()));
-    Text endRow = null;
-    if (cl.hasOption(mergeOptEndRow.getOpt()))
-      endRow = new Text(cl.getOptionValue(mergeOptEndRow.getOpt()));
+    String tableName = OptUtil.getTableOpt(cl, shellState);
+    Text startRow = OptUtil.getStartRow(cl);
+    Text endRow = OptUtil.getEndRow(cl);
     if (cl.hasOption(verboseOpt.getOpt()))
       verbose = true;
     if (cl.hasOption(forceOpt.getOpt()))
@@ -83,13 +79,11 @@ public class MergeCommand extends Command {
   @Override
   public Options getOptions() {
     Options o = new Options();
-    mergeOptStartRow = new Option("b", "begin-row", true, "begin row");
-    mergeOptEndRow = new Option("e", "end-row", true, "end row");
     verboseOpt = new Option("v", "verbose", false, "verbose output during merge");
     sizeOpt = new Option("s", "size", true, "merge tablets to the given size over the entire table");
     forceOpt = new Option("f", "force", false, "merge small tablets to large tablets, even if it goes over the given size");
-    o.addOption(mergeOptStartRow);
-    o.addOption(mergeOptEndRow);
+    o.addOption(OptUtil.startRowOpt());
+    o.addOption(OptUtil.endRowOpt());
     o.addOption(OptUtil.tableOpt("table to be merged"));
     o.addOption(verboseOpt);
     o.addOption(sizeOpt);

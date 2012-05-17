@@ -84,14 +84,16 @@ public class MockTableOperations extends TableOperationsHelper {
   
   @Override
   public void addSplits(String tableName, SortedSet<Text> partitionKeys) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    throw new NotImplementedException();
+    if (!exists(tableName))
+      throw new TableNotFoundException(tableName, tableName, "");
+    acu.addSplits(tableName, partitionKeys);
   }
   
   @Override
   public Collection<Text> getSplits(String tableName) throws TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
-    return Collections.emptyList();
+    return acu.getSplits(tableName);
   }
   
   @Override

@@ -31,7 +31,7 @@ public class FlushCommand extends TableOperation {
   private Text endRow;
   
   private boolean wait;
-  private Option optStartRow, optEndRow, waitOpt;
+  private Option waitOpt;
   
   @Override
   public String description() {
@@ -52,12 +52,8 @@ public class FlushCommand extends TableOperation {
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     wait = cl.hasOption(waitOpt.getLongOpt());
-    startRow = null;
-    if (cl.hasOption(optStartRow.getOpt()))
-      startRow = new Text(cl.getOptionValue(optStartRow.getOpt()));
-    endRow = null;
-    if (cl.hasOption(optEndRow.getOpt()))
-      endRow = new Text(cl.getOptionValue(optEndRow.getOpt()));
+    startRow = OptUtil.getStartRow(cl);
+    endRow = OptUtil.getEndRow(cl);
     return super.execute(fullCommand, cl, shellState);
   }
   
@@ -66,10 +62,8 @@ public class FlushCommand extends TableOperation {
     Options opts = super.getOptions();
     waitOpt = new Option("w", "wait", false, "wait for flush to finish");
     opts.addOption(waitOpt);
-    optStartRow = new Option("b", "begin-row", true, "begin row");
-    opts.addOption(optStartRow);
-    optEndRow = new Option("e", "end-row", true, "end row");
-    opts.addOption(optEndRow);
+    opts.addOption(OptUtil.startRowOpt());
+    opts.addOption(OptUtil.endRowOpt());
     
     return opts;
   }

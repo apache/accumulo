@@ -87,7 +87,7 @@ public class BinaryFormatter implements Formatter {
     return sb.toString();
   }
   
-  static StringBuilder appendText(StringBuilder sb, Text t) {
+  public static StringBuilder appendText(StringBuilder sb, Text t) {
     return appendBytes(sb, t.getBytes(), 0, t.getLength());
   }
   

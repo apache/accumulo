@@ -38,7 +38,7 @@ public class DeleteManyCommand extends ScanCommand {
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ParseException {
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
+    String tableName = OptUtil.getTableOpt(cl, shellState);
     
     // handle first argument, if present, the authorizations list to
     // scan with

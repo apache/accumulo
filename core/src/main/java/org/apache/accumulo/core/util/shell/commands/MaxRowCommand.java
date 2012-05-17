@@ -32,7 +32,7 @@ public class MaxRowCommand extends ScanCommand {
   
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ParseException {
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
+    String tableName = OptUtil.getTableOpt(cl, shellState);
     Range range = getRange(cl);
     Authorizations auths = getAuths(cl, shellState);
     Text startRow = range.getStartKey() == null ? null : range.getStartKey().getRow();

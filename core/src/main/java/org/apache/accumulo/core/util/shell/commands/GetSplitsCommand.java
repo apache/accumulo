@@ -33,6 +33,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.format.BinaryFormatter;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.Shell.PrintFile;
@@ -51,7 +52,7 @@ public class GetSplitsCommand extends Command {
   @Override
   public int execute(String fullCommand, CommandLine cl, final Shell shellState) throws IOException, AccumuloException, AccumuloSecurityException,
       TableNotFoundException {
-    String tableName = OptUtil.configureTableOpt(cl, shellState);
+    String tableName = OptUtil.getTableOpt(cl, shellState);
     
     final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
     final String m = cl.getOptionValue(maxSplitsOpt.getOpt());
@@ -97,7 +98,8 @@ public class GetSplitsCommand extends Command {
   private static String encode(boolean encode, Text text) {
     if (text == null)
       return null;
-    return encode ? new String(Base64.encodeBase64(TextUtil.getBytes(text))) : text.toString();
+    BinaryFormatter.getlength(text.getLength());
+    return encode ? new String(Base64.encodeBase64(TextUtil.getBytes(text))) : BinaryFormatter.appendText(new StringBuilder(), text).toString();
   }
   
   private static String obscuredTabletName(KeyExtent extent) {

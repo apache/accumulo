@@ -16,10 +16,12 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.apache.accumulo.core.util.BadArgumentException;
+import org.apache.accumulo.core.util.shell.Shell;
 
 /**
  * A basic tokenizer for generating tokens from a string. It understands quoted strings and escaped quote characters.
@@ -36,20 +38,26 @@ public class QuotedStringTokenizer implements Iterable<String> {
   public QuotedStringTokenizer(String t) throws BadArgumentException {
     tokens = new ArrayList<String>();
     this.input = t;
-    createTokens();
+    try {
+      createTokens();
+    } catch (UnsupportedEncodingException e) {
+      throw new IllegalArgumentException(e.getMessage());
+    }
   }
   
   public String[] getTokens() {
     return tokens.toArray(new String[tokens.size()]);
   }
   
-  private void createTokens() throws BadArgumentException {
+  private void createTokens() throws BadArgumentException, UnsupportedEncodingException {
     boolean inQuote = false;
     boolean inEscapeSequence = false;
     String hexChars = null;
     char inQuoteChar = '"';
-    StringBuilder sb = new StringBuilder();
     
+    byte[] token = new byte[input.length()];
+    int tokenLength = 0;
+    byte[] inputBytes = input.getBytes();
     for (int i = 0; i < input.length(); ++i) {
       char ch = input.charAt(i);
       
@@ -59,7 +67,7 @@ public class QuotedStringTokenizer implements Iterable<String> {
         if (ch == 'x')
           hexChars = "";
         else if (ch == ' ' || ch == '\'' || ch == '"' || ch == '\\')
-          sb.append(ch);
+          token[tokenLength++] = inputBytes[i];
         else
           throw new BadArgumentException("can only escape single quotes, double quotes, the space character, the backslash, and hex input", input, i);
       }
@@ -73,12 +81,12 @@ public class QuotedStringTokenizer implements Iterable<String> {
           byte b;
           try {
             b = (byte) (0xff & Short.parseShort(hexChars, 16));
-            if (!Character.isValidCodePoint(b))
+            if (!Character.isValidCodePoint(0xff & b))
               throw new NumberFormatException();
           } catch (NumberFormatException e) {
             throw new BadArgumentException("unsupported non-ascii character", input, i);
           }
-          sb.append((char) b);
+          token[tokenLength++] = b;
           hexChars = null;
         }
       }
@@ -86,37 +94,37 @@ public class QuotedStringTokenizer implements Iterable<String> {
       else if (inQuote) {
         if (ch == inQuoteChar) {
           inQuote = false;
-          tokens.add(sb.toString());
-          sb = new StringBuilder();
+          tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
+          tokenLength = 0;
         } else if (ch == '\\')
           inEscapeSequence = true;
         else
-          sb.append(ch);
+          token[tokenLength++] = inputBytes[i];
       }
       // not in a quote, either enter a quote, end a token, start escape, or continue a token
       else {
         if (ch == '\'' || ch == '"') {
-          if (sb.length() > 0) {
-            tokens.add(sb.toString());
-            sb = new StringBuilder();
+          if (tokenLength > 0) {
+            tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
+            tokenLength = 0;
           }
           inQuote = true;
           inQuoteChar = ch;
-        } else if (ch == ' ' && sb.length() > 0) {
-          tokens.add(sb.toString());
-          sb = new StringBuilder();
+        } else if (ch == ' ' && tokenLength > 0) {
+          tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
+          tokenLength = 0;
         } else if (ch == '\\')
           inEscapeSequence = true;
         else if (ch != ' ')
-          sb.append(ch);
+          token[tokenLength++] = inputBytes[i];
       }
     }
     if (inQuote)
       throw new BadArgumentException("missing terminating quote", input, input.length());
     else if (inEscapeSequence || hexChars != null)
       throw new BadArgumentException("escape sequence not complete", input, input.length());
-    if (sb.length() > 0)
-      tokens.add(sb.toString());
+    if (tokenLength > 0)
+      tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
   }
   
   @Override

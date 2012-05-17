@@ -39,18 +39,20 @@ public class DeleteCommand extends Command {
       IOException, ConstraintViolationException {
     shellState.checkTableState();
     
-    Mutation m = new Mutation(new Text(cl.getArgs()[0]));
+    Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
+    Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
+    Text colq = new Text(cl.getArgs()[2].getBytes(Shell.CHARSET));
     
     if (cl.hasOption(deleteOptAuths.getOpt())) {
       ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(deleteOptAuths.getOpt()));
       if (cl.hasOption(timestampOpt.getOpt()))
-        m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
+        m.putDelete(colf, colq, le, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
       else
-        m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), le);
+        m.putDelete(colf, colq, le);
     } else if (cl.hasOption(timestampOpt.getOpt()))
-      m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]), Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
+      m.putDelete(colf, colq, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
     else
-      m.putDelete(new Text(cl.getArgs()[1]), new Text(cl.getArgs()[2]));
+      m.putDelete(colf, colq);
     
     BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), m.estimatedMemoryUsed() + 0L, 0L, 1);
     bw.addMutation(m);
