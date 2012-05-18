@@ -36,8 +36,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.log4j.Logger;
 
 public class TabletServerBatchReader extends ScannerOptions implements BatchScanner {
+  public static final Logger log = Logger.getLogger(TabletServerBatchReader.class);
   
   private String table;
   private int numThreads;
@@ -55,12 +57,17 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     return nextBatchReaderInstance++;
   }
   
-  private int batchReaderInstance = getNextBatchReaderInstance();
+  private final int batchReaderInstance = getNextBatchReaderInstance();
   
-  private class BatchReaderThreadFactory implements ThreadFactory {
+  private static class BatchReaderThreadFactory implements ThreadFactory {
     
     private ThreadFactory dtf = Executors.defaultThreadFactory();
     private int threadNum = 1;
+    private final int batchReaderInstance;
+    
+    BatchReaderThreadFactory(int batchReaderInstance) {
+      this.batchReaderInstance = batchReaderInstance;
+    }
     
     public Thread newThread(Runnable r) {
       Thread thread = dtf.newThread(r);
@@ -80,13 +87,24 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     this.numThreads = numQueryThreads;
     
     queryThreadPool = new ThreadPoolExecutor(numQueryThreads, numQueryThreads, 60, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),
-        new BatchReaderThreadFactory());
+        new BatchReaderThreadFactory(batchReaderInstance));
     
     ranges = null;
   }
   
   public void close() {
     queryThreadPool.shutdownNow();
+  }
+  
+  /**
+   * Warning: do not rely upon finalize to close this class. Finalize is not guaranteed to be called.
+   */
+  @Override
+  protected void finalize() {
+    if (!queryThreadPool.isShutdown()) {
+      log.warn(TabletServerBatchReader.class.getSimpleName() + " not shutdown; did you forget to call close()?");
+      close();
+    }
   }
   
   @Override
