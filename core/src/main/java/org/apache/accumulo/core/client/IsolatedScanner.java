@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.IsolationException;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -210,7 +209,6 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   private Scanner scanner;
   private Range range;
   private int timeOut;
-  private int batchSize;
   private RowBufferFactory bufferFactory;
   
   public IsolatedScanner(Scanner scanner) {
@@ -219,15 +217,15 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   
   public IsolatedScanner(Scanner scanner, RowBufferFactory bufferFactory) {
     this.scanner = scanner;
-    this.range = new Range();
-    this.timeOut = Integer.MAX_VALUE;
-    this.batchSize = Constants.SCAN_BATCH_SIZE;
+    setRange(scanner.getRange());
+    setBatchSize(scanner.getBatchSize());
+    setTimeOut(scanner.getTimeOut());
     this.bufferFactory = bufferFactory;
   }
   
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
-    return new RowBufferingIterator(scanner, this, range, timeOut, batchSize, bufferFactory);
+    return new RowBufferingIterator(scanner, this, range, timeOut, getBatchSize(), bufferFactory);
   }
   
   @Override
@@ -249,16 +247,6 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   @Override
   public Range getRange() {
     return range;
-  }
-  
-  @Override
-  public void setBatchSize(int size) {
-    this.batchSize = size;
-  }
-  
-  @Override
-  public int getBatchSize() {
-    return batchSize;
   }
   
   @Override

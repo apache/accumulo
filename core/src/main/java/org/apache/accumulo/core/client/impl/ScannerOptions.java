@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Column;
@@ -45,6 +46,8 @@ public class ScannerOptions implements ScannerBase {
   protected SortedSet<Column> fetchedColumns = new TreeSet<Column>();
   
   private String regexIterName = null;
+  
+  private int size = Constants.SCAN_BATCH_SIZE;
   
   protected ScannerOptions() {}
   
@@ -99,7 +102,7 @@ public class ScannerOptions implements ScannerBase {
     
     serverSideIteratorOptions.remove(iteratorName);
   }
-    
+  
   /**
    * Override any existing options on the given named iterator
    */
@@ -175,6 +178,19 @@ public class ScannerOptions implements ScannerBase {
           dst.serverSideIteratorOptions.put(entry.getKey(), new HashMap<String,String>(entry.getValue()));
       }
     }
+  }
+  
+  @Override
+  public synchronized void setBatchSize(int size) {
+    if (size > 0)
+      this.size = size;
+    else
+      throw new IllegalArgumentException("size must be greater than zero");
+  }
+  
+  @Override
+  public synchronized int getBatchSize() {
+    return size;
   }
   
   @Override

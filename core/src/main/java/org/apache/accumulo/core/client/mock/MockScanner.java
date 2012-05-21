@@ -32,7 +32,6 @@ import org.apache.accumulo.core.security.Authorizations;
 public class MockScanner extends MockScannerBase implements Scanner {
   
   int timeOut = 0;
-  int batchSize = 0;
   Range range = new Range();
   
   MockScanner(MockTable table, Authorizations auths) {
@@ -57,16 +56,6 @@ public class MockScanner extends MockScannerBase implements Scanner {
   @Override
   public Range getRange() {
     return this.range;
-  }
-  
-  @Override
-  public void setBatchSize(int size) {
-    this.batchSize = size;
-  }
-  
-  @Override
-  public int getBatchSize() {
-    return this.batchSize;
   }
   
   @Override
