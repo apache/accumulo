@@ -78,7 +78,7 @@
           </execution>
         </executions>
         <configuration>
-          <doCheck>true</doCheck>
+          <doCheck>false</doCheck>
           <doUpdate>false</doUpdate>
         </configuration>
       </plugin>
@@ -224,6 +224,7 @@
               </manifest>
               <manifestEntries>
                 <Implementation-Build>${buildNumber}</Implementation-Build>
+                <Implementation-Branch>${scmBranch}</Implementation-Branch>
                 <Implementation-Timestamp>${timestamp}</Implementation-Timestamp>
               </manifestEntries>
             </archive>
