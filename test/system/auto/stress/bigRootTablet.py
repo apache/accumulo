@@ -21,7 +21,7 @@ from TestUtils import TestUtilsMixin
 
 log = logging.getLogger('test.auto')
 
-class BigRootTablet(unittest.TestCase, TestUtilsMixin):
+class BigRootTablet(TestUtilsMixin, unittest.TestCase):
     "ACCUMULO-542: A large root tablet will fail to load if it does't fit in the tserver scan buffers"
 
     order = 80
@@ -32,6 +32,9 @@ class BigRootTablet(unittest.TestCase, TestUtilsMixin):
 
     def setUp(self):
         TestUtilsMixin.setUp(self);
+    
+    def tearDown(self):
+        TestUtilsMixin.tearDown(self);
     
     def runTest(self):
 	cmd = 'table !METADATA\naddsplits 0 1 2 3 4 5 6 7 8 9 a\n'
