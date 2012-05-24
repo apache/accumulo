@@ -22,7 +22,7 @@ from TestUtils import TestUtilsMixin
 
 log = logging.getLogger('test.auto')
 
-class LateLastContact(unittest.TestCase, TestUtilsMixin):
+class LateLastContact(TestUtilsMixin, unittest.TestCase):
     """Fake the "tablet stops talking but holds its lock" problem we see when hard drives and NFS fail.
        Start a ZombieTServer, and see that master stops it.
     """
@@ -35,6 +35,9 @@ class LateLastContact(unittest.TestCase, TestUtilsMixin):
     def setUp(self):
         TestUtilsMixin.setUp(self);
     
+    def tearDown(self):
+        TestUtilsMixin.tearDown(self);
+
     def runTest(self):
         handle = self.runClassOn(self.masterHost(), 'org.apache.accumulo.server.test.functional.ZombieTServer', [])
         out, err = handle.communicate()

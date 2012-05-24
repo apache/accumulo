@@ -47,6 +47,7 @@ SITE = "test-" + ID
 WALOG = os.path.join(ACCUMULO_HOME, 'walogs', ID)
 LOG_PROPERTIES= os.path.join(ACCUMULO_HOME, 'conf', 'log4j.properties')
 LOG_GENERIC = os.path.join(ACCUMULO_HOME, 'conf', 'generic_logger.xml')
+LOG_MONITOR = os.path.join(ACCUMULO_HOME, 'conf', 'monitor_logger.xml')
 General_CLASSPATH = ("$ACCUMULO_HOME/lib/[^.].$ACCUMULO_VERSION.jar, $ACCUMULO_HOME/lib/[^.].*.jar, $ZOOKEEPER_HOME/zookeeper[^.].*.jar,"
 "$HADOOP_HOME/conf,$HADOOP_HOME/[^.].*.jar, $HADOOP_HOME/lib/[^.].*.jar") 
 
@@ -281,9 +282,12 @@ class TestUtilsMixin:
          os.rename(LOG_PROPERTIES, '%s.bkp' % LOG_PROPERTIES)
       if os.path.exists(LOG_GENERIC):
          os.rename(LOG_GENERIC, '%s.bkp' % LOG_GENERIC)
+      if os.path.exists(LOG_MONITOR):
+         os.rename(LOG_MONITOR, '%s.bkp' % LOG_MONITOR)
       
       shutil.copyfile('%s/conf/examples/512MB/standalone/log4j.properties' % ACCUMULO_HOME, LOG_PROPERTIES)
       shutil.copyfile('%s/conf/examples/512MB/standalone/generic_logger.xml' % ACCUMULO_HOME, LOG_GENERIC)
+      shutil.copyfile('%s/conf/examples/512MB/standalone/monitor_logger.xml' % ACCUMULO_HOME, LOG_MONITOR)
       
 
     def start_accumulo_procs(self, safeMode=None):
@@ -396,12 +400,16 @@ class TestUtilsMixin:
     def clean_logging(self):
       LOG_PROPERTIES_BACKUP='%s.bkp' % LOG_PROPERTIES 
       LOG_GENERIC_BACKUP='%s.bkp' % LOG_GENERIC
+      LOG_MONITOR_BACKUP='%s.bkp' % LOG_MONITOR
       os.remove(LOG_PROPERTIES)
       os.remove(LOG_GENERIC)
+      os.remove(LOG_MONITOR)
       if os.path.exists(LOG_PROPERTIES_BACKUP):
         os.rename(LOG_PROPERTIES_BACKUP, LOG_PROPERTIES)
       if os.path.exists(LOG_GENERIC_BACKUP):
          os.rename(LOG_GENERIC_BACKUP, LOG_GENERIC)
+      if os.path.exists(LOG_MONITOR_BACKUP):
+         os.rename(LOG_MONITOR_BACKUP, LOG_MONITOR)
 
     def sleep(self, secs):
         log.debug("Sleeping %f seconds" % secs)
