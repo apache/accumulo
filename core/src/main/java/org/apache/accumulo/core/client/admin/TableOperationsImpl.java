@@ -42,6 +42,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -684,6 +685,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   
   public void compact(String tableName, Text start, Text end, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException,
       AccumuloException {
+    compact(tableName, start, end, new ArrayList<IteratorSetting>(), flush, wait);
+  }
+  
+  public void compact(String tableName, Text start, Text end, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException,
+      TableNotFoundException, AccumuloException {
     ArgumentChecker.notNull(tableName);
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
     
@@ -693,7 +699,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       _flush(tableId, start, end, true);
     
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes()), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
-        : TextUtil.getByteBuffer(end));
+        : TextUtil.getByteBuffer(end), ByteBuffer.wrap(IteratorUtil.encodeIteratorSettings(iterators)));
+
     Map<String,String> opts = new HashMap<String,String>();
     try {
       doTableOperation(TableOperation.COMPACT, args, opts, wait);

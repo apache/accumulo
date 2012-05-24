@@ -18,12 +18,14 @@ package org.apache.accumulo.server.master.tableOps;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -34,7 +36,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
+import org.apache.accumulo.core.tabletserver.thrift.TIteratorSetting;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.fate.Repo;
@@ -46,6 +51,7 @@ import org.apache.accumulo.server.util.MapCounter;
 import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter.Mutator;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
@@ -161,6 +167,7 @@ class CompactionDriver extends MasterRepo {
   
   @Override
   public Repo<Master> call(long tid, Master environment) throws Exception {
+    CompactRange.removeIterators(tid, tableId);
     Utils.getReadLock(tableId, tid).unlock();
     return null;
   }
@@ -178,11 +185,14 @@ public class CompactRange extends MasterRepo {
   private String tableId;
   private byte[] startRow;
   private byte[] endRow;
+  private IteratorConfig iterators;
   
-  public CompactRange(String tableId, byte[] startRow, byte[] endRow) throws ThriftTableOperationException {
+  public CompactRange(String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators) throws ThriftTableOperationException {
     this.tableId = tableId;
     this.startRow = startRow.length == 0 ? null : startRow;
     this.endRow = endRow.length == 0 ? null : endRow;
+    // store as IteratorConfig because its serializable
+    this.iterators = IteratorUtil.toIteratorConfig(iterators);
     
     if (this.startRow != null && this.endRow != null && new Text(startRow).compareTo(new Text(endRow)) >= 0)
       throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.BAD_RANGE,
@@ -195,7 +205,7 @@ public class CompactRange extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Master> call(final long tid, Master environment) throws Exception {
     String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
     
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
@@ -204,22 +214,78 @@ public class CompactRange extends MasterRepo {
       cid = zoo.mutate(zTablePath, null, null, new Mutator() {
         @Override
         public byte[] mutate(byte[] currentValue) throws Exception {
-          long flushID = Long.parseLong(new String(currentValue));
+          String cvs = new String(currentValue);
+          String[] tokens = cvs.split(",");
+          long flushID = Long.parseLong(new String(tokens[0]));
           flushID++;
-          return ("" + flushID).getBytes();
+          
+          String txidString = String.format("%016x", tid);
+          StringBuilder encodedIterators = new StringBuilder();
+          for (int i = 1; i < tokens.length; i++) {
+            if (tokens[i].startsWith(txidString))
+              continue; // skip self
+            encodedIterators.append(",");
+            encodedIterators.append(tokens[i]);
+          }
+
+          if (iterators != null && iterators.getIterators().size() > 0) {
+            Hex hex = new Hex();
+            encodedIterators.append(",");
+            encodedIterators.append(txidString);
+            encodedIterators.append("=");
+            for (TIteratorSetting tis : iterators.getIterators()) {
+              if (tis.iteratorClass != null)
+                tis.name = txidString + tis.name; // give a unique name to avoid collisions with other running compactions
+            }
+            encodedIterators.append(new String(hex.encode(IteratorUtil.encodeIteratorSettings(iterators))));
+          }
+          
+          return ("" + flushID + encodedIterators).getBytes();
         }
       });
       
-      return new CompactionDriver(Long.parseLong(new String(cid)), tableId, startRow, endRow);
+      return new CompactionDriver(Long.parseLong(new String(cid).split(",")[0]), tableId, startRow, endRow);
     } catch (NoNodeException nne) {
       throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
     }
     
   }
   
+  static void removeIterators(final long txid, String tableId) throws Exception {
+    String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
+    
+    IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
+    
+    zoo.mutate(zTablePath, null, null, new Mutator() {
+      @Override
+      public byte[] mutate(byte[] currentValue) throws Exception {
+        String cvs = new String(currentValue);
+        String[] tokens = cvs.split(",");
+        long flushID = Long.parseLong(new String(tokens[0]));
+
+        String txidString = String.format("%016x", txid);
+        
+        StringBuilder encodedIterators = new StringBuilder();
+        for (int i = 1; i < tokens.length; i++) {
+          if (tokens[i].startsWith(txidString))
+            continue;
+          encodedIterators.append(",");
+          encodedIterators.append(tokens[i]);
+        }
+        
+        return ("" + flushID + encodedIterators).getBytes();
+      }
+    });
+
+  }
+
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    Utils.unreserveTable(tableId, tid, false);
+    try {
+      removeIterators(tid, tableId);
+    } finally {
+      Utils.unreserveTable(tableId, tid, false);
+    }
   }
   
 }

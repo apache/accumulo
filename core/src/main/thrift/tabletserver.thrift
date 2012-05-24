@@ -85,6 +85,17 @@ struct ActiveScan {
     12:map<string, map<string, string>> ssio  /* Server Side Iterator Options */
 }
 
+struct TIteratorSetting {
+    1:i32 priority;
+    2:string name;
+    3:string iteratorClass;
+    4:map<string,string> properties;
+}
+
+struct IteratorConfig {
+   1:list<TIteratorSetting> iterators;
+}
+
 service TabletClientService extends client.ClientService {
   // scan a range of keys
   data.InitialScan startScan(11:cloudtrace.TInfo tinfo,

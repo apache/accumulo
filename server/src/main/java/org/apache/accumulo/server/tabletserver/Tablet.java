@@ -49,6 +49,7 @@ import org.apache.accumulo.cloudtrace.instrument.Span;
 import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.impl.ScannerImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationObserver;
@@ -121,6 +122,8 @@ import org.apache.accumulo.server.util.MetadataTable.LogEntry;
 import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -2391,11 +2394,22 @@ public class Tablet {
     }
   }
   
-  long getCompactionID() throws NoNodeException {
+  Pair<Long,List<IteratorSetting>> getCompactionID() throws NoNodeException {
     try {
       String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + extent.getTableId()
           + Constants.ZTABLE_COMPACT_ID;
-      return Long.parseLong(new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null)));
+      
+      String[] tokens = new String(ZooReaderWriter.getRetryingInstance().getData(zTablePath, null)).split(",");
+      long compactID = Long.parseLong(tokens[0]);
+      
+      List<IteratorSetting> allIters = new ArrayList<IteratorSetting>();
+      for (int i = 1; i < tokens.length; i++) {
+        Hex hex = new Hex();
+        List<IteratorSetting> iters = IteratorUtil.decodeIteratorSettings(hex.decode(tokens[i].split("=")[1].getBytes()));
+        allIters.addAll(iters);
+      }
+      
+      return new Pair<Long,List<IteratorSetting>>(compactID, allIters);
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     } catch (NumberFormatException nfe) {
@@ -2406,6 +2420,8 @@ public class Tablet {
       } else {
         throw new RuntimeException(ke);
       }
+    } catch (DecoderException e) {
+      throw new RuntimeException(e);
     }
   }
   
@@ -3167,7 +3183,7 @@ public class Tablet {
       
       log.debug(String.format("MajC initiate lock %.2f secs, wait %.2f secs", (t3 - t2) / 1000.0, (t2 - t1) / 1000.0));
       
-      Long compactionId = null;
+      Pair<Long,List<IteratorSetting>> compactionId = null;
       if (!propogateDeletes) {
         // compacting everything, so update the compaction id in !METADATA
         try {
@@ -3177,6 +3193,11 @@ public class Tablet {
         }
       }
       
+      List<IteratorSetting> compactionIterators = new ArrayList<IteratorSetting>();
+      if (compactionId != null) {
+        compactionIterators = compactionId.getSecond();
+      }
+
       // need to handle case where only one file is being major compacted
       while (filesToCompact.size() > 0) {
         
@@ -3222,7 +3243,7 @@ public class Tablet {
                                                                                                                                           // unless
                                                                                                                                           // last
                                                                                                                                           // batch
-              acuTableConf, extent, cenv);
+              acuTableConf, extent, cenv, compactionIterators);
           
           CompactionStats mcs = compactor.call();
           
@@ -3231,7 +3252,7 @@ public class Tablet {
           span.data("written", "" + mcs.getEntriesWritten());
           majCStats.add(mcs);
           
-          datafileManager.bringMajorCompactionOnline(smallestFiles, compactTmpName, fileName, filesToCompact.size() == 0 ? compactionId : null,
+          datafileManager.bringMajorCompactionOnline(smallestFiles, compactTmpName, fileName, filesToCompact.size() == 0 ? compactionId.getFirst() : null,
               new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()));
           
           // when major compaction produces a file w/ zero entries, it will be deleted... do not want

@@ -3891,14 +3891,14 @@ import org.slf4j.LoggerFactory;
           case 4: // COLUMNS
             if (field.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list26 = iprot.readListBegin();
-                this.columns = new ArrayList<org.apache.accumulo.core.data.thrift.TColumn>(_list26.size);
-                for (int _i27 = 0; _i27 < _list26.size; ++_i27)
+                org.apache.thrift.protocol.TList _list35 = iprot.readListBegin();
+                this.columns = new ArrayList<org.apache.accumulo.core.data.thrift.TColumn>(_list35.size);
+                for (int _i36 = 0; _i36 < _list35.size; ++_i36)
                 {
-                  org.apache.accumulo.core.data.thrift.TColumn _elem28;
-                  _elem28 = new org.apache.accumulo.core.data.thrift.TColumn();
-                  _elem28.read(iprot);
-                  this.columns.add(_elem28);
+                  org.apache.accumulo.core.data.thrift.TColumn _elem37;
+                  _elem37 = new org.apache.accumulo.core.data.thrift.TColumn();
+                  _elem37.read(iprot);
+                  this.columns.add(_elem37);
                 }
                 iprot.readListEnd();
               }
@@ -3917,14 +3917,14 @@ import org.slf4j.LoggerFactory;
           case 6: // SSI_LIST
             if (field.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list29 = iprot.readListBegin();
-                this.ssiList = new ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>(_list29.size);
-                for (int _i30 = 0; _i30 < _list29.size; ++_i30)
+                org.apache.thrift.protocol.TList _list38 = iprot.readListBegin();
+                this.ssiList = new ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>(_list38.size);
+                for (int _i39 = 0; _i39 < _list38.size; ++_i39)
                 {
-                  org.apache.accumulo.core.data.thrift.IterInfo _elem31;
-                  _elem31 = new org.apache.accumulo.core.data.thrift.IterInfo();
-                  _elem31.read(iprot);
-                  this.ssiList.add(_elem31);
+                  org.apache.accumulo.core.data.thrift.IterInfo _elem40;
+                  _elem40 = new org.apache.accumulo.core.data.thrift.IterInfo();
+                  _elem40.read(iprot);
+                  this.ssiList.add(_elem40);
                 }
                 iprot.readListEnd();
               }
@@ -3935,27 +3935,27 @@ import org.slf4j.LoggerFactory;
           case 7: // SSIO
             if (field.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map32 = iprot.readMapBegin();
-                this.ssio = new HashMap<String,Map<String,String>>(2*_map32.size);
-                for (int _i33 = 0; _i33 < _map32.size; ++_i33)
+                org.apache.thrift.protocol.TMap _map41 = iprot.readMapBegin();
+                this.ssio = new HashMap<String,Map<String,String>>(2*_map41.size);
+                for (int _i42 = 0; _i42 < _map41.size; ++_i42)
                 {
-                  String _key34;
-                  Map<String,String> _val35;
-                  _key34 = iprot.readString();
+                  String _key43;
+                  Map<String,String> _val44;
+                  _key43 = iprot.readString();
                   {
-                    org.apache.thrift.protocol.TMap _map36 = iprot.readMapBegin();
-                    _val35 = new HashMap<String,String>(2*_map36.size);
-                    for (int _i37 = 0; _i37 < _map36.size; ++_i37)
+                    org.apache.thrift.protocol.TMap _map45 = iprot.readMapBegin();
+                    _val44 = new HashMap<String,String>(2*_map45.size);
+                    for (int _i46 = 0; _i46 < _map45.size; ++_i46)
                     {
-                      String _key38;
-                      String _val39;
-                      _key38 = iprot.readString();
-                      _val39 = iprot.readString();
-                      _val35.put(_key38, _val39);
+                      String _key47;
+                      String _val48;
+                      _key47 = iprot.readString();
+                      _val48 = iprot.readString();
+                      _val44.put(_key47, _val48);
                     }
                     iprot.readMapEnd();
                   }
-                  this.ssio.put(_key34, _val35);
+                  this.ssio.put(_key43, _val44);
                 }
                 iprot.readMapEnd();
               }
@@ -3966,13 +3966,13 @@ import org.slf4j.LoggerFactory;
           case 8: // AUTHORIZATIONS
             if (field.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list40 = iprot.readListBegin();
-                this.authorizations = new ArrayList<ByteBuffer>(_list40.size);
-                for (int _i41 = 0; _i41 < _list40.size; ++_i41)
+                org.apache.thrift.protocol.TList _list49 = iprot.readListBegin();
+                this.authorizations = new ArrayList<ByteBuffer>(_list49.size);
+                for (int _i50 = 0; _i50 < _list49.size; ++_i50)
                 {
-                  ByteBuffer _elem42;
-                  _elem42 = iprot.readBinary();
-                  this.authorizations.add(_elem42);
+                  ByteBuffer _elem51;
+                  _elem51 = iprot.readBinary();
+                  this.authorizations.add(_elem51);
                 }
                 iprot.readListEnd();
               }
@@ -4030,9 +4030,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(COLUMNS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.columns.size()));
-          for (org.apache.accumulo.core.data.thrift.TColumn _iter43 : this.columns)
+          for (org.apache.accumulo.core.data.thrift.TColumn _iter52 : this.columns)
           {
-            _iter43.write(oprot);
+            _iter52.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -4045,9 +4045,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(SSI_LIST_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.ssiList.size()));
-          for (org.apache.accumulo.core.data.thrift.IterInfo _iter44 : this.ssiList)
+          for (org.apache.accumulo.core.data.thrift.IterInfo _iter53 : this.ssiList)
           {
-            _iter44.write(oprot);
+            _iter53.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -4057,15 +4057,15 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(SSIO_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, this.ssio.size()));
-          for (Map.Entry<String, Map<String,String>> _iter45 : this.ssio.entrySet())
+          for (Map.Entry<String, Map<String,String>> _iter54 : this.ssio.entrySet())
           {
-            oprot.writeString(_iter45.getKey());
+            oprot.writeString(_iter54.getKey());
             {
-              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, _iter45.getValue().size()));
-              for (Map.Entry<String, String> _iter46 : _iter45.getValue().entrySet())
+              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, _iter54.getValue().size()));
+              for (Map.Entry<String, String> _iter55 : _iter54.getValue().entrySet())
               {
-                oprot.writeString(_iter46.getKey());
-                oprot.writeString(_iter46.getValue());
+                oprot.writeString(_iter55.getKey());
+                oprot.writeString(_iter55.getValue());
               }
               oprot.writeMapEnd();
             }
@@ -4078,9 +4078,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(AUTHORIZATIONS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, this.authorizations.size()));
-          for (ByteBuffer _iter47 : this.authorizations)
+          for (ByteBuffer _iter56 : this.authorizations)
           {
-            oprot.writeBinary(_iter47);
+            oprot.writeBinary(_iter56);
           }
           oprot.writeListEnd();
         }
@@ -6955,27 +6955,27 @@ import org.slf4j.LoggerFactory;
           case 2: // BATCH
             if (field.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map48 = iprot.readMapBegin();
-                this.batch = new HashMap<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>>(2*_map48.size);
-                for (int _i49 = 0; _i49 < _map48.size; ++_i49)
+                org.apache.thrift.protocol.TMap _map57 = iprot.readMapBegin();
+                this.batch = new HashMap<org.apache.accumulo.core.data.thrift.TKeyExtent,List<org.apache.accumulo.core.data.thrift.TRange>>(2*_map57.size);
+                for (int _i58 = 0; _i58 < _map57.size; ++_i58)
                 {
-                  org.apache.accumulo.core.data.thrift.TKeyExtent _key50;
-                  List<org.apache.accumulo.core.data.thrift.TRange> _val51;
-                  _key50 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
-                  _key50.read(iprot);
+                  org.apache.accumulo.core.data.thrift.TKeyExtent _key59;
+                  List<org.apache.accumulo.core.data.thrift.TRange> _val60;
+                  _key59 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+                  _key59.read(iprot);
                   {
-                    org.apache.thrift.protocol.TList _list52 = iprot.readListBegin();
-                    _val51 = new ArrayList<org.apache.accumulo.core.data.thrift.TRange>(_list52.size);
-                    for (int _i53 = 0; _i53 < _list52.size; ++_i53)
+                    org.apache.thrift.protocol.TList _list61 = iprot.readListBegin();
+                    _val60 = new ArrayList<org.apache.accumulo.core.data.thrift.TRange>(_list61.size);
+                    for (int _i62 = 0; _i62 < _list61.size; ++_i62)
                     {
-                      org.apache.accumulo.core.data.thrift.TRange _elem54;
-                      _elem54 = new org.apache.accumulo.core.data.thrift.TRange();
-                      _elem54.read(iprot);
-                      _val51.add(_elem54);
+                      org.apache.accumulo.core.data.thrift.TRange _elem63;
+                      _elem63 = new org.apache.accumulo.core.data.thrift.TRange();
+                      _elem63.read(iprot);
+                      _val60.add(_elem63);
                     }
                     iprot.readListEnd();
                   }
-                  this.batch.put(_key50, _val51);
+                  this.batch.put(_key59, _val60);
                 }
                 iprot.readMapEnd();
               }
@@ -6986,14 +6986,14 @@ import org.slf4j.LoggerFactory;
           case 3: // COLUMNS
             if (field.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list55 = iprot.readListBegin();
-                this.columns = new ArrayList<org.apache.accumulo.core.data.thrift.TColumn>(_list55.size);
-                for (int _i56 = 0; _i56 < _list55.size; ++_i56)
+                org.apache.thrift.protocol.TList _list64 = iprot.readListBegin();
+                this.columns = new ArrayList<org.apache.accumulo.core.data.thrift.TColumn>(_list64.size);
+                for (int _i65 = 0; _i65 < _list64.size; ++_i65)
                 {
-                  org.apache.accumulo.core.data.thrift.TColumn _elem57;
-                  _elem57 = new org.apache.accumulo.core.data.thrift.TColumn();
-                  _elem57.read(iprot);
-                  this.columns.add(_elem57);
+                  org.apache.accumulo.core.data.thrift.TColumn _elem66;
+                  _elem66 = new org.apache.accumulo.core.data.thrift.TColumn();
+                  _elem66.read(iprot);
+                  this.columns.add(_elem66);
                 }
                 iprot.readListEnd();
               }
@@ -7004,14 +7004,14 @@ import org.slf4j.LoggerFactory;
           case 4: // SSI_LIST
             if (field.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list58 = iprot.readListBegin();
-                this.ssiList = new ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>(_list58.size);
-                for (int _i59 = 0; _i59 < _list58.size; ++_i59)
+                org.apache.thrift.protocol.TList _list67 = iprot.readListBegin();
+                this.ssiList = new ArrayList<org.apache.accumulo.core.data.thrift.IterInfo>(_list67.size);
+                for (int _i68 = 0; _i68 < _list67.size; ++_i68)
                 {
-                  org.apache.accumulo.core.data.thrift.IterInfo _elem60;
-                  _elem60 = new org.apache.accumulo.core.data.thrift.IterInfo();
-                  _elem60.read(iprot);
-                  this.ssiList.add(_elem60);
+                  org.apache.accumulo.core.data.thrift.IterInfo _elem69;
+                  _elem69 = new org.apache.accumulo.core.data.thrift.IterInfo();
+                  _elem69.read(iprot);
+                  this.ssiList.add(_elem69);
                 }
                 iprot.readListEnd();
               }
@@ -7022,27 +7022,27 @@ import org.slf4j.LoggerFactory;
           case 5: // SSIO
             if (field.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map61 = iprot.readMapBegin();
-                this.ssio = new HashMap<String,Map<String,String>>(2*_map61.size);
-                for (int _i62 = 0; _i62 < _map61.size; ++_i62)
+                org.apache.thrift.protocol.TMap _map70 = iprot.readMapBegin();
+                this.ssio = new HashMap<String,Map<String,String>>(2*_map70.size);
+                for (int _i71 = 0; _i71 < _map70.size; ++_i71)
                 {
-                  String _key63;
-                  Map<String,String> _val64;
-                  _key63 = iprot.readString();
+                  String _key72;
+                  Map<String,String> _val73;
+                  _key72 = iprot.readString();
                   {
-                    org.apache.thrift.protocol.TMap _map65 = iprot.readMapBegin();
-                    _val64 = new HashMap<String,String>(2*_map65.size);
-                    for (int _i66 = 0; _i66 < _map65.size; ++_i66)
+                    org.apache.thrift.protocol.TMap _map74 = iprot.readMapBegin();
+                    _val73 = new HashMap<String,String>(2*_map74.size);
+                    for (int _i75 = 0; _i75 < _map74.size; ++_i75)
                     {
-                      String _key67;
-                      String _val68;
-                      _key67 = iprot.readString();
-                      _val68 = iprot.readString();
-                      _val64.put(_key67, _val68);
+                      String _key76;
+                      String _val77;
+                      _key76 = iprot.readString();
+                      _val77 = iprot.readString();
+                      _val73.put(_key76, _val77);
                     }
                     iprot.readMapEnd();
                   }
-                  this.ssio.put(_key63, _val64);
+                  this.ssio.put(_key72, _val73);
                 }
                 iprot.readMapEnd();
               }
@@ -7053,13 +7053,13 @@ import org.slf4j.LoggerFactory;
           case 6: // AUTHORIZATIONS
             if (field.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list69 = iprot.readListBegin();
-                this.authorizations = new ArrayList<ByteBuffer>(_list69.size);
-                for (int _i70 = 0; _i70 < _list69.size; ++_i70)
+                org.apache.thrift.protocol.TList _list78 = iprot.readListBegin();
+                this.authorizations = new ArrayList<ByteBuffer>(_list78.size);
+                for (int _i79 = 0; _i79 < _list78.size; ++_i79)
                 {
-                  ByteBuffer _elem71;
-                  _elem71 = iprot.readBinary();
-                  this.authorizations.add(_elem71);
+                  ByteBuffer _elem80;
+                  _elem80 = iprot.readBinary();
+                  this.authorizations.add(_elem80);
                 }
                 iprot.readListEnd();
               }
@@ -7099,14 +7099,14 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(BATCH_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.LIST, this.batch.size()));
-          for (Map.Entry<org.apache.accumulo.core.data.thrift.TKeyExtent, List<org.apache.accumulo.core.data.thrift.TRange>> _iter72 : this.batch.entrySet())
+          for (Map.Entry<org.apache.accumulo.core.data.thrift.TKeyExtent, List<org.apache.accumulo.core.data.thrift.TRange>> _iter81 : this.batch.entrySet())
           {
-            _iter72.getKey().write(oprot);
+            _iter81.getKey().write(oprot);
             {
-              oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter72.getValue().size()));
-              for (org.apache.accumulo.core.data.thrift.TRange _iter73 : _iter72.getValue())
+              oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter81.getValue().size()));
+              for (org.apache.accumulo.core.data.thrift.TRange _iter82 : _iter81.getValue())
               {
-                _iter73.write(oprot);
+                _iter82.write(oprot);
               }
               oprot.writeListEnd();
             }
@@ -7119,9 +7119,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(COLUMNS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.columns.size()));
-          for (org.apache.accumulo.core.data.thrift.TColumn _iter74 : this.columns)
+          for (org.apache.accumulo.core.data.thrift.TColumn _iter83 : this.columns)
           {
-            _iter74.write(oprot);
+            _iter83.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -7131,9 +7131,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(SSI_LIST_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.ssiList.size()));
-          for (org.apache.accumulo.core.data.thrift.IterInfo _iter75 : this.ssiList)
+          for (org.apache.accumulo.core.data.thrift.IterInfo _iter84 : this.ssiList)
           {
-            _iter75.write(oprot);
+            _iter84.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -7143,15 +7143,15 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(SSIO_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, this.ssio.size()));
-          for (Map.Entry<String, Map<String,String>> _iter76 : this.ssio.entrySet())
+          for (Map.Entry<String, Map<String,String>> _iter85 : this.ssio.entrySet())
           {
-            oprot.writeString(_iter76.getKey());
+            oprot.writeString(_iter85.getKey());
             {
-              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, _iter76.getValue().size()));
-              for (Map.Entry<String, String> _iter77 : _iter76.getValue().entrySet())
+              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, _iter85.getValue().size()));
+              for (Map.Entry<String, String> _iter86 : _iter85.getValue().entrySet())
               {
-                oprot.writeString(_iter77.getKey());
-                oprot.writeString(_iter77.getValue());
+                oprot.writeString(_iter86.getKey());
+                oprot.writeString(_iter86.getValue());
               }
               oprot.writeMapEnd();
             }
@@ -7164,9 +7164,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(AUTHORIZATIONS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, this.authorizations.size()));
-          for (ByteBuffer _iter78 : this.authorizations)
+          for (ByteBuffer _iter87 : this.authorizations)
           {
-            oprot.writeBinary(_iter78);
+            oprot.writeBinary(_iter87);
           }
           oprot.writeListEnd();
         }
@@ -10377,14 +10377,14 @@ import org.slf4j.LoggerFactory;
           case 4: // MUTATIONS
             if (field.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list79 = iprot.readListBegin();
-                this.mutations = new ArrayList<org.apache.accumulo.core.data.thrift.TMutation>(_list79.size);
-                for (int _i80 = 0; _i80 < _list79.size; ++_i80)
+                org.apache.thrift.protocol.TList _list88 = iprot.readListBegin();
+                this.mutations = new ArrayList<org.apache.accumulo.core.data.thrift.TMutation>(_list88.size);
+                for (int _i89 = 0; _i89 < _list88.size; ++_i89)
                 {
-                  org.apache.accumulo.core.data.thrift.TMutation _elem81;
-                  _elem81 = new org.apache.accumulo.core.data.thrift.TMutation();
-                  _elem81.read(iprot);
-                  this.mutations.add(_elem81);
+                  org.apache.accumulo.core.data.thrift.TMutation _elem90;
+                  _elem90 = new org.apache.accumulo.core.data.thrift.TMutation();
+                  _elem90.read(iprot);
+                  this.mutations.add(_elem90);
                 }
                 iprot.readListEnd();
               }
@@ -10424,9 +10424,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(MUTATIONS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.mutations.size()));
-          for (org.apache.accumulo.core.data.thrift.TMutation _iter82 : this.mutations)
+          for (org.apache.accumulo.core.data.thrift.TMutation _iter91 : this.mutations)
           {
-            _iter82.write(oprot);
+            _iter91.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -12857,29 +12857,29 @@ import org.slf4j.LoggerFactory;
           case 2: // FILES
             if (field.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map83 = iprot.readMapBegin();
-                this.files = new HashMap<org.apache.accumulo.core.data.thrift.TKeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>>(2*_map83.size);
-                for (int _i84 = 0; _i84 < _map83.size; ++_i84)
+                org.apache.thrift.protocol.TMap _map92 = iprot.readMapBegin();
+                this.files = new HashMap<org.apache.accumulo.core.data.thrift.TKeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>>(2*_map92.size);
+                for (int _i93 = 0; _i93 < _map92.size; ++_i93)
                 {
-                  org.apache.accumulo.core.data.thrift.TKeyExtent _key85;
-                  Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo> _val86;
-                  _key85 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
-                  _key85.read(iprot);
+                  org.apache.accumulo.core.data.thrift.TKeyExtent _key94;
+                  Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo> _val95;
+                  _key94 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+                  _key94.read(iprot);
                   {
-                    org.apache.thrift.protocol.TMap _map87 = iprot.readMapBegin();
-                    _val86 = new HashMap<String,org.apache.accumulo.core.data.thrift.MapFileInfo>(2*_map87.size);
-                    for (int _i88 = 0; _i88 < _map87.size; ++_i88)
+                    org.apache.thrift.protocol.TMap _map96 = iprot.readMapBegin();
+                    _val95 = new HashMap<String,org.apache.accumulo.core.data.thrift.MapFileInfo>(2*_map96.size);
+                    for (int _i97 = 0; _i97 < _map96.size; ++_i97)
                     {
-                      String _key89;
-                      org.apache.accumulo.core.data.thrift.MapFileInfo _val90;
-                      _key89 = iprot.readString();
-                      _val90 = new org.apache.accumulo.core.data.thrift.MapFileInfo();
-                      _val90.read(iprot);
-                      _val86.put(_key89, _val90);
+                      String _key98;
+                      org.apache.accumulo.core.data.thrift.MapFileInfo _val99;
+                      _key98 = iprot.readString();
+                      _val99 = new org.apache.accumulo.core.data.thrift.MapFileInfo();
+                      _val99.read(iprot);
+                      _val95.put(_key98, _val99);
                     }
                     iprot.readMapEnd();
                   }
-                  this.files.put(_key85, _val86);
+                  this.files.put(_key94, _val95);
                 }
                 iprot.readMapEnd();
               }
@@ -12919,15 +12919,15 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(FILES_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.MAP, this.files.size()));
-          for (Map.Entry<org.apache.accumulo.core.data.thrift.TKeyExtent, Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> _iter91 : this.files.entrySet())
+          for (Map.Entry<org.apache.accumulo.core.data.thrift.TKeyExtent, Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> _iter100 : this.files.entrySet())
           {
-            _iter91.getKey().write(oprot);
+            _iter100.getKey().write(oprot);
             {
-              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, _iter91.getValue().size()));
-              for (Map.Entry<String, org.apache.accumulo.core.data.thrift.MapFileInfo> _iter92 : _iter91.getValue().entrySet())
+              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, _iter100.getValue().size()));
+              for (Map.Entry<String, org.apache.accumulo.core.data.thrift.MapFileInfo> _iter101 : _iter100.getValue().entrySet())
               {
-                oprot.writeString(_iter92.getKey());
-                _iter92.getValue().write(oprot);
+                oprot.writeString(_iter101.getKey());
+                _iter101.getValue().write(oprot);
               }
               oprot.writeMapEnd();
             }
@@ -13335,14 +13335,14 @@ import org.slf4j.LoggerFactory;
           case 0: // SUCCESS
             if (field.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list93 = iprot.readListBegin();
-                this.success = new ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>(_list93.size);
-                for (int _i94 = 0; _i94 < _list93.size; ++_i94)
+                org.apache.thrift.protocol.TList _list102 = iprot.readListBegin();
+                this.success = new ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>(_list102.size);
+                for (int _i103 = 0; _i103 < _list102.size; ++_i103)
                 {
-                  org.apache.accumulo.core.data.thrift.TKeyExtent _elem95;
-                  _elem95 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
-                  _elem95.read(iprot);
-                  this.success.add(_elem95);
+                  org.apache.accumulo.core.data.thrift.TKeyExtent _elem104;
+                  _elem104 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+                  _elem104.read(iprot);
+                  this.success.add(_elem104);
                 }
                 iprot.readListEnd();
               }
@@ -13376,9 +13376,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.success.size()));
-          for (org.apache.accumulo.core.data.thrift.TKeyExtent _iter96 : this.success)
+          for (org.apache.accumulo.core.data.thrift.TKeyExtent _iter105 : this.success)
           {
-            _iter96.write(oprot);
+            _iter105.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -18696,13 +18696,13 @@ import org.slf4j.LoggerFactory;
           case 2: // LOGGERS
             if (field.type == org.apache.thrift.protocol.TType.SET) {
               {
-                org.apache.thrift.protocol.TSet _set97 = iprot.readSetBegin();
-                this.loggers = new HashSet<String>(2*_set97.size);
-                for (int _i98 = 0; _i98 < _set97.size; ++_i98)
+                org.apache.thrift.protocol.TSet _set106 = iprot.readSetBegin();
+                this.loggers = new HashSet<String>(2*_set106.size);
+                for (int _i107 = 0; _i107 < _set106.size; ++_i107)
                 {
-                  String _elem99;
-                  _elem99 = iprot.readString();
-                  this.loggers.add(_elem99);
+                  String _elem108;
+                  _elem108 = iprot.readString();
+                  this.loggers.add(_elem108);
                 }
                 iprot.readSetEnd();
               }
@@ -18734,9 +18734,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(LOGGERS_FIELD_DESC);
         {
           oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, this.loggers.size()));
-          for (String _iter100 : this.loggers)
+          for (String _iter109 : this.loggers)
           {
-            oprot.writeString(_iter100);
+            oprot.writeString(_iter109);
           }
           oprot.writeSetEnd();
         }
@@ -20376,14 +20376,14 @@ import org.slf4j.LoggerFactory;
           case 0: // SUCCESS
             if (field.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list101 = iprot.readListBegin();
-                this.success = new ArrayList<TabletStats>(_list101.size);
-                for (int _i102 = 0; _i102 < _list101.size; ++_i102)
+                org.apache.thrift.protocol.TList _list110 = iprot.readListBegin();
+                this.success = new ArrayList<TabletStats>(_list110.size);
+                for (int _i111 = 0; _i111 < _list110.size; ++_i111)
                 {
-                  TabletStats _elem103;
-                  _elem103 = new TabletStats();
-                  _elem103.read(iprot);
-                  this.success.add(_elem103);
+                  TabletStats _elem112;
+                  _elem112 = new TabletStats();
+                  _elem112.read(iprot);
+                  this.success.add(_elem112);
                 }
                 iprot.readListEnd();
               }
@@ -20417,9 +20417,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.success.size()));
-          for (TabletStats _iter104 : this.success)
+          for (TabletStats _iter113 : this.success)
           {
-            _iter104.write(oprot);
+            _iter113.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -23212,14 +23212,14 @@ import org.slf4j.LoggerFactory;
           case 0: // SUCCESS
             if (field.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list105 = iprot.readListBegin();
-                this.success = new ArrayList<ActiveScan>(_list105.size);
-                for (int _i106 = 0; _i106 < _list105.size; ++_i106)
+                org.apache.thrift.protocol.TList _list114 = iprot.readListBegin();
+                this.success = new ArrayList<ActiveScan>(_list114.size);
+                for (int _i115 = 0; _i115 < _list114.size; ++_i115)
                 {
-                  ActiveScan _elem107;
-                  _elem107 = new ActiveScan();
-                  _elem107.read(iprot);
-                  this.success.add(_elem107);
+                  ActiveScan _elem116;
+                  _elem116 = new ActiveScan();
+                  _elem116.read(iprot);
+                  this.success.add(_elem116);
                 }
                 iprot.readListEnd();
               }
@@ -23253,9 +23253,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.success.size()));
-          for (ActiveScan _iter108 : this.success)
+          for (ActiveScan _iter117 : this.success)
           {
-            _iter108.write(oprot);
+            _iter117.write(oprot);
           }
           oprot.writeListEnd();
         }

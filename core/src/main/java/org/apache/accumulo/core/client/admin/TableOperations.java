@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.admin;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -193,6 +194,25 @@ public interface TableOperations {
    */
   public void compact(String tableName, Text start, Text end, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException,
       AccumuloException;
+  
+  /**
+   * Starts a full major compaction of the tablets in the range (start, end]. The compaction is preformed even for tablets that have only one file.
+   * 
+   * @param tableName
+   *          the table to compact
+   * @param start
+   *          first tablet to be compacted contains the row after this row, null means the first tablet in table
+   * @param end
+   *          last tablet to be merged contains this row, null means the last tablet in table
+   * @param iterators
+   *          A set of iterators that will be applied to each tablet compacted
+   * @param flush
+   *          when true, table memory is flushed before compaction starts
+   * @param wait
+   *          when true, the call will not return until compactions are finished
+   */
+  public void compact(String tableName, Text start, Text end, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException,
+      TableNotFoundException, AccumuloException;
   
   /**
    * Delete a table

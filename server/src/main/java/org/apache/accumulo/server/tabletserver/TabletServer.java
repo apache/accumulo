@@ -2031,7 +2031,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         // compaction id once
         if (compactionId == null)
           try {
-            compactionId = tablet.getCompactionID();
+            compactionId = tablet.getCompactionID().getFirst();
           } catch (NoNodeException e) {
             log.info("Asked to compact table with no compaction id " + ke + " " + e.getMessage());
             return;

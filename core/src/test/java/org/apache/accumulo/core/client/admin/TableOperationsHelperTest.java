@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -95,6 +96,10 @@ public class TableOperationsHelperTest {
     @Override
     public void compact(String tableName, Text start, Text end, boolean flush, boolean wait) throws AccumuloSecurityException, TableNotFoundException,
         AccumuloException {}
+    
+    @Override
+    public void compact(String tableName, Text start, Text end, List<IteratorSetting> iterators, boolean flush, boolean wait) throws AccumuloSecurityException,
+        TableNotFoundException, AccumuloException {}
     
     @Override
     public void delete(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {}
@@ -177,7 +182,6 @@ public class TableOperationsHelperTest {
       }
       Assert.assertEquals(expected, settings.get(tablename));
     }
-    
   }
   
   @Test

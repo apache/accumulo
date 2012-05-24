@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -35,10 +36,16 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.system.SynchronizedIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
+import org.apache.accumulo.core.tabletserver.thrift.TIteratorSetting;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.log4j.Logger;
+import org.apache.thrift.TDeserializer;
+import org.apache.thrift.TException;
+import org.apache.thrift.TSerializer;
+import org.apache.thrift.protocol.TBinaryProtocol;
 public class IteratorUtil {
   
   private static final Logger log = Logger.getLogger(IteratorUtil.class);
@@ -155,6 +162,21 @@ public class IteratorUtil {
   }
   
   public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
+      SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IteratorSetting> iterators, IteratorEnvironment env)
+      throws IOException {
+    
+    List<IterInfo> ssiList = new ArrayList<IterInfo>();
+    Map<String,Map<String,String>> ssio = new HashMap<String,Map<String,String>>();
+    
+    for (IteratorSetting is : iterators) {
+      ssiList.add(new IterInfo(is.getPriority(), is.getIteratorClass(), is.getName()));
+      ssio.put(is.getName(), is.getOptions());
+    }
+    
+    return loadIterators(scope, source, extent, conf, ssiList, ssio, env, true);
+  }
+  
+  public static <K extends WritableComparable<?>,V extends Writable> SortedKeyValueIterator<K,V> loadIterators(IteratorScope scope,
       SortedKeyValueIterator<K,V> source, KeyExtent extent, AccumuloConfiguration conf, List<IterInfo> ssiList, Map<String,Map<String,String>> ssio,
       IteratorEnvironment env) throws IOException {
     return loadIterators(scope, source, extent, conf, ssiList, ssio, env, true);
@@ -242,5 +264,58 @@ public class IteratorUtil {
     }
     
     return seekRange;
+  }
+  
+  public static TIteratorSetting toTIteratorSetting(IteratorSetting is) {
+    return new TIteratorSetting(is.getPriority(), is.getName(), is.getIteratorClass(), is.getOptions());
+  }
+  
+  public static IteratorSetting toIteratorSetting(TIteratorSetting tis) {
+    return new IteratorSetting(tis.getPriority(), tis.getName(), tis.getIteratorClass(), tis.getProperties());
+  }
+
+  public static IteratorConfig toIteratorConfig(List<IteratorSetting> iterators) {
+    ArrayList<TIteratorSetting> tisList = new ArrayList<TIteratorSetting>();
+    
+    for (IteratorSetting iteratorSetting : iterators) {
+      tisList.add(toTIteratorSetting(iteratorSetting));
+    }
+    
+    return new IteratorConfig(tisList);
+  }
+  
+  public static List<IteratorSetting> toIteratorSettings(IteratorConfig ic) {
+    List<IteratorSetting> ret = new ArrayList<IteratorSetting>();
+    for (TIteratorSetting tIteratorSetting : ic.getIterators()) {
+      ret.add(toIteratorSetting(tIteratorSetting));
+    }
+    
+    return ret;
+  }
+
+  public static byte[] encodeIteratorSettings(IteratorConfig iterators) {
+    TSerializer tser = new TSerializer(new TBinaryProtocol.Factory());
+    
+    try {
+      return tser.serialize(iterators);
+    } catch (TException e) {
+      throw new RuntimeException(e);
+    }
+  }
+  
+  public static byte[] encodeIteratorSettings(List<IteratorSetting> iterators) {
+    return encodeIteratorSettings(toIteratorConfig(iterators));
+  }
+
+
+  public static List<IteratorSetting> decodeIteratorSettings(byte[] enc) {
+    TDeserializer tdser = new TDeserializer(new TBinaryProtocol.Factory());
+    IteratorConfig ic = new IteratorConfig();
+    try {
+      tdser.deserialize(ic, enc);
+    } catch (TException e) {
+      throw new RuntimeException(e);
+    }
+    return toIteratorSettings(ic);
   }
 }

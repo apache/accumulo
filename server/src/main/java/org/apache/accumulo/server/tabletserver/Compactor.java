@@ -27,6 +27,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.accumulo.cloudtrace.instrument.Span;
 import org.apache.accumulo.cloudtrace.instrument.Trace;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -38,7 +39,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.CountingIterator;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
@@ -80,9 +80,10 @@ public class Compactor implements Callable<CompactionStats> {
   private Configuration conf;
   private FileSystem fs;
   private KeyExtent extent;
+  private List<IteratorSetting> iterators;
   
   Compactor(Configuration conf, FileSystem fs, Map<String,DataFileValue> files, InMemoryMap imm, String outputFile, boolean propogateDeletes,
-      TableConfiguration acuTableConf, KeyExtent extent, CompactionEnv env) {
+      TableConfiguration acuTableConf, KeyExtent extent, CompactionEnv env, List<IteratorSetting> iterators) {
     this.extent = extent;
     this.conf = conf;
     this.fs = fs;
@@ -92,6 +93,12 @@ public class Compactor implements Callable<CompactionStats> {
     this.propogateDeletes = propogateDeletes;
     this.acuTableConf = acuTableConf;
     this.env = env;
+    this.iterators = iterators;
+  }
+  
+  Compactor(Configuration conf, FileSystem fs, Map<String,DataFileValue> files, InMemoryMap imm, String outputFile, boolean propogateDeletes,
+      TableConfiguration acuTableConf, KeyExtent extent, CompactionEnv env) {
+    this(conf, fs, files, imm, outputFile, propogateDeletes, acuTableConf, extent, env, new ArrayList<IteratorSetting>());
   }
   
   public FileSystem getFileSystem() {
@@ -258,7 +265,7 @@ public class Compactor implements Callable<CompactionStats> {
         throw new IllegalArgumentException();
       
       SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorUtil.loadIterators(env.getIteratorScope(), cfsi, extent, acuTableConf,
-          iterEnv));
+          iterators, iterEnv));
       
       itr.seek(extent.toDataRange(), columnFamilies, inclusive);
       
