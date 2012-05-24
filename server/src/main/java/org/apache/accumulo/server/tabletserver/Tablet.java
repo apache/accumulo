@@ -3252,7 +3252,8 @@ public class Tablet {
           span.data("written", "" + mcs.getEntriesWritten());
           majCStats.add(mcs);
           
-          datafileManager.bringMajorCompactionOnline(smallestFiles, compactTmpName, fileName, filesToCompact.size() == 0 ? compactionId.getFirst() : null,
+          datafileManager.bringMajorCompactionOnline(smallestFiles, compactTmpName, fileName,
+              filesToCompact.size() == 0 && compactionId != null ? compactionId.getFirst() : null,
               new DataFileValue(mcs.getFileSize(), mcs.getEntriesWritten()));
           
           // when major compaction produces a file w/ zero entries, it will be deleted... do not want

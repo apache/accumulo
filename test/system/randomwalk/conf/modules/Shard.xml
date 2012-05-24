@@ -94,6 +94,11 @@
   <edge id="dummy.ToAll" weight="1"/>
 </node>
 
+<node id="shard.CompactFilter">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+
 <node id="dummy.ToAll">
   <edge id="shard.Reindex" weight="3"/>
   <edge id="shard.Flush" weight="3"/>
@@ -102,11 +107,12 @@
   <edge id="shard.Split" weight="40"/>
   <edge id="shard.Merge" weight="20"/>
   <edge id="shard.DeleteWord" weight="9"/>
+  <edge id="shard.CompactFilter" weight="9"/>
   <edge id="shard.DeleteSomeDocs" weight="20"/>
   <edge id="shard.BulkInsert" weight="3"/>
   <edge id="shard.Delete" weight="486"/>
-  <edge id="shard.Insert" weight="4697"/>
-  <edge id="shard.Search" weight="4696"/>
+  <edge id="shard.Insert" weight="4693"/>
+  <edge id="shard.Search" weight="4691"/>
 </node>
 
 </module>
