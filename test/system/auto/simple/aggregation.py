@@ -43,7 +43,7 @@ class AggregationTest(TestUtilsMixin, unittest.TestCase):
 
         # initialize the database
         aggregator = 'org.apache.accumulo.core.iterators.aggregation.StringSummation'
-        cmd = 'createtable test -a cf=' + aggregator
+        cmd = 'createtable test\nsetiter -agg -minc -majc -scan -p 10 -t test\ncf ' + aggregator + '\n\n'
         out, err, code = self.rootShell(self.masterHost(),"%s\n" % cmd)
         self.assert_(code == 0)
 
