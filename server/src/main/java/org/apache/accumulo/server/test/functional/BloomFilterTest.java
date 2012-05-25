@@ -161,6 +161,8 @@ public class BloomFilterTest extends FunctionalTest {
       throw new Exception("Queries exceeded expected run time " + (t2 - t1) / 1000.0 + " " + secs);
     }
     
+    bs.close();
+
   }
   
   private void write(String table, int depth, long start, long end, int step) throws Exception {
