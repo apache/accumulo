@@ -74,7 +74,7 @@ class TableTest(readwrite.SunnyDayTest):
         self.assert_(out.find('%s/tables/%s' % (ACCUMULO_DIR,firstTID)) >= 0)
 
         #delete the table
-        out, err, code = self.sshell("deletetable test_ingest\n")
+        out, err, code = self.sshell("deletetable test_ingest\nyes\n")
         self.assert_(code == 0)
         self.shutdown_accumulo()
         self.start_accumulo()

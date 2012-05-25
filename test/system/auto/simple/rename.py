@@ -44,7 +44,7 @@ class RenameTest(readwrite.SunnyDayTest):
                                      self.options.rows,
                                      self.options.rows), 100)
         self.shell(self.masterHost(),
-                   'deletetable test_ingest\n'
+                   'deletetable test_ingest\nyes\n'
                    'renametable renamed test_ingest\n')
         self.waitForStop(self.verify(self.masterHost(), self.options.rows), 100)
 
