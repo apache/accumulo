@@ -85,7 +85,7 @@ public class StringSummation%s implements org.apache.accumulo.core.iterators.agg
 
         # initialize the database
         aggregator = 'accumulo.test.StringSummation%s' % rand
-        cmd = 'createtable test -a cf=' + aggregator
+        cmd = 'createtable test\nsetiter -agg -minc -majc -scan -p 10 -t test\ncf ' + aggregator + '\n\n'
         out, err, code = self.rootShell(self.masterHost(),"%s\n" % cmd)
         self.assert_(code == 0)
 
