@@ -2066,6 +2066,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     return majorCompactorDisabled;
   }
   
+  void executeSplit(Tablet tablet) {
+    resourceManager.executeSplit(tablet.getExtent(), new LoggingRunnable(log, new SplitRunner(tablet)));
+  }
+
   private class MajorCompactor implements Runnable {
     
     public void run() {
@@ -2099,7 +2103,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             // if we need to split AND compact, we need a good way
             // to decide what to do
             if (tablet.needsSplit()) {
-              resourceManager.executeSplit(tablet.getExtent(), new LoggingRunnable(log, new SplitRunner(tablet)));
+              executeSplit(tablet);
               continue;
             }
             
@@ -3339,5 +3343,4 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   public TableConfiguration getTableConfiguration(KeyExtent extent) {
     return ServerConfiguration.getTableConfiguration(instance, extent.getTableId().toString());
   }
-
 }
