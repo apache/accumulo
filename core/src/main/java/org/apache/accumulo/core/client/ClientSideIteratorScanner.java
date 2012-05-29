@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.client.mock.IteratorAdapter;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -52,7 +53,9 @@ import org.apache.hadoop.io.Text;
  * the source scanner (which will execute server side) and to the client side scanner (which will execute client side).
  */
 public class ClientSideIteratorScanner extends ScannerOptions implements Scanner {
+  private int size;
   private int timeOut;
+  
   private Range range;
   private boolean isolated = false;
   
@@ -131,9 +134,9 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
    */
   public ClientSideIteratorScanner(Scanner scanner) {
     smi = new ScannerTranslator(scanner);
-    setRange(scanner.getRange());
-    setBatchSize(scanner.getBatchSize());
-    setTimeOut(scanner.getTimeOut());
+    this.range = new Range((Key) null, (Key) null);
+    this.size = Constants.SCAN_BATCH_SIZE;
+    this.timeOut = Integer.MAX_VALUE;
   }
   
   /**
@@ -147,7 +150,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
-    smi.scanner.setBatchSize(getBatchSize());
+    smi.scanner.setBatchSize(size);
     smi.scanner.setTimeOut(timeOut);
     if (isolated)
       smi.scanner.enableIsolation();
@@ -222,6 +225,16 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   @Override
   public Range getRange() {
     return range;
+  }
+  
+  @Override
+  public void setBatchSize(int size) {
+    this.size = size;
+  }
+  
+  @Override
+  public int getBatchSize() {
+    return size;
   }
   
   @Override

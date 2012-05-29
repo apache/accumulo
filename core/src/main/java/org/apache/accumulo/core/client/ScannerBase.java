@@ -92,21 +92,6 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   public void clearScanIterators();
   
   /**
-   * Sets the number of Key/Value pairs that will be fetched at a time from a tablet server.
-   * 
-   * @param size
-   *          the number of Key/Value pairs to fetch per call to Accumulo
-   */
-  public void setBatchSize(int size);
-  
-  /**
-   * Returns the batch size (number of Key/Value pairs) that will be fetched at a time from a tablet server.
-   * 
-   * @return the batch size configured for this scanner
-   */
-  public int getBatchSize();
-  
-  /**
    * Returns an iterator over an accumulo table. This iterator uses the options that are currently set for its lifetime, so setting options will have no effect
    * on existing iterators.
    * 

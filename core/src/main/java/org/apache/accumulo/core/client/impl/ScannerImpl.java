@@ -30,6 +30,7 @@ package org.apache.accumulo.core.client.impl;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -52,6 +53,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   private Authorizations authorizations;
   private Text table;
   
+  private int size;
   private int timeOut;
   
   private Range range;
@@ -65,6 +67,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     this.range = new Range((Key) null, (Key) null);
     this.authorizations = authorizations;
     
+    this.size = Constants.SCAN_BATCH_SIZE;
     this.timeOut = Integer.MAX_VALUE;
   }
   
@@ -95,12 +98,25 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     return range;
   }
   
+  @Override
+  public synchronized void setBatchSize(int size) {
+    if (size > 0)
+      this.size = size;
+    else
+      throw new IllegalArgumentException("size must be greater than zero");
+  }
+  
+  @Override
+  public synchronized int getBatchSize() {
+    return size;
+  }
+  
   /**
    * Returns an iterator over an accumulo table. This iterator uses the options that are currently set on the scanner for its lifetime. So setting options on a
    * Scanner object will have no effect on existing iterators.
    */
   public synchronized Iterator<Entry<Key,Value>> iterator() {
-    return new ScannerIterator(instance, credentials, table, authorizations, range, getBatchSize(), timeOut, this, isolated);
+    return new ScannerIterator(instance, credentials, table, authorizations, range, size, timeOut, this, isolated);
   }
   
   @Override

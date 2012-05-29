@@ -69,6 +69,7 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
+
 public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value>> {
   
   private static final Logger log = Logger.getLogger(TabletServerBatchReaderIterator.class);
@@ -81,7 +82,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private final ExecutorService queryThreadPool;
   private final ScannerOptions options;
   
-  private ArrayBlockingQueue<Entry<Key,Value>> resultsQueue;
+  private ArrayBlockingQueue<Entry<Key,Value>> resultsQueue = new ArrayBlockingQueue<Entry<Key,Value>>(1000);
   private Entry<Key,Value> nextEntry = null;
   private Object nextLock = new Object();
   
@@ -130,7 +131,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.numThreads = numThreads;
     this.queryThreadPool = queryThreadPool;
     this.options = new ScannerOptions(scannerOptions);
-    this.resultsQueue = new ArrayBlockingQueue<Entry<Key,Value>>(this.options.getBatchSize());
     
     if (options.fetchedColumns.size() > 0) {
       ArrayList<Range> ranges2 = new ArrayList<Range>(ranges.size());
