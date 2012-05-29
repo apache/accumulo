@@ -172,7 +172,7 @@ public enum Property {
       "When enabled the logger will monitor file systems and kill itself when one switches from rw to ro.  This is usually and indication that Linux has detected a bad disk."),
   LOGGER_SORT_BUFFER_SIZE("logger.sort.buffer.size", "200M", PropertyType.MEMORY,
       "The amount of memory to use when sorting logs during recovery. Only used when *not* sorting logs with map/reduce."),
-  LOGGER_RECOVERY_FILE_REPLICATION("logger.recovery.file.replication", "1", PropertyType.COUNT,
+  LOGGER_RECOVERY_FILE_REPLICATION("logger.recovery.file.replication", "2", PropertyType.COUNT,
       "When a logger puts a WALOG into HDFS, it will use this as the replication factor."),
   LOGGER_MINTHREADS("logger.server.threads.minimum", "2", PropertyType.COUNT, "The miniumum number of threads to use to handle incoming requests."),
   LOGGER_THREADCHECK("logger.server.threadcheck.time", "1s", PropertyType.TIMEDURATION, "The time between adjustments of the server thread pool."),
