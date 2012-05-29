@@ -178,7 +178,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       
       // don't have one cached, try to cache one and return success
       try {
-        while (nextEntry == null && fatalException == null)
+        while (nextEntry == null && fatalException == null && !queryThreadPool.isShutdown())
           nextEntry = resultsQueue.poll(1, TimeUnit.SECONDS);
         
         if (fatalException != null)
@@ -187,6 +187,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           else
             throw new RuntimeException(fatalException);
         
+        if (queryThreadPool.isShutdown())
+          throw new RuntimeException("scanner closed");
+
         return nextEntry.getKey() != null && nextEntry.getValue() != null;
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
