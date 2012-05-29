@@ -56,7 +56,7 @@ public enum Property {
   // properties that are specific to master server behavior
   MASTER_PREFIX("master.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the master server"),
   MASTER_CLIENTPORT("master.port.client", "9999", PropertyType.PORT, "The port used for handling client connections on the master"),
-  MASTER_TABLET_BALANCER("master.tablet.balancer", "org.apache.accumulo.server.master.balancer.DefaultLoadBalancer", PropertyType.CLASSNAME,
+  MASTER_TABLET_BALANCER("master.tablet.balancer", "org.apache.accumulo.server.master.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and migration decisions."),
   MASTER_LOGGER_BALANCER("master.logger.balancer", "org.apache.accumulo.server.master.balancer.SimpleLoggerBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make logger assignment decisions."),
