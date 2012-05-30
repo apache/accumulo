@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import java.net.UnknownHostException;
 import java.util.List;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -34,7 +35,7 @@ import org.apache.thrift.transport.TTransportException;
 public class MasterClient {
   private static final Logger log = Logger.getLogger(MasterClient.class);
   
-  public static MasterClientService.Iface getConnectionWithRetry(Instance instance) throws TTransportException {
+  public static MasterClientService.Iface getConnectionWithRetry(Instance instance) {
     ArgumentChecker.notNull(instance);
     
     while (true) {
@@ -64,6 +65,10 @@ public class MasterClient {
           instance.getConfiguration());
       return client;
     } catch (TTransportException tte) {
+      if (tte.getCause().getClass().equals(UnknownHostException.class)) {
+        // do not expect to recover from this
+        throw new RuntimeException(tte);
+      }
       log.debug("Failed to connect to master=" + master + " portHint=" + portHint + ", will retry... ", tte);
       return null;
     }
