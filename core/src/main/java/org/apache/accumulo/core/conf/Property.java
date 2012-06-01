@@ -188,6 +188,10 @@ public enum Property {
   MONITOR_BANNER_COLOR("monitor.banner.color", "#c4c4c4", PropertyType.STRING, "The color of the banner text displayed on the monitor page."),
   MONITOR_BANNER_BACKGROUND("monitor.banner.background", "#304065", PropertyType.STRING,
       "The background color of the banner text displayed on the monitor page."),
+  MONITOR_SSL_KEYSTORE("monitor.ssl.keyStore", "", PropertyType.PATH, "The keystore for enabling monitor SSL."),
+  MONITOR_SSL_KEYSTOREPASS("monitor.ssl.keyStorePassword", "", PropertyType.STRING, "The keystore password for enabling monitor SSL."),
+  MONITOR_SSL_TRUSTSTORE("monitor.ssl.trustStore", "", PropertyType.PATH, "The truststore for enabling monitor SSL."),
+  MONITOR_SSL_TRUSTSTOREPASS("monitor.ssl.trustStorePassword", "", PropertyType.STRING, "The truststore password for enabling monitor SSL."),
   
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of distributed tracing."),
   TRACE_PORT("trace.port.client", "12234", PropertyType.PORT, "The listening port for the trace server"),
@@ -343,8 +347,7 @@ public enum Property {
   }
   
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
-      Property.TSERV_SCAN_MAX_OPENFILES, Property.TSERV_LOGGER_COUNT,
-      Property.LOGGER_PORT, Property.MASTER_CLIENTPORT, Property.GC_PORT);
+      Property.TSERV_SCAN_MAX_OPENFILES, Property.TSERV_LOGGER_COUNT, Property.LOGGER_PORT, Property.MASTER_CLIENTPORT, Property.GC_PORT);
   
   public static boolean isFixedZooPropertyKey(Property key) {
     return fixedProperties.contains(key);

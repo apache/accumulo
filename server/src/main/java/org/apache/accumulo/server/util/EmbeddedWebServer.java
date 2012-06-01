@@ -16,29 +16,25 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.lang.reflect.Method;
-
 import javax.servlet.http.HttpServlet;
 
-// Work very hard to make this jetty stuff work with Hadoop 0.20 and 0.19.0 which changed
-// the version of jetty from 5.1.4 to 6.1.14.
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.server.monitor.Monitor;
+import org.mortbay.jetty.Server;
+import org.mortbay.jetty.bio.SocketConnector;
+import org.mortbay.jetty.handler.ContextHandlerCollection;
+import org.mortbay.jetty.security.SslSocketConnector;
+import org.mortbay.jetty.servlet.Context;
+import org.mortbay.jetty.servlet.SessionHandler;
 
 public class EmbeddedWebServer {
   
   public static EmbeddedWebServer create(int port) throws ClassNotFoundException {
-    try {
-      return new EmbeddedWebServer5_1(port);
-    } catch (ClassNotFoundException ex) {
-      return new EmbeddedWebServer6_1(port);
-    }
+    return new EmbeddedWebServer6_1(port);
   }
   
   public static EmbeddedWebServer create() throws ClassNotFoundException {
-    try {
-      return new EmbeddedWebServer5_1();
-    } catch (ClassNotFoundException ex) {
-      return new EmbeddedWebServer6_1();
-    }
+    return new EmbeddedWebServer6_1();
   }
   
   public void addServlet(Class<? extends HttpServlet> klass, String where) {}
@@ -51,131 +47,57 @@ public class EmbeddedWebServer {
   
   public void stop() {}
   
+  public boolean isUsingSsl() {
+    return false;
+  }
+  
   static public class EmbeddedWebServer6_1 extends EmbeddedWebServer {
     // 6.1
-    Object server = null;
-    Object sock;
-    Object handler;
+    Server server = null;
+    SocketConnector sock;
+    ContextHandlerCollection handler;
+    Context root;
+    boolean usingSsl;
     
     public EmbeddedWebServer6_1() throws ClassNotFoundException {
       this(0);
     }
     
-    public EmbeddedWebServer6_1(int port) throws ClassNotFoundException {
-      // Works for both
-      try {
-        ClassLoader loader = this.getClass().getClassLoader();
-        server = loader.loadClass("org.mortbay.jetty.Server").getConstructor().newInstance();
-        sock = loader.loadClass("org.mortbay.jetty.bio.SocketConnector").getConstructor().newInstance();
-        handler = loader.loadClass("org.mortbay.jetty.servlet.ServletHandler").getConstructor().newInstance();
-        Method method = sock.getClass().getMethod("setPort", Integer.TYPE);
-        method.invoke(sock, port);
-      } catch (ClassNotFoundException ex) {
-        throw ex;
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
-    
-    public void addServlet(Class<? extends HttpServlet> klass, String where) {
-      try {
-        Method method = handler.getClass().getMethod("addServletWithMapping", klass.getClass(), where.getClass());
-        method.invoke(handler, klass, where);
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
-      }
-    }
-    
-    public int getPort() {
-      try {
-        
-        Method method = sock.getClass().getMethod("getLocalPort");
-        return (Integer) method.invoke(sock);
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
-      }
-    }
-    
-    public void start() {
-      try {
-        Class<?> klass = server.getClass().getClassLoader().loadClass("org.mortbay.jetty.Connector");
-        Method method = server.getClass().getMethod("addConnector", klass);
-        method.invoke(server, sock);
-        klass = server.getClass().getClassLoader().loadClass("org.mortbay.jetty.Handler");
-        method = server.getClass().getMethod("setHandler", klass);
-        method.invoke(server, handler);
-        method = server.getClass().getMethod("start");
-        method.invoke(server);
-      } catch (Exception e) {
-        stop();
-        throw new RuntimeException(e);
-      }
-    }
-    
-    public void stop() {
-      try {
-        Method method = server.getClass().getMethod("stop");
-        method.invoke(server);
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
-  }
-  
-  static public class EmbeddedWebServer5_1 extends EmbeddedWebServer {
-    Object sock;
-    Object server = null;
-    
-    public EmbeddedWebServer5_1() throws ClassNotFoundException {
-      this(0);
-    }
-    
-    public EmbeddedWebServer5_1(int port) throws ClassNotFoundException {
-      Method method;
-      try {
-        ClassLoader loader = this.getClass().getClassLoader();
-        server = loader.loadClass("org.mortbay.jetty.Server").getConstructor().newInstance();
-        sock = loader.loadClass("org.mortbay.http.SocketListener").getConstructor().newInstance();
-        method = sock.getClass().getMethod("setPort", Integer.TYPE);
-        method.invoke(sock, port);
-      } catch (ClassNotFoundException ex) {
-        throw ex;
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
+    public EmbeddedWebServer6_1(int port) {
+      server = new Server();
+      handler = new ContextHandlerCollection();
+      root = new Context(handler, "/", new SessionHandler(), null, null, null);
       
+      if (Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTORE) == ""
+          || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTOREPASS) == ""
+          || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE) == ""
+          || Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTOREPASS) == "") {
+        sock = new SocketConnector();
+        usingSsl = false;
+      } else {
+        sock = new SslSocketConnector();
+        ((SslSocketConnector) sock).setKeystore(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTORE));
+        ((SslSocketConnector) sock).setKeyPassword(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_KEYSTOREPASS));
+        ((SslSocketConnector) sock).setTruststore(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTORE));
+        ((SslSocketConnector) sock).setTrustPassword(Monitor.getSystemConfiguration().get(Property.MONITOR_SSL_TRUSTSTOREPASS));
+        usingSsl = true;
+      }
+      sock.setPort(port);
     }
     
     public void addServlet(Class<? extends HttpServlet> klass, String where) {
-      try {
-        Method method = server.getClass().getMethod("getContext", String.class);
-        Object ctx = method.invoke(server, "/");
-        method = ctx.getClass().getMethod("addServlet", String.class, String.class, String.class);
-        method.invoke(ctx, where, where, klass.getName());
-        Class<?> httpContextClass = this.getClass().getClassLoader().loadClass("org.mortbay.http.HttpContext");
-        method = server.getClass().getMethod("addContext", httpContextClass);
-        method.invoke(server, ctx);
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
-      }
+      root.addServlet(klass, where);
     }
     
     public int getPort() {
-      try {
-        Method method = sock.getClass().getMethod("getPort");
-        return (Integer) method.invoke(sock);
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
+      return sock.getLocalPort();
     }
     
     public void start() {
       try {
-        Class<?> listener = getClass().getClassLoader().loadClass("org.mortbay.http.HttpListener");
-        Method method = server.getClass().getMethod("addListener", listener);
-        method.invoke(server, sock);
-        method = server.getClass().getMethod("start");
-        method.invoke(server);
+        server.addConnector(sock);
+        server.setHandler(handler);
+        server.start();
       } catch (Exception e) {
         stop();
         throw new RuntimeException(e);
@@ -184,11 +106,14 @@ public class EmbeddedWebServer {
     
     public void stop() {
       try {
-        Method method = server.getClass().getMethod("stop");
-        method.invoke(server);
+        server.stop();
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
+    }
+    
+    public boolean isUsingSsl() {
+      return usingSsl;
     }
   }
 }
