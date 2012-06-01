@@ -28,8 +28,7 @@ import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 
 /**
- * An Accumulo Shell implementation that allows a developer to attach
- * an InputStream and Writer to the Shell for testing purposes.
+ * An Accumulo Shell implementation that allows a developer to attach an InputStream and Writer to the Shell for testing purposes.
  */
 public class MockShell extends Shell {
   private static final String NEWLINE = "\n";
@@ -43,14 +42,13 @@ public class MockShell extends Shell {
     this.writer = writer;
   }
   
-  public void config(String... args) {
-    super.config(args);
+  public boolean config(String... args) {
+    configError = super.config(args);
     
     // Update the ConsoleReader with the input and output "redirected"
     try {
       this.reader = new ConsoleReader(in, writer);
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       printException(e);
       configError = true;
     }
@@ -61,8 +59,9 @@ public class MockShell extends Shell {
     
     // Make the parsing from the client easier;
     this.verbose = false;
+    return configError;
   }
-
+  
   @Override
   protected void setInstance(CommandLine cl) {
     // We always want a MockInstance for this test
@@ -89,7 +88,7 @@ public class MockShell extends Shell {
     }
     
     while (true) {
-      if (exit)
+      if (hasExited())
         return exitCode;
       
       reader.setDefaultPrompt(getDefaultPrompt());
@@ -104,14 +103,16 @@ public class MockShell extends Shell {
   }
   
   /**
-   * @param in the in to set
+   * @param in
+   *          the in to set
    */
   public void setConsoleInputStream(InputStream in) {
     this.in = in;
   }
-
+  
   /**
-   * @param writer the writer to set
+   * @param writer
+   *          the writer to set
    */
   public void setConsoleWriter(Writer writer) {
     this.writer = writer;
@@ -119,7 +120,8 @@ public class MockShell extends Shell {
   
   /**
    * Convenience method to create the byte-array to hand to the console
-   * @param commands 
+   * 
+   * @param commands
    *          An array of commands to run
    * @return A byte[] input stream which can be handed to the console.
    */

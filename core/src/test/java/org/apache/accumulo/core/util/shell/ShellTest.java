@@ -32,7 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class ShellTest {
-  class TestOutputStream extends OutputStream {
+  static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
     
     @Override
@@ -62,7 +62,7 @@ public class ShellTest {
     if (expectGoodExit)
       assertGoodExit("", true);
     else
-      assertBadExit();
+      assertBadExit("", true);
   }
   
   void exec(String cmd, boolean expectGoodExit, String expectString) throws IOException {
@@ -74,7 +74,7 @@ public class ShellTest {
     if (expectGoodExit)
       assertGoodExit(expectString, stringPresent);
     else
-      assertBadExit();
+      assertBadExit(expectString, stringPresent);
   }
   
   @Before
@@ -82,6 +82,7 @@ public class ShellTest {
     Shell.log.setLevel(Level.OFF);
     output = new TestOutputStream();
     shell = new Shell(new ConsoleReader(new FileInputStream(FileDescriptor.in), new OutputStreamWriter(output)));
+    shell.setLogErrorsToConsole();
     shell.config("--fake", "-p", "pass");
   }
   
@@ -92,9 +93,11 @@ public class ShellTest {
       assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
   }
   
-  void assertBadExit() {
+  void assertBadExit(String s, boolean stringPresent) {
     Shell.log.debug(output.get());
     assertTrue(shell.getExitCode() > 0);
+    if (s.length() > 0)
+      assertEquals(s + " present in " + output.get() + " was not " + stringPresent, stringPresent, output.get().contains(s));
     shell.resetExitCode();
   }
   
@@ -103,13 +106,13 @@ public class ShellTest {
     Shell.log.debug("Starting about test -----------------------------------");
     exec("about", true, "Shell - Apache Accumulo Interactive Shell");
     exec("about -v", true, "Current user:");
-    exec("about arg", false);
+    exec("about arg", false, "java.lang.IllegalArgumentException: Expected 0 arguments");
   }
   
   @Test
   public void addGetSplitsTest() throws IOException {
     Shell.log.debug("Starting addGetSplits test ----------------------------");
-    exec("addsplits arg", false);
+    exec("addsplits arg", false, "java.lang.IllegalStateException: Not in a table context");
     exec("createtable test", true);
     exec("addsplits 1 \\x80", true);
     exec("getsplits", true, "1\n\\x80");
@@ -119,8 +122,8 @@ public class ShellTest {
   @Test
   public void insertDeleteScanTest() throws IOException {
     Shell.log.debug("Starting insertDeleteScan test ------------------------");
-    exec("insert r f q v", false);
-    exec("delete r f q", false);
+    exec("insert r f q v", false, "java.lang.IllegalStateException: Not in a table context");
+    exec("delete r f q", false, "java.lang.IllegalStateException: Not in a table context");
     exec("createtable test", true);
     exec("insert r f q v", true);
     exec("scan", true, "r f:q []    v");

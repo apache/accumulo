@@ -32,7 +32,6 @@ import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
 
-
 public class TraceCommand extends DebugCommand {
   
   public int execute(String fullCommand, CommandLine cl, final Shell shellState) throws IOException {
@@ -66,7 +65,7 @@ public class TraceCommand extends DebugCommand {
                 break;
               }
             } catch (Exception ex) {
-              Shell.printException(ex);
+              shellState.printException(ex);
             }
             shellState.getReader().printString("Waiting for trace information\n");
             shellState.getReader().flushConsole();
@@ -80,8 +79,8 @@ public class TraceCommand extends DebugCommand {
     } else if (cl.getArgs().length == 0) {
       shellState.getReader().printString(Trace.isTracing() ? "on\n" : "off\n");
     } else {
-      Shell.printException(new IllegalArgumentException("Expected 0 or 1 argument. There were " + cl.getArgs().length + "."));
-      printHelp();
+      shellState.printException(new IllegalArgumentException("Expected 0 or 1 argument. There were " + cl.getArgs().length + "."));
+      printHelp(shellState);
       return 1;
     }
     return 0;

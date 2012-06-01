@@ -41,7 +41,7 @@ public class PasswdCommand extends Command {
     String passwordConfirm = null;
     String oldPassword = null;
     
-    oldPassword = shellState.getReader().readLine("Enter current password for '" + currentUser + "': ", '*');
+    oldPassword = shellState.readMaskedLine("Enter current password for '" + currentUser + "': ", '*');
     if (oldPassword == null) {
       shellState.getReader().printNewline();
       return 0;
@@ -50,12 +50,12 @@ public class PasswdCommand extends Command {
     if (!shellState.getConnector().securityOperations().authenticateUser(currentUser, oldPassword.getBytes()))
       throw new AccumuloSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
     
-    password = shellState.getReader().readLine("Enter new password for '" + user + "': ", '*');
+    password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
     if (password == null) {
       shellState.getReader().printNewline();
       return 0;
     } // user canceled
-    passwordConfirm = shellState.getReader().readLine("Please confirm new password for '" + user + "': ", '*');
+    passwordConfirm = shellState.readMaskedLine("Please confirm new password for '" + user + "': ", '*');
     if (passwordConfirm == null) {
       shellState.getReader().printNewline();
       return 0;
