@@ -341,3 +341,48 @@ pre.logevent {
     border: 1px solid #c4c4c4;
     background-color: #ffffff;
 }
+
+#shell {
+    text-align: left;
+    color: #55d839;
+    border: 1px;
+    padding-left: 5px;
+    background-color: #000000;
+    height: 40em;
+    overflow: auto;
+    font-family: Monaco, monospace;
+    font-size: 100%;
+}
+
+#shell span {
+    display: inline;
+}
+
+#shell input {
+    display: inline;
+    border: none;
+    width: 60%;
+    color: #55d839;
+    background-color: #000000;
+    font-family: Monaco, monospace;
+    font-size: 100%;
+}
+
+#shell pre {
+    font-family: Monaco, monospace;
+    font-size: 100%;
+}
+
+#login {
+    text-align: left;
+}
+
+#login table {
+    margin-left: 0;
+    min-width: 0%;
+}
+
+#loginError {
+    text-align: left;
+    color: red;
+}

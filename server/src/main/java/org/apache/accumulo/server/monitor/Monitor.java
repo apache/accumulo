@@ -60,6 +60,7 @@ import org.apache.accumulo.server.monitor.servlets.LoggersServlet;
 import org.apache.accumulo.server.monitor.servlets.MasterServlet;
 import org.apache.accumulo.server.monitor.servlets.OperationServlet;
 import org.apache.accumulo.server.monitor.servlets.ProblemServlet;
+import org.apache.accumulo.server.monitor.servlets.ShellServlet;
 import org.apache.accumulo.server.monitor.servlets.TServersServlet;
 import org.apache.accumulo.server.monitor.servlets.TablesServlet;
 import org.apache.accumulo.server.monitor.servlets.VisServlet;
@@ -147,6 +148,8 @@ public class Monitor {
   private static Instance instance;
   
   private static ServerConfiguration config;
+  
+  private static EmbeddedWebServer server;
   
   public static Map<String,Double> summarizeTableStats(MasterMonitorInfo mmi) {
     Map<String,Double> compactingByTable = new HashMap<String,Double>();
@@ -317,7 +320,7 @@ public class Monitor {
         indexCacheRequestTracker.startingUpdates();
         dataCacheHitTracker.startingUpdates();
         dataCacheRequestTracker.startingUpdates();
-
+      
         for (TabletServerStatus server : mmi.tServerInfo) {
           TableInfo summary = Monitor.summarizeTableStats(server);
           totalIngestRate += summary.ingestRate;
@@ -464,7 +467,6 @@ public class Monitor {
   public void run(String hostname) {
     Monitor.START_TIME = System.currentTimeMillis();
     int port = config.getConfiguration().getPort(Property.MONITOR_PORT);
-    EmbeddedWebServer server;
     try {
       log.debug("Creating monitor on port " + port);
       server = EmbeddedWebServer.create(port);
@@ -488,6 +490,8 @@ public class Monitor {
     server.addServlet(Summary.class, "/trace/summary");
     server.addServlet(ListType.class, "/trace/listType");
     server.addServlet(ShowTrace.class, "/trace/show");
+    if (server.isUsingSsl())
+      server.addServlet(ShellServlet.class, "/shell");
     LogService.startLogListener(Monitor.getSystemConfiguration());
     server.start();
     
@@ -547,7 +551,7 @@ public class Monitor {
   public static double getTotalScanRate() {
     return totalScanRate;
   }
-
+  
   public static double getTotalQueryByteRate() {
     return totalQueryByteRate;
   }
@@ -633,7 +637,7 @@ public class Monitor {
       return new ArrayList<Pair<Long,Integer>>(scanRateOverTime);
     }
   }
-
+  
   public static List<Pair<Long,Double>> getQueryByteRateOverTime() {
     synchronized (queryByteRateOverTime) {
       return new ArrayList<Pair<Long,Double>>(queryByteRateOverTime);
@@ -658,5 +662,9 @@ public class Monitor {
   
   public static Instance getInstance() {
     return instance;
+  }
+  
+  public static boolean isUsingSsl() {
+    return server.isUsingSsl();
   }
 }
