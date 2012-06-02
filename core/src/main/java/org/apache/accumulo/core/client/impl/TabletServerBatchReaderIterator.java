@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
@@ -82,8 +83,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private final ExecutorService queryThreadPool;
   private final ScannerOptions options;
   
-  private ArrayBlockingQueue<Entry<Key,Value>> resultsQueue = new ArrayBlockingQueue<Entry<Key,Value>>(1000);
-  private Entry<Key,Value> nextEntry = null;
+  private ArrayBlockingQueue<List<Entry<Key,Value>>> resultsQueue;
+  private Iterator<Entry<Key,Value>> batchIterator;
+  private List<Entry<Key,Value>> batch;
+  private static final List<Entry<Key,Value>> LAST_BATCH = new ArrayList<Map.Entry<Key,Value>>();
   private Object nextLock = new Object();
   
   private long failSleepTime = 100;
@@ -91,7 +94,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private volatile Throwable fatalException = null;
   
   public interface ResultReceiver {
-    void receive(Key key, Value value);
+    void receive(List<Entry<Key,Value>> entries);
   }
   
   private static class MyEntry implements Entry<Key,Value> {
@@ -131,6 +134,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.numThreads = numThreads;
     this.queryThreadPool = queryThreadPool;
     this.options = new ScannerOptions(scannerOptions);
+    resultsQueue = new ArrayBlockingQueue<List<Entry<Key,Value>>>(numThreads);
     
     if (options.fetchedColumns.size() > 0) {
       ArrayList<Range> ranges2 = new ArrayList<Range>(ranges.size());
@@ -144,14 +148,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     ResultReceiver rr = new ResultReceiver() {
       
       @Override
-      public void receive(Key key, Value value) {
+      public void receive(List<Entry<Key,Value>> entries) {
         try {
-          resultsQueue.put(new MyEntry(key, value));
+          resultsQueue.put(entries);
         } catch (InterruptedException e) {
           if (TabletServerBatchReaderIterator.this.queryThreadPool.isShutdown())
-            log.debug("Failed to add Batch Scan result for key " + key, e);
+            log.debug("Failed to add Batch Scan result", e);
           else
-            log.warn("Failed to add Batch Scan result for key " + key, e);
+            log.warn("Failed to add Batch Scan result", e);
           fatalException = e;
           throw new RuntimeException(e);
           
@@ -169,17 +173,21 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     }
   }
   
+
   @Override
   public boolean hasNext() {
     synchronized (nextLock) {
-      // check if one was cached
-      if (nextEntry != null)
-        return nextEntry.getKey() != null && nextEntry.getValue() != null;
+      if (batch == LAST_BATCH)
+        return false;
+      
+      if (batch != null && batchIterator.hasNext())
+        return true;
       
       // don't have one cached, try to cache one and return success
       try {
-        while (nextEntry == null && fatalException == null && !queryThreadPool.isShutdown())
-          nextEntry = resultsQueue.poll(1, TimeUnit.SECONDS);
+        batch = null;
+        while (batch == null && fatalException == null && !queryThreadPool.isShutdown())
+          batch = resultsQueue.poll(1, TimeUnit.SECONDS);
         
         if (fatalException != null)
           if (fatalException instanceof RuntimeException)
@@ -190,7 +198,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         if (queryThreadPool.isShutdown())
           throw new RuntimeException("scanner closed");
 
-        return nextEntry.getKey() != null && nextEntry.getValue() != null;
+        batchIterator = batch.iterator();
+        return batch != LAST_BATCH;
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
       }
@@ -199,17 +208,13 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   
   @Override
   public Entry<Key,Value> next() {
-    Entry<Key,Value> current = null;
-    
     // if there's one waiting, or hasNext() can get one, return it
     synchronized (nextLock) {
-      if (hasNext()) {
-        current = nextEntry;
-        nextEntry = null;
-      }
+      if (hasNext())
+        return batchIterator.next();
+      else
+        throw new NoSuchElementException();
     }
-    
-    return current;
   }
   
   @Override
@@ -391,22 +396,22 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             
             if (fatalException != null) {
               // we are finished with this batch query
-              if (!resultsQueue.offer(new MyEntry(null, null))) {
+              if (!resultsQueue.offer(LAST_BATCH)) {
                 log.debug("Could not add to result queue after seeing fatalException in processFailures", fatalException);
               }
             }
           } else {
             // we are finished with this batch query
             if (fatalException != null) {
-              if (!resultsQueue.offer(new MyEntry(null, null))) {
+              if (!resultsQueue.offer(LAST_BATCH)) {
                 log.debug("Could not add to result queue after seeing fatalException", fatalException);
               }
             } else {
               try {
-                resultsQueue.put(new MyEntry(null, null));
+                resultsQueue.put(LAST_BATCH);
               } catch (InterruptedException e) {
                 fatalException = e;
-                if (!resultsQueue.offer(new MyEntry(null, null))) {
+                if (!resultsQueue.offer(LAST_BATCH)) {
                   log.debug("Could not add to result queue after seeing fatalException", fatalException);
                 }
               }
@@ -549,9 +554,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         opTimer.stop("Got 1st multi scan results, #results=" + scanResult.results.size() + (scanResult.more ? "  scanID=" + imsr.scanID : "")
             + " in %DURATION%");
         
+        ArrayList<Entry<Key,Value>> entries = new ArrayList<Map.Entry<Key,Value>>(scanResult.results.size());
         for (TKeyValue kv : scanResult.results) {
-          receiver.receive(new Key(kv.key), new Value(kv.value));
+          entries.add(new MyEntry(new Key(kv.key), new Value(kv.value)));
         }
+        
+        if (entries.size() > 0)
+          receiver.receive(entries);
+
         trackScanning(failures, unscanned, scanResult);
         
         while (scanResult.more) {
@@ -560,9 +570,14 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           scanResult = client.continueMultiScan(null, imsr.scanID);
           opTimer.stop("Got more multi scan results, #results=" + scanResult.results.size() + (scanResult.more ? "  scanID=" + imsr.scanID : "")
               + " in %DURATION%");
+          
+          entries = new ArrayList<Map.Entry<Key,Value>>(scanResult.results.size());
           for (TKeyValue kv : scanResult.results) {
-            receiver.receive(new Key(kv.key), new Value(kv.value));
+            entries.add(new MyEntry(new Key(kv.key), new Value(kv.value)));
           }
+          
+          if (entries.size() > 0)
+            receiver.receive(entries);
           trackScanning(failures, unscanned, scanResult);
         }
         
