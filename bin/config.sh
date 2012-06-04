@@ -63,11 +63,6 @@ then
 fi
 export HADOOP_HOME
 
-if [ "`$HADOOP_HOME/bin/hadoop version 2>/dev/null | head -1 | cut -f 2 -d .`" != 20 ]; then
-    echo "Accumulo $ACCUMULO_VERSION requires Hadoop version 0.20.x"
-    exit 1
-fi
-
 if [ ! -f "$ACCUMULO_HOME/conf/masters" -o ! -f "$ACCUMULO_HOME/conf/slaves" ]
 then
     if [ ! -f "$ACCUMULO_HOME/conf/masters" -a ! -f "$ACCUMULO_HOME/conf/slaves" ]
