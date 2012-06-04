@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.IsolationException;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -219,9 +218,9 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   
   public IsolatedScanner(Scanner scanner, RowBufferFactory bufferFactory) {
     this.scanner = scanner;
-    this.range = new Range();
-    this.timeOut = Integer.MAX_VALUE;
-    this.batchSize = Constants.SCAN_BATCH_SIZE;
+    this.range = scanner.getRange();
+    this.timeOut = scanner.getTimeOut();
+    this.batchSize = scanner.getBatchSize();
     this.bufferFactory = bufferFactory;
   }
   

@@ -25,7 +25,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.client.mock.IteratorAdapter;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -134,9 +133,9 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
    */
   public ClientSideIteratorScanner(Scanner scanner) {
     smi = new ScannerTranslator(scanner);
-    this.range = new Range((Key) null, (Key) null);
-    this.size = Constants.SCAN_BATCH_SIZE;
-    this.timeOut = Integer.MAX_VALUE;
+    this.range = scanner.getRange();
+    this.size = scanner.getBatchSize();
+    this.timeOut = scanner.getTimeOut();
   }
   
   /**
