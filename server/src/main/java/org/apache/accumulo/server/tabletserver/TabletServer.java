@@ -963,7 +963,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           if (isCancelled() || session == null)
             return;
 
-          long maxResultsSize = acuConf.getMemoryInBytes(Property.TABLE_SCAN_MAXMEM);
+          TableConfiguration acuTableConf = ServerConfiguration.getTableConfiguration(instance, session.threadPoolExtent.getTableId().toString());
+          long maxResultsSize = acuTableConf.getMemoryInBytes(Property.TABLE_SCAN_MAXMEM);
           long bytesAdded = 0;
           long maxScanTime = 4000;
           
