@@ -36,29 +36,6 @@ locationByProgram()
    echo ${RESULT}
 }
 
-test -n "$JAVA_HOME"      || export JAVA_HOME=`locationByProgram java`
-test -n "$HADOOP_HOME"    || export HADOOP_HOME=`locationByProgram hadoop`
-test -n "$ZOOKEEPER_HOME" || export ZOOKEEPER_HOME=`locationByProgram zkCli.sh`
-
-
-DEFAULT_GENERAL_JAVA_OPTS=""
-BIG=6g
-MED=3g
-SMALL=512m
-if ! "$JAVA_HOME/bin/java" -Xms10g -Xmx10g >/dev/null 2>&1 ; then
-   BIG=3g
-   MED=1g
-   SMALL=256m
-fi
-
-test -n "$ACCUMULO_TSERVER_OPTS" || export ACCUMULO_TSERVER_OPTS="-Xmx$BIG -Xms$BIG "
-test -n "$ACCUMULO_MASTER_OPTS"  || export ACCUMULO_MASTER_OPTS="-Xmx$MED -Xms$MED "
-test -n "$ACCUMULO_GC_OPTS"      || export ACCUMULO_GC_OPTS="-Xmx$SMALL -Xms$SMALL "
-test -n "$ACCUMULO_MONITOR_OPTS" || export ACCUMULO_MONITOR_OPTS="-Xmx$MED -Xms$SMALL "
-test -n "$ACCUMULO_LOGGER_OPTS"  || export ACCUMULO_LOGGER_OPTS="-Xmx$MED -Xms$SMALL "
-test -n "$ACCUMULO_GENERAL_OPTS" || export ACCUMULO_GENERAL_OPTS="$DEFAULT_GENERAL_JAVA_OPTS"
-test -n "$ACCUMULO_OTHER_OPTS"   || export ACCUMULO_OTHER_OPTS="-Xmx$MED -Xms$SMALL "
-
 # ACCUMULO_XTRAJARS is where all of the commandline -add items go into for reading by accumulo.
 if [ "$1" = "-add" ] ; then
 	export ACCUMULO_XTRAJARS=$2
