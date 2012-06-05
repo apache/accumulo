@@ -41,7 +41,6 @@ public class ZooZap {
     
     boolean zapMaster = false;
     boolean zapTservers = false;
-    boolean zapLoggers = false;
     boolean zapTracers = false;
     
     if (args.length == 0) {
@@ -54,8 +53,6 @@ public class ZooZap {
         zapTservers = true;
       } else if (args[i].equals("-master")) {
         zapMaster = true;
-      } else if (args[i].equals("-loggers")) {
-        zapLoggers = true;
       } else if (args[i].equals("-tracers")) {
         zapTracers = true;
       } else if (args[i].equals("-verbose")) {
@@ -98,24 +95,19 @@ public class ZooZap {
       }
     }
     
-    if (zapLoggers) {
-      String loggersPath = Constants.ZROOT + "/" + iid + Constants.ZLOGGERS;
-      zapDirectory(zoo, loggersPath);
-    }
-    
     if (zapTracers) {
-      String loggersPath = Constants.ZROOT + "/" + iid + Constants.ZTRACERS;
-      zapDirectory(zoo, loggersPath);
+      String path = Constants.ZROOT + "/" + iid + Constants.ZTRACERS;
+      zapDirectory(zoo, path);
     }
     
   }
   
-  private static void zapDirectory(IZooReaderWriter zoo, String loggersPath) {
+  private static void zapDirectory(IZooReaderWriter zoo, String path) {
     try {
-      List<String> children = zoo.getChildren(loggersPath);
+      List<String> children = zoo.getChildren(path);
       for (String child : children) {
-        message("Deleting " + loggersPath + "/" + child + " from zookeeper");
-        zoo.recursiveDelete(loggersPath + "/" + child, NodeMissingPolicy.SKIP);
+        message("Deleting " + path + "/" + child + " from zookeeper");
+        zoo.recursiveDelete(path + "/" + child, NodeMissingPolicy.SKIP);
       }
     } catch (Exception e) {
       e.printStackTrace();

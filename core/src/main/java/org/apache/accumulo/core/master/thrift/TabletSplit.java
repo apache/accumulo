@@ -348,14 +348,14 @@ import org.slf4j.LoggerFactory;
         case 2: // NEW_TABLETS
           if (field.type == org.apache.thrift.protocol.TType.LIST) {
             {
-              org.apache.thrift.protocol.TList _list43 = iprot.readListBegin();
-              this.newTablets = new ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>(_list43.size);
-              for (int _i44 = 0; _i44 < _list43.size; ++_i44)
+              org.apache.thrift.protocol.TList _list31 = iprot.readListBegin();
+              this.newTablets = new ArrayList<org.apache.accumulo.core.data.thrift.TKeyExtent>(_list31.size);
+              for (int _i32 = 0; _i32 < _list31.size; ++_i32)
               {
-                org.apache.accumulo.core.data.thrift.TKeyExtent _elem45;
-                _elem45 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
-                _elem45.read(iprot);
-                this.newTablets.add(_elem45);
+                org.apache.accumulo.core.data.thrift.TKeyExtent _elem33;
+                _elem33 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
+                _elem33.read(iprot);
+                this.newTablets.add(_elem33);
               }
               iprot.readListEnd();
             }
@@ -387,9 +387,9 @@ import org.slf4j.LoggerFactory;
       oprot.writeFieldBegin(NEW_TABLETS_FIELD_DESC);
       {
         oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.newTablets.size()));
-        for (org.apache.accumulo.core.data.thrift.TKeyExtent _iter46 : this.newTablets)
+        for (org.apache.accumulo.core.data.thrift.TKeyExtent _iter34 : this.newTablets)
         {
-          _iter46.write(oprot);
+          _iter34.write(oprot);
         }
         oprot.writeListEnd();
       }

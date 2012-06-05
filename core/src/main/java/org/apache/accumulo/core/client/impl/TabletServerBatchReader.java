@@ -21,11 +21,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -36,6 +31,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.log4j.Logger;
 
 public class TabletServerBatchReader extends ScannerOptions implements BatchScanner {
@@ -59,25 +55,6 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   
   private final int batchReaderInstance = getNextBatchReaderInstance();
   
-  private static class BatchReaderThreadFactory implements ThreadFactory {
-    
-    private ThreadFactory dtf = Executors.defaultThreadFactory();
-    private int threadNum = 1;
-    private final int batchReaderInstance;
-    
-    BatchReaderThreadFactory(int batchReaderInstance) {
-      this.batchReaderInstance = batchReaderInstance;
-    }
-    
-    public Thread newThread(Runnable r) {
-      Thread thread = dtf.newThread(r);
-      thread.setName("batch scanner " + batchReaderInstance + "-" + threadNum++);
-      thread.setDaemon(true);
-      return thread;
-    }
-    
-  }
-  
   public TabletServerBatchReader(Instance instance, AuthInfo credentials, String table, Authorizations authorizations, int numQueryThreads) {
     ArgumentChecker.notNull(instance, credentials, table, authorizations);
     this.instance = instance;
@@ -86,8 +63,7 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     this.table = table;
     this.numThreads = numQueryThreads;
     
-    queryThreadPool = new ThreadPoolExecutor(numQueryThreads, numQueryThreads, 60, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(),
-        new BatchReaderThreadFactory(batchReaderInstance));
+    queryThreadPool = new SimpleThreadPool(numQueryThreads, "batch scanner " + batchReaderInstance + "-");
     
     ranges = null;
   }

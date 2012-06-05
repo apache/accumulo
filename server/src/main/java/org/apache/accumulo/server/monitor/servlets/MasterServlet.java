@@ -34,7 +34,6 @@ import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
 import org.apache.accumulo.core.master.thrift.MasterState;
 import org.apache.accumulo.core.master.thrift.RecoveryStatus;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.DedupedLogEvent;
@@ -43,9 +42,9 @@ import org.apache.accumulo.server.monitor.Monitor;
 import org.apache.accumulo.server.monitor.util.Table;
 import org.apache.accumulo.server.monitor.util.TableRow;
 import org.apache.accumulo.server.monitor.util.celltypes.DurationType;
-import org.apache.accumulo.server.monitor.util.celltypes.LoggerLinkType;
 import org.apache.accumulo.server.monitor.util.celltypes.NumberType;
 import org.apache.accumulo.server.monitor.util.celltypes.ProgressChartType;
+import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.log4j.Level;
 
 public class MasterServlet extends BasicServlet {
@@ -57,7 +56,7 @@ public class MasterServlet extends BasicServlet {
   @Override
   protected String getTitle(HttpServletRequest req) {
     List<String> masters = Monitor.getInstance().getMasterLocations();
-    return "Master Server" + (masters.size() == 0 ? "" : ":" + AddressUtil.parseAddress(masters.get(0), 0).getHostName());
+    return "Master Server" + (masters.size() == 0 ? "" : ":" + AddressUtil.parseAddress(masters.get(0), Property.MASTER_CLIENTPORT).getHostName());
   }
   
   @Override
@@ -137,8 +136,6 @@ public class MasterServlet extends BasicServlet {
       masterStatus.addSortableColumn("#&nbsp;Online<br />Tablet&nbsp;Servers", new NumberType<Integer>((int) (slaves.size() * 0.8 + 1.0), slaves.size(),
           (int) (slaves.size() * 0.6 + 1.0), slaves.size()), "Number of tablet servers currently available");
       masterStatus.addSortableColumn("#&nbsp;Total<br />Tablet&nbsp;Servers", new NumberType<Integer>(), "The total number of tablet servers configured");
-      masterStatus.addSortableColumn("Loggers", new NumberType<Integer>((int) (slaves.size() * .8), Integer.MAX_VALUE, 1, Integer.MAX_VALUE),
-          "The number of write-ahead loggers.  This should be approximately the same as the number of tablet servers (and greater than zero).");
       masterStatus.addSortableColumn("Last&nbsp;GC", null, "The last time files were cleaned-up from HDFS.");
       masterStatus.addSortableColumn("#&nbsp;Tablets", new NumberType<Integer>(0, Integer.MAX_VALUE, 2, Integer.MAX_VALUE), null);
       masterStatus.addSortableColumn("#&nbsp;Unassigned<br />Tablets", new NumberType<Integer>(0, 0), null);
@@ -153,10 +150,9 @@ public class MasterServlet extends BasicServlet {
       masterStatus.addSortableColumn("OS&nbsp;Load", new NumberType<Double>(0., guessHighLoad * 1., 0., guessHighLoad * 3.),
           "The one-minute load average on the computer that runs the monitor web server.");
       TableRow row = masterStatus.prepareRow();
-      row.add(masters.size() == 0 ? "<div class='error'>Down</div>" : AddressUtil.parseAddress(masters.get(0), 0).getHostName());
+      row.add(masters.size() == 0 ? "<div class='error'>Down</div>" : AddressUtil.parseAddress(masters.get(0), Property.MASTER_CLIENTPORT).getHostName());
       row.add(Monitor.getMmi().tServerInfo.size());
       row.add(slaves.size());
-      row.add(Monitor.getMmi().loggers.size());
       row.add("<a href='/gc'>" + gcStatus + "</a>");
       row.add(Monitor.getTotalTabletCount());
       row.add(Monitor.getMmi().unassignedTablets);
@@ -177,25 +173,28 @@ public class MasterServlet extends BasicServlet {
   private void doRecoveryList(HttpServletRequest req, StringBuilder sb) {
     MasterMonitorInfo mmi = Monitor.getMmi();
     if (mmi != null) {
-      List<RecoveryStatus> jobs = mmi.recovery;
-      if (jobs != null && jobs.size() > 0) {
-        Table recoveryTable = new Table("logRecovery", "Log&nbsp;Recovery");
-        recoveryTable.setSubCaption("Some tablets were unloaded in an unsafe manner. Write-ahead logs are being recovered.");
-        recoveryTable.addSortableColumn("Server", new LoggerLinkType(), null);
-        recoveryTable.addSortableColumn("Log");
-        recoveryTable.addSortableColumn("Time", new DurationType(), null);
-        recoveryTable.addSortableColumn("Copy/Sort", new ProgressChartType(), null);
-        
-        for (RecoveryStatus recovery : jobs) {
-          TableRow row = recoveryTable.prepareRow();
-          row.add(recovery);
-          row.add(recovery.name);
-          row.add((long) recovery.runtime);
-          row.add(recovery.copyProgress);
-          recoveryTable.addRow(row);
+      Table recoveryTable = new Table("logRecovery", "Log&nbsp;Recovery");
+      recoveryTable.setSubCaption("Some tablets were unloaded in an unsafe manner. Write-ahead logs are being recovered.");
+      recoveryTable.addSortableColumn("Server");
+      recoveryTable.addSortableColumn("Log");
+      recoveryTable.addSortableColumn("Time", new DurationType(), null);
+      recoveryTable.addSortableColumn("Copy/Sort", new ProgressChartType(), null);
+      int rows = 0;
+      for (TabletServerStatus server : mmi.tServerInfo) {
+        if (server.logSorts != null) {
+          for (RecoveryStatus recovery : server.logSorts) {
+            TableRow row = recoveryTable.prepareRow();
+            row.add(AddressUtil.parseAddress(server.name, Property.TSERV_CLIENTPORT).getHostName());
+            row.add(recovery.name);
+            row.add((long) recovery.runtime);
+            row.add(recovery.progress);
+            recoveryTable.addRow(row);
+            rows++;
+          }
         }
-        recoveryTable.generate(req, sb);
       }
+      if (rows > 0)
+        recoveryTable.generate(req, sb);
     }
   }
   

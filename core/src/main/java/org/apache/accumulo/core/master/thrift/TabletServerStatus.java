@@ -29,11 +29,11 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField OS_LOAD_FIELD_DESC = new org.apache.thrift.protocol.TField("osLoad", org.apache.thrift.protocol.TType.DOUBLE, (short)5);
   private static final org.apache.thrift.protocol.TField HOLD_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("holdTime", org.apache.thrift.protocol.TType.I64, (short)7);
   private static final org.apache.thrift.protocol.TField LOOKUPS_FIELD_DESC = new org.apache.thrift.protocol.TField("lookups", org.apache.thrift.protocol.TType.I64, (short)8);
-  private static final org.apache.thrift.protocol.TField LOGGERS_FIELD_DESC = new org.apache.thrift.protocol.TField("loggers", org.apache.thrift.protocol.TType.SET, (short)9);
   private static final org.apache.thrift.protocol.TField INDEX_CACHE_HITS_FIELD_DESC = new org.apache.thrift.protocol.TField("indexCacheHits", org.apache.thrift.protocol.TType.I64, (short)10);
   private static final org.apache.thrift.protocol.TField INDEX_CACHE_REQUEST_FIELD_DESC = new org.apache.thrift.protocol.TField("indexCacheRequest", org.apache.thrift.protocol.TType.I64, (short)11);
   private static final org.apache.thrift.protocol.TField DATA_CACHE_HITS_FIELD_DESC = new org.apache.thrift.protocol.TField("dataCacheHits", org.apache.thrift.protocol.TType.I64, (short)12);
   private static final org.apache.thrift.protocol.TField DATA_CACHE_REQUEST_FIELD_DESC = new org.apache.thrift.protocol.TField("dataCacheRequest", org.apache.thrift.protocol.TType.I64, (short)13);
+  private static final org.apache.thrift.protocol.TField LOG_SORTS_FIELD_DESC = new org.apache.thrift.protocol.TField("logSorts", org.apache.thrift.protocol.TType.LIST, (short)14);
 
   public Map<String,TableInfo> tableMap;
   public long lastContact;
@@ -41,11 +41,11 @@ import org.slf4j.LoggerFactory;
   public double osLoad;
   public long holdTime;
   public long lookups;
-  public Set<String> loggers;
   public long indexCacheHits;
   public long indexCacheRequest;
   public long dataCacheHits;
   public long dataCacheRequest;
+  public List<RecoveryStatus> logSorts;
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -55,11 +55,11 @@ import org.slf4j.LoggerFactory;
     OS_LOAD((short)5, "osLoad"),
     HOLD_TIME((short)7, "holdTime"),
     LOOKUPS((short)8, "lookups"),
-    LOGGERS((short)9, "loggers"),
     INDEX_CACHE_HITS((short)10, "indexCacheHits"),
     INDEX_CACHE_REQUEST((short)11, "indexCacheRequest"),
     DATA_CACHE_HITS((short)12, "dataCacheHits"),
-    DATA_CACHE_REQUEST((short)13, "dataCacheRequest");
+    DATA_CACHE_REQUEST((short)13, "dataCacheRequest"),
+    LOG_SORTS((short)14, "logSorts");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -86,8 +86,6 @@ import org.slf4j.LoggerFactory;
           return HOLD_TIME;
         case 8: // LOOKUPS
           return LOOKUPS;
-        case 9: // LOGGERS
-          return LOGGERS;
         case 10: // INDEX_CACHE_HITS
           return INDEX_CACHE_HITS;
         case 11: // INDEX_CACHE_REQUEST
@@ -96,6 +94,8 @@ import org.slf4j.LoggerFactory;
           return DATA_CACHE_HITS;
         case 13: // DATA_CACHE_REQUEST
           return DATA_CACHE_REQUEST;
+        case 14: // LOG_SORTS
+          return LOG_SORTS;
         default:
           return null;
       }
@@ -163,9 +163,6 @@ import org.slf4j.LoggerFactory;
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.LOOKUPS, new org.apache.thrift.meta_data.FieldMetaData("lookups", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.LOGGERS, new org.apache.thrift.meta_data.FieldMetaData("loggers", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET, 
-            new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
     tmpMap.put(_Fields.INDEX_CACHE_HITS, new org.apache.thrift.meta_data.FieldMetaData("indexCacheHits", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.INDEX_CACHE_REQUEST, new org.apache.thrift.meta_data.FieldMetaData("indexCacheRequest", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -174,6 +171,9 @@ import org.slf4j.LoggerFactory;
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.DATA_CACHE_REQUEST, new org.apache.thrift.meta_data.FieldMetaData("dataCacheRequest", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
+    tmpMap.put(_Fields.LOG_SORTS, new org.apache.thrift.meta_data.FieldMetaData("logSorts", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, RecoveryStatus.class))));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TabletServerStatus.class, metaDataMap);
   }
@@ -188,11 +188,11 @@ import org.slf4j.LoggerFactory;
     double osLoad,
     long holdTime,
     long lookups,
-    Set<String> loggers,
     long indexCacheHits,
     long indexCacheRequest,
     long dataCacheHits,
-    long dataCacheRequest)
+    long dataCacheRequest,
+    List<RecoveryStatus> logSorts)
   {
     this();
     this.tableMap = tableMap;
@@ -205,7 +205,6 @@ import org.slf4j.LoggerFactory;
     setHoldTimeIsSet(true);
     this.lookups = lookups;
     setLookupsIsSet(true);
-    this.loggers = loggers;
     this.indexCacheHits = indexCacheHits;
     setIndexCacheHitsIsSet(true);
     this.indexCacheRequest = indexCacheRequest;
@@ -214,6 +213,7 @@ import org.slf4j.LoggerFactory;
     setDataCacheHitsIsSet(true);
     this.dataCacheRequest = dataCacheRequest;
     setDataCacheRequestIsSet(true);
+    this.logSorts = logSorts;
   }
 
   /**
@@ -244,17 +244,17 @@ import org.slf4j.LoggerFactory;
     this.osLoad = other.osLoad;
     this.holdTime = other.holdTime;
     this.lookups = other.lookups;
-    if (other.isSetLoggers()) {
-      Set<String> __this__loggers = new HashSet<String>();
-      for (String other_element : other.loggers) {
-        __this__loggers.add(other_element);
-      }
-      this.loggers = __this__loggers;
-    }
     this.indexCacheHits = other.indexCacheHits;
     this.indexCacheRequest = other.indexCacheRequest;
     this.dataCacheHits = other.dataCacheHits;
     this.dataCacheRequest = other.dataCacheRequest;
+    if (other.isSetLogSorts()) {
+      List<RecoveryStatus> __this__logSorts = new ArrayList<RecoveryStatus>();
+      for (RecoveryStatus other_element : other.logSorts) {
+        __this__logSorts.add(new RecoveryStatus(other_element));
+      }
+      this.logSorts = __this__logSorts;
+    }
   }
 
   public TabletServerStatus deepCopy() {
@@ -273,7 +273,6 @@ import org.slf4j.LoggerFactory;
     this.holdTime = 0;
     setLookupsIsSet(false);
     this.lookups = 0;
-    this.loggers = null;
     setIndexCacheHitsIsSet(false);
     this.indexCacheHits = 0;
     setIndexCacheRequestIsSet(false);
@@ -282,6 +281,7 @@ import org.slf4j.LoggerFactory;
     this.dataCacheHits = 0;
     setDataCacheRequestIsSet(false);
     this.dataCacheRequest = 0;
+    this.logSorts = null;
   }
 
   public int getTableMapSize() {
@@ -435,45 +435,6 @@ import org.slf4j.LoggerFactory;
     __isset_bit_vector.set(__LOOKUPS_ISSET_ID, value);
   }
 
-  public int getLoggersSize() {
-    return (this.loggers == null) ? 0 : this.loggers.size();
-  }
-
-  public java.util.Iterator<String> getLoggersIterator() {
-    return (this.loggers == null) ? null : this.loggers.iterator();
-  }
-
-  public void addToLoggers(String elem) {
-    if (this.loggers == null) {
-      this.loggers = new HashSet<String>();
-    }
-    this.loggers.add(elem);
-  }
-
-  public Set<String> getLoggers() {
-    return this.loggers;
-  }
-
-  public TabletServerStatus setLoggers(Set<String> loggers) {
-    this.loggers = loggers;
-    return this;
-  }
-
-  public void unsetLoggers() {
-    this.loggers = null;
-  }
-
-  /** Returns true if field loggers is set (has been assigned a value) and false otherwise */
-  public boolean isSetLoggers() {
-    return this.loggers != null;
-  }
-
-  public void setLoggersIsSet(boolean value) {
-    if (!value) {
-      this.loggers = null;
-    }
-  }
-
   public long getIndexCacheHits() {
     return this.indexCacheHits;
   }
@@ -566,6 +527,45 @@ import org.slf4j.LoggerFactory;
     __isset_bit_vector.set(__DATACACHEREQUEST_ISSET_ID, value);
   }
 
+  public int getLogSortsSize() {
+    return (this.logSorts == null) ? 0 : this.logSorts.size();
+  }
+
+  public java.util.Iterator<RecoveryStatus> getLogSortsIterator() {
+    return (this.logSorts == null) ? null : this.logSorts.iterator();
+  }
+
+  public void addToLogSorts(RecoveryStatus elem) {
+    if (this.logSorts == null) {
+      this.logSorts = new ArrayList<RecoveryStatus>();
+    }
+    this.logSorts.add(elem);
+  }
+
+  public List<RecoveryStatus> getLogSorts() {
+    return this.logSorts;
+  }
+
+  public TabletServerStatus setLogSorts(List<RecoveryStatus> logSorts) {
+    this.logSorts = logSorts;
+    return this;
+  }
+
+  public void unsetLogSorts() {
+    this.logSorts = null;
+  }
+
+  /** Returns true if field logSorts is set (has been assigned a value) and false otherwise */
+  public boolean isSetLogSorts() {
+    return this.logSorts != null;
+  }
+
+  public void setLogSortsIsSet(boolean value) {
+    if (!value) {
+      this.logSorts = null;
+    }
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case TABLE_MAP:
@@ -616,14 +616,6 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
-    case LOGGERS:
-      if (value == null) {
-        unsetLoggers();
-      } else {
-        setLoggers((Set<String>)value);
-      }
-      break;
-
     case INDEX_CACHE_HITS:
       if (value == null) {
         unsetIndexCacheHits();
@@ -656,6 +648,14 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
+    case LOG_SORTS:
+      if (value == null) {
+        unsetLogSorts();
+      } else {
+        setLogSorts((List<RecoveryStatus>)value);
+      }
+      break;
+
     }
   }
 
@@ -679,9 +679,6 @@ import org.slf4j.LoggerFactory;
     case LOOKUPS:
       return new Long(getLookups());
 
-    case LOGGERS:
-      return getLoggers();
-
     case INDEX_CACHE_HITS:
       return new Long(getIndexCacheHits());
 
@@ -693,6 +690,9 @@ import org.slf4j.LoggerFactory;
 
     case DATA_CACHE_REQUEST:
       return new Long(getDataCacheRequest());
+
+    case LOG_SORTS:
+      return getLogSorts();
 
     }
     throw new IllegalStateException();
@@ -717,8 +717,6 @@ import org.slf4j.LoggerFactory;
       return isSetHoldTime();
     case LOOKUPS:
       return isSetLookups();
-    case LOGGERS:
-      return isSetLoggers();
     case INDEX_CACHE_HITS:
       return isSetIndexCacheHits();
     case INDEX_CACHE_REQUEST:
@@ -727,6 +725,8 @@ import org.slf4j.LoggerFactory;
       return isSetDataCacheHits();
     case DATA_CACHE_REQUEST:
       return isSetDataCacheRequest();
+    case LOG_SORTS:
+      return isSetLogSorts();
     }
     throw new IllegalStateException();
   }
@@ -798,15 +798,6 @@ import org.slf4j.LoggerFactory;
         return false;
     }
 
-    boolean this_present_loggers = true && this.isSetLoggers();
-    boolean that_present_loggers = true && that.isSetLoggers();
-    if (this_present_loggers || that_present_loggers) {
-      if (!(this_present_loggers && that_present_loggers))
-        return false;
-      if (!this.loggers.equals(that.loggers))
-        return false;
-    }
-
     boolean this_present_indexCacheHits = true;
     boolean that_present_indexCacheHits = true;
     if (this_present_indexCacheHits || that_present_indexCacheHits) {
@@ -840,6 +831,15 @@ import org.slf4j.LoggerFactory;
       if (!(this_present_dataCacheRequest && that_present_dataCacheRequest))
         return false;
       if (this.dataCacheRequest != that.dataCacheRequest)
+        return false;
+    }
+
+    boolean this_present_logSorts = true && this.isSetLogSorts();
+    boolean that_present_logSorts = true && that.isSetLogSorts();
+    if (this_present_logSorts || that_present_logSorts) {
+      if (!(this_present_logSorts && that_present_logSorts))
+        return false;
+      if (!this.logSorts.equals(that.logSorts))
         return false;
     }
 
@@ -919,16 +919,6 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetLoggers()).compareTo(typedOther.isSetLoggers());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetLoggers()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.loggers, typedOther.loggers);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     lastComparison = Boolean.valueOf(isSetIndexCacheHits()).compareTo(typedOther.isSetIndexCacheHits());
     if (lastComparison != 0) {
       return lastComparison;
@@ -965,6 +955,16 @@ import org.slf4j.LoggerFactory;
     }
     if (isSetDataCacheRequest()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.dataCacheRequest, typedOther.dataCacheRequest);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(isSetLogSorts()).compareTo(typedOther.isSetLogSorts());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetLogSorts()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.logSorts, typedOther.logSorts);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -1045,23 +1045,6 @@ import org.slf4j.LoggerFactory;
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
-        case 9: // LOGGERS
-          if (field.type == org.apache.thrift.protocol.TType.SET) {
-            {
-              org.apache.thrift.protocol.TSet _set4 = iprot.readSetBegin();
-              this.loggers = new HashSet<String>(2*_set4.size);
-              for (int _i5 = 0; _i5 < _set4.size; ++_i5)
-              {
-                String _elem6;
-                _elem6 = iprot.readString();
-                this.loggers.add(_elem6);
-              }
-              iprot.readSetEnd();
-            }
-          } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
-          }
-          break;
         case 10: // INDEX_CACHE_HITS
           if (field.type == org.apache.thrift.protocol.TType.I64) {
             this.indexCacheHits = iprot.readI64();
@@ -1090,6 +1073,24 @@ import org.slf4j.LoggerFactory;
           if (field.type == org.apache.thrift.protocol.TType.I64) {
             this.dataCacheRequest = iprot.readI64();
             setDataCacheRequestIsSet(true);
+          } else { 
+            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
+          }
+          break;
+        case 14: // LOG_SORTS
+          if (field.type == org.apache.thrift.protocol.TType.LIST) {
+            {
+              org.apache.thrift.protocol.TList _list4 = iprot.readListBegin();
+              this.logSorts = new ArrayList<RecoveryStatus>(_list4.size);
+              for (int _i5 = 0; _i5 < _list4.size; ++_i5)
+              {
+                RecoveryStatus _elem6;
+                _elem6 = new RecoveryStatus();
+                _elem6.read(iprot);
+                this.logSorts.add(_elem6);
+              }
+              iprot.readListEnd();
+            }
           } else { 
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
@@ -1139,18 +1140,6 @@ import org.slf4j.LoggerFactory;
     oprot.writeFieldBegin(LOOKUPS_FIELD_DESC);
     oprot.writeI64(this.lookups);
     oprot.writeFieldEnd();
-    if (this.loggers != null) {
-      oprot.writeFieldBegin(LOGGERS_FIELD_DESC);
-      {
-        oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, this.loggers.size()));
-        for (String _iter8 : this.loggers)
-        {
-          oprot.writeString(_iter8);
-        }
-        oprot.writeSetEnd();
-      }
-      oprot.writeFieldEnd();
-    }
     oprot.writeFieldBegin(INDEX_CACHE_HITS_FIELD_DESC);
     oprot.writeI64(this.indexCacheHits);
     oprot.writeFieldEnd();
@@ -1163,6 +1152,18 @@ import org.slf4j.LoggerFactory;
     oprot.writeFieldBegin(DATA_CACHE_REQUEST_FIELD_DESC);
     oprot.writeI64(this.dataCacheRequest);
     oprot.writeFieldEnd();
+    if (this.logSorts != null) {
+      oprot.writeFieldBegin(LOG_SORTS_FIELD_DESC);
+      {
+        oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, this.logSorts.size()));
+        for (RecoveryStatus _iter8 : this.logSorts)
+        {
+          _iter8.write(oprot);
+        }
+        oprot.writeListEnd();
+      }
+      oprot.writeFieldEnd();
+    }
     oprot.writeFieldStop();
     oprot.writeStructEnd();
   }
@@ -1204,14 +1205,6 @@ import org.slf4j.LoggerFactory;
     sb.append(this.lookups);
     first = false;
     if (!first) sb.append(", ");
-    sb.append("loggers:");
-    if (this.loggers == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.loggers);
-    }
-    first = false;
-    if (!first) sb.append(", ");
     sb.append("indexCacheHits:");
     sb.append(this.indexCacheHits);
     first = false;
@@ -1226,6 +1219,14 @@ import org.slf4j.LoggerFactory;
     if (!first) sb.append(", ");
     sb.append("dataCacheRequest:");
     sb.append(this.dataCacheRequest);
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("logSorts:");
+    if (this.logSorts == null) {
+      sb.append("null");
+    } else {
+      sb.append(this.logSorts);
+    }
     first = false;
     sb.append(")");
     return sb.toString();

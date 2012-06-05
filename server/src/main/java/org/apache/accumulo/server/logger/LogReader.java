@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.logger;
 
-import java.io.FileNotFoundException;
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
@@ -36,9 +36,9 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.Text;
 
 public class LogReader {
@@ -108,28 +108,33 @@ public class LogReader {
       
       if (fs.isFile(path)) {
         // read log entries from a simple hdfs file
-        org.apache.hadoop.io.SequenceFile.Reader reader = new SequenceFile.Reader(fs, new Path(file), conf);
-        while (reader.next(key, value)) {
+        FSDataInputStream f = fs.open(path);
+        while (true) {
+          try {
+            key.readFields(f);
+            value.readFields(f);
+          } catch (EOFException ex) {
+            break;
+          }
           printLogEvent(key, value, row, rowMatcher, ke, tabletIds, max);
         }
       } else if (local.isFile(path)) {
         // read log entries from a simple file
-        org.apache.hadoop.io.SequenceFile.Reader reader = new SequenceFile.Reader(local, new Path(file), conf);
-        while (reader.next(key, value)) {
+        FSDataInputStream f = fs.open(path);
+        while (true) {
+          try {
+            key.readFields(f);
+            value.readFields(f);
+          } catch (EOFException ex) {
+            break;
+          }
           printLogEvent(key, value, row, rowMatcher, ke, tabletIds, max);
         }
       } else {
-        try {
-          // read the log entries sorted in a map file
-          MultiReader input = new MultiReader(fs, conf, file);
-          while (input.next(key, value)) {
-            printLogEvent(key, value, row, rowMatcher, ke, tabletIds, max);
-          }
-        } catch (FileNotFoundException ex) {
-          SequenceFile.Reader input = new SequenceFile.Reader(local, new Path(file), conf);
-          while (input.next(key, value)) {
-            printLogEvent(key, value, row, rowMatcher, ke, tabletIds, max);
-          }
+        // read the log entries sorted in a map file
+        MultiReader input = new MultiReader(fs, conf, file);
+        while (input.next(key, value)) {
+          printLogEvent(key, value, row, rowMatcher, ke, tabletIds, max);
         }
       }
     }

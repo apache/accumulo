@@ -148,8 +148,6 @@ service TabletClientService extends client.ClientService {
   oneway void chop(1:cloudtrace.TInfo tinfo, 2:security.AuthInfo credentials, 3:string lock, 4:data.TKeyExtent extent),
   oneway void compact(1:cloudtrace.TInfo tinfo, 2:security.AuthInfo credentials, 3:string lock, 4:string tableId, 5:binary startRow, 6:binary endRow),
   
-  oneway void useLoggers(3:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:set<string> loggers),
-  
   master.TabletServerStatus getTabletServerStatus(3:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials) throws (1:security.ThriftSecurityException sec)
   list<TabletStats> getTabletStats(3:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string tableId) throws (1:security.ThriftSecurityException sec)
   TabletStats getHistoricalStats(2:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials) throws (1:security.ThriftSecurityException sec)
@@ -157,57 +155,13 @@ service TabletClientService extends client.ClientService {
   oneway void fastHalt(3:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string lock);
   
   list<ActiveScan> getActiveScans(2:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials) throws (1:security.ThriftSecurityException sec)
+  oneway void removeLogs(1:cloudtrace.TInfo tinfo, 2:security.AuthInfo credentials, 3:list<string> filenames)
 }
 
-// LogID should be cryptographically unguessable
-typedef i64 LogID
 typedef i32 TabletID
-
-exception NoSuchLogIDException {
-}
-
-exception LoggerClosedException {
-}
-
-struct LogFile {
-        1:string name,
-        2:LogID  id,
-}
 
 struct TabletMutations {
 	1:TabletID tabletID,
 	2:i64 seq,
 	3:list<data.TMutation> mutations
-}
-
-struct LogCopyInfo {
-	1:i64 fileSize,
-	2:string loggerZNode
-}
-
-service MutationLogger {
-    LogFile create(3:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:string tserverSession) throws (1:security.ThriftSecurityException sec, 2:LoggerClosedException lce),
-
-    // Note that these methods correspond to org.apache.accumulo.server.tabletserver.log.TabletLog
-    void defineTablet(5:cloudtrace.TInfo tinfo, 1:LogID id, 2:i64 seq, 3:TabletID tid, 4:data.TKeyExtent tablet) throws (1:NoSuchLogIDException nsli, 2:LoggerClosedException lce),
-    void log(5:cloudtrace.TInfo tinfo, 1:LogID id, 2:i64 seq, 3:TabletID tid, 4:data.TMutation mutation) throws (1:NoSuchLogIDException nsli, 2:LoggerClosedException lce),
-    void logManyTablets(3:cloudtrace.TInfo tinfo, 1:LogID id, 2:list<TabletMutations> mutations) throws (1:NoSuchLogIDException nsli, 2:LoggerClosedException lce),
-    void minorCompactionStarted(5:cloudtrace.TInfo tinfo, 1:LogID id, 2:i64 seq, 3:TabletID tid, 4:string fqfn) throws (1:NoSuchLogIDException nsli, 2:LoggerClosedException lce),
-    void minorCompactionFinished(5:cloudtrace.TInfo tinfo, 1:LogID id, 2:i64 seq, 3:TabletID tid, 4:string fqfn) throws (1:NoSuchLogIDException nsli, 2:LoggerClosedException lce),
-    void close(2:cloudtrace.TInfo tinfo, 1:LogID id) throws (1:NoSuchLogIDException nsli, 2:LoggerClosedException lce),
-
-    // close a log file and initiate the push to HDFS
-    LogCopyInfo startCopy(4:cloudtrace.TInfo tinfo,
-                  1:security.AuthInfo credentials,
-                  2:string name, 
-                  3:string fullyQualifiedFileName,
-                  5:bool sort) throws (1:security.ThriftSecurityException sec),
-
-    // Support log garbage collection              
-    list<string> getClosedLogs(2:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials) throws (1:security.ThriftSecurityException sec),
-    oneway void remove(3:cloudtrace.TInfo tinfo, 1:security.AuthInfo credentials, 2:list<string> files),
-    
-    // Shutdown
-    void beginShutdown(1:cloudtrace.TInfo tinfo, 2:security.AuthInfo credentials) throws (1:security.ThriftSecurityException sec);
-    oneway void halt(1:cloudtrace.TInfo tinfo, 2:security.AuthInfo credentials);
 }

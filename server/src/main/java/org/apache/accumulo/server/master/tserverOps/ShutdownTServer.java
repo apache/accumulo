@@ -22,9 +22,9 @@ import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.fate.Repo;
-import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.EventCoordinator.Listener;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
+import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
@@ -60,7 +60,7 @@ public class ShutdownTServer extends MasterRepo {
       path = ZooUtil.getRoot(m.getInstance()) + Constants.ZDEADTSERVERS + "/" + tserver;
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       zoo.putPersistentData(path, "forced down".getBytes(), NodeExistsPolicy.OVERWRITE);
-      return new DisconnectLogger(server.getLocation().getAddress().getHostAddress());
+      return null;
     }
     
     // TODO move this to isReady() and drop while loop?
@@ -86,7 +86,7 @@ public class ShutdownTServer extends MasterRepo {
       listener.waitForEvents(1000);
     }
     
-    return new DisconnectLogger(server.getLocation().getAddress().getHostAddress());
+    return null;
   }
   
   @Override

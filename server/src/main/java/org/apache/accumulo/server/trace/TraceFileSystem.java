@@ -39,6 +39,7 @@ import org.apache.hadoop.util.Progressable;
 // If FileSystem was an interface, we could use a Proxy, but it's not, so we have to override everything manually
 
 public class TraceFileSystem extends FileSystem {
+
   @Override
   public void setConf(Configuration conf) {
     Span span = Trace.start("setConf");
@@ -667,6 +668,10 @@ public class TraceFileSystem extends FileSystem {
     this.impl = impl;
   }
   
+  public FileSystem getImplementation() {
+    return impl;
+  }
+
   @Override
   public URI getUri() {
     Span span = Trace.start("getUri");

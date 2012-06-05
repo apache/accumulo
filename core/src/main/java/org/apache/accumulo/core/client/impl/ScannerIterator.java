@@ -23,10 +23,8 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -42,6 +40,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -70,19 +69,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   
   private static final List<KeyValue> EMPTY_LIST = Collections.emptyList();
   
-  private static AtomicInteger threadCounter = new AtomicInteger(1);
-
   private static ThreadPoolExecutor readaheadPool = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 3l, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(),
-      new ThreadFactory() {
-        
-        @Override
-        public Thread newThread(Runnable r) {
-          Thread t = new Thread(r);
-          t.setDaemon(true);
-          t.setName("Accumulo scanner read ahead thread " + threadCounter.getAndIncrement());
-          return t;
-        }
-      });
+      new NamingThreadFactory("Accumulo scanner read ahead thread"));
 
   private class Reader implements Runnable {
     

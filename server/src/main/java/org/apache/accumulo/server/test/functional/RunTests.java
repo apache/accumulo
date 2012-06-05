@@ -22,7 +22,6 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.accumulo.server.logger.IdentityReducer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -135,7 +134,7 @@ public class RunTests extends Configured implements Tool {
     job.setOutputValueClass(Text.class);
     
     // don't do anything with the results (yet) a summary would be nice
-    job.setReducerClass(IdentityReducer.class);
+    job.setNumReduceTasks(0);
     
     // submit the job
     log.info("Starting tests");

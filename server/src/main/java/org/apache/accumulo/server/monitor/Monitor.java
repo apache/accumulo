@@ -56,7 +56,6 @@ import org.apache.accumulo.server.monitor.servlets.DefaultServlet;
 import org.apache.accumulo.server.monitor.servlets.GcStatusServlet;
 import org.apache.accumulo.server.monitor.servlets.JSONServlet;
 import org.apache.accumulo.server.monitor.servlets.LogServlet;
-import org.apache.accumulo.server.monitor.servlets.LoggersServlet;
 import org.apache.accumulo.server.monitor.servlets.MasterServlet;
 import org.apache.accumulo.server.monitor.servlets.OperationServlet;
 import org.apache.accumulo.server.monitor.servlets.ProblemServlet;
@@ -311,7 +310,6 @@ public class Monitor {
           UtilWaitThread.sleep(1000);
       }
       if (mmi != null) {
-        
         int majorCompactions = 0;
         int minorCompactions = 0;
         
@@ -320,7 +318,7 @@ public class Monitor {
         indexCacheRequestTracker.startingUpdates();
         dataCacheHitTracker.startingUpdates();
         dataCacheRequestTracker.startingUpdates();
-      
+
         for (TabletServerStatus server : mmi.tServerInfo) {
           TableInfo summary = Monitor.summarizeTableStats(server);
           totalIngestRate += summary.ingestRate;
@@ -368,7 +366,6 @@ public class Monitor {
         
         ingestRateOverTime.add(new Pair<Long,Double>(currentTime, totalIngestRate));
         ingestByteRateOverTime.add(new Pair<Long,Double>(currentTime, totalIngestByteRate));
-        recoveriesOverTime.add(new Pair<Long,Integer>(currentTime, mmi.recovery.size()));
         
         double totalLoad = 0.;
         for (TabletServerStatus status : mmi.tServerInfo) {
@@ -390,7 +387,6 @@ public class Monitor {
         calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker, indexCacheRequestTracker);
         calcCacheHitRate(dataCacheHitRateOverTime, currentTime, dataCacheHitTracker, dataCacheRequestTracker);
       }
-      
       try {
         Monitor.problemSummary = ProblemReports.getInstance().summarize();
         Monitor.problemException = null;
@@ -480,7 +476,6 @@ public class Monitor {
     server.addServlet(MasterServlet.class, "/master");
     server.addServlet(TablesServlet.class, "/tables");
     server.addServlet(TServersServlet.class, "/tservers");
-    server.addServlet(LoggersServlet.class, "/loggers");
     server.addServlet(ProblemServlet.class, "/problems");
     server.addServlet(GcStatusServlet.class, "/gc");
     server.addServlet(LogServlet.class, "/log");

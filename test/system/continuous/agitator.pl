@@ -74,27 +74,8 @@ while(1){
 		$t = strftime "%Y%m%d %H:%M:%S", localtime;
 	
 		$rn = rand(1);
-		$kill_tserver = 0;
-		$kill_logger = 0;
-		if($rn <.33){
-			$kill_tserver = 1;
-			$kill_logger = 1;
-		}elsif($rn < .66){
-			$kill_tserver = 1;
-			$kill_logger = 0;
-		}else{
-			$kill_tserver = 0;
-			$kill_logger = 1;
-		}
-	
-		print STDERR "$t Killing $server $kill_tserver $kill_logger\n";
-	        if($kill_tserver) {
-			system("$ACCUMULO_HOME/bin/stop-server.sh $server \"accumulo-start.*.jar\" tserver KILL");
-		}
-
-	        if($kill_logger) {
-			system("$ACCUMULO_HOME/bin/stop-server.sh $server \"accumulo-start.*.jar\" logger KILL");
-		}
+		print STDERR "$t Killing $server\n";
+		system("$ACCUMULO_HOME/bin/stop-server.sh $server \"accumulo-start.*.jar\" tserver KILL");
 	}
 
 	sleep($sleep2 * 60);

@@ -58,14 +58,14 @@ public enum Property {
   MASTER_CLIENTPORT("master.port.client", "9999", PropertyType.PORT, "The port used for handling client connections on the master"),
   MASTER_TABLET_BALANCER("master.tablet.balancer", "org.apache.accumulo.server.master.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and migration decisions."),
-  MASTER_LOGGER_BALANCER("master.logger.balancer", "org.apache.accumulo.server.master.balancer.SimpleLoggerBalancer", PropertyType.CLASSNAME,
-      "The balancer class that accumulo will use to make logger assignment decisions."),
   MASTER_RECOVERY_MAXAGE("master.recovery.max.age", "60m", PropertyType.TIMEDURATION, "Recovery files older than this age will be removed."),
   MASTER_RECOVERY_MAXTIME("master.recovery.time.max", "30m", PropertyType.TIMEDURATION, "The maximum time to attempt recovery before giving up"),
   MASTER_BULK_RETRIES("master.bulk.retries", "3", PropertyType.COUNT, "The number of attempts to bulk-load a file before giving up."),
   MASTER_BULK_THREADPOOL_SIZE("master.bulk.threadpool.size", "5", PropertyType.COUNT, "The number of threads to use when coordinating a bulk-import."),
   MASTER_MINTHREADS("master.server.threads.minimum", "2", PropertyType.COUNT, "The minimum number of threads to use to handle incoming requests."),
   MASTER_THREADCHECK("master.server.threadcheck.time", "1s", PropertyType.TIMEDURATION, "The time between adjustments of the server thread pool."),
+  MASTER_RECOVERY_DELAY("master.recovery.delay", "10s", PropertyType.TIMEDURATION,
+      "When a tablet server's lock is deleted, it takes time for it to completely quit. This delay gives it time before log recoveries begin."),
   
   // properties that are specific to tablet server behavior
   TSERV_PREFIX("tserver.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the tablet servers"),
@@ -115,10 +115,6 @@ public enum Property {
   TSERV_BLOOM_LOAD_MAXCONCURRENT("tserver.bloom.load.concurrent.max", "4", PropertyType.COUNT,
       "The number of concurrent threads that will load bloom filters in the background. "
           + "Setting this to zero will make bloom filters load in the foreground."),
-  TSERV_LOGGER_TIMEOUT("tserver.logger.timeout", "30s", PropertyType.TIMEDURATION, "The time to wait for a logger to respond to a write-ahead request"),
-  TSERV_LOGGER_COUNT("tserver.logger.count", "2", PropertyType.COUNT, "The number of loggers that each tablet server should use."),
-  TSERV_LOGGER_STRATEGY("tserver.logger.strategy", "org.apache.accumulo.server.tabletserver.log.RoundRobinLoggerStrategy", PropertyType.STRING,
-      "The classname used to decide which loggers to use."),
   TSERV_MONITOR_FS(
       "tserver.monitor.fs",
       "true",
@@ -148,29 +144,18 @@ public enum Property {
   TSERV_HOLD_TIME_SUICIDE("tserver.hold.time.max", "5m", PropertyType.TIMEDURATION,
       "The maximum time for a tablet server to be in the \"memory full\" state.  If the tablet server cannot write out memory"
           + " in this much time, it will assume there is some failure local to its node, and quit.  A value of zero is equivalent to forever."),
+  TSERV_WAL_BLOCKSIZE("tserver.wal.blocksize", "0", PropertyType.MEMORY,
+      "The size of the HDFS blocks used to write to the Write-Ahead log.  If zero, it will be 110% of tserver.walog.max.size (that is, try to use just one block)"),
+  TSERV_WAL_REPLICATION("tserver.wal.replication", "0", PropertyType.COUNT,
+      "The replication to use when writing the Write-Ahead log to HDFS. If zero, it will use the HDFS default replication setting."),
+  TSERV_RECOVERY_MAX_CONCURRENT("tserver.recovery.concurrent.max", "2", PropertyType.COUNT, "The maximum number of threads to use to sort logs during recovery"),
+  TSERV_SORT_BUFFER_SIZE("tserver.sort.buffer.size", "200M", PropertyType.MEMORY, "The amount of memory to use when sorting logs during recovery."),
+  TSERV_ARCHIVE_WALOGS("tserver.archive.walogs", "false", PropertyType.BOOLEAN, "Keep copies of the WALOGs for debugging purposes"),
   
   // properties that are specific to logger server behavior
   LOGGER_PREFIX("logger.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the write-ahead logger servers"),
-  LOGGER_PORT("logger.port.client", "11224", PropertyType.PORT, "The port used for write-ahead logger services"),
-  LOGGER_COPY_THREADPOOL_SIZE("logger.copy.threadpool.size", "2", PropertyType.COUNT,
-      "size of the thread pool used to copy files from the local log area to HDFS"),
   LOGGER_DIR("logger.dir.walog", "walogs", PropertyType.PATH,
       "The directory used to store write-ahead logs on the local filesystem. It is possible to specify a comma-separated list of directories."),
-  LOGGER_PORTSEARCH("logger.port.search", "false", PropertyType.BOOLEAN, "if the port above is in use, search higher ports until one is available"),
-  LOGGER_ARCHIVE("logger.archive", "false", PropertyType.BOOLEAN, "determines if logs are archived in hdfs"),
-  LOGGER_ARCHIVE_REPLICATION("logger.archive.replication", "0", PropertyType.COUNT,
-      "determines the replication factor for walogs archived in hdfs, set to zero to use default"),
-  LOGGER_MONITOR_FS(
-      "logger.monitor.fs",
-      "true",
-      PropertyType.BOOLEAN,
-      "When enabled the logger will monitor file systems and kill itself when one switches from rw to ro.  This is usually and indication that Linux has detected a bad disk."),
-  LOGGER_SORT_BUFFER_SIZE("logger.sort.buffer.size", "200M", PropertyType.MEMORY,
-      "The amount of memory to use when sorting logs during recovery. Only used when *not* sorting logs with map/reduce."),
-  LOGGER_RECOVERY_FILE_REPLICATION("logger.recovery.file.replication", "2", PropertyType.COUNT,
-      "When a logger puts a WALOG into HDFS, it will use this as the replication factor."),
-  LOGGER_MINTHREADS("logger.server.threads.minimum", "2", PropertyType.COUNT, "The miniumum number of threads to use to handle incoming requests."),
-  LOGGER_THREADCHECK("logger.server.threadcheck.time", "1s", PropertyType.TIMEDURATION, "The time between adjustments of the server thread pool."),
   
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the accumulo garbage collector."),
@@ -347,7 +332,7 @@ public enum Property {
   }
   
   private static final EnumSet<Property> fixedProperties = EnumSet.of(Property.TSERV_CLIENTPORT, Property.TSERV_NATIVEMAP_ENABLED,
-      Property.TSERV_SCAN_MAX_OPENFILES, Property.TSERV_LOGGER_COUNT, Property.LOGGER_PORT, Property.MASTER_CLIENTPORT, Property.GC_PORT);
+      Property.TSERV_SCAN_MAX_OPENFILES, Property.MASTER_CLIENTPORT, Property.GC_PORT);
   
   public static boolean isFixedZooPropertyKey(Property key) {
     return fixedProperties.contains(key);

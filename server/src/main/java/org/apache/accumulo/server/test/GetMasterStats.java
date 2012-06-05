@@ -90,9 +90,6 @@ public class GetMasterStats {
         out(2, "Time Difference %.1f", ((now - server.lastContact) / 1000.));
         out(2, "Total Records %d", summary.recs);
         out(2, "Lookups %d", server.lookups);
-        out(2, "Loggers %d", server.loggers.size());
-        for (String logger : server.loggers)
-          out(3, "Logger %s", logger);
         if (server.holdTime > 0)
           out(2, "Hold Time %d", server.holdTime);
         if (server.tableMap != null && server.tableMap.size() > 0) {
@@ -111,16 +108,12 @@ public class GetMasterStats {
             out(4, "Queued for Minor Compaction %d", info.minor == null ? 0 : info.minor.queued);
           }
         }
-      }
-    }
-    if (stats.recovery != null && stats.recovery.size() > 0) {
-      out(0, "Recovery");
-      for (RecoveryStatus r : stats.recovery) {
-        out(1, "Log Server %s", r.host);
-        out(1, "Log Name %s", r.name);
-        out(1, "Map Progress: %.2f%%", r.mapProgress * 100);
-        out(1, "Reduce Progress: %.2f%%", r.reduceProgress * 100);
-        out(1, "Time running: %s", r.runtime / 1000.);
+        out(2, "Recoveries %d", server.logSorts.size());
+        for (RecoveryStatus sort : server.logSorts) {
+          out(3, "File %s", sort.name);
+          out(3, "Progress %.2f%%", sort.progress * 100);
+          out(3, "Time running %s", sort.runtime / 1000.);
+        }
       }
     }
   }
