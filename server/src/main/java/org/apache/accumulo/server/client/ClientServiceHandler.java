@@ -44,8 +44,8 @@ import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.security.Authenticator;
-import org.apache.accumulo.server.security.ZKAuthenticator;
+import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.SecurityOperationImpl;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.log4j.Logger;
@@ -54,7 +54,7 @@ import org.apache.thrift.TException;
 
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = Logger.getLogger(ClientServiceHandler.class);
-  private static Authenticator authenticator = ZKAuthenticator.getInstance();
+  private static SecurityOperation security = SecurityOperationImpl.getInstance();
   private final TransactionWatcher transactionWatcher;
   private final Instance instance;
   
@@ -98,125 +98,73 @@ public class ClientServiceHandler implements ClientService.Iface {
   
   @Override
   public boolean authenticateUser(TInfo tinfo, AuthInfo credentials, String user, ByteBuffer password) throws ThriftSecurityException {
-    try {
-      return authenticator.authenticateUser(credentials, user, password);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    return security.authenticateUser(credentials, user, password);
   }
   
   @Override
   public void changeAuthorizations(TInfo tinfo, AuthInfo credentials, String user, List<ByteBuffer> authorizations) throws ThriftSecurityException {
-    try {
-      authenticator.changeAuthorizations(credentials, user, new Authorizations(authorizations));
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    security.changeAuthorizations(credentials, user, new Authorizations(authorizations));
   }
   
   @Override
   public void changePassword(TInfo tinfo, AuthInfo credentials, String user, ByteBuffer password) throws ThriftSecurityException {
-    try {
-      authenticator.changePassword(credentials, user, ByteBufferUtil.toBytes(password));
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    security.changePassword(credentials, user, ByteBufferUtil.toBytes(password));
   }
   
   @Override
   public void createUser(TInfo tinfo, AuthInfo credentials, String user, ByteBuffer password, List<ByteBuffer> authorizations) throws ThriftSecurityException {
-    try {
-      authenticator.createUser(credentials, user, ByteBufferUtil.toBytes(password), new Authorizations(authorizations));
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    security.createUser(credentials, user, ByteBufferUtil.toBytes(password), new Authorizations(authorizations));
   }
   
   @Override
   public void dropUser(TInfo tinfo, AuthInfo credentials, String user) throws ThriftSecurityException {
-    try {
-      authenticator.dropUser(credentials, user);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    security.dropUser(credentials, user);
   }
   
   @Override
   public List<ByteBuffer> getUserAuthorizations(TInfo tinfo, AuthInfo credentials, String user) throws ThriftSecurityException {
-    try {
-      return authenticator.getUserAuthorizations(credentials, user).getAuthorizationsBB();
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    return security.getUserAuthorizations(credentials, user).getAuthorizationsBB();
   }
   
   @Override
   public void grantSystemPermission(TInfo tinfo, AuthInfo credentials, String user, byte permission) throws ThriftSecurityException {
-    try {
-      authenticator.grantSystemPermission(credentials, user, SystemPermission.getPermissionById(permission));
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    security.grantSystemPermission(credentials, user, SystemPermission.getPermissionById(permission));
   }
   
   @Override
   public void grantTablePermission(TInfo tinfo, AuthInfo credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
-    try {
-      authenticator.grantTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission));
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    security.grantTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission));
   }
   
   @Override
   public void revokeSystemPermission(TInfo tinfo, AuthInfo credentials, String user, byte permission) throws ThriftSecurityException {
-    try {
-      authenticator.revokeSystemPermission(credentials, user, SystemPermission.getPermissionById(permission));
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    security.revokeSystemPermission(credentials, user, SystemPermission.getPermissionById(permission));
   }
   
   @Override
   public void revokeTablePermission(TInfo tinfo, AuthInfo credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
       ThriftTableOperationException {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
-    try {
-      authenticator.revokeTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission));
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    security.revokeTablePermission(credentials, user, tableId, TablePermission.getPermissionById(permission));
   }
   
   @Override
   public boolean hasSystemPermission(TInfo tinfo, AuthInfo credentials, String user, byte sysPerm) throws ThriftSecurityException {
-    try {
-      return authenticator.hasSystemPermission(credentials, user, SystemPermission.getPermissionById(sysPerm));
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    return security.hasSystemPermission(credentials, user, SystemPermission.getPermissionById(sysPerm));
   }
   
   @Override
   public boolean hasTablePermission(TInfo tinfo, AuthInfo credentials, String user, String tableName, byte tblPerm) throws ThriftSecurityException,
       ThriftTableOperationException {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
-    try {
-      return authenticator.hasTablePermission(credentials, user, tableId, TablePermission.getPermissionById(tblPerm));
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    return security.hasTablePermission(credentials, user, tableId, TablePermission.getPermissionById(tblPerm));
   }
   
   @Override
   public Set<String> listUsers(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException {
-    try {
-      return authenticator.listUsers(credentials);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
+    return security.listUsers(credentials);
   }
   
   static private Map<String,String> conf(AccumuloConfiguration conf) {
@@ -252,7 +200,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   public List<String> bulkImportFiles(TInfo tinfo, final AuthInfo credentials, final long tid, final String tableId, final List<String> files,
       final String errorDir, final boolean setTime) throws ThriftSecurityException, ThriftTableOperationException, TException {
     try {
-      if (!authenticator.hasSystemPermission(credentials, credentials.getUser(), SystemPermission.SYSTEM))
+      if (!security.hasSystemPermission(credentials, credentials.getUser(), SystemPermission.SYSTEM))
         throw new AccumuloSecurityException(credentials.getUser(), SecurityErrorCode.PERMISSION_DENIED);
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
         public List<String> call() throws Exception {

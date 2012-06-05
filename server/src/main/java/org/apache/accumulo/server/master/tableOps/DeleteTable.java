@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -35,6 +34,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -46,7 +46,7 @@ import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.server.security.ZKAuthenticator;
+import org.apache.accumulo.server.security.SecurityOperationImpl;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -190,8 +190,8 @@ class CleanUp extends MasterRepo {
     
     // remove any permissions associated with this table
     try {
-      ZKAuthenticator.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableId);
-    } catch (AccumuloSecurityException e) {
+      SecurityOperationImpl.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableId);
+    } catch (ThriftSecurityException e) {
       log.error(e.getMessage(), e);
     }
     

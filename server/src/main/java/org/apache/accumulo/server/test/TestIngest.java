@@ -47,8 +47,6 @@ import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooReader;
 import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.Authenticator;
-import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
@@ -289,10 +287,9 @@ public class TestIngest {
       } else {
         Connector connector = instance.getConnector(rootCredentials.user, rootCredentials.password);
         bw = connector.createBatchWriter("test_ingest", 20000000l, 60000l, 10);
+        connector.securityOperations().changeUserAuthorizations(rootCredentials.user, AUTHS);
       }
       
-      Authenticator authenticator = ZKAuthenticator.getInstance();
-      authenticator.changeAuthorizations(rootCredentials, rootCredentials.user, AUTHS);
       ColumnVisibility le = new ColumnVisibility("L1&L2&G1&GROUP2");
       Text labBA = new Text(le.getExpression());
       

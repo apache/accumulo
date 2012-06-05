@@ -79,8 +79,6 @@ import org.apache.accumulo.core.master.thrift.TableInfo;
 import org.apache.accumulo.core.master.thrift.TabletLoadState;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.master.thrift.TabletSplit;
-import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
@@ -142,10 +140,10 @@ import org.apache.accumulo.server.master.tableOps.TableRangeOp;
 import org.apache.accumulo.server.master.tableOps.TraceRepo;
 import org.apache.accumulo.server.master.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.monitor.Monitor;
-import org.apache.accumulo.server.security.Authenticator;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.SecurityOperationImpl;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.tabletserver.log.RemoteLogger;
 import org.apache.accumulo.server.trace.TraceFileSystem;
@@ -207,7 +205,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   final private String hostname;
   final private LiveTServerSet tserverSet;
   final private List<TabletGroupWatcher> watchers = new ArrayList<TabletGroupWatcher>();
-  final private Authenticator authenticator;
+  final private SecurityOperation security;
   final private Map<TServerInstance,AtomicInteger> badServers = Collections.synchronizedMap(new DefaultMap<TServerInstance,AtomicInteger>(new AtomicInteger()));
   final private Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<TServerInstance>());
   final private SortedMap<KeyExtent,TServerInstance> migrations = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,TServerInstance>());
@@ -465,41 +463,6 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     }
   }
   
-  private void verify(AuthInfo credentials, String tableId, TableOperation op, boolean match) throws ThriftSecurityException, ThriftTableOperationException {
-    if (!match) {
-      Tables.clearCache(instance);
-      if (!Tables.exists(instance, tableId))
-        throw new ThriftTableOperationException(tableId, null, op, TableOperationExceptionType.NOTFOUND, null);
-      else
-        throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-  }
-  
-  private void verify(AuthInfo credentials, boolean match) throws ThriftSecurityException {
-    if (!match)
-      throw new AccumuloSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-  }
-  
-  private boolean check(AuthInfo credentials, SystemPermission permission) throws ThriftSecurityException {
-    try {
-      // clear the cache so the check is done using current info
-      authenticator.clearCache(credentials.user);
-      return authenticator.hasSystemPermission(credentials, credentials.user, permission);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
-  }
-  
-  private boolean check(AuthInfo credentials, String tableId, TablePermission permission) throws ThriftSecurityException {
-    try {
-      // clear the cache so the check is done using current info
-      authenticator.clearCache(credentials.user, tableId);
-      return authenticator.hasTablePermission(credentials, credentials.user, tableId, permission);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    }
-  }
-  
   public void mustBeOnline(final String tableId) throws ThriftTableOperationException {
     Tables.clearCache(instance);
     if (!Tables.getTableState(instance, tableId).equals(TableState.ONLINE))
@@ -545,7 +508,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + instance.getInstanceID());
     ThriftTransportPool.getInstance().setIdleTime(aconf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
-    authenticator = ZKAuthenticator.getInstance();
+    security = SecurityOperationImpl.getInstance();
     tserverSet = new LiveTServerSet(instance, config.getConfiguration(), this);
     this.tabletBalancer = createInstanceFromPropertyName(aconf, Property.MASTER_TABLET_BALANCER, TabletBalancer.class, new DefaultLoadBalancer());
     this.tabletBalancer.init(serverConfig);
@@ -571,7 +534,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
     @Override
     public long initiateFlush(TInfo tinfo, AuthInfo c, String tableId) throws ThriftSecurityException, ThriftTableOperationException, TException {
-      verify(c, tableId, TableOperation.FLUSH, check(c, tableId, TablePermission.WRITE) || check(c, tableId, TablePermission.ALTER_TABLE));
+      security.canFlush(c, tableId);
       
       String zTablePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_FLUSH_ID;
       
@@ -598,7 +561,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     @Override
     public void waitForFlush(TInfo tinfo, AuthInfo c, String tableId, ByteBuffer startRow, ByteBuffer endRow, long flushID, long maxLoops)
         throws ThriftSecurityException, ThriftTableOperationException, TException {
-      verify(c, tableId, TableOperation.FLUSH, check(c, tableId, TablePermission.WRITE) || check(c, tableId, TablePermission.ALTER_TABLE));
+      security.canFlush(c, tableId);
       
       if (endRow != null && startRow != null && ByteBufferUtil.toText(startRow).compareTo(ByteBufferUtil.toText(endRow)) >= 0)
         throw new ThriftTableOperationException(tableId, null, TableOperation.FLUSH, TableOperationExceptionType.BAD_RANGE,
@@ -750,7 +713,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     private void alterTableProperty(AuthInfo c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
         ThriftTableOperationException {
       final String tableId = checkTableId(tableName, op);
-      verify(c, tableId, op, check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
+      security.canAlterTable(c, tableId);
       
       try {
         if (value == null) {
@@ -778,13 +741,13 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
     @Override
     public void shutdown(TInfo info, AuthInfo c, boolean stopTabletServers) throws ThriftSecurityException, TException {
-      verify(c, check(c, SystemPermission.SYSTEM));
+      security.canPerformSystemActions(c);
       Master.this.shutdown(stopTabletServers);
     }
     
     @Override
     public void shutdownTabletServer(TInfo info, AuthInfo c, String tabletServer, boolean force) throws ThriftSecurityException, TException {
-      verify(c, check(c, SystemPermission.SYSTEM));
+      security.canPerformSystemActions(c);
       
       final InetSocketAddress addr = AddressUtil.parseAddress(tabletServer, Property.TSERV_CLIENTPORT);
       final String addrString = org.apache.accumulo.core.util.AddressUtil.toString(addr);
@@ -847,7 +810,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
     @Override
     public void setMasterGoalState(TInfo info, AuthInfo c, MasterGoalState state) throws ThriftSecurityException, TException {
-      verify(c, check(c, SystemPermission.SYSTEM));
+      security.canPerformSystemActions(c);
+      
       Master.this.setMasterGoalState(state);
     }
     
@@ -867,8 +831,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
 
     @Override
     public void removeSystemProperty(TInfo info, AuthInfo c, String property) throws ThriftSecurityException, TException {
+      security.canPerformSystemActions(c);
       
-      verify(c, check(c, SystemPermission.SYSTEM));
       try {
         SystemPropUtil.removeSystemProperty(property);
         updatePlugins(property);
@@ -880,7 +844,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     
     @Override
     public void setSystemProperty(TInfo info, AuthInfo credentials, String property, String value) throws ThriftSecurityException, TException {
-      verify(credentials, check(credentials, SystemPermission.SYSTEM));
+      security.canPerformSystemActions(credentials);
+      
       try {
         SystemPropUtil.setSystemProperty(property, value);
         updatePlugins(property);
@@ -891,12 +856,9 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     }
     
     private void authenticate(AuthInfo credentials) throws ThriftSecurityException {
-      try {
-        if (!authenticator.authenticateUser(credentials, credentials.user, credentials.password))
-          throw new ThriftSecurityException(credentials.user, SecurityErrorCode.BAD_CREDENTIALS);
-      } catch (AccumuloSecurityException e) {
-        throw e.asThriftException();
-      }
+      if (!security.authenticateUser(credentials, credentials.user, credentials.password))
+        throw new ThriftSecurityException(credentials.user, SecurityErrorCode.BAD_CREDENTIALS);
+
     }
     
     @Override
@@ -915,7 +877,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
         case CREATE: {
           String tableName = ByteBufferUtil.toString(arguments.get(0));
           
-          verify(c, check(c, SystemPermission.CREATE_TABLE));
+          if (!security.canCreateTable(c))
+            throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
           checkNotMetadataTable(tableName, TableOperation.CREATE);
           checkTableName(tableName, TableOperation.CREATE);
           
@@ -933,7 +896,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           checkNotMetadataTable(oldTableName, TableOperation.RENAME);
           checkNotMetadataTable(newTableName, TableOperation.RENAME);
           checkTableName(newTableName, TableOperation.RENAME);
-          verify(c, tableId, TableOperation.RENAME, check(c, tableId, TablePermission.ALTER_TABLE) || check(c, SystemPermission.ALTER_TABLE));
+          if (!security.canRenameTable(c, tableId))
+            throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
           
           fate.seedTransaction(opid, new TraceRepo<Master>(new RenameTable(tableId, oldTableName, newTableName)), autoCleanup);
           
@@ -945,7 +909,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           
           checkNotMetadataTable(tableName, TableOperation.CLONE);
           checkTableName(tableName, TableOperation.CLONE);
-          verify(c, srcTableId, TableOperation.CLONE, check(c, SystemPermission.CREATE_TABLE) && check(c, srcTableId, TablePermission.READ));
+          if (!security.canCloneTable(c, srcTableId))
+            throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
           
           Map<String,String> propertiesToSet = new HashMap<String,String>();
           Set<String> propertiesToExclude = new HashSet<String>();
@@ -972,8 +937,9 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           String tableName = ByteBufferUtil.toString(arguments.get(0));
           final String tableId = checkTableId(tableName, TableOperation.DELETE);
           checkNotMetadataTable(tableName, TableOperation.DELETE);
-          verify(c, tableId, TableOperation.DELETE, check(c, SystemPermission.DROP_TABLE) || check(c, tableId, TablePermission.DROP_TABLE));
-          
+          if (!security.canDeleteTable(c, tableId))
+            throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
+
           fate.seedTransaction(opid, new TraceRepo<Master>(new DeleteTable(tableId)), autoCleanup);
           break;
         }
@@ -981,9 +947,10 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           String tableName = ByteBufferUtil.toString(arguments.get(0));
           final String tableId = checkTableId(tableName, TableOperation.ONLINE);
           checkNotMetadataTable(tableName, TableOperation.ONLINE);
-          verify(c, tableId, TableOperation.ONLINE,
-              check(c, SystemPermission.SYSTEM) || check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
-          
+
+          if (!security.canOnlineOfflineTable(c, tableId))
+            throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
+
           fate.seedTransaction(opid, new TraceRepo<Master>(new ChangeTableState(tableId, TableOperation.ONLINE)), autoCleanup);
           break;
         }
@@ -991,8 +958,9 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           String tableName = ByteBufferUtil.toString(arguments.get(0));
           final String tableId = checkTableId(tableName, TableOperation.OFFLINE);
           checkNotMetadataTable(tableName, TableOperation.OFFLINE);
-          verify(c, tableId, TableOperation.OFFLINE,
-              check(c, SystemPermission.SYSTEM) || check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
+          
+          if (!security.canOnlineOfflineTable(c, tableId))
+            throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
           
           fate.seedTransaction(opid, new TraceRepo<Master>(new ChangeTableState(tableId, TableOperation.OFFLINE)), autoCleanup);
           break;
@@ -1011,8 +979,10 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
             }
           }
           log.debug("Creating merge op: " + tableId + " " + startRow + " " + endRow);
-          verify(c, tableId, TableOperation.MERGE,
-              check(c, SystemPermission.SYSTEM) || check(c, SystemPermission.ALTER_TABLE) || check(c, tableId, TablePermission.ALTER_TABLE));
+          
+          if (!security.canMerge(c, tableId))
+            throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
+
           fate.seedTransaction(opid, new TraceRepo<Master>(new TableRangeOp(MergeInfo.Operation.MERGE, tableId, startRow, endRow)), autoCleanup);
           break;
         }
@@ -1023,8 +993,10 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           
           final String tableId = checkTableId(tableName, TableOperation.DELETE_RANGE);
           checkNotMetadataTable(tableName, TableOperation.DELETE_RANGE);
-          verify(c, tableId, TableOperation.DELETE_RANGE, check(c, SystemPermission.SYSTEM) || check(c, tableId, TablePermission.WRITE));
           
+          if (!security.canDeleteRange(c, tableId))
+            throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
+
           fate.seedTransaction(opid, new TraceRepo<Master>(new TableRangeOp(MergeInfo.Operation.DELETE, tableId, startRow, endRow)), autoCleanup);
           break;
         }
@@ -1036,8 +1008,10 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           
           final String tableId = checkTableId(tableName, TableOperation.BULK_IMPORT);
           checkNotMetadataTable(tableName, TableOperation.BULK_IMPORT);
-          verify(c, tableId, TableOperation.BULK_IMPORT, check(c, tableId, TablePermission.BULK_IMPORT));
           
+          if (!security.canBulkImport(c, tableId))
+            throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
+
           fate.seedTransaction(opid, new TraceRepo<Master>(new BulkImport(tableId, dir, failDir, setTime)), autoCleanup);
           break;
         }
@@ -1047,9 +1021,9 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           byte[] endRow = ByteBufferUtil.toBytes(arguments.get(2));
           List<IteratorSetting> iterators = IteratorUtil.decodeIteratorSettings(ByteBufferUtil.toBytes(arguments.get(3)));
           
-          verify(c, tableId, TableOperation.COMPACT,
-              check(c, tableId, TablePermission.WRITE) || check(c, tableId, TablePermission.ALTER_TABLE) || check(c, SystemPermission.ALTER_TABLE));
-          
+          if (!security.canCompact(c, tableId))
+            throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
+
           fate.seedTransaction(opid, new TraceRepo<Master>(new CompactRange(tableId, startRow, endRow, iterators)), autoCleanup);
           break;
         }

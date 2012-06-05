@@ -60,6 +60,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
       mdScanner.setRanges(Collections.singletonList(range));
       iter = mdScanner.iterator();
     } catch (Exception ex) {
+      mdScanner.close();
       throw new RuntimeException(ex);
     }
   }

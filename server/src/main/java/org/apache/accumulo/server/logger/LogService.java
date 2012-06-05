@@ -36,7 +36,6 @@ import java.util.UUID;
 import org.apache.accumulo.cloudtrace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -62,9 +61,9 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.logger.LogWriter.LogWriteException;
-import org.apache.accumulo.server.security.Authenticator;
+import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.SecurityOperationImpl;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.FileSystemMonitor;
 import org.apache.accumulo.server.util.Halt;
@@ -94,7 +93,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
   static final org.apache.log4j.Logger LOG = org.apache.log4j.Logger.getLogger(LogService.class);
   
   private final Instance instance;
-  private final Authenticator authenticator;
+  private final SecurityOperation security;
   private final TServer service;
   private final LogWriter writer_;
   private final MutationLogger.Iface writer;
@@ -181,7 +180,7 @@ public class LogService implements MutationLogger.Iface, Watcher {
       LOG.info("Storing recovery logs at " + root);
     }
     
-    authenticator = ZKAuthenticator.getInstance();
+    security = SecurityOperationImpl.getInstance();
     int poolSize = acuConf.getCount(Property.LOGGER_COPY_THREADPOOL_SIZE);
     boolean archive = acuConf.getBoolean(Property.LOGGER_ARCHIVE);
     writer_ = new LogWriter(acuConf, fs, rootDirs, instance.getInstanceID(), poolSize, archive);
@@ -294,13 +293,13 @@ public class LogService implements MutationLogger.Iface, Watcher {
   
   private void checkForSystemPrivs(String request, AuthInfo credentials) throws ThriftSecurityException {
     try {
-      if (!authenticator.hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM)) {
+      if (!security.hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM)) {
         LOG.warn("Got " + request + " from user: " + credentials.user);
         throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
       }
-    } catch (AccumuloSecurityException e) {
+    } catch (ThriftSecurityException e) {
       LOG.warn("Got " + request + " from unauthenticatable user: " + e.getUser());
-      throw e.asThriftException();
+      throw e;
     }
   }
   

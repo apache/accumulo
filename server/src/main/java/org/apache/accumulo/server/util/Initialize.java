@@ -38,6 +38,7 @@ import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -49,8 +50,8 @@ import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SecurityOperationImpl;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -410,8 +411,8 @@ public class Initialize {
     return rootpass.getBytes();
   }
   
-  private static void initSecurity(String iid, byte[] rootpass) throws AccumuloSecurityException {
-    new ZKAuthenticator(iid).initializeSecurity(SecurityConstants.getSystemCredentials(), ROOT_USER, rootpass);
+  private static void initSecurity(String iid, byte[] rootpass) throws AccumuloSecurityException, ThriftSecurityException {
+    SecurityOperationImpl.getInstance(iid).initializeSecurity(SecurityConstants.getSystemCredentials(), ROOT_USER, rootpass);
   }
   
   protected static void initMetadataConfig() throws IOException {

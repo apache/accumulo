@@ -91,6 +91,10 @@ public class AccumuloSecurityException extends Exception {
     return user;
   }
   
+  public void setUser(String s) {
+    this.user = s;
+  }
+
   /**
    * @return the specific reason for this exception
    */

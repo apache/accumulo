@@ -20,45 +20,29 @@ import java.nio.ByteBuffer;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.SystemPermission;
-import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 
 public interface Authenticator {
+  
+  public void initialize(String instanceId);
+
+  public boolean validAuthorizor(Authorizor auth);
+
   public void initializeSecurity(AuthInfo credentials, String rootuser, byte[] rootpass) throws AccumuloSecurityException;
+
+  public boolean authenticateUser(String user, ByteBuffer password, String instanceId);
   
-  public String getRootUsername();
+  public Set<String> listUsers() throws AccumuloSecurityException;
   
-  public boolean authenticateUser(AuthInfo credentials, String user, ByteBuffer pass) throws AccumuloSecurityException;
+  public void createUser(String user, byte[] pass) throws AccumuloSecurityException;
   
-  public Set<String> listUsers(AuthInfo credentials) throws AccumuloSecurityException;
+  public void dropUser(String user) throws AccumuloSecurityException;
   
-  public void createUser(AuthInfo credentials, String user, byte[] pass, Authorizations authorizations) throws AccumuloSecurityException;
-  
-  public void dropUser(AuthInfo credentials, String user) throws AccumuloSecurityException;
-  
-  public void changePassword(AuthInfo credentials, String user, byte[] pass) throws AccumuloSecurityException;
-  
-  public void changeAuthorizations(AuthInfo credentials, String user, Authorizations authorizations) throws AccumuloSecurityException;
-  
-  public Authorizations getUserAuthorizations(AuthInfo credentials, String user) throws AccumuloSecurityException;
-  
-  public boolean hasSystemPermission(AuthInfo credentials, String user, SystemPermission permission) throws AccumuloSecurityException;
-  
-  public boolean hasTablePermission(AuthInfo credentials, String user, String table, TablePermission permission) throws AccumuloSecurityException;
-  
-  public void grantSystemPermission(AuthInfo credentials, String user, SystemPermission permission) throws AccumuloSecurityException;
-  
-  public void revokeSystemPermission(AuthInfo credentials, String user, SystemPermission permission) throws AccumuloSecurityException;
-  
-  public void grantTablePermission(AuthInfo credentials, String user, String table, TablePermission permission) throws AccumuloSecurityException;
-  
-  public void revokeTablePermission(AuthInfo credentials, String user, String table, TablePermission permission) throws AccumuloSecurityException;
-  
-  public void deleteTable(AuthInfo credentials, String table) throws AccumuloSecurityException;
+  public void changePassword(String user, byte[] pass) throws AccumuloSecurityException;
   
   public void clearCache(String user);
   
-  public void clearCache(String user, String tableId);
+  public boolean cachesToClear();
+  
+  public boolean userExists(String user);
 }
