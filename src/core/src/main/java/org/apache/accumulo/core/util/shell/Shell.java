@@ -1747,10 +1747,10 @@ public class Shell {
       for (IteratorScope scope : scopes) {
         String stem = String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name(), name);
         log.debug("setting property " + stem + " to " + priority + "," + classname);
-        stem += ".opt.";
+        String optStem = stem + ".opt.";
         for (Entry<String,String> e : options.entrySet()) {
-          log.debug("setting property " + stem + e.getKey() + " to " + e.getValue());
-          shellState.connector.tableOperations().setProperty(tableName, stem + e.getKey(), e.getValue());
+          log.debug("setting property " + optStem + e.getKey() + " to " + e.getValue());
+          shellState.connector.tableOperations().setProperty(tableName, optStem + e.getKey(), e.getValue());
         }
         shellState.connector.tableOperations().setProperty(tableName, stem, priority + "," + classname);
       }
