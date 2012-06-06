@@ -1189,6 +1189,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
           return TabletGoalState.HOSTED;
         return TabletGoalState.UNASSIGNED;
       case UNLOAD_ROOT_TABLET:
+	if (assignedOrHosted(METADATA_TABLE_ID) > 1)
+          return TabletGoalState.HOSTED;
         return TabletGoalState.UNASSIGNED;
       case STOP:
         return TabletGoalState.UNASSIGNED;
