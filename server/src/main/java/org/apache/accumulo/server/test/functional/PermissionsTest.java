@@ -234,6 +234,13 @@ public class PermissionsTest {
           if (!ServerConfiguration.getTableConfiguration(instance, tableId).get(Property.TABLE_BLOOM_ERRORRATE).equals("003.14159%"))
             throw new IllegalStateException("Should be able to set a table property");
           test_user_conn.tableOperations().removeProperty(tableName, Property.TABLE_BLOOM_ERRORRATE.getKey());
+          // Surprised we got away without pausing before. 
+          try {
+            Thread.sleep(100);
+          } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+          }
           if (ServerConfiguration.getTableConfiguration(instance, tableId).get(Property.TABLE_BLOOM_ERRORRATE).equals("003.14159%"))
             throw new IllegalStateException("Should be able to remove a table property");
           test_user_conn.tableOperations().rename(tableName, table2);
@@ -295,6 +302,12 @@ public class PermissionsTest {
   public static class TablePermissionsTest extends FunctionalTest {
     private static final Logger log = Logger.getLogger(SystemPermissionsTest.class);
     private static final String TEST_TABLE = "__TABLE_PERMISSION_TEST__";
+    
+    public static void main(String args[]) throws Exception
+    {
+      FunctionalTest.main(args);
+      new TablePermissionsTest().run();
+    }
     
     @Override
     public void cleanup() throws Exception {}

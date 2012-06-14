@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.log4j.Logger;
 
 /**
  * All the static too methods used for this class, so that we can separate out stuff that isn't using ZooKeeper. That way, we can check the synchronization
@@ -39,6 +40,7 @@ import org.apache.accumulo.core.security.TablePermission;
  * won't, and so don't need to be checked.
  */
 class ZKSecurityTool {
+  private static final Logger log = Logger.getLogger(ZKSecurityTool.class);
   private static final int SALT_LENGTH = 8;
   
   // Generates a byte array salt of length SALT_LENGTH
@@ -65,7 +67,7 @@ class ZKSecurityTool {
     try {
       passwordToCheck = convertPass(password, salt);
     } catch (NoSuchAlgorithmException e) {
-      ZKAuthenticator.log.error("Count not create hashed password", e);
+      log.error("Count not create hashed password", e);
       return false;
     }
     return java.util.Arrays.equals(passwordToCheck, zkData);
@@ -76,7 +78,7 @@ class ZKSecurityTool {
     try {
       return convertPass(password, salt);
     } catch (NoSuchAlgorithmException e) {
-      ZKAuthenticator.log.error("Count not create hashed password", e);
+      log.error("Count not create hashed password", e);
       throw new AccumuloException("Count not create hashed password", e);
     }
   }
@@ -107,7 +109,7 @@ class ZKSecurityTool {
       for (SystemPermission sp : systempermissions)
         out.writeByte(sp.getId());
     } catch (IOException e) {
-      ZKAuthenticator.log.error(e, e);
+      log.error(e, e);
       throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if this happens
     }
     return bytes.toByteArray();
@@ -121,7 +123,7 @@ class ZKSecurityTool {
       while (in.available() > 0)
         toReturn.add(SystemPermission.getPermissionById(in.readByte()));
     } catch (IOException e) {
-      ZKAuthenticator.log.error("User database is corrupt; error converting system permissions", e);
+      log.error("User database is corrupt; error converting system permissions", e);
       toReturn.clear();
     }
     return toReturn;
@@ -134,7 +136,7 @@ class ZKSecurityTool {
       for (TablePermission tp : tablepermissions)
         out.writeByte(tp.getId());
     } catch (IOException e) {
-      ZKAuthenticator.log.error(e, e);
+      log.error(e, e);
       throw new RuntimeException(e); // this is impossible with ByteArrayOutputStream; crash hard if this happens
     }
     return bytes.toByteArray();

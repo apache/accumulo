@@ -93,6 +93,8 @@ public class VerifyIngest {
       
       int errors = 0;
       
+      connector.securityOperations().changeUserAuthorizations(username, labelAuths);
+
       while (expectedRow < (ingestArgs.rows + ingestArgs.startRow)) {
         
         if (ingestArgs.useGet) {

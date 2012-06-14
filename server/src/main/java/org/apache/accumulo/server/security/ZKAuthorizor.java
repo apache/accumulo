@@ -227,7 +227,6 @@ public class ZKAuthorizor implements Authorizor {
       initUser(rootuser);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserAuths, ZKSecurityTool.convertAuthorizations(Constants.NO_AUTHS), NodeExistsPolicy.FAIL);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserSysPerms, ZKSecurityTool.convertSystemPermissions(rootPerms), NodeExistsPolicy.FAIL);
-      zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserTablePerms, new byte[0], NodeExistsPolicy.FAIL);
       for (Entry<String,Set<TablePermission>> entry : tablePerms.entrySet())
         createTablePerm(rootuser, entry.getKey(), entry.getValue());
     } catch (KeeperException e) {
@@ -258,7 +257,7 @@ public class ZKAuthorizor implements Authorizor {
   }
   
   /**
-   * Sets up a new table configuration for the provided user/table. No checking for existance is done here, it should be done before calling.
+   * Sets up a new table configuration for the provided user/table. No checking for existence is done here, it should be done before calling.
    */
   private void createTablePerm(String user, String table, Set<TablePermission> perms) throws KeeperException, InterruptedException {
     synchronized (zooCache) {
@@ -330,10 +329,11 @@ public class ZKAuthorizor implements Authorizor {
   public void dropUser(String user) throws AccumuloSecurityException {
     try {
       synchronized (zooCache) {
+        IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
+        zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserAuths, NodeMissingPolicy.SKIP);
+        zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserSysPerms, NodeMissingPolicy.SKIP);
+        zoo.recursiveDelete(ZKUserPath + "/" + user + ZKUserTablePerms, NodeMissingPolicy.SKIP);
         zooCache.clear(ZKUserPath + "/" + user);
-        ZooReaderWriter.getRetryingInstance().recursiveDelete(ZKUserPath + "/" + user + ZKUserAuths, NodeMissingPolicy.FAIL);
-        ZooReaderWriter.getRetryingInstance().recursiveDelete(ZKUserPath + "/" + user + ZKUserSysPerms, NodeMissingPolicy.FAIL);
-        ZooReaderWriter.getRetryingInstance().recursiveDelete(ZKUserPath + "/" + user + ZKUserTablePerms, NodeMissingPolicy.FAIL);
       }
     } catch (InterruptedException e) {
       log.error(e, e);

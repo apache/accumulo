@@ -100,6 +100,12 @@ public class SecurityOperationImpl implements SecurityOperation {
 
     authenticator.initializeSecurity(credentials, rootuser, rootpass);
     authorizor.initializeSecurity(rootuser);
+    try {
+      authorizor.grantTablePermission(rootuser, Constants.METADATA_TABLE_ID, TablePermission.ALTER_TABLE);
+    } catch (TableNotFoundException e) {
+      // Shouldn't happen
+      throw new RuntimeException(e);
+    }
   }
 
   public synchronized String getRootUsername() {
@@ -207,7 +213,7 @@ public class SecurityOperationImpl implements SecurityOperation {
    * @throws ThriftTableOperationException
    */
   private boolean hasTablePermission(String user, String table, TablePermission permission) throws ThriftSecurityException {
-    if (user.equals(getRootUsername()) || user.equals(SecurityConstants.SYSTEM_USERNAME))
+    if (user.equals(SecurityConstants.SYSTEM_USERNAME))
       return true;
     
     targetUserExists(user);
@@ -433,7 +439,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     authenticate(c);
     if (user.equals(SecurityConstants.SYSTEM_USERNAME))
       throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
-    return hasSystemPermission(c.user, SystemPermission.ALTER_TABLE);
+    return hasSystemPermission(c.user, SystemPermission.ALTER_USER);
   }
 
   /**

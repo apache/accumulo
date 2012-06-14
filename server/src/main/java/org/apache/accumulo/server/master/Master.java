@@ -713,7 +713,8 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     private void alterTableProperty(AuthInfo c, String tableName, String property, String value, TableOperation op) throws ThriftSecurityException,
         ThriftTableOperationException {
       final String tableId = checkTableId(tableName, op);
-      security.canAlterTable(c, tableId);
+      if (!security.canAlterTable(c, tableId))
+        throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
       
       try {
         if (value == null) {

@@ -42,7 +42,7 @@ public class AuditedSecurityOperation implements SecurityOperation {
   }
   
   private void audit(AuthInfo credentials, ThriftSecurityException ex, String template, Object... args) {
-    log.log(AuditLevel.AUDIT, "Error: authentication operation failed: " + credentials.user + ": " + String.format(template, args));
+    log.log(AuditLevel.AUDIT, "Error: authenticated operation failed: " + credentials.user + ": " + String.format(template, args));
   }
   
   private void audit(AuthInfo credentials, String template, Object... args) {
