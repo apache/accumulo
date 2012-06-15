@@ -20,6 +20,7 @@ import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -3138,6 +3139,20 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     AccumuloConfiguration conf = serverConf.getConfiguration();
     String localWalDirectories = conf.get(Property.LOGGER_DIR);
     for (String localWalDirectory : localWalDirectories.split(",")) {
+      if (!localWalDirectory.startsWith("/")) {
+        localWalDirectory = System.getenv("ACCUMULO_HOME") + "/" + localWalDirectory;
+      }
+      
+      FileStatus status = null;
+      try {
+        status = localfs.getFileStatus(new Path(localWalDirectory));
+      } catch (FileNotFoundException fne) {}
+      
+      if (status == null || !status.isDir()) {
+        log.debug("Local walog dir " + localWalDirectory + " not found ");
+        continue;
+      }
+
       for (FileStatus file : localfs.listStatus(new Path(localWalDirectory))) {
         String name = file.getPath().getName();
         try {
