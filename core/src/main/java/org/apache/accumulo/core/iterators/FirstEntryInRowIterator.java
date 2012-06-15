@@ -75,6 +75,8 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   // this is only ever called immediately after getting "next" entry
   @Override
   protected void consume() throws IOException {
+    if (lastRowFound == null)
+      return;
     int count = 0;
     while (getSource().hasTop() && lastRowFound.equals(getSource().getTopKey().getRow())) {
       
@@ -101,10 +103,17 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
     latestRange = range;
     latestColumnFamilies = columnFamilies;
     latestInclusive = inclusive;
+    lastRowFound = null;
     
-    // seek to first possible pattern in range
-    super.seek(range, columnFamilies, inclusive);
-    lastRowFound = getSource().hasTop() ? getSource().getTopKey().getRow() : null;
+    Key startKey = range.getStartKey();
+    Range seekRange = new Range(startKey == null ? null : new Key(startKey.getRow()), true, range.getEndKey(), range.isEndKeyInclusive());
+    super.seek(seekRange, columnFamilies, inclusive);
+    
+    if (getSource().hasTop()) {
+      lastRowFound = getSource().getTopKey().getRow();
+      if (range.beforeStartKey(getSource().getTopKey()))
+        consume();
+    }
   }
   
   @Override
