@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -67,11 +68,11 @@ public class ContinuousIngest {
     
     args = processOptions(args);
     
-    if (args.length != 13) {
+    if (args.length != 14) {
       throw new IllegalArgumentException(
           "usage : "
               + ContinuousIngest.class.getName()
-              + " [--debug <debug log>] <instance name> <zookeepers> <user> <pass> <table> <min> <max> <max colf> <max colq> <max mem> <max latency> <max threads> <enable checksum>");
+              + " [--debug <debug log>] <instance name> <zookeepers> <user> <pass> <table> <num> <min> <max> <max colf> <max colq> <max mem> <max latency> <max threads> <enable checksum>");
     }
     
     if (debugLog != null) {
@@ -89,16 +90,17 @@ public class ContinuousIngest {
     
     String table = args[4];
     
-    long min = Long.parseLong(args[5]);
-    long max = Long.parseLong(args[6]);
-    short maxColF = Short.parseShort(args[7]);
-    short maxColQ = Short.parseShort(args[8]);
+    long num = Long.parseLong(args[5]);
+    long min = Long.parseLong(args[6]);
+    long max = Long.parseLong(args[7]);
+    short maxColF = Short.parseShort(args[8]);
+    short maxColQ = Short.parseShort(args[9]);
     
-    long maxMemory = Long.parseLong(args[9]);
-    long maxLatency = Integer.parseInt(args[10]);
-    int maxWriteThreads = Integer.parseInt(args[11]);
+    long maxMemory = Long.parseLong(args[10]);
+    long maxLatency = Integer.parseInt(args[11]);
+    int maxWriteThreads = Integer.parseInt(args[12]);
     
-    boolean checksum = Boolean.parseBoolean(args[12]);
+    boolean checksum = Boolean.parseBoolean(args[13]);
     
     if (min < 0 || max < 0 || max <= min) {
       throw new IllegalArgumentException("bad min and max");
@@ -109,6 +111,11 @@ public class ContinuousIngest {
     String path = ZooUtil.getRoot(instance) + Constants.ZTRACERS;
     Tracer.getInstance().addReceiver(new ZooSpanClient(zooKeepers, path, localhost, "cingest", 1000));
     
+    if (!conn.tableOperations().exists(table))
+      try {
+        conn.tableOperations().create(table);
+      } catch (TableExistsException tee) {}
+
     BatchWriter bw = conn.createBatchWriter(table, maxMemory, maxLatency, maxWriteThreads);
     bw = Trace.wrapAll(bw, new CountSampler(1024));
     
@@ -133,7 +140,7 @@ public class ContinuousIngest {
     
     long lastFlushTime = System.currentTimeMillis();
     
-    while (true) {
+    out: while (true) {
       // generate first set of nodes
       for (int index = 0; index < flushInterval; index++) {
         long rowLong = genLong(min, max, r);
@@ -152,6 +159,8 @@ public class ContinuousIngest {
       }
       
       lastFlushTime = flush(bw, count, flushInterval, lastFlushTime);
+      if (count >= num)
+        break out;
       
       // generate subsequent sets of nodes that link to previous set of nodes
       for (int depth = 1; depth < maxDepth; depth++) {
@@ -165,6 +174,8 @@ public class ContinuousIngest {
         }
         
         lastFlushTime = flush(bw, count, flushInterval, lastFlushTime);
+        if (count >= num)
+          break out;
       }
       
       // create one big linked list, this makes all of the first inserts
@@ -175,6 +186,8 @@ public class ContinuousIngest {
         bw.addMutation(m);
       }
       lastFlushTime = flush(bw, count, flushInterval, lastFlushTime);
+      if (count >= num)
+        break out;
     }
   }
   

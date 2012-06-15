@@ -18,6 +18,8 @@
 
 . continuous-env.sh
 
+mkdir -p $CONTINUOUS_LOG_DIR
+
 CONFIG_OUT=$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_config.out
 
 cat $ACCUMULO_HOME/conf/accumulo-env.sh > $CONFIG_OUT
