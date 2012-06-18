@@ -189,6 +189,8 @@ public class ContinuousIngest {
       if (count >= num)
         break out;
     }
+    
+    bw.close();
   }
   
   private static long flush(BatchWriter bw, long count, final int flushInterval, long lastFlushTime) throws MutationsRejectedException {
