@@ -1,3 +1,62 @@
+Release Notes - Apache Accumulo - Version 1.4.1
+
+** Bug
+    * [ACCUMULO-355] - functional tests should run under a non-hadoop user
+    * [ACCUMULO-398] - Table tablets not evenly spread.
+    * [ACCUMULO-428] - loggers are not closed when high hold times are detected
+    * [ACCUMULO-449] - Failed log copy is not restarted
+    * [ACCUMULO-468] - low-memory warning message is incorrect
+    * [ACCUMULO-487] - Batch Scanner can get stuck when external thread closes scanner
+    * [ACCUMULO-488] - InputFormats' RecordReaders should call Context.progress
+    * [ACCUMULO-496] - Cloudtrace.thrift needs to have it's namespace updated to the new package
+    * [ACCUMULO-499] - Garbage collector should call Tracer.offNoFlush instead of Tracer.off
+    * [ACCUMULO-505] - "% of Used DFS" is overflowing on a large cluster
+    * [ACCUMULO-509] - default walog copy/sort uses replication of 1
+    * [ACCUMULO-512] - DEFAULT_MAX_LATENCY in AccumuloOutputFormat wrong units
+    * [ACCUMULO-516] - Column family search with sparse files is painfully long
+    * [ACCUMULO-520] - assigned tablets are not considered offline
+    * [ACCUMULO-521] - examples functional test is using the wrong class name
+    * [ACCUMULO-533] - make system iterators thread-safer
+    * [ACCUMULO-542] - with a large root tablet, tablet servers will get stuck loading other metadata tablets
+    * [ACCUMULO-561] - Monitor scan mb/s does not show batch scan activity
+    * [ACCUMULO-562] - Multi term grep in shell fails
+    * [ACCUMULO-566] - monitor should display zero tablet servers as red, even if there's only one tablet server configured
+    * [ACCUMULO-570] - dirlist example README is a little inconsistent
+    * [ACCUMULO-585] - Complain loudly when env file is missing
+    * [ACCUMULO-591] - Need to clear tablet location cache before computing input splits in input format
+    * [ACCUMULO-592] - We lost the security policy example
+    * [ACCUMULO-601] - client fails to resolve master hostname when not using fully qualified domain name
+    * [ACCUMULO-615] - accumulo runs fine on Hadoop 1.0
+    * [ACCUMULO-633] - FirstEntryInRowIterator is broken and has no test
+
+** Improvement
+    * [ACCUMULO-337] - Make logging an example file
+    * [ACCUMULO-364] - Security Policy file should be an example
+    * [ACCUMULO-399] - need a randomwalk node that checks tablet balance
+    * [ACCUMULO-459] - Accumulo init should fail fast
+    * [ACCUMULO-471] - allow wikisearch ingest to run on uncompressed input
+    * [ACCUMULO-480] - config.html should be more clear with regards to "needs restart"
+    * [ACCUMULO-489] - Input Format puts Base64 encoded passwords in Configuration, which is world readable
+    * [ACCUMULO-494] - Document relationship between max walogs and max tserver memory
+    * [ACCUMULO-502] - Document what replaces the deprecated PerColumnIteratorConfig class.
+    * [ACCUMULO-503] - start-here does unecessary SSHs
+    * [ACCUMULO-510] - Rename scanner threads to identify table being scanned
+    * [ACCUMULO-550] - Colocate rfile index entries within file
+    * [ACCUMULO-554] - monitor should display red when time-since last report is higher than a few minutes
+    * [ACCUMULO-573] - Fix grammar in shell commands
+    * [ACCUMULO-574] - Document reseek of iterators
+    * [ACCUMULO-637] - Make entries written configurable for continuous ingest
+
+** New Feature
+    * [ACCUMULO-49] - optionally monitor swappiness on every server
+    * [ACCUMULO-404] - Support running on-top of Kerberos-enabled HDFS
+    * [ACCUMULO-492] - Provide method for gathering system stats to API
+
+** Task
+    * [ACCUMULO-491] - Manual has UTF8 characters
+    * [ACCUMULO-546] - User manual inconsistencies
+
+
 Release notes for Apache Accumulo 1.4.0
 
 Major features added prior to Incubation
