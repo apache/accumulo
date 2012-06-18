@@ -32,6 +32,9 @@ DEBUG_WALKER=off
 DEBUG_BATCH_WALKER=off
 DEBUG_SCANNER=off
 
+#the number of entries each client should write
+NUM=9223372036854775807
+
 #the minimum random row to generate
 MIN=0
 
