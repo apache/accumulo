@@ -191,12 +191,12 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     if (dfv.getNumEntries() > 0) {
       m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text(path), new Value(dfv.encode()));
       ColumnFQ.put(m, Constants.METADATA_TIME_COLUMN, new Value(time.getBytes()));
-      // erase the old location
-      if (lastLocation != null)
-        lastLocation.clearLastLocation(m);
       // stuff in this location
       TServerInstance self = getTServerInstance(address, zooLock);
       self.putLastLocation(m);
+      // erase the old location
+      if (lastLocation != null && !lastLocation.equals(self))
+        lastLocation.clearLastLocation(m);
     }
     if (unusedWalLogs != null) {
       for (String entry : unusedWalLogs) {
@@ -465,11 +465,12 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     if (compactionId != null)
       ColumnFQ.put(m, Constants.METADATA_COMPACT_COLUMN, new Value(("" + compactionId).getBytes()));
     
-    // remove the old location
-    if (lastLocation != null)
-      lastLocation.clearLastLocation(m);
     TServerInstance self = getTServerInstance(address, zooLock);
     self.putLastLocation(m);
+
+    // remove the old location
+    if (lastLocation != null && !lastLocation.equals(self))
+      lastLocation.clearLastLocation(m);
     
     update(credentials, zooLock, m);
   }
