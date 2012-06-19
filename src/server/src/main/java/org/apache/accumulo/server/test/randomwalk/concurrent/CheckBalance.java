@@ -59,7 +59,7 @@ public class CheckBalance extends Test {
     // Check for even # of tablets on each node
     boolean balanced = true;
     for (Entry<String,Long> entry : counts.entrySet()) {
-      if (Math.abs(entry.getValue().longValue() - average) > 1) {
+      if (Math.abs(entry.getValue().longValue() - average) > Math.max(1, average / 5)) {
         balanced = false;
         break;
       }
