@@ -2072,6 +2072,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       @Override
       public void process(WatchedEvent event) {
         nextEvent.event("Noticed recovery changes", event.getType());
+        try {
+          // watcher only fires once, add it back
+          ZooReaderWriter.getInstance().getChildren(zroot + Constants.ZRECOVERY, this);
+        } catch (Exception e) {
+          log.error("Failed to add log recovery watcher back", e);
+        }
       }
     });
     
