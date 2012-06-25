@@ -31,7 +31,7 @@ public class AuthenticateCommand extends Command {
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
     String user = cl.getArgs()[0];
-    String p = shellState.getReader().readLine("Enter current password for '" + user + "': ", '*');
+    String p = shellState.readMaskedLine("Enter current password for '" + user + "': ", '*');
     if (p == null) {
       shellState.getReader().printNewline();
       return 0;

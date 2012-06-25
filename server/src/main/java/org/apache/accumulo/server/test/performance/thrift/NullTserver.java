@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.client.Instance;
@@ -164,9 +163,6 @@ public class NullTserver {
     public void unloadTablet(TInfo tinfo, AuthInfo credentials, String lock, TKeyExtent extent, boolean save) throws TException {}
     
     @Override
-    public void useLoggers(TInfo tinfo, AuthInfo credentials, Set<String> loggers) throws TException {}
-    
-    @Override
     public List<ActiveScan> getActiveScans(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException, TException {
       return new ArrayList<ActiveScan>();
     }
@@ -187,6 +183,16 @@ public class NullTserver {
     @Override
     public void flush(TInfo tinfo, AuthInfo credentials, String lock, String tableId, ByteBuffer startRow, ByteBuffer endRow) throws TException {
       
+    }
+    
+    /*
+     * (non-Javadoc)
+     * 
+     * @see org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface#removeLogs(org.apache.accumulo.cloudtrace.thrift.TInfo,
+     * org.apache.accumulo.core.security.thrift.AuthInfo, java.util.List)
+     */
+    @Override
+    public void removeLogs(TInfo tinfo, AuthInfo credentials, List<String> filenames) throws TException {
     }
   }
   

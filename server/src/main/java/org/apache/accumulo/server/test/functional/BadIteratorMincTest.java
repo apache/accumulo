@@ -95,6 +95,26 @@ public class BadIteratorMincTest extends FunctionalTest {
     
     if (count != 1)
       throw new Exception("Did not see expected # entries " + count);
+    
+    // now try putting bad iterator back and deleting the table
+    getConnector().tableOperations().setProperty("foo", Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.badi", "30," + BadIterator.class.getName());
+    bw = getConnector().createBatchWriter("foo", 1000000, 60000l, 2);
+    m = new Mutation(new Text("r2"));
+    m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));
+    bw.addMutation(m);
+    bw.close();
+    
+    // make sure property is given time to propagate
+    UtilWaitThread.sleep(1000);
+    
+    getConnector().tableOperations().flush("foo", null, null, false);
+    
+    // make sure the flush has time to start
+    UtilWaitThread.sleep(1000);
+    
+    // this should not hang
+    getConnector().tableOperations().delete("foo");
+
   }
   
 }

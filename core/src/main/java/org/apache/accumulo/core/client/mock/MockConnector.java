@@ -47,17 +47,23 @@ public class MockConnector extends Connector {
   
   @Override
   public BatchScanner createBatchScanner(String tableName, Authorizations authorizations, int numQueryThreads) throws TableNotFoundException {
+    if (acu.tables.get(tableName) == null)
+      throw new TableNotFoundException(tableName, tableName, "no such table");
     return acu.createBatchScanner(tableName, authorizations);
   }
   
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency,
       int maxWriteThreads) throws TableNotFoundException {
+    if (acu.tables.get(tableName) == null)
+      throw new TableNotFoundException(tableName, tableName, "no such table");
     return new MockBatchDeleter(acu, tableName, authorizations);
   }
   
   @Override
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
+    if (acu.tables.get(tableName) == null)
+      throw new TableNotFoundException(tableName, tableName, "no such table");
     return new MockBatchWriter(acu, tableName);
   }
   

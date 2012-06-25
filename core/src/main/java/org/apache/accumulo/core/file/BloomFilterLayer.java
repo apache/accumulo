@@ -29,10 +29,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -51,6 +50,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LoggingRunnable;
+import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -68,19 +68,6 @@ public class BloomFilterLayer {
   public static final String BLOOM_FILE_NAME = "acu_bloom";
   public static final int HASH_COUNT = 5;
   
-  private static class BloomLoaderThreadFactory implements ThreadFactory {
-    
-    private ThreadFactory dtf = Executors.defaultThreadFactory();
-    private int threadNum = 1;
-    
-    public Thread newThread(Runnable r) {
-      Thread thread = dtf.newThread(r);
-      thread.setName("bloom-loader-" + threadNum++);
-      thread.setDaemon(true);
-      return thread;
-    }
-  }
-  
   private static ExecutorService loadThreadPool = null;
   
   private static synchronized ExecutorService getLoadThreadPool(int maxLoadThreads) {
@@ -89,7 +76,8 @@ public class BloomFilterLayer {
     }
     
     if (maxLoadThreads > 0) {
-      loadThreadPool = new ThreadPoolExecutor(0, maxLoadThreads, 60, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new BloomLoaderThreadFactory());
+      BlockingQueue<Runnable> q = new LinkedBlockingQueue<Runnable>();
+      loadThreadPool = new ThreadPoolExecutor(0, maxLoadThreads, 60, TimeUnit.SECONDS, q, new NamingThreadFactory("bloom-loader"));
     }
     
     return loadThreadPool;

@@ -73,7 +73,7 @@ abstract public class BasicServlet extends HttpServlet {
     }
   }
   
-  protected final void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+  protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
     doGet(req, resp);
   }
   
@@ -136,7 +136,8 @@ abstract public class BasicServlet extends HttpServlet {
     // BEGIN HEADER
     sb.append("<head>\n");
     sb.append("<title>").append(getTitle(req)).append(" - Accumulo ").append(Constants.VERSION).append("</title>\n");
-    if ((refresh > 0) && (req.getRequestURI().startsWith("/docs") == false) && (req.getRequestURI().startsWith("/vis") == false))
+    if ((refresh > 0) && (req.getRequestURI().startsWith("/docs") == false) && (req.getRequestURI().startsWith("/vis") == false)
+        && (req.getRequestURI().startsWith("/shell") == false))
       sb.append("<meta http-equiv='refresh' content='" + refresh + "' />\n");
     sb.append("<meta http-equiv='Content-Type' content='").append(DEFAULT_CONTENT_TYPE).append("' />\n");
     sb.append("<meta http-equiv='Content-Script-Type' content='text/javascript' />\n");
@@ -175,7 +176,6 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<hr />\n");
     sb.append("<a href='/master'>Master&nbsp;Server</a><br />\n");
     sb.append("<a href='/tservers'>Tablet&nbsp;Servers</a><br />\n");
-    sb.append("<a href='/loggers'>Logger&nbsp;Servers</a><br />\n");
     sb.append("<a href='/vis'>Server Activity</a><br />\n");
     sb.append("<a href='/gc'>Garbage&nbsp;Collector</a><br />\n");
     sb.append("<a href='/tables'>Tables</a><br />\n");
@@ -190,6 +190,8 @@ abstract public class BasicServlet extends HttpServlet {
     sb.append("<hr />\n");
     sb.append("<a href='/xml'>XML</a><br />\n");
     sb.append("<a href='/json'>JSON</a><hr />\n");
+    if (Monitor.isUsingSsl())
+      sb.append("<a href='/shell'>Shell</a><hr />\n");
     sb.append("<div class='smalltext'>[<a href='").append("/op?action=refresh&value=").append(refresh < 1 ? "5" : "-1");
     sb.append("&redir=").append(currentPage(req)).append("'>");
     sb.append(refresh < 1 ? "en" : "dis").append("able&nbsp;auto-refresh</a>]</div>\n");

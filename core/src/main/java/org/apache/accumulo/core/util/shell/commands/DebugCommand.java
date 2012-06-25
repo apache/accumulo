@@ -39,8 +39,8 @@ public class DebugCommand extends Command {
     } else if (cl.getArgs().length == 0) {
       shellState.getReader().printString(Shell.isDebuggingEnabled() ? "on\n" : "off\n");
     } else {
-      Shell.printException(new IllegalArgumentException("Expected 0 or 1 argument. There were " + cl.getArgs().length + "."));
-      printHelp();
+      shellState.printException(new IllegalArgumentException("Expected 0 or 1 argument. There were " + cl.getArgs().length + "."));
+      printHelp(shellState);
       return 1;
     }
     return 0;

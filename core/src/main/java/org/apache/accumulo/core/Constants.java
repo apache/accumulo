@@ -62,9 +62,6 @@ public class Constants {
   
   public static final String ZDEAD = "/dead";
   public static final String ZDEADTSERVERS = "/dead/tservers";
-  public static final String ZDEADLOGGERS = "/dead/loggers";
-  
-  public static final String ZLOGGERS = "/loggers";
   
   public static final String ZTRACERS = "/tracers";
   
@@ -78,6 +75,7 @@ public class Constants {
   public static final String ZNEXT_FILE = "/next_file";
   
   public static final String ZHDFS_RESERVATIONS = "/hdfs_reservations";
+  public static final String ZRECOVERY = "/recovery";
   
   public static final String METADATA_TABLE_ID = "!0";
   public static final String METADATA_TABLE_NAME = "!METADATA";
@@ -182,6 +180,14 @@ public class Constants {
   
   public static String getRootTabletDir(AccumuloConfiguration conf) {
     return getMetadataTableDir(conf) + ZROOT_TABLET;
+  }
+  
+  /**
+   * @param conf
+   * @return
+   */
+  public static String getWalDirectory(AccumuloConfiguration conf) {
+    return getBaseDir(conf) + "/wal";
   }
   
 }

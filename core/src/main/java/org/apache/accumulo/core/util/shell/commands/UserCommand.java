@@ -38,7 +38,7 @@ public class UserCommand extends Command {
     // We can't let the wrapping try around the execute method deal
     // with the exceptions because we have to do something if one
     // of these methods fails
-    String p = shellState.getReader().readLine("Enter password for user " + user + ": ", '*');
+    String p = shellState.readMaskedLine("Enter password for user " + user + ": ", '*');
     if (p == null) {
       shellState.getReader().printNewline();
       return 0;

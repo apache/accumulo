@@ -23,28 +23,19 @@ import org.slf4j.LoggerFactory;
 @SuppressWarnings("all") public class RecoveryStatus implements org.apache.thrift.TBase<RecoveryStatus, RecoveryStatus._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("RecoveryStatus");
 
-  private static final org.apache.thrift.protocol.TField HOST_FIELD_DESC = new org.apache.thrift.protocol.TField("host", org.apache.thrift.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift.protocol.TField NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("name", org.apache.thrift.protocol.TType.STRING, (short)2);
-  private static final org.apache.thrift.protocol.TField MAP_PROGRESS_FIELD_DESC = new org.apache.thrift.protocol.TField("mapProgress", org.apache.thrift.protocol.TType.DOUBLE, (short)3);
-  private static final org.apache.thrift.protocol.TField REDUCE_PROGRESS_FIELD_DESC = new org.apache.thrift.protocol.TField("reduceProgress", org.apache.thrift.protocol.TType.DOUBLE, (short)4);
   private static final org.apache.thrift.protocol.TField RUNTIME_FIELD_DESC = new org.apache.thrift.protocol.TField("runtime", org.apache.thrift.protocol.TType.I32, (short)5);
-  private static final org.apache.thrift.protocol.TField COPY_PROGRESS_FIELD_DESC = new org.apache.thrift.protocol.TField("copyProgress", org.apache.thrift.protocol.TType.DOUBLE, (short)6);
+  private static final org.apache.thrift.protocol.TField PROGRESS_FIELD_DESC = new org.apache.thrift.protocol.TField("progress", org.apache.thrift.protocol.TType.DOUBLE, (short)6);
 
-  public String host;
   public String name;
-  public double mapProgress;
-  public double reduceProgress;
   public int runtime;
-  public double copyProgress;
+  public double progress;
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    HOST((short)1, "host"),
     NAME((short)2, "name"),
-    MAP_PROGRESS((short)3, "mapProgress"),
-    REDUCE_PROGRESS((short)4, "reduceProgress"),
     RUNTIME((short)5, "runtime"),
-    COPY_PROGRESS((short)6, "copyProgress");
+    PROGRESS((short)6, "progress");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -59,18 +50,12 @@ import org.slf4j.LoggerFactory;
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // HOST
-          return HOST;
         case 2: // NAME
           return NAME;
-        case 3: // MAP_PROGRESS
-          return MAP_PROGRESS;
-        case 4: // REDUCE_PROGRESS
-          return REDUCE_PROGRESS;
         case 5: // RUNTIME
           return RUNTIME;
-        case 6: // COPY_PROGRESS
-          return COPY_PROGRESS;
+        case 6: // PROGRESS
+          return PROGRESS;
         default:
           return null;
       }
@@ -111,26 +96,18 @@ import org.slf4j.LoggerFactory;
   }
 
   // isset id assignments
-  private static final int __MAPPROGRESS_ISSET_ID = 0;
-  private static final int __REDUCEPROGRESS_ISSET_ID = 1;
-  private static final int __RUNTIME_ISSET_ID = 2;
-  private static final int __COPYPROGRESS_ISSET_ID = 3;
-  private BitSet __isset_bit_vector = new BitSet(4);
+  private static final int __RUNTIME_ISSET_ID = 0;
+  private static final int __PROGRESS_ISSET_ID = 1;
+  private BitSet __isset_bit_vector = new BitSet(2);
 
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.HOST, new org.apache.thrift.meta_data.FieldMetaData("host", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.NAME, new org.apache.thrift.meta_data.FieldMetaData("name", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.MAP_PROGRESS, new org.apache.thrift.meta_data.FieldMetaData("mapProgress", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
-    tmpMap.put(_Fields.REDUCE_PROGRESS, new org.apache.thrift.meta_data.FieldMetaData("reduceProgress", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     tmpMap.put(_Fields.RUNTIME, new org.apache.thrift.meta_data.FieldMetaData("runtime", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
-    tmpMap.put(_Fields.COPY_PROGRESS, new org.apache.thrift.meta_data.FieldMetaData("copyProgress", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.PROGRESS, new org.apache.thrift.meta_data.FieldMetaData("progress", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(RecoveryStatus.class, metaDataMap);
@@ -140,24 +117,16 @@ import org.slf4j.LoggerFactory;
   }
 
   public RecoveryStatus(
-    String host,
     String name,
-    double mapProgress,
-    double reduceProgress,
     int runtime,
-    double copyProgress)
+    double progress)
   {
     this();
-    this.host = host;
     this.name = name;
-    this.mapProgress = mapProgress;
-    setMapProgressIsSet(true);
-    this.reduceProgress = reduceProgress;
-    setReduceProgressIsSet(true);
     this.runtime = runtime;
     setRuntimeIsSet(true);
-    this.copyProgress = copyProgress;
-    setCopyProgressIsSet(true);
+    this.progress = progress;
+    setProgressIsSet(true);
   }
 
   /**
@@ -166,16 +135,11 @@ import org.slf4j.LoggerFactory;
   public RecoveryStatus(RecoveryStatus other) {
     __isset_bit_vector.clear();
     __isset_bit_vector.or(other.__isset_bit_vector);
-    if (other.isSetHost()) {
-      this.host = other.host;
-    }
     if (other.isSetName()) {
       this.name = other.name;
     }
-    this.mapProgress = other.mapProgress;
-    this.reduceProgress = other.reduceProgress;
     this.runtime = other.runtime;
-    this.copyProgress = other.copyProgress;
+    this.progress = other.progress;
   }
 
   public RecoveryStatus deepCopy() {
@@ -184,40 +148,11 @@ import org.slf4j.LoggerFactory;
 
   @Override
   public void clear() {
-    this.host = null;
     this.name = null;
-    setMapProgressIsSet(false);
-    this.mapProgress = 0.0;
-    setReduceProgressIsSet(false);
-    this.reduceProgress = 0.0;
     setRuntimeIsSet(false);
     this.runtime = 0;
-    setCopyProgressIsSet(false);
-    this.copyProgress = 0.0;
-  }
-
-  public String getHost() {
-    return this.host;
-  }
-
-  public RecoveryStatus setHost(String host) {
-    this.host = host;
-    return this;
-  }
-
-  public void unsetHost() {
-    this.host = null;
-  }
-
-  /** Returns true if field host is set (has been assigned a value) and false otherwise */
-  public boolean isSetHost() {
-    return this.host != null;
-  }
-
-  public void setHostIsSet(boolean value) {
-    if (!value) {
-      this.host = null;
-    }
+    setProgressIsSet(false);
+    this.progress = 0.0;
   }
 
   public String getName() {
@@ -244,52 +179,6 @@ import org.slf4j.LoggerFactory;
     }
   }
 
-  public double getMapProgress() {
-    return this.mapProgress;
-  }
-
-  public RecoveryStatus setMapProgress(double mapProgress) {
-    this.mapProgress = mapProgress;
-    setMapProgressIsSet(true);
-    return this;
-  }
-
-  public void unsetMapProgress() {
-    __isset_bit_vector.clear(__MAPPROGRESS_ISSET_ID);
-  }
-
-  /** Returns true if field mapProgress is set (has been assigned a value) and false otherwise */
-  public boolean isSetMapProgress() {
-    return __isset_bit_vector.get(__MAPPROGRESS_ISSET_ID);
-  }
-
-  public void setMapProgressIsSet(boolean value) {
-    __isset_bit_vector.set(__MAPPROGRESS_ISSET_ID, value);
-  }
-
-  public double getReduceProgress() {
-    return this.reduceProgress;
-  }
-
-  public RecoveryStatus setReduceProgress(double reduceProgress) {
-    this.reduceProgress = reduceProgress;
-    setReduceProgressIsSet(true);
-    return this;
-  }
-
-  public void unsetReduceProgress() {
-    __isset_bit_vector.clear(__REDUCEPROGRESS_ISSET_ID);
-  }
-
-  /** Returns true if field reduceProgress is set (has been assigned a value) and false otherwise */
-  public boolean isSetReduceProgress() {
-    return __isset_bit_vector.get(__REDUCEPROGRESS_ISSET_ID);
-  }
-
-  public void setReduceProgressIsSet(boolean value) {
-    __isset_bit_vector.set(__REDUCEPROGRESS_ISSET_ID, value);
-  }
-
   public int getRuntime() {
     return this.runtime;
   }
@@ -313,60 +202,36 @@ import org.slf4j.LoggerFactory;
     __isset_bit_vector.set(__RUNTIME_ISSET_ID, value);
   }
 
-  public double getCopyProgress() {
-    return this.copyProgress;
+  public double getProgress() {
+    return this.progress;
   }
 
-  public RecoveryStatus setCopyProgress(double copyProgress) {
-    this.copyProgress = copyProgress;
-    setCopyProgressIsSet(true);
+  public RecoveryStatus setProgress(double progress) {
+    this.progress = progress;
+    setProgressIsSet(true);
     return this;
   }
 
-  public void unsetCopyProgress() {
-    __isset_bit_vector.clear(__COPYPROGRESS_ISSET_ID);
+  public void unsetProgress() {
+    __isset_bit_vector.clear(__PROGRESS_ISSET_ID);
   }
 
-  /** Returns true if field copyProgress is set (has been assigned a value) and false otherwise */
-  public boolean isSetCopyProgress() {
-    return __isset_bit_vector.get(__COPYPROGRESS_ISSET_ID);
+  /** Returns true if field progress is set (has been assigned a value) and false otherwise */
+  public boolean isSetProgress() {
+    return __isset_bit_vector.get(__PROGRESS_ISSET_ID);
   }
 
-  public void setCopyProgressIsSet(boolean value) {
-    __isset_bit_vector.set(__COPYPROGRESS_ISSET_ID, value);
+  public void setProgressIsSet(boolean value) {
+    __isset_bit_vector.set(__PROGRESS_ISSET_ID, value);
   }
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case HOST:
-      if (value == null) {
-        unsetHost();
-      } else {
-        setHost((String)value);
-      }
-      break;
-
     case NAME:
       if (value == null) {
         unsetName();
       } else {
         setName((String)value);
-      }
-      break;
-
-    case MAP_PROGRESS:
-      if (value == null) {
-        unsetMapProgress();
-      } else {
-        setMapProgress((Double)value);
-      }
-      break;
-
-    case REDUCE_PROGRESS:
-      if (value == null) {
-        unsetReduceProgress();
-      } else {
-        setReduceProgress((Double)value);
       }
       break;
 
@@ -378,11 +243,11 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
-    case COPY_PROGRESS:
+    case PROGRESS:
       if (value == null) {
-        unsetCopyProgress();
+        unsetProgress();
       } else {
-        setCopyProgress((Double)value);
+        setProgress((Double)value);
       }
       break;
 
@@ -391,23 +256,14 @@ import org.slf4j.LoggerFactory;
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case HOST:
-      return getHost();
-
     case NAME:
       return getName();
-
-    case MAP_PROGRESS:
-      return new Double(getMapProgress());
-
-    case REDUCE_PROGRESS:
-      return new Double(getReduceProgress());
 
     case RUNTIME:
       return new Integer(getRuntime());
 
-    case COPY_PROGRESS:
-      return new Double(getCopyProgress());
+    case PROGRESS:
+      return new Double(getProgress());
 
     }
     throw new IllegalStateException();
@@ -420,18 +276,12 @@ import org.slf4j.LoggerFactory;
     }
 
     switch (field) {
-    case HOST:
-      return isSetHost();
     case NAME:
       return isSetName();
-    case MAP_PROGRESS:
-      return isSetMapProgress();
-    case REDUCE_PROGRESS:
-      return isSetReduceProgress();
     case RUNTIME:
       return isSetRuntime();
-    case COPY_PROGRESS:
-      return isSetCopyProgress();
+    case PROGRESS:
+      return isSetProgress();
     }
     throw new IllegalStateException();
   }
@@ -449,39 +299,12 @@ import org.slf4j.LoggerFactory;
     if (that == null)
       return false;
 
-    boolean this_present_host = true && this.isSetHost();
-    boolean that_present_host = true && that.isSetHost();
-    if (this_present_host || that_present_host) {
-      if (!(this_present_host && that_present_host))
-        return false;
-      if (!this.host.equals(that.host))
-        return false;
-    }
-
     boolean this_present_name = true && this.isSetName();
     boolean that_present_name = true && that.isSetName();
     if (this_present_name || that_present_name) {
       if (!(this_present_name && that_present_name))
         return false;
       if (!this.name.equals(that.name))
-        return false;
-    }
-
-    boolean this_present_mapProgress = true;
-    boolean that_present_mapProgress = true;
-    if (this_present_mapProgress || that_present_mapProgress) {
-      if (!(this_present_mapProgress && that_present_mapProgress))
-        return false;
-      if (this.mapProgress != that.mapProgress)
-        return false;
-    }
-
-    boolean this_present_reduceProgress = true;
-    boolean that_present_reduceProgress = true;
-    if (this_present_reduceProgress || that_present_reduceProgress) {
-      if (!(this_present_reduceProgress && that_present_reduceProgress))
-        return false;
-      if (this.reduceProgress != that.reduceProgress)
         return false;
     }
 
@@ -494,12 +317,12 @@ import org.slf4j.LoggerFactory;
         return false;
     }
 
-    boolean this_present_copyProgress = true;
-    boolean that_present_copyProgress = true;
-    if (this_present_copyProgress || that_present_copyProgress) {
-      if (!(this_present_copyProgress && that_present_copyProgress))
+    boolean this_present_progress = true;
+    boolean that_present_progress = true;
+    if (this_present_progress || that_present_progress) {
+      if (!(this_present_progress && that_present_progress))
         return false;
-      if (this.copyProgress != that.copyProgress)
+      if (this.progress != that.progress)
         return false;
     }
 
@@ -519,42 +342,12 @@ import org.slf4j.LoggerFactory;
     int lastComparison = 0;
     RecoveryStatus typedOther = (RecoveryStatus)other;
 
-    lastComparison = Boolean.valueOf(isSetHost()).compareTo(typedOther.isSetHost());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetHost()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.host, typedOther.host);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     lastComparison = Boolean.valueOf(isSetName()).compareTo(typedOther.isSetName());
     if (lastComparison != 0) {
       return lastComparison;
     }
     if (isSetName()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.name, typedOther.name);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
-    lastComparison = Boolean.valueOf(isSetMapProgress()).compareTo(typedOther.isSetMapProgress());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetMapProgress()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.mapProgress, typedOther.mapProgress);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
-    lastComparison = Boolean.valueOf(isSetReduceProgress()).compareTo(typedOther.isSetReduceProgress());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetReduceProgress()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.reduceProgress, typedOther.reduceProgress);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -569,12 +362,12 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetCopyProgress()).compareTo(typedOther.isSetCopyProgress());
+    lastComparison = Boolean.valueOf(isSetProgress()).compareTo(typedOther.isSetProgress());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetCopyProgress()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.copyProgress, typedOther.copyProgress);
+    if (isSetProgress()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.progress, typedOther.progress);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -596,32 +389,9 @@ import org.slf4j.LoggerFactory;
         break;
       }
       switch (field.id) {
-        case 1: // HOST
-          if (field.type == org.apache.thrift.protocol.TType.STRING) {
-            this.host = iprot.readString();
-          } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
-          }
-          break;
         case 2: // NAME
           if (field.type == org.apache.thrift.protocol.TType.STRING) {
             this.name = iprot.readString();
-          } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
-          }
-          break;
-        case 3: // MAP_PROGRESS
-          if (field.type == org.apache.thrift.protocol.TType.DOUBLE) {
-            this.mapProgress = iprot.readDouble();
-            setMapProgressIsSet(true);
-          } else { 
-            org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
-          }
-          break;
-        case 4: // REDUCE_PROGRESS
-          if (field.type == org.apache.thrift.protocol.TType.DOUBLE) {
-            this.reduceProgress = iprot.readDouble();
-            setReduceProgressIsSet(true);
           } else { 
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
@@ -634,10 +404,10 @@ import org.slf4j.LoggerFactory;
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
           break;
-        case 6: // COPY_PROGRESS
+        case 6: // PROGRESS
           if (field.type == org.apache.thrift.protocol.TType.DOUBLE) {
-            this.copyProgress = iprot.readDouble();
-            setCopyProgressIsSet(true);
+            this.progress = iprot.readDouble();
+            setProgressIsSet(true);
           } else { 
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, field.type);
           }
@@ -657,27 +427,16 @@ import org.slf4j.LoggerFactory;
     validate();
 
     oprot.writeStructBegin(STRUCT_DESC);
-    if (this.host != null) {
-      oprot.writeFieldBegin(HOST_FIELD_DESC);
-      oprot.writeString(this.host);
-      oprot.writeFieldEnd();
-    }
     if (this.name != null) {
       oprot.writeFieldBegin(NAME_FIELD_DESC);
       oprot.writeString(this.name);
       oprot.writeFieldEnd();
     }
-    oprot.writeFieldBegin(MAP_PROGRESS_FIELD_DESC);
-    oprot.writeDouble(this.mapProgress);
-    oprot.writeFieldEnd();
-    oprot.writeFieldBegin(REDUCE_PROGRESS_FIELD_DESC);
-    oprot.writeDouble(this.reduceProgress);
-    oprot.writeFieldEnd();
     oprot.writeFieldBegin(RUNTIME_FIELD_DESC);
     oprot.writeI32(this.runtime);
     oprot.writeFieldEnd();
-    oprot.writeFieldBegin(COPY_PROGRESS_FIELD_DESC);
-    oprot.writeDouble(this.copyProgress);
+    oprot.writeFieldBegin(PROGRESS_FIELD_DESC);
+    oprot.writeDouble(this.progress);
     oprot.writeFieldEnd();
     oprot.writeFieldStop();
     oprot.writeStructEnd();
@@ -688,14 +447,6 @@ import org.slf4j.LoggerFactory;
     StringBuilder sb = new StringBuilder("RecoveryStatus(");
     boolean first = true;
 
-    sb.append("host:");
-    if (this.host == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.host);
-    }
-    first = false;
-    if (!first) sb.append(", ");
     sb.append("name:");
     if (this.name == null) {
       sb.append("null");
@@ -704,20 +455,12 @@ import org.slf4j.LoggerFactory;
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("mapProgress:");
-    sb.append(this.mapProgress);
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("reduceProgress:");
-    sb.append(this.reduceProgress);
-    first = false;
-    if (!first) sb.append(", ");
     sb.append("runtime:");
     sb.append(this.runtime);
     first = false;
     if (!first) sb.append(", ");
-    sb.append("copyProgress:");
-    sb.append(this.copyProgress);
+    sb.append("progress:");
+    sb.append(this.progress);
     first = false;
     sb.append(")");
     return sb.toString();

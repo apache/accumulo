@@ -22,10 +22,13 @@ import java.util.Map;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
+import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
@@ -64,6 +67,15 @@ public class MinorCompactor extends Compactor {
     });
   }
   
+  private boolean isTableDeleting() {
+    try {
+      return Tables.getTableState(HdfsZooInstance.getInstance(), extent.getTableId().toString()) == TableState.DELETING;
+    } catch (Exception e) {
+      log.warn("Failed to determine if table " + extent.getTableId() + " was deleting ", e);
+      return false; // can not get positive confirmation that its deleting.
+    }
+  }
+
   @Override
   public CompactionStats call() {
     log.debug("Begin minor compaction " + getOutputFile() + " " + getExtent());
@@ -75,7 +87,6 @@ public class MinorCompactor extends Compactor {
     boolean reportedProblem = false;
     
     do {
-      
       try {
         CompactionStats ret = super.call();
         
@@ -117,6 +128,9 @@ public class MinorCompactor extends Compactor {
         log.warn("Failed to delete failed MinC file " + getOutputFile() + " " + e.getMessage());
       }
       
+      if (isTableDeleting())
+        return new CompactionStats(0, 0);
+
     } while (true);
   }
   

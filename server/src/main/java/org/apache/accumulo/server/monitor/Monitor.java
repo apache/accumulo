@@ -56,10 +56,10 @@ import org.apache.accumulo.server.monitor.servlets.DefaultServlet;
 import org.apache.accumulo.server.monitor.servlets.GcStatusServlet;
 import org.apache.accumulo.server.monitor.servlets.JSONServlet;
 import org.apache.accumulo.server.monitor.servlets.LogServlet;
-import org.apache.accumulo.server.monitor.servlets.LoggersServlet;
 import org.apache.accumulo.server.monitor.servlets.MasterServlet;
 import org.apache.accumulo.server.monitor.servlets.OperationServlet;
 import org.apache.accumulo.server.monitor.servlets.ProblemServlet;
+import org.apache.accumulo.server.monitor.servlets.ShellServlet;
 import org.apache.accumulo.server.monitor.servlets.TServersServlet;
 import org.apache.accumulo.server.monitor.servlets.TablesServlet;
 import org.apache.accumulo.server.monitor.servlets.VisServlet;
@@ -147,6 +147,8 @@ public class Monitor {
   private static Instance instance;
   
   private static ServerConfiguration config;
+  
+  private static EmbeddedWebServer server;
   
   public static Map<String,Double> summarizeTableStats(MasterMonitorInfo mmi) {
     Map<String,Double> compactingByTable = new HashMap<String,Double>();
@@ -307,85 +309,84 @@ public class Monitor {
         if (mmi == null)
           UtilWaitThread.sleep(1000);
       }
-      
-      int majorCompactions = 0;
-      int minorCompactions = 0;
-      
-      lookupRateTracker.startingUpdates();
-      indexCacheHitTracker.startingUpdates();
-      indexCacheRequestTracker.startingUpdates();
-      dataCacheHitTracker.startingUpdates();
-      dataCacheRequestTracker.startingUpdates();
-      
-      for (TabletServerStatus server : mmi.tServerInfo) {
-        TableInfo summary = Monitor.summarizeTableStats(server);
-        totalIngestRate += summary.ingestRate;
-        totalIngestByteRate += summary.ingestByteRate;
-        totalQueryRate += summary.queryRate;
-        totalScanRate += summary.scanRate;
-        totalQueryByteRate += summary.queryByteRate;
-        totalEntries += summary.recs;
-        totalHoldTime += server.holdTime;
-        totalLookups += server.lookups;
-        majorCompactions += summary.major.running;
-        minorCompactions += summary.minor.running;
-        lookupRateTracker.updateTabletServer(server.name, server.lastContact, server.lookups);
-        indexCacheHitTracker.updateTabletServer(server.name, server.lastContact, server.indexCacheHits);
-        indexCacheRequestTracker.updateTabletServer(server.name, server.lastContact, server.indexCacheRequest);
-        dataCacheHitTracker.updateTabletServer(server.name, server.lastContact, server.dataCacheHits);
-        dataCacheRequestTracker.updateTabletServer(server.name, server.lastContact, server.dataCacheRequest);
-      }
-      
-      lookupRateTracker.finishedUpdating();
-      indexCacheHitTracker.finishedUpdating();
-      indexCacheRequestTracker.finishedUpdating();
-      dataCacheHitTracker.finishedUpdating();
-      dataCacheRequestTracker.finishedUpdating();
-      
-      int totalTables = 0;
-      for (TableInfo tInfo : mmi.tableMap.values()) {
-        totalTabletCount += tInfo.tablets;
-        onlineTabletCount += tInfo.onlineTablets;
-        totalTables++;
-      }
-      Monitor.totalIngestRate = totalIngestRate;
-      Monitor.totalTables = totalTables;
-      totalIngestByteRate = totalIngestByteRate / 1000000.0;
-      Monitor.totalIngestByteRate = totalIngestByteRate;
-      Monitor.totalQueryRate = totalQueryRate;
-      Monitor.totalScanRate = totalScanRate;
-      totalQueryByteRate = totalQueryByteRate / 1000000.0;
-      Monitor.totalQueryByteRate = totalQueryByteRate;
-      Monitor.totalEntries = totalEntries;
-      Monitor.totalTabletCount = totalTabletCount;
-      Monitor.onlineTabletCount = onlineTabletCount;
-      Monitor.totalHoldTime = totalHoldTime;
-      Monitor.totalLookups = totalLookups;
-      
-      ingestRateOverTime.add(new Pair<Long,Double>(currentTime, totalIngestRate));
-      ingestByteRateOverTime.add(new Pair<Long,Double>(currentTime, totalIngestByteRate));
-      recoveriesOverTime.add(new Pair<Long,Integer>(currentTime, mmi.recovery.size()));
-      
-      double totalLoad = 0.;
-      for (TabletServerStatus status : mmi.tServerInfo) {
-        if (status != null)
-          totalLoad += status.osLoad;
-      }
-      loadOverTime.add(new Pair<Long,Double>(currentTime, totalLoad));
-      
-      minorCompactionsOverTime.add(new Pair<Long,Integer>(currentTime, minorCompactions));
-      majorCompactionsOverTime.add(new Pair<Long,Integer>(currentTime, majorCompactions));
-      
-      lookupsOverTime.add(new Pair<Long,Double>(currentTime, lookupRateTracker.calculateRate()));
-      
-      queryRateOverTime.add(new Pair<Long,Integer>(currentTime, (int) totalQueryRate));
-      queryByteRateOverTime.add(new Pair<Long,Double>(currentTime, totalQueryByteRate));
-      
-      scanRateOverTime.add(new Pair<Long,Integer>(currentTime, (int) totalScanRate));
+      if (mmi != null) {
+        int majorCompactions = 0;
+        int minorCompactions = 0;
+        
+        lookupRateTracker.startingUpdates();
+        indexCacheHitTracker.startingUpdates();
+        indexCacheRequestTracker.startingUpdates();
+        dataCacheHitTracker.startingUpdates();
+        dataCacheRequestTracker.startingUpdates();
 
-      calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker, indexCacheRequestTracker);
-      calcCacheHitRate(dataCacheHitRateOverTime, currentTime, dataCacheHitTracker, dataCacheRequestTracker);
-      
+        for (TabletServerStatus server : mmi.tServerInfo) {
+          TableInfo summary = Monitor.summarizeTableStats(server);
+          totalIngestRate += summary.ingestRate;
+          totalIngestByteRate += summary.ingestByteRate;
+          totalQueryRate += summary.queryRate;
+          totalScanRate += summary.scanRate;
+          totalQueryByteRate += summary.queryByteRate;
+          totalEntries += summary.recs;
+          totalHoldTime += server.holdTime;
+          totalLookups += server.lookups;
+          majorCompactions += summary.major.running;
+          minorCompactions += summary.minor.running;
+          lookupRateTracker.updateTabletServer(server.name, server.lastContact, server.lookups);
+          indexCacheHitTracker.updateTabletServer(server.name, server.lastContact, server.indexCacheHits);
+          indexCacheRequestTracker.updateTabletServer(server.name, server.lastContact, server.indexCacheRequest);
+          dataCacheHitTracker.updateTabletServer(server.name, server.lastContact, server.dataCacheHits);
+          dataCacheRequestTracker.updateTabletServer(server.name, server.lastContact, server.dataCacheRequest);
+        }
+        
+        lookupRateTracker.finishedUpdating();
+        indexCacheHitTracker.finishedUpdating();
+        indexCacheRequestTracker.finishedUpdating();
+        dataCacheHitTracker.finishedUpdating();
+        dataCacheRequestTracker.finishedUpdating();
+        
+        int totalTables = 0;
+        for (TableInfo tInfo : mmi.tableMap.values()) {
+          totalTabletCount += tInfo.tablets;
+          onlineTabletCount += tInfo.onlineTablets;
+          totalTables++;
+        }
+        Monitor.totalIngestRate = totalIngestRate;
+        Monitor.totalTables = totalTables;
+        totalIngestByteRate = totalIngestByteRate / 1000000.0;
+        Monitor.totalIngestByteRate = totalIngestByteRate;
+        Monitor.totalQueryRate = totalQueryRate;
+        Monitor.totalScanRate = totalScanRate;
+        totalQueryByteRate = totalQueryByteRate / 1000000.0;
+        Monitor.totalQueryByteRate = totalQueryByteRate;
+        Monitor.totalEntries = totalEntries;
+        Monitor.totalTabletCount = totalTabletCount;
+        Monitor.onlineTabletCount = onlineTabletCount;
+        Monitor.totalHoldTime = totalHoldTime;
+        Monitor.totalLookups = totalLookups;
+        
+        ingestRateOverTime.add(new Pair<Long,Double>(currentTime, totalIngestRate));
+        ingestByteRateOverTime.add(new Pair<Long,Double>(currentTime, totalIngestByteRate));
+        
+        double totalLoad = 0.;
+        for (TabletServerStatus status : mmi.tServerInfo) {
+          if (status != null)
+            totalLoad += status.osLoad;
+        }
+        loadOverTime.add(new Pair<Long,Double>(currentTime, totalLoad));
+        
+        minorCompactionsOverTime.add(new Pair<Long,Integer>(currentTime, minorCompactions));
+        majorCompactionsOverTime.add(new Pair<Long,Integer>(currentTime, majorCompactions));
+        
+        lookupsOverTime.add(new Pair<Long,Double>(currentTime, lookupRateTracker.calculateRate()));
+        
+        queryRateOverTime.add(new Pair<Long,Integer>(currentTime, (int) totalQueryRate));
+        queryByteRateOverTime.add(new Pair<Long,Double>(currentTime, totalQueryByteRate));
+        
+        scanRateOverTime.add(new Pair<Long,Integer>(currentTime, (int) totalScanRate));
+        
+        calcCacheHitRate(indexCacheHitRateOverTime, currentTime, indexCacheHitTracker, indexCacheRequestTracker);
+        calcCacheHitRate(dataCacheHitRateOverTime, currentTime, dataCacheHitTracker, dataCacheRequestTracker);
+      }
       try {
         Monitor.problemSummary = ProblemReports.getInstance().summarize();
         Monitor.problemException = null;
@@ -462,7 +463,6 @@ public class Monitor {
   public void run(String hostname) {
     Monitor.START_TIME = System.currentTimeMillis();
     int port = config.getConfiguration().getPort(Property.MONITOR_PORT);
-    EmbeddedWebServer server;
     try {
       log.debug("Creating monitor on port " + port);
       server = EmbeddedWebServer.create(port);
@@ -476,7 +476,6 @@ public class Monitor {
     server.addServlet(MasterServlet.class, "/master");
     server.addServlet(TablesServlet.class, "/tables");
     server.addServlet(TServersServlet.class, "/tservers");
-    server.addServlet(LoggersServlet.class, "/loggers");
     server.addServlet(ProblemServlet.class, "/problems");
     server.addServlet(GcStatusServlet.class, "/gc");
     server.addServlet(LogServlet.class, "/log");
@@ -486,6 +485,8 @@ public class Monitor {
     server.addServlet(Summary.class, "/trace/summary");
     server.addServlet(ListType.class, "/trace/listType");
     server.addServlet(ShowTrace.class, "/trace/show");
+    if (server.isUsingSsl())
+      server.addServlet(ShellServlet.class, "/shell");
     LogService.startLogListener(Monitor.getSystemConfiguration());
     server.start();
     
@@ -545,7 +546,7 @@ public class Monitor {
   public static double getTotalScanRate() {
     return totalScanRate;
   }
-
+  
   public static double getTotalQueryByteRate() {
     return totalQueryByteRate;
   }
@@ -631,7 +632,7 @@ public class Monitor {
       return new ArrayList<Pair<Long,Integer>>(scanRateOverTime);
     }
   }
-
+  
   public static List<Pair<Long,Double>> getQueryByteRateOverTime() {
     synchronized (queryByteRateOverTime) {
       return new ArrayList<Pair<Long,Double>>(queryByteRateOverTime);
@@ -656,5 +657,9 @@ public class Monitor {
   
   public static Instance getInstance() {
     return instance;
+  }
+  
+  public static boolean isUsingSsl() {
+    return server.isUsingSsl();
   }
 }

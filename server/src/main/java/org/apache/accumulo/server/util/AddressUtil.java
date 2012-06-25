@@ -23,7 +23,7 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 
 public class AddressUtil {
   static public InetSocketAddress parseAddress(String address, Property portDefaultProperty) {
-    final int dfaultPort = ServerConfiguration.getDefaultConfiguration().getPort(Property.TSERV_CLIENTPORT);
+    final int dfaultPort = ServerConfiguration.getDefaultConfiguration().getPort(portDefaultProperty);
     return org.apache.accumulo.core.util.AddressUtil.parseAddress(address, dfaultPort);
   }
   

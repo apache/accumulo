@@ -17,53 +17,49 @@
 package org.apache.accumulo.server.gc;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.UUID;
 
 import org.apache.accumulo.cloudtrace.instrument.Span;
 import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
-import org.apache.accumulo.core.tabletserver.thrift.MutationLogger;
-import org.apache.accumulo.core.tabletserver.thrift.MutationLogger.Iface;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.util.AddressUtil;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.util.MetadataTable.LogEntry;
-import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 
 
 public class GarbageCollectWriteAheadLogs {
   private static final Logger log = Logger.getLogger(GarbageCollectWriteAheadLogs.class);
   
-  private final AccumuloConfiguration conf;
+  private final Instance instance;
   private final FileSystem fs;
   
-  GarbageCollectWriteAheadLogs(FileSystem fs, AccumuloConfiguration conf) {
+  GarbageCollectWriteAheadLogs(Instance instance, FileSystem fs) {
+    this.instance = instance;
     this.fs = fs;
-    this.conf = conf;
   }
 
   public void collect(GCStatus status) {
@@ -111,59 +107,51 @@ public class GarbageCollectWriteAheadLogs {
     }
   }
   
+  boolean holdsLock(InetSocketAddress addr) {
+    try {
+      String zpath = ZooUtil.getRoot(instance) + Constants.ZTSERVERS + "/" + org.apache.accumulo.core.util.AddressUtil.toString(addr);
+      List<String> children = ZooReaderWriter.getInstance().getChildren(zpath);
+      return !(children == null || children.isEmpty());
+    } catch (KeeperException.NoNodeException ex) {
+      return false;
+    } catch (Exception ex) {
+      log.debug(ex, ex);
+      return true;
+    }
+  }
+
   private int removeFiles(Map<String,ArrayList<String>> serverToFileMap, final GCStatus status) {
-    final AtomicInteger count = new AtomicInteger();
-    ExecutorService threadPool = java.util.concurrent.Executors.newCachedThreadPool();
-    
-    for (final Entry<String,ArrayList<String>> serverFiles : serverToFileMap.entrySet()) {
-      final String server = serverFiles.getKey();
-      final List<String> files = serverFiles.getValue();
-      threadPool.submit(new Runnable() {
-        @Override
-        public void run() {
+    AccumuloConfiguration conf = instance.getConfiguration();
+    for (Entry<String,ArrayList<String>> entry : serverToFileMap.entrySet()) {
+      if (entry.getKey().length() == 0) {
+        // old-style log entry, just remove it
+        for (String filename : entry.getValue()) {
+          log.debug("Removing old-style WAL " + entry.getValue());
           try {
-            Iface logger = ThriftUtil.getClient(new MutationLogger.Client.Factory(), server, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT, conf);
-            try {
-              count.addAndGet(files.size());
-              log.debug(String.format("removing %d files from %s", files.size(), server));
-              if (files.size() > 0) {
-                log.debug("deleting files on logger " + server);
-                for (String file : files) {
-                  log.debug("Deleting " + file);
-                }
-                logger.remove(null, SecurityConstants.getSystemCredentials(), files);
-                synchronized (status.currentLog) {
-                  status.currentLog.deleted += files.size();
-                }
-              }
-            } finally {
-              ThriftUtil.returnClient(logger);
-            }
-            log.info(String.format("Removed %d files from %s", files.size(), server));
-            for (String file : files) {
-              try {
-                for (FileStatus match : fs.globStatus(new Path(ServerConstants.getRecoveryDir(), file + "*"))) {
-                  fs.delete(match.getPath(), true);
-                }
-              } catch (IOException ex) {
-                log.warn("Error deleting recovery data: ", ex);
-              }
-            }
-          } catch (TTransportException err) {
-            log.info("Ignoring communication error talking to logger " + serverFiles.getKey() + " (probably a timeout)");
-          } catch (TException err) {
-            log.info("Ignoring exception talking to logger " + serverFiles.getKey() + "(" + err + ")");
+            fs.delete(new Path(Constants.getWalDirectory(conf), filename), true);
+          } catch (IOException ex) {
+            log.error("Unable to delete wal " + filename + ": " + ex);
           }
         }
-      });
-      
+      } else {
+        InetSocketAddress address = AddressUtil.parseAddress(entry.getKey(), Property.TSERV_CLIENTPORT);
+        if (!holdsLock(address))
+          continue;
+        Iface tserver = null;
+        try {
+          tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
+          tserver.removeLogs(null, SecurityConstants.getSystemCredentials(), entry.getValue());
+          log.debug("deleted " + entry.getValue() + " from " + entry.getKey());
+          status.currentLog.deleted += entry.getValue().size();
+        } catch (TException e) {
+          log.warn("Error talking to " + address + ": " + e);
+        } finally {
+          if (tserver != null)
+            ThriftUtil.returnClient(tserver);
+        }
+      }
     }
-    threadPool.shutdown();
-    while (!threadPool.isShutdown())
-      try {
-        threadPool.awaitTermination(1, TimeUnit.SECONDS);
-      } catch (InterruptedException e) {}
-    return count.get();
+    return 0;
   }
   
   private static Map<String,ArrayList<String>> mapServersToFiles(Map<String,String> fileToServerMap) {
@@ -194,31 +182,41 @@ public class GarbageCollectWriteAheadLogs {
   }
   
   private int scanServers(Map<String,String> fileToServerMap) throws Exception {
-    int count = 0;
-    IZooReaderWriter zk = ZooReaderWriter.getInstance();
-    String loggersDir = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZLOGGERS;
-    List<String> servers = zk.getChildren(loggersDir, null);
-    Collections.shuffle(servers);
-    for (String server : servers) {
-      String address = "no-data";
-      count++;
-      try {
-        byte[] data = zk.getData(loggersDir + "/" + server, null);
-        address = new String(data);
-        Iface logger = ThriftUtil.getClient(new MutationLogger.Client.Factory(), address, Property.LOGGER_PORT, Property.TSERV_LOGGER_TIMEOUT, conf);
-        for (String log : logger.getClosedLogs(null, SecurityConstants.getSystemCredentials())) {
-          fileToServerMap.put(log, address);
+    AccumuloConfiguration conf = instance.getConfiguration();
+    Path walRoot = new Path(Constants.getWalDirectory(conf));
+    for (FileStatus status : fs.listStatus(walRoot)) {
+      String name = status.getPath().getName();
+      if (status.isDir()) {
+        for (FileStatus file : fs.listStatus(new Path(walRoot, name))) {
+          if (isUUID(file.getPath().getName()))
+            fileToServerMap.put(file.getPath().getName(), name);
+          else {
+            log.info("Ignoring file " + file.getPath() + " because it doesn't look like a uuid");
+          }
         }
-        ThriftUtil.returnClient(logger);
-      } catch (TException err) {
-        log.warn("Ignoring exception talking to logger " + address);
-      }
-      if (SimpleGarbageCollector.almostOutOfMemory()) {
-        log.warn("Running out of memory collecting write-ahead log file names from loggers, continuing with a partial list");
-        break;
+      } else if (isUUID(name)) {
+        // old-style WAL are not under a directory
+        fileToServerMap.put(name, "");
+      } else {
+        log.info("Ignoring file " + name + " because it doesn't look like a uuid");
       }
     }
+
+    int count = 0;
     return count;
+  }
+  
+  /**
+   * @param name
+   * @return
+   */
+  static private boolean isUUID(String name) {
+    try {
+      UUID.fromString(name);
+      return true;
+    } catch (IllegalArgumentException ex) {
+      return false;
+    }
   }
   
 }

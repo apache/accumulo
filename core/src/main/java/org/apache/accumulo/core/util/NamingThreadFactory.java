@@ -14,34 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.tabletserver.log;
+package org.apache.accumulo.core.util;
 
-import static java.lang.Math.min;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import org.apache.accumulo.cloudtrace.instrument.TraceRunnable;
+import org.apache.log4j.Logger;
 
-import org.apache.accumulo.server.tabletserver.TabletServer;
-
-public class RandomLoggerStrategy extends LoggerStrategy {
+public class NamingThreadFactory implements ThreadFactory {
+  private static final Logger log = Logger.getLogger(NamingThreadFactory.class);
   
-  public RandomLoggerStrategy() {}
+  private AtomicInteger threadNum = new AtomicInteger(1);
+  private String name;
   
-  public RandomLoggerStrategy(TabletServer tserver) {}
-  
-  @Override
-  public Set<String> getLoggers(Set<String> allLoggers) {
-    List<String> copy = new ArrayList<String>(allLoggers);
-    Collections.shuffle(copy);
-    return new HashSet<String>(copy.subList(0, min(copy.size(), getNumberOfLoggersToUse())));
+  public NamingThreadFactory(String name) {
+    this.name = name;
   }
   
-  @Override
-  public void preferLoggers(Set<String> preference) {
-    // ignored
+  public Thread newThread(Runnable r) {
+    return new Daemon(new LoggingRunnable(log, new TraceRunnable(r)), name + " " + threadNum.getAndIncrement());
   }
   
 }

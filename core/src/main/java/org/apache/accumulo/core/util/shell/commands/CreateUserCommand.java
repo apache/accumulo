@@ -46,12 +46,12 @@ public class CreateUserCommand extends Command {
     String password = null;
     String passwordConfirm = null;
     
-    password = shellState.getReader().readLine("Enter new password for '" + user + "': ", '*');
+    password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
     if (password == null) {
       shellState.getReader().printNewline();
       return 0;
     } // user canceled
-    passwordConfirm = shellState.getReader().readLine("Please confirm new password for '" + user + "': ", '*');
+    passwordConfirm = shellState.readMaskedLine("Please confirm new password for '" + user + "': ", '*');
     if (passwordConfirm == null) {
       shellState.getReader().printNewline();
       return 0;

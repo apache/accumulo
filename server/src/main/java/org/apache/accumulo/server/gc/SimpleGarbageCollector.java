@@ -64,6 +64,7 @@ import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -297,7 +298,7 @@ public class SimpleGarbageCollector implements Iface {
       
       // Clean up any unused write-ahead logs
       Span waLogs = Trace.start("walogs");
-      GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(fs, instance.getConfiguration());
+      GarbageCollectWriteAheadLogs walogCollector = new GarbageCollectWriteAheadLogs(instance, fs);
       try {
         log.info("Beginning garbage collection of write-ahead logs");
         walogCollector.collect(status);
@@ -585,7 +586,7 @@ public class SimpleGarbageCollector implements Iface {
     
     final BatchWriter finalWriter = writer;
     
-    ExecutorService deleteThreadPool = Executors.newFixedThreadPool(numDeleteThreads);
+    ExecutorService deleteThreadPool = Executors.newFixedThreadPool(numDeleteThreads, new NamingThreadFactory("deleting"));
     
     for (final String delete : confirmedDeletes) {
       

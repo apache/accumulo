@@ -79,7 +79,7 @@ public class Compactor implements Callable<CompactionStats> {
   private CompactionEnv env;
   private Configuration conf;
   private FileSystem fs;
-  private KeyExtent extent;
+  protected KeyExtent extent;
   private List<IteratorSetting> iterators;
   
   Compactor(Configuration conf, FileSystem fs, Map<String,DataFileValue> files, InMemoryMap imm, String outputFile, boolean propogateDeletes,

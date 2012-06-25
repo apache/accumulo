@@ -133,15 +133,6 @@ public class LiveTServerSet implements Watcher {
       }
     }
     
-    public void useLoggers(Set<String> loggers) throws TException {
-      TabletClientService.Iface client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
-      try {
-        client.useLoggers(null, SecurityConstants.getSystemCredentials(), loggers);
-      } finally {
-        ThriftUtil.returnClient(client);
-      }
-    }
-    
     public void chop(ZooLock lock, KeyExtent extent) throws TException {
       TabletClientService.Iface client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
       try {

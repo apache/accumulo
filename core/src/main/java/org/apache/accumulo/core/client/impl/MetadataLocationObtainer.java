@@ -132,8 +132,10 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     ResultReceiver rr = new ResultReceiver() {
       
       @Override
-      public void receive(Key key, Value value) {
-        results.put(key, value);
+      public void receive(List<Entry<Key,Value>> entries) {
+        for (Entry<Key,Value> entry : entries) {
+          results.put(entry.getKey(), entry.getValue());
+        }
       }
     };
     

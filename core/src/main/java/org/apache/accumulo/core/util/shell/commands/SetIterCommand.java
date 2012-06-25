@@ -49,6 +49,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
+@SuppressWarnings("deprecation")
 public class SetIterCommand extends Command {
   
   private Option mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt, priorityOpt;
@@ -152,11 +153,13 @@ public class SetIterCommand extends Command {
       if (itopts.getNamedOptions() != null) {
         for (Entry<String,String> e : itopts.getNamedOptions().entrySet()) {
           prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " parameter " + e.getKey() + ", " + e.getValue() + ": ";
-          
+          reader.flushConsole();
           input = reader.readLine(prompt);
           if (input == null) {
             reader.printNewline();
             throw new IOException("Input stream closed");
+          } else {
+            input = new String(input);
           }
           // Places all Parameters and Values into the LocalOptions, even if the value is "".
           // This allows us to check for "" values when setting the iterators and allows us to remove
@@ -172,10 +175,13 @@ public class SetIterCommand extends Command {
           while (true) {
             prompt = Shell.repeat("-", 10) + "> set " + shortClassName + " option (<name> <value>, hit enter to skip): ";
             
+            reader.flushConsole();
             input = reader.readLine(prompt);
             if (input == null) {
               reader.printNewline();
               throw new IOException("Input stream closed");
+            } else {
+              input = new String(input);
             }
             
             if (input.length() == 0)

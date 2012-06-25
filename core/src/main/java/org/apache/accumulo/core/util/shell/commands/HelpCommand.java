@@ -89,7 +89,7 @@ public class HelpCommand extends Command {
       if (c == null)
         shellState.getReader().printString(String.format("Unknown command \"%s\".  Enter \"help\" for a list possible commands.\n", cmd));
       else
-        c.printHelp(numColumns);
+        c.printHelp(shellState, numColumns);
     }
     return 0;
   }

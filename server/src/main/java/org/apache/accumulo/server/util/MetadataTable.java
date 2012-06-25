@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -67,7 +66,6 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.StringUtil;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -193,12 +191,12 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     if (dfv.getNumEntries() > 0) {
       m.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY, new Text(path), new Value(dfv.encode()));
       ColumnFQ.put(m, Constants.METADATA_TIME_COLUMN, new Value(time.getBytes()));
-      // erase the old location
-      if (lastLocation != null)
-        lastLocation.clearLastLocation(m);
       // stuff in this location
       TServerInstance self = getTServerInstance(address, zooLock);
       self.putLastLocation(m);
+      // erase the old location
+      if (lastLocation != null && !lastLocation.equals(self))
+        lastLocation.clearLastLocation(m);
     }
     if (unusedWalLogs != null) {
       for (String entry : unusedWalLogs) {
@@ -467,11 +465,12 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     if (compactionId != null)
       ColumnFQ.put(m, Constants.METADATA_COMPACT_COLUMN, new Value(("" + compactionId).getBytes()));
     
-    // remove the old location
-    if (lastLocation != null)
-      lastLocation.clearLastLocation(m);
     TServerInstance self = getTServerInstance(address, zooLock);
     self.putLastLocation(m);
+
+    // remove the old location
+    if (lastLocation != null && !lastLocation.equals(self))
+      lastLocation.clearLastLocation(m);
     
     update(credentials, zooLock, m);
   }
@@ -769,11 +768,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     return ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZROOT_TABLET_WALOGS;
   }
   
-  public static void addLogEntries(AuthInfo credentials, List<LogEntry> entries, ZooLock zooLock) {
-    if (entries.size() == 0)
-      return;
-    // entries should be a complete log set, so we should only need to write the first entry
-    LogEntry entry = entries.get(0);
+  public static void addLogEntry(AuthInfo credentials, LogEntry entry, ZooLock zooLock) {
     if (entry.extent.isRootTablet()) {
       String root = getZookeeperLogLocation();
       while (true) {

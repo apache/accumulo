@@ -52,8 +52,6 @@ public class Main {
         runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.gc.SimpleGarbageCollector");
       } else if (args[0].equals("monitor")) {
         runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.monitor.Monitor");
-      } else if (args[0].equals("logger")) {
-        runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.logger.LogService");
       } else if (args[0].equals("tracer")) {
         runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.trace.TraceServer");
       } else if (args[0].equals("classpath")) {

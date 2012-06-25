@@ -25,18 +25,14 @@ import java.net.UnknownHostException;
 import java.nio.channels.ServerSocketChannel;
 import java.util.Random;
 import java.util.TimerTask;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
+import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.TBufferedSocket;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -205,7 +201,7 @@ public class TServerUtils {
     }
   }
   
-  public static ServerPort startHsHaServer(int port, TProcessor processor, final String serverName, String threadName, int numThreads,
+  public static ServerPort startHsHaServer(int port, TProcessor processor, final String serverName, String threadName, final int numThreads,
       long timeBetweenThreadChecks) throws TTransportException {
     TNonblockingServerSocket transport = new TNonblockingServerSocket(port);
     THsHaServer.Args options = new THsHaServer.Args(transport);
@@ -214,21 +210,8 @@ public class TServerUtils {
     /*
      * Create our own very special thread pool.
      */
-    // 1. name the threads for client connections
-    ThreadFactory factory = new ThreadFactory() {
-      AtomicInteger threadId = new AtomicInteger();
-      
-      @Override
-      public Thread newThread(Runnable r) {
-        return new Thread(new LoggingRunnable(log, r), "ClientPool-" + threadId.getAndIncrement());
-      }
-    };
-    // 2. allow tasks to queue, potentially forever
-    final BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
-    // 3. keep the number of threads small
-    final int minimumThreadPoolSize = numThreads;
-    final ThreadPoolExecutor pool = new ThreadPoolExecutor(minimumThreadPoolSize, minimumThreadPoolSize, 10L, TimeUnit.SECONDS, queue, factory);
-    // 4. periodically adjust the number of threads we need by checking how busy our threads are
+    final ThreadPoolExecutor pool = new SimpleThreadPool(numThreads, "ClientPool");
+    // periodically adjust the number of threads we need by checking how busy our threads are
     SimpleTimer.getInstance().schedule(new TimerTask() {
       @Override
       public void run() {
@@ -239,7 +222,7 @@ public class TServerUtils {
           pool.setCorePoolSize(larger);
         } else {
           if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
-            int smaller = Math.max(minimumThreadPoolSize, pool.getCorePoolSize() - 1);
+            int smaller = Math.max(numThreads, pool.getCorePoolSize() - 1);
             if (smaller != pool.getCorePoolSize()) {
               // there is a race condition here... the active count could be higher by the time
               // we decrease the core pool size... so the active count could end up higher than

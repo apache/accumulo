@@ -19,11 +19,7 @@ package org.apache.accumulo.server.test.randomwalk.bulk;
 import java.net.InetAddress;
 import java.util.Properties;
 import java.util.Random;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -31,16 +27,14 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.iterators.LongCombiner;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.LoggingRunnable;
+import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 import org.apache.hadoop.fs.FileSystem;
 
 public class Setup extends Test {
   
-  private static final int CORE_POOL_SIZE = 8;
-  private static final int MAX_POOL_SIZE = CORE_POOL_SIZE;
+  private static final int MAX_POOL_SIZE = 8;
   static String tableName = null;
   
   @Override
@@ -67,14 +61,7 @@ public class Setup extends Test {
     state.set("fs", FileSystem.get(CachedConfiguration.getInstance()));
     BulkPlusOne.counter.set(0l);
     
-    BlockingQueue<Runnable> q = new LinkedBlockingQueue<Runnable>();
-    ThreadFactory factory = new ThreadFactory() {
-      @Override
-      public Thread newThread(Runnable r) {
-        return new Daemon(new LoggingRunnable(log, r));
-      }
-    };
-    ThreadPoolExecutor e = new ThreadPoolExecutor(CORE_POOL_SIZE, MAX_POOL_SIZE, 1, TimeUnit.SECONDS, q, factory);
+    ThreadPoolExecutor e = new SimpleThreadPool(MAX_POOL_SIZE, "bulkImportPool");
     state.set("pool", e);
   }
   

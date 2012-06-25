@@ -34,10 +34,15 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 
 public class VersioningIterator extends WrappingIterator implements OptionDescriber {
+  private final int maxCount = 10;
   
   private Key currentKey = new Key();
   private int numVersions;
   protected int maxVersions;
+  
+  private Range range;
+  private Collection<ByteSequence> columnFamilies;
+  private boolean inclusive;
   
   @Override
   public VersioningIterator deepCopy(IteratorEnvironment env) {
@@ -66,30 +71,19 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
   }
   
   @Override
-  public boolean hasTop() {
-    return super.hasTop();
-  }
-  
-  @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     // do not want to seek to the middle of a row
     Range seekRange = IteratorUtil.maximizeStartKeyTimeStamp(range);
+    this.range = seekRange;
+    this.columnFamilies = columnFamilies;
+    this.inclusive = inclusive;
     
     super.seek(seekRange, columnFamilies, inclusive);
     resetVersionCount();
     
-    if (range.getStartKey() != null) {
-      while (getSource().hasTop() && getSource().getTopKey().compareTo(range.getStartKey(), PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME) < 0) {
-        // the value has a more recent time stamp, so
-        // pass it up
-        // log.debug("skipping "+getTopKey());
+    if (range.getStartKey() != null)
+      while (hasTop() && range.beforeStartKey(getTopKey()))
         next();
-      }
-      
-      while (hasTop() && range.beforeStartKey(getTopKey())) {
-        next();
-      }
-    }
   }
   
   private void resetVersionCount() {
@@ -102,8 +96,29 @@ public class VersioningIterator extends WrappingIterator implements OptionDescri
     Key keyToSkip = currentKey;
     super.next();
     
+    int count = 0;
     while (getSource().hasTop() && getSource().getTopKey().equals(keyToSkip, PartialKey.ROW_COLFAM_COLQUAL_COLVIS)) {
-      getSource().next();
+      if (count < maxCount) {
+        // it is quicker to call next if we are close, but we never know if we are close
+        // so give next a try a few times
+        getSource().next();
+        count++;
+      } else {
+        reseek(keyToSkip.followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS));
+        count = 0;
+      }
+    }
+  }
+  
+  protected void reseek(Key key) throws IOException {
+    if (key == null)
+      return;
+    if (range.afterEndKey(key)) {
+      range = new Range(range.getEndKey(), true, range.getEndKey(), range.isEndKeyInclusive());
+      getSource().seek(range, columnFamilies, inclusive);
+    } else {
+      range = new Range(key, true, range.getEndKey(), range.isEndKeyInclusive());
+      getSource().seek(range, columnFamilies, inclusive);
     }
   }
   

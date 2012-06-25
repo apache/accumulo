@@ -42,16 +42,9 @@ struct TableInfo {
 }
 
 struct RecoveryStatus {
-    1:string host
     2:string name
-    3:double mapProgress
-    4:double reduceProgress
     5:i32 runtime                   // in millis
-    6:double copyProgress
-}
-
-struct LoggerStatus {
-    1:string logger
+    6:double progress
 }
 
 struct TabletServerStatus {
@@ -61,11 +54,11 @@ struct TabletServerStatus {
     5:double osLoad
     7:i64 holdTime
     8:i64 lookups
-    9:set<string> loggers
     10:i64 indexCacheHits    
     11:i64 indexCacheRequest   
     12:i64 dataCacheHits   
-    13:i64 dataCacheRequest   
+    13:i64 dataCacheRequest
+    14:list<RecoveryStatus> logSorts
 }
 
 enum MasterState {
@@ -94,14 +87,11 @@ struct MasterMonitorInfo {
     1:map<string, TableInfo> tableMap
     2:list<TabletServerStatus> tServerInfo
     3:map<string, byte> badTServers
-    4:list<RecoveryStatus> recovery
-    5:list<LoggerStatus> loggers
     6:MasterState state
     8:MasterGoalState goalState
     7:i32 unassignedTablets
     9:set<string> serversShuttingDown
     10:list<DeadServer> deadTabletServers
-    11:list<DeadServer> deadLoggers
 }
 
 struct TabletSplit {

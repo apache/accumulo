@@ -30,8 +30,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.log4j.Logger;
 
 public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
+  static final Logger log = Logger.getLogger(MultiTableBatchWriterImpl.class);
   private boolean closed;
   
   private class TableBatchWriter implements BatchWriter {
@@ -84,6 +86,22 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   public void close() throws MutationsRejectedException {
     bw.close();
     this.closed = true;
+  }
+  
+  /**
+   * Warning: do not rely upon finalize to close this class. Finalize is not guaranteed to be called.
+   */
+  @Override
+  protected void finalize() {
+    if (!closed) {
+      log.warn(MultiTableBatchWriterImpl.class.getSimpleName() + " not shutdown; did you forget to call close()?");
+      try {
+        close();
+      } catch (MutationsRejectedException mre) {
+        log.error(MultiTableBatchWriterImpl.class.getSimpleName() + " internal error.", mre);
+        throw new RuntimeException("Exception when closing " + MultiTableBatchWriterImpl.class.getSimpleName(), mre);
+      }
+    }
   }
   
   @Override

@@ -167,8 +167,6 @@ public class OperationServlet extends BasicServlet {
       // a dead server should have a uniq address: a logger or tserver
       DeadServerList obit = new DeadServerList(ZooUtil.getRoot(inst) + Constants.ZDEADTSERVERS);
       obit.delete(server);
-      obit = new DeadServerList(ZooUtil.getRoot(inst) + Constants.ZDEADLOGGERS);
-      obit.delete(server);
     }
   }
 }

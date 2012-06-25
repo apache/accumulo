@@ -62,7 +62,10 @@ features of Apache Accumulo.
 
    README.isolation:   Using the isolated scanner to ensure partial changes 
                        are not seen.
- 
+
+   README.mapred:      Using MapReduce to read from and write to Accumulo 
+                       tables.
+
    README.maxmutation: Limiting mutation size to avoid running out of memory.
 
    README.shard:       Using the intersecting iterator with a term index 

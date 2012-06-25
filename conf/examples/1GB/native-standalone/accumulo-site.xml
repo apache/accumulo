@@ -78,10 +78,10 @@
     </property>
 
     <property>
-      <name>logger.sort.buffer.size</name>
+      <name>tserver.sort.buffer.size</name>
       <value>50M</value>
     </property>
-
+    
     <property>
       <name>tserver.walog.max.size</name>
       <value>256M</value>

@@ -170,7 +170,7 @@ public class Shell extends ShellOptions {
   protected boolean configError = false;
   
   // exit if true
-  protected boolean exit = false;
+  private boolean exit = false;
   
   // file to execute commands from
   protected String execFile = null;
@@ -182,10 +182,12 @@ public class Shell extends ShellOptions {
   private boolean disableAuthTimeout;
   private long authTimeout;
   private long lastUserActivity = System.currentTimeMillis();
+  private boolean logErrorsToConsole = false;
+  private PrintWriter writer = null;
+  private boolean masking = false;
   
   public Shell() throws IOException {
-    super();
-    this.reader = new ConsoleReader();
+    this(new ConsoleReader());
   }
   
   public Shell(ConsoleReader reader) {
@@ -193,8 +195,13 @@ public class Shell extends ShellOptions {
     this.reader = reader;
   }
   
+  public Shell(ConsoleReader reader, PrintWriter writer) {
+    this(reader);
+    this.writer = writer;
+  }
+  
   // Not for client use
-  public void config(String... args) {
+  public boolean config(String... args) {
     
     CommandLine cl;
     try {
@@ -205,7 +212,7 @@ public class Shell extends ShellOptions {
       if (cl.hasOption(helpOpt.getOpt())) {
         configError = true;
         printHelp("shell", SHELL_DESCRIPTION, opts);
-        return;
+        return true;
       }
       
       setDebugging(cl.hasOption(debugOption.getLongOpt()));
@@ -219,7 +226,7 @@ public class Shell extends ShellOptions {
       configError = true;
       printException(e);
       printHelp("shell", SHELL_DESCRIPTION, opts);
-      return;
+      return true;
     }
     
     // get the options that were parsed
@@ -249,11 +256,11 @@ public class Shell extends ShellOptions {
       });
       
       if (passw == null)
-        passw = reader.readLine("Enter current password for '" + user + "'@'" + instance.getInstanceName() + "': ", '*');
+        passw = readMaskedLine("Enter current password for '" + user + "'@'" + instance.getInstanceName() + "': ", '*');
       if (passw == null) {
         reader.printNewline();
         configError = true;
-        return;
+        return true;
       } // user canceled
       
       pass = passw.getBytes();
@@ -317,6 +324,7 @@ public class Shell extends ShellOptions {
     for (Command cmd : otherCommands) {
       commandFactory.put(cmd.getName(), cmd);
     }
+    return configError;
   }
   
   @SuppressWarnings("deprecation")
@@ -390,7 +398,7 @@ public class Shell extends ShellOptions {
     }
     
     while (true) {
-      if (exit)
+      if (hasExited())
         return exitCode;
       
       // If tab completion is true we need to reset
@@ -417,6 +425,7 @@ public class Shell extends ShellOptions {
     reader.printString("\n" + SHELL_DESCRIPTION + "\n" + "- \n" + "- version: " + Constants.VERSION + "\n" + "- instance name: "
         + connector.getInstance().getInstanceName() + "\n" + "- instance id: " + connector.getInstance().getInstanceID() + "\n" + "- \n"
         + "- type 'help' for a list of available commands\n" + "- \n");
+    reader.flushConsole();
   }
   
   public void printVerboseInfo() throws IOException {
@@ -446,7 +455,7 @@ public class Shell extends ShellOptions {
     reader.printString(sb.toString());
   }
   
-  protected String getDefaultPrompt() {
+  public String getDefaultPrompt() {
     return connector.whoami() + "@" + connector.getInstance().getInstanceName() + (getTableName().isEmpty() ? "" : " ") + getTableName() + "> ";
   }
   
@@ -479,6 +488,7 @@ public class Shell extends ShellOptions {
         sc = commandFactory.get(command);
         if (sc == null) {
           reader.printString(String.format("Unknown command \"%s\".  Enter \"help\" for a list possible commands.\n", command));
+          reader.flushConsole();
           return;
         }
         
@@ -486,7 +496,7 @@ public class Shell extends ShellOptions {
           reader.printString("Shell has been idle for too long. Please re-authenticate.\n");
           boolean authFailed = true;
           do {
-            String pwd = reader.readLine("Enter current password for '" + connector.whoami() + "': ", '*');
+            String pwd = readMaskedLine("Enter current password for '" + connector.whoami() + "': ", '*');
             if (pwd == null) {
               reader.printNewline();
               return;
@@ -515,7 +525,7 @@ public class Shell extends ShellOptions {
         int expectedArgLen = sc.numArgs();
         if (cl.hasOption(helpOption)) {
           // Display help if asked to; otherwise execute the command
-          sc.printHelp();
+          sc.printHelp(this);
         } else if (expectedArgLen != NO_FIXED_ARG_LENGTH_CHECK && actualArgLen != expectedArgLen) {
           ++exitCode;
           // Check for valid number of fixed arguments (if not
@@ -523,7 +533,7 @@ public class Shell extends ShellOptions {
           // vararg-like commands)
           printException(new IllegalArgumentException(String.format("Expected %d argument%s. There %s %d.", expectedArgLen, expectedArgLen == 1 ? "" : "s",
               actualArgLen == 1 ? "was" : "were", actualArgLen)));
-          sc.printHelp();
+          sc.printHelp(this);
         } else {
           int tmpCode = sc.execute(input, cl, this);
           exitCode += tmpCode;
@@ -546,7 +556,7 @@ public class Shell extends ShellOptions {
           printException(e);
         }
         if (sc != null)
-          sc.printHelp();
+          sc.printHelp(this);
       } catch (Exception e) {
         ++exitCode;
         printException(e);
@@ -555,6 +565,7 @@ public class Shell extends ShellOptions {
       ++exitCode;
       printException(new BadArgumentException("Unrecognized empty command", command, -1));
     }
+    reader.flushConsole();
   }
   
   /**
@@ -683,12 +694,12 @@ public class Shell extends ShellOptions {
     
     // The general version of this method uses the HelpFormatter
     // that comes with the apache Options package to print out the help
-    public final void printHelp() {
-      Shell.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp());
+    public final void printHelp(Shell shellState) {
+      shellState.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp());
     }
     
-    public final void printHelp(int width) {
-      Shell.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp(), width);
+    public final void printHelp(Shell shellState, int width) {
+      shellState.printHelp(usage(), "description: " + this.description(), getOptionsWithHelp(), width);
     }
     
     // Get options with help
@@ -829,20 +840,20 @@ public class Shell extends ShellOptions {
     printException(cve, "");
     int COL1 = 50, COL2 = 14;
     int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTermwidth() - COL1 - COL2 - 6));
-    log.error(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
-    log.error(String.format("%-" + COL1 + "s | %" + COL2 + "s | %-" + col3 + "s\n", "Constraint class", "Violation code", "Violation Description"));
-    log.error(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+    logError(String.format("%-" + COL1 + "s | %" + COL2 + "s | %-" + col3 + "s\n", "Constraint class", "Violation code", "Violation Description"));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
     for (TConstraintViolationSummary cvs : cve.violationSummaries)
-      log.error(String.format("%-" + COL1 + "s | %" + COL2 + "d | %-" + col3 + "s\n", cvs.constrainClass, cvs.violationCode, cvs.violationDescription));
-    log.error(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+      logError(String.format("%-" + COL1 + "s | %" + COL2 + "d | %-" + col3 + "s\n", cvs.constrainClass, cvs.violationCode, cvs.violationDescription));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
   }
   
-  public static final void printException(Exception e) {
+  public final void printException(Exception e) {
     printException(e, e.getMessage());
   }
   
-  private static final void printException(Exception e, String msg) {
-    log.error(e.getClass().getName() + (msg != null ? ": " + msg : ""));
+  private final void printException(Exception e, String msg) {
+    logError(e.getClass().getName() + (msg != null ? ": " + msg : ""));
     log.debug(e.getClass().getName() + (msg != null ? ": " + msg : ""), e);
   }
   
@@ -854,14 +865,18 @@ public class Shell extends ShellOptions {
     return Logger.getLogger(Constants.CORE_PACKAGE_NAME).isTraceEnabled();
   }
   
-  private static final void printHelp(String usage, String description, Options opts) {
+  private final void printHelp(String usage, String description, Options opts) {
     printHelp(usage, description, opts, Integer.MAX_VALUE);
   }
   
-  private static final void printHelp(String usage, String description, Options opts, int width) {
+  private final void printHelp(String usage, String description, Options opts, int width) {
     PrintWriter pw = new PrintWriter(System.err);
     new HelpFormatter().printHelp(pw, width, usage, description, opts, 2, 5, null, true);
     pw.flush();
+    if (logErrorsToConsole && writer != null) {
+      new HelpFormatter().printHelp(writer, width, usage, description, opts, 2, 5, null, true);
+      writer.flush();
+    }
   }
   
   public int getExitCode() {
@@ -921,10 +936,39 @@ public class Shell extends ShellOptions {
     Class<? extends Formatter> formatter = FormatterCommand.getCurrentFormatter(tableName, this);
     
     if (null == formatter) {
-      log.error("Could not load the specified formatter. Using the DefaultFormatter");
+      logError("Could not load the specified formatter. Using the DefaultFormatter");
       return this.defaultFormatterClass;
     } else {
       return formatter;
     }
+  }
+  
+  public void setLogErrorsToConsole() {
+    this.logErrorsToConsole = true;
+  }
+  
+  private void logError(String s) {
+    log.error(s);
+    if (logErrorsToConsole) {
+      try {
+        reader.printString("ERROR: " + s + "\n");
+        reader.flushConsole();
+      } catch (IOException e) {}
+    }
+  }
+  
+  public String readMaskedLine(String prompt, Character mask) throws IOException {
+    this.masking = true;
+    String s = reader.readLine(prompt, mask);
+    this.masking = false;
+    return s;
+  }
+  
+  public boolean isMasking() {
+    return masking;
+  }
+  
+  public boolean hasExited() {
+    return exit;
   }
 }

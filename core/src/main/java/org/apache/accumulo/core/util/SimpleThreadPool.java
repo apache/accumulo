@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,22 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.master.balancer;
+package org.apache.accumulo.core.util;
 
-import java.util.List;
-import java.util.Map;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
-public interface LoggerBalancer {
-  /**
-   * Assign loggers to tablet servers
-   * 
-   * @param current
-   *          The loggers assigned to each tablet server
-   * @param loggers
-   *          The list of current loggers
-   * @param assignmentsOut
-   *          the assignments to give to tablet servers
-   */
-  public abstract void balance(List<LoggerUser> current, List<String> loggers, Map<LoggerUser,List<String>> assignmentsOut, int loggersPerServer);
+
+/**
+ * 
+ */
+public class SimpleThreadPool extends ThreadPoolExecutor {
+  
+  public SimpleThreadPool(int max, final String name) {
+    super(0, Integer.MAX_VALUE, 1l, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamingThreadFactory(name));
+  }
   
 }

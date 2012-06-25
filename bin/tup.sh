@@ -23,13 +23,12 @@ bin=`cd "$bin"; pwd`
 
 SLAVES=$ACCUMULO_HOME/conf/slaves
 
-echo -n "Starting tablet servers and loggers ..."
+echo -n "Starting tablet servers ..."
 
 count=1
 for server in `grep -v '^#' "$SLAVES"`
 do 
     echo -n "."
-    ${bin}/start-server.sh $server logger &
     ${bin}/start-server.sh $server tserver "tablet server" &
     count=`expr $count + 1`
     if [ `expr $count % 72` -eq 0 ] ;
