@@ -247,7 +247,6 @@ class TestUtilsMixin:
                           'tserver.port.client': 39000 + FUZZ,
                           'master.port.client':  41000 + FUZZ,
                           'monitor.port.client': 50099,
-                          'logger.port.client':  44000 + FUZZ,
                           'gc.port.client':      45000 + FUZZ,
                           'logger.dir.walog': WALOG,
                           'general.classpaths' :General_CLASSPATH,
