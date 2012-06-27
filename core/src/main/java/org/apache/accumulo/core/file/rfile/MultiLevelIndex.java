@@ -27,10 +27,11 @@ import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.RandomAccess;
+import java.util.Stack;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.file.blockfile.ABlockReader;
@@ -38,37 +39,58 @@ import org.apache.accumulo.core.file.blockfile.ABlockWriter;
 import org.apache.accumulo.core.file.blockfile.BlockFileReader;
 import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
+import org.apache.accumulo.core.iterators.predicates.TimestampRangePredicate;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.WritableComparable;
 
 public class MultiLevelIndex {
   
   public static class IndexEntry implements WritableComparable<IndexEntry> {
     private Key key;
+    private long minTimestamp;
+    private long maxTimestamp;
+    private ColumnVisibility minimumVisibility = null;
     private int entries;
     private long offset;
     private long compressedSize;
     private long rawSize;
-    private boolean newFormat;
+    private int format;
     
-    IndexEntry(Key k, int e, long offset, long compressedSize, long rawSize) {
+    IndexEntry(Key k, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int e, long offset, long compressedSize, long rawSize, int version) {
       this.key = k;
+      this.minTimestamp = minTimestamp;
+      this.maxTimestamp = maxTimestamp;
+      this.minimumVisibility = minimumVisibility;
       this.entries = e;
       this.offset = offset;
       this.compressedSize = compressedSize;
       this.rawSize = rawSize;
-      newFormat = true;
+      format = version;
     }
     
-    public IndexEntry(boolean newFormat) {
-      this.newFormat = newFormat;
+    public IndexEntry(int format) {
+      this.format = format;
     }
     
     @Override
     public void readFields(DataInput in) throws IOException {
       key = new Key();
       key.readFields(in);
+      if(format == RFile.RINDEX_VER_7)
+      {
+        minTimestamp = in.readLong();
+        maxTimestamp = in.readLong();
+        byte[] visibility = new byte[in.readInt()];
+        in.readFully(visibility);
+        minimumVisibility = new ColumnVisibility(visibility);
+      }
+      else
+      {
+        minTimestamp = Long.MIN_VALUE;
+        maxTimestamp = Long.MAX_VALUE;
+      }
       entries = in.readInt();
-      if (newFormat) {
+      if (format == RFile.RINDEX_VER_6 || format == RFile.RINDEX_VER_7) {
         offset = Utils.readVLong(in);
         compressedSize = Utils.readVLong(in);
         rawSize = Utils.readVLong(in);
@@ -82,8 +104,16 @@ public class MultiLevelIndex {
     @Override
     public void write(DataOutput out) throws IOException {
       key.write(out);
+      if(format == RFile.RINDEX_VER_7)
+      {
+        out.writeLong(minTimestamp);
+        out.writeLong(maxTimestamp);
+        byte[] visibility = minimumVisibility.getExpression();
+        out.writeInt(visibility.length);
+        out.write(visibility);
+      }
       out.writeInt(entries);
-      if (newFormat) {
+      if (format == RFile.RINDEX_VER_6 || format == RFile.RINDEX_VER_7) {
         Utils.writeVLong(out, offset);
         Utils.writeVLong(out, compressedSize);
         Utils.writeVLong(out, rawSize);
@@ -121,12 +151,12 @@ public class MultiLevelIndex {
     
     private int[] offsets;
     private byte[] data;
-    private boolean newFormat;
+    private int format;
     
-    SerializedIndex(int[] offsets, byte[] data, boolean newFormat) {
+    SerializedIndex(int[] offsets, byte[] data, int format) {
       this.offsets = offsets;
       this.data = data;
-      this.newFormat = newFormat;
+      this.format = format;
     }
     
     @Override
@@ -140,7 +170,7 @@ public class MultiLevelIndex {
       ByteArrayInputStream bais = new ByteArrayInputStream(data, offsets[index], len);
       DataInputStream dis = new DataInputStream(bais);
       
-      IndexEntry ie = new IndexEntry(newFormat);
+      IndexEntry ie = new IndexEntry(format);
       try {
         ie.readFields(dis);
       } catch (IOException e) {
@@ -203,6 +233,10 @@ public class MultiLevelIndex {
     private ByteArrayOutputStream indexBytes;
     private DataOutputStream indexOut;
     
+    private long minTimestamp = Long.MAX_VALUE;
+    private long maxTimestamp = Long.MIN_VALUE;
+    private ColumnVisibility minimumVisibility = null;
+    
     private ArrayList<Integer> offsets;
     private int level;
     private int offset;
@@ -212,8 +246,6 @@ public class MultiLevelIndex {
     private boolean hasNext;
     
     public IndexBlock(int level, int totalAdded) {
-      // System.out.println("IndexBlock("+level+","+levelCount+","+totalAdded+")");
-      
       this.level = level;
       this.offset = totalAdded;
       
@@ -224,9 +256,17 @@ public class MultiLevelIndex {
     
     public IndexBlock() {}
     
-    public void add(Key key, int value, long offset, long compressedSize, long rawSize) throws IOException {
+    public void add(Key key, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int value, long offset, long compressedSize, long rawSize, int version) throws IOException {
       offsets.add(indexOut.size());
-      new IndexEntry(key, value, offset, compressedSize, rawSize).write(indexOut);
+      if (this.minTimestamp > minTimestamp)
+        this.minTimestamp = minTimestamp;
+      if (this.maxTimestamp < maxTimestamp)
+        this.maxTimestamp = maxTimestamp;
+      if(this.minimumVisibility == null)
+        this.minimumVisibility = minimumVisibility;
+      else
+        this.minimumVisibility = this.minimumVisibility.or(minimumVisibility);
+      new IndexEntry(key, minTimestamp, maxTimestamp, minimumVisibility, value, offset, compressedSize, rawSize, version).write(indexOut);
     }
     
     int getSize() {
@@ -252,7 +292,7 @@ public class MultiLevelIndex {
     
     public void readFields(DataInput in, int version) throws IOException {
       
-      if (version == RFile.RINDEX_VER_6) {
+      if (version == RFile.RINDEX_VER_6 || version == RFile.RINDEX_VER_7) {
         level = in.readInt();
         offset = in.readInt();
         hasNext = in.readBoolean();
@@ -267,7 +307,7 @@ public class MultiLevelIndex {
         byte[] serializedIndex = new byte[indexSize];
         in.readFully(serializedIndex);
         
-        index = new SerializedIndex(offsets, serializedIndex, true);
+        index = new SerializedIndex(offsets, serializedIndex, version);
         keyIndex = new KeyIndex(offsets, serializedIndex);
       } else if (version == RFile.RINDEX_VER_3) {
         level = 0;
@@ -281,7 +321,7 @@ public class MultiLevelIndex {
         ArrayList<Integer> oal = new ArrayList<Integer>();
         
         for (int i = 0; i < size; i++) {
-          IndexEntry ie = new IndexEntry(false);
+          IndexEntry ie = new IndexEntry(version);
           oal.add(dos.size());
           ie.readFields(in);
           ie.write(dos);
@@ -295,7 +335,7 @@ public class MultiLevelIndex {
         }
         
         byte[] serializedIndex = baos.toByteArray();
-        index = new SerializedIndex(oia, serializedIndex, false);
+        index = new SerializedIndex(oia, serializedIndex, version);
         keyIndex = new KeyIndex(oia, serializedIndex);
       } else if (version == RFile.RINDEX_VER_4) {
         level = 0;
@@ -312,7 +352,7 @@ public class MultiLevelIndex {
         byte[] indexData = new byte[size];
         in.readFully(indexData);
         
-        index = new SerializedIndex(offsets, indexData, false);
+        index = new SerializedIndex(offsets, indexData, version);
         keyIndex = new KeyIndex(offsets, indexData);
       } else {
         throw new RuntimeException("Unexpected version " + version);
@@ -356,12 +396,14 @@ public class MultiLevelIndex {
     private DataOutputStream buffer;
     private int buffered;
     private ByteArrayOutputStream baos;
+    private final int version;
     
     public BufferedWriter(Writer writer) {
       this.writer = writer;
       baos = new ByteArrayOutputStream(1 << 20);
       buffer = new DataOutputStream(baos);
       buffered = 0;
+      version = RFile.RINDEX_VER_7;
     }
     
     private void flush() throws IOException {
@@ -369,10 +411,10 @@ public class MultiLevelIndex {
       
       DataInputStream dis = new DataInputStream(new ByteArrayInputStream(baos.toByteArray()));
       
-      IndexEntry ie = new IndexEntry(true);
+      IndexEntry ie = new IndexEntry(version);
       for (int i = 0; i < buffered; i++) {
         ie.readFields(dis);
-        writer.add(ie.getKey(), ie.getNumEntries(), ie.getOffset(), ie.getCompressedSize(), ie.getRawSize());
+        writer.add(ie.getKey(), ie.minTimestamp, ie.maxTimestamp, ie.minimumVisibility, ie.getNumEntries(), ie.getOffset(), ie.getCompressedSize(), ie.getRawSize(), ie.format);
       }
       
       buffered = 0;
@@ -381,18 +423,18 @@ public class MultiLevelIndex {
       
     }
     
-    public void add(Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {
+    public void add(Key key, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int data, long offset, long compressedSize, long rawSize, int version) throws IOException {
       if (buffer.size() > (10 * 1 << 20)) {
         flush();
       }
       
-      new IndexEntry(key, data, offset, compressedSize, rawSize).write(buffer);
+      new IndexEntry(key, minTimestamp, maxTimestamp, minimumVisibility, data, offset, compressedSize, rawSize, version).write(buffer);
       buffered++;
     }
     
-    public void addLast(Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {
+    public void addLast(Key key, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int data, long offset, long compressedSize, long rawSize, int version) throws IOException {
       flush();
-      writer.addLast(key, data, offset, compressedSize, rawSize);
+      writer.addLast(key, minTimestamp, maxTimestamp, minimumVisibility, data, offset, compressedSize, rawSize, version);
     }
     
     public void close(DataOutput out) throws IOException {
@@ -417,30 +459,26 @@ public class MultiLevelIndex {
       levels = new ArrayList<IndexBlock>();
     }
     
-    private void add(int level, Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {
+    private void add(int level, Key key, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int data, long offset, long compressedSize, long rawSize, boolean last, int version)
+        throws IOException {
       if (level == levels.size()) {
         levels.add(new IndexBlock(level, 0));
       }
       
       IndexBlock iblock = levels.get(level);
       
-      iblock.add(key, data, offset, compressedSize, rawSize);
-    }
-    
-    private void flush(int level, Key lastKey, boolean last) throws IOException {
+      iblock.add(key, minTimestamp, maxTimestamp, minimumVisibility, data, offset, compressedSize, rawSize, version);
       
       if (last && level == levels.size() - 1)
         return;
       
-      IndexBlock iblock = levels.get(level);
       if ((iblock.getSize() > threshold && iblock.offsets.size() > 1) || last) {
         ABlockWriter out = blockFileWriter.prepareDataBlock();
         iblock.setHasNext(!last);
         iblock.write(out);
         out.close();
         
-        add(level + 1, lastKey, 0, out.getStartPos(), out.getCompressedSize(), out.getRawSize());
-        flush(level + 1, lastKey, last);
+        add(level + 1, key, iblock.minTimestamp, iblock.maxTimestamp, iblock.minimumVisibility, 0, out.getStartPos(), out.getCompressedSize(), out.getRawSize(), last, version);
         
         if (last)
           levels.set(level, null);
@@ -449,19 +487,17 @@ public class MultiLevelIndex {
       }
     }
     
-    public void add(Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {
+    public void add(Key key, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int data, long offset, long compressedSize, long rawSize, int version) throws IOException {
       totalAdded++;
-      add(0, key, data, offset, compressedSize, rawSize);
-      flush(0, key, false);
+      add(0, key, minTimestamp, maxTimestamp, minimumVisibility, data, offset, compressedSize, rawSize, false, version);
     }
     
-    public void addLast(Key key, int data, long offset, long compressedSize, long rawSize) throws IOException {
+    public void addLast(Key key, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int data, long offset, long compressedSize, long rawSize, int version) throws IOException {
       if (addedLast)
         throw new IllegalStateException("already added last");
       
       totalAdded++;
-      add(0, key, data, offset, compressedSize, rawSize);
-      flush(0, key, true);
+      add(0, key, minTimestamp, maxTimestamp, minimumVisibility, data, offset, compressedSize, rawSize, true, version);
       addedLast = true;
       
     }
@@ -487,215 +523,196 @@ public class MultiLevelIndex {
     private int version;
     private int size;
     
-    public class Node {
+    class StackEntry {
+      public final IndexBlock block;
+      public int offset;
       
-      private Node parent;
-      private IndexBlock indexBlock;
-      private int currentPos;
-      
-      Node(Node parent, IndexBlock iBlock) {
-        this.parent = parent;
-        this.indexBlock = iBlock;
-      }
-      
-      Node(IndexBlock rootInfo) {
-        this.parent = null;
-        this.indexBlock = rootInfo;
-      }
-      
-      private Node lookup(Key key) throws IOException {
-        int pos = Collections.binarySearch(indexBlock.getKeyIndex(), key, new Comparator<Key>() {
-          @Override
-          public int compare(Key o1, Key o2) {
-            return o1.compareTo(o2);
-          }
-        });
-        
-        if (pos < 0)
-          pos = (pos * -1) - 1;
-        
-        if (pos == indexBlock.getIndex().size()) {
-          if (parent != null)
-            throw new IllegalStateException();
-          this.currentPos = pos;
-          return this;
-        }
-        
-        this.currentPos = pos;
-        
-        if (indexBlock.getLevel() == 0) {
-          return this;
-        }
-        
-        IndexEntry ie = indexBlock.getIndex().get(pos);
-        Node child = new Node(this, getIndexBlock(ie));
-        return child.lookup(key);
-      }
-      
-      private Node getLast() throws IOException {
-        currentPos = indexBlock.getIndex().size() - 1;
-        if (indexBlock.getLevel() == 0)
-          return this;
-        
-        IndexEntry ie = indexBlock.getIndex().get(currentPos);
-        Node child = new Node(this, getIndexBlock(ie));
-        return child.getLast();
-      }
-      
-      private Node getFirst() throws IOException {
-        currentPos = 0;
-        if (indexBlock.getLevel() == 0)
-          return this;
-        
-        IndexEntry ie = indexBlock.getIndex().get(currentPos);
-        Node child = new Node(this, getIndexBlock(ie));
-        return child.getFirst();
-      }
-      
-      private Node getPrevious() throws IOException {
-        if (currentPos == 0)
-          return parent.getPrevious();
-        
-        currentPos--;
-        
-        IndexEntry ie = indexBlock.getIndex().get(currentPos);
-        Node child = new Node(this, getIndexBlock(ie));
-        return child.getLast();
-        
-      }
-      
-      private Node getNext() throws IOException {
-        if (currentPos == indexBlock.getIndex().size() - 1)
-          return parent.getNext();
-        
-        currentPos++;
-        
-        IndexEntry ie = indexBlock.getIndex().get(currentPos);
-        Node child = new Node(this, getIndexBlock(ie));
-        return child.getFirst();
-        
-      }
-      
-      Node getNextNode() throws IOException {
-        return parent.getNext();
-      }
-      
-      Node getPreviousNode() throws IOException {
-        return parent.getPrevious();
+      public StackEntry(IndexBlock block, int offset) {
+        this.block = block;
+        this.offset = offset;
       }
     }
     
-    public class IndexIterator implements ListIterator<IndexEntry> {
+    class IndexIterator implements Iterator<IndexEntry> {
+      private Stack<StackEntry> position = new Stack<StackEntry>();
+      private final TimestampRangePredicate timestampFilter;
       
-      private Node node;
-      private ListIterator<IndexEntry> liter;
-      
-      private Node getPrevNode() {
+      private IndexIterator(TimestampRangePredicate timestampFilter, Key lookupKey) {
+        this.timestampFilter = timestampFilter;
         try {
-          return node.getPreviousNode();
+          seek(lookupKey);
         } catch (IOException e) {
           throw new RuntimeException(e);
         }
       }
       
-      private Node getNextNode() {
-        try {
-          return node.getNextNode();
-        } catch (IOException e) {
-          throw new RuntimeException(e);
-        }
-      }
-      
-      public IndexIterator() {
-        node = null;
-      }
-      
-      public IndexIterator(Node node) {
-        this.node = node;
-        liter = node.indexBlock.getIndex().listIterator(node.currentPos);
-      }
-      
-      @Override
-      public boolean hasNext() {
-        if (node == null)
+      private final boolean checkFilterIndexEntry(IndexEntry ie) {
+        if(timestampFilter == null)
+        if (timestampFilter != null && (ie.maxTimestamp < timestampFilter.startTimestamp || ie.minTimestamp > timestampFilter.endTimestamp)) {
           return false;
-        
-        if (!liter.hasNext()) {
-          return node.indexBlock.hasNext();
-        } else {
-          return true;
         }
+        return true;
+      }
+      
+      private void seek(Key lookupKey) throws IOException {
+        StackEntry top = new StackEntry(rootBlock, -1);
+        position.add(top);
+        while (true) {
+          top = position.peek();
+          // go down the tree
+          int pos = Collections.binarySearch(top.block.getKeyIndex(), lookupKey, new Comparator<Key>() {
+            @Override
+            public int compare(Key o1, Key o2) {
+              return o1.compareTo(o2);
+            }
+          });
+          
+          
+          if (pos < 0) {
+            pos = (pos * -1) - 1;
+          } else if (pos < top.block.getKeyIndex().size()) {
+            // the exact key was found, so we want to go back to the first identical match
+            while (pos > 0 && top.block.getKeyIndex().get(pos - 1).equals(lookupKey)) {
+              pos--;
+            }
+          }
+          
+
+          IndexEntry ie = null;
+          List<IndexEntry> index = top.block.getIndex();
+          
+          if(pos > 0)
+          {
+            // look backwards to find any initial previousEntry that might match the timestamp range such that no entry within the given timestamp range is between the seeked key and the previousKey
+            previousEntry = index.get(pos-1);
+            // TODO: find the offset for this block
+            previousIndex = Integer.MIN_VALUE;
+          }
+          
+          while (pos < index.size()) {
+            ie = index.get(pos);
+            // filter on timestampRange by skipping forward until a block passes the predicate
+            if (checkFilterIndexEntry(ie))
+              break;
+            pos++;
+          }
+          
+          
+          if (pos == index.size()) {
+            position.pop();
+            goToNext();
+            return;
+          } else {
+            if (top.block.level == 0) {
+              // found a matching index entry
+              top.offset = pos - 1;
+              return;
+            } else {
+              top.offset = pos;
+              position.add(new StackEntry(getIndexBlock(ie), 0));
+            }
+          }
+        }
+      }
+      
+      private void goToNext() throws IOException {
+        int numSkippedBlocks = 0;
+        // traverse the index tree forwards
+        while (position.isEmpty() == false) {
+          StackEntry top = position.peek();
+          top.offset++;
+          List<IndexEntry> index = top.block.getIndex();
+          while (top.offset < index.size()) {
+            if (checkFilterIndexEntry(index.get(top.offset)))
+              break;
+            numSkippedBlocks++;
+            top.offset++;
+          }
+          if (top.offset == index.size()) {
+            // go up
+            position.pop();
+          } else {
+            if (top.block.level == 0) {
+              // success!
+              return;
+            }
+            // go down
+            position.add(new StackEntry(getIndexBlock(index.get(top.offset)), -1));
+          }
+        }
+      }
+      
+      IndexEntry nextEntry = null;
+      IndexEntry previousEntry = null;
+      int nextIndex = -1;
+      int previousIndex = -1;
+      
+      private void prepNext() {
+        if (nextEntry == null) {
+          try {
+            goToNext();
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+          if (position.isEmpty())
+            return;
+          StackEntry e = position.peek();
+          nextEntry = e.block.getIndex().get(e.offset);
+          nextIndex = e.block.getOffset() + e.offset;
+        }
+      }
+      
+      public boolean hasNext() {
+        if (nextEntry == null)
+          prepNext();
+        return nextEntry != null;
         
       }
       
-      public IndexEntry peekPrevious() {
-        IndexEntry ret = previous();
-        next();
-        return ret;
+      // initially, previous key is last key of the previous block
+      public boolean hasPrevious() {
+        return previousEntry != null;
+      }
+      
+      public int nextIndex() {
+        if (nextEntry == null)
+          prepNext();
+        return nextIndex;
       }
       
       public IndexEntry peek() {
-        IndexEntry ret = next();
-        previous();
-        return ret;
+        if (nextEntry == null)
+          prepNext();
+        return nextEntry;
       }
       
-      @Override
+      private int blocksReturned = 0;
+      
       public IndexEntry next() {
-        if (!liter.hasNext()) {
-          node = getNextNode();
-          liter = node.indexBlock.getIndex().listIterator();
-        }
-        
-        return liter.next();
+        prepNext();
+        previousEntry = nextEntry;
+        nextEntry = null;
+        previousIndex = nextIndex;
+        nextIndex = -1;
+        return previousEntry;
       }
       
-      @Override
-      public boolean hasPrevious() {
-        if (node == null)
-          return false;
-        
-        if (!liter.hasPrevious()) {
-          return node.indexBlock.getOffset() > 0;
-        } else {
-          return true;
-        }
+      public IndexEntry peekPrevious() {
+        return previousEntry;
       }
       
-      @Override
-      public IndexEntry previous() {
-        if (!liter.hasPrevious()) {
-          node = getPrevNode();
-          liter = node.indexBlock.getIndex().listIterator(node.indexBlock.getIndex().size());
-        }
-        
-        return liter.previous();
-      }
-      
-      @Override
-      public int nextIndex() {
-        return node.indexBlock.getOffset() + liter.nextIndex();
-      }
-      
-      @Override
-      public int previousIndex() {
-        return node.indexBlock.getOffset() + liter.previousIndex();
-      }
-      
+      /*
+       * (non-Javadoc)
+       * 
+       * @see java.util.Iterator#remove()
+       */
       @Override
       public void remove() {
         throw new UnsupportedOperationException();
       }
       
-      @Override
-      public void set(IndexEntry e) {
-        throw new UnsupportedOperationException();
-        
-      }
-      
-      @Override
-      public void add(IndexEntry e) {
-        throw new UnsupportedOperationException();
+      public int previousIndex() {
+        return previousIndex;
       }
       
     }
@@ -714,16 +731,15 @@ public class MultiLevelIndex {
       return iblock;
     }
     
-    public IndexIterator lookup(Key key) throws IOException {
-      Node node = new Node(rootBlock);
-      return new IndexIterator(node.lookup(key));
+    IndexIterator lookup(Key key) throws IOException {
+      return new IndexIterator(timestampRange, key);
     }
     
     public void readFields(DataInput in) throws IOException {
       
       size = 0;
       
-      if (version == RFile.RINDEX_VER_6) {
+      if (version == RFile.RINDEX_VER_6 || version == RFile.RINDEX_VER_7) {
         size = in.readInt();
       }
       
@@ -768,6 +784,15 @@ public class MultiLevelIndex {
     
     public Key getLastKey() {
       return rootBlock.getIndex().get(rootBlock.getIndex().size() - 1).getKey();
+    }
+    
+    TimestampRangePredicate timestampRange;
+    
+    /**
+     * @param r
+     */
+    public void setTimestampRange(TimestampRangePredicate r) {
+      this.timestampRange = r;
     }
   }
   

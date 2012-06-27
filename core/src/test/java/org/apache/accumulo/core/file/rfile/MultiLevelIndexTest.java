@@ -32,6 +32,7 @@ import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Writer;
 import org.apache.accumulo.core.file.rfile.RFileTest.SeekableByteArrayInputStream;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -58,9 +59,9 @@ public class MultiLevelIndexTest extends TestCase {
     BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
     
     for (int i = 0; i < num; i++)
-      mliw.add(new Key(String.format("%05d000", i)), i, 0, 0, 0);
+      mliw.add(new Key(String.format("%05d000", i)), 0l, 0l, new ColumnVisibility(), i, 0, 0, 0, RFile.RINDEX_VER_7);
     
-    mliw.addLast(new Key(String.format("%05d000", num)), num, 0, 0, 0);
+    mliw.addLast(new Key(String.format("%05d000", num)), 0l, 0l, new ColumnVisibility(), num, 0, 0, 0, RFile.RINDEX_VER_7);
     
     ABlockWriter root = _cbw.prepareMetaBlock("root");
     mliw.close(root);
@@ -75,7 +76,7 @@ public class MultiLevelIndexTest extends TestCase {
     FSDataInputStream in = new FSDataInputStream(bais);
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, data.length, CachedConfiguration.getInstance());
     
-    Reader reader = new Reader(_cbr, RFile.RINDEX_VER_6);
+    Reader reader = new Reader(_cbr, RFile.RINDEX_VER_7);
     BlockRead rootIn = _cbr.getMetaBlock("root");
     reader.readFields(rootIn);
     rootIn.close();
@@ -89,15 +90,6 @@ public class MultiLevelIndexTest extends TestCase {
     }
     
     assertEquals(num + 1, count);
-    
-    while (liter.hasPrevious()) {
-      count--;
-      assertEquals(count, liter.previousIndex());
-      assertEquals(count, liter.peekPrevious().getNumEntries());
-      assertEquals(count, liter.previous().getNumEntries());
-    }
-    
-    assertEquals(0, count);
     
     // go past the end
     liter = reader.lookup(new Key(String.format("%05d000", num + 1)));

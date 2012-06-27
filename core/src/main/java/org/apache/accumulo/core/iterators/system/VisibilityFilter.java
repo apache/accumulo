@@ -23,26 +23,22 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.VisibilityEvaluator;
-import org.apache.accumulo.core.security.VisibilityParseException;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 public class VisibilityFilter extends Filter {
-  private VisibilityEvaluator ve;
+  private Authorizations auths;
   private Text defaultVisibility;
   private LRUMap cache;
   private Text tmpVis;
   
   private static final Logger log = Logger.getLogger(VisibilityFilter.class);
   
-  public VisibilityFilter() {}
-  
   public VisibilityFilter(SortedKeyValueIterator<Key,Value> iterator, Authorizations authorizations, byte[] defaultVisibility) {
     setSource(iterator);
-    this.ve = new VisibilityEvaluator(authorizations);
+    this.auths = authorizations;
     this.defaultVisibility = new Text(defaultVisibility);
     this.cache = new LRUMap(1000);
     this.tmpVis = new Text();
@@ -50,7 +46,7 @@ public class VisibilityFilter extends Filter {
   
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new VisibilityFilter(getSource().deepCopy(env), ve.getAuthorizations(), TextUtil.getBytes(defaultVisibility));
+    return new VisibilityFilter(getSource().deepCopy(env), auths, TextUtil.getBytes(defaultVisibility));
   }
   
   @Override
@@ -66,13 +62,8 @@ public class VisibilityFilter extends Filter {
     if (b != null)
       return b;
     
-    try {
-      Boolean bb = ve.evaluate(new ColumnVisibility(testVis));
-      cache.put(new Text(testVis), bb);
-      return bb;
-    } catch (VisibilityParseException e) {
-      log.error("Parse Error", e);
-      return false;
-    }
+    Boolean bb = new ColumnVisibility(testVis).evaluate(auths);
+    cache.put(new Text(testVis), bb);
+    return bb;
   }
 }

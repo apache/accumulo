@@ -17,9 +17,12 @@
 package org.apache.accumulo.core.iterators.system;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filterer;
+import org.apache.accumulo.core.iterators.Predicate;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.commons.collections.buffer.PriorityBuffer;
 
@@ -55,28 +58,29 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
   }
   
   @Override
-  final public Key getTopKey() {
+  public Key getTopKey() {
     return currentIter.getTopKey();
   }
   
   @Override
-  final public Value getTopValue() {
+  public Value getTopValue() {
     return currentIter.getTopValue();
   }
   
   @Override
-  final public boolean hasTop() {
+  public boolean hasTop() {
     return heap.size() > 0;
   }
   
   @Override
-  final public void next() throws IOException {
+  public void next() throws IOException {
     switch (heap.size()) {
       case 0:
         throw new IllegalStateException("Called next() when there is no top");
       case 1:
         // optimization for case when heap contains one entry,
         // avoids remove and add
+        // TODO apply the filters
         currentIter.next();
         if (!currentIter.hasTop()) {
           heap.remove();
@@ -85,6 +89,7 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
         break;
       default:
         Index idx = (Index) heap.remove();
+        // TODO apply the filters
         idx.iter.next();
         if (idx.iter.hasTop()) {
           heap.add(idx);
@@ -111,5 +116,4 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
     else
       currentIter = null;
   }
-  
 }

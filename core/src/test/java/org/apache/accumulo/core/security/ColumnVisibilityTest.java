@@ -16,8 +16,7 @@
  */
 package org.apache.accumulo.core.security;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import org.junit.Test;
 
@@ -64,13 +63,6 @@ public class ColumnVisibilityTest {
     shouldThrow("a*b");
   }
   
-  public void normalized(String... values) {
-    for (int i = 0; i < values.length; i += 2) {
-      ColumnVisibility cv = new ColumnVisibility(values[i].getBytes());
-      assertArrayEquals(cv.flatten(), values[i + 1].getBytes());
-    }
-  }
-  
   @Test
   public void testComplexCompound() {
     shouldNotThrow("(a|b)&(x|y)");
@@ -79,11 +71,61 @@ public class ColumnVisibilityTest {
     shouldNotThrow("(one&two)|(foo&bar)", "(one|foo)&three", "one|foo|bar", "(one|foo)|bar", "((one|foo)|bar)&two");
   }
   
+  public void normalized(String... values) {
+    for (int i = 0; i < values.length; i += 2) {
+      ColumnVisibility cv = new ColumnVisibility(values[i].getBytes());
+      assertArrayEquals(cv.getExpression(), values[i + 1].getBytes());
+    }
+  }
+  
   @Test
   public void testNormalization() {
     normalized("a", "a", "(a)", "a", "b|a", "a|b", "(b)|a", "a|b", "(b|(a|c))&x", "x&(a|b|c)", "(((a)))", "a");
+    normalized("a|a", "a", "a|(a&a)", "a", "(a&b)|(b&a)", "a&b");
+    normalized("a|(a|(a|b))","a|b");
+    normalized("a|(a|(a|a))","a");
   }
   
+  public void aOrBEqualC(String a, String b, String c)
+  {
+    ColumnVisibility cvA = new ColumnVisibility(a.getBytes());
+    ColumnVisibility cvB = new ColumnVisibility(b.getBytes());
+    ColumnVisibility cvC = cvA.or(cvB);
+    assertArrayEquals(cvC.getExpression(), c.getBytes());
+    // check that we didn't disturb the original ColumnVisibilities
+    assertArrayEquals(cvA.getExpression(), a.getBytes());
+    assertArrayEquals(cvB.getExpression(), b.getBytes());
+  }
+  
+  @Test
+  public void testDisjunction() {
+    aOrBEqualC("a", "b", "a|b");
+    aOrBEqualC("c|(a&b)", "b", "b|c|(a&b)");
+    aOrBEqualC("c|(a&b)", "a|c","a|c|(a&b)");
+    aOrBEqualC("a&b","c&d","(a&b)|(c&d)");
+    aOrBEqualC("a","","");
+  }
+  
+  public void aAndBEqualC(String a, String b, String c)
+  {
+    ColumnVisibility cvA = new ColumnVisibility(a.getBytes());
+    ColumnVisibility cvB = new ColumnVisibility(b.getBytes());
+    ColumnVisibility cvC = cvA.and(cvB);
+    assertArrayEquals(cvC.getExpression(), c.getBytes());
+    // check that we didn't disturb the original ColumnVisibilities
+    assertArrayEquals(cvA.getExpression(), a.getBytes());
+    assertArrayEquals(cvB.getExpression(), b.getBytes());
+  }
+  
+  @Test
+  public void testConjunction() {
+    aAndBEqualC("a", "b", "a&b");
+    aAndBEqualC("a&b", "c", "a&b&c");
+    aAndBEqualC("a&(b|(c&d))", "e&(b|(c&d))","a&e&(b|(c&d))");
+    aAndBEqualC("a|b","c|d","(a|b)&(c|d)");
+    aAndBEqualC("a","","a");
+  }
+
   @Test
   public void testDanglingOperators() {
     shouldThrow("a|b&");

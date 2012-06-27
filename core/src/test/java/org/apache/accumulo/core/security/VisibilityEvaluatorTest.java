@@ -26,33 +26,33 @@ import org.junit.Test;
 public class VisibilityEvaluatorTest {
   
   @Test
-  public void testVisibilityEvaluator() throws VisibilityParseException {
-    VisibilityEvaluator ct = new VisibilityEvaluator(ByteArraySet.fromStrings("one", "two", "three", "four"));
+  public void testVisibilityEvaluator() {
+    Authorizations auths = new Authorizations(ByteArraySet.fromStrings("one", "two", "three", "four"));
     
     // test for and
-    assertTrue("'and' test", ct.evaluate(new ColumnVisibility("one&two")));
+    assertTrue("'and' test", new ColumnVisibility("one&two").evaluate(auths));
     
     // test for or
-    assertTrue("'or' test", ct.evaluate(new ColumnVisibility("foor|four")));
+    assertTrue("'or' test", new ColumnVisibility("foor|four").evaluate(auths));
     
     // test for and and or
-    assertTrue("'and' and 'or' test", ct.evaluate(new ColumnVisibility("(one&two)|(foo&bar)")));
+    assertTrue("'and' and 'or' test", new ColumnVisibility("(one&two)|(foo&bar)").evaluate(auths));
     
     // test for false negatives
     for (String marking : new String[] {"one", "one|five", "five|one", "(one)", "(one&two)|(foo&bar)", "(one|foo)&three", "one|foo|bar", "(one|foo)|bar",
         "((one|foo)|bar)&two"}) {
-      assertTrue(marking, ct.evaluate(new ColumnVisibility(marking)));
+      assertTrue(marking, new ColumnVisibility(marking).evaluate(auths));
     }
     
     // test for false positives
     for (String marking : new String[] {"five", "one&five", "five&one", "((one|foo)|bar)&goober"}) {
-      assertFalse(marking, ct.evaluate(new ColumnVisibility(marking)));
+      assertFalse(marking, new ColumnVisibility(marking).evaluate(auths));
     }
     
     // test missing separators; these should throw an exception
     for (String marking : new String[] {"one(five)", "(five)one", "(one)(two)", "a|(b(c))"}) {
       try {
-        ct.evaluate(new ColumnVisibility(marking));
+        new ColumnVisibility(marking).evaluate(auths);
         fail(marking + " failed to throw");
       } catch (Throwable e) {
         // all is good
@@ -62,7 +62,7 @@ public class VisibilityEvaluatorTest {
     // test unexpected separator
     for (String marking : new String[] {"&(five)", "|(five)", "(five)&", "five|", "a|(b)&", "(&five)", "(five|)"}) {
       try {
-        ct.evaluate(new ColumnVisibility(marking));
+        new ColumnVisibility(marking).evaluate(auths);
         fail(marking + " failed to throw");
       } catch (Throwable e) {
         // all is good
@@ -72,7 +72,7 @@ public class VisibilityEvaluatorTest {
     // test mismatched parentheses
     for (String marking : new String[] {"(", ")", "(a&b", "b|a)"}) {
       try {
-        ct.evaluate(new ColumnVisibility(marking));
+        new ColumnVisibility(marking).evaluate(auths);
         fail(marking + " failed to throw");
       } catch (Throwable e) {
         // all is good

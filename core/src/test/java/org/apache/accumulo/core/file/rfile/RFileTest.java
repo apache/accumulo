@@ -24,8 +24,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Random;
 import java.util.Set;
 
 import junit.framework.TestCase;
@@ -51,8 +53,11 @@ import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Test;
 
-public class RFileTest extends TestCase {
+import static org.junit.Assert.*;
+
+public class RFileTest {
   
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<ByteSequence>();
   
@@ -206,6 +211,7 @@ public class RFileTest extends TestCase {
     return String.format(prefix + "%06d", i);
   }
   
+  @Test
   public void test1() throws IOException {
     
     // test an emprt file
@@ -224,6 +230,7 @@ public class RFileTest extends TestCase {
     trf.closeReader();
   }
   
+  @Test
   public void test2() throws IOException {
     
     // test an rfile with one entry
@@ -260,6 +267,7 @@ public class RFileTest extends TestCase {
     trf.closeReader();
   }
   
+  @Test
   public void test3() throws IOException {
     
     // test an rfile with multiple rows having multiple columns
@@ -403,6 +411,7 @@ public class RFileTest extends TestCase {
     assertFalse(evi.hasNext());
   }
   
+  @Test
   public void test4() throws IOException {
     TestRFile trf = new TestRFile();
     
@@ -445,6 +454,7 @@ public class RFileTest extends TestCase {
     }
   }
   
+  @Test
   public void test5() throws IOException {
     
     TestRFile trf = new TestRFile();
@@ -473,6 +483,7 @@ public class RFileTest extends TestCase {
     trf.closeReader();
   }
   
+  @Test
   public void test6() throws IOException {
     
     TestRFile trf = new TestRFile();
@@ -505,6 +516,7 @@ public class RFileTest extends TestCase {
     trf.closeReader();
   }
   
+  @Test
   public void test7() throws IOException {
     // these test excercise setting the end key of a range
     
@@ -556,6 +568,7 @@ public class RFileTest extends TestCase {
     trf.reader.close();
   }
   
+  @Test
   public void test8() throws IOException {
     TestRFile trf = new TestRFile();
     
@@ -672,6 +685,7 @@ public class RFileTest extends TestCase {
     return cfs;
   }
   
+  @Test
   public void test9() throws IOException {
     TestRFile trf = new TestRFile();
     
@@ -813,6 +827,7 @@ public class RFileTest extends TestCase {
     
   }
   
+  @Test
   public void test10() throws IOException {
     
     // test empty locality groups
@@ -941,6 +956,7 @@ public class RFileTest extends TestCase {
     trf.closeReader();
   }
   
+  @Test
   public void test11() throws IOException {
     // test locality groups with more than two entries
     
@@ -1045,6 +1061,7 @@ public class RFileTest extends TestCase {
     trf.closeReader();
   }
   
+  @Test
   public void test12() throws IOException {
     // test inserting column fams not in locality groups
     
@@ -1076,6 +1093,7 @@ public class RFileTest extends TestCase {
     
   }
   
+  @Test
   public void test13() throws IOException {
     // test inserting column fam in default loc group that was in
     // previous locality group
@@ -1117,6 +1135,7 @@ public class RFileTest extends TestCase {
     
   }
   
+  @Test
   public void test14() throws IOException {
     // test starting locality group after default locality group was started
     
@@ -1142,6 +1161,7 @@ public class RFileTest extends TestCase {
     trf.writer.close();
   }
   
+  @Test
   public void test16() throws IOException {
     TestRFile trf = new TestRFile();
     
@@ -1160,6 +1180,7 @@ public class RFileTest extends TestCase {
     trf.closeWriter();
   }
   
+  @Test
   public void test17() throws IOException {
     // add alot of the same keys to rfile that cover multiple blocks...
     // this should cause the keys in the index to be exactly the same...
@@ -1298,6 +1319,7 @@ public class RFileTest extends TestCase {
     assertEquals(nonExcluded, colFamsSeen);
   }
   
+  @Test
   public void test18() throws IOException {
     // test writing more column families to default LG than it will track
     
@@ -1349,6 +1371,7 @@ public class RFileTest extends TestCase {
     trf.closeReader();
   }
   
+  @Test
   public void test19() throws IOException {
     // test RFile metastore
     TestRFile trf = new TestRFile();
@@ -1401,6 +1424,7 @@ public class RFileTest extends TestCase {
     trf.closeReader();
   }
   
+  @Test
   public void testOldVersions() throws Exception {
     runVersionTest(3);
     runVersionTest(4);
@@ -1458,5 +1482,24 @@ public class RFileTest extends TestCase {
     }
     
     reader.close();
+  }
+  
+  @Test
+  public void testSingleKeyBlocks() throws IOException
+  {
+    byte[] bytes = new byte[2000];
+    Random r = new Random();
+    r.nextBytes(bytes);
+    TestRFile trf = new TestRFile();
+    trf.openWriter(false);
+    Value vBig = new Value(bytes);
+    trf.writer.startNewLocalityGroup("one", Collections.singleton((ByteSequence)(new ArrayByteSequence("one"))));
+    trf.writer.append(new Key("r1","one"), vBig);
+    trf.writer.append(new Key("r2","one"), vBig);
+    trf.writer.startNewLocalityGroup("two", Collections.singleton((ByteSequence)(new ArrayByteSequence("two"))));
+    trf.writer.append(new Key("r1","two"), vBig);
+    trf.writer.append(new Key("r2","two"), vBig);
+    trf.writer.close();
+    
   }
 }

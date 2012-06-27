@@ -16,16 +16,16 @@
  */
 package org.apache.accumulo.core.security;
 
-import java.util.ArrayList;
+import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.Iterator;
+import java.util.TreeSet;
 
+import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.WritableComparator;
 
 /**
  * Validate the column visibility is a valid expression and set the visibility for a Mutation. See {@link ColumnVisibility#ColumnVisibility(byte[])} for the
@@ -33,117 +33,190 @@ import org.apache.hadoop.io.WritableComparator;
  */
 public class ColumnVisibility {
   
-  Node node = null;
-  private byte[] expression;
-  
-  /**
-   * Accessor for the underlying byte string.
-   * 
-   * @return byte array representation of a visibility expression
-   */
-  public byte[] getExpression() {
-    return expression;
-  }
+  private Node node = null;
   
   public static enum NodeType {
     TERM, OR, AND,
   }
-  
-  public static class Node {
-    public final static List<Node> EMPTY = Collections.emptyList();
-    NodeType type;
-    int start = 0;
-    int end = 0;
-    List<Node> children = EMPTY;
+
+  private static abstract class Node implements Comparable<Node> {
+    protected final NodeType type;
     
-    public Node(NodeType type) {
+    public Node(NodeType type)
+    {
       this.type = type;
     }
-    
-    public Node(int start, int end) {
-      this.type = NodeType.TERM;
-      this.start = start;
-      this.end = end;
+
+    public byte[] generate() {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      generate(baos,false);
+      return baos.toByteArray();
     }
     
-    public void add(Node child) {
-      if (children == EMPTY)
-        children = new ArrayList<Node>();
-      
-      children.add(child);
-    }
+    public abstract boolean evaluate(Authorizations auths);
     
-    public NodeType getType() {
-      return type;
-    }
-    
-    public List<Node> getChildren() {
-      return children;
-    }
-    
-    public int getTermStart() {
-      return start;
-    }
-    
-    public int getTermEnd() {
-      return end;
-    }
+    protected abstract void generate(ByteArrayOutputStream baos, boolean parens);
   }
   
-  public static class NodeComparator implements Comparator<Node> {
+  private static class TermNode extends Node {
     
-    byte[] text;
+    final ByteSequence bs;
     
-    NodeComparator(byte[] text) {
-      this.text = text;
+    public TermNode(final ByteSequence bs) {
+      super(NodeType.TERM);
+      this.bs = bs;
+    }
+    
+    public boolean evaluate(Authorizations auths)
+    {
+      return auths.contains(bs);
+    }
+
+
+    protected void generate(ByteArrayOutputStream baos, boolean parens)
+    {
+      baos.write(bs.getBackingArray(), bs.offset(), bs.length());
     }
     
     @Override
-    public int compare(Node a, Node b) {
-      int diff = a.type.ordinal() - b.type.ordinal();
-      if (diff != 0)
-        return diff;
-      switch (a.type) {
-        case TERM:
-          return WritableComparator.compareBytes(text, a.start, a.end - a.start, text, b.start, b.end - b.start);
-        case OR:
-        case AND:
-          diff = a.children.size() - b.children.size();
-          if (diff != 0)
-            return diff;
-          for (int i = 0; i < a.children.size(); i++) {
-            diff = compare(a.children.get(i), b.children.get(i));
-            if (diff != 0)
-              return diff;
-          }
+    public boolean equals(Object other) {
+      if(other instanceof TermNode)
+      {
+        return bs.compareTo(((TermNode)other).bs) == 0;
+      }
+      return false;
+    }
+    
+    @Override
+    public int compareTo(Node o) {
+      if(o.type == NodeType.TERM)
+      {
+        return bs.compareTo(((TermNode)o).bs);
+      }
+      return type.ordinal() - o.type.ordinal();
+    }
+  }
+  
+  private abstract static class AggregateNode extends Node {
+
+    /**
+     * @param type
+     */
+    public AggregateNode(NodeType type) {
+      super(type);
+    }
+    
+    protected TreeSet<Node> children = new TreeSet<Node>();
+    
+    protected abstract byte getOperator();
+    
+    @Override
+    protected void generate(ByteArrayOutputStream baos, boolean parens) {
+      if(parens)
+        baos.write('(');
+      boolean first = true;
+      for(Node child:children)
+      {
+        if(!first)
+          baos.write(getOperator());
+        child.generate(baos, true);
+        first = false;
+      }
+      if(parens)
+        baos.write(')');
+    }
+    
+    @Override
+    public int compareTo(Node o) {
+      int ordinalDiff = type.ordinal() - o.type.ordinal();
+      if(ordinalDiff != 0)
+        return ordinalDiff;
+      AggregateNode other = (AggregateNode)o;
+      int childCountDifference = children.size() - other.children.size();
+      if(childCountDifference != 0)
+        return childCountDifference;
+      Iterator<Node> otherChildren = other.children.iterator();
+      for(Node n1:children)
+      {
+        int comp = n1.compareTo(otherChildren.next());
+        if(comp != 0)
+          return comp;
       }
       return 0;
     }
+
   }
   
-  static private void flatten(Node root, byte[] expression, StringBuilder out) {
-    if (root.type == NodeType.TERM)
-      out.append(new String(expression, root.start, root.end - root.start));
-    else {
-      String sep = "";
-      Collections.sort(root.children, new NodeComparator(expression));
-      for (Node c : root.children) {
-        out.append(sep);
-        boolean parens = (c.type != NodeType.TERM && root.type != c.type);
-        if (parens)
-          out.append("(");
-        flatten(c, expression, out);
-        if (parens)
-          out.append(")");
-        sep = root.type == NodeType.AND ? "&" : "|";
-      }
+  private static class OrNode extends AggregateNode {
+
+    public OrNode() {
+      super(NodeType.OR);
     }
+
+    @Override
+    public boolean evaluate(Authorizations auths) {
+      for(Node child:children)
+        if(child.evaluate(auths))
+          return true;
+      return false;
+    }
+
+    @Override
+    protected byte getOperator() {
+      return '|';
+    }
+    
   }
   
+  private static class AndNode extends AggregateNode {
+
+    public AndNode()
+    {
+      super(NodeType.AND);
+    }
+    
+    @Override
+    public boolean evaluate(Authorizations auths) {
+      for(Node child:children)
+        if(!child.evaluate(auths))
+          return false;
+      return true;
+    }
+
+    @Override
+    protected byte getOperator() {
+      return '&';
+    }
+    
+  }
+
+  private byte[] expression = null;
+  
+  /**
+   * @deprecated
+   * @see org.apache.accumulo.security.ColumnVisibility#getExpression()
+   */
   public byte[] flatten() {
-    StringBuilder builder = new StringBuilder();
-    flatten(node, expression, builder);
-    return builder.toString().getBytes();
+    return getExpression();
+  }
+  
+  /**
+   * Generate the byte[] that represents this ColumnVisibility.
+   * @return a byte[] representation of this visibility
+   */
+  public byte[] getExpression(){
+    if(expression != null)
+      return expression;
+    expression = _flatten();
+    return expression;
+  }
+  
+  private static final byte[] emptyExpression = new byte[0];
+  
+  private byte[] _flatten() {
+    if(node == null)
+      return emptyExpression;
+    return node.generate();
   }
   
   private static class ColumnVisibilityParser {
@@ -170,7 +243,7 @@ public class ColumnVisibility {
       if (start != end) {
         if (expr != null)
           throw new BadArgumentException("expression needs | or &", new String(expression), start);
-        return new Node(start, end);
+        return new TermNode(new ArrayByteSequence(expression, start, end - start));
       }
       if (expr == null)
         throw new BadArgumentException("empty term", new String(expression), start);
@@ -189,9 +262,9 @@ public class ColumnVisibility {
               if (!result.type.equals(NodeType.AND))
                 throw new BadArgumentException("cannot mix & and |", new String(expression), index - 1);
             } else {
-              result = new Node(NodeType.AND);
+              result = new AndNode();
             }
-            result.add(expr);
+            ((AggregateNode)result).children.add(expr);
             expr = null;
             termStart = index;
             break;
@@ -202,9 +275,9 @@ public class ColumnVisibility {
               if (!result.type.equals(NodeType.OR))
                 throw new BadArgumentException("cannot mix | and &", new String(expression), index - 1);
             } else {
-              result = new Node(NodeType.OR);
+              result = new OrNode();
             }
-            result.add(expr);
+            ((AggregateNode)result).children.add(expr);
             expr = null;
             termStart = index;
             break;
@@ -225,11 +298,21 @@ public class ColumnVisibility {
             if (result == null)
               return child;
             if (result.type == child.type)
-              for (Node c : child.children)
-                result.add(c);
+            {
+              AggregateNode parenNode = (AggregateNode)child;
+              for (Node c : parenNode.children)
+                ((AggregateNode)result).children.add(c);
+            }
             else
-              result.add(child);
-            result.end = index - 1;
+              ((AggregateNode)result).children.add(child);
+            if (result.type != NodeType.TERM)
+            {
+              AggregateNode resultNode = (AggregateNode)result;
+              if (resultNode.children.size() == 1)
+                return resultNode.children.first();
+              if (resultNode.children.size() < 2)
+                throw new BadArgumentException("missing term", new String(expression), index);
+            }
             return result;
           }
           default: {
@@ -241,12 +324,24 @@ public class ColumnVisibility {
       }
       Node child = processTerm(termStart, index, expr, expression);
       if (result != null)
-        result.add(child);
+      {
+        if(result.type == child.type)
+        {
+          ((AggregateNode)result).children.addAll(((AggregateNode)child).children);
+        }
+        else
+          ((AggregateNode)result).children.add(child);
+      }
       else
         result = child;
       if (result.type != NodeType.TERM)
-        if (result.children.size() < 2)
+      {
+        AggregateNode resultNode = (AggregateNode)result;
+        if (resultNode.children.size() == 1)
+          return resultNode.children.first();
+        if (resultNode.children.size() < 2)
           throw new BadArgumentException("missing term", new String(expression), index);
+      }
       return result;
     }
   }
@@ -256,14 +351,12 @@ public class ColumnVisibility {
       ColumnVisibilityParser p = new ColumnVisibilityParser();
       node = p.parse(expression);
     }
-    this.expression = expression;
   }
   
   /**
    * Empty visibility. Normally, elements with empty visibility can be seen by everyone. Though, one could change this behavior with filters.
    */
   public ColumnVisibility() {
-    expression = new byte[0];
   }
   
   /**
@@ -277,6 +370,10 @@ public class ColumnVisibility {
   
   public ColumnVisibility(Text expression) {
     this(TextUtil.getBytes(expression));
+  }
+  
+  private ColumnVisibility(Node node) {
+    this.node = node;
   }
   
   /**
@@ -313,7 +410,7 @@ public class ColumnVisibility {
   
   @Override
   public String toString() {
-    return "[" + new String(expression) + "]";
+    return "[" + new String(this.getExpression()) + "]";
   }
   
   /**
@@ -329,16 +426,55 @@ public class ColumnVisibility {
   /**
    * Compares two ColumnVisibilities for string equivalence, not as a meaningful comparison of terms and conditions.
    */
-  public boolean equals(ColumnVisibility otherLe) {
-    return Arrays.equals(expression, otherLe.expression);
-  }
+//  public boolean equals(ColumnVisibility otherLe) {
+//    return Arrays.equals(expression, otherLe.expression);
+//  }
   
   @Override
   public int hashCode() {
-    return Arrays.hashCode(expression);
+    return Arrays.hashCode(getExpression());
   }
   
-  public Node getParseTree() {
-    return node;
+  public boolean evaluate(Authorizations auths) {
+    if(node == null)
+      return true;
+    return node.evaluate(auths);
   }
+  
+  public ColumnVisibility or(ColumnVisibility other)
+  {
+    if(node == null)
+      return this;
+    if(other.node == null)
+      return other;
+    OrNode orNode = new OrNode();
+    if(other.node instanceof OrNode)
+      orNode.children.addAll(((OrNode)other.node).children);
+    else
+      orNode.children.add(other.node);
+    if(node instanceof OrNode)
+      orNode.children.addAll(((OrNode)node).children);
+    else
+      orNode.children.add(node);
+    return new ColumnVisibility(orNode);
+  }
+  
+  public ColumnVisibility and(ColumnVisibility other)
+  {
+    if(node == null)
+      return other;
+    if(other.node == null)
+      return this;
+    AndNode andNode = new AndNode();
+    if(other.node instanceof AndNode)
+      andNode.children.addAll(((AndNode)other.node).children);
+    else
+      andNode.children.add(other.node);
+    if(node instanceof AndNode)
+      andNode.children.addAll(((AndNode)node).children);
+    else
+      andNode.children.add(node);
+    return new ColumnVisibility(andNode);
+  }
+
 }

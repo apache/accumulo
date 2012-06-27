@@ -72,14 +72,14 @@ public class EventFields implements SetMultimap<String,FieldValue>, CustomSerial
     }
     
     public int size() {
-      return visibility.flatten().length + value.length;
+      return visibility.getExpression().length + value.length;
     }
     
     @Override
     public String toString() {
       StringBuilder buf = new StringBuilder();
       if (null != visibility)
-        buf.append(" visibility: ").append(new String(visibility.flatten()));
+        buf.append(" visibility: ").append(new String(visibility.getExpression()));
       if (null != value)
         buf.append(" value size: ").append(value.length);
       if (null != value)
@@ -219,7 +219,7 @@ public class EventFields implements SetMultimap<String,FieldValue>, CustomSerial
       // Write the key
       StringSerializer.put(buf, entry.getKey());
       // Write the fields in the value
-      valueSerializer.writeObjectData(buf, entry.getValue().getVisibility().flatten());
+      valueSerializer.writeObjectData(buf, entry.getValue().getVisibility().getExpression());
       valueSerializer.writeObjectData(buf, entry.getValue().getValue());
     }
   }

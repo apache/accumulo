@@ -47,7 +47,7 @@ public class VisibilityConstraint implements Constraint {
     if (updates.size() > 1)
       ok = new HashSet<String>();
     
-    VisibilityEvaluator ve = null;
+    Authorizations auths = env.getAuthorizations();
     
     for (ColumnUpdate update : updates) {
       
@@ -59,15 +59,10 @@ public class VisibilityConstraint implements Constraint {
         
         try {
           
-          if (ve == null)
-            ve = new VisibilityEvaluator(env.getAuthorizations());
-          
-          if (!ve.evaluate(new ColumnVisibility(cv)))
+          if (!new ColumnVisibility(cv).evaluate(auths))
             return Collections.singletonList(new Short((short) 2));
           
         } catch (BadArgumentException bae) {
-          return Collections.singletonList(new Short((short) 1));
-        } catch (VisibilityParseException e) {
           return Collections.singletonList(new Short((short) 1));
         }
         

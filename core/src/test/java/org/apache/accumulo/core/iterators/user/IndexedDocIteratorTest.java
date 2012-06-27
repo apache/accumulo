@@ -24,8 +24,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeMap;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -40,8 +38,12 @@ import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.junit.Before;
+import org.junit.Test;
 
-public class IndexedDocIteratorTest extends TestCase {
+import static org.junit.Assert.*;
+
+public class IndexedDocIteratorTest {
   
   private static final Logger log = Logger.getLogger(IndexedDocIteratorTest.class);
   
@@ -171,7 +173,7 @@ public class IndexedDocIteratorTest extends TestCase {
   
   public void testNull() {}
   
-  @Override
+  @Before
   public void setUp() {
     Logger.getRootLogger().setLevel(Level.ERROR);
   }
@@ -179,6 +181,7 @@ public class IndexedDocIteratorTest extends TestCase {
   private static final int NUM_ROWS = 5;
   private static final int NUM_DOCIDS = 200;
   
+  @Test
   public void test1() throws IOException {
     columnFamilies = new Text[2];
     columnFamilies[0] = new Text("CC");
@@ -216,6 +219,7 @@ public class IndexedDocIteratorTest extends TestCase {
     cleanup();
   }
   
+  @Test
   public void test2() throws IOException {
     columnFamilies = new Text[3];
     columnFamilies[0] = new Text("A");
@@ -250,6 +254,7 @@ public class IndexedDocIteratorTest extends TestCase {
     cleanup();
   }
   
+  @Test
   public void test3() throws IOException {
     columnFamilies = new Text[6];
     columnFamilies[0] = new Text("C");
@@ -292,6 +297,7 @@ public class IndexedDocIteratorTest extends TestCase {
     cleanup();
   }
   
+  @Test
   public void test4() throws IOException {
     columnFamilies = new Text[3];
     boolean[] notFlags = new boolean[3];

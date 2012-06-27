@@ -56,10 +56,14 @@ import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.RelativeKey.MByteSequence;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
+import org.apache.accumulo.core.iterators.Filterer;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.Predicate;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.predicates.TimestampRangePredicate;
 import org.apache.accumulo.core.iterators.system.HeapIterator;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -77,6 +81,7 @@ public class RFile {
   private RFile() {}
   
   private static final int RINDEX_MAGIC = 0x20637474;
+  static final int RINDEX_VER_7 = 7;
   static final int RINDEX_VER_6 = 6;
   static final int RINDEX_VER_4 = 4;
   static final int RINDEX_VER_3 = 3;
@@ -301,6 +306,11 @@ public class RFile {
     private int indexBlockSize;
     private int entries = 0;
     
+    // some aggregate stats to keep on a per-block basis
+    private long minTimestamp = Long.MAX_VALUE;
+    private long maxTimestamp = Long.MIN_VALUE;
+    private ColumnVisibility minimumVisibility = null;
+    
     private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<LocalityGroupMetadata>();
     private LocalityGroupMetadata currentLocalityGroup = null;
     private int nextBlock = 0;
@@ -337,7 +347,7 @@ public class RFile {
       ABlockWriter mba = fileWriter.prepareMetaBlock("RFile.index");
       
       mba.writeInt(RINDEX_MAGIC);
-      mba.writeInt(RINDEX_VER_6);
+      mba.writeInt(RINDEX_VER_7);
       
       if (currentLocalityGroup != null)
         localityGroups.add(currentLocalityGroup);
@@ -368,8 +378,28 @@ public class RFile {
       }
     }
     
+    private void updateBlockStats(Key key, Value value)
+    {
+      if(minTimestamp > key.getTimestamp())
+        minTimestamp = key.getTimestamp();
+      if(maxTimestamp < key.getTimestamp())
+        maxTimestamp = key.getTimestamp();
+      if(minimumVisibility == null)
+        minimumVisibility = new ColumnVisibility(key.getColumnVisibility());
+      else
+        minimumVisibility = minimumVisibility.or(new ColumnVisibility(key.getColumnVisibility()));
+      entries++;
+    }
+    
+    private void clearBlockStats()
+    {
+      minTimestamp = Long.MAX_VALUE;
+      maxTimestamp = Long.MIN_VALUE;
+      minimumVisibility = null;      
+      entries = 0;
+    }
+    
     public void append(Key key, Value value) throws IOException {
-      
       if (dataClosed) {
         throw new IllegalStateException("Cannont append, data closed");
       }
@@ -395,7 +425,8 @@ public class RFile {
       
       rk.write(blockWriter);
       value.write(blockWriter);
-      entries++;
+      updateBlockStats(key,value);
+      
       
       prevKey = new Key(key);
       lastKeyInBlock = prevKey;
@@ -406,13 +437,13 @@ public class RFile {
       blockWriter.close();
       
       if (lastBlock)
-        currentLocalityGroup.indexWriter.addLast(key, entries, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize());
+        currentLocalityGroup.indexWriter.addLast(key, minTimestamp, maxTimestamp, minimumVisibility, entries, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize(), RINDEX_VER_7);
       else
-        currentLocalityGroup.indexWriter.add(key, entries, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize());
+        currentLocalityGroup.indexWriter.add(key, minTimestamp, maxTimestamp, minimumVisibility, entries, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize(), RINDEX_VER_7);
       
+      clearBlockStats();
       blockWriter = null;
       lastKeyInBlock = null;
-      entries = 0;
       nextBlock++;
     }
     
@@ -475,7 +506,7 @@ public class RFile {
     }
   }
   
-  private static class LocalityGroupReader implements FileSKVIterator {
+  private static class LocalityGroupReader implements FileSKVIterator, Filterer<Key,Value> {
     
     private BlockFileReader reader;
     private MultiLevelIndex.Reader index;
@@ -578,7 +609,7 @@ public class RFile {
           return;
         }
       }
-      
+
       prevKey = rk.getKey();
       rk.readFields(currBlock);
       val.readFields(currBlock);
@@ -650,14 +681,15 @@ public class RFile {
       boolean reseek = true;
       
       if (range.afterEndKey(firstKey)) {
-        // range is before first key in rfile, so there is nothing to do
+        // range is before first key in this locality group, so there is nothing to do
         reset();
         reseek = false;
       }
       
-      if (rk != null) {
+      // always reseek if the filter changed since the last seek
+      if (filterChanged == false && rk != null) {
         if (range.beforeStartKey(prevKey) && range.afterEndKey(getTopKey())) {
-          // range is between the two keys in the file where the last range seeked to stopped, so there is
+          // range is between the two keys in the locality group where the last range seeked to stopped, so there is
           // nothing to do
           reseek = false;
         }
@@ -701,12 +733,6 @@ public class RFile {
         if (!iiter.hasNext()) {
           // past the last key
         } else {
-          
-          // if the index contains the same key multiple times, then go to the
-          // earliest index entry containing the key
-          while (iiter.hasPrevious() && iiter.peekPrevious().getKey().equals(iiter.peek().getKey())) {
-            iiter.previous();
-          }
           
           if (iiter.hasPrevious())
             prevKey = new Key(iiter.peekPrevious().getKey()); // initially prevKey is the last key of the prev block
@@ -771,9 +797,35 @@ public class RFile {
     public void setInterruptFlag(AtomicBoolean flag) {
       this.interruptFlag = flag;
     }
+    
+    private TimestampRangePredicate timestampRange;
+    private boolean filterChanged = false;
+
+    /* (non-Javadoc)
+     * @see org.apache.accumulo.core.iterators.Filterer#applyFilter(org.apache.accumulo.core.iterators.Predicate)
+     */
+    @Override
+    public void applyFilter(Predicate<Key,Value> filter) {
+      // TODO support general filters
+      if(filter instanceof TimestampRangePredicate)
+      {
+        filterChanged = true;
+        TimestampRangePredicate p = (TimestampRangePredicate)filter;
+        // intersect with previous timestampRange
+        if(timestampRange != null)
+          timestampRange = new TimestampRangePredicate(Math.max(p.startTimestamp, timestampRange.startTimestamp), Math.min(p.endTimestamp, timestampRange.endTimestamp));
+        else
+          timestampRange = p;
+        index.setTimestampRange(timestampRange);
+      }
+      else
+      {
+        throw new RuntimeException("yikes, not yet implemented");
+      }
+    }
   }
   
-  public static class Reader extends HeapIterator implements FileSKVIterator {
+  public static class Reader extends HeapIterator implements FileSKVIterator, Filterer<Key,Value> {
     
     private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
     
@@ -799,7 +851,7 @@ public class RFile {
       
       if (magic != RINDEX_MAGIC)
         throw new IOException("Did not see expected magic number, saw " + magic);
-      if (ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
+      if (ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
         throw new IOException("Did not see expected version, saw " + ver);
       
       int size = mb.readInt();
@@ -947,6 +999,9 @@ public class RFile {
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
       
+      topKey = null;
+      topValue = null;
+      
       clear();
       
       numLGSeeked = 0;
@@ -1001,6 +1056,8 @@ public class RFile {
         }
         
         if (include) {
+          if(timestampFilter != null)
+            lgr.applyFilter(timestampFilter);
           lgr.seek(range, EMPTY_CF_SET, false);
           addSource(lgr);
           numLGSeeked++;
@@ -1046,6 +1103,94 @@ public class RFile {
       for (LocalityGroupReader lgr : lgReaders) {
         lgr.setInterruptFlag(interruptFlag);
       }
+    }
+    
+    ArrayList<Predicate<Key,Value>> filters = new ArrayList<Predicate<Key,Value>>();
+    
+    TimestampRangePredicate timestampFilter = null;
+    
+    Key topKey;
+    Value topValue;
+    
+    /* (non-Javadoc)
+     * @see org.apache.accumulo.core.iterators.system.HeapIterator#hasTop()
+     */
+    @Override
+    public boolean hasTop() {
+      if(topKey == null)
+      {
+        while(super.hasTop())
+        {
+          topKey = super.getTopKey();
+          topValue = super.getTopValue();
+          // check all the filters to see if we found a valid key/value pair
+          boolean keep = true;
+          for(Predicate<Key,Value> filter: filters)
+          {
+            if(!filter.evaluate(topKey, topValue))
+            {
+              keep = false;
+              try {
+                super.next();
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+              break;
+            }
+          }
+          if(keep == true)
+            return true;
+        }
+        // ran out of key/value pairs
+        topKey = null;
+        topValue = null;
+        return false;
+      }
+      else
+      {
+        return true;
+      }
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.accumulo.core.iterators.system.HeapIterator#next()
+     */
+    @Override
+    public void next() throws IOException {
+      topKey = null;
+      topValue = null;
+      super.next();
+    }
+
+    /* (non-Javadoc)
+     * @see org.apache.accumulo.core.iterators.system.HeapIterator#getTopKey()
+     */
+    @Override
+    public Key getTopKey() {
+      if(topKey == null)
+        hasTop();
+      return topKey;
+    }
+    
+    /* (non-Javadoc)
+     * @see org.apache.accumulo.core.iterators.system.HeapIterator#getTopValue()
+     */
+    @Override
+    public Value getTopValue() {
+      if(topValue == null)
+        hasTop();
+      return topValue;
+    }
+    
+    /* (non-Javadoc)
+     * @see org.apache.accumulo.core.iterators.Filterer#applyFilter(org.apache.accumulo.core.iterators.Predicate)
+     */
+    @Override
+    public void applyFilter(Predicate<Key,Value> filter) {
+      filters.add(filter);
+      // the HeapIterator will pass this filter on to its children, a collection of LocalityGroupReaders
+      if(filter instanceof TimestampRangePredicate)
+        this.timestampFilter = (TimestampRangePredicate)filter;
     }
   }
   
