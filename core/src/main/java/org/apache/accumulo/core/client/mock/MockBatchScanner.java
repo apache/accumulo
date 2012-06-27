@@ -31,6 +31,7 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.collections.iterators.IteratorChain;
 
 public class MockBatchScanner extends MockScannerBase implements BatchScanner {
   
@@ -67,20 +68,25 @@ public class MockBatchScanner extends MockScannerBase implements BatchScanner {
     }
   }
   
+  @SuppressWarnings("unchecked")
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     if (ranges == null) {
       throw new IllegalStateException("ranges not set");
     }
 
-    SortedKeyValueIterator<Key,Value> i = new SortedMapIterator(table.table);
-    try {
-      i = new RangesFilter(createFilter(i), ranges);
-      i.seek(new Range(), createColumnBSS(fetchedColumns), !fetchedColumns.isEmpty());
-      return new IteratorAdapter(i);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    IteratorChain chain = new IteratorChain();
+    for (Range range : ranges) {
+      SortedKeyValueIterator<Key,Value> i = new SortedMapIterator(table.table);
+      try {
+        i = new RangesFilter(createFilter(i), ranges);
+        i.seek(range, createColumnBSS(fetchedColumns), !fetchedColumns.isEmpty());
+        chain.addIterator(new IteratorAdapter(i));
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
     }
+    return chain;
   }
   
   @Override
