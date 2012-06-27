@@ -302,15 +302,12 @@ public class RFile {
     private ABlockWriter blockWriter;
     
     // private BlockAppender blockAppender;
-    private long blockSize = 100000;
-    private int indexBlockSize;
-    private int entries = 0;
-    
+    private final long blockSize;
+    private final int indexBlockSize;
+
     // some aggregate stats to keep on a per-block basis
-    private long minTimestamp = Long.MAX_VALUE;
-    private long maxTimestamp = Long.MIN_VALUE;
-    private ColumnVisibility minimumVisibility = null;
-    
+    private BlockStats blockStats = new BlockStats();
+        
     private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<LocalityGroupMetadata>();
     private LocalityGroupMetadata currentLocalityGroup = null;
     private int nextBlock = 0;
@@ -378,27 +375,7 @@ public class RFile {
       }
     }
     
-    private void updateBlockStats(Key key, Value value)
-    {
-      if(minTimestamp > key.getTimestamp())
-        minTimestamp = key.getTimestamp();
-      if(maxTimestamp < key.getTimestamp())
-        maxTimestamp = key.getTimestamp();
-      if(minimumVisibility == null)
-        minimumVisibility = new ColumnVisibility(key.getColumnVisibility());
-      else
-        minimumVisibility = minimumVisibility.or(new ColumnVisibility(key.getColumnVisibility()));
-      entries++;
-    }
-    
-    private void clearBlockStats()
-    {
-      minTimestamp = Long.MAX_VALUE;
-      maxTimestamp = Long.MIN_VALUE;
-      minimumVisibility = null;      
-      entries = 0;
-    }
-    
+
     public void append(Key key, Value value) throws IOException {
       if (dataClosed) {
         throw new IllegalStateException("Cannont append, data closed");
@@ -425,7 +402,7 @@ public class RFile {
       
       rk.write(blockWriter);
       value.write(blockWriter);
-      updateBlockStats(key,value);
+      blockStats.updateBlockStats(key,value);
       
       
       prevKey = new Key(key);
@@ -437,11 +414,11 @@ public class RFile {
       blockWriter.close();
       
       if (lastBlock)
-        currentLocalityGroup.indexWriter.addLast(key, minTimestamp, maxTimestamp, minimumVisibility, entries, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize(), RINDEX_VER_7);
+        currentLocalityGroup.indexWriter.addLast(key, blockStats, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize(), RINDEX_VER_7);
       else
-        currentLocalityGroup.indexWriter.add(key, minTimestamp, maxTimestamp, minimumVisibility, entries, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize(), RINDEX_VER_7);
+        currentLocalityGroup.indexWriter.add(key, blockStats, blockWriter.getStartPos(), blockWriter.getCompressedSize(), blockWriter.getRawSize(), RINDEX_VER_7);
       
-      clearBlockStats();
+      blockStats = new BlockStats();
       blockWriter = null;
       lastKeyInBlock = null;
       nextBlock++;

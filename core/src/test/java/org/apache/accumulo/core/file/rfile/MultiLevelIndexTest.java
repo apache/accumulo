@@ -59,9 +59,10 @@ public class MultiLevelIndexTest extends TestCase {
     BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, maxBlockSize));
     
     for (int i = 0; i < num; i++)
-      mliw.add(new Key(String.format("%05d000", i)), 0l, 0l, new ColumnVisibility(), i, 0, 0, 0, RFile.RINDEX_VER_7);
-    
-    mliw.addLast(new Key(String.format("%05d000", num)), 0l, 0l, new ColumnVisibility(), num, 0, 0, 0, RFile.RINDEX_VER_7);
+    {
+      mliw.add(new Key(String.format("%05d000", i)), new BlockStats(0,0,new ColumnVisibility(),i), 0, 0, 0, RFile.RINDEX_VER_7);
+    }
+    mliw.addLast(new Key(String.format("%05d000", num)), new BlockStats(0,0,new ColumnVisibility(),num), 0, 0, 0, RFile.RINDEX_VER_7);
     
     ABlockWriter root = _cbw.prepareMetaBlock("root");
     mliw.close(root);

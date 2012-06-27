@@ -47,21 +47,15 @@ public class MultiLevelIndex {
   
   public static class IndexEntry implements WritableComparable<IndexEntry> {
     private Key key;
-    private long minTimestamp;
-    private long maxTimestamp;
-    private ColumnVisibility minimumVisibility = null;
-    private int entries;
+    private BlockStats blockStats;
     private long offset;
     private long compressedSize;
     private long rawSize;
     private int format;
     
-    IndexEntry(Key k, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int e, long offset, long compressedSize, long rawSize, int version) {
+    IndexEntry(Key k, BlockStats blockStats, long offset, long compressedSize, long rawSize, int version) {
       this.key = k;
-      this.minTimestamp = minTimestamp;
-      this.maxTimestamp = maxTimestamp;
-      this.minimumVisibility = minimumVisibility;
-      this.entries = e;
+      this.blockStats = blockStats;
       this.offset = offset;
       this.compressedSize = compressedSize;
       this.rawSize = rawSize;
@@ -76,20 +70,8 @@ public class MultiLevelIndex {
     public void readFields(DataInput in) throws IOException {
       key = new Key();
       key.readFields(in);
-      if(format == RFile.RINDEX_VER_7)
-      {
-        minTimestamp = in.readLong();
-        maxTimestamp = in.readLong();
-        byte[] visibility = new byte[in.readInt()];
-        in.readFully(visibility);
-        minimumVisibility = new ColumnVisibility(visibility);
-      }
-      else
-      {
-        minTimestamp = Long.MIN_VALUE;
-        maxTimestamp = Long.MAX_VALUE;
-      }
-      entries = in.readInt();
+      blockStats = new BlockStats(format);
+      blockStats.readFields(in);
       if (format == RFile.RINDEX_VER_6 || format == RFile.RINDEX_VER_7) {
         offset = Utils.readVLong(in);
         compressedSize = Utils.readVLong(in);
@@ -104,15 +86,7 @@ public class MultiLevelIndex {
     @Override
     public void write(DataOutput out) throws IOException {
       key.write(out);
-      if(format == RFile.RINDEX_VER_7)
-      {
-        out.writeLong(minTimestamp);
-        out.writeLong(maxTimestamp);
-        byte[] visibility = minimumVisibility.getExpression();
-        out.writeInt(visibility.length);
-        out.write(visibility);
-      }
-      out.writeInt(entries);
+      blockStats.write(out);
       if (format == RFile.RINDEX_VER_6 || format == RFile.RINDEX_VER_7) {
         Utils.writeVLong(out, offset);
         Utils.writeVLong(out, compressedSize);
@@ -125,7 +99,7 @@ public class MultiLevelIndex {
     }
     
     public int getNumEntries() {
-      return entries;
+      return blockStats.entries;
     }
     
     public long getOffset() {
@@ -233,9 +207,7 @@ public class MultiLevelIndex {
     private ByteArrayOutputStream indexBytes;
     private DataOutputStream indexOut;
     
-    private long minTimestamp = Long.MAX_VALUE;
-    private long maxTimestamp = Long.MIN_VALUE;
-    private ColumnVisibility minimumVisibility = null;
+    private BlockStats blockStats = new BlockStats();
     
     private ArrayList<Integer> offsets;
     private int level;
@@ -256,17 +228,10 @@ public class MultiLevelIndex {
     
     public IndexBlock() {}
     
-    public void add(Key key, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int value, long offset, long compressedSize, long rawSize, int version) throws IOException {
+    public void add(Key key, BlockStats blockStats, long offset, long compressedSize, long rawSize, int version) throws IOException {
       offsets.add(indexOut.size());
-      if (this.minTimestamp > minTimestamp)
-        this.minTimestamp = minTimestamp;
-      if (this.maxTimestamp < maxTimestamp)
-        this.maxTimestamp = maxTimestamp;
-      if(this.minimumVisibility == null)
-        this.minimumVisibility = minimumVisibility;
-      else
-        this.minimumVisibility = this.minimumVisibility.or(minimumVisibility);
-      new IndexEntry(key, minTimestamp, maxTimestamp, minimumVisibility, value, offset, compressedSize, rawSize, version).write(indexOut);
+      this.blockStats.updateBlockStats(blockStats);
+      new IndexEntry(key, blockStats, offset, compressedSize, rawSize, version).write(indexOut);
     }
     
     int getSize() {
@@ -414,7 +379,7 @@ public class MultiLevelIndex {
       IndexEntry ie = new IndexEntry(version);
       for (int i = 0; i < buffered; i++) {
         ie.readFields(dis);
-        writer.add(ie.getKey(), ie.minTimestamp, ie.maxTimestamp, ie.minimumVisibility, ie.getNumEntries(), ie.getOffset(), ie.getCompressedSize(), ie.getRawSize(), ie.format);
+        writer.add(ie.getKey(), ie.blockStats, ie.getOffset(), ie.getCompressedSize(), ie.getRawSize(), ie.format);
       }
       
       buffered = 0;
@@ -423,18 +388,18 @@ public class MultiLevelIndex {
       
     }
     
-    public void add(Key key, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int data, long offset, long compressedSize, long rawSize, int version) throws IOException {
+    public void add(Key key, BlockStats blockStats, long offset, long compressedSize, long rawSize, int version) throws IOException {
       if (buffer.size() > (10 * 1 << 20)) {
         flush();
       }
       
-      new IndexEntry(key, minTimestamp, maxTimestamp, minimumVisibility, data, offset, compressedSize, rawSize, version).write(buffer);
+      new IndexEntry(key, blockStats, offset, compressedSize, rawSize, version).write(buffer);
       buffered++;
     }
     
-    public void addLast(Key key, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int data, long offset, long compressedSize, long rawSize, int version) throws IOException {
+    public void addLast(Key key, BlockStats blockStats, long offset, long compressedSize, long rawSize, int version) throws IOException {
       flush();
-      writer.addLast(key, minTimestamp, maxTimestamp, minimumVisibility, data, offset, compressedSize, rawSize, version);
+      writer.addLast(key, blockStats, offset, compressedSize, rawSize, version);
     }
     
     public void close(DataOutput out) throws IOException {
@@ -459,7 +424,7 @@ public class MultiLevelIndex {
       levels = new ArrayList<IndexBlock>();
     }
     
-    private void add(int level, Key key, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int data, long offset, long compressedSize, long rawSize, boolean last, int version)
+    private void add(int level, Key key, BlockStats blockStats, long offset, long compressedSize, long rawSize, boolean last, int version)
         throws IOException {
       if (level == levels.size()) {
         levels.add(new IndexBlock(level, 0));
@@ -467,7 +432,7 @@ public class MultiLevelIndex {
       
       IndexBlock iblock = levels.get(level);
       
-      iblock.add(key, minTimestamp, maxTimestamp, minimumVisibility, data, offset, compressedSize, rawSize, version);
+      iblock.add(key, blockStats, offset, compressedSize, rawSize, version);
       
       if (last && level == levels.size() - 1)
         return;
@@ -478,7 +443,7 @@ public class MultiLevelIndex {
         iblock.write(out);
         out.close();
         
-        add(level + 1, key, iblock.minTimestamp, iblock.maxTimestamp, iblock.minimumVisibility, 0, out.getStartPos(), out.getCompressedSize(), out.getRawSize(), last, version);
+        add(level + 1, key, blockStats, out.getStartPos(), out.getCompressedSize(), out.getRawSize(), last, version);
         
         if (last)
           levels.set(level, null);
@@ -487,17 +452,17 @@ public class MultiLevelIndex {
       }
     }
     
-    public void add(Key key, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int data, long offset, long compressedSize, long rawSize, int version) throws IOException {
+    public void add(Key key, BlockStats blockStats, long offset, long compressedSize, long rawSize, int version) throws IOException {
       totalAdded++;
-      add(0, key, minTimestamp, maxTimestamp, minimumVisibility, data, offset, compressedSize, rawSize, false, version);
+      add(0, key, blockStats, offset, compressedSize, rawSize, false, version);
     }
     
-    public void addLast(Key key, long minTimestamp, long maxTimestamp, ColumnVisibility minimumVisibility, int data, long offset, long compressedSize, long rawSize, int version) throws IOException {
+    public void addLast(Key key, BlockStats blockStats, long offset, long compressedSize, long rawSize, int version) throws IOException {
       if (addedLast)
         throw new IllegalStateException("already added last");
       
       totalAdded++;
-      add(0, key, minTimestamp, maxTimestamp, minimumVisibility, data, offset, compressedSize, rawSize, true, version);
+      add(0, key, blockStats, offset, compressedSize, rawSize, true, version);
       addedLast = true;
       
     }
@@ -548,7 +513,7 @@ public class MultiLevelIndex {
       
       private final boolean checkFilterIndexEntry(IndexEntry ie) {
         if(timestampFilter == null)
-        if (timestampFilter != null && (ie.maxTimestamp < timestampFilter.startTimestamp || ie.minTimestamp > timestampFilter.endTimestamp)) {
+        if (timestampFilter != null && (ie.blockStats.maxTimestamp < timestampFilter.startTimestamp || ie.blockStats.minTimestamp > timestampFilter.endTimestamp)) {
           return false;
         }
         return true;
