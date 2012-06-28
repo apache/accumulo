@@ -107,7 +107,7 @@ public class ScannerOptions implements ScannerBase {
    */
   @Override
   public void setScanIterators(int priority, String iteratorClass, String iteratorName) {
-    addScanIterator(new IteratorSetting(priority, iteratorClass, iteratorName));
+    addScanIterator(new IteratorSetting(priority, iteratorName, iteratorClass));
   }
   
   /**
