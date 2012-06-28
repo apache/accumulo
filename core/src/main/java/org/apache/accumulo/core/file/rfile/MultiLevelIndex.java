@@ -39,6 +39,7 @@ import org.apache.accumulo.core.file.blockfile.ABlockWriter;
 import org.apache.accumulo.core.file.blockfile.BlockFileReader;
 import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
+import org.apache.accumulo.core.iterators.predicates.ColumnVisibilityPredicate;
 import org.apache.accumulo.core.iterators.predicates.TimestampRangePredicate;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.WritableComparable;
@@ -406,7 +407,7 @@ public class MultiLevelIndex {
       writer.close(out);
     }
   }
-
+  
   public static class Writer {
     private int threshold;
     
@@ -424,8 +425,7 @@ public class MultiLevelIndex {
       levels = new ArrayList<IndexBlock>();
     }
     
-    private void add(int level, Key key, BlockStats blockStats, long offset, long compressedSize, long rawSize, boolean last, int version)
-        throws IOException {
+    private void add(int level, Key key, BlockStats blockStats, long offset, long compressedSize, long rawSize, boolean last, int version) throws IOException {
       if (level == levels.size()) {
         levels.add(new IndexBlock(level, 0));
       }
@@ -443,7 +443,7 @@ public class MultiLevelIndex {
         iblock.write(out);
         out.close();
         
-        add(level + 1, key, blockStats, out.getStartPos(), out.getCompressedSize(), out.getRawSize(), last, version);
+        add(level + 1, key, iblock.blockStats, out.getStartPos(), out.getCompressedSize(), out.getRawSize(), last, version);
         
         if (last)
           levels.set(level, null);
@@ -501,9 +501,11 @@ public class MultiLevelIndex {
     class IndexIterator implements Iterator<IndexEntry> {
       private Stack<StackEntry> position = new Stack<StackEntry>();
       private final TimestampRangePredicate timestampFilter;
+      private final ColumnVisibilityPredicate columnVisibilityPredicate;
       
-      private IndexIterator(TimestampRangePredicate timestampFilter, Key lookupKey) {
+      private IndexIterator(TimestampRangePredicate timestampFilter, ColumnVisibilityPredicate columnVisibilityPredicate, Key lookupKey) {
         this.timestampFilter = timestampFilter;
+        this.columnVisibilityPredicate = columnVisibilityPredicate;
         try {
           seek(lookupKey);
         } catch (IOException e) {
@@ -512,10 +514,10 @@ public class MultiLevelIndex {
       }
       
       private final boolean checkFilterIndexEntry(IndexEntry ie) {
-        if(timestampFilter == null)
-        if (timestampFilter != null && (ie.blockStats.maxTimestamp < timestampFilter.startTimestamp || ie.blockStats.minTimestamp > timestampFilter.endTimestamp)) {
+        if(timestampFilter != null && (ie.blockStats.maxTimestamp < timestampFilter.startTimestamp || ie.blockStats.minTimestamp > timestampFilter.endTimestamp))
           return false;
-        }
+        if(columnVisibilityPredicate != null && ie.blockStats.minimumVisibility != null && ie.blockStats.minimumVisibility.evaluate(columnVisibilityPredicate.auths) == false)
+          return false;
         return true;
       }
       
@@ -532,7 +534,6 @@ public class MultiLevelIndex {
             }
           });
           
-          
           if (pos < 0) {
             pos = (pos * -1) - 1;
           } else if (pos < top.block.getKeyIndex().size()) {
@@ -542,14 +543,13 @@ public class MultiLevelIndex {
             }
           }
           
-
           IndexEntry ie = null;
           List<IndexEntry> index = top.block.getIndex();
           
-          if(pos > 0)
-          {
-            // look backwards to find any initial previousEntry that might match the timestamp range such that no entry within the given timestamp range is between the seeked key and the previousKey
-            previousEntry = index.get(pos-1);
+          if (pos > 0) {
+            // look backwards to find any initial previousEntry that might match the timestamp range such that no entry within the given timestamp range is
+            // between the seeked key and the previousKey
+            previousEntry = index.get(pos - 1);
             // TODO: find the offset for this block
             previousIndex = Integer.MIN_VALUE;
           }
@@ -561,7 +561,6 @@ public class MultiLevelIndex {
               break;
             pos++;
           }
-          
           
           if (pos == index.size()) {
             position.pop();
@@ -581,7 +580,6 @@ public class MultiLevelIndex {
       }
       
       private void goToNext() throws IOException {
-        int numSkippedBlocks = 0;
         // traverse the index tree forwards
         while (position.isEmpty() == false) {
           StackEntry top = position.peek();
@@ -590,7 +588,6 @@ public class MultiLevelIndex {
           while (top.offset < index.size()) {
             if (checkFilterIndexEntry(index.get(top.offset)))
               break;
-            numSkippedBlocks++;
             top.offset++;
           }
           if (top.offset == index.size()) {
@@ -651,8 +648,6 @@ public class MultiLevelIndex {
         return nextEntry;
       }
       
-      private int blocksReturned = 0;
-      
       public IndexEntry next() {
         prepNext();
         previousEntry = nextEntry;
@@ -697,7 +692,7 @@ public class MultiLevelIndex {
     }
     
     IndexIterator lookup(Key key) throws IOException {
-      return new IndexIterator(timestampRange, key);
+      return new IndexIterator(timestampRange, columnVisibilityPredicate, key);
     }
     
     public void readFields(DataInput in) throws IOException {
@@ -751,13 +746,19 @@ public class MultiLevelIndex {
       return rootBlock.getIndex().get(rootBlock.getIndex().size() - 1).getKey();
     }
     
-    TimestampRangePredicate timestampRange;
+    TimestampRangePredicate timestampRange = null;
     
     /**
      * @param r
      */
     public void setTimestampRange(TimestampRangePredicate r) {
       this.timestampRange = r;
+    }
+    
+    ColumnVisibilityPredicate columnVisibilityPredicate = null;
+    
+    public void setColumnVisibilityPredicate(ColumnVisibilityPredicate columnVisibilityPredicate) {
+      this.columnVisibilityPredicate = columnVisibilityPredicate;
     }
   }
   

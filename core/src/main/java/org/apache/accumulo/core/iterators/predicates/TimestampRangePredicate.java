@@ -51,4 +51,8 @@ public class TimestampRangePredicate implements Predicate<Key,Value> {
     return timestamp >= startTimestamp && timestamp <= endTimestamp;
   }
   
+  @Override
+  public String toString() {
+    return "{"+startTimestamp+"-"+endTimestamp+"}";
+  }
 }

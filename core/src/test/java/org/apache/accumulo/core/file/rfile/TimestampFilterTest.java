@@ -46,7 +46,7 @@ public class TimestampFilterTest {
   @Test
   public void testRFileTimestampFiltering() throws Exception {
     // TODO create an RFile with increasing timestamp and random key order
-    Predicate<Key,Value> timeRange = new TimestampRangePredicate(100, 110);
+    Predicate<Key,Value> timeRange = new TimestampRangePredicate(73, 117);
     int expected = 0;
     Random r = new Random();
     Configuration conf = new Configuration();

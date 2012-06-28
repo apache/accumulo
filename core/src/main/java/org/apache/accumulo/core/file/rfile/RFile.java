@@ -61,6 +61,7 @@ import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.Predicate;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.predicates.ColumnVisibilityPredicate;
 import org.apache.accumulo.core.iterators.predicates.TimestampRangePredicate;
 import org.apache.accumulo.core.iterators.system.HeapIterator;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -776,6 +777,7 @@ public class RFile {
     }
     
     private TimestampRangePredicate timestampRange;
+    private ColumnVisibilityPredicate columnVisibilityPredicate;
     private boolean filterChanged = false;
 
     /* (non-Javadoc)
@@ -794,6 +796,12 @@ public class RFile {
         else
           timestampRange = p;
         index.setTimestampRange(timestampRange);
+      }
+      else if(filter instanceof ColumnVisibilityPredicate)
+      {
+    	  filterChanged = true;
+    	  columnVisibilityPredicate = (ColumnVisibilityPredicate)filter;
+    	  index.setColumnVisibilityPredicate(columnVisibilityPredicate);
       }
       else
       {
