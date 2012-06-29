@@ -27,7 +27,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filterer;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.Predicate;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
@@ -37,7 +39,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  * 
  */
 
-public class MultiIterator extends HeapIterator {
+public class MultiIterator extends HeapIterator implements Filterer<Key,Value> {
   
   private List<SortedKeyValueIterator<Key,Value>> iters;
   private Range fence;
@@ -110,5 +112,16 @@ public class MultiIterator extends HeapIterator {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     throw new UnsupportedOperationException();
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Override
+  public void applyFilter(Predicate<Key,Value> filter, boolean required) {
+    for(SortedKeyValueIterator<Key,Value> skvi: iters) {
+      if(skvi instanceof Filterer)
+        ((Filterer<Key,Value>)skvi).applyFilter(filter, required);
+      else if(required)
+        throw new IllegalArgumentException("Cannot require filter of underlying iterator");
+    }
   }
 }

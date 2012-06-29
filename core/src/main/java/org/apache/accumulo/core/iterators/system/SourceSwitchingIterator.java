@@ -20,8 +20,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -29,10 +31,12 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filterer;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.Predicate;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value>, InterruptibleIterator {
+public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value>, InterruptibleIterator, Filterer<Key,Value> {
   
   public interface DataSource {
     boolean isCurrent();
@@ -144,6 +148,7 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
     while (!source.isCurrent()) {
       source = source.getNewDataSource();
       iter = source.iterator();
+      applyExistingFilters();
       if (iflag != null)
         ((InterruptibleIterator) iter).setInterruptFlag(iflag);
       
@@ -161,6 +166,7 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
     
     if (iter == null) {
       iter = source.iterator();
+      applyExistingFilters();
       if (iflag != null)
         ((InterruptibleIterator) iter).setInterruptFlag(iflag);
     }
@@ -197,4 +203,31 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
     
   }
   
+  private Map<Predicate<Key,Value>,Boolean> filters = new HashMap<Predicate<Key,Value>,Boolean>();
+  
+  private void applyExistingFilters()
+  {
+    for(Entry<Predicate<Key,Value>,Boolean> filter:filters.entrySet())
+    {
+      _applyFilter(filter.getKey(), filter.getValue());
+    }
+  }
+  
+  @SuppressWarnings("unchecked")
+  private void _applyFilter(Predicate<Key,Value> filter, boolean required)
+  {
+    if(iter != null && iter instanceof Filterer)
+      ((Filterer<Key,Value>)iter).applyFilter(filter, required);
+    else if(iter != null && required)
+      throw new IllegalArgumentException("Cannot require filter of underlying iterator");
+  }
+  
+  @Override
+  public void applyFilter(Predicate<Key,Value> filter, boolean required) {
+    // apply filter to the current data source
+    _applyFilter(filter,required);
+    // save filter for application to future data sources
+    filters.put(filter, required);
+  }
+
 }

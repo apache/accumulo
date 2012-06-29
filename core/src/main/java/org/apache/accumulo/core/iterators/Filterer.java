@@ -17,8 +17,15 @@
 package org.apache.accumulo.core.iterators;
 
 /**
- * 
+ * An interface designed to be added to containers to specify what
+ * can be left out when iterating over the contents of that container.
  */
 public interface Filterer<K,V> {
-  public void applyFilter(Predicate<K,V> filter);
+  /**
+   * Either optionally or always leave out entries for which the given Predicate evaluates to false 
+   * @param filter The predicate that specifies whether an entry can be left out
+   * @param required If true, entries that don't pass the filter must be left out. If false, then treat
+   *          purely as a potential optimization.
+   */
+  public void applyFilter(Predicate<K,V> filter, boolean required);
 }

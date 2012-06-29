@@ -784,7 +784,9 @@ public class RFile {
      * @see org.apache.accumulo.core.iterators.Filterer#applyFilter(org.apache.accumulo.core.iterators.Predicate)
      */
     @Override
-    public void applyFilter(Predicate<Key,Value> filter) {
+    public void applyFilter(Predicate<Key,Value> filter, boolean required) {
+      if(required)
+        throw new UnsupportedOperationException("Cannot guarantee filtration");
       // TODO support general filters
       if(filter instanceof TimestampRangePredicate)
       {
@@ -797,15 +799,11 @@ public class RFile {
           timestampRange = p;
         index.setTimestampRange(timestampRange);
       }
-      else if(filter instanceof ColumnVisibilityPredicate)
+      if(filter instanceof ColumnVisibilityPredicate)
       {
     	  filterChanged = true;
     	  columnVisibilityPredicate = (ColumnVisibilityPredicate)filter;
     	  index.setColumnVisibilityPredicate(columnVisibilityPredicate);
-      }
-      else
-      {
-        throw new RuntimeException("yikes, not yet implemented");
       }
     }
   }
@@ -1042,7 +1040,9 @@ public class RFile {
         
         if (include) {
           if(timestampFilter != null)
-            lgr.applyFilter(timestampFilter);
+            lgr.applyFilter(timestampFilter,false);
+          if(columnVisibilityPredicate != null)
+            lgr.applyFilter(columnVisibilityPredicate,false);
           lgr.seek(range, EMPTY_CF_SET, false);
           addSource(lgr);
           numLGSeeked++;
@@ -1093,6 +1093,7 @@ public class RFile {
     ArrayList<Predicate<Key,Value>> filters = new ArrayList<Predicate<Key,Value>>();
     
     TimestampRangePredicate timestampFilter = null;
+    ColumnVisibilityPredicate columnVisibilityPredicate = null;
     
     Key topKey;
     Value topValue;
@@ -1171,11 +1172,14 @@ public class RFile {
      * @see org.apache.accumulo.core.iterators.Filterer#applyFilter(org.apache.accumulo.core.iterators.Predicate)
      */
     @Override
-    public void applyFilter(Predicate<Key,Value> filter) {
-      filters.add(filter);
+    public void applyFilter(Predicate<Key,Value> filter, boolean required) {
+      if(required)
+        filters.add(filter);
       // the HeapIterator will pass this filter on to its children, a collection of LocalityGroupReaders
       if(filter instanceof TimestampRangePredicate)
         this.timestampFilter = (TimestampRangePredicate)filter;
+      if(filter instanceof ColumnVisibilityPredicate)
+        this.columnVisibilityPredicate = (ColumnVisibilityPredicate)filter;
     }
   }
   

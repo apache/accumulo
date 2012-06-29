@@ -22,7 +22,9 @@ import java.util.Map;
 
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.iterators.Filterer;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.Predicate;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
@@ -30,7 +32,7 @@ import org.apache.hadoop.io.WritableComparable;
 /***
  * SynchronizedIterator: wrap a SortedKeyValueIterator so that all of its methods are synchronized
  */
-public class SynchronizedIterator<K extends WritableComparable<?>,V extends Writable> implements SortedKeyValueIterator<K,V> {
+public class SynchronizedIterator<K extends WritableComparable<?>,V extends Writable> implements SortedKeyValueIterator<K,V>, Filterer<K,V> {
   
   private SortedKeyValueIterator<K,V> source = null;
   
@@ -74,5 +76,14 @@ public class SynchronizedIterator<K extends WritableComparable<?>,V extends Writ
   
   public SynchronizedIterator(SortedKeyValueIterator<K,V> source) {
     this.source = source;
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void applyFilter(Predicate<K,V> filter, boolean required) {
+    if(source instanceof Filterer)
+      ((Filterer<K,V>)source).applyFilter(filter, required);
+    else if(required)
+      throw new IllegalArgumentException("cannot guarantee filter with non filterer source");
   }
 }

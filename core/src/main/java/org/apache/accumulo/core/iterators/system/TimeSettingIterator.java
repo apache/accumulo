@@ -25,11 +25,13 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filterer;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.Predicate;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
-public class TimeSettingIterator implements InterruptibleIterator {
+public class TimeSettingIterator implements InterruptibleIterator, Filterer<Key,Value> {
   
   private SortedKeyValueIterator<Key,Value> source;
   private long time;
@@ -87,6 +89,15 @@ public class TimeSettingIterator implements InterruptibleIterator {
   @Override
   public Value getTopValue() {
     return source.getTopValue();
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void applyFilter(Predicate<Key,Value> filter, boolean required) {
+    if(source instanceof Filterer)
+      ((Filterer<Key,Value>)source).applyFilter(filter, required);
+    else if(required)
+      throw new IllegalArgumentException("cannot guarantee filter with non filterer source");
   }
   
 }

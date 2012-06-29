@@ -32,8 +32,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFileTest.SeekableByteArrayInputStream;
 import org.apache.accumulo.core.iterators.Predicate;
+import org.apache.accumulo.core.iterators.predicates.ColumnVisibilityPredicate;
 import org.apache.accumulo.core.iterators.predicates.TimestampRangePredicate;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -41,11 +43,12 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.junit.Test;
 
-public class TimestampFilterTest {
+public class AuthorizationFilterTest {
   
   @Test
-  public void testRFileTimestampFiltering() throws Exception {
-    Predicate<Key,Value> timeRange = new TimestampRangePredicate(73, 117);
+  public void testRFileAuthorizationFiltering() throws Exception {
+    Authorizations auths = new Authorizations("a", "b", "c");
+    Predicate<Key,Value> columnVisibilityPredicate = new ColumnVisibilityPredicate(auths);
     int expected = 0;
     Random r = new Random();
     Configuration conf = new Configuration();
@@ -54,44 +57,53 @@ public class TimestampFilterTest {
     CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(dos, "gz", conf);
     RFile.Writer writer = new RFile.Writer(_cbw, 1000, 1000);
     writer.startDefaultLocalityGroup();
-    byte [] row = new byte[10];
-    byte [] colFam = new byte[10];
-    byte [] colQual = new byte[10];
+    byte[] row = new byte[10];
+    byte[] colFam = new byte[10];
+    byte[] colQual = new byte[10];
     Value value = new Value(new byte[0]);
-    byte [] colVis = new byte[0];
     TreeMap<Key,Value> inputBuffer = new TreeMap<Key,Value>();
-    for(int i = 0; i < 100000; i++)
-    {
-      r.nextBytes(row);
-      r.nextBytes(colFam);
-      r.nextBytes(colQual);
-      Key k = new Key(row,colFam,colQual,colVis,(long)i);
-      if(timeRange.evaluate(k, value))
-        expected++;
-      inputBuffer.put(k, value);
-    }
-    for(Entry<Key,Value> e:inputBuffer.entrySet())
-    {
+    ColumnVisibility[] goodColVises = {new ColumnVisibility("a&b"), new ColumnVisibility("b&c"), new ColumnVisibility("a&c")};
+    ColumnVisibility[] badColVises = {new ColumnVisibility("x"), new ColumnVisibility("y"), new ColumnVisibility("a&z")};
+    for (ColumnVisibility colVis : goodColVises)
+      for (int i = 0; i < 10; i++) {
+        r.nextBytes(row);
+        r.nextBytes(colFam);
+        r.nextBytes(colQual);
+        Key k = new Key(row, colFam, colQual, colVis.getExpression(), (long) i);
+        if (columnVisibilityPredicate.evaluate(k, value))
+          expected++;
+        inputBuffer.put(k, value);
+      }
+    for (ColumnVisibility colVis : badColVises)
+      for (int i = 0; i < 10000; i++) {
+        r.nextBytes(row);
+        r.nextBytes(colFam);
+        r.nextBytes(colQual);
+        Key k = new Key(row, colFam, colQual, colVis.getExpression(), (long) i);
+        if (columnVisibilityPredicate.evaluate(k, value))
+          expected++;
+        inputBuffer.put(k, value);
+      }
+    for (Entry<Key,Value> e : inputBuffer.entrySet()) {
       writer.append(e.getKey(), e.getValue());
     }
     writer.close();
-
+    
     // scan the RFile to bring back keys in a given timestamp range
     byte[] data = baos.toByteArray();
+    
     ByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in = new FSDataInputStream(bais);
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, data.length, conf);
     RFile.Reader reader = new RFile.Reader(_cbr);
     int count = 0;
-    reader.applyFilter(timeRange,true);
+    reader.applyFilter(columnVisibilityPredicate,true);
     reader.seek(new Range(), Collections.EMPTY_SET, false);
-    while(reader.hasTop())
-    {
+    while (reader.hasTop()) {
       count++;
-      assertTrue(timeRange.evaluate(reader.getTopKey(),reader.getTopValue()));
+      assertTrue(columnVisibilityPredicate.evaluate(reader.getTopKey(), reader.getTopValue()));
       reader.next();
     }
     assertEquals(expected, count);
   }
-  
 }
