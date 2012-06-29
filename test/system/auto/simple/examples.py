@@ -78,14 +78,14 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                      'dataTable',
                      visibility,
                      100000,
-                     ACCUMULO_HOME+"/server")
+                     ACCUMULO_HOME+"/fate")
         self.comment("  searching for a file")
         handle = self.runOn('localhost', [self.accumulo_sh(), 'org.apache.accumulo.examples.simple.dirlist.QueryUtil',
                                           INSTANCE_NAME, ZOOKEEPERS, ROOT, ROOT_PASSWORD,
                                           'indexTable', auths, 'Fate.java', '-search'])
         out, err = handle.communicate()
         self.assert_(handle.returncode == 0)
-        self.assert_(out.find('accumulo/server/fate/Fate.java') >= 0)
+        self.assert_(out.find('accumulo/fate/Fate.java') >= 0)
         self.comment("  found file at " + out)
 
     

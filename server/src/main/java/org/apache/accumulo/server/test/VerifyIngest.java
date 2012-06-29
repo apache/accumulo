@@ -33,7 +33,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.zookeeper.ZooReader;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.test.TestIngest.IngestArgs;
 import org.apache.hadoop.io.Text;
@@ -60,7 +60,7 @@ public class VerifyIngest {
     try {
       if (ingestArgs.trace) {
         String name = VerifyIngest.class.getSimpleName();
-        DistributedTrace.enable(instance, new ZooReader(instance), name, null);
+        DistributedTrace.enable(instance, new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), name, null);
         Trace.on(name);
         Trace.currentTrace().data("cmdLine", Arrays.asList(args).toString());
       }

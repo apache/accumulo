@@ -14,23 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.fate;
+package org.apache.accumulo.fate.util;
 
-import java.io.Serializable;
+import org.apache.log4j.Logger;
 
-/**
- * Repeatable persisted operation
- * 
- */
-public interface Repo<T> extends Serializable {
-  long isReady(long tid, T environment) throws Exception;
+public class UtilWaitThread {
+  private static final Logger log = Logger.getLogger(UtilWaitThread.class);
   
-  Repo<T> call(long tid, T environment) throws Exception;
-  
-  void undo(long tid, T environment) throws Exception;
-  
-  String getDescription();
-  
-  // this allows the last fate op to return something to the user
-  String getReturn();
+  public static void sleep(long millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException e) {
+      log.error(e.getMessage(), e);
+    }
+  }
 }

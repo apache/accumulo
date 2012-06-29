@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.zookeeper;
+package org.apache.accumulo.fate.zookeeper;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.log4j.Logger;
 

@@ -20,7 +20,7 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.server.fate.Repo;
+import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.trace.TraceFileSystem;

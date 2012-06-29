@@ -19,7 +19,7 @@ package org.apache.accumulo.server.util;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 
-import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.Level;

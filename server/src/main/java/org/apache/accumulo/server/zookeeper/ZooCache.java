@@ -20,7 +20,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.zookeeper.Watcher;
 
-public class ZooCache extends org.apache.accumulo.core.zookeeper.ZooCache {
+public class ZooCache extends org.apache.accumulo.fate.zookeeper.ZooCache {
   public ZooCache() {
     this(null);
   }

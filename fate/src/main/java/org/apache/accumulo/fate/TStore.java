@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.fate;
+package org.apache.accumulo.fate;
 
 import java.io.Serializable;
 import java.util.EnumSet;

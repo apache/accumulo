@@ -45,7 +45,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.zookeeper.ZooReader;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
@@ -256,7 +256,7 @@ public class TestIngest {
     try {
       if (ingestArgs.trace) {
         String name = TestIngest.class.getSimpleName();
-        DistributedTrace.enable(instance, new ZooReader(instance), name, null);
+        DistributedTrace.enable(instance, new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), name, null);
         Trace.on(name);
         Trace.currentTrace().data("cmdLine", Arrays.asList(args).toString());
       }

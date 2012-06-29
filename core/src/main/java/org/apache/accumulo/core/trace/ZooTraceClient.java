@@ -23,7 +23,7 @@ import java.util.Map;
 import java.util.Random;
 
 import org.apache.accumulo.cloudtrace.instrument.receivers.SendSpansViaThrift;
-import org.apache.accumulo.core.zookeeper.ZooReader;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;

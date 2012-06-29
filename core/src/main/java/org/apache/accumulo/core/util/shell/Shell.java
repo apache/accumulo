@@ -129,7 +129,7 @@ import org.apache.accumulo.core.util.shell.commands.UserCommand;
 import org.apache.accumulo.core.util.shell.commands.UserPermissionsCommand;
 import org.apache.accumulo.core.util.shell.commands.UsersCommand;
 import org.apache.accumulo.core.util.shell.commands.WhoAmICommand;
-import org.apache.accumulo.core.zookeeper.ZooReader;
+import org.apache.accumulo.fate.zookeeper.ZooReader;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
@@ -245,7 +245,8 @@ public class Shell extends ShellOptions {
     byte[] pass;
     try {
       if (!cl.hasOption(fakeOption.getLongOpt())) {
-        DistributedTrace.enable(instance, new ZooReader(instance), "shell", InetAddress.getLocalHost().getHostName());
+        DistributedTrace.enable(instance, new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), "shell", InetAddress.getLocalHost()
+            .getHostName());
       }
       
       Runtime.getRuntime().addShutdownHook(new Thread() {

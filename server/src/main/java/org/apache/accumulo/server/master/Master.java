@@ -87,13 +87,17 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.fate.Fate;
+import org.apache.accumulo.fate.TStore.TStatus;
+import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ZooLock.LockWatcher;
+import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.Accumulo;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.server.fate.Fate;
-import org.apache.accumulo.server.fate.TStore.TStatus;
 import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.balancer.DefaultLoadBalancer;
@@ -146,12 +150,8 @@ import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TablePropUtil;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.accumulo.server.zookeeper.ZooLock.LockLossReason;
-import org.apache.accumulo.server.zookeeper.ZooLock.LockWatcher;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.server.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -1652,7 +1652,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           }
         }
         
-        if (maxLogicalTime != null) ColumnFQ.put(m, Constants.METADATA_TIME_COLUMN, new Value(maxLogicalTime.getBytes()));
+        if (maxLogicalTime != null)
+          ColumnFQ.put(m, Constants.METADATA_TIME_COLUMN, new Value(maxLogicalTime.getBytes()));
         
         if (!m.getUpdates().isEmpty()) {
           bw.addMutation(m);
@@ -1684,11 +1685,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       } catch (Exception ex) {
         throw new AccumuloException(ex);
       } finally {
-        if (bw != null) try {
-          bw.close();
-        } catch (Exception ex) {
-          throw new AccumuloException(ex);
-        }
+        if (bw != null)
+          try {
+            bw.close();
+          } catch (Exception ex) {
+            throw new AccumuloException(ex);
+          }
       }
     }
 
@@ -2068,7 +2070,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     
     // TODO: add shutdown for fate object
     try {
-      fate = new Fate<Master>(this, new org.apache.accumulo.server.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
+      fate = new Fate<Master>(this, new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
           ZooReaderWriter.getRetryingInstance()), 4);
     } catch (KeeperException e) {
       throw new IOException(e);
