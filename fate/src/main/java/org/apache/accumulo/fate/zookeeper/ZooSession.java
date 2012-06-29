@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.zookeeper;
+package org.apache.accumulo.fate.zookeeper;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -37,7 +37,7 @@ class ZooSession {
   private static final Logger log = Logger.getLogger(ZooSession.class);
   
   private static class ZooSessionInfo {
-    public ZooSessionInfo(ZooKeeper zooKeeper, AccumuloWatcher watcher) {
+    public ZooSessionInfo(ZooKeeper zooKeeper, ZooWatcher watcher) {
       this.zooKeeper = zooKeeper;
     }
     
@@ -50,7 +50,7 @@ class ZooSession {
     return keepers + ":" + timeout + ":" + (auth == null ? "" : auth);
   }
   
-  private static class AccumuloWatcher implements Watcher {
+  private static class ZooWatcher implements Watcher {
     
     private HashSet<Watcher> watchers = new HashSet<Watcher>();
     
@@ -135,7 +135,7 @@ class ZooSession {
     }
     
     if (zsi == null) {
-      AccumuloWatcher watcher = new AccumuloWatcher();
+      ZooWatcher watcher = new ZooWatcher();
       log.debug("Connecting to " + zooKeepers + " with timeout " + timeout + " with auth");
       zsi = new ZooSessionInfo(connect(zooKeepers, timeout, auth, watcher), watcher);
       sessions.put(sessionKey, zsi);

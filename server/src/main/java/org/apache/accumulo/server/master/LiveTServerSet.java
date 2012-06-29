@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.master;
 
-import static org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy.SKIP;
+import static org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy.SKIP;
 
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;

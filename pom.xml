@@ -48,6 +48,7 @@
   <modules>
     <module>trace</module>
     <module>core</module>
+    <module>fate</module>
     <module>server</module>
     <module>start</module>
     <module>examples</module>
@@ -524,6 +525,11 @@
       <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>cloudtrace</artifactId>
+        <version>1.5.0-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-fate</artifactId>
         <version>1.5.0-SNAPSHOT</version>
       </dependency>
       <dependency>

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.fate;
+package org.apache.accumulo.fate;
 
 public class StackOverflowException extends Exception {
   

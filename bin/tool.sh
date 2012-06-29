@@ -33,6 +33,7 @@ LIB=$ACCUMULO_HOME/lib
 
 ZOOKEEPER_CMD='ls -1 $ZOOKEEPER_HOME/zookeeper-[0-9]*[^csn].jar '
 CORE_CMD='ls -1 $LIB/accumulo-core-*[^cs].jar'
+FATE_CMD='ls -1 $LIB/accumulo-fate-*[^cs].jar'
 THRIFT_CMD='ls -1 $LIB/libthrift-*[^cs].jar'
 CLOUDTRACE_CMD='ls -1 $LIB/cloudtrace-*[^cs].jar'
 
@@ -43,6 +44,11 @@ fi
 
 if [ `eval $CORE_CMD | wc -l` != "1" ] ; then
     echo "Not exactly one accumulo-core jar in $LIB"
+    exit 1
+fi
+
+if [ `eval $FATE_CMD | wc -l` != "1" ] ; then
+    echo "Not exactly one accumulo-fate jar in $LIB"
     exit 1
 fi
 
@@ -58,6 +64,7 @@ fi
 
 ZOOKEEPER_LIB=`eval $ZOOKEEPER_CMD`
 CORE_LIB=`eval $CORE_CMD`
+FATE_LIB=`eval $FATE_CMD`
 THRIFT_LIB=`eval $THRIFT_CMD`
 CLOUDTRACE_LIB=`eval $CLOUDTRACE_CMD`
 
@@ -80,8 +87,8 @@ for arg in "$@"; do
   fi
 done
 
-LIB_JARS="$THRIFT_LIB,$CORE_LIB,$ZOOKEEPER_LIB,$CLOUDTRACE_LIB"
-H_JARS="$THRIFT_LIB:$CORE_LIB:$ZOOKEEPER_LIB:$CLOUDTRACE_LIB:"
+LIB_JARS="$THRIFT_LIB,$CORE_LIB,$FATE_LIB,$ZOOKEEPER_LIB,$CLOUDTRACE_LIB"
+H_JARS="$THRIFT_LIB:$CORE_LIB:$FATE_LIB:$ZOOKEEPER_LIB:$CLOUDTRACE_LIB:"
 
 COMMONS_LIBS=`ls -1 $LIB/commons-*.jar`
 for jar in $USERJARS $COMMONS_LIBS; do

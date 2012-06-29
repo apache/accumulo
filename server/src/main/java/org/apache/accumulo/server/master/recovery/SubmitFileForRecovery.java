@@ -20,8 +20,8 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.server.fate.Repo;
+import org.apache.accumulo.fate.Repo;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.tableOps.MasterRepo;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;

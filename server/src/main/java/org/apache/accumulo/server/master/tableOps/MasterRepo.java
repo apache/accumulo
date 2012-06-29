@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.master.tableOps;
 
-import org.apache.accumulo.server.fate.Repo;
+import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.server.master.Master;
 import org.apache.log4j.Logger;
 
