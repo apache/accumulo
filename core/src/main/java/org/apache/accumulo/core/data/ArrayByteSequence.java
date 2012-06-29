@@ -16,8 +16,12 @@
  */
 package org.apache.accumulo.core.data;
 
-public class ArrayByteSequence extends ByteSequence {
+import java.io.Serializable;
+
+public class ArrayByteSequence extends ByteSequence implements Serializable {
   
+  private static final long serialVersionUID = 1L;
+
   protected byte data[];
   protected int offset;
   protected int length;

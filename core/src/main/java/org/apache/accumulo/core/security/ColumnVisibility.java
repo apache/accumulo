@@ -94,7 +94,7 @@ public class ColumnVisibility {
     
     byte[] text;
     
-    NodeComparator(byte[] text) {
+    public NodeComparator(byte[] text) {
       this.text = text;
     }
     
