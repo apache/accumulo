@@ -1,3 +1,36 @@
+Release notes for Apache Accumulo 1.3.6
+
+ACCUMULO-661  Typo in user manual for 1.3 on aggregating iterators 
+ACCUMULO-619  ageoff functional test fails 
+ACCUMULO-615  accumulo runs fine on Hadoop 1.0 
+ACCUMULO-567  TableOperations.getProperties forces an HDFSZooInstance even if ZooKeeperInstance is used 
+ACCUMULO-563  automated the install of thrift-0.3 jar into local repository 
+ACCUMULO-559  enabling tracing in clients requires access to an accumulo-site.xml configuration file 
+ACCUMULO-554  monitor should display red when time-since last report is higher than a few minutes 
+ACCUMULO-542  with a large root tablet, tablet servers will get stuck loading other metadata tablets 
+ACCUMULO-530  master is not reseting connections to tservers after communication errors 
+ACCUMULO-529  migrations to unresponsive tablet server cancelled for the wrong reason 
+ACCUMULO-499  Garbage collector should call Tracer.offNoFlush instead of Tracer.off 
+ACCUMULO-486  tablet server runs out of memory after 8 hours of continuous ingest 
+ACCUMULO-444  Data loss possible when tablet killed immediately after recovery 
+ACCUMULO-413  DeleteMany breaks with aggregators/combiners 
+ACCUMULO-395  Map reduce reading from Accumulo is not running mapper locally  
+ACCUMULO-293  Inconsistency check failure should not stop a tablet from unloading
+ACCUMULO-291  Iterator attachment and removal should be more atomic 
+ACCUMULO-268  document trace username and password 
+ACCUMULO-253  Documentation for 1.3 mis-identifies Authorizations() constructor. 
+ACCUMULO-237  tup.sh script can run out of file descriptors on large numbers of nodes 
+ACCUMULO-236  shutdown is very slow after all tservers are down 
+ACCUMULO-234  start-here.sh doesn't SetGoalState 
+ACCUMULO-232  NPE when doing shell "config" command 
+ACCUMULO-223  getBatchScanner java docs are wrong 
+ACCUMULO-219  eclipse is getting an NPE when using M2E to look at the pom.xml 
+ACCUMULO-207  properly generate the native code headers 
+ACCUMULO-202  master does not rebalance after a node fails 
+ACCUMULO-182  documented the need to create the write-ahead logs directory  
+ACCUMULO-178  Off-by-one error in FamilyIntersectingIterator 
+ACCUMULO-166  user manual font encoding breaks on some systems 
+
 Release notes for Apache Accumulo 1.3.5
 
 Fixed prior to incubation:
