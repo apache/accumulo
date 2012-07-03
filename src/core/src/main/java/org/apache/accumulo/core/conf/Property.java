@@ -153,7 +153,9 @@ public enum Property {
   TSERV_HOLD_TIME_SUICIDE("tserver.hold.time.max", "5m", PropertyType.TIMEDURATION,
       "The maximum time for a tablet server to be in the \"memory full\" state.  If the tablet server cannot write out memory"
           + " in this much time, it will assume there is some failure local to its node, and quit.  A value of zero is equivalent to forever."),
-  
+  TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
+      "The number of threads for the distributed workq.  These threads are used for copying failed bulk files."),
+
   // properties that are specific to logger server behavior
   LOGGER_PREFIX("logger.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the write-ahead logger servers"),
   LOGGER_PORT("logger.port.client", "11224", PropertyType.PORT, "The port used for write-ahead logger services"),
