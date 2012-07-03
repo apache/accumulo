@@ -48,6 +48,8 @@ public interface IZooReaderWriter extends IZooReader {
   
   public abstract String putEphemeralSequential(String zPath, byte[] data) throws KeeperException, InterruptedException;
   
+  public String putEphemeralData(String zPath, byte[] data) throws KeeperException, InterruptedException;
+
   public abstract void recursiveCopyPersistent(String source, String destination, NodeExistsPolicy policy) throws KeeperException, InterruptedException;
   
   public abstract void delete(String path, int version) throws InterruptedException, KeeperException;

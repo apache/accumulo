@@ -211,6 +211,10 @@ public class ZooUtil {
     return zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.PERSISTENT_SEQUENTIAL);
   }
   
+  public static String putEphemeralData(ZooKeeper zk, String zPath, byte[] data) throws KeeperException, InterruptedException {
+    return zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL);
+  }
+
   public static String putEphemeralSequential(ZooKeeper zk, String zPath, byte[] data) throws KeeperException, InterruptedException {
     return zk.create(zPath, data, ZooUtil.PUBLIC, CreateMode.EPHEMERAL_SEQUENTIAL);
   }

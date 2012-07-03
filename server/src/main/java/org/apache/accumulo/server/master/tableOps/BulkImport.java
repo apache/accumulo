@@ -16,13 +16,19 @@
  */
 package org.apache.accumulo.server.master.tableOps;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -33,6 +39,8 @@ import org.apache.accumulo.cloudtrace.instrument.TraceExecutorService;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.IsolatedScanner;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
@@ -42,10 +50,12 @@ import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -58,14 +68,16 @@ import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.tabletserver.UniqueNameAllocator;
-import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.MetadataTable;
+import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.MapFile;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
@@ -133,9 +145,8 @@ public class BulkImport extends MasterRepo {
     Utils.getReadLock(tableId, tid).lock();
     
     // check that the error directory exists and is empty
-    FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.FileUtil.getFileSystem(CachedConfiguration.getInstance(),
-        ServerConfiguration.getSiteConfiguration()));
-    ;
+    FileSystem fs = master.getFileSystem();
+
     Path errorPath = new Path(errorDir);
     FileStatus errorStatus = fs.getFileStatus(errorPath);
     if (errorStatus == null)
@@ -273,24 +284,6 @@ class CleanUpBulkImport extends MasterRepo {
   }
   
   @Override
-  public long isReady(long tid, Master master) throws Exception {
-    Set<TServerInstance> finished = new HashSet<TServerInstance>();
-    Set<TServerInstance> running = master.onlineTabletServers();
-    for (TServerInstance server : running) {
-      try {
-        TServerConnection client = master.getConnection(server);
-        if (client != null && !client.isActive(tid))
-          finished.add(server);
-      } catch (TException ex) {
-        log.info("Ignoring error trying to check on tid " + tid + " from server " + server + ": " + ex);
-      }
-    }
-    if (finished.containsAll(running))
-      return 0;
-    return 1000;
-  }
-  
-  @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.debug("removing the bulk processing flag file in " + bulk);
     Path bulkDir = new Path(bulk);
@@ -327,8 +320,124 @@ class CompleteBulkImport extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     ZooArbitrator.stop(Constants.BULK_ARBITRATOR_TYPE, tid);
+    return new CopyFailed(tableId, source, bulk, error);
+  }
+}
+
+class CopyFailed extends MasterRepo {
+  
+  private static final long serialVersionUID = 1L;
+
+  private String tableId;
+  private String source;
+  private String bulk;
+  private String error;
+  
+  public CopyFailed(String tableId, String source, String bulk, String error) {
+    this.tableId = tableId;
+    this.source = source;
+    this.bulk = bulk;
+    this.error = error;
+  }
+  
+  @Override
+  public long isReady(long tid, Master master) throws Exception {
+    Set<TServerInstance> finished = new HashSet<TServerInstance>();
+    Set<TServerInstance> running = master.onlineTabletServers();
+    for (TServerInstance server : running) {
+      try {
+        TServerConnection client = master.getConnection(server);
+        if (client != null && !client.isActive(tid))
+          finished.add(server);
+      } catch (TException ex) {
+        log.info("Ignoring error trying to check on tid " + tid + " from server " + server + ": " + ex);
+      }
+    }
+    if (finished.containsAll(running))
+      return 0;
+    return 500;
+  }
+  
+  @Override
+  public Repo<Master> call(long tid, Master environment) throws Exception {
+	//This needs to execute after the arbiter is stopped  
+	  
+    FileSystem fs = environment.getFileSystem();
+	  
+    if (!fs.exists(new Path(error, "failures.txt")))
+      return new CleanUpBulkImport(tableId, source, bulk, error);
+    
+    HashMap<String,String> failures = new HashMap<String,String>();
+    HashMap<String,String> loadedFailures = new HashMap<String,String>();
+    
+    FSDataInputStream failFile = fs.open(new Path(error, "failures.txt"));
+    BufferedReader in = new BufferedReader(new InputStreamReader(failFile));
+    try {
+      String line = null;
+      while ((line = in.readLine()) != null) {
+        Path path = new Path(line);
+        if (!fs.exists(new Path(error, path.getName())))
+          failures.put("/" + path.getParent().getName() + "/" + path.getName(), line);
+      }
+    } finally {
+      failFile.close();
+    }
+    
+    /*
+     * I thought I could move files that have no file references in the table. However its possible a clone references a file. Therefore only move files that
+     * have no loaded markers.
+     */
+
+    // determine which failed files were loaded
+    AuthInfo creds = SecurityConstants.getSystemCredentials();
+    Connector conn = HdfsZooInstance.getInstance().getConnector(creds.user, creds.password);
+    Scanner mscanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
+    mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
+    mscanner.fetchColumnFamily(Constants.METADATA_BULKFILE_COLUMN_FAMILY);
+    
+    for (Entry<Key,Value> entry : mscanner) {
+      if (Long.parseLong(entry.getValue().toString()) == tid) {
+        String loadedFile = entry.getKey().getColumnQualifierData().toString();
+        String absPath = failures.remove(loadedFile);
+        if (absPath != null) {
+          loadedFailures.put(loadedFile, absPath);
+        }
+      }
+    }
+    
+    // move failed files that were not loaded
+    for (String failure : failures.values()) {
+      Path orig = new Path(failure);
+      Path dest = new Path(error, orig.getName());
+      fs.rename(orig, dest);
+      log.debug("tid " + tid + " renamed " + orig + " to " + dest + ": failed");
+    }
+    
+    if (loadedFailures.size() > 0) {
+      DistributedWorkQueue bifCopyQueue = new DistributedWorkQueue(Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID()
+          + Constants.ZBULK_FAILED_COPYQ);
+      
+      HashSet<String> workIds = new HashSet<String>();
+      
+      for (String failure : loadedFailures.values()) {
+        Path orig = new Path(failure);
+        Path dest = new Path(error, orig.getName());
+        
+        if (fs.exists(dest))
+          continue;
+        
+        bifCopyQueue.addWork(orig.getName(), (failure + "," + dest).getBytes());
+        workIds.add(orig.getName());
+        log.debug("tid " + tid + " added to copyq: " + orig + " to " + dest + ": failed");
+      }
+      
+      bifCopyQueue.waitUntilDone(workIds);
+    }
+
+    fs.delete(new Path(error, "failures.txt"), true);
     return new CleanUpBulkImport(tableId, source, bulk, error);
   }
+  
 }
 
 class LoadFiles extends MasterRepo {
@@ -375,8 +484,7 @@ class LoadFiles extends MasterRepo {
   public Repo<Master> call(final long tid, final Master master) throws Exception {
     initializeThreadPool(master);
     final SiteConfiguration conf = ServerConfiguration.getSiteConfiguration();
-    FileSystem fs = TraceFileSystem.wrap(org.apache.accumulo.core.file.FileUtil.getFileSystem(CachedConfiguration.getInstance(),
-        ServerConfiguration.getSiteConfiguration()));
+    FileSystem fs = master.getFileSystem();
     List<FileStatus> files = new ArrayList<FileStatus>();
     for (FileStatus entry : fs.listStatus(new Path(bulk))) {
       files.add(entry);
@@ -448,23 +556,18 @@ class LoadFiles extends MasterRepo {
         UtilWaitThread.sleep(100);
       }
     }
-    // Copy/Create failed file markers
-    for (String f : filesToLoad) {
-      Path orig = new Path(f);
-      Path dest = new Path(errorDir, orig.getName());
-      try {
-        FileUtil.copy(fs, orig, fs, dest, false, true, CachedConfiguration.getInstance());
-        log.debug("tid " + tid + " copied " + orig + " to " + dest + ": failed");
-      } catch (IOException ex) {
-        try {
-          fs.create(dest).close();
-          log.debug("tid " + tid + " marked " + dest + " failed");
-        } catch (IOException e) {
-          log.error("Unable to create failure flag file " + dest, e);
-        }
-      }
-    }
     
+    FSDataOutputStream failFile = fs.create(new Path(errorDir, "failures.txt"), true);
+    BufferedWriter out = new BufferedWriter(new OutputStreamWriter(failFile));
+    try {
+      for (String f : filesToLoad) {
+        out.write(f);
+        out.write("\n");
+      }
+    } finally {
+      out.close();
+    }
+
     // return the next step, which will perform cleanup
     return new CompleteBulkImport(tableId, source, bulk, errorDir);
   }
