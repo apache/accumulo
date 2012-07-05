@@ -632,6 +632,7 @@ public final class BCFile {
         }
         
         dataIndex = new DataIndex(cachedDataIndex);
+        cachedDataIndex.close();
         
       } else {
         // Logger.getLogger(Reader.class).debug("Read bcfile !METADATA from cache");
@@ -639,7 +640,6 @@ public final class BCFile {
         metaIndex = new MetaIndex(cachedMetaIndex);
         dataIndex = new DataIndex(cachedDataIndex);
       }
-      
     }
     
     /**
