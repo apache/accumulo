@@ -36,6 +36,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.accumulo.cloudtrace.instrument.TraceExecutorService;
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -44,6 +45,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
+import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.client.impl.thrift.ClientService.Iface;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
@@ -522,18 +524,18 @@ class LoadFiles extends MasterRepo {
           @Override
           public List<String> call() {
             List<String> failures = new ArrayList<String>();
-            ClientService.Iface client = null;
+            ClientService.Client client = null;
             String server = null;
             try {
               // get a connection to a random tablet server, do not prefer cached connections because
               // this is running on the master and there are lots of connections to tablet servers
               // serving the !METADATA tablets
-              Pair<String,Iface> pair = ServerClient.getConnection(master.getInstance(), false);
+              Pair<String,Client> pair = ServerClient.getConnection(master.getInstance(), false);
               client = pair.getSecond();
               server = pair.getFirst();
               List<String> attempt = Collections.singletonList(file);
               log.debug("Asking " + pair.getFirst() + " to bulk import " + file);
-              List<String> fail = client.bulkImportFiles(null, SecurityConstants.getSystemCredentials(), tid, tableId, attempt, errorDir, setTime);
+              List<String> fail = client.bulkImportFiles(Tracer.traceInfo(), SecurityConstants.getSystemCredentials(), tid, tableId, attempt, errorDir, setTime);
               if (fail.isEmpty()) {
                 filesToLoad.remove(file);
               } else {

@@ -38,6 +38,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -91,7 +92,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
-import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
 
 /**
@@ -204,7 +204,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(instance);
-        return client.beginTableOperation(null, credentials);
+        return client.beginTableOperation(Tracer.traceInfo(), credentials);
       } catch (TTransportException tte) {
         log.debug("Failed to call beginTableOperation(), retrying ... ", tte);
         UtilWaitThread.sleep(100);
@@ -220,7 +220,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(instance);
-        client.executeTableOperation(null, credentials, opid, op, args, opts, autoCleanUp);
+        client.executeTableOperation(Tracer.traceInfo(), credentials, opid, op, args, opts, autoCleanUp);
         break;
       } catch (TTransportException tte) {
         log.debug("Failed to call executeTableOperation(), retrying ... ", tte);
@@ -236,7 +236,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(instance);
-        return client.waitForTableOperation(null, credentials, opid);
+        return client.waitForTableOperation(Tracer.traceInfo(), credentials, opid);
       } catch (TTransportException tte) {
         log.debug("Failed to call waitForTableOperation(), retrying ... ", tte);
         UtilWaitThread.sleep(100);
@@ -251,7 +251,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       MasterClientService.Iface client = null;
       try {
         client = MasterClient.getConnectionWithRetry(instance);
-        client.finishTableOperation(null, credentials, opid);
+        client.finishTableOperation(Tracer.traceInfo(), credentials, opid);
         break;
       } catch (TTransportException tte) {
         log.debug("Failed to call finishTableOperation(), retrying ... ", tte);
@@ -440,13 +440,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
         
         try {
-          TabletClientService.Iface client = ThriftUtil.getTServerClient(tl.tablet_location, instance.getConfiguration());
+          TabletClientService.Client client = ThriftUtil.getTServerClient(tl.tablet_location, instance.getConfiguration());
           try {
             OpTimer opTimer = null;
             if (log.isTraceEnabled())
               opTimer = new OpTimer(log, Level.TRACE).start("Splitting tablet " + tl.tablet_extent + " on " + tl.tablet_location + " at " + split);
             
-            client.splitTablet(null, credentials, tl.tablet_extent.toThrift(), TextUtil.getByteBuffer(split));
+            client.splitTablet(Tracer.traceInfo(), credentials, tl.tablet_extent.toThrift(), TextUtil.getByteBuffer(split));
             
             // just split it, might as well invalidate it in the cache
             tabLocator.invalidateCache(tl.tablet_extent);
@@ -454,7 +454,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             if (opTimer != null)
               opTimer.stop("Split tablet in %DURATION%");
           } finally {
-            ThriftUtil.returnClient((TServiceClient) client);
+            ThriftUtil.returnClient(client);
           }
           
         } catch (TApplicationException tae) {
@@ -723,7 +723,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         MasterClientService.Iface client = null;
         try {
           client = MasterClient.getConnectionWithRetry(instance);
-          flushID = client.initiateFlush(null, credentials, tableId);
+          flushID = client.initiateFlush(Tracer.traceInfo(), credentials, tableId);
           break;
         } catch (TTransportException tte) {
           log.debug("Failed to call initiateFlush, retrying ... ", tte);
@@ -737,7 +737,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         MasterClientService.Iface client = null;
         try {
           client = MasterClient.getConnectionWithRetry(instance);
-          client.waitForFlush(null, credentials, tableId, TextUtil.getByteBuffer(start), TextUtil.getByteBuffer(end), flushID, wait ? Long.MAX_VALUE : 1);
+          client.waitForFlush(Tracer.traceInfo(), credentials, tableId, TextUtil.getByteBuffer(start), TextUtil.getByteBuffer(end), flushID, wait ? Long.MAX_VALUE : 1);
           break;
         } catch (TTransportException tte) {
           log.debug("Failed to call initiateFlush, retrying ... ", tte);
@@ -778,10 +778,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   public void setProperty(final String tableName, final String property, final String value) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(tableName, property, value);
-    MasterClient.execute(instance, new ClientExec<MasterClientService.Iface>() {
+    MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
       @Override
-      public void execute(MasterClientService.Iface client) throws Exception {
-        client.setTableProperty(null, credentials, tableName, property, value);
+      public void execute(MasterClientService.Client client) throws Exception {
+        client.setTableProperty(Tracer.traceInfo(), credentials, tableName, property, value);
       }
     });
   }
@@ -800,10 +800,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   public void removeProperty(final String tableName, final String property) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(tableName, property);
-    MasterClient.execute(instance, new ClientExec<MasterClientService.Iface>() {
+    MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
       @Override
-      public void execute(MasterClientService.Iface client) throws Exception {
-        client.removeTableProperty(null, credentials, tableName, property);
+      public void execute(MasterClientService.Client client) throws Exception {
+        client.removeTableProperty(Tracer.traceInfo(), credentials, tableName, property);
       }
     });
   }
@@ -820,9 +820,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public Iterable<Entry<String,String>> getProperties(final String tableName) throws AccumuloException, TableNotFoundException {
     ArgumentChecker.notNull(tableName);
     try {
-      return ServerClient.executeRaw(instance, new ClientExecReturn<Map<String,String>,ClientService.Iface>() {
+      return ServerClient.executeRaw(instance, new ClientExecReturn<Map<String,String>,ClientService.Client>() {
         @Override
-        public Map<String,String> execute(ClientService.Iface client) throws Exception {
+        public Map<String,String> execute(ClientService.Client client) throws Exception {
           return client.getTableConfiguration(tableName);
         }
       }).entrySet();

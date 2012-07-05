@@ -19,6 +19,7 @@ package org.apache.accumulo.server.test;
 import java.io.IOException;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.client.impl.MasterClient;
 import org.apache.accumulo.core.master.MasterNotRunningException;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -43,7 +44,7 @@ public class GetMasterStats {
     MasterMonitorInfo stats = null;
     try {
       client = MasterClient.getConnectionWithRetry(HdfsZooInstance.getInstance());
-      stats = client.getMasterStats(null, SecurityConstants.getSystemCredentials());
+      stats = client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
     } finally {
       if (client != null)
         MasterClient.close(client);

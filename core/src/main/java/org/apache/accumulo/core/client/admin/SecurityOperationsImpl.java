@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Set;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -43,7 +44,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
   private Instance instance;
   private AuthInfo credentials;
   
-  private void execute(ClientExec<ClientService.Iface> exec) throws AccumuloException, AccumuloSecurityException {
+  private void execute(ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
       ServerClient.executeRaw(instance, exec);
     } catch (ThriftTableOperationException ttoe) {
@@ -61,7 +62,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
     }
   }
   
-  private <T> T execute(ClientExecReturn<T,ClientService.Iface> exec) throws AccumuloException, AccumuloSecurityException {
+  private <T> T execute(ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
       return ServerClient.executeRaw(instance, exec);
     } catch (ThriftTableOperationException ttoe) {
@@ -107,10 +108,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
    */
   public void createUser(final String user, final byte[] password, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, password, authorizations);
-    execute(new ClientExec<ClientService.Iface>() {
+    execute(new ClientExec<ClientService.Client>() {
       @Override
-      public void execute(ClientService.Iface client) throws Exception {
-        client.createUser(null, credentials, user, ByteBuffer.wrap(password), ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
+      public void execute(ClientService.Client client) throws Exception {
+        client.createUser(Tracer.traceInfo(), credentials, user, ByteBuffer.wrap(password), ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
       }
     });
   }
@@ -127,10 +128,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
    */
   public void dropUser(final String user) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user);
-    execute(new ClientExec<ClientService.Iface>() {
+    execute(new ClientExec<ClientService.Client>() {
       @Override
-      public void execute(ClientService.Iface client) throws Exception {
-        client.dropUser(null, credentials, user);
+      public void execute(ClientService.Client client) throws Exception {
+        client.dropUser(Tracer.traceInfo(), credentials, user);
       }
     });
   }
@@ -150,10 +151,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
    */
   public boolean authenticateUser(final String user, final byte[] password) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, password);
-    return execute(new ClientExecReturn<Boolean,ClientService.Iface>() {
+    return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
-      public Boolean execute(ClientService.Iface client) throws Exception {
-        return client.authenticateUser(null, credentials, user, ByteBuffer.wrap(password));
+      public Boolean execute(ClientService.Client client) throws Exception {
+        return client.authenticateUser(Tracer.traceInfo(), credentials, user, ByteBuffer.wrap(password));
       }
     });
   }
@@ -172,10 +173,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
    */
   public void changeUserPassword(final String user, final byte[] password) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, password);
-    execute(new ClientExec<ClientService.Iface>() {
+    execute(new ClientExec<ClientService.Client>() {
       @Override
-      public void execute(ClientService.Iface client) throws Exception {
-        client.changePassword(null, credentials, user, ByteBuffer.wrap(password));
+      public void execute(ClientService.Client client) throws Exception {
+        client.changePassword(Tracer.traceInfo(), credentials, user, ByteBuffer.wrap(password));
       }
     });
     if (this.credentials.user.equals(user)) {
@@ -197,10 +198,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
    */
   public void changeUserAuthorizations(final String user, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, authorizations);
-    execute(new ClientExec<ClientService.Iface>() {
+    execute(new ClientExec<ClientService.Client>() {
       @Override
-      public void execute(ClientService.Iface client) throws Exception {
-        client.changeAuthorizations(null, credentials, user, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
+      public void execute(ClientService.Client client) throws Exception {
+        client.changeAuthorizations(Tracer.traceInfo(), credentials, user, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
       }
     });
   }
@@ -218,10 +219,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
    */
   public Authorizations getUserAuthorizations(final String user) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user);
-    return execute(new ClientExecReturn<Authorizations,ClientService.Iface>() {
+    return execute(new ClientExecReturn<Authorizations,ClientService.Client>() {
       @Override
-      public Authorizations execute(ClientService.Iface client) throws Exception {
-        return new Authorizations(client.getUserAuthorizations(null, credentials, user));
+      public Authorizations execute(ClientService.Client client) throws Exception {
+        return new Authorizations(client.getUserAuthorizations(Tracer.traceInfo(), credentials, user));
       }
     });
   }
@@ -241,10 +242,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
    */
   public boolean hasSystemPermission(final String user, final SystemPermission perm) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, perm);
-    return execute(new ClientExecReturn<Boolean,ClientService.Iface>() {
+    return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
-      public Boolean execute(ClientService.Iface client) throws Exception {
-        return client.hasSystemPermission(null, credentials, user, perm.getId());
+      public Boolean execute(ClientService.Client client) throws Exception {
+        return client.hasSystemPermission(Tracer.traceInfo(), credentials, user, perm.getId());
       }
     });
   }
@@ -266,10 +267,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
    */
   public boolean hasTablePermission(final String user, final String table, final TablePermission perm) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, table, perm);
-    return execute(new ClientExecReturn<Boolean,ClientService.Iface>() {
+    return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
-      public Boolean execute(ClientService.Iface client) throws Exception {
-        return client.hasTablePermission(null, credentials, user, table, perm.getId());
+      public Boolean execute(ClientService.Client client) throws Exception {
+        return client.hasTablePermission(Tracer.traceInfo(), credentials, user, table, perm.getId());
       }
     });
   }
@@ -288,10 +289,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
    */
   public void grantSystemPermission(final String user, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, permission);
-    execute(new ClientExec<ClientService.Iface>() {
+    execute(new ClientExec<ClientService.Client>() {
       @Override
-      public void execute(ClientService.Iface client) throws Exception {
-        client.grantSystemPermission(null, credentials, user, permission.getId());
+      public void execute(ClientService.Client client) throws Exception {
+        client.grantSystemPermission(Tracer.traceInfo(), credentials, user, permission.getId());
       }
     });
   }
@@ -312,10 +313,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
    */
   public void grantTablePermission(final String user, final String table, final TablePermission permission) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, table, permission);
-    execute(new ClientExec<ClientService.Iface>() {
+    execute(new ClientExec<ClientService.Client>() {
       @Override
-      public void execute(ClientService.Iface client) throws Exception {
-        client.grantTablePermission(null, credentials, user, table, permission.getId());
+      public void execute(ClientService.Client client) throws Exception {
+        client.grantTablePermission(Tracer.traceInfo(), credentials, user, table, permission.getId());
       }
     });
   }
@@ -334,10 +335,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
    */
   public void revokeSystemPermission(final String user, final SystemPermission permission) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, permission);
-    execute(new ClientExec<ClientService.Iface>() {
+    execute(new ClientExec<ClientService.Client>() {
       @Override
-      public void execute(ClientService.Iface client) throws Exception {
-        client.revokeSystemPermission(null, credentials, user, permission.getId());
+      public void execute(ClientService.Client client) throws Exception {
+        client.revokeSystemPermission(Tracer.traceInfo(), credentials, user, permission.getId());
       }
     });
   }
@@ -359,10 +360,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
   public void revokeTablePermission(final String user, final String table, final TablePermission permission) throws AccumuloException,
       AccumuloSecurityException {
     ArgumentChecker.notNull(user, table, permission);
-    execute(new ClientExec<ClientService.Iface>() {
+    execute(new ClientExec<ClientService.Client>() {
       @Override
-      public void execute(ClientService.Iface client) throws Exception {
-        client.revokeTablePermission(null, credentials, user, table, permission.getId());
+      public void execute(ClientService.Client client) throws Exception {
+        client.revokeTablePermission(Tracer.traceInfo(), credentials, user, table, permission.getId());
       }
     });
   }
@@ -377,10 +378,10 @@ public class SecurityOperationsImpl implements SecurityOperations {
    *           if the user does not have permission to query users
    */
   public Set<String> listUsers() throws AccumuloException, AccumuloSecurityException {
-    return execute(new ClientExecReturn<Set<String>,ClientService.Iface>() {
+    return execute(new ClientExecReturn<Set<String>,ClientService.Client>() {
       @Override
-      public Set<String> execute(ClientService.Iface client) throws Exception {
-        return client.listUsers(null, credentials);
+      public Set<String> execute(ClientService.Client client) throws Exception {
+        return client.listUsers(Tracer.traceInfo(), credentials);
       }
     });
   }

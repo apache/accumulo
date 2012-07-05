@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cloudtrace.instrument.TraceRunnable;
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -130,7 +131,7 @@ public class BulkImporter {
       throw new RuntimeException("Directory does not exist " + failureDir);
     }
     
-    ClientService.Iface client = null;
+    ClientService.Client client = null;
     final TabletLocator locator = TabletLocator.getInstance(instance, credentials, new Text(tableId));
     
     try {
@@ -591,7 +592,7 @@ public class BulkImporter {
         }
         
         log.debug("Asking " + location + " to bulk load " + files);
-        List<TKeyExtent> failures = client.bulkImport(null, credentials, tid, Translator.translate(files, Translator.KET), setTime);
+        List<TKeyExtent> failures = client.bulkImport(Tracer.traceInfo(), credentials, tid, Translator.translate(files, Translator.KET), setTime);
         
         return Translator.translate(failures, Translator.TKET);
       } finally {

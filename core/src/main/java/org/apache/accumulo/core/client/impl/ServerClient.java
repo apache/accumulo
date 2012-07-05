@@ -25,7 +25,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
-import org.apache.accumulo.core.client.impl.thrift.ClientService.Iface;
+import org.apache.accumulo.core.client.impl.thrift.ClientService.Client;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.util.ArgumentChecker;
@@ -37,7 +37,6 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
 import org.apache.log4j.Logger;
-import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
@@ -54,7 +53,7 @@ public class ServerClient {
     return result;
   }
   
-  public static <T> T execute(Instance instance, ClientExecReturn<T,ClientService.Iface> exec) throws AccumuloException, AccumuloSecurityException {
+  public static <T> T execute(Instance instance, ClientExecReturn<T,ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
       return executeRaw(instance, exec);
     } catch (ThriftSecurityException e) {
@@ -66,7 +65,7 @@ public class ServerClient {
     }
   }
   
-  public static void execute(Instance instance, ClientExec<ClientService.Iface> exec) throws AccumuloException, AccumuloSecurityException {
+  public static void execute(Instance instance, ClientExec<ClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
     try {
       executeRaw(instance, exec);
     } catch (ThriftSecurityException e) {
@@ -78,12 +77,12 @@ public class ServerClient {
     }
   }
   
-  public static <T> T executeRaw(Instance instance, ClientExecReturn<T,ClientService.Iface> exec) throws Exception {
+  public static <T> T executeRaw(Instance instance, ClientExecReturn<T,ClientService.Client> exec) throws Exception {
     while (true) {
-      ClientService.Iface client = null;
+      ClientService.Client client = null;
       String server = null;
       try {
-        Pair<String,Iface> pair = ServerClient.getConnection(instance);
+        Pair<String,Client> pair = ServerClient.getConnection(instance);
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
@@ -97,12 +96,12 @@ public class ServerClient {
     }
   }
   
-  public static void executeRaw(Instance instance, ClientExec<ClientService.Iface> exec) throws Exception {
+  public static void executeRaw(Instance instance, ClientExec<ClientService.Client> exec) throws Exception {
     while (true) {
-      ClientService.Iface client = null;
+      ClientService.Client client = null;
       String server = null;
       try {
-        Pair<String,Iface> pair = ServerClient.getConnection(instance);
+        Pair<String,Client> pair = ServerClient.getConnection(instance);
         server = pair.getFirst();
         client = pair.getSecond();
         exec.execute(client);
@@ -119,11 +118,11 @@ public class ServerClient {
   
   static volatile boolean warnedAboutTServersBeingDown = false;
 
-  public static Pair<String,ClientService.Iface> getConnection(Instance instance) throws TTransportException {
+  public static Pair<String,ClientService.Client> getConnection(Instance instance) throws TTransportException {
     return getConnection(instance, true);
   }
   
-  public static Pair<String,ClientService.Iface> getConnection(Instance instance, boolean preferCachedConnections) throws TTransportException {
+  public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections) throws TTransportException {
     ArgumentChecker.notNull(instance);
     // create list of servers
     ArrayList<ThriftTransportKey> servers = new ArrayList<ThriftTransportKey>();
@@ -143,10 +142,10 @@ public class ServerClient {
     boolean opened = false;
     try {
       Pair<String,TTransport> pair = ThriftTransportPool.getInstance().getAnyTransport(servers, preferCachedConnections);
-      ClientService.Iface client = ThriftUtil.createClient(new ClientService.Client.Factory(), pair.getSecond());
+      ClientService.Client client = ThriftUtil.createClient(new ClientService.Client.Factory(), pair.getSecond());
       opened = true;
       warnedAboutTServersBeingDown = false;
-      return new Pair<String,ClientService.Iface>(pair.getFirst(), client);
+      return new Pair<String,ClientService.Client>(pair.getFirst(), client);
     } finally {
       if (!opened) {
         if (!warnedAboutTServersBeingDown) {
@@ -161,8 +160,7 @@ public class ServerClient {
     }
   }
   
-  public static void close(ClientService.Iface iface) {
-    TServiceClient client = (TServiceClient) iface;
+  public static void close(ClientService.Client client) {
     if (client != null && client.getInputProtocol() != null && client.getInputProtocol().getTransport() != null) {
       ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());
     } else {

@@ -18,7 +18,8 @@ package org.apache.accumulo.core.util;
 
 import java.net.InetSocketAddress;
 
-import org.apache.accumulo.cloudtrace.instrument.thrift.TraceWrap;
+import org.apache.accumulo.cloudtrace.instrument.Span;
+import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.ClientExec;
@@ -29,9 +30,12 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.log4j.Logger;
+import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.protocol.TMessage;
+import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TTransport;
@@ -41,12 +45,42 @@ import org.apache.thrift.transport.TTransportFactory;
 
 public class ThriftUtil {
   private static final Logger log = Logger.getLogger(ThriftUtil.class);
+
+  public static class TraceProtocol extends TCompactProtocol {
+
+    @Override
+    public void writeMessageBegin(TMessage message) throws TException {
+      Trace.start("client:" + message.name);
+      super.writeMessageBegin(message);
+    }
+
+    @Override
+    public void writeMessageEnd() throws TException {
+      super.writeMessageEnd();
+      Span currentTrace = Trace.currentTrace();
+      if (currentTrace != null)
+        currentTrace.stop();
+    }
+
+    public TraceProtocol(TTransport transport) {
+      super(transport);
+    }
+  }
   
-  static private TProtocolFactory protocolFactory = new TCompactProtocol.Factory();
+  public static class TraceProtocolFactory extends TCompactProtocol.Factory {
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    public TProtocol getProtocol(TTransport trans) {
+      return new TraceProtocol(trans);
+    }
+  }
+  
+  static private TProtocolFactory protocolFactory = new TraceProtocolFactory();
   static private TTransportFactory transportFactory = new TFramedTransport.Factory();
   
   static public <T extends TServiceClient> T createClient(TServiceClientFactory<T> factory, TTransport transport) {
-    return TraceWrap.client(factory.getClient(protocolFactory.getProtocol(transport), protocolFactory.getProtocol(transport)));
+    return factory.getClient(protocolFactory.getProtocol(transport), protocolFactory.getProtocol(transport));
   }
   
   static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, InetSocketAddress address, AccumuloConfiguration conf)
@@ -68,21 +102,20 @@ public class ThriftUtil {
     return createClient(factory, transport);
   }
   
-  static public void returnClient(Object iface) { // Eew... the typing here is horrible
+  static public void returnClient(TServiceClient iface) { // Eew... the typing here is horrible
     if (iface != null) {
-      TServiceClient client = (TServiceClient) iface;
-      ThriftTransportPool.getInstance().returnTransport(client.getInputProtocol().getTransport());
+      ThriftTransportPool.getInstance().returnTransport(iface.getInputProtocol().getTransport());
     }
   }
   
-  static public TabletClientService.Iface getTServerClient(String address, AccumuloConfiguration conf) throws TTransportException {
+  static public TabletClientService.Client getTServerClient(String address, AccumuloConfiguration conf) throws TTransportException {
     return getClient(new TabletClientService.Client.Factory(), address, Property.TSERV_CLIENTPORT, Property.GENERAL_RPC_TIMEOUT, conf);
   }
   
-  public static void execute(String address, AccumuloConfiguration conf, ClientExec<TabletClientService.Iface> exec) throws AccumuloException,
+  public static void execute(String address, AccumuloConfiguration conf, ClientExec<TabletClientService.Client> exec) throws AccumuloException,
       AccumuloSecurityException {
     while (true) {
-      TabletClientService.Iface client = null;
+      TabletClientService.Client client = null;
       try {
         exec.execute(client = getTServerClient(address, conf));
         break;
@@ -100,10 +133,10 @@ public class ThriftUtil {
     }
   }
   
-  public static <T> T execute(String address, AccumuloConfiguration conf, ClientExecReturn<T,TabletClientService.Iface> exec) throws AccumuloException,
+  public static <T> T execute(String address, AccumuloConfiguration conf, ClientExecReturn<T,TabletClientService.Client> exec) throws AccumuloException,
       AccumuloSecurityException {
     while (true) {
-      TabletClientService.Iface client = null;
+      TabletClientService.Client client = null;
       try {
         return exec.execute(client = getTServerClient(address, conf));
       } catch (TTransportException tte) {

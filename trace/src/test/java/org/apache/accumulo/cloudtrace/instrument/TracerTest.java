@@ -35,6 +35,8 @@ import org.apache.accumulo.cloudtrace.instrument.receivers.SpanReceiver;
 import org.apache.accumulo.cloudtrace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.cloudtrace.thrift.TestService;
+import org.apache.accumulo.cloudtrace.thrift.TestService.Iface;
+import org.apache.accumulo.cloudtrace.thrift.TestService.Processor;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
@@ -153,7 +155,7 @@ public class TracerTest {
     TServerSocket transport = new TServerSocket(socket);
     transport.listen();
     TThreadPoolServer.Args args = new TThreadPoolServer.Args(transport);
-    args.processor(new TestService.Processor(TraceWrap.service(new Service())));
+    args.processor(new Processor<Iface>(TraceWrap.service(new Service())));
     final TServer tserver = new TThreadPoolServer(args);
     Thread t = new Thread() {
       public void run() {

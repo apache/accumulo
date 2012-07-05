@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 
 import jline.ConsoleReader;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.impl.ClientExec;
@@ -119,10 +120,10 @@ public class Admin {
   }
   
   private static void stopServer(final AuthInfo credentials, final boolean tabletServersToo) throws AccumuloException, AccumuloSecurityException {
-    MasterClient.execute(HdfsZooInstance.getInstance(), new ClientExec<MasterClientService.Iface>() {
+    MasterClient.execute(HdfsZooInstance.getInstance(), new ClientExec<MasterClientService.Client>() {
       @Override
-      public void execute(MasterClientService.Iface client) throws Exception {
-        client.shutdown(null, credentials, tabletServersToo);
+      public void execute(MasterClientService.Client client) throws Exception {
+        client.shutdown(Tracer.traceInfo(), credentials, tabletServersToo);
       }
     });
   }
@@ -130,10 +131,10 @@ public class Admin {
   private static void stopTabletServer(String server, final boolean force) throws AccumuloException, AccumuloSecurityException {
     InetSocketAddress address = AddressUtil.parseAddress(server, Property.TSERV_CLIENTPORT);
     final String finalServer = org.apache.accumulo.core.util.AddressUtil.toString(address);
-    MasterClient.execute(HdfsZooInstance.getInstance(), new ClientExec<MasterClientService.Iface>() {
+    MasterClient.execute(HdfsZooInstance.getInstance(), new ClientExec<MasterClientService.Client>() {
       @Override
-      public void execute(MasterClientService.Iface client) throws Exception {
-        client.shutdownTabletServer(null, SecurityConstants.getSystemCredentials(), finalServer, force);
+      public void execute(MasterClientService.Client client) throws Exception {
+        client.shutdownTabletServer(Tracer.traceInfo(), SecurityConstants.getSystemCredentials(), finalServer, force);
       }
     });
   }

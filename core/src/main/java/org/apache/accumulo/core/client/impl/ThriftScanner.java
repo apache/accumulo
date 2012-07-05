@@ -29,6 +29,8 @@ import java.util.SortedSet;
 
 import org.apache.accumulo.cloudtrace.instrument.Span;
 import org.apache.accumulo.cloudtrace.instrument.Trace;
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
+import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -116,7 +118,8 @@ public class ThriftScanner {
       throw new AccumuloException(new IOException());
     
     try {
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(server, conf);
+      TInfo tinfo = Tracer.traceInfo();
+      TabletClientService.Client client = ThriftUtil.getTServerClient(server, conf);
       try {
         List<IterInfo> emptyList = Collections.emptyList();
         Map<String,Map<String,String>> emptyMap = Collections.emptyMap();
@@ -125,7 +128,7 @@ public class ThriftScanner {
         
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
-        InitialScan isr = client.startScan(null, scanState.credentials, extent.toThrift(), scanState.range.toThrift(),
+        InitialScan isr = client.startScan(tinfo, scanState.credentials, extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translator.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated);
         if (waitForWrites)
@@ -136,7 +139,7 @@ public class ThriftScanner {
         for (TKeyValue kv : isr.result.results)
           results.put(new Key(kv.key), new Value(kv.value));
         
-        client.closeScan(null, isr.scanID);
+        client.closeScan(tinfo, isr.scanID);
         
         return isr.result.more;
       } finally {
@@ -393,7 +396,8 @@ public class ThriftScanner {
     
     OpTimer opTimer = new OpTimer(log, Level.TRACE);
     
-    TabletClientService.Iface client = ThriftUtil.getTServerClient(loc.tablet_location, conf);
+    TInfo tinfo = Tracer.traceInfo();
+    TabletClientService.Client client = ThriftUtil.getTServerClient(loc.tablet_location, conf);
     
     String old = Thread.currentThread().getName();
     try {
@@ -412,7 +416,7 @@ public class ThriftScanner {
         
         TabletType ttype = TabletType.type(loc.tablet_extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(loc.tablet_location);
-        InitialScan is = client.startScan(null, scanState.credentials, loc.tablet_extent.toThrift(), scanState.range.toThrift(),
+        InitialScan is = client.startScan(tinfo, scanState.credentials, loc.tablet_extent.toThrift(), scanState.range.toThrift(),
             Translator.translate(scanState.columns, Translator.CT), scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated);
         if (waitForWrites)
@@ -423,7 +427,7 @@ public class ThriftScanner {
         if (sr.more)
           scanState.scanID = is.scanID;
         else
-          client.closeScan(null, is.scanID);
+          client.closeScan(tinfo, is.scanID);
         
       } else {
         // log.debug("Calling continue scan : "+scanState.range+"  loc = "+loc);
@@ -431,9 +435,9 @@ public class ThriftScanner {
         Thread.currentThread().setName(msg);
         opTimer.start(msg);
         
-        sr = client.continueScan(null, scanState.scanID);
+        sr = client.continueScan(tinfo, scanState.scanID);
         if (!sr.more) {
-          client.closeScan(null, scanState.scanID);
+          client.closeScan(tinfo, scanState.scanID);
           scanState.scanID = null;
         }
       }
