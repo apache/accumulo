@@ -20,8 +20,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Random;
 
-import junit.framework.TestCase;
-
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.file.blockfile.ABlockWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
@@ -32,14 +30,20 @@ import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Writer;
 import org.apache.accumulo.core.file.rfile.RFileTest.SeekableByteArrayInputStream;
+import org.apache.accumulo.core.iterators.predicates.ColumnVisibilityPredicate;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.junit.Test;
 
-public class MultiLevelIndexTest extends TestCase {
+import static junit.framework.Assert.*;
+
+public class MultiLevelIndexTest {
   
+  @Test
   public void test1() throws Exception {
     
     runTest(500, 1);
@@ -109,6 +113,67 @@ public class MultiLevelIndexTest extends TestCase {
       assertEquals(expected, ie.getNumEntries());
     }
     
+  }
+  
+  /**
+   * Test the behavior of seeking to a spot that the high-level index blocks
+   * say passes a filter, but the low level index blocks do not agree, forcing
+   * an index scan beyond the end of the first low-level block.
+   * @throws IOException
+   */
+  @Test
+  public void testIndexScanWithFilter() throws IOException
+  {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    FSDataOutputStream dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
+    CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(dos, "gz", CachedConfiguration.getInstance());
+    
+    BufferedWriter mliw = new BufferedWriter(new Writer(_cbw, 1));
+    
+    // throw in a block stat with a visibility that is too big to serialize
+    mliw.add(new Key(String.format("%05d000", 0),"cf","cq","a",0), new BlockStats(0,0,new ColumnVisibility("abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz"),0), 0, 0, 0, RFile.RINDEX_VER_7);
+    for (int i = 1; i < 100; i++)
+    {
+      mliw.add(new Key(String.format("%05d000", i),"cf","cq","a",0), new BlockStats(0,0,new ColumnVisibility("a"),i), 0, 0, 0, RFile.RINDEX_VER_7);
+    }
+    mliw.add(new Key(String.format("%05d000", 100),"cf","cq","",0), new BlockStats(0,0,new ColumnVisibility(""),100), 0, 0, 0, RFile.RINDEX_VER_7);
+    for (int i = 101; i < 200; i++)
+    {
+      mliw.add(new Key(String.format("%05d000", i),"cf","cq","a",0), new BlockStats(0,0,new ColumnVisibility("a"),i), 0, 0, 0, RFile.RINDEX_VER_7);
+    }
+    mliw.addLast(new Key(String.format("%05d000", 200),"cf","cq","a",0), new BlockStats(0,0,new ColumnVisibility("a"),200), 0, 0, 0, RFile.RINDEX_VER_7);
+
+    ABlockWriter root = _cbw.prepareMetaBlock("root");
+    mliw.close(root);
+    root.close();
+    
+    _cbw.close();
+    dos.close();
+    baos.close();
+    
+    byte[] data = baos.toByteArray();
+    SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
+    FSDataInputStream in = new FSDataInputStream(bais);
+    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, data.length, CachedConfiguration.getInstance());
+    
+    Reader reader = new Reader(_cbr, RFile.RINDEX_VER_7);
+    BlockRead rootIn = _cbr.getMetaBlock("root");
+    reader.readFields(rootIn);
+    rootIn.close();
+    reader.setColumnVisibilityPredicate(new ColumnVisibilityPredicate(new Authorizations()));
+    // seek past the block stat with the visibility that is too big to serialize, but not past the block that can be seen
+    IndexIterator liter = reader.lookup(new Key("000010"));
+    int count = 0;
+    while (liter.hasNext()) {
+      assertEquals(100, liter.nextIndex());
+      assertEquals(100, liter.peek().getNumEntries());
+      assertEquals(100, liter.next().getNumEntries());
+      count++;
+    }
+    
+    assertEquals(1, count);
+    
+    _cbr.close();
   }
   
 }

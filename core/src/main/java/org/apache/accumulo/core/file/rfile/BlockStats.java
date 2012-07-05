@@ -99,7 +99,6 @@ public class BlockStats implements Writable {
       else {
         byte[] visibility = minimumVisibility.getExpression();
         if (visibility.length > maxVisibilityLength) {
-          System.out.println("expression too large: "+toString());
           out.writeInt(0);
         } else {
           out.writeInt(visibility.length);

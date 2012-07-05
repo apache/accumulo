@@ -36,7 +36,7 @@ import org.apache.accumulo.core.data.Value;
  * This iterator takes an optional "negate" boolean parameter that defaults to false. If negate is set to true, this class instead omits entries that match its
  * filter, thus iterating over entries that do not match its filter.
  */
-public abstract class Filter extends WrappingIterator implements OptionDescriber {
+public abstract class Filter extends WrappingIterator implements OptionDescriber, Filterer<Key,Value> {
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     Filter newInstance;
@@ -116,5 +116,14 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
    */
   public static void setNegate(IteratorSetting is, boolean negate) {
     is.addOption(NEGATE, Boolean.toString(negate));
+  }
+  
+  @SuppressWarnings("unchecked")
+  @Override
+  public void applyFilter(Predicate<Key,Value> filter, boolean required) {
+    if(getSource() instanceof Filterer)
+      ((Filterer<Key,Value>)getSource()).applyFilter(filter, required);
+    else if(required)
+      throw new IllegalArgumentException("Cannot require filter of underlying iterator");
   }
 }

@@ -794,7 +794,7 @@ public class RFile {
         TimestampRangePredicate p = (TimestampRangePredicate)filter;
         // intersect with previous timestampRange
         if(timestampRange != null)
-          timestampRange = new TimestampRangePredicate(Math.max(p.startTimestamp, timestampRange.startTimestamp), Math.min(p.endTimestamp, timestampRange.endTimestamp));
+          timestampRange = new TimestampRangePredicate(Math.max(p.getStartTimestamp(), timestampRange.getStartTimestamp()), Math.min(p.getEndTimestamp(), timestampRange.getEndTimestamp()));
         else
           timestampRange = p;
         index.setTimestampRange(timestampRange);
@@ -982,9 +982,6 @@ public class RFile {
     @Override
     public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
       
-      topKey = null;
-      topValue = null;
-      
       clear();
       
       numLGSeeked = 0;
@@ -1090,83 +1087,8 @@ public class RFile {
       }
     }
     
-    ArrayList<Predicate<Key,Value>> filters = new ArrayList<Predicate<Key,Value>>();
-    
     TimestampRangePredicate timestampFilter = null;
     ColumnVisibilityPredicate columnVisibilityPredicate = null;
-    
-    Key topKey;
-    Value topValue;
-    
-    /* (non-Javadoc)
-     * @see org.apache.accumulo.core.iterators.system.HeapIterator#hasTop()
-     */
-    @Override
-    public boolean hasTop() {
-      if(topKey == null)
-      {
-        while(super.hasTop())
-        {
-          topKey = super.getTopKey();
-          topValue = super.getTopValue();
-          // check all the filters to see if we found a valid key/value pair
-          boolean keep = true;
-          for(Predicate<Key,Value> filter: filters)
-          {
-            if(!filter.evaluate(topKey, topValue))
-            {
-              keep = false;
-              try {
-                super.next();
-              } catch (IOException e) {
-                throw new RuntimeException(e);
-              }
-              break;
-            }
-          }
-          if(keep == true)
-            return true;
-        }
-        // ran out of key/value pairs
-        topKey = null;
-        topValue = null;
-        return false;
-      }
-      else
-      {
-        return true;
-      }
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.accumulo.core.iterators.system.HeapIterator#next()
-     */
-    @Override
-    public void next() throws IOException {
-      topKey = null;
-      topValue = null;
-      super.next();
-    }
-
-    /* (non-Javadoc)
-     * @see org.apache.accumulo.core.iterators.system.HeapIterator#getTopKey()
-     */
-    @Override
-    public Key getTopKey() {
-      if(topKey == null)
-        hasTop();
-      return topKey;
-    }
-    
-    /* (non-Javadoc)
-     * @see org.apache.accumulo.core.iterators.system.HeapIterator#getTopValue()
-     */
-    @Override
-    public Value getTopValue() {
-      if(topValue == null)
-        hasTop();
-      return topValue;
-    }
     
     /* (non-Javadoc)
      * @see org.apache.accumulo.core.iterators.Filterer#applyFilter(org.apache.accumulo.core.iterators.Predicate)
@@ -1174,7 +1096,7 @@ public class RFile {
     @Override
     public void applyFilter(Predicate<Key,Value> filter, boolean required) {
       if(required)
-        filters.add(filter);
+        throw new IllegalArgumentException("RFile cannot guarantee filtering");
       // the HeapIterator will pass this filter on to its children, a collection of LocalityGroupReaders
       if(filter instanceof TimestampRangePredicate)
         this.timestampFilter = (TimestampRangePredicate)filter;
@@ -1191,9 +1113,6 @@ public class RFile {
     int max_cf = 10;
     int max_cq = 10;
     
-    // FSDataOutputStream fsout = fs.create(new Path("/tmp/test.rf"));
-    
-    // RFile.Writer w = new RFile.Writer(fsout, 1000, "gz", conf);
     CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(fs, new Path("/tmp/test.rf"), "gz", conf);
     RFile.Writer w = new RFile.Writer(_cbw, 100000);
     
@@ -1213,9 +1132,7 @@ public class RFile {
     }
     
     w.close();
-    // fsout.close();
-    
-    // Logger.getLogger("accumulo.core.file.rfile").setLevel(Level.DEBUG);
+
     long t1 = System.currentTimeMillis();
     FSDataInputStream fsin = fs.open(new Path("/tmp/test.rf"));
     long t2 = System.currentTimeMillis();

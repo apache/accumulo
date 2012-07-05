@@ -35,6 +35,7 @@ import org.apache.accumulo.core.iterators.Predicate;
 import org.apache.accumulo.core.iterators.predicates.ColumnVisibilityPredicate;
 import org.apache.accumulo.core.iterators.predicates.TimestampRangePredicate;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.conf.Configuration;
@@ -97,12 +98,12 @@ public class AuthorizationFilterTest {
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, data.length, conf);
     RFile.Reader reader = new RFile.Reader(_cbr);
     int count = 0;
-    reader.applyFilter(columnVisibilityPredicate,true);
-    reader.seek(new Range(), Collections.EMPTY_SET, false);
-    while (reader.hasTop()) {
+    VisibilityFilter vf = new VisibilityFilter(reader, auths, new byte[0]);
+    vf.seek(new Range(), Collections.EMPTY_SET, false);
+    while (vf.hasTop()) {
       count++;
-      assertTrue(columnVisibilityPredicate.evaluate(reader.getTopKey(), reader.getTopValue()));
-      reader.next();
+      assertTrue(columnVisibilityPredicate.evaluate(vf.getTopKey(), vf.getTopValue()));
+      vf.next();
     }
     assertEquals(expected, count);
   }

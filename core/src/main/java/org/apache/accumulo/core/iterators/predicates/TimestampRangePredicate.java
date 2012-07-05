@@ -24,24 +24,30 @@ import org.apache.accumulo.core.iterators.Predicate;
  * TimestampRangeFilter is used to determine whether a Key/Value pair falls within a timestamp range
  */
 public class TimestampRangePredicate implements Predicate<Key,Value> {
-
-  public final long startTimestamp;
-  public final long endTimestamp;
   
+  private final long startTimestamp;
+  private final long endTimestamp;
+  
+  public long getStartTimestamp() {
+    return startTimestamp;
+  }
+  
+  public long getEndTimestamp() {
+    return endTimestamp;
+  }
   
   /**
-   * @param startTimestamp - inclusive first allowable timestamp
-   * @param endTimestamp - inclusive last allowable timestamp
+   * @param startTimestamp
+   *          - inclusive first allowable timestamp
+   * @param endTimestamp
+   *          - inclusive last allowable timestamp
    */
   public TimestampRangePredicate(long startTimestamp, long endTimestamp) {
     super();
     this.startTimestamp = startTimestamp;
     this.endTimestamp = endTimestamp;
   }
-
-  /* (non-Javadoc)
-   * @see org.apache.accumulo.core.iterators.Predicate#evaluate(java.lang.Object, java.lang.Object)
-   */
+  
   /**
    * return true IFF the key falls within the timestamp range
    */
@@ -53,6 +59,6 @@ public class TimestampRangePredicate implements Predicate<Key,Value> {
   
   @Override
   public String toString() {
-    return "{"+startTimestamp+"-"+endTimestamp+"}";
+    return "{" + startTimestamp + "-" + endTimestamp + "}";
   }
 }

@@ -25,7 +25,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 
-public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Value>, Filterer<Key,Value> {
+public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Value> {
   
   private SortedKeyValueIterator<Key,Value> source = null;
   boolean seenSeek = false;
@@ -93,13 +93,4 @@ public abstract class WrappingIterator implements SortedKeyValueIterator<Key,Val
     seenSeek = true;
   }
   
-  @SuppressWarnings("unchecked")
-  @Override
-  public void applyFilter(Predicate<Key,Value> filter, boolean required) {
-    if(source instanceof Filterer)
-      ((Filterer<Key,Value>)source).applyFilter(filter, required);
-    else if(required)
-      throw new IllegalArgumentException("Cannot require filter of underlying iterator");
-  }
-
 }

@@ -34,6 +34,7 @@ import org.apache.accumulo.core.file.rfile.RFileTest.SeekableByteArrayInputStrea
 import org.apache.accumulo.core.iterators.Predicate;
 import org.apache.accumulo.core.iterators.predicates.TimestampRangePredicate;
 import org.apache.accumulo.core.iterators.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iterators.system.GenericFilterer;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -82,14 +83,15 @@ public class TimestampFilterTest {
     FSDataInputStream in = new FSDataInputStream(bais);
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, data.length, conf);
     RFile.Reader reader = new RFile.Reader(_cbr);
+    GenericFilterer filterer = new GenericFilterer(reader);
     int count = 0;
-    reader.applyFilter(timeRange,true);
-    reader.seek(new Range(), Collections.EMPTY_SET, false);
-    while(reader.hasTop())
+    filterer.applyFilter(timeRange,true);
+    filterer.seek(new Range(), Collections.EMPTY_SET, false);
+    while(filterer.hasTop())
     {
       count++;
-      assertTrue(timeRange.evaluate(reader.getTopKey(),reader.getTopValue()));
-      reader.next();
+      assertTrue(timeRange.evaluate(filterer.getTopKey(),filterer.getTopValue()));
+      filterer.next();
     }
     assertEquals(expected, count);
   }

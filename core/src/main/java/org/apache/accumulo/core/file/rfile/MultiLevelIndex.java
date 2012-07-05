@@ -514,9 +514,9 @@ public class MultiLevelIndex {
       }
       
       private final boolean checkFilterIndexEntry(IndexEntry ie) {
-        if(timestampFilter != null && (ie.blockStats.maxTimestamp < timestampFilter.startTimestamp || ie.blockStats.minTimestamp > timestampFilter.endTimestamp))
+        if(timestampFilter != null && (ie.blockStats.maxTimestamp < timestampFilter.getStartTimestamp() || ie.blockStats.minTimestamp > timestampFilter.getEndTimestamp()))
           return false;
-        if(columnVisibilityPredicate != null && ie.blockStats.minimumVisibility != null && ie.blockStats.minimumVisibility.evaluate(columnVisibilityPredicate.auths) == false)
+        if(columnVisibilityPredicate != null && ie.blockStats.minimumVisibility != null && ie.blockStats.minimumVisibility.evaluate(columnVisibilityPredicate.getAuthorizations()) == false)
           return false;
         return true;
       }
@@ -568,7 +568,7 @@ public class MultiLevelIndex {
             return;
           } else {
             if (top.block.level == 0) {
-              // found a matching index entry
+              // found a matching index entry -- set the pointer to be just before this location
               top.offset = pos - 1;
               return;
             } else {
@@ -596,12 +596,17 @@ public class MultiLevelIndex {
           } else {
             if (top.block.level == 0) {
               // success!
-              return;
+              break;
             }
             // go down
             position.add(new StackEntry(getIndexBlock(index.get(top.offset)), -1));
           }
         }
+        if (position.isEmpty())
+          return;
+        StackEntry e = position.peek();
+        nextEntry = e.block.getIndex().get(e.offset);
+        nextIndex = e.block.getOffset() + e.offset;
       }
       
       IndexEntry nextEntry = null;
@@ -616,11 +621,6 @@ public class MultiLevelIndex {
           } catch (IOException e) {
             throw new RuntimeException(e);
           }
-          if (position.isEmpty())
-            return;
-          StackEntry e = position.peek();
-          nextEntry = e.block.getIndex().get(e.offset);
-          nextIndex = e.block.getOffset() + e.offset;
         }
       }
       

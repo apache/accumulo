@@ -42,18 +42,20 @@ public class VisibilityFilter extends Filter {
   private static final Logger log = Logger.getLogger(VisibilityFilter.class);
   
   public VisibilityFilter(SortedKeyValueIterator<Key,Value> iterator, Authorizations authorizations, byte[] defaultVisibility) {
-    setSource(iterator);
     this.auths = authorizations;
     this.defaultVisibility = new Text(defaultVisibility);
     this.cache = new LRUMap(1000);
     this.tmpVis = new Text();
+    if(iterator instanceof Filterer)
+      ((Filterer<Key,Value>)iterator).applyFilter(new ColumnVisibilityPredicate(auths), false);
+    else
+      throw new IllegalArgumentException("expected to get a "+Filterer.class.getSimpleName());
+    setSource(iterator);
   }
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
-    super.init(source, options, env);
-    if(source instanceof Filterer)
-      ((Filterer<Key,Value>)source).applyFilter(new ColumnVisibilityPredicate(auths), false);
+    throw new UnsupportedOperationException();
   }
 
   @Override

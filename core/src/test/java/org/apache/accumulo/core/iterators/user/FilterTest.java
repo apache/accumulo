@@ -40,6 +40,7 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.ColumnQualifierFilter;
+import org.apache.accumulo.core.iterators.system.GenericFilterer;
 import org.apache.accumulo.core.iterators.system.VisibilityFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -305,7 +306,8 @@ public class FilterTest {
     }
     assertTrue(tm.size() == 1000);
     
-    VisibilityFilter a = new VisibilityFilter(new SortedMapIterator(tm), auths, le2.getExpression());
+    SortedKeyValueIterator<Key,Value> iter = new GenericFilterer(new SortedMapIterator(tm));
+    VisibilityFilter a = new VisibilityFilter(iter, auths, le2.getExpression());
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(a);
     assertTrue("size was " + size, size == 750);
