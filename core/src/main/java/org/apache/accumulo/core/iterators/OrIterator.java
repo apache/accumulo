@@ -19,10 +19,12 @@ package org.apache.accumulo.core.iterators;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.PriorityQueue;
 
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -47,15 +49,19 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
   protected static class TermSource implements Comparable<TermSource> {
     public SortedKeyValueIterator<Key,Value> iter;
     public Text term;
+    public Collection<ByteSequence> seekColfams;
     
     public TermSource(TermSource other) {
       this.iter = other.iter;
       this.term = other.term;
+      this.seekColfams = other.seekColfams;
     }
     
     public TermSource(SortedKeyValueIterator<Key,Value> iter, Text term) {
       this.iter = iter;
       this.term = term;
+      // The desired column families for this source is the term itself
+      this.seekColfams = Collections.<ByteSequence>singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
     }
     
     public int compareTo(TermSource o) {
@@ -143,7 +149,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
           newRange = new Range((newKey == null) ? nullKey : newKey, true, range.getEndKey(), false);
         }
       }
-      currentTerm.iter.seek(newRange, columnFamilies, inclusive);
+      currentTerm.iter.seek(newRange, currentTerm.seekColfams, true);
       
       // If there is no top key
       // OR we are:
@@ -166,7 +172,7 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
     // because an Or must have at least two elements.
     if (currentTerm == null) {
       for (TermSource TS : sources) {
-        TS.iter.seek(range, columnFamilies, inclusive);
+        TS.iter.seek(range, TS.seekColfams, true);
         
         if ((TS.iter.hasTop()) && ((TS.term != null) && (TS.term.compareTo(TS.iter.getTopKey().getColumnFamily()) == 0)))
           sorted.add(TS);
@@ -196,7 +202,8 @@ public class OrIterator implements SortedKeyValueIterator<Key,Value> {
         }
       }
       
-      TS.iter.seek(newRange, columnFamilies, inclusive);
+      // Seek only to the term for this source as a column family
+      TS.iter.seek(newRange, TS.seekColfams, true);
       
       // If there is no top key
       // OR we are:
