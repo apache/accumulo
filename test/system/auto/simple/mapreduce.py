@@ -68,6 +68,7 @@ class MapReduceTest(TestUtilsMixin,unittest.TestCase):
         thriftjar = globa(os.path.join('lib','libthrift*.jar'))
         examples = globa(os.path.join('lib','examples-simple*[!javadoc|sources].jar'))
         core = globa(os.path.join('lib','accumulo-core*[!javadoc|sources].jar'))
+        fate = globa(os.path.join('lib','accumulo-fate*[!javadoc|sources].jar'))
         start = globa(os.path.join('lib','accumulo-start*[!javadoc|sources].jar'))
         trace = globa(os.path.join('lib','cloudtrace*[!javadoc|sources].jar'))
         zkjar = globbase(os.getenv("ZOOKEEPER_HOME"),"zookeeper*[!javadoc|src|bin].jar")
@@ -83,7 +84,7 @@ class MapReduceTest(TestUtilsMixin,unittest.TestCase):
         #MapReduce class to run
         mapred_class= [self.accumulo_sh(),self.example_class_to_run]
         #classes needed to run the mapreduce
-        libjars = ["-libjars",",".join([zkjar,thriftjar,examples,core,trace])]
+        libjars = ["-libjars",",".join([zkjar,thriftjar,examples,core,fate,trace])]
         cmd = mapred_class+libjars+arg_list
         if(self.isAccumuloRunning()):
             log.debug("COMMAND:"+str(cmd))

@@ -68,8 +68,9 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.core.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.core.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -77,7 +78,6 @@ import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.test.FastFormat;
 import org.apache.accumulo.server.trace.TraceFileSystem;
-import org.apache.accumulo.server.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileStatus;
@@ -322,8 +322,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   }
   
   public static boolean getBatchFromRootTablet(AccumuloConfiguration conf, AuthInfo credentials, Text startRow, SortedMap<Key,Value> results,
-      SortedSet<Column> columns,
-      boolean skipStartRow, int size) throws AccumuloSecurityException {
+      SortedSet<Column> columns, boolean skipStartRow, int size) throws AccumuloSecurityException {
     while (true) {
       try {
         return ThriftScanner.getBatchFromServer(credentials, startRow, Constants.ROOT_TABLET_EXTENT, HdfsZooInstance.getInstance().getRootTabletLocation(),

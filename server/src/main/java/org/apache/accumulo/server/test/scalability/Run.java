@@ -52,8 +52,11 @@ public class Run {
     Properties scaleProps = new Properties();
     Properties testProps = new Properties();
     try {
-      scaleProps.load(new FileInputStream(sitePath));
-      testProps.load(new FileInputStream(testPath));
+      FileInputStream fis = new FileInputStream(sitePath);
+      scaleProps.load(fis);
+      fis.close();
+      fis = new FileInputStream(testPath);
+      testProps.load(fis);
     } catch (Exception e) {
       System.out.println("Problem loading config file");
       e.printStackTrace();

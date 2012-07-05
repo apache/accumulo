@@ -64,8 +64,6 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.SequenceFile.Writer;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TServiceClient;
@@ -299,48 +297,16 @@ public class BulkImporter {
     if (completeFailures.size() == 0)
       return Collections.emptySet();
     
-    log.error("The following map files failed completely, saving this info to : " + new Path(failureDir, "failures.seq"));
+    log.debug("The following map files failed ");
     
     for (Entry<Path,List<KeyExtent>> entry : es) {
       List<KeyExtent> extents = entry.getValue();
       
       for (KeyExtent keyExtent : extents)
-        log.error("\t" + entry.getKey() + " -> " + keyExtent);
+        log.debug("\t" + entry.getKey() + " -> " + keyExtent);
     }
-    
-    try {
-      
-      Writer outSeq = SequenceFile.createWriter(fs, conf, new Path(failureDir, "failures.seq"), Text.class, KeyExtent.class);
-      
-      for (Entry<Path,List<KeyExtent>> entry : es) {
-        List<KeyExtent> extents = entry.getValue();
-        
-        for (KeyExtent keyExtent : extents)
-          outSeq.append(new Text(entry.getKey().toString()), keyExtent);
-      }
-      
-      outSeq.close();
-    } catch (IOException ioe) {
-      log.error("Failed to create " + new Path(failureDir, "failures.seq") + " : " + ioe.getMessage());
-    }
-    
-    // we should make copying multi-threaded
-    Set<Path> failedCopies = new HashSet<Path>();
-    
-    for (Entry<Path,List<KeyExtent>> entry : es) {
-      Path dest = new Path(failureDir, entry.getKey().getName());
-      
-      log.debug("Copying " + entry.getKey() + " to " + dest);
-      
-      try {
-        org.apache.hadoop.fs.FileUtil.copy(fs, entry.getKey(), fs, dest, false, conf);
-      } catch (IOException ioe) {
-        log.error("Failed to copy " + entry.getKey() + " : " + ioe.getMessage());
-        failedCopies.add(entry.getKey());
-      }
-    }
-    
-    return failedCopies;
+
+    return Collections.emptySet();
   }
   
   private class AssignmentInfo {

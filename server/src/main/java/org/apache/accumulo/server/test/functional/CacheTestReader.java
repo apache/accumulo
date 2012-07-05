@@ -25,7 +25,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.zookeeper.ZooCache;
+import org.apache.accumulo.fate.zookeeper.ZooCache;
 
 public class CacheTestReader {
   public static void main(String[] args) throws Exception {
@@ -70,6 +70,7 @@ public class CacheTestReader {
       
       oos.writeObject(readData);
       
+      fos.close();
       oos.close();
       
       UtilWaitThread.sleep(20);

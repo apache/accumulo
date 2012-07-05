@@ -26,7 +26,7 @@ import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.server.fate.Repo;
+import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeInfo.Operation;

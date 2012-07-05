@@ -19,8 +19,8 @@
  */
 package org.apache.accumulo.server.master;
 
-import org.apache.accumulo.server.zookeeper.ZooLock.AsyncLockWatcher;
-import org.apache.accumulo.server.zookeeper.ZooLock.LockLossReason;
+import org.apache.accumulo.fate.zookeeper.ZooLock.AsyncLockWatcher;
+import org.apache.accumulo.fate.zookeeper.ZooLock.LockLossReason;
 
 class TServerLockWatcher implements AsyncLockWatcher {
   

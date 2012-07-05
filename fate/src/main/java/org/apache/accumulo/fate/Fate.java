@@ -14,15 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.fate;
+package org.apache.accumulo.fate;
 
 import java.util.EnumSet;
 
-import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.LoggingRunnable;
-import org.apache.accumulo.server.fate.TStore.TStatus;
+import org.apache.accumulo.fate.TStore.TStatus;
+import org.apache.accumulo.fate.util.Daemon;
+import org.apache.accumulo.fate.util.LoggingRunnable;
 import org.apache.log4j.Logger;
-
 
 /**
  * Fault tolerant executor

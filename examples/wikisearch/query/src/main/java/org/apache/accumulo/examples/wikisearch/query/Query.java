@@ -175,11 +175,10 @@ public class Query implements IQuery {
     Connector connector = null;
     if (null == instanceName || null == zooKeepers || null == username || null == password)
       throw new EJBException("Required parameters not set. [instanceName = " + this.instanceName + ", zookeepers = " + this.zooKeepers + ", username = "
-          + this.username + ", password = " + this.password + "]. Check values in ejb-jar.xml");
+          + this.username + ", password = [hidden]. Check values in ejb-jar.xml");
     Instance instance = new ZooKeeperInstance(this.instanceName, this.zooKeepers);
     try {
-      log.info("Connecting to [instanceName = " + this.instanceName + ", zookeepers = " + this.zooKeepers + ", username = " + this.username + ", password = "
-          + this.password + "].");
+      log.info("Connecting to [instanceName = " + this.instanceName + ", zookeepers = " + this.zooKeepers + ", username = " + this.username + "].");
       connector = instance.getConnector(this.username, this.password.getBytes());
     } catch (Exception e) {
       throw new EJBException("Error getting connector from instance", e);

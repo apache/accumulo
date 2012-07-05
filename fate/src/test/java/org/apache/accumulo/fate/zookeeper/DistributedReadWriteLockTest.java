@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.zookeeper;
+package org.apache.accumulo.fate.zookeeper;
 
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -23,8 +23,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 
 import junit.framework.Assert;
 
-import org.apache.accumulo.server.zookeeper.DistributedReadWriteLock;
-import org.apache.accumulo.server.zookeeper.DistributedReadWriteLock.QueueLock;
+import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock.QueueLock;
 import org.junit.Test;
 
 public class DistributedReadWriteLockTest {

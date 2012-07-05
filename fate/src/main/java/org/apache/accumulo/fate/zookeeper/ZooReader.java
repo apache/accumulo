@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.zookeeper;
+package org.apache.accumulo.fate.zookeeper;
 
 import java.util.List;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
@@ -75,9 +74,5 @@ public class ZooReader implements IZooReader {
   public ZooReader(String keepers, int timeout) {
     this.keepers = keepers;
     this.timeout = timeout;
-  }
-  
-  public ZooReader(Instance instance) {
-    this(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
   }
 }
