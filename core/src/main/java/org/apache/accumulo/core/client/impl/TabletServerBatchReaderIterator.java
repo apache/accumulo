@@ -34,6 +34,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cloudtrace.instrument.TraceRunnable;
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -534,7 +535,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     
     TTransport transport = null;
     try {
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(server, conf);
+      TabletClientService.Client client = ThriftUtil.getTServerClient(server, conf);
       try {
         OpTimer opTimer = new OpTimer(log, Level.TRACE).start("Starting multi scan, tserver=" + server + "  #tablets=" + requested.size() + "  #ranges="
             + sumSizes(requested.values()) + " ssil=" + options.serverSideIteratorList + " ssio=" + options.serverSideIteratorOptions);
@@ -544,7 +545,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         
         Map<TKeyExtent,List<TRange>> thriftTabletRanges = Translator.translate(requested, Translator.KET, new Translator.ListTranslator<Range,TRange>(
             Translator.RT));
-        InitialMultiScan imsr = client.startMultiScan(null, credentials, thriftTabletRanges, Translator.translate(columns, Translator.CT),
+        InitialMultiScan imsr = client.startMultiScan(Tracer.traceInfo(), credentials, thriftTabletRanges, Translator.translate(columns, Translator.CT),
             options.serverSideIteratorList, options.serverSideIteratorOptions, ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites);
         if (waitForWrites)
           ThriftScanner.serversWaitedForWrites.get(ttype).add(server);
@@ -567,7 +568,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         while (scanResult.more) {
           
           opTimer.start("Continuing multi scan, scanid=" + imsr.scanID);
-          scanResult = client.continueMultiScan(null, imsr.scanID);
+          scanResult = client.continueMultiScan(Tracer.traceInfo(), imsr.scanID);
           opTimer.stop("Got more multi scan results, #results=" + scanResult.results.size() + (scanResult.more ? "  scanID=" + imsr.scanID : "")
               + " in %DURATION%");
           
@@ -581,7 +582,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           trackScanning(failures, unscanned, scanResult);
         }
         
-        client.closeMultiScan(null, imsr.scanID);
+        client.closeMultiScan(Tracer.traceInfo(), imsr.scanID);
         
       } finally {
         ThriftUtil.returnClient(client);
