@@ -103,7 +103,9 @@ public class Framework {
     String module = args[3];
     
     Properties props = new Properties();
-    props.load(new FileInputStream(configDir + "/randomwalk.conf"));
+    FileInputStream fis = new FileInputStream(configDir + "/randomwalk.conf");
+    props.load(fis);
+    fis.close();
     
     System.setProperty("localLog", localLogPath + "/" + logId);
     System.setProperty("nfsLog", props.getProperty("NFS_LOGPATH") + "/" + logId);

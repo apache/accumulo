@@ -60,11 +60,12 @@ public class FileSystemMonitor {
     BufferedReader br = new BufferedReader(fr);
     
     String line;
-    
+    try {
     while ((line = br.readLine()) != null)
       mounts.add(new Mount(line));
-    
-    br.close();
+    } finally {
+      br.close();
+    }
     
     return mounts;
   }

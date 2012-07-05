@@ -32,11 +32,6 @@ public class VisServlet extends BasicServlet {
   private static final int concurrentScans = Monitor.getSystemConfiguration().getCount(Property.TSERV_READ_AHEAD_MAXCONCURRENT);
   
   private static final long serialVersionUID = 1L;
-  boolean useCircles;
-  StatType motion;
-  StatType color;
-  int spacing;
-  String url;
   
   public enum StatType {
     osload(ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors(), true, 100, "OS Load"),
@@ -106,6 +101,14 @@ public class VisServlet extends BasicServlet {
       return count;
     }
   }
+
+  public static class VisualizationConfig {
+	  boolean useCircles = true;
+	  StatType motion  = StatType.allmax;
+	  StatType color = StatType.allavg;
+	  int spacing = 40;
+	  String url;
+  }
   
   @Override
   protected String getTitle(HttpServletRequest req) {
@@ -116,39 +119,36 @@ public class VisServlet extends BasicServlet {
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws IOException {
     StringBuffer urlsb = req.getRequestURL();
     urlsb.setLength(urlsb.lastIndexOf("/") + 1);
-    url = urlsb.toString();
+    String url = urlsb.toString();
+    VisualizationConfig cfg = new VisualizationConfig();
     
-    useCircles = true;
     String s = req.getParameter("shape");
     if (s != null && (s.equals("square") || s.equals("squares"))) {
-      useCircles = false;
+      cfg.useCircles = false;
     }
     
     s = req.getParameter("motion");
-    motion = StatType.allmax;
     if (s != null) {
       try {
-        motion = StatType.valueOf(s);
+        cfg.motion = StatType.valueOf(s);
       } catch (Exception e) {}
     }
     
     s = req.getParameter("color");
-    color = StatType.allavg;
     if (s != null) {
       try {
-        color = StatType.valueOf(s);
+        cfg.color = StatType.valueOf(s);
       } catch (Exception e) {}
     }
     
-    spacing = 40;
     String size = req.getParameter("size");
     if (size != null) {
       if (size.equals("10"))
-        spacing = 10;
+        cfg.spacing = 10;
       else if (size.equals("20"))
-        spacing = 20;
+        cfg.spacing = 20;
       else if (size.equals("80"))
-        spacing = 80;
+        cfg.spacing = 80;
     }
     
     ArrayList<TabletServerStatus> tservers = new ArrayList<TabletServerStatus>();
@@ -158,30 +158,30 @@ public class VisServlet extends BasicServlet {
     if (tservers.size() == 0)
       return;
     
-    int width = (int) Math.ceil(Math.sqrt(tservers.size())) * spacing;
-    int height = (int) Math.ceil(tservers.size() / width) * spacing;
-    doSettings(sb, width < 640 ? 640 : width, height < 640 ? 640 : height);
-    doScript(sb, tservers);
+    int width = (int) Math.ceil(Math.sqrt(tservers.size())) * cfg.spacing;
+    int height = (int) Math.ceil(tservers.size() / width) * cfg.spacing;
+    doSettings(sb, cfg, width < 640 ? 640 : width, height < 640 ? 640 : height);
+    doScript(sb, cfg, tservers);
   }
   
-  private void doSettings(StringBuilder sb, int width, int height) {
+  private void doSettings(StringBuilder sb, VisualizationConfig cfg, int width, int height) {
     sb.append("<div class='left'>\n");
     sb.append("<div id='parameters' class='nowrap'>\n");
     // shape select box
     sb.append("<span class='viscontrol'>Shape: <select id='shape' onchange='setShape(this)'><option>Circles</option><option")
-        .append(!useCircles ? " selected='true'" : "").append(">Squares</option></select></span>\n");
+        .append(!cfg.useCircles ? " selected='true'" : "").append(">Squares</option></select></span>\n");
     // size select box
-    sb.append("&nbsp;&nbsp<span class='viscontrol'>Size: <select id='size' onchange='setSize(this)'><option").append(spacing == 10 ? " selected='true'" : "")
-        .append(">10</option><option").append(spacing == 20 ? " selected='true'" : "").append(">20</option><option")
-        .append(spacing == 40 ? " selected='true'" : "").append(">40</option><option").append(spacing == 80 ? " selected='true'" : "")
+    sb.append("&nbsp;&nbsp<span class='viscontrol'>Size: <select id='size' onchange='setSize(this)'><option").append(cfg.spacing == 10 ? " selected='true'" : "")
+        .append(">10</option><option").append(cfg.spacing == 20 ? " selected='true'" : "").append(">20</option><option")
+        .append(cfg.spacing == 40 ? " selected='true'" : "").append(">40</option><option").append(cfg.spacing == 80 ? " selected='true'" : "")
         .append(">80</option></select></span>\n");
     // motion select box
     sb.append("&nbsp;&nbsp<span class='viscontrol'>Motion: <select id='motion' onchange='setMotion(this)'>");
-    addOptions(sb, motion);
+    addOptions(sb, cfg.motion);
     sb.append("</select></span>\n");
     // color select box
     sb.append("&nbsp;&nbsp<span class='viscontrol'>Color: <select id='color' onchange='setColor(this)'>");
-    addOptions(sb, color);
+    addOptions(sb, cfg.color);
     sb.append("</select></span>\n");
     sb.append("&nbsp;&nbsp<span class='viscontrol'>(hover for info, click for details)</span>");
     sb.append("</div>\n\n");
@@ -200,13 +200,13 @@ public class VisServlet extends BasicServlet {
     }
   }
   
-  private void doScript(StringBuilder sb, ArrayList<TabletServerStatus> tservers) {
+  private void doScript(StringBuilder sb, VisualizationConfig cfg, ArrayList<TabletServerStatus> tservers) {
     // initialization of some javascript variables
     sb.append("<script type='text/javascript'>\n");
     sb.append("var numCores = " + ManagementFactory.getOperatingSystemMXBean().getAvailableProcessors() + ";\n");
-    sb.append("var jsonurl = '" + url + "json';\n");
-    sb.append("var visurl = '" + url + "vis';\n");
-    sb.append("var serverurl = '" + url + "tservers?s=';\n\n");
+    sb.append("var jsonurl = '" + cfg.url + "json';\n");
+    sb.append("var visurl = '" + cfg.url + "vis';\n");
+    sb.append("var serverurl = '" + cfg.url + "tservers?s=';\n\n");
     sb.append("// observable stats that can be connected to motion or color\n");
     sb.append("var statNames = {");
     for (StatType st : StatType.values())

@@ -62,7 +62,7 @@ public class Merge {
     String table = null;
     long goalSize = -1;
     String user = "root";
-    String password = "secret";
+    byte[] password = "secret".getBytes();
     boolean force = false;
     Text begin = null;
     Text end = null;
@@ -90,6 +90,12 @@ public class Merge {
     if (commandLine.hasOption("s")) {
       goalSize = AccumuloConfiguration.getMemoryInBytes(commandLine.getOptionValue("s"));
     }
+    if (commandLine.hasOption("u")) {
+    	table = commandLine.getOptionValue("u");
+    }
+    if (commandLine.hasOption("p")) {
+        password = commandLine.getOptionValue("p").getBytes();
+    }
     if (commandLine.hasOption("f")) {
       force = true;
     }
@@ -97,7 +103,7 @@ public class Merge {
       begin = new Text(commandLine.getOptionValue("b"));
     }
     if (commandLine.hasOption("e")) {
-      end = new Text(commandLine.getOptionValue("e"));
+    	end = new Text(commandLine.getOptionValue("e"));
     }
     if (table == null) {
       System.err.println("Specify the table to merge");

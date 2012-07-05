@@ -70,6 +70,7 @@ public class CacheTestReader {
       
       oos.writeObject(readData);
       
+      fos.close();
       oos.close();
       
       UtilWaitThread.sleep(20);

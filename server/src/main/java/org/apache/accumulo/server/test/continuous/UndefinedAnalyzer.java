@@ -80,46 +80,46 @@ public class UndefinedAnalyzer {
     
     private void parseLog(File log) throws Exception {
       BufferedReader reader = new BufferedReader(new FileReader(log));
-      
       String line;
       TreeMap<Long,Long> tm = null;
-      
-      while ((line = reader.readLine()) != null) {
-        if (!line.startsWith("UUID"))
-          continue;
-        String[] tokens = line.split("\\s");
-        String time = tokens[1];
-        String uuid = tokens[2];
-        
-        if (flushes.containsKey(uuid)) {
-          System.err.println("WARN Duplicate uuid " + log);
+      try {
+        while ((line = reader.readLine()) != null) {
+          if (!line.startsWith("UUID"))
+            continue;
+          String[] tokens = line.split("\\s");
+          String time = tokens[1];
+          String uuid = tokens[2];
+          
+          if (flushes.containsKey(uuid)) {
+            System.err.println("WARN Duplicate uuid " + log);
+            return;
+          }
+          
+          tm = new TreeMap<Long,Long>(Collections.reverseOrder());
+          tm.put(0l, Long.parseLong(time));
+          flushes.put(uuid, tm);
+          break;
+          
+        }
+        if (tm == null) {
+          System.err.println("WARN Bad ingest log " + log);
           return;
         }
         
-        tm = new TreeMap<Long,Long>(Collections.reverseOrder());
-        tm.put(0l, Long.parseLong(time));
-        flushes.put(uuid, tm);
-        break;
-        
+        while ((line = reader.readLine()) != null) {
+          String[] tokens = line.split("\\s");
+          
+          if (!tokens[0].equals("FLUSH"))
+            continue;
+          
+          String time = tokens[1];
+          String count = tokens[4];
+          
+          tm.put(Long.parseLong(count), Long.parseLong(time));
+        }
+      } finally {
+        reader.close();
       }
-      
-      if (tm == null) {
-        System.err.println("WARN Bad ingest log " + log);
-        return;
-      }
-      
-      while ((line = reader.readLine()) != null) {
-        String[] tokens = line.split("\\s");
-        
-        if (!tokens[0].equals("FLUSH"))
-          continue;
-        
-        String time = tokens[1];
-        String count = tokens[4];
-        
-        tm.put(Long.parseLong(count), Long.parseLong(time));
-      }
-      
     }
     
     Iterator<Long> getTimes(String uuid, long count) {
@@ -172,45 +172,49 @@ public class UndefinedAnalyzer {
         
         BufferedReader reader = new BufferedReader(new FileReader(masterLog));
         String line;
-        while ((line = reader.readLine()) != null) {
-          if (line.contains("TABLET_LOADED")) {
-            String[] tokens = line.split("\\s+");
-            String tablet = tokens[8];
-            String server = tokens[10];
-            
-            int pos1 = -1;
-            int pos2 = -1;
-            int pos3 = -1;
-            
-            for (int i = 0; i < tablet.length(); i++) {
-              if (tablet.charAt(i) == '<' || tablet.charAt(i) == ';') {
-                if (pos1 == -1) {
-                  pos1 = i;
-                } else if (pos2 == -1) {
-                  pos2 = i;
-                } else {
-                  pos3 = i;
+        try {
+          while ((line = reader.readLine()) != null) {
+            if (line.contains("TABLET_LOADED")) {
+              String[] tokens = line.split("\\s+");
+              String tablet = tokens[8];
+              String server = tokens[10];
+              
+              int pos1 = -1;
+              int pos2 = -1;
+              int pos3 = -1;
+              
+              for (int i = 0; i < tablet.length(); i++) {
+                if (tablet.charAt(i) == '<' || tablet.charAt(i) == ';') {
+                  if (pos1 == -1) {
+                    pos1 = i;
+                  } else if (pos2 == -1) {
+                    pos2 = i;
+                  } else {
+                    pos3 = i;
+                  }
                 }
               }
-            }
-            
-            if (pos1 > 0 && pos2 > 0 && pos3 == -1) {
-              String tid = tablet.substring(0, pos1);
-              String endRow = tablet.charAt(pos1) == '<' ? "8000000000000000" : tablet.substring(pos1 + 1, pos2);
-              String prevEndRow = tablet.charAt(pos2) == '<' ? "" : tablet.substring(pos2 + 1);
-              if (tid.equals(tableId)) {
-                // System.out.println(" "+server+" "+tid+" "+endRow+" "+prevEndRow);
-                Date date = sdf.parse(tokens[0] + " " + tokens[1] + " " + currentYear + " " + currentMonth);
-                // System.out.println(" "+date);
-                
-                assignments.add(new TabletAssignment(tablet, endRow, prevEndRow, server, date.getTime()));
-                
+              
+              if (pos1 > 0 && pos2 > 0 && pos3 == -1) {
+                String tid = tablet.substring(0, pos1);
+                String endRow = tablet.charAt(pos1) == '<' ? "8000000000000000" : tablet.substring(pos1 + 1, pos2);
+                String prevEndRow = tablet.charAt(pos2) == '<' ? "" : tablet.substring(pos2 + 1);
+                if (tid.equals(tableId)) {
+                  // System.out.println(" "+server+" "+tid+" "+endRow+" "+prevEndRow);
+                  Date date = sdf.parse(tokens[0] + " " + tokens[1] + " " + currentYear + " " + currentMonth);
+                  // System.out.println(" "+date);
+                  
+                  assignments.add(new TabletAssignment(tablet, endRow, prevEndRow, server, date.getTime()));
+                  
+                }
+              } else if (!tablet.startsWith("!0")) {
+                System.err.println("Cannot parse tablet " + tablet);
               }
-            } else if (!tablet.startsWith("!0")) {
-              System.err.println("Cannot parse tablet " + tablet);
+              
             }
-            
           }
+        } finally {
+          reader.close();
         }
       }
     }

@@ -83,13 +83,17 @@ public class DefaultServlet extends BasicServlet {
       path = path.substring(1);
       InputStream data = BasicServlet.class.getClassLoader().getResourceAsStream(path);
       ServletOutputStream out = resp.getOutputStream();
-      if (data != null) {
-        byte[] buffer = new byte[1024];
-        int n;
-        while ((n = data.read(buffer)) > 0)
-          out.write(buffer, 0, n);
-      } else {
-        out.write(("could not get resource " + path + "").getBytes());
+      try {
+    	  if (data != null) {
+    		  byte[] buffer = new byte[1024];
+    		  int n;
+    		  while ((n = data.read(buffer)) > 0)
+    			  out.write(buffer, 0, n);
+    	  } else {
+    		  out.write(("could not get resource " + path + "").getBytes());
+    	  }
+      } finally {
+    	  data.close();
       }
     } catch (Throwable t) {
       log.error(t, t);
@@ -113,9 +117,10 @@ public class DefaultServlet extends BasicServlet {
       
       @Override
       public IOException run() {
+    	InputStream data = null;
         try {
           File file = new File(aHome + path);
-          InputStream data = new FileInputStream(file.getAbsolutePath());
+          data = new FileInputStream(file.getAbsolutePath());
           byte[] buffer = new byte[1024];
           int n;
           ServletOutputStream out = resp.getOutputStream();
@@ -124,6 +129,14 @@ public class DefaultServlet extends BasicServlet {
           return null;
         } catch (IOException e) {
           return e;
+        } finally {
+          if (data != null) {
+            try {
+              data.close();
+            } catch (IOException ex) {
+              log.error(ex, ex);
+            }
+          } 
         }
       }
     }, acc);
