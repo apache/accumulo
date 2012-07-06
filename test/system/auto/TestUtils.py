@@ -170,19 +170,9 @@ class TestUtilsMixin:
         self.pkill(host, 'Main master$', signal=signal.SIGHUP)
         self.cleanupAccumuloHandles()
 
-    def stop_logger(self, host):
-        self.pkill(host, 'Main logger$', signal=signal.SIGHUP)
-        # wait for it to stop
-        self.sleep(1)
-        self.cleanupAccumuloHandles(0.5)
-
     def start_tserver(self, host):
         return self.runOn(host,
                           [self.accumulo_sh(), 'tserver'])
-
-    def start_logger(self, host):
-        return self.runOn(host,
-                          [self.accumulo_sh(), 'logger'])
 
     def start_monitor(self, host):
         return self.runOn(host, [self.accumulo_sh(), 'monitor'])
@@ -291,8 +281,6 @@ class TestUtilsMixin:
 
     def start_accumulo_procs(self, safeMode=None):
         self.accumuloHandles = [
-           self.start_logger(host) for host in self.hosts 
-           ] + [
            self.start_tserver(host) for host in self.hosts
            ] + [
            self.start_monitor(self.masterHost())
@@ -388,8 +376,6 @@ class TestUtilsMixin:
                  [self.accumulo_sh(), 'admin', '-u', ROOT,
                  '-p', ROOT_PASSWORD, 'stopAll'])
         self.waitForStop(handle, seconds)
-        for host in self.hosts:
-            self.stop_logger(host)
         self.stop_monitor(self.masterHost())
         self.cleanupAccumuloHandles()
         # give everyone a couple seconds to completely stop
