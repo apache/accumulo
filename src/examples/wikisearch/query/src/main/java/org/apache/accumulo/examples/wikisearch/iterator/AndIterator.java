@@ -47,7 +47,6 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
   private Text currentRow = null;
   private Text currentTerm = new Text(emptyByteArray);
   private Text currentDocID = new Text(emptyByteArray);
-  private Collection<ByteSequence> seekColumnFamilies;
   private Text parentEndRow;
   private static boolean SEEK_INCLUSIVE = true;
   
@@ -870,7 +869,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
         }
         Key sKey = new Key(jumpKey.getRow());
         Range fake = new Range(sKey, true, endKey, false);
-        this.seek(fake, this.seekColumnFamilies, false);
+        this.seek(fake, null, false);
         return hasTop();
       } else {
         // need to check uid
