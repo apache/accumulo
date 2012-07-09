@@ -66,7 +66,7 @@ public class ShutdownTServer extends MasterRepo {
     // TODO move this to isReady() and drop while loop?
     Listener listener = m.getEventCoordinator().getListener();
     m.shutdownTServer(server);
-    while (m.stillMaster() && m.onlineTabletServers().contains(server)) {
+    while (m.onlineTabletServers().contains(server)) {
       TServerConnection connection = m.getConnection(server);
       if (connection != null) {
         try {
