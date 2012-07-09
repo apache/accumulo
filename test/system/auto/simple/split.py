@@ -38,7 +38,8 @@ class TabletShouldSplit(SunnyDayTest):
         })
     tableSettings = SunnyDayTest.tableSettings.copy()
     tableSettings['test_ingest'] = { 
-    	'table.split.threshold': '5K',
+    	'table.split.threshold': '256K',
+      'table.file.compress.blocksize': '1K',
         }
     def runTest(self):
 
@@ -65,10 +66,10 @@ class TabletShouldSplit(SunnyDayTest):
                     lines.append(line)
         # check that the row values aren't always whole rows, but something shorter
         for line in lines:
-            if len(line) != len(lines[0]):
-                break
+          if len(line) != 14:
+            break
         else:
-            self.fail("The split points are not being shortened")
+          self.fail("The split points are not being shortened")
 
         self.assert_(len(lines) > 10)
 
