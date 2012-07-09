@@ -57,5 +57,5 @@ done
 ${bin}/tdown.sh
 
 echo 'Cleaning all server entries in zookeeper'
-$ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.util.ZooZap -master -tservers -loggers -tracers
+$ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.util.ZooZap -master -tservers -tracers
 
