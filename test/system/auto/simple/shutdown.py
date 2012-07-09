@@ -19,9 +19,10 @@ import logging
 import unittest
 import sleep
 import signal
+import socket
 from subprocess import PIPE
 
-from TestUtils import TestUtilsMixin, ROOT, ROOT_PASSWORD
+from TestUtils import TestUtilsMixin, ROOT, ROOT_PASSWORD, FUZZ
 from simple.readwrite import SunnyDayTest
 
 log = logging.getLogger('test.auto')
@@ -76,14 +77,24 @@ class ShutdownDuringDeleteTable(TestUtilsMixin, unittest.TestCase):
         handle.stdin.write(dt)
         self.shutdown_accumulo()
 
-class ShutdownDuringStart(TestUtilsMixin, unittest.TestCase):
+class AdminStopDuringStart(TestUtilsMixin, unittest.TestCase):
 
     order = SunnyDayTest.order + 1
     
     def runTest(self):
-        self.hosts = self.options.hosts
         self.clean_accumulo(self.masterHost())
         self.start_accumulo()
+        handle = self.runOn(self.masterHost(),
+                            [self.accumulo_sh(),'admin','stop', socket.getfqdn() + ":%d" % (39000 + FUZZ)])
+
+class AdminStop(SunnyDayTest):
+
+    order = SunnyDayTest.order + 1
+    
+    def runTest(self):
+        self.waitForStop(self.ingester, self.waitTime())
+        handle = self.runOn(self.masterHost(),
+                            [self.accumulo_sh(),'admin','stop', socket.getfqdn() + ":%d" % (39000 + FUZZ)])
         self.shutdown_accumulo()
 
 def suite():
@@ -92,5 +103,6 @@ def suite():
     result.addTest(ShutdownDuringQuery())
     result.addTest(ShutdownDuringDelete())
     result.addTest(ShutdownDuringDeleteTable())
-    result.addTest(ShutdownDuringStart())
+    result.addTest(AdminStopDuringStart())
+    result.addTest(AdminStop())
     return result

@@ -1268,10 +1268,13 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   private class TabletGroupWatcher extends Daemon {
     
     final TabletStateStore store;
+    final TabletGroupWatcher dependentWatcher;
+    
     final TableStats stats = new TableStats();
     
-    TabletGroupWatcher(TabletStateStore store) {
+    TabletGroupWatcher(TabletStateStore store, TabletGroupWatcher dependentWatcher) {
       this.store = store;
+      this.dependentWatcher = dependentWatcher;
     }
     
     Map<Text,TableCounts> getStats() {
@@ -1349,6 +1352,15 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             // Always follow through with assignments
             if (state == TabletState.ASSIGNED) {
               goal = TabletGoalState.HOSTED;
+            }
+            
+            // if we are shutting down all the tabletservers, we have to do it in order
+            if (goal == TabletGoalState.UNASSIGNED && state == TabletState.HOSTED) {
+              if (serversToShutdown.equals(currentTServers.keySet())) {
+                if (dependentWatcher != null && dependentWatcher.assignedOrHosted() > 0) {
+                  goal = TabletGoalState.HOSTED;
+                }
+              }
             }
             
             if (goal == TabletGoalState.HOSTED) {
@@ -1442,6 +1454,14 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       }
     }
     
+    private int assignedOrHosted() {
+      int result = 0;
+      for (TableCounts counts : stats.getLast().values()) {
+        result += counts.assigned() + counts.hosted();
+      }
+      return result;
+    }
+
     private void sendSplitRequest(MergeInfo info, TabletState state, TabletLocationState tls) {
       // Already split?
       if (!info.getState().equals(MergeState.SPLITTING))
@@ -2087,9 +2107,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     AuthInfo systemAuths = SecurityConstants.getSystemCredentials();
     final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(instance, systemAuths, this),
         new MetaDataStateStore(instance, systemAuths, this)};
-    for (int i = 0; i < stores.length; i++) {
-      watchers.add(new TabletGroupWatcher(stores[i]));
-    }
+    watchers.add(new TabletGroupWatcher(stores[2], null));
+    watchers.add(new TabletGroupWatcher(stores[1], watchers.get(0)));
+    watchers.add(new TabletGroupWatcher(stores[0], watchers.get(1)));
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
     }
