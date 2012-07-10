@@ -73,6 +73,7 @@ public class ZooStore implements DistributedStore {
     try {
       path = relative(path);
       ZooReaderWriter.getInstance().putPersistentData(path, bs, NodeExistsPolicy.OVERWRITE);
+      ZooReaderWriter.getInstance().sync(path);
       cache.clear();
       log.debug("Wrote " + new String(bs) + " to " + path);
     } catch (Exception ex) {

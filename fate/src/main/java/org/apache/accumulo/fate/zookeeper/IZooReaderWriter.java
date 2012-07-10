@@ -60,4 +60,6 @@ public interface IZooReaderWriter extends IZooReader {
   
   public abstract void mkdirs(String path) throws KeeperException, InterruptedException;
   
+  public abstract void sync(String path) throws KeeperException, InterruptedException;
+  
 }
