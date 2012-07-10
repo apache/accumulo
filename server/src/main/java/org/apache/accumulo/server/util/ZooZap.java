@@ -115,7 +115,7 @@ public class ZooZap {
   }
   
   private static void printUsage() {
-    System.err.println("Usage : " + ZooZap.class.getName() + " [-verbose] [-tservers] [-master] [-loggers]");
+    System.err.println("Usage : " + ZooZap.class.getName() + " [-verbose] [-tservers] [-master] [-tracers]");
   }
   
 }

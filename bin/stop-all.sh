@@ -53,7 +53,7 @@ do
 done
 
 
-# stop tserver/loggers still running
+# stop tserver still running
 ${bin}/tdown.sh
 
 echo 'Cleaning all server entries in zookeeper'
