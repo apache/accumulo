@@ -142,6 +142,7 @@ import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletStateStore;
+import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
@@ -204,6 +205,7 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.mortbay.log.Log;
 
 enum ScanRunState {
   QUEUED, RUNNING, FINISHED
@@ -2806,11 +2808,21 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private long totalMinorCompactions;
   
   public static SortedMap<KeyExtent,Text> verifyTabletInformation(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues,
-      String clientAddress, ZooLock lock) throws AccumuloSecurityException {
+      String clientAddress, ZooLock lock) throws AccumuloSecurityException, DistributedStoreException {
     for (int tries = 0; tries < 3; tries++) {
       try {
         log.debug("verifying extent " + extent);
         if (extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+          ZooTabletStateStore store = new ZooTabletStateStore();
+          if (!store.iterator().hasNext()) {
+            log.warn("Illegal state: location is not set in zookeeper");
+            return null;
+          }
+          TabletLocationState next = store.iterator().next();
+          if (!instance.equals(next.future)) {
+            log.warn("Future location is not to this server for the root tablet");
+            return null;
+          }
           TreeMap<KeyExtent,Text> set = new TreeMap<KeyExtent,Text>();
           set.put(extent, new Text(Constants.ZROOT_TABLET));
           return set;
