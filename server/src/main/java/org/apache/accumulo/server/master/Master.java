@@ -70,6 +70,7 @@ import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
+import org.apache.accumulo.core.master.thrift.MasterClientService.Iface;
 import org.apache.accumulo.core.master.thrift.MasterClientService.Processor;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -2123,7 +2124,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       throw new IOException(e);
     }
     
-    Processor processor = new MasterClientService.Processor(TraceWrap.service(new MasterClientServiceHandler()));
+    Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(new MasterClientServiceHandler()));
     clientService = TServerUtils.startServer(getSystemConfiguration(), Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
         Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK).server;
     

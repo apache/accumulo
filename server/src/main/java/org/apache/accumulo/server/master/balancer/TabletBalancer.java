@@ -22,11 +22,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -95,9 +96,9 @@ public abstract class TabletBalancer {
    */
   public List<TabletStats> getOnlineTabletsForTable(TServerInstance tserver, String tableId) throws ThriftSecurityException, TException {
     log.debug("Scanning tablet server " + tserver + " for table " + tableId);
-    Iface client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), tserver.getLocation(), configuration.getConfiguration());
+    Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), tserver.getLocation(), configuration.getConfiguration());
     try {
-      List<TabletStats> onlineTabletsForTable = client.getTabletStats(null, SecurityConstants.getSystemCredentials(), tableId);
+      List<TabletStats> onlineTabletsForTable = client.getTabletStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials(), tableId);
       return onlineTabletsForTable;
     } catch (TTransportException e) {
       log.error("Unable to connect to " + tserver + ": " + e);

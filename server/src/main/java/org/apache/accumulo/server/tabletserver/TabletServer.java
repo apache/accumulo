@@ -118,6 +118,8 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanState;
 import org.apache.accumulo.core.tabletserver.thrift.ScanType;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -2622,12 +2624,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   }
   
   // Connect to the master for posting asynchronous results
-  private MasterClientService.Iface masterConnection(String address) {
+  private MasterClientService.Client masterConnection(String address) {
     try {
       if (address == null) {
         return null;
       }
-      MasterClientService.Iface client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, Property.MASTER_CLIENTPORT,
+      MasterClientService.Client client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, Property.MASTER_CLIENTPORT,
           Property.GENERAL_RPC_TIMEOUT, getSystemConfiguration());
       // log.info("Listener API to master has been opened");
       return client;
@@ -2637,14 +2639,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     return null;
   }
   
-  private void returnMasterConnection(MasterClientService.Iface client) {
+  private void returnMasterConnection(MasterClientService.Client client) {
     ThriftUtil.returnClient(client);
   }
   
   private int startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
-    TabletClientService.Iface tch = TraceWrap.service(new ThriftClientHandler());
-    TabletClientService.Processor processor = new TabletClientService.Processor(tch);
+    Iface tch = TraceWrap.service(new ThriftClientHandler());
+    Processor<Iface> processor = new Processor<Iface>(tch);
     int port = startServer(getSystemConfiguration(), Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
     log.info("port = " + port);
     return port;
@@ -2745,7 +2747,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       // send all of the pending messages
       try {
         MasterMessage mm = null;
-        MasterClientService.Iface iface = null;
+        MasterClientService.Client iface = null;
         
         try {
           // wait until a message is ready to send, or a sever stop

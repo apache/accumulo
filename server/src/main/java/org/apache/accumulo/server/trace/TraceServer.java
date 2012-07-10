@@ -23,7 +23,8 @@ import java.util.TimerTask;
 
 import org.apache.accumulo.cloudtrace.instrument.Span;
 import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
-import org.apache.accumulo.cloudtrace.thrift.SpanReceiver;
+import org.apache.accumulo.cloudtrace.thrift.SpanReceiver.Processor;
+import org.apache.accumulo.cloudtrace.thrift.SpanReceiver.Iface;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -110,7 +111,7 @@ public class TraceServer implements Watcher {
     }
   }
   
-  class Receiver implements SpanReceiver.Iface {
+  class Receiver implements Iface {
     @Override
     public void span(RemoteSpan s) throws TException {
       String idString = Long.toHexString(s.traceId);
@@ -172,7 +173,7 @@ public class TraceServer implements Watcher {
     sock.bind(new InetSocketAddress(port));
     final TServerTransport transport = new TServerSocket(sock);
     TThreadPoolServer.Args options = new TThreadPoolServer.Args(transport);
-    options.processor(new SpanReceiver.Processor(new Receiver()));
+    options.processor(new Processor<Iface>(new Receiver()));
     server = new TThreadPoolServer(options);
     final InetSocketAddress address = new InetSocketAddress(hostname, sock.getLocalPort());
     registerInZooKeeper(AddressUtil.toString(address));

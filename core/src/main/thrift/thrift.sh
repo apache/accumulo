@@ -22,7 +22,7 @@ fail() {
 }
 
 # test to see if we have thrift installed
-VERSION=`thrift -version 2>/dev/null | grep "0.6" |  wc -l`
+VERSION=`thrift -version 2>/dev/null | grep "0.8" |  wc -l`
 if [ "$VERSION" -ne 1 ] ; then 
    # Nope: bail
    echo "thrift is not available"

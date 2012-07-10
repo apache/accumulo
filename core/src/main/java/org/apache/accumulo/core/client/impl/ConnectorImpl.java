@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.impl;
 
 import java.nio.ByteBuffer;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
@@ -72,10 +73,10 @@ public class ConnectorImpl extends Connector {
     // hardcoded string for SYSTEM user since the definition is
     // in server code
     if (!user.equals("!SYSTEM")) {
-      ServerClient.execute(instance, new ClientExec<ClientService.Iface>() {
+      ServerClient.execute(instance, new ClientExec<ClientService.Client>() {
         @Override
-        public void execute(ClientService.Iface iface) throws Exception {
-          iface.authenticateUser(null, credentials, credentials.user, credentials.password);
+        public void execute(ClientService.Client iface) throws Exception {
+          iface.authenticateUser(Tracer.traceInfo(), credentials, credentials.user, credentials.password);
         }
       });
     }

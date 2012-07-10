@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.impl;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
@@ -64,7 +65,7 @@ public class Writer {
     TabletClientService.Iface client = null;
     try {
       client = ThriftUtil.getTServerClient(server, configuration);
-      client.update(null, ai, extent.toThrift(), m.toThrift());
+      client.update(Tracer.traceInfo(), ai, extent.toThrift(), m.toThrift());
       return;
     } catch (ThriftSecurityException e) {
       throw new AccumuloSecurityException(e.user, e.code);

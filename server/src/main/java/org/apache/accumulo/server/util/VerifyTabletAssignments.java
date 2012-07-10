@@ -33,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 
 import jline.ConsoleReader;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
+import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -241,23 +243,23 @@ public class VerifyTabletAssignments {
       Range r = new Range(row, true, row2, false);
       batch.put(keyExtent.toThrift(), Collections.singletonList(r.toThrift()));
     }
-    
+    TInfo tinfo = Tracer.traceInfo();
     Map<String,Map<String,String>> emptyMapSMapSS = Collections.emptyMap();
     List<IterInfo> emptyListIterInfo = Collections.emptyList();
     List<TColumn> emptyListColumn = Collections.emptyList();
-    InitialMultiScan is = client.startMultiScan(null, st, batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS, Constants.NO_AUTHS.getAuthorizationsBB(),
+    InitialMultiScan is = client.startMultiScan(tinfo, st, batch, emptyListColumn, emptyListIterInfo, emptyMapSMapSS, Constants.NO_AUTHS.getAuthorizationsBB(),
         false);
     if (is.result.more) {
-      MultiScanResult result = client.continueMultiScan(null, is.scanID);
+      MultiScanResult result = client.continueMultiScan(tinfo, is.scanID);
       checkFailures(entry.getKey(), failures, result);
       
       while (result.more) {
-        result = client.continueMultiScan(null, is.scanID);
+        result = client.continueMultiScan(tinfo, is.scanID);
         checkFailures(entry.getKey(), failures, result);
       }
     }
     
-    client.closeMultiScan(null, is.scanID);
+    client.closeMultiScan(tinfo, is.scanID);
     
     ThriftUtil.returnClient((TServiceClient) client);
   }

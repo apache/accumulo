@@ -35,12 +35,12 @@ import org.apache.thrift.transport.TTransportException;
 public class MasterClient {
   private static final Logger log = Logger.getLogger(MasterClient.class);
   
-  public static MasterClientService.Iface getConnectionWithRetry(Instance instance) {
+  public static MasterClientService.Client getConnectionWithRetry(Instance instance) {
     ArgumentChecker.notNull(instance);
     
     while (true) {
       
-      MasterClientService.Iface result = getConnection(instance);
+      MasterClientService.Client result = getConnection(instance);
       if (result != null)
         return result;
       UtilWaitThread.sleep(250);
@@ -48,7 +48,7 @@ public class MasterClient {
     
   }
   
-  public static MasterClientService.Iface getConnection(Instance instance) {
+  public static MasterClientService.Client getConnection(Instance instance) {
     List<String> locations = instance.getMasterLocations();
     
     if (locations.size() == 0) {
@@ -61,7 +61,7 @@ public class MasterClient {
     
     try {
       // Master requests can take a long time: don't ever time out
-      MasterClientService.Iface client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), master, Property.MASTER_CLIENTPORT,
+      MasterClientService.Client client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), master, Property.MASTER_CLIENTPORT,
           instance.getConfiguration());
       return client;
     } catch (TTransportException tte) {
@@ -83,8 +83,8 @@ public class MasterClient {
     }
   }
   
-  public static <T> T execute(Instance instance, ClientExecReturn<T,MasterClientService.Iface> exec) throws AccumuloException, AccumuloSecurityException {
-    MasterClientService.Iface client = null;
+  public static <T> T execute(Instance instance, ClientExecReturn<T,MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+    MasterClientService.Client client = null;
     while (true) {
       try {
         client = getConnectionWithRetry(instance);
@@ -105,8 +105,8 @@ public class MasterClient {
     }
   }
   
-  public static void execute(Instance instance, ClientExec<MasterClientService.Iface> exec) throws AccumuloException, AccumuloSecurityException {
-    MasterClientService.Iface client = null;
+  public static void execute(Instance instance, ClientExec<MasterClientService.Client> exec) throws AccumuloException, AccumuloSecurityException {
+    MasterClientService.Client client = null;
     while (true) {
       try {
         client = getConnectionWithRetry(instance);

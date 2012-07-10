@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.channels.ServerSocketChannel;
 import java.util.Random;
@@ -43,10 +42,10 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.server.THsHaServer;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TNonblockingServerSocket;
-import org.apache.thrift.transport.TNonblockingSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -148,7 +147,12 @@ public class TServerUtils {
         metrics.add(ThriftMetrics.idle, (now - idleStart));
       }
       try {
-        return other.process(in, out);
+        try {
+          return other.process(in, out);
+        } catch (NullPointerException ex) {
+          // THRIFT-1447 - remove with thrift 0.9
+          return true;
+        }
       } finally {
         if (metrics.isEnabled()) {
           idleStart = System.currentTimeMillis();
@@ -170,34 +174,6 @@ public class TServerUtils {
         clientAddress.set(tsock.getClientString());
       }
       return super.getProcessor(trans);
-    }
-  }
-  
-  public static class THsHaServer extends org.apache.thrift.server.THsHaServer {
-    public THsHaServer(Args args) {
-      super(args);
-    }
-    
-    protected Runnable getRunnable(FrameBuffer frameBuffer) {
-      return new Invocation(frameBuffer);
-    }
-    
-    private class Invocation implements Runnable {
-      
-      private final FrameBuffer frameBuffer;
-      
-      public Invocation(final FrameBuffer frameBuffer) {
-        this.frameBuffer = frameBuffer;
-      }
-      
-      public void run() {
-        if (frameBuffer.trans_ instanceof TNonblockingSocket) {
-          TNonblockingSocket tsock = (TNonblockingSocket) frameBuffer.trans_;
-          Socket sock = tsock.getSocketChannel().socket();
-          clientAddress.set(sock.getInetAddress().getHostAddress() + ":" + sock.getPort());
-        }
-        frameBuffer.invoke();
-      }
     }
   }
   

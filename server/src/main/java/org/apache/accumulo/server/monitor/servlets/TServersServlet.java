@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.DeadServer;
 import org.apache.accumulo.core.master.thrift.MasterMonitorInfo;
@@ -122,12 +123,12 @@ public class TServersServlet extends BasicServlet {
     TabletStats historical = new TabletStats(null, new ActionStats(), new ActionStats(), new ActionStats(), 0, 0, 0, 0);
     List<TabletStats> tsStats = new ArrayList<TabletStats>();
     try {
-      TabletClientService.Iface client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, Monitor.getSystemConfiguration());
+      TabletClientService.Client client = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, Monitor.getSystemConfiguration());
       try {
         for (String tableId : Monitor.getMmi().tableMap.keySet()) {
-          tsStats.addAll(client.getTabletStats(null, SecurityConstants.getSystemCredentials(), tableId));
+          tsStats.addAll(client.getTabletStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials(), tableId));
         }
-        historical = client.getHistoricalStats(null, SecurityConstants.getSystemCredentials());
+        historical = client.getHistoricalStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
       } finally {
         ThriftUtil.returnClient(client);
       }

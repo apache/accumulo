@@ -18,6 +18,7 @@ package org.apache.accumulo.server.test;
 
 import java.nio.ByteBuffer;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
@@ -39,7 +40,7 @@ public class WrongTabletTest {
       Mutation mutation = new Mutation(new Text("row_0003750001"));
       // mutation.set(new Text("colf:colq"), new Value("val".getBytes()));
       mutation.putDelete(new Text("colf"), new Text("colq"));
-      client.update(null, rootCredentials, new KeyExtent(new Text("test_ingest"), null, new Text("row_0003750000")).toThrift(), mutation.toThrift());
+      client.update(Tracer.traceInfo(), rootCredentials, new KeyExtent(new Text("test_ingest"), null, new Text("row_0003750000")).toThrift(), mutation.toThrift());
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
