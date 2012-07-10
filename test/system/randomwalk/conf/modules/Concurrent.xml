@@ -138,7 +138,7 @@
   <edge id="dummy.ToAll" weight="1"/>
 </node>
 
-<node id="StartAll">
+<node id="ct.StartAll">
   <edge id="dummy.ToAll" weight="1"/>
 </node>
 
