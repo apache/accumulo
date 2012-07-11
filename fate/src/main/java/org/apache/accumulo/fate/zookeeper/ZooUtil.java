@@ -223,7 +223,7 @@ public class ZooUtil {
     
     List<String> children = zc.getChildren(path);
     
-    if (children.size() == 0) {
+    if (children == null || children.size() == 0) {
       return null;
     }
     
