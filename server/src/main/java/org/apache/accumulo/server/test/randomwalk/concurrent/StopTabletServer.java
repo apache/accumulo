@@ -26,14 +26,18 @@ public class StopTabletServer extends Test {
     ZooReader rdr = new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut());
     String base = ZooUtil.getRoot(instance) + Constants.ZTSERVERS;
     for (String child : rdr.getChildren(base)) {
-      List<String> children = rdr.getChildren(base + "/" + child);
-      if (children.size() > 0) {
-        Collections.sort(children);
-        Stat stat = new Stat();
-        byte[] data = rdr.getData(base + "/" + child + "/" + children.get(0), stat);
-        if (!"master".equals(new String(data))) {
-          result.add(new TServerInstance(AddressUtil.parseAddress(child, Property.TSERV_CLIENTPORT), stat.getEphemeralOwner()));
+      try {
+        List<String> children = rdr.getChildren(base + "/" + child);
+        if (children.size() > 0) {
+          Collections.sort(children);
+          Stat stat = new Stat();
+          byte[] data = rdr.getData(base + "/" + child + "/" + children.get(0), stat);
+          if (!"master".equals(new String(data))) {
+            result.add(new TServerInstance(AddressUtil.parseAddress(child, Property.TSERV_CLIENTPORT), stat.getEphemeralOwner()));
+          }
         }
+      } catch (KeeperException.NoNodeException ex) {
+        // someone beat us too it
       }
     }
     return result;
