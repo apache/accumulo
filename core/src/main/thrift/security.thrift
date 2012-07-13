@@ -26,7 +26,8 @@ enum SecurityErrorCode {
     GRANT_INVALID = 6,
     BAD_AUTHORIZATIONS = 7,
     INVALID_INSTANCEID = 8,
-    TABLE_DOESNT_EXIST = 9
+    TABLE_DOESNT_EXIST = 9,
+    UNSUPPORTED_OPERATION = 10
 }
 
 struct AuthInfo {

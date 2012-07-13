@@ -186,18 +186,6 @@ class ShutdownSplitter(TabletShouldSplit):
                         os.path.join(ACCUMULO_HOME,'logs') ])
             )
 
-class RestartLoggerLate(KilledTabletServerTest):
-
-    def runTest(self):
-        self.waitForStop(self.ingester, 30)
-        self.stop_tserver(self.hosts[0])
-        self.stop_logger(self.hosts[0])
-        self.start_tserver(self.hosts[0])
-        self.sleep(15)
-        self.start_logger(self.hosts[0])
-        self.waitForStop(self.verify(self.masterHost(), self.options.rows), 100)
-        
-
 def suite():
     result = unittest.TestSuite()
     result.addTest(ShutdownSplitter())
@@ -207,6 +195,5 @@ def suite():
     result.addTest(RestartMasterTest())
     result.addTest(RestartMasterSplitterTest())
     result.addTest(KilledTabletServerTest())
-    result.addTest(RestartLoggerLate())
     result.addTest(KilledTabletServerSplitTest())
     return result

@@ -78,11 +78,13 @@ public class TableOp extends Test {
     boolean hasPerm = SecurityHelper.getTabPerm(state, SecurityHelper.getTabUserName(state), tp);
     
     String tableName = state.getString("secTableName");
+    boolean ambiguousZone;
     
     switch (tp) {
       case READ:
         Authorizations auths = SecurityHelper.getUserAuths(state, SecurityHelper.getTabUserName(state));
         boolean canRead = SecurityHelper.getTabPerm(state, SecurityHelper.getTabUserName(state), TablePermission.READ);
+        ambiguousZone = SecurityHelper.inAmbiguousZone(state, SecurityHelper.getTabUserName(state), tp);
         try {
           Scanner scan = conn.createScanner(tableName, conn.securityOperations().getUserAuthorizations(SecurityHelper.getTabUserName(state)));
           int seen = 0;
@@ -94,7 +96,7 @@ public class TableOp extends Test {
             if (!auths.contains(k.getColumnVisibilityData()))
               throw new AccumuloException("Got data I should not be capable of seeing: " + k + " table " + tableName);
           }
-          if (!canRead)
+          if (!canRead && !ambiguousZone)
             throw new AccumuloException("Was able to read when I shouldn't have had the perm with connection user " + conn.whoami() + " table " + tableName);
           for (Entry<String,Integer> entry : SecurityHelper.getAuthsMap(state).entrySet()) {
             if (auths.contains(entry.getKey().getBytes()))
@@ -108,7 +110,7 @@ public class TableOp extends Test {
           return;
         } catch (AccumuloSecurityException ae) {
           if (ae.getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-            if (canRead)
+            if (canRead && !ambiguousZone)
               throw new AccumuloException("Table read permission out of sync with Accumulo: table " + tableName, ae);
             else
               return;
@@ -117,7 +119,7 @@ public class TableOp extends Test {
         } catch (RuntimeException re) {
           if (re.getCause() instanceof AccumuloSecurityException
               && ((AccumuloSecurityException) re.getCause()).getErrorCode().equals(SecurityErrorCode.PERMISSION_DENIED)) {
-            if (canRead)
+            if (canRead && !ambiguousZone)
               throw new AccumuloException("Table read permission out of sync with Accumulo: table " + tableName, re.getCause());
             else
               return;
@@ -127,6 +129,9 @@ public class TableOp extends Test {
         
         break;
       case WRITE:
+        // boolean canWrite = SecurityHelper.getTabPerm(state, SecurityHelper.getTabUserName(state), TablePermission.WRITE);
+        ambiguousZone = SecurityHelper.inAmbiguousZone(state, SecurityHelper.getTabUserName(state), tp);
+
         String key = SecurityHelper.getLastKey(state) + "1";
         Mutation m = new Mutation(new Text(key));
         for (String s : SecurityHelper.getAuthsArray()) {
@@ -143,8 +148,20 @@ public class TableOp extends Test {
         boolean works = true;
         try {
           writer.addMutation(m);
+          writer.close();
         } catch (MutationsRejectedException mre) {
-          throw new AccumuloException("Mutation exception!", mre);
+          // Currently no method for detecting reason for mre. Waiting on ACCUMULO-670
+          // For now, just wait a second and go again!
+
+          if (ambiguousZone) {
+            Thread.sleep(1000);
+            try {
+              writer.addMutation(m);
+              writer.close();
+            } catch (MutationsRejectedException mre2) {
+              throw new AccumuloException("Mutation exception!", mre2);
+            }
+          }
         }
         if (works)
           for (String s : SecurityHelper.getAuthsArray())

@@ -24,8 +24,11 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import org.apache.log4j.Logger;
+
 public class DefaultConfiguration extends AccumuloConfiguration {
   private static DefaultConfiguration instance = null;
+  private static Logger log = Logger.getLogger(DefaultConfiguration.class);
   
   public static DefaultConfiguration getInstance() {
     if (instance == null) {
@@ -62,6 +65,12 @@ public class DefaultConfiguration extends AccumuloConfiguration {
       } catch (IOException e) {
         e.printStackTrace();
         return;
+      } finally {
+    	  try { 
+    		  data.close();
+    	  } catch (IOException ex) {
+    		  log .error(ex, ex);
+    	  }
       }
     }
     doc.println();

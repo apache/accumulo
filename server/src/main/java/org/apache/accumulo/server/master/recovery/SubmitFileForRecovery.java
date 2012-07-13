@@ -21,9 +21,9 @@ import java.io.IOException;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.Repo;
-import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.tableOps.MasterRepo;
+import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -48,18 +48,19 @@ public class SubmitFileForRecovery extends MasterRepo implements Repo<Master> {
   public Repo<Master> call(long tid, final Master master) throws Exception {
     master.updateRecoveryInProgress(file);
     String source = RecoverLease.getSource(master, server, file).toString();
+    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY).addWork(file, source.getBytes());
+    
     ZooReaderWriter zoo = ZooReaderWriter.getInstance();
     final String path = ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY + "/" + file;
-    zoo.putPersistentData(path, source.getBytes(), NodeExistsPolicy.SKIP);
     log.info("Created zookeeper entry " + path + " with data " + source);
     zoo.exists(path, new Watcher() {
       @Override
       public void process(WatchedEvent event) {
         switch (event.getType()) {
-          case NodeDataChanged:
+          case NodeDeleted:
             log.info("noticed recovery entry for " + file + " was removed");
             FileSystem fs = master.getFileSystem();
-            Path finished = new Path(Constants.getRecoveryDir(master.getSystemConfiguration()), "finished");
+            Path finished = new Path(Constants.getRecoveryDir(master.getSystemConfiguration()) + "/" + file, "finished");
             try {
               if (fs.exists(finished))
                 log.info("log recovery for " + file + " successful");

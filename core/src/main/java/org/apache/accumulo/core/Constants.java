@@ -74,6 +74,8 @@ public class Constants {
   
   public static final String ZNEXT_FILE = "/next_file";
   
+  public static final String ZBULK_FAILED_COPYQ = "/bulk_failed_copyq";
+
   public static final String ZHDFS_RESERVATIONS = "/hdfs_reservations";
   public static final String ZRECOVERY = "/recovery";
   

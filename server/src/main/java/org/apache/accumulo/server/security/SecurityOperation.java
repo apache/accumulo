@@ -354,10 +354,4 @@ public interface SecurityOperation {
    * @throws ThriftSecurityException
    */
   public void deleteTable(AuthInfo credentials, String tableId) throws ThriftSecurityException;
-  
-  public void clearCache(String user, boolean password, boolean auths, boolean system, Set<String> tables) throws ThriftSecurityException;
-  
-  public void clearCache(String table) throws ThriftSecurityException;
-  
-  public boolean cachesToClear() throws ThriftSecurityException;
 }

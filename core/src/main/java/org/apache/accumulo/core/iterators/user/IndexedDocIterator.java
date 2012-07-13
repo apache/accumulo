@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.user.IntersectingIterator.TermSource;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -134,6 +135,10 @@ public class IndexedDocIterator extends IntersectingIterator {
       docColf = new Text(options.get(docFamilyOptionName));
     docSource = source.deepCopy(env);
     indexColfSet = Collections.singleton((ByteSequence) new ArrayByteSequence(indexColf.getBytes(), 0, indexColf.getLength()));
+    
+    for (TermSource ts : this.sources) {
+      ts.seekColfams = indexColfSet;
+    }
   }
   
   @Override
@@ -143,7 +148,7 @@ public class IndexedDocIterator extends IntersectingIterator {
   
   @Override
   public void seek(Range range, Collection<ByteSequence> seekColumnFamilies, boolean inclusive) throws IOException {
-    super.seek(range, indexColfSet, true);
+    super.seek(range, null, true);
     
   }
   

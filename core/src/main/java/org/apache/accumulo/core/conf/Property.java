@@ -38,10 +38,12 @@ public enum Property {
       "A secret unique to a given instance that all servers must know in order to communicate with one another."
           + " Change it before initialization. To change it later use ./bin/accumulo accumulo.server.util.ChangeSecret [oldpasswd] [newpasswd], "
           + " and then update conf/accumulo-site.xml everywhere."),
-  INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator", "org.apache.accumulo.server.security.ZKAuthenticator", PropertyType.CLASSNAME,
+  INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator", "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
       "The authenticator class that accumulo will use to determine if a user has privilege to perform an action"),
-  INSTANCE_SECURITY_AUTHORIZOR("instance.security.authorizor", "org.apache.accumulo.server.security.ZKAuthorizor", PropertyType.CLASSNAME,
-      "The authorizor class that accumulo will use to determine if a user has privilege to perform an action"),
+  INSTANCE_SECURITY_AUTHORIZOR("instance.security.authorizor", "org.apache.accumulo.server.security.handler.ZKAuthorizor", PropertyType.CLASSNAME,
+      "The authorizor class that accumulo will use to determine what labels a user has privilege to see"),
+  INSTANCE_SECURITY_PERMISSION_HANDLER("instance.security.permissionHandler", "org.apache.accumulo.server.security.handler.ZKPermHandler",
+      PropertyType.CLASSNAME, "The permission handler class that accumulo will use to determine if a user has privilege to perform an action"),
   
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
@@ -123,12 +125,12 @@ public enum Property {
       "tserver.monitor.fs",
       "true",
       PropertyType.BOOLEAN,
-      "When enabled the tserver will monitor file systems and kill itself when one switches from rw to ro.  This is usually and indication that Linux has detected a bad disk."),
-  TSERV_MEMDUMP_DIR(
-      "tserver.dir.memdump",
-      "/tmp",
-      PropertyType.PATH,
-      "A long running scan could possibly hold memory that has been minor compacted.  To prevent this, the in memory map is dumped to a local file and the scan is switched to that local file.  We can not switch to the minor compacted file because it may have been modified by iterators.  The file dumped to the local dir is an exact copy of what was in memory."),
+      "When enabled the tserver will monitor file systems and kill itself when one switches from rw to ro.  This is usually and indication that Linux has"
+          + " detected a bad disk."),
+  TSERV_MEMDUMP_DIR("tserver.dir.memdump", "/tmp", PropertyType.PATH,
+      "A long running scan could possibly hold memory that has been minor compacted.  To prevent this, the in memory map is dumped to a local file and the "
+          + "scan is switched to that local file.  We can not switch to the minor compacted file because it may have been modified by iterators.  The file "
+          + "dumped to the local dir is an exact copy of what was in memory."),
   TSERV_LOCK_MEMORY("tserver.memory.lock", "false", PropertyType.BOOLEAN,
       "The tablet server must communicate with zookeeper frequently to maintain its locks.  If the tablet server's memory is swapped out"
           + " the java garbage collector can stop all processing for long periods.  Change this property to true and the tablet server will "
@@ -155,7 +157,9 @@ public enum Property {
   TSERV_RECOVERY_MAX_CONCURRENT("tserver.recovery.concurrent.max", "2", PropertyType.COUNT, "The maximum number of threads to use to sort logs during recovery"),
   TSERV_SORT_BUFFER_SIZE("tserver.sort.buffer.size", "200M", PropertyType.MEMORY, "The amount of memory to use when sorting logs during recovery."),
   TSERV_ARCHIVE_WALOGS("tserver.archive.walogs", "false", PropertyType.BOOLEAN, "Keep copies of the WALOGs for debugging purposes"),
-  
+  TSERV_WORKQ_THREADS("tserver.workq.threads", "2", PropertyType.COUNT,
+      "The number of threads for the distributed workq.  These threads are used for copying failed bulk files."),
+
   // properties that are specific to logger server behavior
   LOGGER_PREFIX("logger.", null, PropertyType.PREFIX, "Properties in this category affect the behavior of the write-ahead logger servers"),
   LOGGER_DIR("logger.dir.walog", "walogs", PropertyType.PATH,
@@ -196,11 +200,9 @@ public enum Property {
       + "in zookeeper. Restarting accumulo tablet servers after setting these properties in the site file "
       + "will cause the global setting to take effect. However, you must use the API or the shell to change "
       + "properties in zookeeper that are set on a table."),
-  TABLE_MAJC_RATIO(
-      "table.compaction.major.ratio",
-      "3",
-      PropertyType.FRACTION,
-      "minimum ratio of total input size to maximum input file size for running a major compaction.   When adjusting this property you may want to also adjust table.file.max.  Want to avoid the situation where only merging minor compactions occur."),
+  TABLE_MAJC_RATIO("table.compaction.major.ratio", "3", PropertyType.FRACTION,
+      "minimum ratio of total input size to maximum input file size for running a major compaction.   When adjusting this property you may want to also "
+          + "adjust table.file.max.  Want to avoid the situation where only merging minor compactions occur."),
   TABLE_MAJC_COMPACTALL_IDLETIME("table.compaction.major.everything.idle", "1h", PropertyType.TIMEDURATION,
       "After a tablet has been idle (no mutations) for this time period it may have all "
           + "of its map file compacted into one.  There is no guarantee an idle tablet will be compacted. "
@@ -220,12 +222,12 @@ public enum Property {
       "This property can be set to allow the LoadBalanceByTable load balancer to change the called Load Balancer for this table"),
   TABLE_FILE_COMPRESSION_TYPE("table.file.compress.type", "gz", PropertyType.STRING, "One of gz,lzo,none"),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE("table.file.compress.blocksize", "100K", PropertyType.MEMORY,
-      "Overrides the hadoop io.seqfile.compress.blocksize setting so that map files have better query performance. " + "The maximum value for this is "
+      "Overrides the hadoop io.seqfile.compress.blocksize setting so that map files have better query performance. The maximum value for this is "
           + Integer.MAX_VALUE),
   TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX("table.file.compress.blocksize.index", "128K", PropertyType.MEMORY,
       "Determines how large index blocks can be in files that support multilevel indexes. The maximum value for this is " + Integer.MAX_VALUE),
   TABLE_FILE_BLOCK_SIZE("table.file.blocksize", "0B", PropertyType.MEMORY,
-      "Overrides the hadoop dfs.block.size setting so that map files have better query performance. " + "The maximum value for this is " + Integer.MAX_VALUE),
+      "Overrides the hadoop dfs.block.size setting so that map files have better query performance. The maximum value for this is " + Integer.MAX_VALUE),
   TABLE_FILE_REPLICATION("table.file.replication", "0", PropertyType.COUNT, "Determines how many replicas to keep of a tables map files in HDFS. "
       + "When this value is LTE 0, HDFS defaults are used."),
   TABLE_FILE_MAX(
@@ -246,29 +248,25 @@ public enum Property {
       PropertyType.CLASSNAME,
       "A function that can transform the key prior to insertion and check of bloom filter.  org.apache.accumulo.core.file.keyfunctor.RowFunctor,"
           + ",org.apache.accumulo.core.file.keyfunctor.ColumnFamilyFunctor, and org.apache.accumulo.core.file.keyfunctor.ColumnQualifierFunctor are allowable values."
-          + " One can extend any of the above mentioned classes to perform specialized parsing of the key. "),
-  TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING, "The bloom filter hash type"),
-  TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN,
+          + " One can extend any of the above mentioned classes to perform specialized parsing of the key. "), TABLE_BLOOM_HASHTYPE("table.bloom.hash.type",
+      "murmur", PropertyType.STRING, "The bloom filter hash type"), TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN,
       "If you want queries for your table to hang or fail when data is missing from the system, "
           + "then set this to false. When this set to true missing data will be reported but queries "
-          + "will still run possibly returning a subset of the data."),
-  TABLE_DEFAULT_SCANTIME_VISIBILITY("table.security.scan.visibility.default", "", PropertyType.STRING,
-      "The security label that will be assumed at scan time if an entry does not have a visibility set.<br />"
+          + "will still run possibly returning a subset of the data."), TABLE_DEFAULT_SCANTIME_VISIBILITY("table.security.scan.visibility.default", "",
+      PropertyType.STRING, "The security label that will be assumed at scan time if an entry does not have a visibility set.<br />"
           + "Note: An empty security label is displayed as []. The scan results will show an empty visibility even if "
           + "the visibility from this setting is applied to the entry.<br />"
           + "CAUTION: If a particular key has an empty security label AND its table's default visibility is also empty, "
           + "access will ALWAYS be granted for users with permission to that table. Additionally, if this field is changed, "
-          + "all existing data with an empty visibility label will be interpreted with the new label on the next scan."),
-  TABLE_LOCALITY_GROUPS("table.groups.enabled", "", PropertyType.STRING, "A comma separated list of locality group names to enable for this table."),
-  TABLE_CONSTRAINT_PREFIX("table.constraint.", null, PropertyType.PREFIX,
-      "Properties in this category are per-table properties that add constraints to a table. "
+          + "all existing data with an empty visibility label will be interpreted with the new label on the next scan."), TABLE_LOCALITY_GROUPS(
+      "table.groups.enabled", "", PropertyType.STRING, "A comma separated list of locality group names to enable for this table."), TABLE_CONSTRAINT_PREFIX(
+      "table.constraint.", null, PropertyType.PREFIX, "Properties in this category are per-table properties that add constraints to a table. "
           + "These properties start with the category prefix, followed by a number, and their values "
           + "correspond to a fully qualified Java class that implements the Constraint interface.<br />"
           + "For example, table.constraint.1 = org.apache.accumulo.core.constraints.MyCustomConstraint "
-          + "and table.constraint.2 = my.package.constraints.MySecondConstraint"),
-  TABLE_INDEXCACHE_ENABLED("table.cache.index.enable", "true", PropertyType.BOOLEAN, "Determines whether index cache is enabled."),
-  TABLE_BLOCKCACHE_ENABLED("table.cache.block.enable", "false", PropertyType.BOOLEAN, "Determines whether file block cache is enabled."),
-  TABLE_ITERATOR_PREFIX("table.iterator.", null, PropertyType.PREFIX,
+          + "and table.constraint.2 = my.package.constraints.MySecondConstraint"), TABLE_INDEXCACHE_ENABLED("table.cache.index.enable", "true",
+      PropertyType.BOOLEAN, "Determines whether index cache is enabled."), TABLE_BLOCKCACHE_ENABLED("table.cache.block.enable", "false", PropertyType.BOOLEAN,
+      "Determines whether file block cache is enabled."), TABLE_ITERATOR_PREFIX("table.iterator.", null, PropertyType.PREFIX,
       "Properties in this category specify iterators that are applied at various stages (scopes) of interaction "
           + "with a table. These properties start with the category prefix, followed by a scope (minc, majc, scan, etc.), "
           + "followed by a period, followed by a name, as in table.iterator.scan.vers, or table.iterator.scan.custom. "
@@ -276,8 +274,7 @@ public enum Property {
           + "such as table.iterator.scan.vers = 10,org.apache.accumulo.core.iterators.VersioningIterator<br /> "
           + "These iterators can take options if additional properties are set that look like this property, "
           + "but are suffixed with a period, followed by 'opt' followed by another period, and a property name.<br />"
-          + "For example, table.iterator.minc.vers.opt.maxVersions = 3"),
-  TABLE_LOCALITY_GROUP_PREFIX("table.group.", null, PropertyType.PREFIX,
+          + "For example, table.iterator.minc.vers.opt.maxVersions = 3"), TABLE_LOCALITY_GROUP_PREFIX("table.group.", null, PropertyType.PREFIX,
       "Properties in this category are per-table properties that define locality groups in a table. These properties start "
           + "with the category prefix, followed by a name, followed by a period, and followed by a property for that group.<br />"
           + "For example table.group.group1=x,y,z sets the column families for a group called group1. Once configured, "

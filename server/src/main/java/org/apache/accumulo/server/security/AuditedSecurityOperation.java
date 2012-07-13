@@ -544,23 +544,4 @@ public class AuditedSecurityOperation implements SecurityOperation {
     impl.initializeSecurity(credentials, rootuser, rootpass);
     log.info("Initialized root user with username: " + rootuser + " at the request of user " + credentials.user);
   }
-  
-  @Override
-  public void clearCache(String user, boolean password, boolean auths, boolean system, Set<String> tables) {
-    // TODO Auto-generated method stub
-    
-  }
-  
-  @Override
-  public void clearCache(String table) {
-    // TODO Auto-generated method stub
-    
-  }
-  
-  @Override
-  public boolean cachesToClear() {
-    // TODO Auto-generated method stub
-    return false;
-  }
-
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.security;
+package org.apache.accumulo.server.security.handler;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -147,5 +147,13 @@ class ZKSecurityTool {
     for (byte b : tablepermissions)
       toReturn.add(TablePermission.getPermissionById(b));
     return toReturn;
+  }
+  
+  /**
+   * @param instanceId
+   * @return
+   */
+  public static String getInstancePath(String instanceId) {
+    return Constants.ZROOT + "/" + instanceId;
   }
 }

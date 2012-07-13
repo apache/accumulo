@@ -19,6 +19,7 @@ package org.apache.accumulo.server.tabletserver.mastermessage;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.client.impl.Translator;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -48,7 +49,7 @@ public class SplitReportMessage implements MasterMessage {
     TabletSplit split = new TabletSplit();
     split.oldTablet = old_extent.toThrift();
     split.newTablets = Translator.translate(extents.keySet(), Translator.KET);
-    client.reportSplitExtent(null, credentials, serverName, split);
+    client.reportSplitExtent(Tracer.traceInfo(), credentials, serverName, split);
   }
   
 }

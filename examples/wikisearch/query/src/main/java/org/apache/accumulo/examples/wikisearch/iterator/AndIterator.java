@@ -18,8 +18,10 @@ package org.apache.accumulo.examples.wikisearch.iterator;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
@@ -45,8 +47,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
   private Text currentRow = null;
   private Text currentTerm = new Text(emptyByteArray);
   private Text currentDocID = new Text(emptyByteArray);
-  private Collection<ByteSequence> seekColumnFamilies;
-  private boolean inclusive;
+  private static boolean SEEK_INCLUSIVE = true;
   private Text parentEndRow;
   
   /**
@@ -58,24 +59,21 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
     public Text dataLocation;
     public Text term;
     public boolean notFlag;
+    private Collection<ByteSequence> seekColumnFamilies;
     
-    public TermSource(TermSource other) {
-      this.iter = other.iter;
-      this.dataLocation = other.dataLocation;
-      this.term = other.term;
-      this.notFlag = other.notFlag;
+    private TermSource(TermSource other) {
+      this(other.iter, other.dataLocation, other.term, other.notFlag);
     }
     
     public TermSource(SortedKeyValueIterator<Key,Value> iter, Text dataLocation, Text term) {
-      this.iter = iter;
-      this.dataLocation = dataLocation;
-      this.term = term;
-      this.notFlag = false;
+      this(iter, dataLocation, term, false);
     }
     
     public TermSource(SortedKeyValueIterator<Key,Value> iter, Text dataLocation, Text term, boolean notFlag) {
       this.iter = iter;
       this.dataLocation = dataLocation;
+      ByteSequence bs = new ArrayByteSequence(dataLocation.getBytes(), 0, dataLocation.getLength());
+      this.seekColumnFamilies = Collections.singletonList(bs);
       this.term = term;
       this.notFlag = notFlag;
     }
@@ -86,7 +84,8 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
   }
   
   /*
-   * | Row | Column Family | Column Qualifier | Value | {RowID} | {dataLocation} | {term}\0{dataType}\0{UID} | Empty
+   * | Row     | Column Family  | Column Qualifier          | Value 
+   * | {RowID} | {dataLocation} | {term}\0{dataType}\0{UID} | Empty
    */
   protected Text getPartition(Key key) {
     return key.getRow();
@@ -200,6 +199,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
         sources[i] = new TermSource(other.sources[i].iter.deepCopy(env), other.sources[i].dataLocation, other.sources[i].term);
       }
     }
+    //other.seekColumnFamilies = other.seekColumnFamilies;
   }
   
   public Key getTopKey() {
@@ -302,8 +302,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
         if (log.isDebugEnabled()) {
           log.debug("Seeking to: " + seekKey);
         }
-        
-        ts.iter.seek(new Range(seekKey, true, null, false), seekColumnFamilies, inclusive);
+        ts.iter.seek(new Range(seekKey, true, null, false), ts.seekColumnFamilies, SEEK_INCLUSIVE);
         continue;
       }
       
@@ -349,7 +348,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
             log.debug("Seeking to: " + seekKey);
           }
           
-          ts.iter.seek(new Range(seekKey, true, null, false), seekColumnFamilies, inclusive);
+          ts.iter.seek(new Range(seekKey, true, null, false), ts.seekColumnFamilies, SEEK_INCLUSIVE);
           if (!ts.iter.hasTop()) {
             currentRow = null;
             return true;
@@ -382,8 +381,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
           if (log.isDebugEnabled()) {
             log.debug("Seeking to: " + seekKey);
           }
-          
-          ts.iter.seek(new Range(seekKey, true, null, false), seekColumnFamilies, inclusive);
+          ts.iter.seek(new Range(seekKey, true, null, false), ts.seekColumnFamilies, SEEK_INCLUSIVE);
           if (!ts.iter.hasTop()) {
             currentRow = null;
             return true;
@@ -404,14 +402,13 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
         if (log.isDebugEnabled()) {
           log.debug("Need to seek to the right term");
         }
-        
         Key seekKey = buildKey(currentRow, ts.dataLocation, new Text(ts.term + "\0"));// new Text(ts.term + "\0" + currentDocID));
         
         if (log.isDebugEnabled()) {
           log.debug("Seeking to: " + seekKey);
         }
         
-        ts.iter.seek(new Range(seekKey, true, null, false), seekColumnFamilies, inclusive);
+        ts.iter.seek(new Range(seekKey, true, null, false), ts.seekColumnFamilies, SEEK_INCLUSIVE);
         if (!ts.iter.hasTop()) {
           currentRow = null;
           return true;
@@ -448,7 +445,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
           log.debug("Seeking to: " + seekKey);
         }
         
-        ts.iter.seek(new Range(seekKey, true, null, false), seekColumnFamilies, inclusive);
+        ts.iter.seek(new Range(seekKey, true, null, false), ts.seekColumnFamilies, SEEK_INCLUSIVE);
         
         if (!ts.iter.hasTop()) {
           currentRow = null;
@@ -483,7 +480,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
           log.debug("Seeking to: " + seekKey);
         }
         
-        ts.iter.seek(new Range(seekKey, true, null, false), seekColumnFamilies, inclusive);
+        ts.iter.seek(new Range(seekKey, true, null, false), ts.seekColumnFamilies, SEEK_INCLUSIVE);
         
         continue;
       }
@@ -746,8 +743,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
     
     // Build up the array of sources that are to be intersected
     sources = new TermSource[dataLocations.length];
-    sources[0] = new TermSource(source, dataLocations[0], terms[0]);
-    for (int i = 1; i < dataLocations.length; i++) {
+    for (int i = 0; i < dataLocations.length; i++) {
       sources[i] = new TermSource(source.deepCopy(env), dataLocations[i], terms[i], notFlags[i]);
     }
     
@@ -761,10 +757,10 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
     }
     currentRow = new Text();
     currentDocID.set(emptyByteArray);
-    doSeek(range, seekColumnFamilies, inclusive);
+    doSeek(range);
   }
   
-  private void doSeek(Range range, Collection<ByteSequence> seekColumnFamilies, boolean inclusive) throws IOException {
+  private void doSeek(Range range) throws IOException {
 
     overallRange = new Range(range);
 
@@ -772,27 +768,25 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
       this.parentEndRow = range.getEndKey().getRow();
     }
     
-    this.seekColumnFamilies = seekColumnFamilies;
-    this.inclusive = inclusive;
-    
     // seek each of the sources to the right column family within the row given by key
     for (int i = 0; i < sourcesCount; i++) {
       Key sourceKey;
+      Text dataLocation = (sources[i].dataLocation == null) ? nullText : sources[i].dataLocation;
       if (range.getStartKey() != null) {
         // Build a key with the DocID if one is given
         if (range.getStartKey().getColumnFamily() != null) {
-          sourceKey = buildKey(getPartition(range.getStartKey()), (sources[i].dataLocation == null) ? nullText : sources[i].dataLocation,
+          sourceKey = buildKey(getPartition(range.getStartKey()), dataLocation,
               (sources[i].term == null) ? nullText : new Text(sources[i].term + "\0" + range.getStartKey().getColumnFamily()));
         } // Build a key with just the term.
         else {
-          sourceKey = buildKey(getPartition(range.getStartKey()), (sources[i].dataLocation == null) ? nullText : sources[i].dataLocation,
+          sourceKey = buildKey(getPartition(range.getStartKey()), dataLocation,
               (sources[i].term == null) ? nullText : sources[i].term);
         }
         if (!range.isStartKeyInclusive())
           sourceKey = sourceKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL);
-        sources[i].iter.seek(new Range(sourceKey, true, null, false), seekColumnFamilies, inclusive);
+        sources[i].iter.seek(new Range(sourceKey, true, null, false), sources[i].seekColumnFamilies, SEEK_INCLUSIVE);
       } else {
-        sources[i].iter.seek(range, seekColumnFamilies, inclusive);
+        sources[i].iter.seek(range, sources[i].seekColumnFamilies, SEEK_INCLUSIVE);
       }
     }
     
@@ -876,7 +870,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
         }
         Key sKey = new Key(jumpKey.getRow());
         Range fake = new Range(sKey, true, endKey, false);
-        this.seek(fake, this.seekColumnFamilies, false);
+        this.seek(fake, null, false);
         return hasTop();
       } else {
         // need to check uid
@@ -906,7 +900,7 @@ public class AndIterator implements SortedKeyValueIterator<Key,Value> {
           this.currentRow = row;
           this.currentDocID = new Text(this.getUID(jumpKey));
           
-          doSeek(range, seekColumnFamilies, false);
+          doSeek(range);
 
           // make sure it is in the range if we have one.
           if (hasTop() && parentEndRow != null && topKey.getRow().compareTo(parentEndRow) > 0) {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.security;
+package org.apache.accumulo.server.security.handler;
 
 import java.nio.ByteBuffer;
 import java.util.Set;
@@ -177,7 +177,7 @@ public final class ZKAuthenticator implements Authenticator {
   }
 
   @Override
-  public boolean validAuthorizor(Authorizor auth) {
+  public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm) {
     return true;
   }
   

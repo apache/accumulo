@@ -53,6 +53,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.RunnableFuture;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -115,6 +116,8 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.ScanState;
 import org.apache.accumulo.core.tabletserver.thrift.ScanType;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
@@ -124,6 +127,7 @@ import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -145,6 +149,7 @@ import org.apache.accumulo.server.master.state.DistributedStoreException;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletStateStore;
+import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
@@ -184,6 +189,7 @@ import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TServerUtils.ServerPort;
 import org.apache.accumulo.server.util.time.RelativeTime;
 import org.apache.accumulo.server.util.time.SimpleTimer;
+import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
@@ -2539,6 +2545,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   private TServer server;
   
+  private DistributedWorkQueue bulkFailedCopyQ;
+  
   private static final String METRICS_PREFIX = "tserver";
   
   private static ObjectName OBJECT_NAME = null;
@@ -2587,12 +2595,12 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   }
   
   // Connect to the master for posting asynchronous results
-  private MasterClientService.Iface masterConnection(String address) {
+  private MasterClientService.Client masterConnection(String address) {
     try {
       if (address == null) {
         return null;
       }
-      MasterClientService.Iface client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, Property.MASTER_CLIENTPORT,
+      MasterClientService.Client client = ThriftUtil.getClient(new MasterClientService.Client.Factory(), address, Property.MASTER_CLIENTPORT,
           Property.GENERAL_RPC_TIMEOUT, getSystemConfiguration());
       // log.info("Listener API to master has been opened");
       return client;
@@ -2602,14 +2610,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     return null;
   }
   
-  private void returnMasterConnection(MasterClientService.Iface client) {
+  private void returnMasterConnection(MasterClientService.Client client) {
     ThriftUtil.returnClient(client);
   }
   
   private int startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
-    TabletClientService.Iface tch = TraceWrap.service(new ThriftClientHandler());
-    TabletClientService.Processor processor = new TabletClientService.Processor(tch);
+    Iface tch = TraceWrap.service(new ThriftClientHandler());
+    Processor<Iface> processor = new Processor<Iface>(tch);
     int port = startServer(getSystemConfiguration(), Property.TSERV_CLIENTPORT, processor, "Thrift Client Server");
     log.info("port = " + port);
     return port;
@@ -2678,13 +2686,23 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     clientAddress = new InetSocketAddress(clientAddress.getAddress(), clientPort);
     announceExistence();
+    
+    ThreadPoolExecutor distWorkQThreadPool = new SimpleThreadPool(getSystemConfiguration().getCount(Property.TSERV_WORKQ_THREADS), "distributed work queue");
+
+    bulkFailedCopyQ = new DistributedWorkQueue(ZooUtil.getRoot(instance) + Constants.ZBULK_FAILED_COPYQ);
     try {
-      logSorter.startWatchingForRecoveryLogs(getClientAddressString());
+      bulkFailedCopyQ.startProcessing(new BulkFailedCopyProcessor(), distWorkQThreadPool);
+    } catch (Exception e1) {
+      throw new RuntimeException("Failed to start distributed work queue for copying ", e1);
+    }
+    
+    try {
+      logSorter.startWatchingForRecoveryLogs(distWorkQThreadPool);
     } catch (Exception ex) {
       log.error("Error setting watches for recoveries");
       throw new RuntimeException(ex);
     }
-    
+
     try {
       OBJECT_NAME = new ObjectName("accumulo.server.metrics:service=TServerInfo,name=TabletServerMBean,instance=" + Thread.currentThread().getName());
       // Do this because interface not in same package.
@@ -2700,7 +2718,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       // send all of the pending messages
       try {
         MasterMessage mm = null;
-        MasterClientService.Iface iface = null;
+        MasterClientService.Client iface = null;
         
         try {
           // wait until a message is ready to send, or a sever stop
@@ -2797,11 +2815,21 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private long totalMinorCompactions;
   
   public static SortedMap<KeyExtent,Text> verifyTabletInformation(KeyExtent extent, TServerInstance instance, SortedMap<Key,Value> tabletsKeyValues,
-      String clientAddress, ZooLock lock) throws AccumuloSecurityException {
+      String clientAddress, ZooLock lock) throws AccumuloSecurityException, DistributedStoreException {
     for (int tries = 0; tries < 3; tries++) {
       try {
         log.debug("verifying extent " + extent);
         if (extent.isRootTablet()) {
+          ZooTabletStateStore store = new ZooTabletStateStore();
+          if (!store.iterator().hasNext()) {
+            log.warn("Illegal state: location is not set in zookeeper");
+            return null;
+          }
+          TabletLocationState next = store.iterator().next();
+          if (!instance.equals(next.future)) {
+            log.warn("Future location is not to this server for the root tablet");
+            return null;
+          }
           TreeMap<KeyExtent,Text> set = new TreeMap<KeyExtent,Text>();
           set.put(extent, new Text(Constants.ZROOT_TABLET));
           return set;

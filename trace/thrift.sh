@@ -20,18 +20,18 @@
 
 # Generates the cloudtrace thrift code. We're explicitly using thrift0.6 because other versions
 # are not compatible
-thrift0.6 -o target -gen java src/main/thrift/cloudtrace.thrift
+thrift -o target -gen java src/main/thrift/cloudtrace.thrift
 
 # For all generated thrift code, suppress all warnings
 find target/gen-java -name '*.java' -print | xargs sed -i.orig -e 's/public class /@SuppressWarnings("all") public class /'
 
 # Make a directory for said thrift code if does not already exist
-mkdir -p src/main/java/cloudtrace/thrift
+mkdir -p src/main/java/org/apache/accumulo/cloudtrace/thrift
 
 # For every file, move it with the appropriate path name IFF they are different
-for f in target/gen-java/cloudtrace/thrift/*
+for f in target/gen-java/org/apache/accumulo/cloudtrace/thrift/*
 do
-  DEST=src/main/java/cloudtrace/thrift/`basename $f`
+  DEST=src/main/java/org/apache/accumulo/cloudtrace/thrift/`basename $f`
   if ! cmp -s $f $DEST ; then
      echo cp $f $DEST
      cp $f $DEST

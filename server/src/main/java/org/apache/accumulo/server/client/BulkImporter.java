@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cloudtrace.instrument.TraceRunnable;
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -64,8 +65,6 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.SequenceFile;
-import org.apache.hadoop.io.SequenceFile.Writer;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TServiceClient;
@@ -132,7 +131,7 @@ public class BulkImporter {
       throw new RuntimeException("Directory does not exist " + failureDir);
     }
     
-    ClientService.Iface client = null;
+    ClientService.Client client = null;
     final TabletLocator locator = TabletLocator.getInstance(instance, credentials, new Text(tableId));
     
     try {
@@ -299,48 +298,16 @@ public class BulkImporter {
     if (completeFailures.size() == 0)
       return Collections.emptySet();
     
-    log.error("The following map files failed completely, saving this info to : " + new Path(failureDir, "failures.seq"));
+    log.debug("The following map files failed ");
     
     for (Entry<Path,List<KeyExtent>> entry : es) {
       List<KeyExtent> extents = entry.getValue();
       
       for (KeyExtent keyExtent : extents)
-        log.error("\t" + entry.getKey() + " -> " + keyExtent);
+        log.debug("\t" + entry.getKey() + " -> " + keyExtent);
     }
-    
-    try {
-      
-      Writer outSeq = SequenceFile.createWriter(fs, conf, new Path(failureDir, "failures.seq"), Text.class, KeyExtent.class);
-      
-      for (Entry<Path,List<KeyExtent>> entry : es) {
-        List<KeyExtent> extents = entry.getValue();
-        
-        for (KeyExtent keyExtent : extents)
-          outSeq.append(new Text(entry.getKey().toString()), keyExtent);
-      }
-      
-      outSeq.close();
-    } catch (IOException ioe) {
-      log.error("Failed to create " + new Path(failureDir, "failures.seq") + " : " + ioe.getMessage());
-    }
-    
-    // we should make copying multi-threaded
-    Set<Path> failedCopies = new HashSet<Path>();
-    
-    for (Entry<Path,List<KeyExtent>> entry : es) {
-      Path dest = new Path(failureDir, entry.getKey().getName());
-      
-      log.debug("Copying " + entry.getKey() + " to " + dest);
-      
-      try {
-        org.apache.hadoop.fs.FileUtil.copy(fs, entry.getKey(), fs, dest, false, conf);
-      } catch (IOException ioe) {
-        log.error("Failed to copy " + entry.getKey() + " : " + ioe.getMessage());
-        failedCopies.add(entry.getKey());
-      }
-    }
-    
-    return failedCopies;
+
+    return Collections.emptySet();
   }
   
   private class AssignmentInfo {
@@ -625,7 +592,7 @@ public class BulkImporter {
         }
         
         log.debug("Asking " + location + " to bulk load " + files);
-        List<TKeyExtent> failures = client.bulkImport(null, credentials, tid, Translator.translate(files, Translator.KET), setTime);
+        List<TKeyExtent> failures = client.bulkImport(Tracer.traceInfo(), credentials, tid, Translator.translate(files, Translator.KET), setTime);
         
         return Translator.translate(failures, Translator.TKET);
       } finally {

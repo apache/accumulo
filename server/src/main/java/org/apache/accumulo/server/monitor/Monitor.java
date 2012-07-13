@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.MasterClient;
@@ -292,7 +293,7 @@ public class Monitor {
         try {
           client = MasterClient.getConnection(HdfsZooInstance.getInstance());
           if (client != null) {
-            mmi = client.getMasterStats(null, SecurityConstants.getSystemCredentials());
+            mmi = client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
           } else {
             mmi = null;
           }
@@ -429,9 +430,9 @@ public class Monitor {
         if (locks != null && locks.size() > 0) {
           Collections.sort(locks);
           InetSocketAddress address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null, null))).getAddress(Service.GC_CLIENT);
-          GCMonitorService.Iface client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, config.getConfiguration());
+          GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, config.getConfiguration());
           try {
-            result = client.getStatus(null, SecurityConstants.getSystemCredentials());
+            result = client.getStatus(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
           } finally {
             ThriftUtil.returnClient(client);
           }

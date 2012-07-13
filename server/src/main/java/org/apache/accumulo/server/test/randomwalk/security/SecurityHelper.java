@@ -31,10 +31,6 @@ import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 
-/**
- * @author jwvines
- * 
- */
 public class SecurityHelper {
   protected final static Logger log = Logger.getLogger(SecurityHelper.class);
   
@@ -127,6 +123,9 @@ public class SecurityHelper {
   public static void setTabPerm(State state, String userName, TablePermission tp, boolean value) {
     log.debug((value ? "Gave" : "Took") + " the table permission " + tp.name() + (value ? " to" : " from") + " user " + userName);
     state.set("Tab" + userName + tp.name(), Boolean.toString(value));
+    if (tp.equals(TablePermission.READ) || tp.equals(TablePermission.WRITE))
+      state.set("Tab" + userName + tp.name() + "time", System.currentTimeMillis());
+
   }
   
   public static boolean getSysPerm(State state, String userName, SystemPermission tp) {
@@ -192,6 +191,21 @@ public class SecurityHelper {
       state.set(filesystem, fs);
     }
     return fs;
+  }
+  
+  /**
+   * @param state
+   * @param tabUserName
+   * @param tp
+   * @return
+   */
+  public static boolean inAmbiguousZone(State state, String userName, TablePermission tp) {
+    if (tp.equals(TablePermission.READ) || tp.equals(TablePermission.WRITE)) {
+      Long setTime = (Long) state.get("Tab" + userName + tp.name() + "time");
+      if (System.currentTimeMillis() < (setTime + 1000))
+        return true;
+    }
+    return false;
   }
   
 }

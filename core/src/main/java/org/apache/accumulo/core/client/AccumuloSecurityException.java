@@ -42,6 +42,8 @@ public class AccumuloSecurityException extends Exception {
         return "The GRANT permission cannot be granted or revoked";
       case BAD_AUTHORIZATIONS:
         return "The user does not have the specified authorizations assigned";
+      case UNSUPPORTED_OPERATION:
+        return "The configured security handler does not support this operation";
       case DEFAULT_SECURITY_ERROR:
       default:
         return "Unknown security exception";

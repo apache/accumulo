@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.cloudtrace.instrument.Span;
 import org.apache.accumulo.cloudtrace.instrument.Trace;
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -137,10 +139,10 @@ public class GarbageCollectWriteAheadLogs {
         InetSocketAddress address = AddressUtil.parseAddress(entry.getKey(), Property.TSERV_CLIENTPORT);
         if (!holdsLock(address))
           continue;
-        Iface tserver = null;
+        Client tserver = null;
         try {
           tserver = ThriftUtil.getClient(new TabletClientService.Client.Factory(), address, conf);
-          tserver.removeLogs(null, SecurityConstants.getSystemCredentials(), entry.getValue());
+          tserver.removeLogs(Tracer.traceInfo(), SecurityConstants.getSystemCredentials(), entry.getValue());
           log.debug("deleted " + entry.getValue() + " from " + entry.getKey());
           status.currentLog.deleted += entry.getValue().size();
         } catch (TException e) {

@@ -60,65 +60,8 @@ class WriteAheadLog(SunnyDayTest):
                            waitTime)
           self.shutdown_accumulo()
 
-class DiskFailure(SunnyDayTest):
-
-     order = 25
-
-     settings = SunnyDayTest.settings.copy()
-   
-     # compact frequently
-     settings['tserver.port.search'] = 'true'
-     settings['tserver.memory.maps.max'] = '200K'
-     settings['tserver.compaction.major.delay'] = 1
-     settings['tserver.logger.timeout'] = '5s'
-
-     def start_accumulo_procs(self, safeMode=None):
-          log.info("Starting normal accumulo")
-          SunnyDayTest.start_accumulo_procs(self, safeMode)
-          log.info("Starting victim logger")
-          libpath = '%s/test/system/auto/fake_disk_failure.so' % ACCUMULO_HOME
-          os.environ['LD_PRELOAD'] = libpath
-          os.environ['DYLD_INSERT_LIBRARIES'] = libpath
-          os.environ['DYLD_FORCE_FLAT_NAMESPACE'] = 'true'
-          stop = self.start_logger(self.masterHost())
-          del os.environ['LD_PRELOAD']
-          del os.environ['DYLD_FORCE_FLAT_NAMESPACE']
-          del os.environ['DYLD_INSERT_LIBRARIES']
-          self.flagFile = os.getenv("HOME") + "/HOLD_IO_%d" % stop.pid
-          self.sleep(5)
-          
-     def runTest(self):
-          self.sleep(3)
-          waitTime = self.waitTime()
-          log.info("Waiting for ingest to stop")
-          self.waitForStop(self.ingester, waitTime)
-
-          log.info("Starting fake disk failure for logger")
-          fp = open(self.flagFile, "w+")
-          fp.close()
-          self.ingester = self.ingest(self.masterHost(),
-                                      self.options.rows,
-                                      self.options.rows,
-                                      size=self.options.size)
-          self.waitForStop(self.ingester, waitTime)
-          
-          log.info("Verifying Ingestion")
-          self.waitForStop(self.verify(self.masterHost(),
-                                       self.options.rows * 2,
-                                       size=self.options.size),
-                           waitTime)
-
-     def tearDown(self):
-          SunnyDayTest.tearDown(self)
-          try:
-               os.unlink(self.flagFile)
-          except:
-               pass
-          
-
 def suite():
      result = unittest.TestSuite()
      result.addTest(WriteAheadLog())
-     result.addTest(DiskFailure())
      return result
 

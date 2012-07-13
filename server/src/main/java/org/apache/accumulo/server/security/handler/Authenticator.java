@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.security;
+package org.apache.accumulo.server.security.handler;
 
 import java.nio.ByteBuffer;
 import java.util.Set;
@@ -22,11 +22,16 @@ import java.util.Set;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 
+/**
+ * This interface is used for the system which will be used for authenticating a user. If the implementation does not support configuration through Accumulo, it
+ * should throw an AccumuloSecurityException with the error code UNSUPPORTED_OPERATION
+ */
+
 public interface Authenticator {
   
   public void initialize(String instanceId);
 
-  public boolean validAuthorizor(Authorizor auth);
+  public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm);
 
   public void initializeSecurity(AuthInfo credentials, String rootuser, byte[] rootpass) throws AccumuloSecurityException;
 

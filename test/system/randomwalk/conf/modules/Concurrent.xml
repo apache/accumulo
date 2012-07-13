@@ -44,6 +44,8 @@
   <edge id="ct.ChangePermissions" weight="1000"/>
   <edge id="ct.CheckPermission" weight="1000"/>
   <edge id="ct.CheckBalance" weight="1000"/>
+  <edge id="ct.StopTabletServer" weight="1000"/>
+  <edge id="ct.StartAll" weight="1000"/>
   <edge id="END" weight="1"/>
 </node>
 
@@ -129,6 +131,14 @@
 </node>
 
 <node id="ct.CheckBalance">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="ct.StopTabletServer">
+  <edge id="dummy.ToAll" weight="1"/>
+</node>
+
+<node id="ct.StartAll">
   <edge id="dummy.ToAll" weight="1"/>
 </node>
 

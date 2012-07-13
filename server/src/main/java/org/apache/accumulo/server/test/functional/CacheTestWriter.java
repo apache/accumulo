@@ -132,6 +132,7 @@ public class CacheTestWriter {
               @SuppressWarnings("unchecked")
               Map<String,String> readerMap = (Map<String,String>) ois.readObject();
               
+              fis.close();
               ois.close();
               
               System.out.println("read " + readerMap);

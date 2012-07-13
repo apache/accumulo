@@ -38,6 +38,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.cloudtrace.instrument.Span;
 import org.apache.accumulo.cloudtrace.instrument.Trace;
+import org.apache.accumulo.cloudtrace.instrument.Tracer;
+import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -747,7 +749,7 @@ public class TabletServerBatchWriter {
       if (tabMuts.size() == 0) {
         return new MutationSet();
       }
-      
+      TInfo tinfo = Tracer.traceInfo();
       TTransport transport = null;
       
       try {
@@ -759,7 +761,7 @@ public class TabletServerBatchWriter {
             Entry<KeyExtent,List<Mutation>> entry = tabMuts.entrySet().iterator().next();
             
             try {
-              client.update(null, credentials, entry.getKey().toThrift(), entry.getValue().get(0).toThrift());
+              client.update(tinfo, credentials, entry.getKey().toThrift(), entry.getValue().get(0).toThrift());
             } catch (NotServingTabletException e) {
               allFailures.addAll(entry.getKey().getTableId().toString(), entry.getValue());
               TabletLocator.getInstance(instance, credentials, new Text(entry.getKey().getTableId())).invalidateCache(entry.getKey());
@@ -768,7 +770,7 @@ public class TabletServerBatchWriter {
             }
           } else {
             
-            long usid = client.startUpdate(null, credentials);
+            long usid = client.startUpdate(tinfo, credentials);
             
             List<TMutation> updates = new ArrayList<TMutation>();
             for (Entry<KeyExtent,List<Mutation>> entry : tabMuts.entrySet()) {
@@ -781,13 +783,13 @@ public class TabletServerBatchWriter {
                   size += mutation.numBytes();
                 }
                 
-                client.applyUpdates(null, usid, entry.getKey().toThrift(), updates);
+                client.applyUpdates(tinfo, usid, entry.getKey().toThrift(), updates);
                 updates.clear();
                 size = 0;
               }
             }
             
-            UpdateErrors updateErrors = client.closeUpdate(null, usid);
+            UpdateErrors updateErrors = client.closeUpdate(tinfo, usid);
             Map<KeyExtent,Long> failures = Translator.translate(updateErrors.failedExtents, Translator.TKET);
             updatedConstraintViolations(Translator.translate(updateErrors.violationSummaries, Translator.TCVST));
             updateAuthorizationFailures(Translator.translate(updateErrors.authorizationFailures, Translator.TKET));

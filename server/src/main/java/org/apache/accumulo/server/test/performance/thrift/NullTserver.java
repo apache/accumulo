@@ -47,6 +47,8 @@ import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Processor;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -205,7 +207,7 @@ public class NullTserver {
     
     TransactionWatcher watcher = new TransactionWatcher();
     ThriftClientHandler tch = new ThriftClientHandler(HdfsZooInstance.getInstance(), watcher);
-    TabletClientService.Processor processor = new TabletClientService.Processor(tch);
+    Processor<Iface> processor = new Processor<Iface>(tch);
     TServerUtils.startTServer(port, processor, "NullTServer", "null tserver", 2, 1000);
     
     InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), port);

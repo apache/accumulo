@@ -35,6 +35,12 @@ import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.Master;
+import org.apache.accumulo.server.security.handler.Authenticator;
+import org.apache.accumulo.server.security.handler.Authorizor;
+import org.apache.accumulo.server.security.handler.PermissionHandler;
+import org.apache.accumulo.server.security.handler.ZKAuthenticator;
+import org.apache.accumulo.server.security.handler.ZKAuthorizor;
+import org.apache.accumulo.server.security.handler.ZKPermHandler;
 import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.log4j.Logger;
 
@@ -46,6 +52,7 @@ public class SecurityOperationImpl implements SecurityOperation {
 
   private static Authorizor authorizor;
   private static Authenticator authenticator;
+  private static PermissionHandler permHandle;
   private static String rootUserName = null;
   private final ZooCache zooCache;
   private final String ZKUserPath;
@@ -59,7 +66,8 @@ public class SecurityOperationImpl implements SecurityOperation {
   
   public static synchronized SecurityOperation getInstance(String instanceId) {
     if (instance == null) {
-      instance = new AuditedSecurityOperation(new SecurityOperationImpl(getAuthorizor(instanceId), getAuthenticator(instanceId), instanceId));
+      instance = new AuditedSecurityOperation(new SecurityOperationImpl(getAuthorizor(instanceId), getAuthenticator(instanceId), getPermHandler(instanceId),
+          instanceId));
     }
     return instance;
   }
@@ -80,12 +88,22 @@ public class SecurityOperationImpl implements SecurityOperation {
     return toRet;
   }
 
-  public SecurityOperationImpl(Authorizor author, Authenticator authent, String instanceId) {
+  @SuppressWarnings("deprecation")
+  private static PermissionHandler getPermHandler(String instanceId) {
+    PermissionHandler toRet = Master.createInstanceFromPropertyName(AccumuloConfiguration.getSiteConfiguration(),
+        Property.INSTANCE_SECURITY_PERMISSION_HANDLER, PermissionHandler.class, ZKPermHandler.getInstance());
+    toRet.initialize(instanceId);
+    return toRet;
+  }
+
+  public SecurityOperationImpl(Authorizor author, Authenticator authent, PermissionHandler pm, String instanceId) {
     authorizor = author;
     authenticator = authent;
+    permHandle = pm;
     
-    if (!authorizor.validAuthenticator(authenticator) || !authenticator.validAuthorizor(authorizor))
-      throw new RuntimeException(authorizor + " and " + authenticator
+    if (!authorizor.validSecurityHandlers(authenticator, pm) || !authenticator.validSecurityHandlers(authorizor, pm)
+        || !permHandle.validSecurityHandlers(authent, author))
+      throw new RuntimeException(authorizor + ", " + authenticator + ", and " + pm
           + " do not play nice with eachother. Please choose authentication and authorization mechanisms that are compatible with one another.");
     
     ZKUserPath = Constants.ZROOT + "/" + instanceId + "/users";
@@ -100,8 +118,9 @@ public class SecurityOperationImpl implements SecurityOperation {
 
     authenticator.initializeSecurity(credentials, rootuser, rootpass);
     authorizor.initializeSecurity(rootuser);
+    permHandle.initializeSecurity(rootuser);
     try {
-      authorizor.grantTablePermission(rootuser, Constants.METADATA_TABLE_ID, TablePermission.ALTER_TABLE);
+      permHandle.grantTablePermission(rootuser, Constants.METADATA_TABLE_ID, TablePermission.ALTER_TABLE);
     } catch (TableNotFoundException e) {
       // Shouldn't happen
       throw new RuntimeException(e);
@@ -165,7 +184,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     
     targetUserExists(user);
 
-    if (!credentials.user.equals(user) && !hasSystemPermission(credentials.user, SystemPermission.SYSTEM))
+    if (!credentials.user.equals(user) && !hasSystemPermission(credentials.user, SystemPermission.SYSTEM, false))
       throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     
     // system user doesn't need record-level authorizations for the tables it reads (for now)
@@ -173,7 +192,7 @@ public class SecurityOperationImpl implements SecurityOperation {
       return Constants.NO_AUTHS;
     
     try {
-      return authorizor.getUserAuthorizations(user);
+      return authorizor.getCachedUserAuthorizations(user);
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     }
@@ -193,14 +212,16 @@ public class SecurityOperationImpl implements SecurityOperation {
    * 
    * @return true if a user exists and has permission; false otherwise
    */
-  private boolean hasSystemPermission(String user, SystemPermission permission) throws ThriftSecurityException {
+  private boolean hasSystemPermission(String user, SystemPermission permission, boolean useCached) throws ThriftSecurityException {
     if (user.equals(getRootUsername()) || user.equals(SecurityConstants.SYSTEM_USERNAME))
       return true;
     
     targetUserExists(user);
 
     try {
-      return authorizor.hasSystemPermission(user, permission);
+      if (useCached)
+        return permHandle.hasCachedSystemPermission(user, permission);
+      return permHandle.hasSystemPermission(user, permission);
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     }
@@ -212,7 +233,7 @@ public class SecurityOperationImpl implements SecurityOperation {
    * @return true if a user exists and has permission; false otherwise
    * @throws ThriftTableOperationException
    */
-  private boolean hasTablePermission(String user, String table, TablePermission permission) throws ThriftSecurityException {
+  private boolean hasTablePermission(String user, String table, TablePermission permission, boolean useCached) throws ThriftSecurityException {
     if (user.equals(SecurityConstants.SYSTEM_USERNAME))
       return true;
     
@@ -222,7 +243,9 @@ public class SecurityOperationImpl implements SecurityOperation {
       return true;
 
     try {
-      return authorizor.hasTablePermission(user, table, permission);
+      if (useCached)
+        return permHandle.hasCachedTablePermission(user, table, permission);
+      return permHandle.hasTablePermission(user, table, permission);
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
     } catch (TableNotFoundException e) {
@@ -233,7 +256,7 @@ public class SecurityOperationImpl implements SecurityOperation {
   // some people just aren't allowed to ask about other users; here are those who can ask
   private boolean canAskAboutOtherUsers(AuthInfo credentials, String user) throws ThriftSecurityException {
     authenticate(credentials);
-    return credentials.user.equals(user) || hasSystemPermission(credentials.user, SystemPermission.SYSTEM)
+    return credentials.user.equals(user) || hasSystemPermission(credentials.user, SystemPermission.SYSTEM, false)
         || hasSystemPermission(credentials, credentials.user, SystemPermission.CREATE_USER)
         || hasSystemPermission(credentials, credentials.user, SystemPermission.ALTER_USER)
         || hasSystemPermission(credentials, credentials.user, SystemPermission.DROP_USER);
@@ -260,7 +283,7 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canScan(AuthInfo credentials, String table) throws ThriftSecurityException {
     authenticate(credentials);
-    return hasTablePermission(credentials.user, table, TablePermission.READ);
+    return hasTablePermission(credentials.user, table, TablePermission.READ, true);
   }
 
   /**
@@ -272,7 +295,7 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canWrite(AuthInfo credentials, String table) throws ThriftSecurityException {
     authenticate(credentials);
-    return hasTablePermission(credentials.user, table, TablePermission.WRITE);
+    return hasTablePermission(credentials.user, table, TablePermission.WRITE, true);
   }
 
   /**
@@ -284,8 +307,8 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canSplitTablet(AuthInfo credentials, String table) throws ThriftSecurityException {
     authenticate(credentials);
-    return hasSystemPermission(credentials.user, SystemPermission.ALTER_TABLE) || hasSystemPermission(credentials.user, SystemPermission.SYSTEM)
-        || hasTablePermission(credentials.user, table, TablePermission.ALTER_TABLE);
+    return hasSystemPermission(credentials.user, SystemPermission.ALTER_TABLE, false) || hasSystemPermission(credentials.user, SystemPermission.SYSTEM, false)
+        || hasTablePermission(credentials.user, table, TablePermission.ALTER_TABLE, false);
   }
   
   /**
@@ -298,7 +321,7 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canPerformSystemActions(AuthInfo credentials) throws ThriftSecurityException {
     authenticate(credentials);
-    return hasSystemPermission(credentials.user, SystemPermission.SYSTEM);
+    return hasSystemPermission(credentials.user, SystemPermission.SYSTEM, false);
   }
 
   /**
@@ -309,7 +332,7 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canFlush(AuthInfo c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasTablePermission(c.user, tableId, TablePermission.WRITE) || hasTablePermission(c.user, tableId, TablePermission.ALTER_TABLE);
+    return hasTablePermission(c.user, tableId, TablePermission.WRITE, false) || hasTablePermission(c.user, tableId, TablePermission.ALTER_TABLE, false);
   }
   
   /**
@@ -320,7 +343,7 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canAlterTable(AuthInfo c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasTablePermission(c.user, tableId, TablePermission.ALTER_TABLE) || hasSystemPermission(c.user, SystemPermission.ALTER_TABLE);
+    return hasTablePermission(c.user, tableId, TablePermission.ALTER_TABLE, false) || hasSystemPermission(c.user, SystemPermission.ALTER_TABLE, false);
   }
   
   /**
@@ -329,7 +352,7 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canCreateTable(AuthInfo c) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermission(c.user, SystemPermission.CREATE_TABLE);
+    return hasSystemPermission(c.user, SystemPermission.CREATE_TABLE, false);
   }
   
   /**
@@ -341,7 +364,7 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canRenameTable(AuthInfo c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermission(c.user, SystemPermission.ALTER_TABLE) || hasTablePermission(c.user, tableId, TablePermission.ALTER_TABLE);
+    return hasSystemPermission(c.user, SystemPermission.ALTER_TABLE, false) || hasTablePermission(c.user, tableId, TablePermission.ALTER_TABLE, false);
   }
   
   /**
@@ -352,7 +375,7 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canCloneTable(AuthInfo c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermission(c.user, SystemPermission.CREATE_TABLE) && hasTablePermission(c.user, tableId, TablePermission.READ);
+    return hasSystemPermission(c.user, SystemPermission.CREATE_TABLE, false) && hasTablePermission(c.user, tableId, TablePermission.READ, false);
   }
   
   /**
@@ -364,7 +387,7 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canDeleteTable(AuthInfo c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermission(c.user, SystemPermission.DROP_TABLE) || hasTablePermission(c.user, tableId, TablePermission.DROP_TABLE);
+    return hasSystemPermission(c.user, SystemPermission.DROP_TABLE, false) || hasTablePermission(c.user, tableId, TablePermission.DROP_TABLE, false);
   }
   
   /**
@@ -376,8 +399,8 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canOnlineOfflineTable(AuthInfo c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermission(c.user, SystemPermission.SYSTEM) || hasSystemPermission(c.user, SystemPermission.ALTER_TABLE)
-        || hasTablePermission(c.user, tableId, TablePermission.ALTER_TABLE);
+    return hasSystemPermission(c.user, SystemPermission.SYSTEM, false) || hasSystemPermission(c.user, SystemPermission.ALTER_TABLE, false)
+        || hasTablePermission(c.user, tableId, TablePermission.ALTER_TABLE, false);
   }
   
   /**
@@ -389,8 +412,8 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canMerge(AuthInfo c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermission(c.user, SystemPermission.SYSTEM) || hasSystemPermission(c.user, SystemPermission.ALTER_TABLE)
-        || hasTablePermission(c.user, tableId, TablePermission.ALTER_TABLE);
+    return hasSystemPermission(c.user, SystemPermission.SYSTEM, false) || hasSystemPermission(c.user, SystemPermission.ALTER_TABLE, false)
+        || hasTablePermission(c.user, tableId, TablePermission.ALTER_TABLE, false);
   }
   
   /**
@@ -402,7 +425,7 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canDeleteRange(AuthInfo c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermission(c.user, SystemPermission.SYSTEM) || hasTablePermission(c.user, tableId, TablePermission.WRITE);
+    return hasSystemPermission(c.user, SystemPermission.SYSTEM, false) || hasTablePermission(c.user, tableId, TablePermission.WRITE, false);
   }
   
   /**
@@ -414,7 +437,7 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canBulkImport(AuthInfo c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasTablePermission(c.user, tableId, TablePermission.BULK_IMPORT);
+    return hasTablePermission(c.user, tableId, TablePermission.BULK_IMPORT, false);
   }
   
   /**
@@ -426,8 +449,8 @@ public class SecurityOperationImpl implements SecurityOperation {
    */
   public boolean canCompact(AuthInfo c, String tableId) throws ThriftSecurityException {
     authenticate(c);
-    return hasSystemPermission(c.user, SystemPermission.ALTER_TABLE) || hasTablePermission(c.user, tableId, TablePermission.ALTER_TABLE)
-        || hasTablePermission(c.user, tableId, TablePermission.WRITE);
+    return hasSystemPermission(c.user, SystemPermission.ALTER_TABLE, false) || hasTablePermission(c.user, tableId, TablePermission.ALTER_TABLE, false)
+        || hasTablePermission(c.user, tableId, TablePermission.WRITE, false);
   }
   
   /**
@@ -439,7 +462,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     authenticate(c);
     if (user.equals(SecurityConstants.SYSTEM_USERNAME))
       throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
-    return hasSystemPermission(c.user, SystemPermission.ALTER_USER);
+    return hasSystemPermission(c.user, SystemPermission.ALTER_USER, false);
   }
 
   /**
@@ -452,7 +475,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     authenticate(c);
     if (user.equals(SecurityConstants.SYSTEM_USERNAME))
       throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
-    return c.user.equals(user) || hasSystemPermission(c.user, SystemPermission.ALTER_TABLE);
+    return c.user.equals(user) || hasSystemPermission(c.user, SystemPermission.ALTER_TABLE, false);
   }
   
   /**
@@ -468,7 +491,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     if (user.equals(SecurityConstants.SYSTEM_USERNAME))
       throw new ThriftSecurityException(user, SecurityErrorCode.PERMISSION_DENIED);
 
-    return hasSystemPermission(c.user, SystemPermission.CREATE_USER);
+    return hasSystemPermission(c.user, SystemPermission.CREATE_USER, false);
   }
 
   /**
@@ -484,7 +507,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     if (user.equals(getRootUsername()) || user.equals(SecurityConstants.SYSTEM_USERNAME))
       throw new ThriftSecurityException(user, SecurityErrorCode.PERMISSION_DENIED);
 
-    return hasSystemPermission(c.user, SystemPermission.DROP_USER);
+    return hasSystemPermission(c.user, SystemPermission.DROP_USER, false);
   }
   
   /**
@@ -505,7 +528,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     if (sysPerm.equals(SystemPermission.GRANT))
       throw new ThriftSecurityException(c.user, SecurityErrorCode.GRANT_INVALID);
 
-    return hasSystemPermission(c.user, SystemPermission.GRANT);
+    return hasSystemPermission(c.user, SystemPermission.GRANT, false);
   }
   
   /**
@@ -522,7 +545,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     if (user.equals(SecurityConstants.SYSTEM_USERNAME))
       throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
     
-    return hasSystemPermission(c.user, SystemPermission.ALTER_TABLE) || hasTablePermission(c.user, table, TablePermission.GRANT);
+    return hasSystemPermission(c.user, SystemPermission.ALTER_TABLE, false) || hasTablePermission(c.user, table, TablePermission.GRANT, false);
   }
   
   /**
@@ -543,7 +566,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     if (sysPerm.equals(SystemPermission.GRANT))
       throw new ThriftSecurityException(c.user, SecurityErrorCode.GRANT_INVALID);
     
-    return hasSystemPermission(c.user, SystemPermission.GRANT);
+    return hasSystemPermission(c.user, SystemPermission.GRANT, false);
   }
   
   /**
@@ -560,7 +583,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     if (user.equals(SecurityConstants.SYSTEM_USERNAME))
       throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
     
-    return hasSystemPermission(c.user, SystemPermission.ALTER_TABLE) || hasTablePermission(c.user, table, TablePermission.GRANT);
+    return hasSystemPermission(c.user, SystemPermission.ALTER_TABLE, false) || hasTablePermission(c.user, table, TablePermission.GRANT, false);
   }
   
   /**
@@ -613,6 +636,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     try {
       authenticator.createUser(user, pass);
       authorizor.initUser(user);
+      permHandle.initUser(user);
       log.info("Created user " + user + " at the request of user " + credentials.user);
       if (canChangeAuthorizations(credentials, user))
         authorizor.changeAuthorizations(user, authorizations);
@@ -632,6 +656,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     try {
       authorizor.dropUser(user);
       authenticator.dropUser(user);
+      permHandle.dropUser(user);
       log.info("Deleted user " + user + " at the request of user " + credentials.user);
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
@@ -651,7 +676,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     targetUserExists(user);
 
     try {
-      authorizor.grantSystemPermission(user, permissionById);
+      permHandle.grantSystemPermission(user, permissionById);
       log.info("Granted system permission " + permissionById + " for user " + user + " at the request of user " + credentials.user);
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
@@ -672,7 +697,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     targetUserExists(user);
 
     try {
-      authorizor.grantTablePermission(user, tableId, permission);
+      permHandle.grantTablePermission(user, tableId, permission);
       log.info("Granted table permission " + permission + " for user " + user + " on the table " + tableId + " at the request of user " + c.user);
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
@@ -694,7 +719,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     targetUserExists(user);
 
     try {
-      authorizor.revokeSystemPermission(user, permission);
+      permHandle.revokeSystemPermission(user, permission);
       log.info("Revoked system permission " + permission + " for user " + user + " at the request of user " + credentials.user);
 
     } catch (AccumuloSecurityException e) {
@@ -716,7 +741,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     targetUserExists(user);
 
     try {
-      authorizor.revokeTablePermission(user, tableId, permission);
+      permHandle.revokeTablePermission(user, tableId, permission);
       log.info("Revoked table permission " + permission + " for user " + user + " on the table " + tableId + " at the request of user " + c.user);
 
     } catch (AccumuloSecurityException e) {
@@ -736,7 +761,7 @@ public class SecurityOperationImpl implements SecurityOperation {
   public boolean hasSystemPermission(AuthInfo credentials, String user, SystemPermission permissionById) throws ThriftSecurityException {
     if (!canAskAboutOtherUsers(credentials, user))
       throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
-    return hasSystemPermission(user, permissionById);
+    return hasSystemPermission(user, permissionById, false);
   }
   
   /**
@@ -750,7 +775,7 @@ public class SecurityOperationImpl implements SecurityOperation {
   public boolean hasTablePermission(AuthInfo credentials, String user, String tableId, TablePermission permissionById) throws ThriftSecurityException {
     if (!canAskAboutOtherUsers(credentials, user))
       throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
-    return hasTablePermission(user, tableId, permissionById);
+    return hasTablePermission(user, tableId, permissionById, false);
   }
   
   /**
@@ -776,48 +801,12 @@ public class SecurityOperationImpl implements SecurityOperation {
     if (!canDeleteTable(credentials, tableId))
       throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
     try {
-      authorizor.cleanTablePermissions(tableId);
+      permHandle.cleanTablePermissions(tableId);
     } catch (AccumuloSecurityException e) {
       e.setUser(credentials.user);
       throw e.asThriftException();
     } catch (TableNotFoundException e) {
       throw new ThriftSecurityException(credentials.user, SecurityErrorCode.TABLE_DOESNT_EXIST);
-    }
-  }
-  
-  @Override
-  public void clearCache(String user, boolean password, boolean auths, boolean system, Set<String> tables) throws ThriftSecurityException {
-    if (password)
-      authenticator.clearCache(user);
-
-    if (auths || system || tables.size() > 0)
-      try {
-        authorizor.clearCache(user, auths, system, tables);
-      } catch (TableNotFoundException e) {
-        throw new ThriftSecurityException(user, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      } catch (AccumuloSecurityException e) {
-        throw e.asThriftException();
-      }
-    
-  }
-  
-  @Override
-  public void clearCache(String table) throws ThriftSecurityException {
-    try {
-      authorizor.clearTableCache(table);
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
-    } catch (TableNotFoundException e) {
-      throw new ThriftSecurityException(table, SecurityErrorCode.TABLE_DOESNT_EXIST);
-    }
-  }
-  
-  @Override
-  public boolean cachesToClear() throws ThriftSecurityException {
-    try {
-      return authenticator.cachesToClear() || authorizor.cachesToClear();
-    } catch (AccumuloSecurityException e) {
-      throw e.asThriftException();
     }
   }
 }
