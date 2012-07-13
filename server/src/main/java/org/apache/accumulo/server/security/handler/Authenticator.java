@@ -45,9 +45,5 @@ public interface Authenticator {
   
   public void changePassword(String user, byte[] pass) throws AccumuloSecurityException;
   
-  public void clearCache(String user);
-  
-  public boolean cachesToClear();
-  
   public boolean userExists(String user);
 }

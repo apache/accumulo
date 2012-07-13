@@ -157,5 +157,5 @@ public interface PermissionHandler {
    * @param user
    * @throws AccumuloSecurityException
    */
-  public void dropUser(String user) throws AccumuloSecurityException;
+  public void cleanUser(String user) throws AccumuloSecurityException;
 }

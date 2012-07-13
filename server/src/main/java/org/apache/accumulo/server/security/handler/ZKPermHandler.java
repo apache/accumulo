@@ -277,7 +277,7 @@ public class ZKPermHandler implements PermissionHandler {
   }
   
   @Override
-  public void dropUser(String user) throws AccumuloSecurityException {
+  public void cleanUser(String user) throws AccumuloSecurityException {
     try {
       synchronized (zooCache) {
         IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();

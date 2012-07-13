@@ -172,11 +172,6 @@ public final class ZKAuthenticator implements Authenticator {
   }
   
   @Override
-  public void clearCache(String user) {
-    zooCache.clear(ZKUserPath + "/" + user);
-  }
-
-  @Override
   public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm) {
     return true;
   }
@@ -193,10 +188,5 @@ public final class ZKAuthenticator implements Authenticator {
       result = ZKSecurityTool.checkPass(ByteBufferUtil.toBytes(password), pass);
     }
     return result;
-  }
-  
-  @Override
-  public boolean cachesToClear() {
-    return true;
   }
 }

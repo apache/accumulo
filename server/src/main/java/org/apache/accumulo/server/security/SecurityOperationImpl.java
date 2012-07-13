@@ -656,7 +656,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     try {
       authorizor.dropUser(user);
       authenticator.dropUser(user);
-      permHandle.dropUser(user);
+      permHandle.cleanUser(user);
       log.info("Deleted user " + user + " at the request of user " + credentials.user);
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
