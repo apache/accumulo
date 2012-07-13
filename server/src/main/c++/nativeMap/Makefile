@@ -24,7 +24,7 @@ endif
 
 ifeq ($(shell uname),Darwin)
 LIBS:= libNativeMap-Mac_OS_X-x86_64-64.jnilib
-CXXFLAGS=-m64 -dynamiclib -O3 -I/Developer/SDKs/MacOSX10.6.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers
+CXXFLAGS=-m64 -dynamiclib -O3 -I/System/Library/Frameworks/JavaVM.framework/Headers
 endif
 
 INSTALL_DIR=../../../../../lib/native/map
