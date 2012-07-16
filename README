@@ -62,8 +62,12 @@ the machines in the cluster and that hadoop and accumulo install files can be
 found in the same location on every machine in the cluster.  You will need to
 have password-less ssh set up as described in the hadoop documentation. 
 
-You will need to have hadoop installed and configured on your system.
-Accumulo 1.5.0-SNAPSHOT has been tested with hadoop version 0.20.2.
+You will need to have hadoop installed and configured on your system.  Accumulo
+1.5.0-SNAPSHOT has been tested with hadoop version 0.20.2.  To avoid data loss,
+you must enable HDFS durable sync.  How you enable this depends on your version
+of Hadoop.  For older versions of Hadoop set dfs.support.append to true in
+hdfs-site.xml.  For newer versions set dfs.durable.sync to true.  After setting
+these properties restart HDFS.  See ACCUMULO-623 for more information.
 
 The example accumulo configuration files are placed in directories based on the 
 memory footprint for the accumulo processes.  If you are using native libraries
