@@ -52,6 +52,7 @@ import org.apache.accumulo.core.file.blockfile.ABlockWriter;
 import org.apache.accumulo.core.file.blockfile.BlockFileReader;
 import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
+import org.apache.accumulo.core.file.rfile.BlockIndex.BlockIndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.RelativeKey.MByteSequence;
@@ -670,6 +671,12 @@ public class RFile {
         if (startKey.compareTo(getTopKey()) >= 0 && startKey.compareTo(iiter.peekPrevious().getKey()) <= 0) {
           // start key is within the unconsumed portion of the current block
           
+          // this code intentionally does not use the index associated with a cached block
+          // because if only forward seeks are being done, then there is no benefit to building
+          // and index for the block... could consider using the index if it exist but not
+          // causing the build of an index... doing this could slow down some use cases and
+          // and speed up others.
+
           MByteSequence valbs = new MByteSequence(new byte[64], 0, 0);
           RelativeKey tmpRk = new RelativeKey();
           Key pKey = new Key(getTopKey());
@@ -717,9 +724,35 @@ public class RFile {
           entriesLeft = indexEntry.getNumEntries();
           currBlock = getDataBlock(indexEntry);
 
-          MByteSequence valbs = new MByteSequence(new byte[64], 0, 0);
           RelativeKey tmpRk = new RelativeKey();
-          fastSkipped = tmpRk.fastSkip(currBlock, startKey, valbs, prevKey, null);
+          MByteSequence valbs = new MByteSequence(new byte[64], 0, 0);
+
+          Key currKey = null;
+
+          if (currBlock.isIndexable()) {
+            BlockIndex blockIndex = BlockIndex.getIndex(currBlock, indexEntry);
+            if (blockIndex != null) {
+              BlockIndexEntry bie = blockIndex.seekBlock(startKey, currBlock);
+              if (bie != null) {
+                // we are seeked to the current position of the key in the index
+                // need to prime the read process and read this key from the block
+                tmpRk.setPrevKey(bie.getKey());
+                tmpRk.readFields(currBlock);
+                val = new Value();
+
+                val.readFields(currBlock);
+                valbs = new MByteSequence(val.get(), 0, val.getSize());
+                
+                // just consumed one key from the input stream, so subtract one from entries left
+                entriesLeft = bie.getEntriesLeft() - 1;
+                prevKey = new Key(bie.getKey());
+                currKey = bie.getKey();
+              }
+            }
+            
+          }
+
+          fastSkipped = tmpRk.fastSkip(currBlock, startKey, valbs, prevKey, currKey);
           entriesLeft -= fastSkipped;
           val = new Value(valbs.toArray());
           // set rk when everything above is successful, if exception
@@ -789,7 +822,7 @@ public class RFile {
     
     private AtomicBoolean interruptFlag;
     
-    Reader(BlockFileReader rdr) throws IOException {
+    public Reader(BlockFileReader rdr) throws IOException {
       this.reader = rdr;
       
       ABlockReader mb = reader.getMetaBlock("RFile.index");

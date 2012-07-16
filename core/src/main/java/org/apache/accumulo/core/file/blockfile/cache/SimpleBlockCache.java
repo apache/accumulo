@@ -27,18 +27,45 @@ import java.util.Map;
  * Simple one RFile soft reference cache.
  */
 public class SimpleBlockCache implements BlockCache {
-  private static class Ref extends SoftReference<byte[]> {
+  
+  private static class SimpleCacheEntry implements CacheEntry {
+    
+    private byte[] buffer;
+    private Object index;
+    
+    SimpleCacheEntry(byte[] buffer) {
+      this.buffer = buffer;
+    }
+    
+    @Override
+    public byte[] getBuffer() {
+      return buffer;
+    }
+    
+    @Override
+    public Object getIndex() {
+      return index;
+    }
+    
+    @Override
+    public void setIndex(Object idx) {
+      this.index = idx;
+    }
+    
+  }
+  
+  private static class Ref extends SoftReference<SimpleCacheEntry> {
     public String blockId;
     
-    public Ref(String blockId, byte buf[], ReferenceQueue<byte[]> q) {
-      super(buf, q);
+    public Ref(String blockId, SimpleCacheEntry sce, ReferenceQueue<SimpleCacheEntry> q) {
+      super(sce, q);
       this.blockId = blockId;
     }
   }
   
   private Map<String,Ref> cache = new HashMap<String,Ref>();
   
-  private ReferenceQueue<byte[]> q = new ReferenceQueue<byte[]>();
+  private ReferenceQueue<SimpleCacheEntry> q = new ReferenceQueue<SimpleCacheEntry>();
   public int dumps = 0;
   
   /**
@@ -64,7 +91,7 @@ public class SimpleBlockCache implements BlockCache {
     return cache.size();
   }
   
-  public synchronized byte[] getBlock(String blockName) {
+  public synchronized SimpleCacheEntry getBlock(String blockName) {
     processQueue(); // clear out some crap.
     Ref ref = cache.get(blockName);
     if (ref == null)
@@ -72,15 +99,24 @@ public class SimpleBlockCache implements BlockCache {
     return ref.get();
   }
   
-  public synchronized void cacheBlock(String blockName, byte buf[]) {
-    cache.put(blockName, new Ref(blockName, buf, q));
+  public synchronized SimpleCacheEntry cacheBlock(String blockName, byte buf[]) {
+    SimpleCacheEntry sce = new SimpleCacheEntry(buf);
+    cache.put(blockName, new Ref(blockName, sce, q));
+    return sce;
   }
   
-  public synchronized void cacheBlock(String blockName, byte buf[], boolean inMemory) {
-    cache.put(blockName, new Ref(blockName, buf, q));
+  public synchronized SimpleCacheEntry cacheBlock(String blockName, byte buf[], boolean inMemory) {
+    SimpleCacheEntry sce = new SimpleCacheEntry(buf);
+    cache.put(blockName, new Ref(blockName, sce, q));
+    return sce;
   }
   
   public void shutdown() {
     // noop
+  }
+  
+  @Override
+  public long getMaxSize() {
+    return Long.MAX_VALUE;
   }
 }
