@@ -89,6 +89,10 @@ public class ChangePass extends Test {
           if (targetExists)
             throw new AccumuloException("User " + target + " doesn't exist and they SHOULD.", ae);
           return;
+        case BAD_CREDENTIALS:
+          if (!SecurityHelper.sysUserPassTransient(state))
+            throw new AccumuloException("Bad credentials for user " + conn.whoami());
+          return;
         default:
           throw new AccumuloException("Got unexpected exception", ae);
       }
@@ -98,6 +102,6 @@ public class ChangePass extends Test {
     } else
       SecurityHelper.setTabUserPass(state, newPass);
     if (!hasPerm)
-      throw new AccumuloException("Password change succeeded when it should have failed.");
+      throw new AccumuloException("Password change succeeded when it should have failed for " + source + " changing the password for " + target + ".");
   }
 }

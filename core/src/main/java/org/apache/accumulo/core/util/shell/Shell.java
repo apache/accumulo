@@ -268,7 +268,7 @@ public class Shell extends ShellOptions {
       this.setTableName("");
       connector = instance.getConnector(user, pass);
       this.credentials = new AuthInfo(user, ByteBuffer.wrap(pass), connector.getInstance().getInstanceID());
-      
+      updateUser(credentials);
     } catch (Exception e) {
       printException(e);
       configError = true;
@@ -911,6 +911,8 @@ public class Shell extends ShellOptions {
   public void updateUser(AuthInfo authInfo) throws AccumuloException, AccumuloSecurityException {
     connector = instance.getConnector(authInfo);
     credentials = authInfo;
+    if (!connector.securityOperations().authenticateUser(authInfo.user, authInfo.getPassword()))
+      throw new RuntimeException("Unable to authenticate user " + authInfo.user);
   }
   
   public AuthInfo getCredentials() {

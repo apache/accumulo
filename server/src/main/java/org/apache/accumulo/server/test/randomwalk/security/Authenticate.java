@@ -77,6 +77,7 @@ public class Authenticate extends Test {
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
     if (result != (success && exists))
-      throw new AccumuloException("Got " + result + " as the result when it should be " + success);
+      throw new AccumuloException("Authentication " + (result ? "succeeded" : "failed") + " when it should have "
+          + ((success && exists) ? "succeeded" : "failed") + " while the user exists? " + exists);
   }
 }

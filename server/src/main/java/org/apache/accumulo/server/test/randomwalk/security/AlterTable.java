@@ -59,6 +59,9 @@ public class AlterTable extends Test {
           throw new AccumuloException("Got a security exception when I should have had permission.", ae);
         else
           return;
+      } else if (ae.getErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
+        if (SecurityHelper.sysUserPassTransient(state))
+          return;
       }
       throw new AccumuloException("Got unexpected ae error code", ae);
     } catch (TableNotFoundException tnfe) {

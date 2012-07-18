@@ -195,6 +195,9 @@ public class TableOp extends Test {
             if (hasPerm)
               throw new AccumuloException("Bulk Import failed when it should have worked: " + tableName);
             return;
+          } else if (ae.getErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
+            if (SecurityHelper.sysUserPassTransient(state))
+              return;
           }
           throw new AccumuloException("Unexpected exception!", ae);
         }

@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Random;
 import java.util.Set;
 
 import junit.framework.TestCase;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -177,7 +179,11 @@ public class RFileTest extends TestCase {
       byte[] data = baos.toByteArray();
       bais = new SeekableByteArrayInputStream(data);
       in = new FSDataInputStream(bais);
-      CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, data.length, conf);
+      
+      LruBlockCache indexCache = new LruBlockCache(100000000, 100000);
+      LruBlockCache dataCache = new LruBlockCache(100000000, 100000);
+      
+      CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, data.length, conf, dataCache, indexCache);
       reader = new RFile.Reader(_cbr);
       iter = new ColumnFamilySkippingIterator(reader);
       
@@ -301,10 +307,10 @@ public class RFileTest extends TestCase {
         }
       }
     }
-    
+		
     // trf.writer.append(nk("r1","cf1","cq1","L1", 55), nv("foo"));
     trf.closeWriter();
-    
+
     trf.openReader();
     // seek before everything
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
@@ -384,6 +390,20 @@ public class RFileTest extends TestCase {
     
     assertEquals(expectedKeys.get(expectedKeys.size() - 1), trf.reader.getLastKey());
     
+    // test seeking to random location and reading all data from that point
+    // there was an off by one bug with this in the transient index
+    Random rand = new Random();
+    for (int i = 0; i < 12; i++) {
+      index = rand.nextInt(expectedKeys.size());
+      trf.seek(expectedKeys.get(index));
+      for (; index < expectedKeys.size(); index++) {
+        assertTrue(trf.iter.hasTop());
+        assertEquals(expectedKeys.get(index), trf.iter.getTopKey());
+        assertEquals(expectedValues.get(index), trf.iter.getTopValue());
+        trf.iter.next();
+      }
+    }
+
     trf.closeReader();
   }
   
@@ -1203,7 +1223,7 @@ public class RFileTest extends TestCase {
     assertFalse(trf.iter.hasTop());
     
     trf.iter.seek(new Range(nk("r0000", "cf1", "cq1", "", 1), false, nk("r0001", "cf1", "cq1", "", 1), true), EMPTY_COL_FAMS, false);
-    
+		
     for (int i = 2048; i < 4096; i++) {
       assertTrue(trf.iter.hasTop());
       assertEquals(nk("r0001", "cf1", "cq1", "", 1), trf.iter.getTopKey());

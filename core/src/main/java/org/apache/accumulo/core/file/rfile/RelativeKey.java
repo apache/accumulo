@@ -111,6 +111,10 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
       fieldsSame |= DELETED;
   }
   
+  public void setPrevKey(Key pk) {
+    this.prevKey = pk;
+  }
+  
   @Override
   public void readFields(DataInput in) throws IOException {
     fieldsSame = in.readByte();

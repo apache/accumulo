@@ -34,4 +34,13 @@ public interface ABlockReader extends DataInput {
   
   public void close() throws IOException;
   
+  /**
+   * An indexable block supports seeking, getting a position, and associating an arbitrary index with the block
+   * 
+   * @return
+   */
+  public boolean isIndexable();
+  public void seek(int position);
+  public int getPosition();
+  <T> T getIndex(Class<T> clazz);
 }

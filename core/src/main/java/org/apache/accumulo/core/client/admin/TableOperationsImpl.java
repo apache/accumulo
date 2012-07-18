@@ -102,7 +102,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private Instance instance;
   private AuthInfo credentials;
   
-  private static final Logger log = Logger.getLogger(TableOperations.class);
+  private static final Logger log = Logger.getLogger(TableOperationsImpl.class);
   
   /**
    * @param instance

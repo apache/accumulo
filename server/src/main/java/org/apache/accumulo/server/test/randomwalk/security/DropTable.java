@@ -70,6 +70,9 @@ public class DropTable extends Test {
               SecurityHelper.setTabPerm(state, user, tp, false);
           return;
         }
+      } else if (ae.getErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
+        if (SecurityHelper.sysUserPassTransient(state))
+          return;
       }
       throw new AccumuloException("Got unexpected ae error code", ae);
     } catch (TableNotFoundException tnfe) {

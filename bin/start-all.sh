@@ -42,6 +42,8 @@ if [ "$ZOOKEEPER_VERSION" '<' "3.3.0" ] ; then
 	echo "WARN : Using Zookeeper $ZOOKEEPER_VERSION.  Use version 3.3.0 or greater to avoid zookeeper deadlock bug.";
 fi
 
+${bin}/start-server.sh $MONITOR monitor 
+
 if [ "$1" != "--notSlaves" ] ; then
 	${bin}/tup.sh
 fi
@@ -54,7 +56,6 @@ done
 
 ${bin}/start-server.sh $GC gc "garbage collector"
 
-${bin}/start-server.sh $MONITOR monitor 
 
 for tracer in `grep -v '^#' "$ACCUMULO_HOME/conf/tracers"`
 do

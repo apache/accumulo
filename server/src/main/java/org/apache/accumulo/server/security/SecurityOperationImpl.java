@@ -161,14 +161,10 @@ public class SecurityOperationImpl implements SecurityOperation {
    * @throws ThriftSecurityException
    */
   public boolean authenticateUser(AuthInfo credentials, String user, ByteBuffer password) throws ThriftSecurityException {
-    authenticate(credentials);
-    
-    if (credentials.user.equals(user))
-      return true;
-    
-    if (!canPerformSystemActions(credentials))
+    // Authentication done in canPerformSystemActions
+    if (!(canPerformSystemActions(credentials) || credentials.user.equals(user)))
       throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
-    
+
     return authenticator.authenticateUser(user, password, credentials.instanceId);
     
   }
@@ -475,7 +471,7 @@ public class SecurityOperationImpl implements SecurityOperation {
     authenticate(c);
     if (user.equals(SecurityConstants.SYSTEM_USERNAME))
       throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
-    return c.user.equals(user) || hasSystemPermission(c.user, SystemPermission.ALTER_TABLE, false);
+    return c.user.equals(user) || hasSystemPermission(c.user, SystemPermission.ALTER_USER, false);
   }
   
   /**

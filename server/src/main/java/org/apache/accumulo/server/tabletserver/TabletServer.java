@@ -199,6 +199,7 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.Reader;
 import org.apache.hadoop.io.Text;
@@ -3118,6 +3119,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       Instance instance = HdfsZooInstance.getInstance();
       ServerConfiguration conf = new ServerConfiguration(instance);
       Accumulo.init(fs, conf, "tserver");
+      ensureHdfsSyncIsEnabled(fs);
       recoverLocalWriteAheadLogs(fs, conf);
       TabletServer server = new TabletServer(conf, fs);
       server.config(hostname);
@@ -3126,6 +3128,17 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     } catch (Exception ex) {
       log.error("Uncaught exception in TabletServer.main, exiting", ex);
     }
+  }
+
+  private static void ensureHdfsSyncIsEnabled(FileSystem fs) {
+    if (fs instanceof DistributedFileSystem) {
+      if (!fs.getConf().getBoolean("dfs.durable.sync", false) && !fs.getConf().getBoolean("dfs.support.append", false)) {
+        String msg = "Must set dfs.durable.sync OR dfs.support.append to true.  Which one needs to be set depends on your version of HDFS.  See ACCUMULO-623.";
+        log.fatal(msg);
+        System.exit(-1);
+      }
+    }
+    
   }
 
   /**

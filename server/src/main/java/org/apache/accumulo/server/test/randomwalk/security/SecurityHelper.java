@@ -81,8 +81,14 @@ public class SecurityHelper {
   public static void setSysUserPass(State state, byte[] sysUserPass) {
     log.debug("Setting system user pass to " + new String(sysUserPass));
     state.set(masterPass, sysUserPass);
+    state.set(masterPass + "time", System.currentTimeMillis());
+
   }
   
+  public static boolean sysUserPassTransient(State state) {
+    return System.currentTimeMillis() - state.getInteger(masterPass + "time") < 1000;
+  }
+
   public static byte[] getTabUserPass(State state) {
     return (byte[]) state.get(tUserPass);
   }
@@ -90,8 +96,13 @@ public class SecurityHelper {
   public static void setTabUserPass(State state, byte[] tabUserPass) {
     log.debug("Setting table user pass to " + new String(tabUserPass));
     state.set(tUserPass, tabUserPass);
+    state.set(tUserPass + "time", System.currentTimeMillis());
   }
   
+  public static boolean tabUserPassTransient(State state) {
+    return System.currentTimeMillis() - state.getInteger(tUserPass + "time") < 1000;
+  }
+
   public static boolean getTabUserExists(State state) {
     return Boolean.parseBoolean(state.getString(tUserExists));
   }

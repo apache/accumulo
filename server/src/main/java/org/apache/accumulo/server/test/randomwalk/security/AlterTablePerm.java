@@ -124,6 +124,10 @@ public class AlterTablePerm extends Test {
             if (tableExists)
               throw new AccumuloException("Table doesn't exist but it should", ae);
             return;
+          case BAD_CREDENTIALS:
+            if (!SecurityHelper.sysUserPassTransient(state))
+              throw new AccumuloException("Bad credentials for user " + conn.whoami());
+            return;
           default:
             throw new AccumuloException("Got unexpected exception", ae);
         }
@@ -149,6 +153,10 @@ public class AlterTablePerm extends Test {
           case TABLE_DOESNT_EXIST:
             if (tableExists)
               throw new AccumuloException("Table doesn't exist but it should", ae);
+            return;
+          case BAD_CREDENTIALS:
+            if (!SecurityHelper.sysUserPassTransient(state))
+              throw new AccumuloException("Bad credentials for user " + conn.whoami());
             return;
           default:
             throw new AccumuloException("Got unexpected exception", ae);

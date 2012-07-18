@@ -19,6 +19,7 @@ import logging
 import unittest
 import time
 from TestUtils import TestUtilsMixin, ROOT, ROOT_PASSWORD, ACCUMULO_HOME
+from subprocess import Popen as BasePopen, PIPE
 
 log = logging.getLogger('test.shell')
       
@@ -36,6 +37,7 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         TestUtilsMixin.setUp(self)
         
     def runTest(self):
+        self.badLoginTest()
         self.setIterTest()
         self.setScanIterTest()
         self.iteratorsTest()
@@ -55,6 +57,12 @@ class ShellTest(TestUtilsMixin,unittest.TestCase):
         self.getauthsTest()
         
         
+    def badLoginTest(self, **opts):
+      log.debug("Running shell with bad password")
+      handle = self.runOn(self.masterHost(), [self.accumulo_sh(), 'shell', '-u', ROOT, '-p', "ThisWouldBeATerriblePasswordToHave"], stdin=PIPE, **opts)
+      handle.communicate("quit\n")
+      self.failUnless(handle.returncode != 0, "Was able to create a shell with bad credentials")
+
     def setIterTest(self):
         input = 'setiter -t setitertest -n mymax -scan -p 10 -class org.apache.accumulo.core.iterators.user.MaxCombiner\n\ncf\n\nSTRING\n'
         out,err,code = self.rootShell(self.masterHost(),input)
