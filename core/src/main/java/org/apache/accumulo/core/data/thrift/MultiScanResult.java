@@ -849,7 +849,7 @@ import org.slf4j.LoggerFactory;
                 for (int _i20 = 0; _i20 < _map19.size; ++_i20)
                 {
                   TKeyExtent _key21; // required
-                  List<TRange> _val22; // required
+                  List<TRange> _val22; // optional
                   _key21 = new TKeyExtent();
                   _key21.read(iprot);
                   {
@@ -1114,7 +1114,7 @@ import org.slf4j.LoggerFactory;
           for (int _i41 = 0; _i41 < _map40.size; ++_i41)
           {
             TKeyExtent _key42; // required
-            List<TRange> _val43; // required
+            List<TRange> _val43; // optional
             _key42 = new TKeyExtent();
             _key42.read(iprot);
             {

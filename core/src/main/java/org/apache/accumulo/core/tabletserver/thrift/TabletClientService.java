@@ -3510,7 +3510,7 @@ import org.slf4j.LoggerFactory;
                   for (int _i77 = 0; _i77 < _map76.size; ++_i77)
                   {
                     String _key78; // required
-                    Map<String,String> _val79; // required
+                    Map<String,String> _val79; // optional
                     _key78 = iprot.readString();
                     {
                       org.apache.thrift.protocol.TMap _map80 = iprot.readMapBegin();
@@ -3518,7 +3518,7 @@ import org.slf4j.LoggerFactory;
                       for (int _i81 = 0; _i81 < _map80.size; ++_i81)
                       {
                         String _key82; // required
-                        String _val83; // required
+                        String _val83; // optional
                         _key82 = iprot.readString();
                         _val83 = iprot.readString();
                         _val79.put(_key82, _val83);
@@ -3851,7 +3851,7 @@ import org.slf4j.LoggerFactory;
             for (int _i104 = 0; _i104 < _map103.size; ++_i104)
             {
               String _key105; // required
-              Map<String,String> _val106; // required
+              Map<String,String> _val106; // optional
               _key105 = iprot.readString();
               {
                 org.apache.thrift.protocol.TMap _map107 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
@@ -3859,7 +3859,7 @@ import org.slf4j.LoggerFactory;
                 for (int _i108 = 0; _i108 < _map107.size; ++_i108)
                 {
                   String _key109; // required
-                  String _val110; // required
+                  String _val110; // optional
                   _key109 = iprot.readString();
                   _val110 = iprot.readString();
                   _val106.put(_key109, _val110);
@@ -7088,7 +7088,7 @@ import org.slf4j.LoggerFactory;
                   for (int _i115 = 0; _i115 < _map114.size; ++_i115)
                   {
                     org.apache.accumulo.core.data.thrift.TKeyExtent _key116; // required
-                    List<org.apache.accumulo.core.data.thrift.TRange> _val117; // required
+                    List<org.apache.accumulo.core.data.thrift.TRange> _val117; // optional
                     _key116 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
                     _key116.read(iprot);
                     {
@@ -7158,7 +7158,7 @@ import org.slf4j.LoggerFactory;
                   for (int _i128 = 0; _i128 < _map127.size; ++_i128)
                   {
                     String _key129; // required
-                    Map<String,String> _val130; // required
+                    Map<String,String> _val130; // optional
                     _key129 = iprot.readString();
                     {
                       org.apache.thrift.protocol.TMap _map131 = iprot.readMapBegin();
@@ -7166,7 +7166,7 @@ import org.slf4j.LoggerFactory;
                       for (int _i132 = 0; _i132 < _map131.size; ++_i132)
                       {
                         String _key133; // required
-                        String _val134; // required
+                        String _val134; // optional
                         _key133 = iprot.readString();
                         _val134 = iprot.readString();
                         _val130.put(_key133, _val134);
@@ -7448,7 +7448,7 @@ import org.slf4j.LoggerFactory;
             for (int _i153 = 0; _i153 < _map152.size; ++_i153)
             {
               org.apache.accumulo.core.data.thrift.TKeyExtent _key154; // required
-              List<org.apache.accumulo.core.data.thrift.TRange> _val155; // required
+              List<org.apache.accumulo.core.data.thrift.TRange> _val155; // optional
               _key154 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
               _key154.read(iprot);
               {
@@ -7502,7 +7502,7 @@ import org.slf4j.LoggerFactory;
             for (int _i166 = 0; _i166 < _map165.size; ++_i166)
             {
               String _key167; // required
-              Map<String,String> _val168; // required
+              Map<String,String> _val168; // optional
               _key167 = iprot.readString();
               {
                 org.apache.thrift.protocol.TMap _map169 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
@@ -7510,7 +7510,7 @@ import org.slf4j.LoggerFactory;
                 for (int _i170 = 0; _i170 < _map169.size; ++_i170)
                 {
                   String _key171; // required
-                  String _val172; // required
+                  String _val172; // optional
                   _key171 = iprot.readString();
                   _val172 = iprot.readString();
                   _val168.put(_key171, _val172);
@@ -10514,6 +10514,8 @@ import org.slf4j.LoggerFactory;
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bit_vector = new BitSet(1);
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -14105,7 +14107,7 @@ import org.slf4j.LoggerFactory;
                   for (int _i185 = 0; _i185 < _map184.size; ++_i185)
                   {
                     org.apache.accumulo.core.data.thrift.TKeyExtent _key186; // required
-                    Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo> _val187; // required
+                    Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo> _val187; // optional
                     _key186 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
                     _key186.read(iprot);
                     {
@@ -14114,7 +14116,7 @@ import org.slf4j.LoggerFactory;
                       for (int _i189 = 0; _i189 < _map188.size; ++_i189)
                       {
                         String _key190; // required
-                        org.apache.accumulo.core.data.thrift.MapFileInfo _val191; // required
+                        org.apache.accumulo.core.data.thrift.MapFileInfo _val191; // optional
                         _key190 = iprot.readString();
                         _val191 = new org.apache.accumulo.core.data.thrift.MapFileInfo();
                         _val191.read(iprot);
@@ -14281,7 +14283,7 @@ import org.slf4j.LoggerFactory;
             for (int _i197 = 0; _i197 < _map196.size; ++_i197)
             {
               org.apache.accumulo.core.data.thrift.TKeyExtent _key198; // required
-              Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo> _val199; // required
+              Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo> _val199; // optional
               _key198 = new org.apache.accumulo.core.data.thrift.TKeyExtent();
               _key198.read(iprot);
               {
@@ -14290,7 +14292,7 @@ import org.slf4j.LoggerFactory;
                 for (int _i201 = 0; _i201 < _map200.size; ++_i201)
                 {
                   String _key202; // required
-                  org.apache.accumulo.core.data.thrift.MapFileInfo _val203; // required
+                  org.apache.accumulo.core.data.thrift.MapFileInfo _val203; // optional
                   _key202 = iprot.readString();
                   _val203 = new org.apache.accumulo.core.data.thrift.MapFileInfo();
                   _val203.read(iprot);

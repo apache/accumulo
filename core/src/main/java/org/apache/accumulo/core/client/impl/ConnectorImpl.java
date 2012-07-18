@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.util.ArgumentChecker;
 
 public class ConnectorImpl extends Connector {
@@ -76,7 +77,8 @@ public class ConnectorImpl extends Connector {
       ServerClient.execute(instance, new ClientExec<ClientService.Client>() {
         @Override
         public void execute(ClientService.Client iface) throws Exception {
-          iface.authenticateUser(Tracer.traceInfo(), credentials, credentials.user, credentials.password);
+          if (!iface.authenticateUser(Tracer.traceInfo(), credentials, credentials.user, credentials.password))
+            throw new AccumuloSecurityException("Authentication failed, access denied", SecurityErrorCode.BAD_CREDENTIALS);
         }
       });
     }

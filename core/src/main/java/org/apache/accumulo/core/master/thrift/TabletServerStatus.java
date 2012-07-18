@@ -1108,7 +1108,7 @@ import org.slf4j.LoggerFactory;
                 for (int _i1 = 0; _i1 < _map0.size; ++_i1)
                 {
                   String _key2; // required
-                  TableInfo _val3; // required
+                  TableInfo _val3; // optional
                   _key2 = iprot.readString();
                   _val3 = new TableInfo();
                   _val3.read(iprot);
@@ -1392,7 +1392,7 @@ import org.slf4j.LoggerFactory;
           for (int _i12 = 0; _i12 < _map11.size; ++_i12)
           {
             String _key13; // required
-            TableInfo _val14; // required
+            TableInfo _val14; // optional
             _key13 = iprot.readString();
             _val14 = new TableInfo();
             _val14.read(iprot);

@@ -601,7 +601,7 @@ import org.slf4j.LoggerFactory;
                 for (int _i45 = 0; _i45 < _map44.size; ++_i45)
                 {
                   String _key46; // required
-                  String _val47; // required
+                  String _val47; // optional
                   _key46 = iprot.readString();
                   _val47 = iprot.readString();
                   struct.properties.put(_key46, _val47);
@@ -729,7 +729,7 @@ import org.slf4j.LoggerFactory;
           for (int _i51 = 0; _i51 < _map50.size; ++_i51)
           {
             String _key52; // required
-            String _val53; // required
+            String _val53; // optional
             _key52 = iprot.readString();
             _val53 = iprot.readString();
             struct.properties.put(_key52, _val53);
