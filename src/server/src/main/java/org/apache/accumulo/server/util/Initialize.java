@@ -413,6 +413,14 @@ public class Initialize {
   
   protected static void initMetadataConfig() throws IOException {
     try {
+      Configuration conf = CachedConfiguration.getInstance();
+      int max = conf.getInt("dfs.replication.max", 512);
+      // Hadoop 0.23 switched the min value configuration name
+      int min = Math.max(conf.getInt("dfs.replication.min", 1), conf.getInt("dfs.namenode.replication.min", 1));
+      if (max < 5)
+        setMetadataReplication(max, "max");
+      if (min > 5)
+        setMetadataReplication(min, "min");
       for (Entry<String,String> entry : initialMetadataConf.entrySet())
         if (!TablePropUtil.setTableProperty(Constants.METADATA_TABLE_ID, entry.getKey(), entry.getValue()))
           throw new IOException("Cannot create per-table property " + entry.getKey());
@@ -422,6 +430,18 @@ public class Initialize {
     }
   }
   
+  private static void setMetadataReplication(int replication, String reason) throws IOException {
+    String rep = getConsoleReader().readLine(
+        "Your HDFS replication " + reason
+            + " is not compatible with our default !METADATA replication of 5. What do you want to set your !METADATA replication to? (" + replication + ") ");
+    if (rep == null || rep.length() == 0)
+      rep = Integer.toString(replication);
+    else
+      // Lets make sure it's a number
+      Integer.parseInt(rep);
+    initialMetadataConf.put(Property.TABLE_FILE_REPLICATION.getKey(), rep);
+  }
+
   public static boolean isInitialized(FileSystem fs) throws IOException {
     return (fs.exists(ServerConstants.getInstanceIdLocation()) || fs.exists(ServerConstants.getDataVersionLocation()));
   }
