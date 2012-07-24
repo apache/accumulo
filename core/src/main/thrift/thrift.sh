@@ -25,7 +25,10 @@ fail() {
 VERSION=`thrift -version 2>/dev/null | grep "0.8" |  wc -l`
 if [ "$VERSION" -ne 1 ] ; then 
    # Nope: bail
-   echo "thrift is not available"
+   echo "***********************************************"
+   echo "* thrift is not available                     *"
+   echo "*   expecting 'thrift -version' to return 0.8 *"
+   echo "***********************************************"
    exit 0
 fi
 CLOUDTRACE=../trace
