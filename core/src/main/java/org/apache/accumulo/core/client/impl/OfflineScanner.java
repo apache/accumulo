@@ -128,7 +128,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     this.range = range;
     
     if (this.options.fetchedColumns.size() > 0) {
-      range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
+      this.range = range.bound(this.options.fetchedColumns.first(), this.options.fetchedColumns.last());
     }
 
     this.tableId = table.toString();
