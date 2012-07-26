@@ -61,6 +61,8 @@ public class Main {
         runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.core.Constants");
         System.out.println(runTMP.getField("VERSION").get(null));
         return;
+      } else if (args[0].equals("rfile-info") ) {
+        runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.core.file.rfile.PrintInfo");
       } else {
         try {
           runTMP = AccumuloClassLoader.loadClass(args[0]);
@@ -103,6 +105,6 @@ public class Main {
   }
   
   private static void printUsage() {
-    System.out.println("accumulo init | master | tserver | logger | monitor | shell | admin | gc | classpath | <accumulo class> args");
+    System.out.println("accumulo init | master | tserver | logger | monitor | shell | admin | gc | classpath | rfile-info | <accumulo class> args");
   }
 }

@@ -186,10 +186,10 @@ table has in HDFS.  This assumes Accumulo is at the default location in HDFS.
     -rw-r--r--   3 username supergroup   52436176 2012-01-10 14:01 /accumulo/tables/o8/default_tablet/F00000dk.rf
     -rw-r--r--   3 username supergroup   52850173 2012-01-10 14:02 /accumulo/tables/o8/default_tablet/F00000dl.rf
 
-Running the PrintInfo command shows that one of the files has a bloom filter
+Running the rfile-info command shows that one of the files has a bloom filter
 and its 1.5MB.
 
-    $ ./bin/accumulo org.apache.accumulo.core.file.rfile.PrintInfo /accumulo/tables/o8/default_tablet/F00000dj.rf
+    $ ./bin/accumulo rfile-info /accumulo/tables/o8/default_tablet/F00000dj.rf
     Locality group         : <DEFAULT>
 	Start block          : 0
 	Num   blocks         : 752
