@@ -51,7 +51,7 @@ public class VerifyIndex extends Test {
       Key key1 = entry.getKey();
       Key key2 = iter.next().getKey();
       
-      if (key1.compareTo(key2, PartialKey.ROW_COLFAM_COLQUAL) != 0)
+      if (!key1.equals(key2, PartialKey.ROW_COLFAM_COLQUAL))
         throw new Exception("index rebuild mismatch " + key1 + " " + key2 + " " + indexTableName + " " + tmpIndexTableName);
       count++;
       if (count % 1000 == 0)

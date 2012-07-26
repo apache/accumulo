@@ -26,9 +26,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.io.MapFile.Reader;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
-import org.apache.hadoop.io.MapFile.Reader;
 
 /**
  * Provide simple Map.Reader methods over multiple Maps.
@@ -135,7 +135,7 @@ public class MultiReader {
       Index index = (Index) obj;
       try {
         WritableComparable found = index.reader.getClosest(key, index.value, true);
-        if (found != null && found.compareTo(key) == 0) {
+        if (found != null && found.equals(key)) {
           result = true;
         }
       } catch (EOFException ex) {

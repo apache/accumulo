@@ -1654,7 +1654,7 @@ public class BooleanLogicIterator implements SortedKeyValueIterator<Key,Value>, 
           node.setValid(false);
           if (testTreeState()) {
             // it's valid set nextKey and make sure it's not the same as topKey.
-            if (topKey.compareTo(this.root.getTopKey()) != 0) {
+            if (!topKey.equals(this.root.getTopKey())) {
               // topKey = this.root.getTopKey();
               if (this.overallRange != null) {
                 if (this.overallRange.contains(root.getTopKey())) {

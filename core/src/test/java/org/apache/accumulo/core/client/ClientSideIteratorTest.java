@@ -56,7 +56,7 @@ public class ClientSideIteratorTest {
   public void checkResults(Iterable<Entry<Key,Value>> scanner, List<Key> results, PartialKey pk) {
     int i = 0;
     for (Entry<Key,Value> entry : scanner) {
-      assertTrue(0 == entry.getKey().compareTo(results.get(i++), pk));
+      assertTrue(entry.getKey().equals(results.get(i++), pk));
     }
     assertEquals(i, results.size());
   }
