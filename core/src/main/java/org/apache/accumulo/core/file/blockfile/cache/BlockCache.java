@@ -60,7 +60,9 @@ public interface BlockCache {
   public void shutdown();
   
   /**
-   * @return
+   * Get the maximum size of this cache.
+   *
+   * @return max size in bytes
    */
   public long getMaxSize();
 }

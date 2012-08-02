@@ -85,7 +85,7 @@ public class EvaluatingIterator extends AbstractEvaluatingIterator {
 
   /**
    * @param key
-   * @return
+   * @return The column visibility
    */
   public ColumnVisibility getColumnVisibility(Key key) {
     ColumnVisibility result = (ColumnVisibility) visibilityMap.get(key.getColumnVisibility());

@@ -186,7 +186,7 @@ public class Constants {
   
   /**
    * @param conf
-   * @return
+   * @return The write-ahead log directory.
    */
   public static String getWalDirectory(AccumuloConfiguration conf) {
     return getBaseDir(conf) + "/wal";
