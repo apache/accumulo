@@ -21,7 +21,9 @@ bin=`cd "$bin"; pwd`
 cd $bin
 
 if [ `which pdflatex | wc -l` -eq 0 ]; then
-  echo 'Missing pdflatex command. Please install.' 1>&2
+    echo "*********************************************" 1>&2
+    echo '* Missing pdflatex command. Please install. *' 1>&2
+    echo "*********************************************" 1>&2
   exit 0;
 fi
 
@@ -29,6 +31,9 @@ if [ -f ../../accumulo_user_manual.pdf ]
 then
   if [ `find . -name '*.tex' -newer ../../accumulo_user_manual.pdf | wc -l` -eq 0 ] 
   then
+    echo "***********************************************" 1>&2
+    echo "* User Manual is up-to-date.                  *" 1>&2
+    echo "***********************************************" 1>&2
    exit 0
   fi
 fi
