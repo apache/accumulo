@@ -61,19 +61,6 @@
         <artifactId>exec-maven-plugin</artifactId>
         <executions>
           <execution>
-            <id>user-manual</id>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>bash</executable>
-              <arguments>
-                <argument>../docs/src/user_manual/build.sh</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <execution>
             <id>config webpage</id>
             <phase>package</phase>
             <goals>
@@ -405,6 +392,45 @@
                       <excludes>**/.svn/**,**/*.pyc</excludes>
                     </data>
                   </dataSet>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>docs</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>developer-manual</id>
+                <phase>prepare-package</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>bash</executable>
+                  <arguments>
+                    <argument>../docs/src/developer_manual/build.sh</argument>
+                  </arguments>
+                </configuration>
+              </execution>
+              <execution>
+                <id>user-manual</id>
+                <phase>prepare-package</phase>
+                <goals>
+                  <goal>exec</goal>
+                </goals>
+                <configuration>
+                  <executable>bash</executable>
+                  <arguments>
+                    <argument>../docs/src/user_manual/build.sh</argument>
+                  </arguments>
                 </configuration>
               </execution>
             </executions>

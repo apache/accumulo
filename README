@@ -15,9 +15,11 @@ ready to go on x86 GNU/Linux: there is no build step.
 
 However, if you only have source code, or you wish to make changes, you need to
 have maven configured to get Accumulo prerequisites from repositories.  See
-the pom.xml file for the necessary components.
+the pom.xml file for the necessary components. Activate the 'docs' profile to build
+the Accumulo developer and user manual.
 
-Run "mvn package -P assemble"
+Run "mvn package -P assemble" to build a distribution, or run "mvn package -P assemble,docs"
+to also build the documentation.
 
 If you are running on another Unix-like operating system (OSX, etc) then
 you may wish to build the native libraries.  They are not strictly necessary
