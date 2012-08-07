@@ -243,7 +243,7 @@ public class Merge {
     }
     scanner.setRange(new KeyExtent(new Text(tableId), end, start).toMetadataRange());
     scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
-    ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+    Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
     final Iterator<Entry<Key,Value>> iterator = scanner.iterator();
     
     Iterator<Size> result = new Iterator<Size>() {

@@ -60,18 +60,18 @@ public class ColumnFQ implements Comparable<ColumnFQ> {
     return new Column(TextUtil.getBytes(colf), TextUtil.getBytes(colq), null);
   }
   
-  public static void fetch(ScannerBase sb, ColumnFQ cfq) {
-    sb.fetchColumn(cfq.colf, cfq.colq);
+  public void fetch(ScannerBase sb) {
+    sb.fetchColumn(colf, colq);
   }
   
-  public static void put(Mutation m, ColumnFQ cfq, Value v) {
-    m.put(cfq.colf, cfq.colq, v);
+  public void put(Mutation m, Value v) {
+    m.put(colf, colq, v);
   }
   
-  public static void putDelete(Mutation m, ColumnFQ cfq) {
-    m.putDelete(cfq.colf, cfq.colq);
+  public void putDelete(Mutation m) {
+    m.putDelete(colf, colq);
   }
-  
+
   @Override
   public boolean equals(Object o) {
     if (!(o instanceof ColumnFQ))

@@ -86,7 +86,6 @@ import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -618,8 +617,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         try {
           Connector conn = getConnector();
           Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
-          ColumnFQ.fetch(scanner, Constants.METADATA_FLUSH_COLUMN);
-          ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
+          Constants.METADATA_FLUSH_COLUMN.fetch(scanner);
+          Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
           scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
           scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
           scanner.setRange(new KeyExtent(new Text(tableId), null, ByteBufferUtil.toText(startRow)).toMetadataRange());
@@ -1581,8 +1580,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             range.getEndRow()), true);
         Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
         scanner.setRange(deleteRange);
-        ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
-        ColumnFQ.fetch(scanner, Constants.METADATA_TIME_COLUMN);
+        Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
+        Constants.METADATA_TIME_COLUMN.fetch(scanner);
         scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
         scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
         Set<String> datafiles = new TreeSet<String>();
@@ -1620,8 +1619,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000l, 100l, 1);
           try {
             Mutation m = new Mutation(followingTablet.getMetadataEntry());
-            ColumnFQ.put(m, Constants.METADATA_PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(range.getPrevEndRow()));
-            ColumnFQ.putDelete(m, Constants.METADATA_CHOPPED_COLUMN);
+            Constants.METADATA_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(range.getPrevEndRow()));
+            Constants.METADATA_CHOPPED_COLUMN.putDelete(m);
             bw.addMutation(m);
             bw.flush();
           } finally {
@@ -1661,9 +1660,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000000L, 1000L, 1);
         Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
         scanner.setRange(scanRange);
-        ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
-        ColumnFQ.fetch(scanner, Constants.METADATA_TIME_COLUMN);
-        ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
+        Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
+        Constants.METADATA_TIME_COLUMN.fetch(scanner);
+        Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
         scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
         Mutation m = new Mutation(stopRow);
         String maxLogicalTime = null;
@@ -1691,7 +1690,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         if (range.isMeta())
           last = last.clip(Constants.METADATA_ROOT_TABLET_KEYSPACE);
         scanner.setRange(last);
-        ColumnFQ.fetch(scanner, Constants.METADATA_TIME_COLUMN);
+        Constants.METADATA_TIME_COLUMN.fetch(scanner);
         for (Entry<Key,Value> entry : scanner) {
           if (Constants.METADATA_TIME_COLUMN.hasColumns(entry.getKey())) {
             maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, entry.getValue().toString());
@@ -1699,7 +1698,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
         
         if (maxLogicalTime != null)
-          ColumnFQ.put(m, Constants.METADATA_TIME_COLUMN, new Value(maxLogicalTime.getBytes()));
+          Constants.METADATA_TIME_COLUMN.put(m, new Value(maxLogicalTime.getBytes()));
         
         if (!m.getUpdates().isEmpty()) {
           bw.addMutation(m);
@@ -1724,7 +1723,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         
         // Clean-up the last chopped marker
         m = new Mutation(stopRow);
-        ColumnFQ.putDelete(m, Constants.METADATA_CHOPPED_COLUMN);
+        Constants.METADATA_CHOPPED_COLUMN.putDelete(m);
         bw.addMutation(m);
         bw.flush();
         
@@ -1774,7 +1773,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       try {
         Connector conn = getConnector();
         Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-        ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+        Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
         KeyExtent start = new KeyExtent(range.getTableId(), range.getEndRow(), null);
         scanner.setRange(new Range(start.getMetadataEntry(), null));
         Iterator<Entry<Key,Value>> iterator = scanner.iterator();
@@ -1859,7 +1858,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     private void cleanupMutations() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       Connector connector = getConnector();
       Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-      ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+      Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
       Set<KeyExtent> found = new HashSet<KeyExtent>();
       for (Entry<Key,Value> entry : scanner) {
         KeyExtent extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());
