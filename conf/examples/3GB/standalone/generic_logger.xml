@@ -69,10 +69,6 @@
      <level value="INFO"/>
   </logger>
 
-  <logger name="org.apache.accumulo.examples.wikisearch">
-     <level value="INFO"/>
-  </logger>
-
   <logger name="org.mortbay.log">
      <level value="WARN"/>
   </logger>

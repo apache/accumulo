@@ -45,11 +45,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
-      <artifactId>wikisearch-query-war</artifactId>
-      <type>war</type>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
       <artifactId>cloudtrace</artifactId>
     </dependency>
   </dependencies>
