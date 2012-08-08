@@ -44,6 +44,8 @@ public class ScannerOptions implements ScannerBase {
   
   protected SortedSet<Column> fetchedColumns = new TreeSet<Column>();
   
+  protected int timeOut = Integer.MAX_VALUE;
+
   private String regexIterName = null;
   
   protected ScannerOptions() {}
@@ -180,5 +182,19 @@ public class ScannerOptions implements ScannerBase {
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     throw new UnsupportedOperationException();
+  }
+  
+  @Override
+  public void setTimeOut(int timeOut) {
+    if (timeOut <= 0) {
+      throw new IllegalArgumentException("TimeOut must be positive : " + timeOut);
+    }
+
+    this.timeOut = timeOut;
+  }
+  
+  @Override
+  public int getTimeOut() {
+    return timeOut;
   }
 }

@@ -100,4 +100,19 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
    * @return an iterator over Key,Value pairs which meet the restrictions set on the scanner
    */
   public Iterator<Entry<Key,Value>> iterator();
+  
+  /**
+   * This setting determines how long a scanner will automatically retry when a failure occurs. By default a scanner will retry forever.
+   * 
+   * @param timeOut
+   *          in seconds
+   */
+  public void setTimeOut(int timeOut);
+  
+  /**
+   * Returns the setting for how long a scanner will automatically retry when a failure occurs.
+   * 
+   * @return the timeout configured for this scanner
+   */
+  public int getTimeOut();
 }

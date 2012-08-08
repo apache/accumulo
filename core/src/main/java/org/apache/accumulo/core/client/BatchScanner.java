@@ -44,4 +44,17 @@ public interface BatchScanner extends ScannerBase {
    * Cleans up and finalizes the scanner
    */
   void close();
+  
+  /**
+   * Sets a timeout threshold for a server to respond. The batch scanner will accomplish as much work as possible before throwing an exception. BatchScanner
+   * iterators will throw a {@link TimedOutException} when all needed servers timeout.
+   * 
+   * <p>
+   * If not set, the timeout defaults to MAX_INT
+   * 
+   * @param timeout
+   *          in seconds
+   */
+  @Override
+  void setTimeOut(int timeout);
 }

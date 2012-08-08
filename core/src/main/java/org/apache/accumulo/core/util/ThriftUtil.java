@@ -97,8 +97,13 @@ public class ThriftUtil {
   
   static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, Property property, Property timeoutProperty,
       AccumuloConfiguration configuration) throws TTransportException {
+    return getClient(factory, address, property, configuration.getTimeInMillis(timeoutProperty), configuration);
+  }
+  
+  static public <T extends TServiceClient> T getClient(TServiceClientFactory<T> factory, String address, Property property, long timeout,
+      AccumuloConfiguration configuration) throws TTransportException {
     int port = configuration.getPort(property);
-    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, port, configuration.getTimeInMillis(timeoutProperty));
+    TTransport transport = ThriftTransportPool.getInstance().getTransport(address, port, timeout);
     return createClient(factory, transport);
   }
   
@@ -112,6 +117,10 @@ public class ThriftUtil {
     return getClient(new TabletClientService.Client.Factory(), address, Property.TSERV_CLIENTPORT, Property.GENERAL_RPC_TIMEOUT, conf);
   }
   
+  static public TabletClientService.Client getTServerClient(String address, AccumuloConfiguration conf, long timeout) throws TTransportException {
+    return getClient(new TabletClientService.Client.Factory(), address, Property.TSERV_CLIENTPORT, timeout, conf);
+  }
+
   public static void execute(String address, AccumuloConfiguration conf, ClientExec<TabletClientService.Client> exec) throws AccumuloException,
       AccumuloSecurityException {
     while (true) {

@@ -92,4 +92,11 @@ public class MockBatchScanner extends MockScannerBase implements BatchScanner {
   @Override
   public void close() {}
   
+  @Override
+  public void setTimeOut(int timeout) {}
+  
+  @Override
+  public int getTimeOut() {
+    return Integer.MAX_VALUE;
+  }
 }

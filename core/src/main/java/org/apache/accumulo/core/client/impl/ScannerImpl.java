@@ -71,22 +71,6 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     this.timeOut = Integer.MAX_VALUE;
   }
   
-  /**
-   * When failure occurs, the scanner automatically retries. This setting determines how long a scanner will retry. By default a scanner will retry forever.
-   * 
-   * @param timeOut
-   *          in milliseconds
-   */
-  @Override
-  public synchronized void setTimeOut(int timeOut) {
-    this.timeOut = timeOut;
-  }
-  
-  @Override
-  public synchronized int getTimeOut() {
-    return timeOut;
-  }
-  
   @Override
   public synchronized void setRange(Range range) {
     ArgumentChecker.notNull(range);
