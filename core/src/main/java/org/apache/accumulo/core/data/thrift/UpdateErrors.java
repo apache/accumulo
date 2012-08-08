@@ -539,7 +539,7 @@ import org.slf4j.LoggerFactory;
                 for (int _i51 = 0; _i51 < _map50.size; ++_i51)
                 {
                   TKeyExtent _key52; // required
-                  long _val53; // optional
+                  long _val53; // required
                   _key52 = new TKeyExtent();
                   _key52.read(iprot);
                   _val53 = iprot.readI64();
@@ -711,7 +711,7 @@ import org.slf4j.LoggerFactory;
           for (int _i67 = 0; _i67 < _map66.size; ++_i67)
           {
             TKeyExtent _key68; // required
-            long _val69; // optional
+            long _val69; // required
             _key68 = new TKeyExtent();
             _key68.read(iprot);
             _val69 = iprot.readI64();

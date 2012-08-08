@@ -132,6 +132,8 @@ import org.apache.accumulo.server.master.tableOps.CloneTable;
 import org.apache.accumulo.server.master.tableOps.CompactRange;
 import org.apache.accumulo.server.master.tableOps.CreateTable;
 import org.apache.accumulo.server.master.tableOps.DeleteTable;
+import org.apache.accumulo.server.master.tableOps.ExportTable;
+import org.apache.accumulo.server.master.tableOps.ImportTable;
 import org.apache.accumulo.server.master.tableOps.RenameTable;
 import org.apache.accumulo.server.master.tableOps.TableRangeOp;
 import org.apache.accumulo.server.master.tableOps.TraceRepo;
@@ -1031,6 +1033,30 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           fate.seedTransaction(opid, new TraceRepo<Master>(new CompactRange(tableId, startRow, endRow, iterators)), autoCleanup);
           break;
         }
+        case IMPORT: {
+          String tableName = ByteBufferUtil.toString(arguments.get(0));
+          String exportDir = ByteBufferUtil.toString(arguments.get(1));
+          
+          verify(c, check(c, SystemPermission.CREATE_TABLE));
+          checkNotMetadataTable(tableName, TableOperation.CREATE);
+          checkTableName(tableName, TableOperation.CREATE);
+          
+          fate.seedTransaction(opid, new TraceRepo<Master>(new ImportTable(c.user, tableName, exportDir)), autoCleanup);
+          break;
+        }
+        case EXPORT: {
+          String tableName = ByteBufferUtil.toString(arguments.get(0));
+          String exportDir = ByteBufferUtil.toString(arguments.get(1));
+          
+          String tableId = checkTableId(tableName, TableOperation.EXPORT);
+          
+          verify(c, tableId, TableOperation.EXPORT, check(c, tableId, TablePermission.READ));
+          checkNotMetadataTable(tableName, TableOperation.EXPORT);
+          
+          fate.seedTransaction(opid, new TraceRepo<Master>(new ExportTable(tableName, tableId, exportDir)), autoCleanup);
+          break;
+        }
+
         default:
           throw new UnsupportedOperationException();
       }

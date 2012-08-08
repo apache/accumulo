@@ -1002,7 +1002,7 @@ import org.slf4j.LoggerFactory;
                 for (int _i19 = 0; _i19 < _map18.size; ++_i19)
                 {
                   String _key20; // required
-                  TableInfo _val21; // optional
+                  TableInfo _val21; // required
                   _key20 = iprot.readString();
                   _val21 = new TableInfo();
                   _val21.read(iprot);
@@ -1042,7 +1042,7 @@ import org.slf4j.LoggerFactory;
                 for (int _i26 = 0; _i26 < _map25.size; ++_i26)
                 {
                   String _key27; // required
-                  byte _val28; // optional
+                  byte _val28; // required
                   _key27 = iprot.readString();
                   _val28 = iprot.readByte();
                   struct.badTServers.put(_key27, _val28);
@@ -1317,7 +1317,7 @@ import org.slf4j.LoggerFactory;
           for (int _i46 = 0; _i46 < _map45.size; ++_i46)
           {
             String _key47; // required
-            TableInfo _val48; // optional
+            TableInfo _val48; // required
             _key47 = iprot.readString();
             _val48 = new TableInfo();
             _val48.read(iprot);
@@ -1347,7 +1347,7 @@ import org.slf4j.LoggerFactory;
           for (int _i53 = 0; _i53 < _map52.size; ++_i53)
           {
             String _key54; // required
-            byte _val55; // optional
+            byte _val55; // required
             _key54 = iprot.readString();
             _val55 = iprot.readByte();
             struct.badTServers.put(_key54, _val55);

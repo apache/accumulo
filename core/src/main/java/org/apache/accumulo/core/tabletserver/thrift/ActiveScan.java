@@ -1300,7 +1300,7 @@ import org.slf4j.LoggerFactory;
                 for (int _i15 = 0; _i15 < _map14.size; ++_i15)
                 {
                   String _key16; // required
-                  Map<String,String> _val17; // optional
+                  Map<String,String> _val17; // required
                   _key16 = iprot.readString();
                   {
                     org.apache.thrift.protocol.TMap _map18 = iprot.readMapBegin();
@@ -1308,7 +1308,7 @@ import org.slf4j.LoggerFactory;
                     for (int _i19 = 0; _i19 < _map18.size; ++_i19)
                     {
                       String _key20; // required
-                      String _val21; // optional
+                      String _val21; // required
                       _key20 = iprot.readString();
                       _val21 = iprot.readString();
                       _val17.put(_key20, _val21);
@@ -1605,7 +1605,7 @@ import org.slf4j.LoggerFactory;
           for (int _i37 = 0; _i37 < _map36.size; ++_i37)
           {
             String _key38; // required
-            Map<String,String> _val39; // optional
+            Map<String,String> _val39; // required
             _key38 = iprot.readString();
             {
               org.apache.thrift.protocol.TMap _map40 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, iprot.readI32());
@@ -1613,7 +1613,7 @@ import org.slf4j.LoggerFactory;
               for (int _i41 = 0; _i41 < _map40.size; ++_i41)
               {
                 String _key42; // required
-                String _val43; // optional
+                String _val43; // required
                 _key42 = iprot.readString();
                 _val43 = iprot.readString();
                 _val39.put(_key42, _val43);

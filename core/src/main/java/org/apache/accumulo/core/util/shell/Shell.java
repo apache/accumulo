@@ -88,6 +88,7 @@ import org.apache.accumulo.core.util.shell.commands.DropUserCommand;
 import org.apache.accumulo.core.util.shell.commands.EGrepCommand;
 import org.apache.accumulo.core.util.shell.commands.ExecfileCommand;
 import org.apache.accumulo.core.util.shell.commands.ExitCommand;
+import org.apache.accumulo.core.util.shell.commands.ExportTableCommand;
 import org.apache.accumulo.core.util.shell.commands.FlushCommand;
 import org.apache.accumulo.core.util.shell.commands.FormatterCommand;
 import org.apache.accumulo.core.util.shell.commands.GetAuthsCommand;
@@ -99,6 +100,7 @@ import org.apache.accumulo.core.util.shell.commands.HelpCommand;
 import org.apache.accumulo.core.util.shell.commands.HiddenCommand;
 import org.apache.accumulo.core.util.shell.commands.HistoryCommand;
 import org.apache.accumulo.core.util.shell.commands.ImportDirectoryCommand;
+import org.apache.accumulo.core.util.shell.commands.ImportTableCommand;
 import org.apache.accumulo.core.util.shell.commands.InfoCommand;
 import org.apache.accumulo.core.util.shell.commands.InsertCommand;
 import org.apache.accumulo.core.util.shell.commands.ListIterCommand;
@@ -301,7 +303,8 @@ public class Shell extends ShellOptions {
     Command[] stateCommands = {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new NoTableCommand(), new SleepCommand(), new TableCommand(),
         new UserCommand(), new WhoAmICommand()};
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(), new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(),
-        new DUCommand(), new OfflineCommand(), new OnlineCommand(), new RenameTableCommand(), new TablesCommand()};
+        new DUCommand(), new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(), new OnlineCommand(), new RenameTableCommand(),
+        new TablesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(),
         new GetSplitsCommand(), new MergeCommand(), new SetGroupsCommand()};
     Command[] userCommands = {new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(), new PasswdCommand(),

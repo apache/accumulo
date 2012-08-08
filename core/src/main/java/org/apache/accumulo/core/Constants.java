@@ -160,6 +160,11 @@ public class Constants {
   public static final String MAPFILE_EXTENSION = "map";
   public static final String GENERATED_TABLET_DIRECTORY_PREFIX = "t-";
   
+  public static final String EXPORT_METADATA_FILE = "metadata.bin";
+  public static final String EXPORT_TABLE_CONFIG_FILE = "table_config.txt";
+  public static final String EXPORT_FILE = "exportMetadata.zip";
+  public static final String EXPORT_INFO_FILE = "accumulo_export_info.txt";
+
   public static String getBaseDir(AccumuloConfiguration conf) {
     return conf.get(Property.INSTANCE_DFS_DIR);
   }
@@ -191,5 +196,4 @@ public class Constants {
   public static String getWalDirectory(AccumuloConfiguration conf) {
     return getBaseDir(conf) + "/wal";
   }
-  
 }

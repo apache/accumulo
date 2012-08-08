@@ -666,4 +666,12 @@ root@a14 cic>
 \end{verbatim}
 \normalsize
 
+\section{Exporting Tables}
 
+Accumulo supports exporting tables for the purpose of copying tables to another
+cluster.  Exporting and importing tables preserves the tables configuration,
+splits, and logical time.  Tables are exported and then copied via the hadoop
+distcp command.  To export a table, it must be offline and stay offline while
+discp runs.  The reason it needs to stay offline is to prevent files from being
+deleted.  A table can be cloned and the clone taken offline inorder to avoid
+losing access to the table.  See docs/examples/README.example for an example.

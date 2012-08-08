@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,6 +39,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
@@ -65,6 +69,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
@@ -1003,7 +1008,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) throws IOException, AccumuloSecurityException,
       TableNotFoundException, AccumuloException {
     ArgumentChecker.notNull(tableName, dir, failureDir);
-    FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
+    FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), instance.getConfiguration());
     Path failPath = fs.makeQualified(new Path(failureDir));
     if (!fs.exists(new Path(dir)))
       throw new AccumuloException("Bulk import directory " + dir + " does not exist!");
@@ -1106,5 +1111,77 @@ public class TableOperationsImpl extends TableOperationsHelper {
     ArgumentChecker.notNull(tableName, auths);
     Scanner scanner = instance.getConnector(credentials).createScanner(tableName, auths);
     return FindMax.findMax(scanner, startRow, startInclusive, endRow, endInclusive);
+  }
+  
+  public static Map<String,String> getExportedProps(FileSystem fs, Path path) throws IOException {
+    HashMap<String,String> props = new HashMap<String,String>();
+    
+    ZipInputStream zis = new ZipInputStream(fs.open(path));
+    try {
+      ZipEntry zipEntry;
+      while ((zipEntry = zis.getNextEntry()) != null) {
+        if (zipEntry.getName().equals(Constants.EXPORT_TABLE_CONFIG_FILE)) {
+          BufferedReader in = new BufferedReader(new InputStreamReader(zis));
+          String line;
+          while ((line = in.readLine()) != null) {
+            String sa[] = line.split("=", 2);
+            props.put(sa[0], sa[1]);
+          }
+          
+          break;
+        }
+      }
+    } finally {
+      zis.close();
+    }
+    return props;
+  }
+
+  @Override
+  public void importTable(String tableName, String importDir) throws TableExistsException, AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(tableName, importDir);
+    
+    try{
+      FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), instance.getConfiguration());;
+      Map<String,String> props = getExportedProps(fs, new Path(importDir, Constants.EXPORT_FILE));
+      
+      for(String propKey : props.keySet()){
+        if (Property.isClassProperty(propKey) && !props.get(propKey).contains(Constants.CORE_PACKAGE_NAME)) {
+          Logger.getLogger(this.getClass()).info(
+              "Imported table sets '" + propKey + "' to '" + props.get(propKey) + "'.  Ensure this class is on Accumulo classpath.");
+        }
+      }
+      
+    }catch(IOException ioe){
+      Logger.getLogger(this.getClass()).warn("Failed to check if imported table references external java classes : " + ioe.getMessage());
+    }
+    
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(importDir.getBytes()));
+    
+    Map<String,String> opts = Collections.emptyMap();
+    
+    try {
+      doTableOperation(TableOperation.IMPORT, args, opts);
+    } catch (TableNotFoundException e1) {
+      // should not happen
+      throw new RuntimeException(e1);
+    }
+    
+  }
+  
+  @Override
+  public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(tableName, exportDir);
+    
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(exportDir.getBytes()));
+    
+    Map<String,String> opts = Collections.emptyMap();
+    
+    try {
+      doTableOperation(TableOperation.EXPORT, args, opts);
+    } catch (TableExistsException e1) {
+      // should not happen
+      throw new RuntimeException(e1);
+    }
   }
 }

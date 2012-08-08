@@ -123,6 +123,8 @@ enum TableOperation {
   DELETE_RANGE
   BULK_IMPORT
   COMPACT
+  IMPORT
+  EXPORT
 }
 
 service MasterClientService {

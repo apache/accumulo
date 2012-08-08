@@ -6174,8 +6174,6 @@ import org.slf4j.LoggerFactory;
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
-        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-        __isset_bit_vector = new BitSet(1);
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -7981,8 +7979,6 @@ import org.slf4j.LoggerFactory;
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
-        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-        __isset_bit_vector = new BitSet(1);
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -15299,8 +15295,6 @@ import org.slf4j.LoggerFactory;
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
-        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-        __isset_bit_vector = new BitSet(1);
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -16586,8 +16580,6 @@ import org.slf4j.LoggerFactory;
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
-        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-        __isset_bit_vector = new BitSet(1);
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -21863,7 +21855,7 @@ import org.slf4j.LoggerFactory;
                   for (int _i49 = 0; _i49 < _map48.size; ++_i49)
                   {
                     String _key50; // required
-                    String _val51; // optional
+                    String _val51; // required
                     _key50 = iprot.readString();
                     _val51 = iprot.readString();
                     struct.success.put(_key50, _val51);
@@ -21948,7 +21940,7 @@ import org.slf4j.LoggerFactory;
             for (int _i55 = 0; _i55 < _map54.size; ++_i55)
             {
               String _key56; // required
-              String _val57; // optional
+              String _val57; // required
               _key56 = iprot.readString();
               _val57 = iprot.readString();
               struct.success.put(_key56, _val57);
@@ -22709,7 +22701,7 @@ import org.slf4j.LoggerFactory;
                   for (int _i59 = 0; _i59 < _map58.size; ++_i59)
                   {
                     String _key60; // required
-                    String _val61; // optional
+                    String _val61; // required
                     _key60 = iprot.readString();
                     _val61 = iprot.readString();
                     struct.success.put(_key60, _val61);
@@ -22814,7 +22806,7 @@ import org.slf4j.LoggerFactory;
             for (int _i65 = 0; _i65 < _map64.size; ++_i65)
             {
               String _key66; // required
-              String _val67; // optional
+              String _val67; // required
               _key66 = iprot.readString();
               _val67 = iprot.readString();
               struct.success.put(_key66, _val67);
@@ -23647,8 +23639,6 @@ import org.slf4j.LoggerFactory;
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
-        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-        __isset_bit_vector = new BitSet(1);
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);

@@ -2538,8 +2538,6 @@ import org.slf4j.LoggerFactory;
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
-        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-        __isset_bit_vector = new BitSet(1);
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -14353,8 +14351,6 @@ import org.slf4j.LoggerFactory;
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
       try {
-        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-        __isset_bit_vector = new BitSet(1);
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -15337,7 +15333,7 @@ import org.slf4j.LoggerFactory;
                   for (int _i74 = 0; _i74 < _map73.size; ++_i74)
                   {
                     String _key75; // required
-                    String _val76; // optional
+                    String _val76; // required
                     _key75 = iprot.readString();
                     _val76 = iprot.readString();
                     struct.options.put(_key75, _val76);
@@ -15536,7 +15532,7 @@ import org.slf4j.LoggerFactory;
             for (int _i85 = 0; _i85 < _map84.size; ++_i85)
             {
               String _key86; // required
-              String _val87; // optional
+              String _val87; // required
               _key86 = iprot.readString();
               _val87 = iprot.readString();
               struct.options.put(_key86, _val87);

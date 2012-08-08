@@ -357,4 +357,15 @@ public enum Property {
         return prop;
     return null;
   }
+  
+  /**
+   * 
+   * @param key
+   * @return true if this is a property whose value is expected to be a java class
+   */
+  public static boolean isClassProperty(String key) {
+    return (key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey()) && key.substring(Property.TABLE_CONSTRAINT_PREFIX.getKey().length()).split("\\.").length == 1)
+        || (key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey()) && key.substring(Property.TABLE_ITERATOR_PREFIX.getKey().length()).split("\\.").length == 2)
+        || key.equals(Property.TABLE_LOAD_BALANCER.getKey());
+  }
 }

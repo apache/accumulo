@@ -45,6 +45,10 @@
   <edge id="Verify" weight="1"/>
 </node>
 
+<node id="shard.ExportIndex">
+  <edge id="Verify" weight="1"/>
+</node>
+
 <node id="Verify" src="shard.VerifyIndex">
   <edge id="dummy.ToAll" weight="1"/>
 </node>
@@ -103,6 +107,7 @@
   <edge id="shard.Reindex" weight="3"/>
   <edge id="shard.Flush" weight="3"/>
   <edge id="shard.CloneIndex" weight="3"/>
+  <edge id="shard.ExportIndex" weight="3"/>
   <edge id="shard.Grep" weight="20"/>
   <edge id="shard.Split" weight="40"/>
   <edge id="shard.Merge" weight="20"/>
@@ -111,7 +116,7 @@
   <edge id="shard.DeleteSomeDocs" weight="20"/>
   <edge id="shard.BulkInsert" weight="3"/>
   <edge id="shard.Delete" weight="486"/>
-  <edge id="shard.Insert" weight="4693"/>
+  <edge id="shard.Insert" weight="4690"/>
   <edge id="shard.Search" weight="4691"/>
 </node>
 

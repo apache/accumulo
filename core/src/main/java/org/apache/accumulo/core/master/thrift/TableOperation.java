@@ -21,7 +21,9 @@ public enum TableOperation implements org.apache.thrift.TEnum {
   MERGE(6),
   DELETE_RANGE(7),
   BULK_IMPORT(8),
-  COMPACT(9);
+  COMPACT(9),
+  IMPORT(10),
+  EXPORT(11);
 
   private final int value;
 
@@ -62,6 +64,10 @@ public enum TableOperation implements org.apache.thrift.TEnum {
         return BULK_IMPORT;
       case 9:
         return COMPACT;
+      case 10:
+        return IMPORT;
+      case 11:
+        return EXPORT;
       default:
         return null;
     }
