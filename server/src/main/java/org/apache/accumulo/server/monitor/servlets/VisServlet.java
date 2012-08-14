@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.monitor.servlets;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 
@@ -119,8 +118,8 @@ public class VisServlet extends BasicServlet {
   protected void pageBody(HttpServletRequest req, HttpServletResponse response, StringBuilder sb) throws IOException {
     StringBuffer urlsb = req.getRequestURL();
     urlsb.setLength(urlsb.lastIndexOf("/") + 1);
-    String url = urlsb.toString();
     VisualizationConfig cfg = new VisualizationConfig();
+    cfg.url = urlsb.toString();
     
     String s = req.getParameter("shape");
     if (s != null && (s.equals("square") || s.equals("squares"))) {
@@ -231,18 +230,6 @@ public class VisServlet extends BasicServlet {
     sb.append("var numNormalStats = ").append(StatType.values().length - StatType.numDerived()).append(";\n");
     sb.append("</script>\n");
     
-    InputStream data = VisServlet.class.getClassLoader().getResourceAsStream("web/vis.xml");
-    if (data != null) {
-      byte[] buffer = new byte[1024];
-      int n;
-      try {
-        while ((n = data.read(buffer)) > 0)
-          sb.append(new String(buffer, 0, n));
-      } catch (IOException e) {
-        e.printStackTrace();
-        return;
-      }
-    }
-    sb.append("\n");
+    sb.append("<script src='web/vis.js' type='text/javascript'></script>");
   }
 }
