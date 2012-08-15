@@ -46,7 +46,6 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   private static final String PREFIX = AccumuloOutputFormat.class.getSimpleName();
   public static final String FILE_TYPE = PREFIX + ".file_type";
-  public static final String BLOCK_SIZE = PREFIX + ".block_size";
   
   private static final String INSTANCE_HAS_BEEN_SET = PREFIX + ".instanceConfigured";
   private static final String INSTANCE_NAME = PREFIX + ".instanceName";
@@ -61,7 +60,6 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
     if (extension == null || extension.isEmpty())
       extension = RFile.EXTENSION;
     
-    handleBlockSize(job.getConfiguration());
     final Path file = this.getDefaultWorkFile(job, "." + extension);
     
     return new RecordWriter<Key,Value>() {
@@ -84,28 +82,16 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
     };
   }
   
-  protected static void handleBlockSize(Configuration conf) {
-    int blockSize;
-    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false)) {
-      blockSize = (int) new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS)).getConfiguration().getMemoryInBytes(
-          Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
-    } else {
-      blockSize = getBlockSize(conf);
-    }
-    conf.setInt("io.seqfile.compress.blocksize", blockSize);
-    
-  }
-  
   public static void setFileType(Configuration conf, String type) {
     conf.set(FILE_TYPE, type);
   }
   
+  /**
+   * @deprecated since 1.5, use {@link #setCompressedBlockSize(Configuration, long)} instead
+   */
   public static void setBlockSize(Configuration conf, int blockSize) {
-    conf.setInt(BLOCK_SIZE, blockSize);
-  }
-  
-  private static int getBlockSize(Configuration conf) {
-    return conf.getInt(BLOCK_SIZE, (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
+    long bs = blockSize;
+    setCompressedBlockSize(conf, bs);
   }
   
   /**
@@ -129,5 +115,25 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    */
   protected static Instance getInstance(Configuration conf) {
     return new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS));
+  }
+  
+  public static void setReplication(Configuration conf, int replication) {
+    conf.setInt(Property.TABLE_FILE_REPLICATION.getKey(), replication);
+  }
+  
+  public static void setDFSBlockSize(Configuration conf, long blockSize) {
+    conf.setLong(Property.TABLE_FILE_BLOCK_SIZE.getKey(), blockSize);
+  }
+  
+  public static void setCompressedBlockSize(Configuration conf, long cblockSize) {
+    conf.setLong(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), cblockSize);
+  }
+  
+  public static void setCompressedBlockSizeIndex(Configuration conf, long cblockSizeIndex) {
+    conf.setLong(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(), cblockSizeIndex);
+  }
+  
+  public static void setCompressionType(Configuration conf, String compression) {
+    conf.set(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), compression);
   }
 }

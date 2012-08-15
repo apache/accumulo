@@ -27,6 +27,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.ContextFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordWriter;
@@ -59,17 +60,6 @@ public class AccumuloFileOutputFormatTest {
   }
   
   @Test
-  public void testSet() throws IOException, InterruptedException {
-    AccumuloFileOutputFormat.setBlockSize(job.getConfiguration(), 300);
-    validate(300);
-  }
-  
-  @Test
-  public void testUnset() throws IOException, InterruptedException {
-    validate((int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
-  }
-  
-  @Test
   public void testEmptyWrite() throws IOException, InterruptedException {
     handleWriteTests(false);
   }
@@ -97,10 +87,28 @@ public class AccumuloFileOutputFormatTest {
     file.getFileSystem(tac.getConfiguration()).delete(file.getParent(), true);
   }
   
-  public void validate(int size) throws IOException, InterruptedException {
-    AccumuloFileOutputFormat.handleBlockSize(job.getConfiguration());
-    int detSize = job.getConfiguration().getInt("io.seqfile.compress.blocksize", -1);
-    assertEquals(size, detSize);
+  @Test
+  public void validateConfiguration() throws IOException, InterruptedException {
+    Configuration conf = job.getConfiguration();
+    AccumuloConfiguration acuconf = AccumuloConfiguration.getDefaultConfiguration();
+    
+    int a = 7;
+    long b = 300l;
+    long c = 50l;
+    long d = 10l;
+    String e = "type";
+    
+    AccumuloFileOutputFormat.setReplication(conf, a);
+    AccumuloFileOutputFormat.setDFSBlockSize(conf, b);
+    AccumuloFileOutputFormat.setCompressedBlockSize(conf, c);
+    AccumuloFileOutputFormat.setCompressedBlockSizeIndex(conf, d);
+    AccumuloFileOutputFormat.setCompressionType(conf, e);
+    
+    assertEquals(a, conf.getInt(Property.TABLE_FILE_REPLICATION.getKey(), acuconf.getCount(Property.TABLE_FILE_REPLICATION)));
+    assertEquals(b, conf.getLong(Property.TABLE_FILE_BLOCK_SIZE.getKey(), acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE)));
+    assertEquals(c, conf.getLong(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE)));
+    assertEquals(d,
+        conf.getLong(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(), acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX)));
+    assertEquals(e, conf.get(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE)));
   }
-  
 }
