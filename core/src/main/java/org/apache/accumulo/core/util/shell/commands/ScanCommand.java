@@ -32,6 +32,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.BinaryFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
+import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
+import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
@@ -42,7 +44,7 @@ import org.apache.hadoop.io.Text;
 
 public class ScanCommand extends Command {
   
-  private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, showFewOpt, formatterOpt;
+  private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, showFewOpt, formatterOpt, interpreterOpt, formatterInterpeterOpt;
   protected Option timestampOpt;
   private Option optStartRowExclusive;
   private Option optEndRowExclusive;
@@ -50,12 +52,8 @@ public class ScanCommand extends Command {
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     String tableName = OptUtil.getTableOpt(cl, shellState);
     
-    Class<? extends Formatter> formatter = null;
-    
-    // Use the configured formatter unless one was provided
-    if (!cl.hasOption(formatterOpt.getOpt())) {
-      formatter = FormatterCommand.getCurrentFormatter(tableName, shellState);
-    }
+    Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
+    ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
     
     // handle first argument, if present, the authorizations list to
     // scan with
@@ -66,10 +64,10 @@ public class ScanCommand extends Command {
     addScanIterators(shellState, scanner, tableName);
     
     // handle remaining optional arguments
-    scanner.setRange(getRange(cl));
+    scanner.setRange(getRange(cl, interpeter));
     
     // handle columns
-    fetchColumns(cl, scanner);
+    fetchColumns(cl, scanner, interpeter);
     
     // output the records
     if (cl.hasOption(showFewOpt.getOpt())) {
@@ -88,11 +86,7 @@ public class ScanCommand extends Command {
       }
       
     } else {
-      if (null == formatter) {
-        printRecords(cl, shellState, scanner);
-      } else {
         printRecords(cl, shellState, scanner, formatter);
-      }
     }
     
     return 0;
@@ -116,21 +110,6 @@ public class ScanCommand extends Command {
     }
   }
   
-  protected void printRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner) throws IOException {
-    if (cl.hasOption(formatterOpt.getOpt())) {
-      try {
-        String className = cl.getOptionValue(formatterOpt.getOpt());
-        Class<? extends Formatter> formatterClass = AccumuloClassLoader.loadClass(className, Formatter.class);
-        
-        printRecords(cl, shellState, scanner, formatterClass);
-      } catch (ClassNotFoundException e) {
-        shellState.getReader().printString("Formatter class could not be loaded.\n" + e.getMessage() + "\n");
-      }
-    } else {
-      shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
-    }
-  }
-  
   protected void printRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner, Class<? extends Formatter> formatter) throws IOException {
     shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), formatter);
   }
@@ -139,19 +118,58 @@ public class ScanCommand extends Command {
     shellState.printBinaryRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
   }
   
-  protected void fetchColumns(CommandLine cl, ScannerBase scanner) throws UnsupportedEncodingException {
+  protected ScanInterpreter getInterpreter(CommandLine cl, String tableName, Shell shellState) throws Exception {
+    
+    Class<? extends ScanInterpreter> clazz = null;
+    try {
+      if (cl.hasOption(interpreterOpt.getOpt())) {
+        clazz = AccumuloClassLoader.loadClass(cl.getOptionValue(interpreterOpt.getOpt()), ScanInterpreter.class);
+      } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
+        clazz = AccumuloClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()), ScanInterpreter.class);
+      }
+    } catch (ClassNotFoundException e) {
+      shellState.getReader().printString("Interpreter class could not be loaded.\n" + e.getMessage() + "\n");
+    }
+
+    if (clazz == null)
+      clazz = InterpreterCommand.getCurrentInterpreter(tableName, shellState);
+
+    if (clazz == null)
+      clazz = DefaultScanInterpreter.class;
+    
+    return clazz.newInstance();
+  }
+
+  protected Class<? extends Formatter> getFormatter(CommandLine cl, String tableName, Shell shellState) throws IOException {
+    
+    try {
+      if (cl.hasOption(formatterOpt.getOpt())) {
+        return AccumuloClassLoader.loadClass(cl.getOptionValue(formatterOpt.getOpt()), Formatter.class);
+        
+      } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
+        return AccumuloClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()), Formatter.class);
+      }
+    } catch (ClassNotFoundException e) {
+      shellState.getReader().printString("Formatter class could not be loaded.\n" + e.getMessage() + "\n");
+    }
+    
+    return shellState.getFormatter(tableName);
+  }
+  
+  protected void fetchColumns(CommandLine cl, ScannerBase scanner, ScanInterpreter formatter) throws UnsupportedEncodingException {
     if (cl.hasOption(scanOptColumns.getOpt())) {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
         String sa[] = a.split(":", 2);
         if (sa.length == 1)
-          scanner.fetchColumnFamily(new Text(a.getBytes(Shell.CHARSET)));
+          scanner.fetchColumnFamily(formatter.interpretColumnFamily(new Text(a.getBytes(Shell.CHARSET))));
         else
-          scanner.fetchColumn(new Text(sa[0].getBytes(Shell.CHARSET)), new Text(sa[1].getBytes(Shell.CHARSET)));
+          scanner.fetchColumn(formatter.interpretColumnFamily(new Text(sa[0].getBytes(Shell.CHARSET))),
+              formatter.interpretColumnQualifier(new Text(sa[1].getBytes(Shell.CHARSET))));
       }
     }
   }
   
-  protected Range getRange(CommandLine cl) throws UnsupportedEncodingException {
+  protected Range getRange(CommandLine cl, ScanInterpreter formatter) throws UnsupportedEncodingException {
     if ((cl.hasOption(OptUtil.START_ROW_OPT) || cl.hasOption(OptUtil.END_ROW_OPT)) && cl.hasOption(scanOptRow.getOpt())) {
       // did not see a way to make commons cli do this check... it has mutually exclusive options but does not support the or
       throw new IllegalArgumentException("Options -" + scanOptRow.getOpt() + " AND (-" + OptUtil.START_ROW_OPT + " OR -" + OptUtil.END_ROW_OPT
@@ -159,10 +177,14 @@ public class ScanCommand extends Command {
     }
     
     if (cl.hasOption(scanOptRow.getOpt())) {
-      return new Range(new Text(cl.getOptionValue(scanOptRow.getOpt()).getBytes(Shell.CHARSET)));
+      return new Range(formatter.interpretRow(new Text(cl.getOptionValue(scanOptRow.getOpt()).getBytes(Shell.CHARSET))));
     } else {
       Text startRow = OptUtil.getStartRow(cl);
+      if (startRow != null)
+        startRow = formatter.interpretBeginRow(startRow);
       Text endRow = OptUtil.getEndRow(cl);
+      if (endRow != null)
+        endRow = formatter.interpretEndRow(endRow);
       boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
       boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
       return new Range(startRow, startInclusive, endRow, endInclusive);
@@ -198,6 +220,8 @@ public class ScanCommand extends Command {
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     showFewOpt = new Option("f", "show few", true, "show only a specified number of characters");
     formatterOpt = new Option("fm", "formatter", true, "fully qualified name of the formatter class to use");
+    interpreterOpt = new Option("i", "interpreter", true, "fully qualified name of the interpreter class to use");
+    formatterInterpeterOpt = new Option("fi", "fmt-interpreter", true, "fully qualified name of a class that is a formatter and interpreter");
     
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
@@ -218,6 +242,8 @@ public class ScanCommand extends Command {
     o.addOption(OptUtil.tableOpt("table to be scanned"));
     o.addOption(showFewOpt);
     o.addOption(formatterOpt);
+    o.addOption(interpreterOpt);
+    o.addOption(formatterInterpeterOpt);
     
     return o;
   }

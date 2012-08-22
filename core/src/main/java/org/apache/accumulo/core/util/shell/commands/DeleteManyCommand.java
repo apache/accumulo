@@ -16,30 +16,26 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import java.io.IOException;
-
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.iterators.SortedKeyIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.DeleterFormatter;
+import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 
 public class DeleteManyCommand extends ScanCommand {
   private Option forceOpt;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      IOException, ParseException {
+  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     String tableName = OptUtil.getTableOpt(cl, shellState);
     
+    ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
+
     // handle first argument, if present, the authorizations list to
     // scan with
     Authorizations auths = getAuths(cl, shellState);
@@ -48,10 +44,10 @@ public class DeleteManyCommand extends ScanCommand {
     scanner.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, "NOVALUE", SortedKeyIterator.class));
     
     // handle remaining optional arguments
-    scanner.setRange(getRange(cl));
+    scanner.setRange(getRange(cl, interpeter));
     
     // handle columns
-    fetchColumns(cl, scanner);
+    fetchColumns(cl, scanner, interpeter);
     
     // output / delete the records
     BatchWriter writer = shellState.getConnector().createBatchWriter(tableName, 1024 * 1024, 1000L, 4);

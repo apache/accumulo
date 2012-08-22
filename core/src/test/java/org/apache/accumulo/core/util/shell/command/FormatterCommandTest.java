@@ -211,7 +211,6 @@ public class FormatterCommandTest {
       this.iter = scanner.iterator();
       this.printTs = printTimestamps;
     }
-    
   }
   
 }

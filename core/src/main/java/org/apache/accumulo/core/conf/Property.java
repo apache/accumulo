@@ -21,6 +21,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.util.format.DefaultFormatter;
+import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 
 public enum Property {
@@ -281,8 +283,10 @@ public enum Property {
           + "For example table.group.group1=x,y,z sets the column families for a group called group1. Once configured, "
           + "group1 can be enabled by adding it to the list of groups in the " + TABLE_LOCALITY_GROUPS.getKey() + " property.<br />"
           + "Additional group options may be specified for a named group by setting table.group.&lt;name&gt;.opt.&lt;key&gt;=&lt;value&gt;."),
-  TABLE_FORMATTER_CLASS("table.formatter", "org.apache.accumulo.core.util.format.DefaultFormatter", PropertyType.STRING,
-      "The Formatter class to apply on results in the shell");
+  TABLE_FORMATTER_CLASS("table.formatter", DefaultFormatter.class.getName(), PropertyType.STRING,
+      "The Formatter class to apply on results in the shell"),
+  TABLE_INTERPRETER_CLASS("table.interepreter", DefaultScanInterpreter.class.getName(), PropertyType.STRING,
+      "The ScanInterpreter class to apply on scan arguments in the shell");
   
   private String key, defaultValue, description;
   private PropertyType type;

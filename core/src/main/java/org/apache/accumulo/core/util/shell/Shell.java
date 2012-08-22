@@ -103,6 +103,7 @@ import org.apache.accumulo.core.util.shell.commands.ImportDirectoryCommand;
 import org.apache.accumulo.core.util.shell.commands.ImportTableCommand;
 import org.apache.accumulo.core.util.shell.commands.InfoCommand;
 import org.apache.accumulo.core.util.shell.commands.InsertCommand;
+import org.apache.accumulo.core.util.shell.commands.InterpreterCommand;
 import org.apache.accumulo.core.util.shell.commands.ListIterCommand;
 import org.apache.accumulo.core.util.shell.commands.ListScansCommand;
 import org.apache.accumulo.core.util.shell.commands.MaxRowCommand;
@@ -291,7 +292,7 @@ public class Shell extends ShellOptions {
     rootToken = new Token();
     
     Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(), new EGrepCommand(), new FormatterCommand(),
-        new GrepCommand(), new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
+        new InterpreterCommand(), new GrepCommand(), new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
     Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(), new ListScansCommand(), new TraceCommand()};
     Command[] execCommands = {new ExecfileCommand(), new HistoryCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
@@ -810,12 +811,6 @@ public class Shell extends ShellOptions {
       reader.printString(peek);
       reader.printNewline();
     }
-  }
-  
-  public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate) throws IOException {
-    Class<? extends Formatter> formatterClass = getFormatter();
-    
-    printRecords(scanner, printTimestamps, paginate, formatterClass);
   }
   
   public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, Class<? extends Formatter> formatterClass)
