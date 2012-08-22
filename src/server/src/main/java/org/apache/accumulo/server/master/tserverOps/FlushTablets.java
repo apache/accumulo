@@ -58,7 +58,11 @@ public class FlushTablets extends MasterRepo {
       } catch (DistributedStoreException e) {
         log.warn("Unable to open ZooTabletStateStore, will retry", e);
       }
-      MetaDataStateStore theRest = new MetaDataStateStore();
+      MetaDataStateStore theRest = null;
+      
+      if (m.onlineTabletServers().size() != 0)
+        theRest = new MetaDataStateStore();
+      
       for (TabletStateStore store : new TabletStateStore[] {zooTabletStateStore, theRest}) {
         if (store != null) {
           for (TabletLocationState tabletState : store) {
