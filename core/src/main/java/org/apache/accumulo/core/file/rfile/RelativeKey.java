@@ -361,15 +361,37 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
     read(in, mbseq, len);
   }
   
+  /**
+   * Determines what next array size should be by rounding up to next power of two.
+   * 
+   */
+  static int nextArraySize(int i) {
+    if (i < 0)
+      throw new IllegalArgumentException();
+    
+    if (i > (1 << 30))
+      return Integer.MAX_VALUE; // this is the next power of 2 minus one... a special case
+
+    if (i == 0) {
+      return 1;
+    }
+    
+    // round up to next power of two
+    int ret = i;
+    ret--;
+    ret |= ret >> 1;
+    ret |= ret >> 2;
+    ret |= ret >> 4;
+    ret |= ret >> 8;
+    ret |= ret >> 16;
+    ret++;
+    
+    return ret;
+  }
+
   private void read(DataInput in, MByteSequence mbseq, int len) throws IOException {
     if (mbseq.getBackingArray().length < len) {
-      int newLen = mbseq.getBackingArray().length;
-      
-      while (newLen < len) {
-        newLen = newLen * 2;
-      }
-      
-      mbseq.setArray(new byte[newLen]);
+      mbseq.setArray(new byte[nextArraySize(len)]);
     }
     
     in.readFully(mbseq.getBackingArray(), 0, len);
