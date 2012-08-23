@@ -71,15 +71,22 @@ public class FileDataIngest {
     
     // read through file once, calculating hashes
     md5digest.reset();
-    InputStream fis = new FileInputStream(filename);
-    int numRead = fis.read(buf);
-    while (numRead >= 0) {
-      if (numRead > 0) {
-        md5digest.update(buf, 0, numRead);
+    InputStream fis = null;
+    int numRead = 0;
+    try {
+	    fis = new FileInputStream(filename);
+	    numRead = fis.read(buf);
+	    while (numRead >= 0) {
+	      if (numRead > 0) {
+	        md5digest.update(buf, 0, numRead);
+	      }
+	      numRead = fis.read(buf);
+	    }
+    } finally {
+      if (fis != null) {
+    	  fis.close();
       }
-      numRead = fis.read(buf);
     }
-    fis.close();
     
     String hash = hexString(md5digest.digest());
     Text row = new Text(hash);
@@ -93,28 +100,33 @@ public class FileDataIngest {
     bw.addMutation(m);
     
     // read through file again, writing chunks to accumulo
-    fis = new FileInputStream(filename);
-    numRead = fis.read(buf);
     int chunkCount = 0;
-    while (numRead >= 0) {
-      while (numRead < buf.length) {
-        int moreRead = fis.read(buf, numRead, buf.length - numRead);
-        if (moreRead > 0)
-          numRead += moreRead;
-        else if (moreRead < 0)
-          break;
-      }
-      m = new Mutation(row);
-      Text chunkCQ = new Text(chunkSizeBytes);
-      chunkCQ.append(intToBytes(chunkCount), 0, 4);
-      m.put(CHUNK_CF, chunkCQ, cv, new Value(buf, 0, numRead));
-      bw.addMutation(m);
-      if (chunkCount == Integer.MAX_VALUE)
-        throw new RuntimeException("too many chunks for file " + filename + ", try raising chunk size");
-      chunkCount++;
-      numRead = fis.read(buf);
+    try {
+	    fis = new FileInputStream(filename);
+	    numRead = fis.read(buf);
+	    while (numRead >= 0) {
+	      while (numRead < buf.length) {
+	        int moreRead = fis.read(buf, numRead, buf.length - numRead);
+	        if (moreRead > 0)
+	          numRead += moreRead;
+	        else if (moreRead < 0)
+	          break;
+	      }
+	      m = new Mutation(row);
+	      Text chunkCQ = new Text(chunkSizeBytes);
+	      chunkCQ.append(intToBytes(chunkCount), 0, 4);
+	      m.put(CHUNK_CF, chunkCQ, cv, new Value(buf, 0, numRead));
+	      bw.addMutation(m);
+	      if (chunkCount == Integer.MAX_VALUE)
+	        throw new RuntimeException("too many chunks for file " + filename + ", try raising chunk size");
+	      chunkCount++;
+	      numRead = fis.read(buf);
+	    }
+    } finally {
+    	if (fis != null) {
+    		fis.close();
+    	}
     }
-    fis.close();
     m = new Mutation(row);
     Text chunkCQ = new Text(chunkSizeBytes);
     chunkCQ.append(intToBytes(chunkCount), 0, 4);
