@@ -45,10 +45,10 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.Parser;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -271,14 +271,11 @@ public abstract class FunctionalTest {
   }
   
   public static void main(String[] args) throws Exception {
-    Parser p = new BasicParser();
-    
     CommandLine cl = null;
     try {
-      cl = p.parse(opts, args);
+      cl = new BasicParser().parse(opts, args);
     } catch (ParseException e) {
-      System.out.println("Parse Exception, exiting.");
-      return;
+      printHelpAndExit(e.toString());
     }
     
     String master = cl.getOptionValue(masterOpt.getOpt(), "localhost");
@@ -287,6 +284,9 @@ public abstract class FunctionalTest {
     String instanceName = cl.getOptionValue(instanceNameOpt.getOpt(), "FuncTest");
     
     String remainingArgs[] = cl.getArgs();
+    if (remainingArgs.length < 2) {
+      printHelpAndExit("Missing java classname to test and/or options.");
+    }
     String clazz = remainingArgs[0];
     String opt = remainingArgs[1];
     
@@ -311,8 +311,17 @@ public abstract class FunctionalTest {
       fTest.run();
     } else if (opt.equals("cleanup")) {
       fTest.cleanup();
+    } else {
+    	printHelpAndExit("Unknown option: " + opt);
     }
     
+  }
+
+  static void printHelpAndExit(String message) {
+      System.out.println(message);
+      HelpFormatter formatter = new HelpFormatter();
+      formatter.printHelp( "FunctionalTest {options} java_class [getconfig|setup|run|cleanup]", opts );
+      System.exit(1);
   }
   
   static Mutation nm(String row, String cf, String cq, Value value) {
