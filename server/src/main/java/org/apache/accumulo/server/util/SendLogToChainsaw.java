@@ -18,8 +18,11 @@ package org.apache.accumulo.server.util;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
@@ -33,6 +36,8 @@ import javax.net.SocketFactory;
 
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
@@ -107,38 +112,55 @@ public class SendLogToChainsaw extends XMLLayout {
     }
   }
   
-  public void processLogFiles() throws Exception {
-    for (File log : logFiles) {
-      // Parse the server type and name from the log file name
-      String threadName = log.getName().substring(0, log.getName().indexOf("."));
-      FileReader fReader = new FileReader(log);
-      BufferedReader reader = new BufferedReader(fReader);
-      
-      String line = reader.readLine();
-      while (null != line) {
-        String out = null;
+  public void processLogFiles() throws IOException {
+    String line = null;
+    String out = null;
+    FileReader fReader = null;
+    BufferedReader reader = null;
+    try {
+      for (File log : logFiles) {
+        // Parse the server type and name from the log file name
+        String threadName = log.getName().substring(0, log.getName().indexOf("."));
         try {
-          out = convertLine(line, threadName);
-          if (null != out) {
-            if (socket != null && socket.isConnected())
-              socket.getOutputStream().write(out.getBytes());
-            else
-              System.err.println("Unable to send data to transport");
-          }
-        } catch (Exception e) {
-          System.out.println("Error processing line: " + line + ". Output was " + out);
+          fReader = new FileReader(log);
+        } catch (FileNotFoundException e) {
+          System.out.println("Unable to find file: " + log.getAbsolutePath());
           throw e;
+	    }
+        reader = new BufferedReader(fReader);
+        
+        try {
+          line = reader.readLine();
+          while (null != line) {
+                out = convertLine(line, threadName);
+                if (null != out) {
+                  if (socket != null && socket.isConnected())
+                    socket.getOutputStream().write(out.getBytes());
+                  else
+                    System.err.println("Unable to send data to transport");
+                }
+              line = reader.readLine();
+            }
+        } catch (IOException e) {
+            System.out.println("Error processing line: " + line + ". Output was " + out);
+            throw e;
+        } finally {
+          if (reader != null) {
+            reader.close();
+          }
+          if (fReader != null) {
+            fReader.close();
+          }
         }
-        line = reader.readLine();
       }
-      reader.close();
-      fReader.close();
+    } finally {
+      if (socket != null && socket.isConnected()) {
+        socket.close();
+      }
     }
-    if (socket != null && socket.isConnected())
-      socket.close();
   }
   
-  private String convertLine(String line, String threadName) throws Exception {
+  private String convertLine(String line, String threadName) throws UnsupportedEncodingException {
     String result = null;
     Matcher m = logPattern.matcher(line);
     if (m.matches()) {
@@ -239,16 +261,28 @@ public class SendLogToChainsaw extends XMLLayout {
   /**
    * 
    * @param args
-   *          parameter 0: path to log directory parameter 1: filter to apply for logs to include (uses wildcards (i.e. logger* and IS case sensitive) parameter
-   *          2: chainsaw host parameter 3: chainsaw port parameter 4: start date filter parameter 5: end date filter parameter 6: optional regex filter to
-   *          match on each log4j message parameter 7: optional level filter
+   *   0: path to log directory parameter 
+   *   1: filter to apply for logs to include (uses wildcards (i.e. logger* and IS case sensitive) parameter
+   *   2: chainsaw host parameter 
+   *   3: chainsaw port parameter 
+   *   4: start date filter parameter 
+   *   5: end date filter parameter 
+   *   6: optional regex filter to match on each log4j message parameter 
+   *   7: optional level filter
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
     
     Options o = getOptions();
     CommandLine cl = null;
+    try {
     cl = new BasicParser().parse(o, args);
+    } catch (MissingOptionException e) {
+    	System.out.println(e.toString());
+    	HelpFormatter formatter = new HelpFormatter();
+    	formatter.printHelp( "SendLogToChainsaw", o );
+    	return;
+    }
     
     String logDir = cl.getOptionValue(o.getOption("d").getOpt());
     String fileNameFilter = null;
