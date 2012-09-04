@@ -105,16 +105,19 @@ public class VisibilityEvaluatorTest {
     assertEquals("\"A\\\"C\"", quote("A\"C"));
     assertEquals("\"A\\\"\\\\C\"", quote("A\"\\C"));
     assertEquals("ACS", quote("ACS"));
+    assertEquals("\"九\"", quote("九"));
+    assertEquals("\"五十\"", quote("五十"));
   }
   
   @Test
   public void testNonAscii() throws VisibilityParseException {
-    VisibilityEvaluator ct = new VisibilityEvaluator(ByteArraySet.fromStrings("五", "六", "八", "九"));
+    VisibilityEvaluator ct = new VisibilityEvaluator(ByteArraySet.fromStrings("五", "六", "八", "九", "五十"));
     
     assertTrue(ct.evaluate(new ColumnVisibility(quote("五") + "|" + quote("四"))));
     assertFalse(ct.evaluate(new ColumnVisibility(quote("五") + "&" + quote("四"))));
     assertTrue(ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("九") + ")")));
+    assertTrue(ct.evaluate(new ColumnVisibility("\"五\"&(\"四\"|\"五十\")")));
     assertFalse(ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("三") + ")")));
-
+    assertFalse(ct.evaluate(new ColumnVisibility("\"五\"&(\"四\"|\"三\")")));
   }
 }
