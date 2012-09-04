@@ -75,12 +75,6 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
         throw new IllegalArgumentException("Empty authorization");
       }
       
-      for (byte b : bs.getBackingArray()) {
-        if (!isValidAuthChar(b)) {
-          throw new IllegalArgumentException("invalid authorization " + bs.toString());
-        }
-      }
-      
       authsList.add(bs.getBackingArray());
     }
   }

@@ -16,10 +16,13 @@
  */
 package org.apache.accumulo.core.security;
 
+import static org.apache.accumulo.core.security.ColumnVisibility.quote;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.Test;
 
@@ -54,7 +57,7 @@ public class VisibilityEvaluatorTest {
       try {
         ct.evaluate(new ColumnVisibility(marking));
         fail(marking + " failed to throw");
-      } catch (Throwable e) {
+      } catch (BadArgumentException e) {
         // all is good
       }
     }
@@ -64,7 +67,7 @@ public class VisibilityEvaluatorTest {
       try {
         ct.evaluate(new ColumnVisibility(marking));
         fail(marking + " failed to throw");
-      } catch (Throwable e) {
+      } catch (BadArgumentException e) {
         // all is good
       }
     }
@@ -74,9 +77,33 @@ public class VisibilityEvaluatorTest {
       try {
         ct.evaluate(new ColumnVisibility(marking));
         fail(marking + " failed to throw");
-      } catch (Throwable e) {
+      } catch (BadArgumentException e) {
         // all is good
       }
     }
+  }
+  
+  @Test
+  public void testQuotedExpressions() throws VisibilityParseException {
+    VisibilityEvaluator ct = new VisibilityEvaluator(ByteArraySet.fromStrings("A#C", "A\"C", "A\\C", "AC"));
+    
+    assertTrue(ct.evaluate(new ColumnVisibility(quote("A#C") + "|" + quote("A?C"))));
+    assertTrue(ct.evaluate(new ColumnVisibility(new ColumnVisibility(quote("A#C") + "|" + quote("A?C")).flatten())));
+    assertTrue(ct.evaluate(new ColumnVisibility(quote("A\"C") + "&" + quote("A\\C"))));
+    assertTrue(ct.evaluate(new ColumnVisibility(new ColumnVisibility(quote("A\"C") + "&" + quote("A\\C")).flatten())));
+    assertTrue(ct.evaluate(new ColumnVisibility("(" + quote("A\"C") + "|B)&(" + quote("A#C") + "|D)")));
+    
+    assertFalse(ct.evaluate(new ColumnVisibility(quote("A#C") + "&B")));
+    
+    assertTrue(ct.evaluate(new ColumnVisibility(quote("A#C"))));
+    assertTrue(ct.evaluate(new ColumnVisibility("(" + quote("A#C") + ")")));
+  }
+  
+  @Test
+  public void testQuote() {
+    assertEquals("\"A#C\"", quote("A#C"));
+    assertEquals("\"A\\\"C\"", quote("A\"C"));
+    assertEquals("\"A\\\"\\\\C\"", quote("A\"\\C"));
+    assertEquals("ACS", quote("ACS"));
   }
 }
