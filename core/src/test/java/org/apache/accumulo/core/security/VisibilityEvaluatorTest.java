@@ -106,4 +106,15 @@ public class VisibilityEvaluatorTest {
     assertEquals("\"A\\\"\\\\C\"", quote("A\"\\C"));
     assertEquals("ACS", quote("ACS"));
   }
+  
+  @Test
+  public void testNonAscii() throws VisibilityParseException {
+    VisibilityEvaluator ct = new VisibilityEvaluator(ByteArraySet.fromStrings("五", "六", "八", "九"));
+    
+    assertTrue(ct.evaluate(new ColumnVisibility(quote("五") + "|" + quote("四"))));
+    assertFalse(ct.evaluate(new ColumnVisibility(quote("五") + "&" + quote("四"))));
+    assertTrue(ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("九") + ")")));
+    assertFalse(ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("三") + ")")));
+
+  }
 }
