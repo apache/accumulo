@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
   public String iterName; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     PRIORITY((short)1, "priority"),
     CLASS_NAME((short)2, "className"),
     ITER_NAME((short)3, "iterName");

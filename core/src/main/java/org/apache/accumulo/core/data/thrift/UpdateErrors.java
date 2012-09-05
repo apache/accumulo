@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
   public List<TKeyExtent> authorizationFailures; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     FAILED_EXTENTS((short)1, "failedExtents"),
     VIOLATION_SUMMARIES((short)2, "violationSummaries"),
     AUTHORIZATION_FAILURES((short)3, "authorizationFailures");

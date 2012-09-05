@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
   public GcCycleStats currentLog; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     LAST((short)1, "last"),
     LAST_LOG((short)2, "lastLog"),
     CURRENT((short)3, "current"),

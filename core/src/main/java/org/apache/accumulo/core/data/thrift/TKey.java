@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
   public long timestamp; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     ROW((short)1, "row"),
     COL_FAMILY((short)2, "colFamily"),
     COL_QUALIFIER((short)3, "colQualifier"),

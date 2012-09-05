@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
   public String description; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     TABLE_ID((short)1, "tableId"),
     TABLE_NAME((short)2, "tableName"),
     /**

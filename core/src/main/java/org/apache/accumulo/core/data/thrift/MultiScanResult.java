@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
   public boolean more; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     RESULTS((short)1, "results"),
     FAILURES((short)2, "failures"),
     FULL_SCANS((short)3, "fullScans"),

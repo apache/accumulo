@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
   public SecurityErrorCode code; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     USER((short)1, "user"),
     /**
      * 

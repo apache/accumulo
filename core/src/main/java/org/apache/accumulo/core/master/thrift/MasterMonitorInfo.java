@@ -63,7 +63,7 @@ import org.slf4j.LoggerFactory;
   public List<DeadServer> deadTabletServers; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     TABLE_MAP((short)1, "tableMap"),
     T_SERVER_INFO((short)2, "tServerInfo"),
     BAD_TSERVERS((short)3, "badTServers"),

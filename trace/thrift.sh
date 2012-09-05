@@ -24,6 +24,7 @@ thrift -o target -gen java src/main/thrift/cloudtrace.thrift
 
 # For all generated thrift code, suppress all warnings
 find target/gen-java -name '*.java' -print | xargs sed -i.orig -e 's/public class /@SuppressWarnings("all") public class /'
+find target/gen-java -name '*.java' -print | xargs sed -i.orig -e 's/public enum /@SuppressWarnings("all") public enum /'
 
 # Make a directory for said thrift code if does not already exist
 mkdir -p src/main/java/org/apache/accumulo/cloudtrace/thrift

@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
   public long errors; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     STARTED((short)1, "started"),
     FINISHED((short)2, "finished"),
     CANDIDATES((short)3, "candidates"),

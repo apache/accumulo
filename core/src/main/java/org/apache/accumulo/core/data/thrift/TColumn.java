@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
   public ByteBuffer columnVisibility; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     COLUMN_FAMILY((short)1, "columnFamily"),
     COLUMN_QUALIFIER((short)2, "columnQualifier"),
     COLUMN_VISIBILITY((short)3, "columnVisibility");

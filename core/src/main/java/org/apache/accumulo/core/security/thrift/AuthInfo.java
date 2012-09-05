@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
   public String instanceId; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     USER((short)1, "user"),
     PASSWORD((short)2, "password"),
     INSTANCE_ID((short)3, "instanceId");

@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
   public List<TIteratorSetting> iterators; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     ITERATORS((short)1, "iterators");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();

@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
   public ByteBuffer prevEndRow; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     TABLE((short)1, "table"),
     END_ROW((short)2, "endRow"),
     PREV_END_ROW((short)3, "prevEndRow");

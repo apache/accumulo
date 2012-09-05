@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
   public long numberOfViolatingMutations; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     CONSTRAIN_CLASS((short)1, "constrainClass"),
     VIOLATION_CODE((short)2, "violationCode"),
     VIOLATION_DESCRIPTION((short)3, "violationDescription"),

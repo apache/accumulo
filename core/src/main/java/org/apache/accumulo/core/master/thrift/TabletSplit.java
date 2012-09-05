@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
   public List<org.apache.accumulo.core.data.thrift.TKeyExtent> newTablets; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     OLD_TABLET((short)1, "oldTablet"),
     NEW_TABLETS((short)2, "newTablets");
 

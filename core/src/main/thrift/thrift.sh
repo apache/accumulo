@@ -45,6 +45,7 @@ do
 	thrift ${THRIFT_ARGS} --gen rb $f || fail unable to generate ruby thrift classes
 done
 find target/gen-java -name '*.java' -print | xargs sed -i.orig -e 's/public class /@SuppressWarnings("all") public class /'
+find target/gen-java -name '*.java' -print | xargs sed -i.orig -e 's/public enum /@SuppressWarnings("all") public enum /'
 find target/gen-java -name '*.orig' -print | xargs rm -f
 # copy only files that have changed
 for d in gc master tabletserver security client/impl data
