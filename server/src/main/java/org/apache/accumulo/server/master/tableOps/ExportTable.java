@@ -69,7 +69,7 @@ class ExportInfo implements Serializable {
 class WriteExportFiles extends MasterRepo {
   
   private static final long serialVersionUID = 1L;
-  private ExportInfo tableInfo;
+  private final ExportInfo tableInfo;
   
   WriteExportFiles(ExportInfo tableInfo) {
     this.tableInfo = tableInfo;
@@ -98,13 +98,25 @@ class WriteExportFiles extends MasterRepo {
     
     Scanner metaScanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     metaScanner.setRange(new KeyExtent(new Text(tableInfo.tableID), null, null).toMetadataRange());
-    metaScanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     
-    // TODO look for walogs
-    for (Entry<Key,Value> entry : metaScanner) {
+    // scan for locations
+    metaScanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
+    metaScanner.fetchColumnFamily(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
+    
+    if (metaScanner.iterator().hasNext()) {
       return 500;
     }
     
+    // use the same range to check for walogs that we used to check for hosted (or future hosted) tablets
+    // this is done as a separate scan after we check for locations, because walogs are okay only if there is no location
+    metaScanner.clearColumns();
+    metaScanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
+    
+    if (metaScanner.iterator().hasNext()) {
+      throw new ThriftTableOperationException(tableInfo.tableID, tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
+          "Write ahead logs found for table");
+    }
+
     return 0;
   }
 
@@ -277,7 +289,7 @@ class WriteExportFiles extends MasterRepo {
 public class ExportTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
   
-  private ExportInfo tableInfo;
+  private final ExportInfo tableInfo;
 
   public ExportTable(String tableName, String tableId, String exportDir) {
     tableInfo = new ExportInfo();
