@@ -489,7 +489,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   protected static Authorizations getAuthorizations(Configuration conf) {
     String authString = conf.get(AUTHORIZATIONS);
-    return authString == null ? Constants.NO_AUTHS : new Authorizations(authString.split(","));
+    return authString == null ? Constants.NO_AUTHS : new Authorizations(authString.getBytes());
   }
   
   /**

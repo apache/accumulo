@@ -31,10 +31,12 @@ public class AuthorizationsTest {
   
   @Test
   public void testEncodeDecode() {
-    Authorizations a = new Authorizations("a", "abcdefg", "hijklmno");
+    Authorizations a = new Authorizations("a", "abcdefg", "hijklmno", ",");
     byte[] array = a.getAuthorizationsArray();
     Authorizations b = new Authorizations(array);
     assertEquals(a, b);
+
+    System.out.println(b);
   }
   
 }

@@ -325,6 +325,18 @@ public class ColumnVisibility {
     this(expression.getBytes());
   }
   
+  /**
+   * See {@link #ColumnVisibility(byte[])}
+   * 
+   * @param expression
+   * @param encoding
+   *          uses this encoding to convert the expression to a byte array
+   * @throws UnsupportedEncodingException
+   */
+  public ColumnVisibility(String expression, String encoding) throws UnsupportedEncodingException {
+    this(expression.getBytes(encoding));
+  }
+
   public ColumnVisibility(Text expression) {
     this(TextUtil.getBytes(expression));
   }
@@ -407,8 +419,16 @@ public class ColumnVisibility {
    * 
    */
   public static String quote(String term) {
+    return quote(term, "UTF-8");
+  }
+  
+  /**
+   * see {@link #quote(byte[])}
+   * 
+   */
+  public static String quote(String term, String encoding) {
     try {
-      return new String(quote(term.getBytes("UTF-8")), "UTF-8");
+      return new String(quote(term.getBytes(encoding)), encoding);
     } catch (UnsupportedEncodingException e) {
       throw new RuntimeException(e);
     }
