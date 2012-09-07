@@ -35,8 +35,6 @@ public class AuthorizationsTest {
     byte[] array = a.getAuthorizationsArray();
     Authorizations b = new Authorizations(array);
     assertEquals(a, b);
-
-    System.out.println(b);
   }
   
 }
