@@ -159,8 +159,8 @@ public class RandomBatchScanner {
     
     long t2 = System.currentTimeMillis();
     
-    log.info(String.format("%6.2f lookups/sec %6.2f secs\n", num / ((t2 - t1) / 1000.0), ((t2 - t1) / 1000.0)));
-    log.info(String.format("num results : %,d\n", receiver.count));
+    log.info(String.format("%6.2f lookups/sec %6.2f secs%n", num / ((t2 - t1) / 1000.0), ((t2 - t1) / 1000.0)));
+    log.info(String.format("num results : %,d%n", receiver.count));
     
     printRowsNotFound(expectedRows);
   }

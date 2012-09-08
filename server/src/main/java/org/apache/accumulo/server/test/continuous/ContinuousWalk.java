@@ -134,13 +134,13 @@ public class ContinuousWalk {
         }
         long t2 = System.currentTimeMillis();
         
-        System.out.printf("SRQ %d %s %d %d\n", t1, row, (t2 - t1), values.size());
+        System.out.printf("SRQ %d %s %d %d%n", t1, row, (t2 - t1), values.size());
         
         if (values.size() > 0) {
           row = getPrevRow(values.get(r.nextInt(values.size())));
         } else {
-          System.out.printf("MIS %d %s\n", t1, row);
-          System.err.printf("MIS %d %s\n", t1, row);
+          System.out.printf("MIS %d %s%n", t1, row);
+          System.err.printf("MIS %d %s%n", t1, row);
           row = null;
         }
         
@@ -174,7 +174,7 @@ public class ContinuousWalk {
     
     long t2 = System.currentTimeMillis();
     
-    System.out.printf("FSR %d %s %d %d\n", t1, new String(scanStart), (t2 - t1), count);
+    System.out.printf("FSR %d %s %d %d%n", t1, new String(scanStart), (t2 - t1), count);
     
     return pr;
   }

@@ -31,12 +31,12 @@ import org.apache.accumulo.core.security.Authorizations;
 
 public class MockScanner extends MockScannerBase implements Scanner {
   
-  int timeOut = 0;
   int batchSize = 0;
   Range range = new Range();
   
   MockScanner(MockTable table, Authorizations auths) {
     super(table, auths);
+    timeOut = 0;
   }
   
   @Override

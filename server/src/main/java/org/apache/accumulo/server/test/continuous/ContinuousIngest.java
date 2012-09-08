@@ -123,7 +123,7 @@ public class ContinuousIngest {
     
     byte[] ingestInstanceId = UUID.randomUUID().toString().getBytes();
     
-    System.out.printf("UUID %d %s\n", System.currentTimeMillis(), new String(ingestInstanceId));
+    System.out.printf("UUID %d %s%n", System.currentTimeMillis(), new String(ingestInstanceId));
     
     long count = 0;
     final int flushInterval = 1000000;
@@ -197,7 +197,7 @@ public class ContinuousIngest {
     long t1 = System.currentTimeMillis();
     bw.flush();
     long t2 = System.currentTimeMillis();
-    System.out.printf("FLUSH %d %d %d %d %d\n", t2, (t2 - lastFlushTime), (t2 - t1), count, flushInterval);
+    System.out.printf("FLUSH %d %d %d %d %d%n", t2, (t2 - lastFlushTime), (t2 - t1), count, flushInterval);
     lastFlushTime = t2;
     return lastFlushTime;
   }

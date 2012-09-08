@@ -254,10 +254,10 @@ public class SimpleGarbageCollector implements Iface {
         // STEP 3: delete files
         if (safemode) {
           if (verbose)
-            System.out.println("SAFEMODE: There are " + candidates.size() + " data file candidates marked for deletion.\n"
-                + "          Examine the log files to identify them.\n" + "          They can be removed by executing: bin/accumulo gc --offline\n"
-                + "WARNING:  Do not run the garbage collector in offline mode unless you are positive\n"
-                + "          that the accumulo METADATA table is in a clean state, or that accumulo\n"
+            System.out.println("SAFEMODE: There are " + candidates.size() + " data file candidates marked for deletion.%n"
+                + "          Examine the log files to identify them.%n" + "          They can be removed by executing: bin/accumulo gc --offline%n"
+                + "WARNING:  Do not run the garbage collector in offline mode unless you are positive%n"
+                + "          that the accumulo METADATA table is in a clean state, or that accumulo%n"
                 + "          has not yet been run, in the case of an upgrade.");
           log.info("SAFEMODE: Listing all data file candidates for deletion");
           for (String s : candidates)

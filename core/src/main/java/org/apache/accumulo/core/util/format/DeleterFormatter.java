@@ -88,7 +88,7 @@ public class DeleterFormatter extends DefaultFormatter {
               log.trace(cvs.toString());
         }
       }
-      shellState.getReader().printString(String.format("[%s] %s\n", delete ? "DELETED" : "SKIPPED", entryStr));
+      shellState.getReader().printString(String.format("[%s] %s%n", delete ? "DELETED" : "SKIPPED", entryStr));
     } catch (IOException e) {
       log.error("Cannot write to console", e);
       throw new RuntimeException(e);

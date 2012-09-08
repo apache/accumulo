@@ -35,7 +35,7 @@ public class TablesCommand extends Command {
     if (cl.hasOption(tableIdOption.getOpt())) {
       Map<String,String> tableIds = shellState.getConnector().tableOperations().tableIdMap();
       for (String tableName : shellState.getConnector().tableOperations().list())
-        shellState.getReader().printString(String.format("%-15s => %10s\n", tableName, tableIds.get(tableName)));
+        shellState.getReader().printString(String.format("%-15s => %10s%n", tableName, tableIds.get(tableName)));
     } else {
       for (String table : shellState.getConnector().tableOperations().list())
         shellState.getReader().printString(table + "\n");

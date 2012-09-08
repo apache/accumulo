@@ -406,7 +406,7 @@ public class TestIngest {
       int totalValues = ingestArgs.rows * ingestArgs.cols;
       double elapsed = (stopTime - startTime) / 1000.0;
       
-      System.out.printf("%,12d records written | %,8d records/sec | %,12d bytes written | %,8d bytes/sec | %6.3f secs   \n", totalValues,
+      System.out.printf("%,12d records written | %,8d records/sec | %,12d bytes written | %,8d bytes/sec | %6.3f secs   %n", totalValues,
           (int) (totalValues / elapsed), bytesWritten, (int) (bytesWritten / elapsed), elapsed);
     } catch (Exception e) {
       throw new RuntimeException(e);

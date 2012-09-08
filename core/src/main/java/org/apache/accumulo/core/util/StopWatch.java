@@ -75,7 +75,7 @@ public class StopWatch<K extends Enum<K>> {
   
   public synchronized void print() {
     for (K timer : totalTime.keySet()) {
-      System.out.printf("%20s : %,6.4f secs\n", timer.toString(), get(timer) / 1000.0);
+      System.out.printf("%20s : %,6.4f secs%n", timer.toString(), get(timer) / 1000.0);
     }
   }
   

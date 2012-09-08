@@ -74,7 +74,7 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
     dos.close();
     
     System.out.println("Compressed column map size : " + baos.toByteArray().length);
-    System.out.printf("Bytes written : %,d\n", bytesWritten);
+    System.out.printf("Bytes written : %,d%n", bytesWritten);
     
   }
   
@@ -419,7 +419,7 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
     
     out.writeByte(fieldsSame);
     
-    // System.out.printf("wrote fs %x\n", fieldsSame);
+    // System.out.printf("wrote fs %x%n", fieldsSame);
     
     bytesWritten += 1;
     

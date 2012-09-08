@@ -163,7 +163,7 @@ class TFileDumper {
       }
       for (Iterator<Map.Entry<String,String>> it = entrySet.iterator(); it.hasNext();) {
         Map.Entry<String,String> e = it.next();
-        out.printf("%s : %s\n", Align.format(e.getKey(), maxKeyLength, Align.LEFT), e.getValue());
+        out.printf("%s : %s%n", Align.format(e.getKey(), maxKeyLength, Align.LEFT), e.getValue());
       }
       out.println();
       reader.checkTFileDataIndex();
@@ -182,7 +182,7 @@ class TFileDumper {
         String endKey = "End-Key";
         int endKeyWidth = Math.max(endKey.length(), maxKeySampleLen * 2 + 5);
         
-        out.printf("%s %s %s %s %s %s\n", Align.format(blkID, blkIDWidth, Align.CENTER), Align.format(offset, offsetWidth, Align.CENTER),
+        out.printf("%s %s %s %s %s %s%n", Align.format(blkID, blkIDWidth, Align.CENTER), Align.format(offset, offsetWidth, Align.CENTER),
             Align.format(blkLen, blkLenWidth, Align.CENTER), Align.format(rawSize, rawSizeWidth, Align.CENTER),
             Align.format(records, recordsWidth, Align.CENTER), Align.format(endKey, endKeyWidth, Align.LEFT));
         
@@ -237,7 +237,7 @@ class TFileDumper {
         int rawSizeWidth = Align.calculateWidth(rawSize, metaSizeUncompressed / metaBlkCnt * 10);
         String compression = "Compression";
         int compressionWidth = compression.length();
-        out.printf("%s %s %s %s %s\n", Align.format(name, nameWidth, Align.CENTER), Align.format(offset, offsetWidth, Align.CENTER),
+        out.printf("%s %s %s %s %s%n", Align.format(name, nameWidth, Align.CENTER), Align.format(offset, offsetWidth, Align.CENTER),
             Align.format(blkLen, blkLenWidth, Align.CENTER), Align.format(rawSize, rawSizeWidth, Align.CENTER),
             Align.format(compression, compressionWidth, Align.LEFT));
         
@@ -246,7 +246,7 @@ class TFileDumper {
           String blkName = e.getValue().getMetaName();
           BlockRegion region = e.getValue().getRegion();
           String blkCompression = e.getValue().getCompressionAlgorithm().getName();
-          out.printf("%s %s %s %s %s\n", Align.format(blkName, nameWidth, Align.LEFT), Align.format(region.getOffset(), offsetWidth, Align.LEFT),
+          out.printf("%s %s %s %s %s%n", Align.format(blkName, nameWidth, Align.LEFT), Align.format(region.getOffset(), offsetWidth, Align.LEFT),
               Align.format(region.getCompressedSize(), blkLenWidth, Align.LEFT), Align.format(region.getRawSize(), rawSizeWidth, Align.LEFT),
               Align.format(blkCompression, compressionWidth, Align.LEFT));
         }

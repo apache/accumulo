@@ -274,11 +274,11 @@ public class FileCount {
     
     long t3 = System.currentTimeMillis();
     
-    System.out.printf("Max depth              : %d\n", depth);
-    System.out.printf("Time to find max depth : %,d ms\n", (t2 - t1));
-    System.out.printf("Time to compute counts : %,d ms\n", (t3 - t2));
-    System.out.printf("Entries scanned        : %,d \n", entriesScanned);
-    System.out.printf("Counts inserted        : %,d \n", inserts);
+    System.out.printf("Max depth              : %d%n", depth);
+    System.out.printf("Time to find max depth : %,d ms%n", (t2 - t1));
+    System.out.printf("Time to compute counts : %,d ms%n", (t3 - t2));
+    System.out.printf("Entries scanned        : %,d %n", entriesScanned);
+    System.out.printf("Counts inserted        : %,d %n", inserts);
   }
   
   public static void main(String[] args) throws Exception {

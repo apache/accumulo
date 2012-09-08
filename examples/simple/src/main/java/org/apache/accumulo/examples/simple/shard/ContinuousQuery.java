@@ -89,7 +89,7 @@ public class ContinuousQuery {
       }
       long t2 = System.currentTimeMillis();
       
-      System.out.printf("  %s %,d %6.3f\n", Arrays.asList(columns), count, (t2 - t1) / 1000.0);
+      System.out.printf("  %s %,d %6.3f%n", Arrays.asList(columns), count, (t2 - t1) / 1000.0);
     }
     
     bs.close();

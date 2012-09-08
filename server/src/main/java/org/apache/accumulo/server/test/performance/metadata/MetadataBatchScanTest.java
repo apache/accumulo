@@ -153,7 +153,7 @@ public class MetadataBatchScanTest {
       
       long t2 = System.currentTimeMillis();
       
-      System.out.printf("tt : %6.2f\n", (t2 - t1) / 1000.0);
+      System.out.printf("tt : %6.2f%n", (t2 - t1) / 1000.0);
       
     } else {
       throw new IllegalArgumentException();

@@ -112,7 +112,7 @@ public class BatchScanSplitTest extends FunctionalTest {
       
       long t2 = System.currentTimeMillis();
       
-      System.out.printf("rate : %06.2f\n", ranges.size() / ((t2 - t1) / 1000.0));
+      System.out.printf("rate : %06.2f%n", ranges.size() / ((t2 - t1) / 1000.0));
       
       if (!found.equals(expected))
         throw new Exception("Found and expected differ " + found + " " + expected);

@@ -228,7 +228,7 @@ public class VerifyIngest {
         log.error("Did not read expected number of rows. Saw " + (expectedRow - ingestArgs.startRow) + " expected " + ingestArgs.rows);
         System.exit(1);
       } else {
-        System.out.printf("%,12d records read | %,8d records/sec | %,12d bytes read | %,8d bytes/sec | %6.3f secs   \n", recsRead,
+        System.out.printf("%,12d records read | %,8d records/sec | %,12d bytes read | %,8d bytes/sec | %6.3f secs   %n", recsRead,
             (int) ((recsRead) / ((t2 - t1) / 1000.0)), bytesRead, (int) (bytesRead / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0);
       }
       

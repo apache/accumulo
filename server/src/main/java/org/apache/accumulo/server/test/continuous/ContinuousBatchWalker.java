@@ -148,12 +148,12 @@ public class ContinuousBatchWalker {
       copy1.removeAll(batch);
       copy2.removeAll(rowsSeen);
       
-      System.out.printf("DIF %d %d %d\n", t1, copy1.size(), copy2.size());
-      System.err.printf("DIF %d %d %d\n", t1, copy1.size(), copy2.size());
+      System.out.printf("DIF %d %d %d%n", t1, copy1.size(), copy2.size());
+      System.err.printf("DIF %d %d %d%n", t1, copy1.size(), copy2.size());
       System.err.println("Extra seen : " + copy1);
       System.err.println("Not seen   : " + copy2);
     } else {
-      System.out.printf("BRQ %d %d %d %d %d\n", t1, (t2 - t1), rowsSeen.size(), count, (int) (rowsSeen.size() / ((t2 - t1) / 1000.0)));
+      System.out.printf("BRQ %d %d %d %d %d%n", t1, (t2 - t1), rowsSeen.size(), count, (int) (rowsSeen.size() / ((t2 - t1) / 1000.0)));
     }
     
   }

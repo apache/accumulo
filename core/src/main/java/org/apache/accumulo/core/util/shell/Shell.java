@@ -441,7 +441,7 @@ public class Shell extends ShellOptions {
     if (disableAuthTimeout)
       sb.append("- Authorization timeout: disabled\n");
     else
-      sb.append("- Authorization timeout: ").append(String.format("%.2fs\n", authTimeout / 1000.0));
+      sb.append("- Authorization timeout: ").append(String.format("%.2fs%n", authTimeout / 1000.0));
     sb.append("- Debug: ").append(isDebuggingEnabled() ? "on" : "off").append("\n");
     if (!scanIteratorOptions.isEmpty()) {
       for (Entry<String,List<IteratorSetting>> entry : scanIteratorOptions.entrySet()) {
@@ -839,12 +839,12 @@ public class Shell extends ShellOptions {
     printException(cve, "");
     int COL1 = 50, COL2 = 14;
     int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTermwidth() - COL1 - COL2 - 6));
-    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
-    logError(String.format("%-" + COL1 + "s | %" + COL2 + "s | %-" + col3 + "s\n", "Constraint class", "Violation code", "Violation Description"));
-    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+    logError(String.format("%-" + COL1 + "s | %" + COL2 + "s | %-" + col3 + "s%n", "Constraint class", "Violation code", "Violation Description"));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
     for (TConstraintViolationSummary cvs : cve.violationSummaries)
-      logError(String.format("%-" + COL1 + "s | %" + COL2 + "d | %-" + col3 + "s\n", cvs.constrainClass, cvs.violationCode, cvs.violationDescription));
-    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+      logError(String.format("%-" + COL1 + "s | %" + COL2 + "d | %-" + col3 + "s%n", cvs.constrainClass, cvs.violationCode, cvs.violationDescription));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
   }
   
   public final void printException(Exception e) {

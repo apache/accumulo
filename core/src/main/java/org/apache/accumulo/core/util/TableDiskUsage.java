@@ -204,7 +204,7 @@ public class TableDiskUsage {
     }
     
     for (Entry<TreeSet<String>,Long> entry : usage.entrySet())
-      System.out.printf("%,24d %s\n", entry.getValue(), entry.getKey());
+      System.out.printf("%,24d %s%n", entry.getValue(), entry.getKey());
     
   }
   
