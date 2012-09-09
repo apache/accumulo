@@ -30,7 +30,7 @@ public class DefaultConfiguration extends AccumuloConfiguration {
   private static DefaultConfiguration instance = null;
   private static Logger log = Logger.getLogger(DefaultConfiguration.class);
   
-  public static DefaultConfiguration getInstance() {
+  synchronized public static DefaultConfiguration getInstance() {
     if (instance == null) {
       instance = new DefaultConfiguration();
       ConfigSanityCheck.validate(instance);
