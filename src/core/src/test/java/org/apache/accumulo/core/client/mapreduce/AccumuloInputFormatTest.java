@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -32,6 +33,7 @@ import org.apache.accumulo.core.client.mapreduce.InputFormatBase.RegexType;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
@@ -277,14 +279,17 @@ public class AccumuloInputFormatTest {
   
   static class TestMapper extends Mapper<Key,Value,Key,Value> {
     Key key = null;
+    int first = 0;
     int count = 0;
     
     @Override
     protected void map(Key k, Value v, Context context) throws IOException, InterruptedException {
       if (key != null)
         assertEquals(key.getRow().toString(), new String(v.get()));
-      assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
-      assertEquals(new String(v.get()), String.format("%09x", count));
+      else
+        first = Integer.parseInt(k.getRow().toString(), 16) - 1;
+      assertEquals(k.getRow(), new Text(String.format("%09x", first + count + 1)));
+      assertEquals(new String(v.get()), String.format("%09x", first + count));
       key = new Key(k);
       count++;
     }
@@ -309,10 +314,14 @@ public class AccumuloInputFormatTest {
     job.setNumReduceTasks(0);
     AccumuloInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "testtable", new Authorizations());
     AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmapinstance");
+    HashSet<Range> ranges = new HashSet<Range>();
+    ranges.add(new Range("000000000", "000000010"));
+    ranges.add(new Range("000000100", "000000110"));
+    AccumuloInputFormat.setRanges(job.getConfiguration(), ranges);
     
     AccumuloInputFormat input = new AccumuloInputFormat();
     List<InputSplit> splits = input.getSplits(job);
-    assertEquals(splits.size(), 1);
+    assertEquals(splits.size(), 2);
     
     TestMapper mapper = (TestMapper) job.getMapperClass().newInstance();
     for (InputSplit split : splits) {
@@ -322,6 +331,7 @@ public class AccumuloInputFormatTest {
       Mapper<Key,Value,Key,Value>.Context context = mapper.new Context(job.getConfiguration(), id, reader, null, null, null, split);
       reader.initialize(split, context);
       mapper.run(context);
+      assertEquals(mapper.count, 16);
     }
   }
   
@@ -342,7 +352,9 @@ public class AccumuloInputFormatTest {
     AccumuloInputFormat.setInputInfo(job.getConfiguration(), "root", "".getBytes(), "testtable2", new Authorizations());
     AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmapinstance");
     AccumuloInputFormat input = new AccumuloInputFormat();
-    RangeInputSplit ris = new RangeInputSplit();
+    List<InputSplit> splits = input.getSplits(job);
+    assertEquals(splits.size(), 1);
+    RangeInputSplit ris = (RangeInputSplit) splits.get(0);
     TaskAttemptContext tac = new TaskAttemptContext(job.getConfiguration(), new TaskAttemptID());
     RecordReader<Key,Value> rr = input.createRecordReader(ris, tac);
     rr.initialize(ris, tac);
@@ -352,5 +364,6 @@ public class AccumuloInputFormatTest {
     while (rr.nextKeyValue()) {
       mapper.map(rr.getCurrentKey(), rr.getCurrentValue(), context);
     }
+    assertEquals(mapper.count, 100);
   }
 }

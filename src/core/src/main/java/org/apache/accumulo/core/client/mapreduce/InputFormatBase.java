@@ -310,17 +310,24 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   public static void setRanges(Configuration conf, Collection<Range> ranges) {
     ArgumentChecker.notNull(ranges);
-    ArrayList<String> rangeStrings = new ArrayList<String>(ranges.size());
     try {
+      FileSystem fs = FileSystem.get(conf);
+      Path file = new Path(fs.getWorkingDirectory(), conf.get("mapred.job.name") + System.currentTimeMillis() + ".ranges");
+      conf.set(RANGES, file.toString());
+      FSDataOutputStream fos = fs.create(file, false);
+      fs.setPermission(file, new FsPermission(FsAction.ALL, FsAction.NONE, FsAction.NONE));
+      fs.deleteOnExit(file);
+      
+      fos.writeInt(ranges.size());
       for (Range r : ranges) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        r.write(new DataOutputStream(baos));
-        rangeStrings.add(new String(Base64.encodeBase64(baos.toByteArray())));
+        r.write(fos);
       }
-    } catch (IOException ex) {
-      throw new IllegalArgumentException("Unable to encode ranges to Base64", ex);
+      fos.close();
+      
+      DistributedCache.addCacheFile(file.toUri(), conf);
+    } catch (IOException e) {
+      throw new RuntimeException("Unable to write ranges to file", e);
     }
-    conf.setStrings(RANGES, rangeStrings.toArray(new String[0]));
   }
   
   /**
@@ -793,12 +800,21 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   protected static List<Range> getRanges(Configuration conf) throws IOException {
     ArrayList<Range> ranges = new ArrayList<Range>();
-    for (String rangeString : conf.getStringCollection(RANGES)) {
-      ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(rangeString.getBytes()));
-      Range range = new Range();
-      range.readFields(new DataInputStream(bais));
-      ranges.add(range);
+    FileSystem fs = FileSystem.get(conf);
+    String rangePath = conf.get(RANGES);
+    if (rangePath == null)
+      return ranges;
+    Path file = new Path(rangePath);
+    
+    FSDataInputStream fdis = fs.open(file);
+    int numRanges = fdis.readInt();
+    while (numRanges > 0) {
+      Range r = new Range();
+      r.readFields(fdis);
+      ranges.add(r);
+      numRanges--;
     }
+    fdis.close();
     return ranges;
   }
   
