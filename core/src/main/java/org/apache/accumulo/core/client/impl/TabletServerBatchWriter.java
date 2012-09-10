@@ -72,7 +72,6 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 
-
 /*
  * Differences from previous TabletServerBatchWriter
  *   + As background threads finish sending mutations to tablet servers they decrement memory usage
@@ -242,7 +241,7 @@ public class TabletServerBatchWriter {
     }
   }
   
-  public synchronized void addMutation(String table, Iterator<Mutation> iterator) throws MutationsRejectedException {
+  public void addMutation(String table, Iterator<Mutation> iterator) throws MutationsRejectedException {
     while (iterator.hasNext()) {
       addMutation(table, iterator.next());
     }
