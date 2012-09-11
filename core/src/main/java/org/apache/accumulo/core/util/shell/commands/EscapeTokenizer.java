@@ -36,16 +36,16 @@ public class EscapeTokenizer implements Iterable<String> {
   
   private List<String> tokens;
   
-  public EscapeTokenizer(String line, String delimeters) {
+  public EscapeTokenizer(final String line, final String delimeters) {
     this.tokens = new ArrayList<String>();
     preprocess(line, delimeters);
   }
   
-  private void preprocess(String line, String delimeters) {
-    StringTokenizer st = new StringTokenizer(line, delimeters, true);
+  private void preprocess(final String line, final String delimeters) {
+    final StringTokenizer st = new StringTokenizer(line, delimeters, true);
     boolean inEscape = false;
     String current = "", prev = "";
-    List<String> toks = new ArrayList<String>();
+    final List<String> toks = new ArrayList<String>();
     
     while (st.hasMoreTokens()) {
       current = st.nextToken();
@@ -54,20 +54,23 @@ public class EscapeTokenizer implements Iterable<String> {
         inEscape = false;
       } else {
         inEscape = current.endsWith("\\");
-        if (inEscape)
+        if (inEscape) {
           prev = current.substring(0, current.length() - 1);
-        else {
+        } else {
           if (current.length() == 1 && delimeters.contains(current)) {
-            if (!prev.isEmpty())
+            if (!prev.isEmpty()) {
               toks.add(prev);
-          } else
+            }
+          } else {
             toks.add(prev + current);
+          }
           prev = "";
         }
       }
     }
-    if (!prev.isEmpty())
+    if (!prev.isEmpty()) {
       toks.add(prev);
+    }
     this.tokens = toks;
   }
   

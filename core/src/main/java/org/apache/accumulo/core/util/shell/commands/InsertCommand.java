@@ -40,17 +40,17 @@ import org.apache.hadoop.io.Text;
 public class InsertCommand extends Command {
   private Option insertOptAuths, timestampOpt;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ConstraintViolationException {
     shellState.checkTableState();
     
-    Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
-    Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
-    Text colq = new Text(cl.getArgs()[2].getBytes(Shell.CHARSET));
-    Value val = new Value(cl.getArgs()[3].getBytes(Shell.CHARSET));
+    final Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
+    final Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
+    final Text colq = new Text(cl.getArgs()[2].getBytes(Shell.CHARSET));
+    final Value val = new Value(cl.getArgs()[3].getBytes(Shell.CHARSET));
     
     if (cl.hasOption(insertOptAuths.getOpt())) {
-      ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(insertOptAuths.getOpt()));
+      final ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(insertOptAuths.getOpt()));
       Shell.log.debug("Authorization label will be set to: " + le.toString());
       
       if (cl.hasOption(timestampOpt.getOpt()))
@@ -62,19 +62,21 @@ public class InsertCommand extends Command {
     else
       m.put(colf, colq, val);
     
-    BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), m.estimatedMemoryUsed() + 0L, 0L, 1);
+    final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), m.estimatedMemoryUsed() + 0L, 0L, 1);
     bw.addMutation(m);
     try {
       bw.close();
     } catch (MutationsRejectedException e) {
-      ArrayList<String> lines = new ArrayList<String>();
-      if (e.getAuthorizationFailures().isEmpty() == false)
+      final ArrayList<String> lines = new ArrayList<String>();
+      if (e.getAuthorizationFailures().isEmpty() == false) {
         lines.add("	Authorization Failures:");
+      }
       for (KeyExtent extent : e.getAuthorizationFailures()) {
         lines.add("		" + extent);
       }
-      if (e.getConstraintViolationSummaries().isEmpty() == false)
+      if (e.getConstraintViolationSummaries().isEmpty() == false) {
         lines.add("	Constraint Failures:");
+      }
       for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
         lines.add("		" + cvs.toString());
       }
@@ -95,7 +97,7 @@ public class InsertCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     insertOptAuths = new Option("l", "visibility-label", true, "formatted visibility");
     insertOptAuths.setArgName("expression");
     o.addOption(insertOptAuths);

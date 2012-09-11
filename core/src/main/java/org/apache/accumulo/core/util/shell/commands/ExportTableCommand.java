@@ -35,10 +35,10 @@ public class ExportTableCommand extends Command {
   private Option tableOpt;
 
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TableExistsException {
     
-    String tableName = OptUtil.getTableOpt(cl, shellState);
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
 
     shellState.getConnector().tableOperations().exportTable(tableName, cl.getArgs()[0]);
     return 0;
@@ -51,7 +51,7 @@ public class ExportTableCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     
     tableOpt = new Option(Shell.tableOption, "table", true, "table to export");
     
@@ -67,7 +67,7 @@ public class ExportTableCommand extends Command {
     return "exports a table";
   }
   
-  public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> completionSet) {
+  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForTables(root, completionSet);
   }
   

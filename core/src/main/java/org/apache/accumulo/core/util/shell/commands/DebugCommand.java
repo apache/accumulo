@@ -28,14 +28,15 @@ import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 
 public class DebugCommand extends Command {
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     if (cl.getArgs().length == 1) {
-      if (cl.getArgs()[0].equalsIgnoreCase("on"))
+      if (cl.getArgs()[0].equalsIgnoreCase("on")) {
         Shell.setDebugging(true);
-      else if (cl.getArgs()[0].equalsIgnoreCase("off"))
+      } else if (cl.getArgs()[0].equalsIgnoreCase("off")) {
         Shell.setDebugging(false);
-      else
+      } else {
         throw new BadArgumentException("Argument must be 'on' or 'off'", fullCommand, fullCommand.indexOf(cl.getArgs()[0]));
+      }
     } else if (cl.getArgs().length == 0) {
       shellState.getReader().printString(Shell.isDebuggingEnabled() ? "on\n" : "off\n");
     } else {
@@ -52,8 +53,8 @@ public class DebugCommand extends Command {
   }
   
   @Override
-  public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> special) {
-    Token debug_command = new Token(getName());
+  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
+    final Token debug_command = new Token(getName());
     debug_command.addSubcommand(Arrays.asList(new String[] {"on", "off"}));
     root.addSubcommand(debug_command);
   }

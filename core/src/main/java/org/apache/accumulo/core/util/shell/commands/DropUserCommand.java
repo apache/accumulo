@@ -29,10 +29,11 @@ import org.apache.commons.cli.CommandLine;
 
 public class DropUserCommand extends Command {
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException {
-    String user = cl.getArgs()[0];
-    if (shellState.getConnector().whoami().equals(user))
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException {
+    final String user = cl.getArgs()[0];
+    if (shellState.getConnector().whoami().equals(user)) {
       throw new BadArgumentException("You cannot delete yourself", fullCommand, fullCommand.indexOf(user));
+    }
     shellState.getConnector().securityOperations().dropUser(user);
     Shell.log.debug("Deleted user " + user);
     return 0;
@@ -49,7 +50,7 @@ public class DropUserCommand extends Command {
   }
   
   @Override
-  public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> completionSet) {
+  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForUsers(root, completionSet);
   }
   

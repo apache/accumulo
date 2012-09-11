@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.File;
+import java.util.Scanner;
 
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -33,10 +34,11 @@ public class ExecfileCommand extends Command {
   }
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    java.util.Scanner scanner = new java.util.Scanner(new File(cl.getArgs()[0]));
-    while (scanner.hasNextLine())
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    Scanner scanner = new Scanner(new File(cl.getArgs()[0]));
+    while (scanner.hasNextLine()) {
       shellState.execCommand(scanner.nextLine(), true, cl.hasOption(verboseOption.getOpt()));
+    }
     return 0;
   }
   
@@ -52,7 +54,7 @@ public class ExecfileCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options opts = new Options();
+    final Options opts = new Options();
     verboseOption = new Option("v", "verbose", false, "display command prompt as commands are executed");
     opts.addOption(verboseOption);
     return opts;

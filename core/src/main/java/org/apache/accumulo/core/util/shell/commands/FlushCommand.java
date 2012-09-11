@@ -38,7 +38,7 @@ public class FlushCommand extends TableOperation {
     return "flushes a tables data that is currently in memory to disk";
   }
   
-  protected void doTableOp(Shell shellState, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     shellState.getConnector().tableOperations().flush(tableName, startRow, endRow, wait);
     Shell.log.info("Flush of table " + tableName + (wait ? " completed." : " initiated..."));
     if (tableName.equals(Constants.METADATA_TABLE_NAME)) {
@@ -50,7 +50,7 @@ public class FlushCommand extends TableOperation {
   }
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     wait = cl.hasOption(waitOpt.getLongOpt());
     startRow = OptUtil.getStartRow(cl);
     endRow = OptUtil.getEndRow(cl);
@@ -59,7 +59,7 @@ public class FlushCommand extends TableOperation {
   
   @Override
   public Options getOptions() {
-    Options opts = super.getOptions();
+    final Options opts = super.getOptions();
     waitOpt = new Option("w", "wait", false, "wait for flush to finish");
     opts.addOption(waitOpt);
     opts.addOption(OptUtil.startRowOpt());

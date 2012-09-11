@@ -28,24 +28,28 @@ import org.apache.commons.cli.Options;
 public class DeleteIterCommand extends Command {
   private Option mincScopeOpt, majcScopeOpt, scanScopeOpt, nameOpt;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
     
-    String name = cl.getOptionValue(nameOpt.getOpt());
+    final String name = cl.getOptionValue(nameOpt.getOpt());
     if (!shellState.getConnector().tableOperations().listIterators(tableName).containsKey(name)) {
       Shell.log.warn("no iterators found that match your criteria");
       return 0;
     }
     
-    EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
-    if (cl.hasOption(mincScopeOpt.getOpt()))
+    final EnumSet<IteratorScope> scopes = EnumSet.noneOf(IteratorScope.class);
+    if (cl.hasOption(mincScopeOpt.getOpt())) {
       scopes.add(IteratorScope.minc);
-    if (cl.hasOption(majcScopeOpt.getOpt()))
+    }
+    if (cl.hasOption(majcScopeOpt.getOpt())) {
       scopes.add(IteratorScope.majc);
-    if (cl.hasOption(scanScopeOpt.getOpt()))
+    }
+    if (cl.hasOption(scanScopeOpt.getOpt())) {
       scopes.add(IteratorScope.scan);
-    if (scopes.isEmpty())
+    }
+    if (scopes.isEmpty()) {
       throw new IllegalArgumentException("You must select at least one scope to configure");
+    }
     shellState.getConnector().tableOperations().removeIterator(tableName, name, scopes);
     return 0;
   }
@@ -56,7 +60,7 @@ public class DeleteIterCommand extends Command {
   }
   
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     
     nameOpt = new Option("n", "name", true, "iterator to delete");
     nameOpt.setArgName("itername");

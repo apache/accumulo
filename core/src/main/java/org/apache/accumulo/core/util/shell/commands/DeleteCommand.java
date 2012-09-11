@@ -35,26 +35,27 @@ import org.apache.hadoop.io.Text;
 public class DeleteCommand extends Command {
   private Option deleteOptAuths, timestampOpt;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ConstraintViolationException {
     shellState.checkTableState();
     
-    Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
-    Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
-    Text colq = new Text(cl.getArgs()[2].getBytes(Shell.CHARSET));
+    final Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
+    final Text colf = new Text(cl.getArgs()[1].getBytes(Shell.CHARSET));
+    final Text colq = new Text(cl.getArgs()[2].getBytes(Shell.CHARSET));
     
     if (cl.hasOption(deleteOptAuths.getOpt())) {
-      ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(deleteOptAuths.getOpt()));
-      if (cl.hasOption(timestampOpt.getOpt()))
+      final ColumnVisibility le = new ColumnVisibility(cl.getOptionValue(deleteOptAuths.getOpt()));
+      if (cl.hasOption(timestampOpt.getOpt())) {
         m.putDelete(colf, colq, le, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
-      else
+      } else {
         m.putDelete(colf, colq, le);
-    } else if (cl.hasOption(timestampOpt.getOpt()))
+      }
+    } else if (cl.hasOption(timestampOpt.getOpt())) {
       m.putDelete(colf, colq, Long.parseLong(cl.getOptionValue(timestampOpt.getOpt())));
-    else
+    } else {
       m.putDelete(colf, colq);
-    
-    BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), m.estimatedMemoryUsed() + 0L, 0L, 1);
+    }
+    final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), m.estimatedMemoryUsed() + 0L, 0L, 1);
     bw.addMutation(m);
     bw.close();
     return 0;
@@ -72,7 +73,7 @@ public class DeleteCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     
     deleteOptAuths = new Option("l", "visibility-label", true, "formatted visibility");
     deleteOptAuths.setArgName("expression");

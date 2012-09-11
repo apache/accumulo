@@ -34,26 +34,29 @@ public class HelpCommand extends Command {
   private Option disablePaginationOpt;
   private Option noWrapOpt;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws ShellCommandException, IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws ShellCommandException, IOException {
     int numColumns = shellState.getReader().getTermwidth();
-    if (cl.hasOption(noWrapOpt.getOpt()))
+    if (cl.hasOption(noWrapOpt.getOpt())) {
       numColumns = Integer.MAX_VALUE;
-    
+    }
     // print help summary
     if (cl.getArgs().length == 0) {
       int i = 0;
-      for (String cmd : shellState.commandFactory.keySet())
+      for (String cmd : shellState.commandFactory.keySet()) {
         i = Math.max(i, cmd.length());
-      if (numColumns < 40)
+      }
+      if (numColumns < 40) {
         throw new IllegalArgumentException("numColumns must be at least 40 (was " + numColumns + ")");
-      ArrayList<String> output = new ArrayList<String>();
+      }
+      final ArrayList<String> output = new ArrayList<String>();
       for (Entry<String,Command[]> cmdGroup : shellState.commandGrouping.entrySet()) {
         output.add(cmdGroup.getKey());
         for (Command c : cmdGroup.getValue()) {
           String n = c.getName();
           String s = c.description();
-          if (s == null)
+          if (s == null) {
             s = "";
+          }
           int beginIndex = 0;
           int endIndex = s.length();
           while (beginIndex < endIndex && s.charAt(beginIndex) == ' ')
@@ -73,8 +76,9 @@ public class HelpCommand extends Command {
             }
             n = "";
             endIndex = s.length();
-            while (beginIndex < endIndex && s.charAt(beginIndex) == ' ')
+            while (beginIndex < endIndex && s.charAt(beginIndex) == ' ') {
               beginIndex++;
+            }
           }
           output.add(String.format("%-" + i + "s  %s  %s", n, dash, s.substring(beginIndex, endIndex)));
         }
@@ -85,11 +89,12 @@ public class HelpCommand extends Command {
     
     // print help for every command on command line
     for (String cmd : cl.getArgs()) {
-      Command c = shellState.commandFactory.get(cmd);
-      if (c == null)
+      final Command c = shellState.commandFactory.get(cmd);
+      if (c == null) {
         shellState.getReader().printString(String.format("Unknown command \"%s\".  Enter \"help\" for a list possible commands.\n", cmd));
-      else
+      } else {
         c.printHelp(shellState, numColumns);
+      }
     }
     return 0;
   }
@@ -98,13 +103,13 @@ public class HelpCommand extends Command {
     return "provides information about the available commands";
   }
   
-  public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> special) {
+  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
     registerCompletionForCommands(root, special);
   }
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     o.addOption(disablePaginationOpt);
     noWrapOpt = new Option("nw", "no-wrap", false, "disable wrapping of output");

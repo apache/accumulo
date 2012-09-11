@@ -38,13 +38,13 @@ public class FormatterCommand extends ShellPluginConfigurationCommand {
     return "specifies a formatter to use for displaying table entries";
   }
 
-  public static Class<? extends Formatter> getCurrentFormatter(String tableName, Shell shellState) {
+  public static Class<? extends Formatter> getCurrentFormatter(final String tableName, final Shell shellState) {
     return ShellPluginConfigurationCommand.getPluginClass(tableName, shellState, Formatter.class, Property.TABLE_FORMATTER_CLASS);
   }
   
   @Override
   public Options getOptions() {
-    Options options = super.getOptions();
+    final Options options = super.getOptions();
     
     interpeterOption = new Option("i", "interpeter", false, "configure class as interpreter also");
     
@@ -53,15 +53,17 @@ public class FormatterCommand extends ShellPluginConfigurationCommand {
     return options;
   }
   
-  protected void setPlugin(CommandLine cl, Shell shellState, String tableName, String className) throws AccumuloException, AccumuloSecurityException {
+  protected void setPlugin(final CommandLine cl, final Shell shellState, final String tableName, final String className) throws AccumuloException, AccumuloSecurityException {
     super.setPlugin(cl, shellState, tableName, className);
-    if (cl.hasOption(interpeterOption.getOpt()))
+    if (cl.hasOption(interpeterOption.getOpt())) {
       shellState.getConnector().tableOperations().setProperty(tableName, Property.TABLE_INTERPRETER_CLASS.toString(), className);
+    }
   }
   
-  protected void removePlugin(CommandLine cl, Shell shellState, String tableName) throws AccumuloException, AccumuloSecurityException {
+  protected void removePlugin(final CommandLine cl, final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException {
     super.removePlugin(cl, shellState, tableName);
-    if (cl.hasOption(interpeterOption.getOpt()))
+    if (cl.hasOption(interpeterOption.getOpt())) {
       shellState.getConnector().tableOperations().removeProperty(tableName, Property.TABLE_INTERPRETER_CLASS.toString());
+    }
   }
 }

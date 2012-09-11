@@ -31,14 +31,14 @@ import org.apache.commons.cli.Options;
 public class DeleteManyCommand extends ScanCommand {
   private Option forceOpt;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
     
-    ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
+    final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
 
     // handle first argument, if present, the authorizations list to
     // scan with
-    Authorizations auths = getAuths(cl, shellState);
+    final Authorizations auths = getAuths(cl, shellState);
     final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
     
     scanner.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, "NOVALUE", SortedKeyIterator.class));
@@ -50,7 +50,7 @@ public class DeleteManyCommand extends ScanCommand {
     fetchColumns(cl, scanner, interpeter);
     
     // output / delete the records
-    BatchWriter writer = shellState.getConnector().createBatchWriter(tableName, 1024 * 1024, 1000L, 4);
+    final BatchWriter writer = shellState.getConnector().createBatchWriter(tableName, 1024 * 1024, 1000L, 4);
     shellState.printLines(new DeleterFormatter(writer, scanner, cl.hasOption(timestampOpt.getOpt()), shellState, cl.hasOption(forceOpt.getOpt())), false);
     
     return 0;
@@ -64,7 +64,7 @@ public class DeleteManyCommand extends ScanCommand {
   @Override
   public Options getOptions() {
     forceOpt = new Option("f", "force", false, "force deletion without prompting");
-    Options opts = super.getOptions();
+    final Options opts = super.getOptions();
     opts.addOption(forceOpt);
     opts.addOption(OptUtil.tableOpt("table to delete entries from"));
     return opts;

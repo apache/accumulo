@@ -24,11 +24,11 @@ import org.apache.accumulo.core.iterators.user.RegExFilter;
 
 public class EGrepCommand extends GrepCommand {
   @Override
-  protected void setUpIterator(int prio, String name, String term, BatchScanner scanner) throws IOException {
-    if (prio < 0)
+  protected void setUpIterator(final int prio, final String name, final String term, final BatchScanner scanner) throws IOException {
+    if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
-    
-    IteratorSetting si = new IteratorSetting(prio, name, RegExFilter.class);
+    }
+    final IteratorSetting si = new IteratorSetting(prio, name, RegExFilter.class);
     RegExFilter.setRegexs(si, term, term, term, term, true);
     scanner.addScanIterator(si);
   }
