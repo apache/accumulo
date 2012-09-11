@@ -29,13 +29,14 @@ public abstract class OptUtil {
   public static final String START_ROW_OPT = "b";
   public static final String END_ROW_OPT = "e";
   
-  public static String getTableOpt(CommandLine cl, Shell shellState) throws TableNotFoundException {
+  public static String getTableOpt(final CommandLine cl, final Shell shellState) throws TableNotFoundException {
     String tableName;
     
     if (cl.hasOption(Shell.tableOption)) {
       tableName = cl.getOptionValue(Shell.tableOption);
-      if (!shellState.getConnector().tableOperations().exists(tableName))
+      if (!shellState.getConnector().tableOperations().exists(tableName)) {
         throw new TableNotFoundException(tableName, tableName, "specified table that doesn't exist");
+      }
     } else {
       shellState.checkTableState();
       tableName = shellState.getTableName();
@@ -48,8 +49,8 @@ public abstract class OptUtil {
     return tableOpt("tableName");
   }
   
-  public static Option tableOpt(String description) {
-    Option tableOpt = new Option(Shell.tableOption, "table", true, description);
+  public static Option tableOpt(final String description) {
+    final Option tableOpt = new Option(Shell.tableOption, "table", true, description);
     tableOpt.setArgName("table");
     tableOpt.setRequired(false);
     return tableOpt;
@@ -65,7 +66,7 @@ public abstract class OptUtil {
     }
   }
   
-  public static AdlOpt getAldOpt(CommandLine cl) {
+  public static AdlOpt getAldOpt(final CommandLine cl) {
     if (cl.hasOption(AdlOpt.ADD.opt)) {
       return AdlOpt.ADD;
     } else if (cl.hasOption(AdlOpt.DELETE.opt)) {
@@ -75,11 +76,11 @@ public abstract class OptUtil {
     }
   }
   
-  public static OptionGroup addListDeleteGroup(String name) {
-    Option addOpt = new Option(AdlOpt.ADD.opt, "add", false, "add " + name);
-    Option deleteOpt = new Option(AdlOpt.DELETE.opt, "delete", false, "delete " + name);
-    Option listOpt = new Option(AdlOpt.LIST.opt, "list", false, "list " + name + "(s)");
-    OptionGroup og = new OptionGroup();
+  public static OptionGroup addListDeleteGroup(final String name) {
+    final Option addOpt = new Option(AdlOpt.ADD.opt, "add", false, "add " + name);
+    final Option deleteOpt = new Option(AdlOpt.DELETE.opt, "delete", false, "delete " + name);
+    final Option listOpt = new Option(AdlOpt.LIST.opt, "list", false, "list " + name + "(s)");
+    final OptionGroup og = new OptionGroup();
     og.addOption(addOpt);
     og.addOption(deleteOpt);
     og.addOption(listOpt);
@@ -88,28 +89,30 @@ public abstract class OptUtil {
   }
   
   public static Option startRowOpt() {
-    Option o = new Option(START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
+    final Option o = new Option(START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
     o.setArgName("begin-row");
     return o;
   }
   
   public static Option endRowOpt() {
-    Option o = new Option(END_ROW_OPT, "end-row", true, "end row (inclusive)");
+    final Option o = new Option(END_ROW_OPT, "end-row", true, "end row (inclusive)");
     o.setArgName("end-row");
     return o;
   }
   
-  public static Text getStartRow(CommandLine cl) throws UnsupportedEncodingException {
-    if (cl.hasOption(START_ROW_OPT))
+  public static Text getStartRow(final CommandLine cl) throws UnsupportedEncodingException {
+    if (cl.hasOption(START_ROW_OPT)) {
       return new Text(cl.getOptionValue(START_ROW_OPT).getBytes(Shell.CHARSET));
-    else
+    } else {
       return null;
+    }
   }
   
-  public static Text getEndRow(CommandLine cl) throws UnsupportedEncodingException {
-    if (cl.hasOption(END_ROW_OPT))
+  public static Text getEndRow(final CommandLine cl) throws UnsupportedEncodingException {
+    if (cl.hasOption(END_ROW_OPT)) {
       return new Text(cl.getOptionValue(END_ROW_OPT).getBytes(Shell.CHARSET));
-    else
+    } else {
       return null;
+    }
   }
 }

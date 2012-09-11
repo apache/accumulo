@@ -41,15 +41,15 @@ public abstract class ShellPluginConfigurationCommand extends Command {
   
   private String classOpt;
   
-  ShellPluginConfigurationCommand(String typeName, Property tableProp, String classOpt) {
+  ShellPluginConfigurationCommand(final String typeName, final Property tableProp, final String classOpt) {
     this.pluginType = typeName;
     this.tableProp = tableProp;
     this.classOpt = classOpt;
   }
 
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
     
     if (cl.hasOption(removePluginOption.getOpt())) {
       // Remove the property
@@ -58,7 +58,7 @@ public abstract class ShellPluginConfigurationCommand extends Command {
       shellState.getReader().printString("Removed "+pluginType+" on " + tableName + "\n");
     } else if (cl.hasOption(listPluginOption.getOpt())) {
       // Get the options for this table
-      Iterator<Entry<String,String>> iter = shellState.getConnector().tableOperations().getProperties(tableName).iterator();
+      final Iterator<Entry<String,String>> iter = shellState.getConnector().tableOperations().getProperties(tableName).iterator();
       
       while (iter.hasNext()) {
         Entry<String,String> ent = iter.next();
@@ -79,15 +79,15 @@ public abstract class ShellPluginConfigurationCommand extends Command {
     return 0;
   }
 
-  protected void setPlugin(CommandLine cl, Shell shellState, String tableName, String className) throws AccumuloException, AccumuloSecurityException {
+  protected void setPlugin(final CommandLine cl, final Shell shellState, final String tableName, final String className) throws AccumuloException, AccumuloSecurityException {
     shellState.getConnector().tableOperations().setProperty(tableName, tableProp.toString(), className);
   }
   
-  protected void removePlugin(CommandLine cl, Shell shellState, String tableName) throws AccumuloException, AccumuloSecurityException {
+  protected void removePlugin(final CommandLine cl, final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException {
     shellState.getConnector().tableOperations().removeProperty(tableName, tableProp.toString());
   }
   
-  public static <T> Class<? extends T> getPluginClass(String tableName, Shell shellState, Class<T> clazz, Property pluginProp) {
+  public static <T> Class<? extends T> getPluginClass(final String tableName, final Shell shellState, final Class<T> clazz, final Property pluginProp) {
     Iterator<Entry<String,String>> props;
     try {
       props = shellState.getConnector().tableOperations().getProperties(tableName).iterator();
@@ -98,7 +98,7 @@ public abstract class ShellPluginConfigurationCommand extends Command {
     }
     
     while (props.hasNext()) {
-      Entry<String,String> ent = props.next();
+      final Entry<String,String> ent = props.next();
       if (ent.getKey().equals(pluginProp.toString())) {
         Class<? extends T> pluginClazz;
         try {
@@ -117,8 +117,8 @@ public abstract class ShellPluginConfigurationCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
-    OptionGroup actionGroup = new OptionGroup();
+    final Options o = new Options();
+    final OptionGroup actionGroup = new OptionGroup();
     
     pluginClassOption = new Option(classOpt, pluginType, true, "fully qualified name of the " + pluginType + " class to use");
     pluginClassOption.setArgName("className");

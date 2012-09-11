@@ -31,14 +31,16 @@ public class TablesCommand extends Command {
   private Option tableIdOption;
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
     if (cl.hasOption(tableIdOption.getOpt())) {
-      Map<String,String> tableIds = shellState.getConnector().tableOperations().tableIdMap();
-      for (String tableName : shellState.getConnector().tableOperations().list())
+      final Map<String,String> tableIds = shellState.getConnector().tableOperations().tableIdMap();
+      for (String tableName : shellState.getConnector().tableOperations().list()) {
         shellState.getReader().printString(String.format("%-15s => %10s%n", tableName, tableIds.get(tableName)));
+      }
     } else {
-      for (String table : shellState.getConnector().tableOperations().list())
+      for (String table : shellState.getConnector().tableOperations().list()) {
         shellState.getReader().printString(table + "\n");
+      }
     }
     return 0;
   }
@@ -50,7 +52,7 @@ public class TablesCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     tableIdOption = new Option("l", "list-ids", false, "display internal table ids along with the table name");
     o.addOption(tableIdOption);
     return o;

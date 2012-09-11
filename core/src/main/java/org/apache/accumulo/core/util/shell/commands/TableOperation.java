@@ -36,18 +36,20 @@ public abstract class TableOperation extends Command {
   private boolean force = true;
   private boolean useCommandLine = true;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     // populate the tableSet set with the tables you want to operate on
-    SortedSet<String> tableSet = new TreeSet<String>();
+    final SortedSet<String> tableSet = new TreeSet<String>();
     if (cl.hasOption(optTablePattern.getOpt())) {
       for (String table : shellState.getConnector().tableOperations().list())
-        if (table.matches(cl.getOptionValue(optTablePattern.getOpt())))
+        if (table.matches(cl.getOptionValue(optTablePattern.getOpt()))) {
           tableSet.add(table);
+        }
     } else if (cl.hasOption(optTableName.getOpt())) {
       tableSet.add(cl.getOptionValue(optTableName.getOpt()));
     } else if (useCommandLine && cl.getArgs().length > 0) {
-      for (String tableName : cl.getArgs())
+      for (String tableName : cl.getArgs()) {
         tableSet.add(tableName);
+      }
     } else {
       shellState.checkTableState();
       tableSet.add(shellState.getTableName());
@@ -59,10 +61,12 @@ public abstract class TableOperation extends Command {
     boolean more = true;
     // flush the tables
     for (String tableName : tableSet) {
-      if (!more)
+      if (!more) {
         break;
-      if (!shellState.getConnector().tableOperations().exists(tableName))
+      }
+      if (!shellState.getConnector().tableOperations().exists(tableName)) {
         throw new TableNotFoundException(null, tableName, null);
+      }
       boolean operate = true;
       if (!force) {
         shellState.getReader().flushConsole();
@@ -70,8 +74,9 @@ public abstract class TableOperation extends Command {
         more = line != null;
         operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
       }
-      if (operate)
+      if (operate) {
         doTableOp(shellState, tableName);
+      }
     }
     
     return 0;
@@ -86,7 +91,7 @@ public abstract class TableOperation extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     
     optTablePattern = new Option("p", "pattern", true, "regex pattern of table names to operate on");
     optTablePattern.setArgName("pattern");
@@ -94,7 +99,7 @@ public abstract class TableOperation extends Command {
     optTableName = new Option(Shell.tableOption, "table", true, "name of a table to operate on");
     optTableName.setArgName("tableName");
     
-    OptionGroup opg = new OptionGroup();
+    final OptionGroup opg = new OptionGroup();
     
     opg.addOption(optTablePattern);
     opg.addOption(optTableName);
@@ -106,10 +111,7 @@ public abstract class TableOperation extends Command {
   
   @Override
   public int numArgs() {
-    if (useCommandLine)
-      return Shell.NO_FIXED_ARG_LENGTH_CHECK;
-    else
-      return 0;
+    return useCommandLine ? Shell.NO_FIXED_ARG_LENGTH_CHECK : 0;
   }
   
   protected void force() {
@@ -130,7 +132,7 @@ public abstract class TableOperation extends Command {
   }
   
   @Override
-  public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> special) {
+  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
     if (useCommandLine)
       registerCompletionForTables(root, special);
   }

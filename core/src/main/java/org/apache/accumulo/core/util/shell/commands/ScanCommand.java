@@ -49,16 +49,16 @@ public class ScanCommand extends Command {
   private Option optStartRowExclusive;
   private Option optEndRowExclusive;
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
     
-    Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
-    ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
+    final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
+    final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
     
     // handle first argument, if present, the authorizations list to
     // scan with
-    Authorizations auths = getAuths(cl, shellState);
-    Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
+    final Authorizations auths = getAuths(cl, shellState);
+    final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
     
     // handle session-specific scan iterators
     addScanIterators(shellState, scanner, tableName);
@@ -71,9 +71,9 @@ public class ScanCommand extends Command {
     
     // output the records
     if (cl.hasOption(showFewOpt.getOpt())) {
-      String showLength = cl.getOptionValue(showFewOpt.getOpt());
+      final String showLength = cl.getOptionValue(showFewOpt.getOpt());
       try {
-        int length = Integer.parseInt(showLength);
+        final int length = Integer.parseInt(showLength);
         if (length < 1) {
           throw new IllegalArgumentException();
         }
@@ -92,8 +92,8 @@ public class ScanCommand extends Command {
     return 0;
   }
   
-  protected void addScanIterators(Shell shellState, Scanner scanner, String tableName) {
-    List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
+  protected void addScanIterators(final Shell shellState, final Scanner scanner, final String tableName) {
+    final List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
     if (tableScanIterators == null) {
       Shell.log.debug("Found no scan iterators to set");
       return;
@@ -110,15 +110,15 @@ public class ScanCommand extends Command {
     }
   }
   
-  protected void printRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner, Class<? extends Formatter> formatter) throws IOException {
+  protected void printRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner, final Class<? extends Formatter> formatter) throws IOException {
     shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), formatter);
   }
   
-  protected void printBinaryRecords(CommandLine cl, Shell shellState, Iterable<Entry<Key,Value>> scanner) throws IOException {
+  protected void printBinaryRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner) throws IOException {
     shellState.printBinaryRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
   }
   
-  protected ScanInterpreter getInterpreter(CommandLine cl, String tableName, Shell shellState) throws Exception {
+  protected ScanInterpreter getInterpreter(final CommandLine cl, final String tableName, final Shell shellState) throws Exception {
     
     Class<? extends ScanInterpreter> clazz = null;
     try {
@@ -140,7 +140,7 @@ public class ScanCommand extends Command {
     return clazz.newInstance();
   }
 
-  protected Class<? extends Formatter> getFormatter(CommandLine cl, String tableName, Shell shellState) throws IOException {
+  protected Class<? extends Formatter> getFormatter(final CommandLine cl, final String tableName, final Shell shellState) throws IOException {
     
     try {
       if (cl.hasOption(formatterOpt.getOpt())) {
@@ -156,20 +156,21 @@ public class ScanCommand extends Command {
     return shellState.getFormatter(tableName);
   }
   
-  protected void fetchColumns(CommandLine cl, ScannerBase scanner, ScanInterpreter formatter) throws UnsupportedEncodingException {
+  protected void fetchColumns(final CommandLine cl, final ScannerBase scanner, final ScanInterpreter formatter) throws UnsupportedEncodingException {
     if (cl.hasOption(scanOptColumns.getOpt())) {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
-        String sa[] = a.split(":", 2);
-        if (sa.length == 1)
+        final String sa[] = a.split(":", 2);
+        if (sa.length == 1) {
           scanner.fetchColumnFamily(formatter.interpretColumnFamily(new Text(a.getBytes(Shell.CHARSET))));
-        else
+        } else {
           scanner.fetchColumn(formatter.interpretColumnFamily(new Text(sa[0].getBytes(Shell.CHARSET))),
               formatter.interpretColumnQualifier(new Text(sa[1].getBytes(Shell.CHARSET))));
+        }
       }
     }
   }
   
-  protected Range getRange(CommandLine cl, ScanInterpreter formatter) throws UnsupportedEncodingException {
+  protected Range getRange(final CommandLine cl, final ScanInterpreter formatter) throws UnsupportedEncodingException {
     if ((cl.hasOption(OptUtil.START_ROW_OPT) || cl.hasOption(OptUtil.END_ROW_OPT)) && cl.hasOption(scanOptRow.getOpt())) {
       // did not see a way to make commons cli do this check... it has mutually exclusive options but does not support the or
       throw new IllegalArgumentException("Options -" + scanOptRow.getOpt() + " AND (-" + OptUtil.START_ROW_OPT + " OR -" + OptUtil.END_ROW_OPT
@@ -185,14 +186,14 @@ public class ScanCommand extends Command {
       Text endRow = OptUtil.getEndRow(cl);
       if (endRow != null)
         endRow = formatter.interpretEndRow(endRow);
-      boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
-      boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
+      final boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
+      final boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
       return new Range(startRow, startInclusive, endRow, endInclusive);
     }
   }
   
-  protected Authorizations getAuths(CommandLine cl, Shell shellState) throws AccumuloSecurityException, AccumuloException {
-    String user = shellState.getConnector().whoami();
+  protected Authorizations getAuths(final CommandLine cl, final Shell shellState) throws AccumuloSecurityException, AccumuloException {
+    final String user = shellState.getConnector().whoami();
     Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
     if (cl.hasOption(scanOptAuths.getOpt())) {
       auths = CreateUserCommand.parseAuthorizations(cl.getOptionValue(scanOptAuths.getOpt()));
@@ -207,7 +208,7 @@ public class ScanCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     
     scanOptAuths = new Option("s", "scan-authorizations", true, "scan authorizations (all user auths are used if this argument is not specified)");
     optStartRowExclusive = new Option("be", "begin-exclusive", false, "make start row exclusive (by default it's inclusive)");

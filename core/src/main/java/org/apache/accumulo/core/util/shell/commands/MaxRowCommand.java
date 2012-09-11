@@ -25,21 +25,22 @@ import org.apache.hadoop.io.Text;
 
 public class MaxRowCommand extends ScanCommand {
   
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
     
-    ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
+    final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
     
-    Range range = getRange(cl, interpeter);
-    Authorizations auths = getAuths(cl, shellState);
-    Text startRow = range.getStartKey() == null ? null : range.getStartKey().getRow();
-    Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
+    final Range range = getRange(cl, interpeter);
+    final Authorizations auths = getAuths(cl, shellState);
+    final Text startRow = range.getStartKey() == null ? null : range.getStartKey().getRow();
+    final Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
     
     try {
-      Text max = shellState.getConnector().tableOperations()
+      final Text max = shellState.getConnector().tableOperations()
           .getMaxRow(tableName, auths, startRow, range.isStartKeyInclusive(), endRow, range.isEndKeyInclusive());
-      if (max != null)
+      if (max != null) {
         shellState.getReader().printString(max.toString() + "\n");
+      }
     } catch (Exception e) {
       e.printStackTrace();
     }

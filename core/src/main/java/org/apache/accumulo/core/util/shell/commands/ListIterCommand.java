@@ -34,18 +34,18 @@ public class ListIterCommand extends Command {
   private Map<IteratorScope,Option> scopeOpts;
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
     
-    Map<String,EnumSet<IteratorScope>> iterators = shellState.getConnector().tableOperations().listIterators(tableName);
+    final Map<String,EnumSet<IteratorScope>> iterators = shellState.getConnector().tableOperations().listIterators(tableName);
     
     if (cl.hasOption(nameOpt.getOpt())) {
-      String name = cl.getOptionValue(nameOpt.getOpt());
+      final String name = cl.getOptionValue(nameOpt.getOpt());
       if (!iterators.containsKey(name)) {
         Shell.log.warn("no iterators found that match your criteria");
         return 0;
       }
-      EnumSet<IteratorScope> scopes = iterators.get(name);
+      final EnumSet<IteratorScope> scopes = iterators.get(name);
       iterators.clear();
       iterators.put(name, scopes);
     }
@@ -55,10 +55,10 @@ public class ListIterCommand extends Command {
       if (cl.hasOption(scopeOpts.get(scope).getOpt()))
         hasScope = true;
     }
-    if (!hasScope)
+    if (!hasScope) {
       throw new IllegalArgumentException("You must select at least one scope to configure");
-    
-    StringBuilder sb = new StringBuilder("-\n");
+    }    
+    final StringBuilder sb = new StringBuilder("-\n");
     for (String name : iterators.keySet()) {
       for (IteratorScope scope : iterators.get(name)) {
         if (cl.hasOption(scopeOpts.get(scope).getOpt())) {
@@ -89,7 +89,7 @@ public class ListIterCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     
     nameOpt = new Option("n", "name", true, "iterator to list");
     nameOpt.setArgName("itername");
