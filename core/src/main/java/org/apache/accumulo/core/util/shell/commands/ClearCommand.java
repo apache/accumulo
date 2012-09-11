@@ -29,11 +29,11 @@ public class ClearCommand extends Command {
   }
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws IOException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
     // custom clear screen, so I don't have to redraw the prompt twice
-    if (!shellState.getReader().getTerminal().isANSISupported())
+    if (!shellState.getReader().getTerminal().isANSISupported()) {
       throw new IOException("Terminal does not support ANSI commands");
-    
+    }
     // send the ANSI code to clear the screen
     shellState.getReader().printString(((char) 27) + "[2J");
     shellState.getReader().flushConsole();

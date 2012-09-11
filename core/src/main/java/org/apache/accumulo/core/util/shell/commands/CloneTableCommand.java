@@ -39,11 +39,11 @@ public class CloneTableCommand extends Command {
   private Option noFlushOption;
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TableExistsException {
     
-    HashMap<String,String> props = new HashMap<String,String>();
-    HashSet<String> exclude = new HashSet<String>();
+    final HashMap<String,String> props = new HashMap<String,String>();
+    final HashSet<String> exclude = new HashSet<String>();
     boolean flush = true;
     
     if (cl.hasOption(setPropsOption.getOpt())) {
@@ -56,8 +56,9 @@ public class CloneTableCommand extends Command {
     
     if (cl.hasOption(excludePropsOption.getOpt())) {
       String[] keys = cl.getOptionValue(excludePropsOption.getOpt()).split(",");
-      for (String key : keys)
+      for (String key : keys) {
         exclude.add(key);
+      }
     }
     
     if (cl.hasOption(noFlushOption.getOpt())) {
@@ -78,13 +79,13 @@ public class CloneTableCommand extends Command {
     return "clones a table";
   }
   
-  public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> completionSet) {
+  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
     registerCompletionForTables(root, completionSet);
   }
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     setPropsOption = new Option("s", "set", true, "set initial properties before the table comes online. Expects <prop>=<value>{,<prop>=<value>}");
     o.addOption(setPropsOption);
     excludePropsOption = new Option("e", "exclude", true, "exclude properties that should not be copied from source table. Expects <prop>{,<prop>}");

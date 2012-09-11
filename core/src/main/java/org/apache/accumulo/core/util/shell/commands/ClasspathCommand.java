@@ -23,7 +23,7 @@ import org.apache.commons.cli.CommandLine;
 
 public class ClasspathCommand extends Command {
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) {
     AccumuloClassLoader.printClassPath();
     return 0;
   }

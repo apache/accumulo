@@ -50,14 +50,14 @@ public class FormatterCommandTest {
     // Keep the Shell AUDIT log off the test output
     Logger.getLogger(Shell.class).setLevel(Level.WARN);
     
-    String[] args = new String[] {"-fake", "-u", "root", "-p", "passwd"};
+    final String[] args = new String[] {"-fake", "-u", "root", "-p", "passwd"};
    
-    String[] commands = createCommands();
+    final String[] commands = createCommands();
     
     in = MockShell.makeCommands(commands);
     writer = new StringWriter();
     
-    MockShell shell = new MockShell(in, writer);
+    final MockShell shell = new MockShell(in, writer);
     shell.config(args);
     
     // Can't call createtable in the shell with MockAccumulo
@@ -66,24 +66,23 @@ public class FormatterCommandTest {
     try {
       shell.start();
     } catch (Exception e) {
-      System.err.println(e.getMessage());
       Assert.fail("Exception while running commands: " + e.getMessage());
     } 
     
     shell.getReader().flushConsole();
     
-    String[] output = StringUtils.split(writer.toString(), '\n');
+    final String[] output = StringUtils.split(writer.toString(), '\n');
    
     boolean formatterOn = false;
     
-    String[] expectedDefault = new String[] {
+    final String[] expectedDefault = new String[] {
         "row cf:cq []    1234abcd",
         "row cf1:cq1 []    9876fedc",
         "row2 cf:cq []    13579bdf",
         "row2 cf1:cq []    2468ace"
     };
     
-    String[] expectedFormatted = new String[] {
+    final String[] expectedFormatted = new String[] {
         "row cf:cq []    0x31 0x32 0x33 0x34 0x61 0x62 0x63 0x64",
         "row cf1:cq1 []    0x39 0x38 0x37 0x36 0x66 0x65 0x64 0x63",
         "row2 cf:cq []    0x31 0x33 0x35 0x37 0x39 0x62 0x64 0x66",
@@ -92,7 +91,7 @@ public class FormatterCommandTest {
     
     int outputIndex = 0;
     while (outputIndex < output.length) {
-      String line = output[outputIndex];
+      final String line = output[outputIndex];
       
       if (line.startsWith("root@mock-instance")) {
         if (line.contains("formatter -t test -f org.apache.accumulo.core.util.shell.command.FormatterCommandTest$HexFormatter")) {
@@ -112,10 +111,8 @@ public class FormatterCommandTest {
         }
         
         // Ensure each output is what we expected
-        while (expectedIndex + outputIndex < output.length &&
-            expectedIndex < expectedFormatted.length) {
+        while (expectedIndex + outputIndex < output.length && expectedIndex < expectedFormatted.length) {
           Assert.assertEquals(comparisonData[expectedIndex].trim(), output[expectedIndex + outputIndex].trim());
-          
           expectedIndex++;
         }
         
@@ -148,8 +145,8 @@ public class FormatterCommandTest {
     private Iterator<Entry<Key, Value>> iter = null;
     private boolean printTs = false;
 
-    private final String tab = "\t";
-    private final String newline = "\n";
+    private final static String tab = "\t";
+    private final static String newline = "\n";
     
     public HexFormatter() {}
     
@@ -166,7 +163,7 @@ public class FormatterCommandTest {
      */
     @Override
     public String next() {
-      Entry<Key, Value> entry = iter.next();
+      final Entry<Key, Value> entry = iter.next();
       
       String key;
       
@@ -177,16 +174,16 @@ public class FormatterCommandTest {
         key = entry.getKey().toStringNoTime();
       }
       
-      Value v = entry.getValue();
+      final Value v = entry.getValue();
       
       // Approximate how much space we'll need
-      StringBuilder sb = new StringBuilder(key.length() + v.getSize() * 5); 
+      final StringBuilder sb = new StringBuilder(key.length() + v.getSize() * 5); 
       
       sb.append(key).append(tab);
       
       for (byte b : v.get()) {
         if ((b >= 48 && b <= 57) || (b >= 97 || b <= 102)) {
-          sb.append(String.format("0x%x ", new Integer(b)));
+          sb.append(String.format("0x%x ", Integer.valueOf(b)));
         }
       }
       
@@ -200,14 +197,13 @@ public class FormatterCommandTest {
      */
     @Override
     public void remove() {
-      return;
     }
 
     /* (non-Javadoc)
      * @see org.apache.accumulo.core.util.format.Formatter#initialize(java.lang.Iterable, boolean)
      */
     @Override
-    public void initialize(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps) {
+    public void initialize(final Iterable<Entry<Key,Value>> scanner, final boolean printTimestamps) {
       this.iter = scanner.iterator();
       this.printTs = printTimestamps;
     }
