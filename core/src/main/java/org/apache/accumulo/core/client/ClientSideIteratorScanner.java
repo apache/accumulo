@@ -72,12 +72,12 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
      * @param scanner
      *          the scanner to iterate over
      */
-    public ScannerTranslator(Scanner scanner) {
+    public ScannerTranslator(final Scanner scanner) {
       this.scanner = scanner;
     }
     
     @Override
-    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    public void init(final SortedKeyValueIterator<Key,Value> source, final Map<String,String> options, final IteratorEnvironment env) throws IOException {
       throw new UnsupportedOperationException();
     }
     
@@ -95,9 +95,10 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     }
     
     @Override
-    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
-      if (!inclusive && columnFamilies.size() > 0)
+    public void seek(final Range range, final Collection<ByteSequence> columnFamilies, final boolean inclusive) throws IOException {
+      if (!inclusive && columnFamilies.size() > 0) {
         throw new IllegalArgumentException();
+      }
       scanner.setRange(range);
       scanner.clearColumns();
       for (ByteSequence colf : columnFamilies) {
@@ -118,7 +119,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     }
     
     @Override
-    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    public SortedKeyValueIterator<Key,Value> deepCopy(final IteratorEnvironment env) {
       return new ScannerTranslator(scanner);
     }
   }
@@ -131,7 +132,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
    * @param scanner
    *          the source scanner
    */
-  public ClientSideIteratorScanner(Scanner scanner) {
+  public ClientSideIteratorScanner(final Scanner scanner) {
     smi = new ScannerTranslator(scanner);
     this.range = scanner.getRange();
     this.size = scanner.getBatchSize();
@@ -143,7 +144,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
    * 
    * @param scanner
    */
-  public void setSource(Scanner scanner) {
+  public void setSource(final Scanner scanner) {
     smi = new ScannerTranslator(scanner);
   }
   
@@ -156,7 +157,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     else
       smi.scanner.disableIsolation();
     
-    TreeMap<Integer,IterInfo> tm = new TreeMap<Integer,IterInfo>();
+    final TreeMap<Integer,IterInfo> tm = new TreeMap<Integer,IterInfo>();
     
     for (IterInfo iterInfo : serverSideIteratorList) {
       tm.put(iterInfo.getPriority(), iterInfo);
@@ -166,7 +167,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     try {
       skvi = IteratorUtil.loadIterators(smi, tm.values(), serverSideIteratorOptions, new IteratorEnvironment() {
         @Override
-        public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
+        public SortedKeyValueIterator<Key,Value> reserveMapFileReader(final String mapFileName) throws IOException {
           return null;
         }
         
@@ -186,13 +187,13 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
         }
         
         @Override
-        public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {}
+        public void registerSideChannel(final SortedKeyValueIterator<Key,Value> iter) {}
       }, false);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
     
-    Set<ByteSequence> colfs = new TreeSet<ByteSequence>();
+    final Set<ByteSequence> colfs = new TreeSet<ByteSequence>();
     for (Column c : this.getFetchedColumns()) {
       colfs.add(new ArrayByteSequence(c.getColumnFamily()));
     }
@@ -207,7 +208,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   }
   
   @Override
-  public void setTimeOut(int timeOut) {
+  public void setTimeOut(final int timeOut) {
     this.timeOut = timeOut;
   }
   
@@ -217,7 +218,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   }
   
   @Override
-  public void setRange(Range range) {
+  public void setRange(final Range range) {
     this.range = range;
   }
   
@@ -227,7 +228,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   }
   
   @Override
-  public void setBatchSize(int size) {
+  public void setBatchSize(final int size) {
     this.size = size;
   }
   

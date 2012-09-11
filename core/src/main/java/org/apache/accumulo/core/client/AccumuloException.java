@@ -28,7 +28,7 @@ public class AccumuloException extends Exception {
    * @param why
    *          is the reason for the error being thrown
    */
-  public AccumuloException(String why) {
+  public AccumuloException(final String why) {
     super(why);
   }
   
@@ -36,7 +36,7 @@ public class AccumuloException extends Exception {
    * @param cause
    *          is the exception that this exception wraps
    */
-  public AccumuloException(Throwable cause) {
+  public AccumuloException(final Throwable cause) {
     super(cause);
   }
   
@@ -46,7 +46,7 @@ public class AccumuloException extends Exception {
    * @param cause
    *          is the exception that this exception wraps
    */
-  public AccumuloException(String why, Throwable cause) {
+  public AccumuloException(final String why, final Throwable cause) {
     super(why, cause);
   }
   
