@@ -19,7 +19,8 @@ DESC="Accumulo Master"
 NAME=accumulo-master
 ACCUMULO_PROC=master
 DAEMON=/usr/lib/accumulo/bin/start-server.sh
-DAEMON_ARGS="localhost master"
+IP=`ifconfig | grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1`
+DAEMON_ARGS="$IP master"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 

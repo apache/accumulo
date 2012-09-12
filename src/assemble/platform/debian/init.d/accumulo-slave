@@ -20,7 +20,8 @@ NAME=accumulo-slave
 ACCUMULO_PROC1=tserver
 ACCUMULO_PROC2=logger
 DAEMON=/usr/lib/accumulo/bin/start-server.sh
-DAEMON_ARGS="localhost master"
+IP=`ifconfig | grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1`
+DAEMON_ARGS="$IP slaves"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
@@ -46,9 +47,9 @@ do_start()
 	#  2 if daemon could not be started
 	
 	if [ "`jps -m | grep $ACCUMULO_PROC1`" -a "`jps -m | grep $ACCUMULO_PROC2`" ] ; then return 1; fi
-	
-	/usr/lib/accumulo/bin/start-server.sh localhost logger
-      	/usr/lib/accumulo/bin/start-server.sh localhost tserver "tablet server"
+
+  /usr/lib/accumulo/bin/start-server.sh $IP logger
+  /usr/lib/accumulo/bin/start-server.sh $IP tserver "tablet server"
 
 	if [ "`jps -m | grep $ACCUMULO_PROC1`" -a "`jps -m | grep $ACCUMULO_PROC2`" ] ; then return 0; fi
 	return 2
@@ -70,7 +71,7 @@ do_stop()
 
 	if [ ! "`jps -m | grep $ACCUMULO_PROC1`" -a ! "`jps -m | grep $ACCUMULO_PROC2`" ] ; then return 1; fi
 
-	/usr/lib/accumulo/bin/accumulo admin stop localhost
+	/usr/lib/accumulo/bin/accumulo admin stop $IP 
 
 	if [ "`jps -m | grep $ACCUMULO_PROC1`" ] ; then jps -m | grep $ACCUMULO_PROC1 | awk '{print $1}' | xargs kill -9; fi
 	if [ "`jps -m | grep $ACCUMULO_PROC2`" ] ; then jps -m | grep $ACCUMULO_PROC2 | awk '{print $1}' | xargs kill -9; fi
