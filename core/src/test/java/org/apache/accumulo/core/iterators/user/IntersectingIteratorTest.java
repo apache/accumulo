@@ -63,15 +63,13 @@ public class IntersectingIteratorTest extends TestCase {
   Text[] searchFamilies;
   boolean[] notFlags;
   
-  static int docid = 0;
+  int docid = 0;
   
   static {
     log.setLevel(Level.OFF);
   }
   
-  static float hitRatio = 0.1f;
-  
-  private synchronized static TreeMap<Key,Value> createSortedMap(int numRows, int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies,
+  private TreeMap<Key,Value> createSortedMap(float hitRatio, int numRows, int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies,
       HashSet<Text> docs, Text[] negatedColumns) {
     Random r = new Random();
     Value v = new Value(new byte[0]);
@@ -115,19 +113,19 @@ public class IntersectingIteratorTest extends TestCase {
     return map;
   }
   
-  private synchronized static SortedKeyValueIterator<Key,Value> createIteratorStack(int numRows, int numDocsPerRow, Text[] columnFamilies,
+  private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows, int numDocsPerRow, Text[] columnFamilies,
       Text[] otherColumnFamilies, HashSet<Text> docs) throws IOException {
     Text nullText[] = new Text[0];
-    return createIteratorStack(numRows, numDocsPerRow, columnFamilies, otherColumnFamilies, docs, nullText);
+    return createIteratorStack(hitRatio, numRows, numDocsPerRow, columnFamilies, otherColumnFamilies, docs, nullText);
   }
   
-  private synchronized static SortedKeyValueIterator<Key,Value> createIteratorStack(int numRows, int numDocsPerRow, Text[] columnFamilies,
+  private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows, int numDocsPerRow, Text[] columnFamilies,
       Text[] otherColumnFamilies, HashSet<Text> docs, Text[] negatedColumns) throws IOException {
-    TreeMap<Key,Value> inMemoryMap = createSortedMap(numRows, numDocsPerRow, columnFamilies, otherColumnFamilies, docs, negatedColumns);
+    TreeMap<Key,Value> inMemoryMap = createSortedMap(hitRatio, numRows, numDocsPerRow, columnFamilies, otherColumnFamilies, docs, negatedColumns);
     return new SortedMapIterator(inMemoryMap);
   }
   
-  private synchronized static void cleanup() throws IOException {
+  private void cleanup() throws IOException {
     docid = 0;
   }
   
@@ -151,8 +149,8 @@ public class IntersectingIteratorTest extends TestCase {
     otherColumnFamilies[2] = new Text("D");
     otherColumnFamilies[3] = new Text("F");
     
-    hitRatio = 0.5f;
-    SortedKeyValueIterator<Key,Value> source = createIteratorStack(NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
+    float hitRatio = 0.5f;
+    SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
     IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(is, columnFamilies);
     IntersectingIterator iter = new IntersectingIterator();
@@ -180,8 +178,8 @@ public class IntersectingIteratorTest extends TestCase {
     otherColumnFamilies[2] = new Text("D");
     otherColumnFamilies[3] = new Text("F");
     
-    hitRatio = 0.5f;
-    SortedKeyValueIterator<Key,Value> source = createIteratorStack(NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
+    float hitRatio = 0.5f;
+    SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
     IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(is, columnFamilies);
     IntersectingIterator iter = new IntersectingIterator();
@@ -212,9 +210,9 @@ public class IntersectingIteratorTest extends TestCase {
     otherColumnFamilies[2] = new Text("D");
     otherColumnFamilies[3] = new Text("F");
     
-    hitRatio = 0.5f;
-    SortedKeyValueIterator<Key,Value> source = createIteratorStack(NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
-    SortedKeyValueIterator<Key,Value> source2 = createIteratorStack(NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
+    float hitRatio = 0.5f;
+    SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
+    SortedKeyValueIterator<Key,Value> source2 = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs);
     ArrayList<SortedKeyValueIterator<Key,Value>> sourceIters = new ArrayList<SortedKeyValueIterator<Key,Value>>();
     sourceIters.add(source);
     sourceIters.add(source2);
@@ -253,8 +251,8 @@ public class IntersectingIteratorTest extends TestCase {
     otherColumnFamilies[2] = new Text("D");
     otherColumnFamilies[3] = new Text("F");
     
-    hitRatio = 0.5f;
-    SortedKeyValueIterator<Key,Value> source = createIteratorStack(NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs, negatedColumns);
+    float hitRatio = 0.5f;
+    SortedKeyValueIterator<Key,Value> source = createIteratorStack(hitRatio, NUM_ROWS, NUM_DOCIDS, columnFamilies, otherColumnFamilies, docs, negatedColumns);
     IteratorSetting is = new IteratorSetting(1, IntersectingIterator.class);
     IntersectingIterator.setColumnFamilies(is, columnFamilies, notFlags);
     IntersectingIterator iter = new IntersectingIterator();

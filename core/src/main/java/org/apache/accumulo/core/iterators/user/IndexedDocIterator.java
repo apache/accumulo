@@ -126,7 +126,7 @@ public class IndexedDocIterator extends IntersectingIterator {
   }
   
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  synchronized public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     if (options.containsKey(indexFamilyOptionName))
       indexColf = new Text(options.get(indexFamilyOptionName));
