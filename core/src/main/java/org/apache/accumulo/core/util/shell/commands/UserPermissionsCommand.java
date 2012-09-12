@@ -39,7 +39,7 @@ public class UserPermissionsCommand extends Command {
     String delim = "";
     shellState.getReader().printString("System permissions: ");
     for (SystemPermission p : SystemPermission.values()) {
-      if (shellState.getConnector().securityOperations().hasSystemPermission(user, p) & p != null) {
+      if (p != null && shellState.getConnector().securityOperations().hasSystemPermission(user, p)) {
         shellState.getReader().printString(delim + "System." + p.name());
         delim = ", ";
       }
