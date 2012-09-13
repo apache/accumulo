@@ -320,17 +320,14 @@ public enum Property {
   
   private static HashSet<String> validTableProperties = null;
   
-  public static boolean isValidTablePropertyKey(String key) {
-    if (validTableProperties == null) {
-      synchronized (Property.class) {
-        if (validTableProperties == null) {
-          HashSet<String> tmp = new HashSet<String>();
-          for (Property p : Property.values())
-            if (!p.getType().equals(PropertyType.PREFIX) && p.getKey().startsWith(Property.TABLE_PREFIX.getKey()))
-              tmp.add(p.getKey());
-          validTableProperties = tmp;
+  public synchronized static boolean isValidTablePropertyKey(String key) {
+      if (validTableProperties == null) {
+  	    validTableProperties = new HashSet<String>();
+        for (Property p : Property.values()) {
+          if (!p.getType().equals(PropertyType.PREFIX) && p.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
+        	  validTableProperties.add(p.getKey());
+          }
         }
-      }
     }
     
     return validTableProperties.contains(key) || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())
