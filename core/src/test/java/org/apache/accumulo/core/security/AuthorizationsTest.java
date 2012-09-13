@@ -35,6 +35,12 @@ public class AuthorizationsTest {
     byte[] array = a.getAuthorizationsArray();
     Authorizations b = new Authorizations(array);
     assertEquals(a, b);
+    
+    // test encoding empty auths
+    a = new Authorizations();
+    array = a.getAuthorizationsArray();
+    b = new Authorizations(array);
+    assertEquals(a, b);
   }
   
 }
