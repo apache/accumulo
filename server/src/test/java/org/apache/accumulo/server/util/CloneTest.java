@@ -23,6 +23,7 @@ import junit.framework.TestCase;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -44,13 +45,13 @@ public class CloneTest extends TestCase {
     Constants.METADATA_TIME_COLUMN.put(mut, new Value("M0".getBytes()));
     Constants.METADATA_DIRECTORY_COLUMN.put(mut, new Value("/default_tablet".getBytes()));
     
-    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     bw1.addMutation(mut);
     
     bw1.close();
     
-    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     MetadataTable.initializeClone("0", "1", conn, bw2);
     
@@ -73,13 +74,13 @@ public class CloneTest extends TestCase {
     Constants.METADATA_DIRECTORY_COLUMN.put(mut, new Value("/default_tablet".getBytes()));
     mut.put(Constants.METADATA_DATAFILE_COLUMN_FAMILY.toString(), "/default_tablet/0_0.rf", "1,200");
     
-    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     bw1.addMutation(mut);
     
     bw1.flush();
     
-    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     MetadataTable.initializeClone("0", "1", conn, bw2);
     
@@ -118,13 +119,13 @@ public class CloneTest extends TestCase {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", "");
     
-    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     bw1.addMutation(createTablet("0", null, null, "/default_tablet", "/default_tablet/0_0.rf"));
     
     bw1.flush();
     
-    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     MetadataTable.initializeClone("0", "1", conn, bw2);
     
@@ -160,13 +161,13 @@ public class CloneTest extends TestCase {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", "");
     
-    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     bw1.addMutation(createTablet("0", null, null, "/default_tablet", "/default_tablet/0_0.rf"));
     
     bw1.flush();
     
-    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     MetadataTable.initializeClone("0", "1", conn, bw2);
     
@@ -231,14 +232,14 @@ public class CloneTest extends TestCase {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", "");
     
-    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
     bw1.addMutation(createTablet("0", null, "m", "/d2", "/d2/file2"));
     
     bw1.flush();
     
-    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     MetadataTable.initializeClone("0", "1", conn, bw2);
     
@@ -278,14 +279,14 @@ public class CloneTest extends TestCase {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", "");
     
-    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
     bw1.addMutation(createTablet("0", null, "m", "/d2", "/d2/file2"));
     
     bw1.flush();
     
-    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     MetadataTable.initializeClone("0", "1", conn, bw2);
     
@@ -342,14 +343,14 @@ public class CloneTest extends TestCase {
     MockInstance mi = new MockInstance();
     Connector conn = mi.getConnector("", "");
     
-    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     bw1.addMutation(createTablet("0", "m", null, "/d1", "/d1/file1"));
     bw1.addMutation(createTablet("0", null, "m", "/d2", "/d2/file2"));
     
     bw1.flush();
     
-    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw2 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     MetadataTable.initializeClone("0", "1", conn, bw2);
     

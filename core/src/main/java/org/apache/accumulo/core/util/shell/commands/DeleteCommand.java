@@ -21,6 +21,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -55,7 +56,8 @@ public class DeleteCommand extends Command {
     } else {
       m.putDelete(colf, colq);
     }
-    final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(), m.estimatedMemoryUsed() + 0L, 0L, 1);
+    final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(),
+        new BatchWriterConfig().setMaxMemory(m.estimatedMemoryUsed()).setMaxWriteThreads(1));
     bw.addMutation(m);
     bw.close();
     return 0;

@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -158,7 +159,7 @@ public class InterferenceTest {
     if (!conn.tableOperations().exists(table))
       conn.tableOperations().create(table);
     
-    Thread writer = new Thread(new Writer(conn.createBatchWriter(table, 10000000, 60000l, 3)));
+    Thread writer = new Thread(new Writer(conn.createBatchWriter(table, new BatchWriterConfig())));
     writer.start();
     Reader r;
     if (Boolean.parseBoolean(args[6]))

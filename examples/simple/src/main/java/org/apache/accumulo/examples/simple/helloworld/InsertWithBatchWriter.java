@@ -19,6 +19,7 @@ package org.apache.accumulo.examples.simple.helloworld;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -49,7 +50,7 @@ public class InsertWithBatchWriter {
     
     ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
     Connector connector = instance.getConnector(user, pass);
-    MultiTableBatchWriter mtbw = connector.createMultiTableBatchWriter(200000l, 300, 4);
+    MultiTableBatchWriter mtbw = connector.createMultiTableBatchWriter(new BatchWriterConfig());
     
     BatchWriter bw = null;
     

@@ -28,6 +28,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -102,7 +103,7 @@ public class DeleteRowsTest extends FunctionalTest {
   private void testSplit(String table, String start, String end, String result, int entries) throws Exception {
     // Put a bunch of rows on each tablet
     this.getConnector().tableOperations().create(table);
-    BatchWriter bw = this.getConnector().createBatchWriter(table, 100000l, 1000l, 2);
+    BatchWriter bw = this.getConnector().createBatchWriter(table, new BatchWriterConfig());
     for (String row : ROWS) {
       for (int j = 0; j < ROWS_PER_TABLET; j++) {
         Mutation m = new Mutation(row + j);

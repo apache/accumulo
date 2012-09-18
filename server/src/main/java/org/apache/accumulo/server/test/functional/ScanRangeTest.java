@@ -20,11 +20,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 import java.util.Map.Entry;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -228,7 +229,7 @@ public class ScanRangeTest extends FunctionalTest {
   
   private void insertData(String table) throws Exception {
     
-    BatchWriter bw = getConnector().createBatchWriter(table, 10000000l, 1000l, 4);
+    BatchWriter bw = getConnector().createBatchWriter(table, new BatchWriterConfig());
     
     for (int i = 0; i < ROW_LIMIT; i++) {
       Mutation m = new Mutation(createRow(i));

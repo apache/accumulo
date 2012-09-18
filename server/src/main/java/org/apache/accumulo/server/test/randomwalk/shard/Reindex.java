@@ -22,6 +22,7 @@ import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -42,7 +43,7 @@ public class Reindex extends Test {
     ShardFixture.createIndexTable(this.log, state, "_tmp", rand);
     
     Scanner scanner = state.getConnector().createScanner(docTableName, Constants.NO_AUTHS);
-    BatchWriter tbw = state.getConnector().createBatchWriter(tmpIndexTableName, 100000000, 60000l, 4);
+    BatchWriter tbw = state.getConnector().createBatchWriter(tmpIndexTableName, new BatchWriterConfig());
     
     int count = 0;
     

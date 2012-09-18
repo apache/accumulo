@@ -27,6 +27,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -81,7 +82,7 @@ public class MetadataBatchScanTest {
     
     if (args[0].equals("write")) {
       
-      BatchWriter bw = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 3);
+      BatchWriter bw = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
       
       for (KeyExtent extent : extents) {
         Mutation mut = extent.getPrevRowUpdateMutation();

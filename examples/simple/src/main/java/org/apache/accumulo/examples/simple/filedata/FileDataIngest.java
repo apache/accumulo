@@ -23,6 +23,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -185,7 +186,7 @@ public class FileDataIngest {
       conn.tableOperations().create(dataTable);
       conn.tableOperations().attachIterator(dataTable, new IteratorSetting(1, ChunkCombiner.class));
     }
-    BatchWriter bw = conn.createBatchWriter(dataTable, 50000000, 300000l, 4);
+    BatchWriter bw = conn.createBatchWriter(dataTable, new BatchWriterConfig());
     FileDataIngest fdi = new FileDataIngest(chunkSize, colvis);
     for (int i = 7; i < args.length; i++) {
       fdi.insertFileData(args[i], bw);

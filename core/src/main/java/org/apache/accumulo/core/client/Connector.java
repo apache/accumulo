@@ -99,12 +99,35 @@ public class Connector {
    * @return BatchDeleter object for configuring and deleting
    * @throws TableNotFoundException
    *           when the specified table doesn't exist
+   * @deprecated As of 1.5, replaced by {@link #createBatchDeleter(String, Authorizations, int, BatchWriterConfig)}
    */
+  @Deprecated
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency,
       int maxWriteThreads) throws TableNotFoundException {
     return impl.createBatchDeleter(tableName, authorizations, numQueryThreads, maxMemory, maxLatency, maxWriteThreads);
   }
   
+  /**
+   * 
+   * @param tableName
+   *          the name of the table to query and delete from
+   * @param authorizations
+   *          A set of authorization labels that will be checked against the column visibility of each key in order to filter data. The authorizations passed in
+   *          must be a subset of the accumulo user's set of authorizations. If the accumulo user has authorizations (A1, A2) and authorizations (A2, A3) are
+   *          passed, then an exception will be thrown.
+   * @param numQueryThreads
+   *          the number of concurrent threads to spawn for querying
+   * @param config
+   *          configuration used to create batch writer
+   * @return BatchDeleter object for configuring and deleting
+   * @throws TableNotFoundException
+   */
+
+  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, BatchWriterConfig config)
+      throws TableNotFoundException {
+    return impl.createBatchDeleter(tableName, authorizations, numQueryThreads, config);
+  }
+
   /**
    * Factory method to create a BatchWriter connected to Accumulo.
    * 
@@ -120,11 +143,28 @@ public class Connector {
    * @return BatchWriter object for configuring and writing data to
    * @throws TableNotFoundException
    *           when the specified table doesn't exist
+   * @deprecated As of 1.5, replaced by {@link #createBatchWriter(String, BatchWriterConfig)}
    */
+  @Deprecated
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
     return impl.createBatchWriter(tableName, maxMemory, maxLatency, maxWriteThreads);
   }
   
+  /**
+   * Factory method to create a BatchWriter connected to Accumulo.
+   * 
+   * @param tableName
+   *          the name of the table to insert data into
+   * @param config
+   *          configuration used to create batch writer
+   * @return BatchWriter object for configuring and writing data to
+   * @throws TableNotFoundException
+   */
+
+  public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException {
+    return impl.createBatchWriter(tableName, config);
+  }
+
   /**
    * Factory method to create a Multi-Table BatchWriter connected to Accumulo. Multi-table batch writers can queue data for multiple tables, which is good for
    * ingesting data into multiple tables from the same source
@@ -137,9 +177,24 @@ public class Connector {
    *          the maximum number of threads to use for writing data to the tablet servers
    * 
    * @return MultiTableBatchWriter object for configuring and writing data to
+   * @deprecated As of 1.5, replaced by {@link #createMultiTableBatchWriter(BatchWriterConfig)}
    */
+  @Deprecated
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
     return impl.createMultiTableBatchWriter(maxMemory, maxLatency, maxWriteThreads);
+  }
+  
+  /**
+   * Factory method to create a Multi-Table BatchWriter connected to Accumulo. Multi-table batch writers can queue data for multiple tables. Also data for
+   * multiple tables can be sent to a server in a single batch. Its an efficient way to ingest data into multiple tables from a single process.
+   * 
+   * @param config
+   *          configuration used to create multi-table batch writer
+   * @return MultiTableBatchWriter object for configuring and writing data to
+   */
+
+  public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
+    return impl.createMultiTableBatchWriter(config);
   }
   
   /**

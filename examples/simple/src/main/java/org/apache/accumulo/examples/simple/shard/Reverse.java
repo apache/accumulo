@@ -20,6 +20,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -54,7 +55,7 @@ public class Reverse {
     Connector conn = zki.getConnector(user, pass.getBytes());
     
     Scanner scanner = conn.createScanner(inTable, Constants.NO_AUTHS);
-    BatchWriter bw = conn.createBatchWriter(outTable, 50000000, 600000l, 4);
+    BatchWriter bw = conn.createBatchWriter(outTable, new BatchWriterConfig());
     
     for (Entry<Key,Value> entry : scanner) {
       Key key = entry.getKey();

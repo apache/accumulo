@@ -20,6 +20,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -41,7 +42,7 @@ public class GCLotsOfCandidatesTest {
   private static void generateCandidates(Connector conn) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       MutationsRejectedException {
     conn.securityOperations().grantTablePermission(conn.whoami(), Constants.METADATA_TABLE_NAME, TablePermission.WRITE);
-    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1L << 20, 0l, 2);
+    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     for (int i = 0; i < 10000; ++i) {
       final Text emptyText = new Text("");

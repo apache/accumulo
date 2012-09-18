@@ -16,9 +16,12 @@
  */
 package org.apache.accumulo.examples.simple.client;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -65,7 +68,8 @@ public class SequentialBatchWriter {
     
     ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
     Connector connector = instance.getConnector(user, pass);
-    BatchWriter bw = connector.createBatchWriter(table, maxMemory, maxLatency, numThreads);
+    BatchWriter bw = connector.createBatchWriter(table, new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
+        .setMaxWriteThreads(numThreads));
     
     long end = start + num;
     

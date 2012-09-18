@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
@@ -256,7 +257,7 @@ public class FileCount {
     inserts = 0;
     
     Scanner scanner = conn.createScanner(table, auths);
-    BatchWriter bw = conn.createBatchWriter(table, 10000000, 60000l, 3);
+    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
     
     long t1 = System.currentTimeMillis();
     

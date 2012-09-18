@@ -29,6 +29,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
@@ -104,7 +105,7 @@ public class AccumuloRowInputFormatTest {
     conn.tableOperations().create("test");
     BatchWriter writer = null; // NOPMD
     try {
-    	writer = conn.createBatchWriter("test", 100000l, 100l, 5);
+      writer = conn.createBatchWriter("test", new BatchWriterConfig());
         insertList(writer, row1);
         insertList(writer, row2);
         insertList(writer, row3);

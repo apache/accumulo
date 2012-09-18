@@ -27,6 +27,7 @@ import java.util.Random;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -75,7 +76,7 @@ public class BloomFilterTest extends FunctionalTest {
     write("bt3", 3, 0, 1000000000, 10000);
     
     // test inserting an empty key
-    BatchWriter bw = getConnector().createBatchWriter("bt4", 1000000l, 60l, 3);
+    BatchWriter bw = getConnector().createBatchWriter("bt4", new BatchWriterConfig());
     Mutation m = new Mutation(new Text(""));
     m.put(new Text(""), new Text(""), new Value("foo1".getBytes()));
     bw.addMutation(m);
@@ -167,7 +168,7 @@ public class BloomFilterTest extends FunctionalTest {
   
   private void write(String table, int depth, long start, long end, int step) throws Exception {
     
-    BatchWriter bw = getConnector().createBatchWriter(table, 1000000l, 60l, 3);
+    BatchWriter bw = getConnector().createBatchWriter(table, new BatchWriterConfig());
     
     for (long i = start; i < end; i += step) {
       String key = String.format("k_%010d", i);

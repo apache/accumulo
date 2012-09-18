@@ -21,6 +21,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -38,19 +39,15 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
   private Instance instance;
   private AuthInfo credentials;
   private String tableId;
-  private long maxMemory;
-  private long maxLatency;
-  private int maxWriteThreads;
+  private BatchWriterConfig bwConfig;
   
-  public TabletServerBatchDeleter(Instance instance, AuthInfo credentials, String tableId, Authorizations authorizations, int numQueryThreads, long maxMemory,
-      long maxLatency, int maxWriteThreads) throws TableNotFoundException {
+  public TabletServerBatchDeleter(Instance instance, AuthInfo credentials, String tableId, Authorizations authorizations, int numQueryThreads,
+      BatchWriterConfig bwConfig) throws TableNotFoundException {
     super(instance, credentials, tableId, authorizations, numQueryThreads);
     this.instance = instance;
     this.credentials = credentials;
     this.tableId = tableId;
-    this.maxMemory = maxMemory;
-    this.maxLatency = maxLatency;
-    this.maxWriteThreads = maxWriteThreads;
+    this.bwConfig = bwConfig;
     super.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, BatchDeleter.class.getName() + ".NOVALUE", SortedKeyIterator.class));
   }
   
@@ -58,7 +55,7 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
   public void delete() throws MutationsRejectedException, TableNotFoundException {
     BatchWriter bw = null;
     try {
-      bw = new BatchWriterImpl(instance, credentials, tableId, maxMemory, maxLatency, maxWriteThreads);
+      bw = new BatchWriterImpl(instance, credentials, tableId, bwConfig);
       Iterator<Entry<Key,Value>> iter = super.iterator();
       while (iter.hasNext()) {
         Entry<Key,Value> next = iter.next();

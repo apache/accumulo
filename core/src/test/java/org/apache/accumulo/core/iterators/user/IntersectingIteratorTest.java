@@ -32,6 +32,7 @@ import junit.framework.TestCase;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -274,7 +275,7 @@ public class IntersectingIteratorTest extends TestCase {
     MockInstance inst = new MockInstance("mockabye");
     Connector connector = inst.getConnector("user", "pass");
     connector.tableOperations().create("index");
-    BatchWriter bw = connector.createBatchWriter("index", 1000, 1000, 1);
+    BatchWriter bw = connector.createBatchWriter("index", new BatchWriterConfig());
     Mutation m = new Mutation("000012");
     m.put("rvy", "5000000000000000", empty);
     m.put("15qh", "5000000000000000", empty);

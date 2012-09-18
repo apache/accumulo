@@ -20,11 +20,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -49,10 +53,40 @@ public class TimeoutTest extends FunctionalTest {
   
   @Override
   public void run() throws Exception {
+    testBatchScannerTimeout();
+    testBatchWriterTimeout();
+  }
 
+  public void testBatchWriterTimeout() throws Exception {
+    Connector conn = getConnector();
+    
+    conn.tableOperations().create("foo1");
+    
+    conn.tableOperations().addConstraint("foo1", SlowConstraint.class.getName());
+    
+    // give constraint time to propogate through zookeeper
+    UtilWaitThread.sleep(250);
+    
+    BatchWriter bw = conn.createBatchWriter("foo1", new BatchWriterConfig().setTimeout(3, TimeUnit.SECONDS));
+    
+    Mutation mut = new Mutation("r1");
+    mut.put("cf1", "cq1", "v1");
+    
+    bw.addMutation(mut);
+    try {
+      bw.close();
+      throw new Exception("batch writer did not timeout");
+    } catch (MutationsRejectedException mre) {
+      if (!(mre.getCause() instanceof TimedOutException)) {
+        throw mre;
+      }
+    }
+  }
+  
+  public void testBatchScannerTimeout() throws Exception {
     getConnector().tableOperations().create("timeout");
     
-    BatchWriter bw = getConnector().createBatchWriter("timeout", 1000000, 60000, 1);
+    BatchWriter bw = getConnector().createBatchWriter("timeout", new BatchWriterConfig());
     
     Mutation m = new Mutation("r1");
     m.put("cf1", "cq1", "v1");
@@ -82,7 +116,7 @@ public class TimeoutTest extends FunctionalTest {
       for (Entry<Key,Value> entry : bs) {
         entry.getKey();
       }
-      throw new Exception("Did not time out");
+      throw new Exception("batch scanner did not time out");
     } catch (TimedOutException toe) {
       // toe.printStackTrace();
     }

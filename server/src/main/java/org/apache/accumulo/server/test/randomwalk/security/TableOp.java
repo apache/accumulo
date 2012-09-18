@@ -27,6 +27,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -134,7 +135,7 @@ public class TableOp extends Test {
         }
         BatchWriter writer;
         try {
-          writer = conn.createBatchWriter(tableName, 9000l, 0l, 1);
+          writer = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxMemory(9000l).setMaxWriteThreads(1));
         } catch (TableNotFoundException tnfe) {
           if (tableExists)
             throw new AccumuloException("Table didn't exist when it should have: " + tableName);

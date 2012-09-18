@@ -21,6 +21,7 @@ import java.util.HashMap;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -71,10 +72,10 @@ public class MultiTableBatchWriterImpl implements MultiTableBatchWriter {
   private HashMap<String,BatchWriter> tableWriters;
   private Instance instance;
   
-  public MultiTableBatchWriterImpl(Instance instance, AuthInfo credentials, long maxMemory, long maxLatency, int maxWriteThreads) {
+  public MultiTableBatchWriterImpl(Instance instance, AuthInfo credentials, BatchWriterConfig config) {
     ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
-    this.bw = new TabletServerBatchWriter(instance, credentials, maxMemory, maxLatency, maxWriteThreads);
+    this.bw = new TabletServerBatchWriter(instance, credentials, config);
     tableWriters = new HashMap<String,BatchWriter>();
     this.closed = false;
   }

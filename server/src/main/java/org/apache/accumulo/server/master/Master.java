@@ -44,6 +44,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -339,9 +340,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
               // add delete entries to metadata table for bulk dirs
               
               log.info("Adding bulk dir delete entries to !METADATA table for upgrade");
-
-              BatchWriter bw = getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 4);
               
+              BatchWriter bw = getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+
               FileStatus[] tables = fs.globStatus(new Path(Constants.getTablesDir(getSystemConfiguration()) + "/*"));
               for (FileStatus tableDir : tables) {
                 FileStatus[] bulkDirs = fs.globStatus(new Path(tableDir.getPath() + "/bulk_*"));
@@ -1632,8 +1633,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           }
         }
         MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
-        
-        BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000000l, 100l, 1);
+        BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME,
+ new BatchWriterConfig());
         try {
           deleteTablets(deleteRange, bw, conn);
         } finally {
@@ -1642,7 +1643,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
         if (followingTablet != null) {
           log.debug("Updating prevRow of " + followingTablet + " to " + range.getPrevEndRow());
-          bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000l, 100l, 1);
+          bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
           try {
             Mutation m = new Mutation(followingTablet.getMetadataEntry());
             Constants.METADATA_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(range.getPrevEndRow()));
@@ -1683,7 +1684,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         long fileCount = 0;
         Connector conn = getConnector();
         // Make file entries in highest tablet
-        bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000000L, 1000L, 1);
+        bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
         Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
         scanner.setRange(scanRange);
         Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);

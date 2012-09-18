@@ -66,7 +66,7 @@ public class ClientSideIteratorTest {
     Instance instance = new MockInstance("local");
     Connector conn = instance.getConnector("root", "".getBytes());
     conn.tableOperations().create("intersect");
-    BatchWriter bw = conn.createBatchWriter("intersect", 1000, 10l, 1);
+    BatchWriter bw = conn.createBatchWriter("intersect", new BatchWriterConfig());
     Mutation m = new Mutation("part1");
     m.put("bar", "doc1", "value");
     m.put("bar", "doc2", "value");
@@ -99,7 +99,7 @@ public class ClientSideIteratorTest {
     conn.tableOperations().removeProperty("table", "table.iterator.scan.vers");
     conn.tableOperations().removeProperty("table", "table.iterator.majc.vers");
     conn.tableOperations().removeProperty("table", "table.iterator.minc.vers");
-    final BatchWriter bw = conn.createBatchWriter("table", 1000, 10l, 1);
+    final BatchWriter bw = conn.createBatchWriter("table", new BatchWriterConfig());
     Mutation m = new Mutation("row1");
     m.put("colf", "colq", 1l, "value");
     m.put("colf", "colq", 2l, "value");

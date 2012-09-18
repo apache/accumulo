@@ -20,7 +20,9 @@ import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -104,9 +106,10 @@ public class State {
   public MultiTableBatchWriter getMultiTableBatchWriter() {
     if (mtbw == null) {
       long maxMem = Long.parseLong(props.getProperty("MAX_MEM"));
-      int maxLatency = Integer.parseInt(props.getProperty("MAX_LATENCY"));
+      long maxLatency = Long.parseLong(props.getProperty("MAX_LATENCY"));
       int numThreads = Integer.parseInt(props.getProperty("NUM_THREADS"));
-      mtbw = connector.createMultiTableBatchWriter(maxMem, maxLatency, numThreads);
+      mtbw = connector.createMultiTableBatchWriter(new BatchWriterConfig().setMaxMemory(maxMem).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
+          .setMaxWriteThreads(numThreads));
     }
     return mtbw;
   }

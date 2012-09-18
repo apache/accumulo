@@ -24,6 +24,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -165,7 +166,7 @@ public class ReadWriteExample {
   }
   
   private void createEntries(boolean delete) throws AccumuloException, TableNotFoundException, MutationsRejectedException {
-    BatchWriter writer = conn.createBatchWriter(getOpt(tableNameOpt, DEFAULT_TABLE_NAME), 10000, Long.MAX_VALUE, 1);
+    BatchWriter writer = conn.createBatchWriter(getOpt(tableNameOpt, DEFAULT_TABLE_NAME), new BatchWriterConfig());
     ColumnVisibility cv = new ColumnVisibility(DEFAULT_AUTHS.replace(',', '|'));
     
     Text cf = new Text("datatypes");

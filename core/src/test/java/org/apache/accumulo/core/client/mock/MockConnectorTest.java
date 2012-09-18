@@ -29,6 +29,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -54,7 +55,7 @@ public class MockConnectorTest {
   public void testSunnyDay() throws Exception {
     Connector c = new MockConnector("root");
     c.tableOperations().create("test");
-    BatchWriter bw = c.createBatchWriter("test", 10000L, 1000L, 4);
+    BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       int r = random.nextInt();
       Mutation m = new Mutation(asText(r));
@@ -98,7 +99,7 @@ public class MockConnectorTest {
     c.tableOperations().attachIterator(table, is);
     String keys[][] = { {"foo", "day", "20080101"}, {"foo", "day", "20080101"}, {"foo", "day", "20080103"}, {"bar", "day", "20080101"},
         {"bar", "day", "20080101"},};
-    BatchWriter bw = c.createBatchWriter("perDayCounts", 1000L, 1000L, 1);
+    BatchWriter bw = c.createBatchWriter("perDayCounts", new BatchWriterConfig());
     for (String elt[] : keys) {
       Mutation m = new Mutation(new Text(elt[0]));
       m.put(new Text(elt[1]), new Text(elt[2]), new Value("1".getBytes()));
@@ -121,7 +122,7 @@ public class MockConnectorTest {
   public void testDelete() throws Exception {
     Connector c = new MockConnector("root");
     c.tableOperations().create("test");
-    BatchWriter bw = c.createBatchWriter("test", 10000L, 1000L, 4);
+    BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
     
     Mutation m1 = new Mutation("r1");
     
@@ -165,14 +166,14 @@ public class MockConnectorTest {
       c.tableOperations().delete("test");
     c.tableOperations().create("test");
     
-    BatchDeleter deleter = c.createBatchDeleter("test", Constants.NO_AUTHS, 2, 10000L, 1000L, 4);
+    BatchDeleter deleter = c.createBatchDeleter("test", Constants.NO_AUTHS, 2, new BatchWriterConfig());
     // first make sure it deletes fine when its empty
     deleter.setRanges(Collections.singletonList(new Range(("r1"))));
     deleter.delete();
     this.checkRemaining(c, "test", 0);
     
     // test deleting just one row
-    BatchWriter writer = c.createBatchWriter("test", 10, 10, 1);
+    BatchWriter writer = c.createBatchWriter("test", new BatchWriterConfig());
     Mutation m = new Mutation("r1");
     m.put("fam", "qual", "value");
     writer.addMutation(m);
@@ -186,7 +187,7 @@ public class MockConnectorTest {
     this.checkRemaining(c, "test", 0);
     
     // test multi row deletes
-    writer = c.createBatchWriter("test", 10, 10, 1);
+    writer = c.createBatchWriter("test", new BatchWriterConfig());
     m = new Mutation("r1");
     m.put("fam", "qual", "value");
     writer.addMutation(m);
@@ -231,7 +232,7 @@ public class MockConnectorTest {
     // test writing to a table that the is being scanned
     Connector c = new MockConnector("root");
     c.tableOperations().create("test");
-    BatchWriter bw = c.createBatchWriter("test", 10000L, 1000L, 4);
+    BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
     
     for (int i = 0; i < 10; i++) {
       Mutation m1 = new Mutation("r" + i);
@@ -283,7 +284,7 @@ public class MockConnectorTest {
     Connector c = new MockConnector("root");
     c.tableOperations().create("a");
     c.tableOperations().create("b");
-    MultiTableBatchWriter bw = c.createMultiTableBatchWriter(10000L, 1000L, 4);
+    MultiTableBatchWriter bw = c.createMultiTableBatchWriter(new BatchWriterConfig());
     Mutation m1 = new Mutation("r1");
     m1.put("cf1", "cq1", 1, "v1");
     BatchWriter b = bw.getBatchWriter("a");
@@ -314,7 +315,7 @@ public class MockConnectorTest {
   public void testUpdate() throws Exception {
     Connector c = new MockConnector("root");
     c.tableOperations().create("test");
-    BatchWriter bw = c.createBatchWriter("test", 1000, 1000l, 1);
+    BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
     
     for (int i = 0; i < 10; i++) {
       Mutation m = new Mutation("r1");

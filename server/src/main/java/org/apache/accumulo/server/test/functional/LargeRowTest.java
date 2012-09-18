@@ -19,12 +19,13 @@ package org.apache.accumulo.server.test.functional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -105,7 +106,7 @@ public class LargeRowTest extends FunctionalTest {
   }
   
   private void basicTest(String table, int expectedSplits) throws Exception {
-    BatchWriter bw = getConnector().createBatchWriter(table, 10000000l, 60l, 3);
+    BatchWriter bw = getConnector().createBatchWriter(table, new BatchWriterConfig());
     
     Random r = new Random();
     byte rowData[] = new byte[ROW_SIZE];

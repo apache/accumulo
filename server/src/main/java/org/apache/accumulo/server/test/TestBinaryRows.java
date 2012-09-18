@@ -23,6 +23,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -91,7 +92,7 @@ public class TestBinaryRows {
       Logger.getLogger(Constants.CORE_PACKAGE_NAME).setLevel(Level.DEBUG);
       
       if (mode.equals("ingest") || mode.equals("delete")) {
-        BatchWriter bw = connector.createBatchWriter(table, 20000000l, 60l, 8);
+        BatchWriter bw = connector.createBatchWriter(table, new BatchWriterConfig());
         boolean delete = mode.equals("delete");
         
         for (long i = 0; i < num; i++) {

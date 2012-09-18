@@ -26,6 +26,7 @@ import junit.framework.Assert;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
@@ -117,7 +118,7 @@ public class TestConfirmDeletes {
     Assert.assertEquals(0, count);
 
     Connector conn = instance.getConnector(auth);
-    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000, 1000, 1);
+    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     for (String line : metadata) {
       String[] parts = line.split(" ");
       String[] columnParts = parts[1].split(":");

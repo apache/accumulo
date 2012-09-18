@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -30,9 +31,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.examples.simple.dirlist.FileCount;
-import org.apache.accumulo.examples.simple.dirlist.Ingest;
-import org.apache.accumulo.examples.simple.dirlist.QueryUtil;
 import org.apache.hadoop.io.Text;
 
 public class CountTest extends TestCase {
@@ -40,7 +38,7 @@ public class CountTest extends TestCase {
     try {
       Connector conn = new MockInstance("counttest").getConnector("root", "".getBytes());
       conn.tableOperations().create("dirlisttable");
-      BatchWriter bw = conn.createBatchWriter("dirlisttable", 1000000l, 100l, 1);
+      BatchWriter bw = conn.createBatchWriter("dirlisttable", new BatchWriterConfig());
       ColumnVisibility cv = new ColumnVisibility();
       // / has 1 dir
       // /local has 2 dirs 1 file

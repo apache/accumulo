@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.mapreduce.InputFormatBase.RangeInputSplit;
@@ -248,7 +249,7 @@ public class AccumuloInputFormatTest {
     MockInstance mockInstance = new MockInstance("testmapinstance");
     Connector c = mockInstance.getConnector("root", new byte[] {});
     c.tableOperations().create("testtable");
-    BatchWriter bw = c.createBatchWriter("testtable", 10000L, 1000L, 4);
+    BatchWriter bw = c.createBatchWriter("testtable", new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
       m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));
@@ -287,7 +288,7 @@ public class AccumuloInputFormatTest {
     MockInstance mockInstance = new MockInstance("testmapinstance");
     Connector c = mockInstance.getConnector("root", new byte[] {});
     c.tableOperations().create("testtable2");
-    BatchWriter bw = c.createBatchWriter("testtable2", 10000L, 1000L, 4);
+    BatchWriter bw = c.createBatchWriter("testtable2", new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
       m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));

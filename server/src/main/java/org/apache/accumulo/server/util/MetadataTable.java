@@ -35,11 +35,13 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -659,7 +661,8 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   public static void deleteTable(String tableId, boolean insertDeletes, AuthInfo credentials, ZooLock lock) throws AccumuloException {
     Scanner ms = new ScannerImpl(HdfsZooInstance.getInstance(), credentials, Constants.METADATA_TABLE_ID, Constants.NO_AUTHS);
     Text tableIdText = new Text(tableId);
-    BatchWriter bw = new BatchWriterImpl(HdfsZooInstance.getInstance(), credentials, Constants.METADATA_TABLE_ID, 1000000, 120000l, 2);
+    BatchWriter bw = new BatchWriterImpl(HdfsZooInstance.getInstance(), credentials, Constants.METADATA_TABLE_ID, new BatchWriterConfig().setMaxMemory(1000000)
+        .setMaxLatency(120000l, TimeUnit.MILLISECONDS).setMaxWriteThreads(2));
     
     // scan metadata for our table and delete everything we find
     Mutation m = null;
@@ -1114,7 +1117,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
   public static void cloneTable(Instance instance, String srcTableId, String tableId) throws Exception {
     
     Connector conn = instance.getConnector(SecurityConstants.getSystemCredentials());
-    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     
     while (true) {
       
@@ -1175,7 +1178,7 @@ public class MetadataTable extends org.apache.accumulo.core.util.MetadataTable {
     Scanner mscanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
     mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
     mscanner.fetchColumnFamily(Constants.METADATA_BULKFILE_COLUMN_FAMILY);
-    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     for (Entry<Key,Value> entry : mscanner) {
       log.debug("Looking at entry " + entry + " with tid " + tid);
       if (Long.parseLong(entry.getValue().toString()) == tid) {

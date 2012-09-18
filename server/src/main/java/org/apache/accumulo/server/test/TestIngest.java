@@ -25,6 +25,7 @@ import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -288,7 +289,7 @@ public class TestIngest {
         writer.startDefaultLocalityGroup();
       } else {
         Connector connector = instance.getConnector(rootCredentials.user, rootCredentials.password);
-        bw = connector.createBatchWriter("test_ingest", 20000000l, 60000l, 10);
+        bw = connector.createBatchWriter("test_ingest", new BatchWriterConfig());
       }
       
       Authenticator authenticator = ZKAuthenticator.getInstance();

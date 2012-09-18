@@ -22,6 +22,7 @@ import java.util.Random;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -87,7 +88,7 @@ public class RandomWriter {
     log.info("starting at " + start + " for user " + args[0]);
     try {
       Connector connector = HdfsZooInstance.getInstance().getConnector(args[0], args[1].getBytes());
-      BatchWriter bw = connector.createBatchWriter(table_name, 50000000l, 10 * 60l, 10);
+      BatchWriter bw = connector.createBatchWriter(table_name, new BatchWriterConfig());
       long num_mutations = Long.parseLong(args[2]);
       log.info("Writing " + num_mutations + " mutations...");
       bw.addMutations(new RandomMutationGenerator(num_mutations));

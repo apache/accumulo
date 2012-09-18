@@ -27,6 +27,7 @@ import junit.framework.TestCase;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -75,7 +76,7 @@ public class ChunkInputFormatTest extends TestCase {
     MockInstance instance = new MockInstance("instance1");
     Connector conn = instance.getConnector("root", "".getBytes());
     conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", 100000l, 100l, 5);
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
@@ -126,7 +127,7 @@ public class ChunkInputFormatTest extends TestCase {
     MockInstance instance = new MockInstance("instance2");
     Connector conn = instance.getConnector("root", "".getBytes());
     conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", 100000l, 100l, 5);
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
@@ -166,7 +167,7 @@ public class ChunkInputFormatTest extends TestCase {
     MockInstance instance = new MockInstance("instance3");
     Connector conn = instance.getConnector("root", "".getBytes());
     conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", 100000l, 100l, 5);
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     for (Entry<Key,Value> e : baddata) {
       Key k = e.getKey();
       Mutation m = new Mutation(k.getRow());

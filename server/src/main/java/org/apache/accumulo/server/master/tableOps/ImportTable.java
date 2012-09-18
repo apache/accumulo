@@ -33,6 +33,7 @@ import java.util.zip.ZipInputStream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.admin.TableOperationsImpl;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -205,7 +206,7 @@ class PopulateMetadataTable extends MasterRepo {
       FileSystem fs = environment.getFileSystem();
       
       mbw = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemCredentials())
-          .createBatchWriter(Constants.METADATA_TABLE_NAME, 1000000, 60000l, 2);
+          .createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
 
       zis = new ZipInputStream(fs.open(path));
       

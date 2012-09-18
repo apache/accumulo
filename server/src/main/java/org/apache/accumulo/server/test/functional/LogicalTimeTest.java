@@ -23,6 +23,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TimeType;
@@ -79,7 +80,7 @@ public class LogicalTimeTest extends FunctionalTest {
     }
     conn.tableOperations().addSplits(table, splitSet);
     
-    BatchWriter bw = conn.createBatchWriter(table, 1000000, 60000l, 1);
+    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
     for (String row : inserts) {
       Mutation m = new Mutation(row);
       m.put("cf", "cq", "v");

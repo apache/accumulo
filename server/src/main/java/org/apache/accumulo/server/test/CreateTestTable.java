@@ -21,6 +21,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -108,7 +109,7 @@ public class CreateTestTable {
       // presplit
       connector.tableOperations().create(table);
       connector.tableOperations().addSplits(table, keys);
-      BatchWriter b = connector.createBatchWriter(table, 10000000l, 1000000l, 10);
+      BatchWriter b = connector.createBatchWriter(table, new BatchWriterConfig());
       
       // populate
       for (int i = 0; i < count; i++) {

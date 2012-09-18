@@ -21,6 +21,7 @@ import java.io.FileReader;
 import java.util.HashSet;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Mutation;
@@ -91,7 +92,7 @@ public class Index {
   private static BatchWriter setupBatchWriter(String instance, String zooKeepers, String table, String user, String pass) throws Exception {
     ZooKeeperInstance zinstance = new ZooKeeperInstance(instance, zooKeepers);
     Connector conn = zinstance.getConnector(user, pass.getBytes());
-    return conn.createBatchWriter(table, 50000000, 300000l, 4);
+    return conn.createBatchWriter(table, new BatchWriterConfig());
   }
   
   public static void main(String[] args) throws Exception {

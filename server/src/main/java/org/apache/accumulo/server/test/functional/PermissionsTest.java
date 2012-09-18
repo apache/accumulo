@@ -30,6 +30,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -343,7 +344,7 @@ public class PermissionsTest {
         // create the test table
         getConnector().tableOperations().create(TEST_TABLE);
         // put in some initial data
-        BatchWriter writer = getConnector().createBatchWriter(TEST_TABLE, 10 * 1024l, 1000l, 1);
+        BatchWriter writer = getConnector().createBatchWriter(TEST_TABLE, new BatchWriterConfig());
         Mutation m = new Mutation(new Text("row"));
         m.put(new Text("cf"), new Text("cq"), new Value("val".getBytes()));
         writer.addMutation(m);
@@ -381,7 +382,7 @@ public class PermissionsTest {
           break;
         case WRITE:
           try {
-            writer = test_user_conn.createBatchWriter(TEST_TABLE, 10 * 1024l, 1000l, 1);
+            writer = test_user_conn.createBatchWriter(TEST_TABLE, new BatchWriterConfig());
             m = new Mutation(new Text("row"));
             m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
             writer.addMutation(m);
@@ -450,7 +451,7 @@ public class PermissionsTest {
             iter.next();
           break;
         case WRITE:
-          writer = test_user_conn.createBatchWriter(TEST_TABLE, 10 * 1024l, 1000l, 1);
+          writer = test_user_conn.createBatchWriter(TEST_TABLE, new BatchWriterConfig());
           m = new Mutation(new Text("row"));
           m.put(new Text("a"), new Text("b"), new Value("c".getBytes()));
           writer.addMutation(m);

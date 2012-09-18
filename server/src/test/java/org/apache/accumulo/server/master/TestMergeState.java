@@ -25,6 +25,7 @@ import java.util.Set;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -79,7 +80,7 @@ public class TestMergeState {
   }
   
   private static void update(Connector c, Mutation m) throws TableNotFoundException, MutationsRejectedException {
-    BatchWriter bw = c.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000l, 1000l, 1);
+    BatchWriter bw = c.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     bw.addMutation(m);
     bw.close();
   }
@@ -88,7 +89,7 @@ public class TestMergeState {
   public void test() throws Exception {
     Instance instance = new MockInstance();
     Connector connector = instance.getConnector("root", "secret");
-    BatchWriter bw = connector.createBatchWriter("!METADATA", 1000l, 1000l, 1);
+    BatchWriter bw = connector.createBatchWriter("!METADATA", new BatchWriterConfig());
     
     // Create a fake METADATA table with these splits
     String splits[] = {"a", "e", "j", "o", "t", "z"};

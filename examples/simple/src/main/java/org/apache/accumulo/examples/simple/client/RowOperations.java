@@ -23,6 +23,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
@@ -93,7 +94,7 @@ public class RowOperations {
     mut3.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
     
     // Now we'll make a Batch Writer
-    bw = connector.createBatchWriter(table, 100000l, 30l, 1);
+    bw = connector.createBatchWriter(table, new BatchWriterConfig());
     
     // And add the mutations
     bw.addMutation(mut1);

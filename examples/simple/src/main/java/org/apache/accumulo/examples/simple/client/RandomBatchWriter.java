@@ -18,10 +18,12 @@ package org.apache.accumulo.examples.simple.client;
 
 import java.util.HashSet;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -142,7 +144,8 @@ public class RandomBatchWriter {
     
     ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
     Connector connector = instance.getConnector(user, pass);
-    BatchWriter bw = connector.createBatchWriter(table, maxMemory, maxLatency, numThreads);
+    BatchWriter bw = connector.createBatchWriter(table, new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
+        .setMaxWriteThreads(numThreads));
     
     // reuse the ColumnVisibility object to improve performance
     ColumnVisibility cv = new ColumnVisibility(visiblity);
