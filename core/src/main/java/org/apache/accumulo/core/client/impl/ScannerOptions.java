@@ -187,7 +187,7 @@ public class ScannerOptions implements ScannerBase {
   
   @Override
   public void setTimeout(long timeout, TimeUnit timeUnit) {
-    if (timeOut <= 0) {
+    if (timeOut < 0) {
       throw new IllegalArgumentException("TimeOut must be positive : " + timeOut);
     }
 
