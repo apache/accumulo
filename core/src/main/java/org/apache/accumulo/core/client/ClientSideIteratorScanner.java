@@ -24,6 +24,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.impl.ScannerOptions;
 import org.apache.accumulo.core.client.mock.IteratorAdapter;
@@ -53,7 +54,6 @@ import org.apache.hadoop.io.Text;
  */
 public class ClientSideIteratorScanner extends ScannerOptions implements Scanner {
   private int size;
-  private int timeOut;
   
   private Range range;
   private boolean isolated = false;
@@ -136,7 +136,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     smi = new ScannerTranslator(scanner);
     this.range = scanner.getRange();
     this.size = scanner.getBatchSize();
-    this.timeOut = scanner.getTimeOut();
+    this.timeOut = scanner.getTimeout(TimeUnit.MILLISECONDS);
   }
   
   /**
@@ -151,7 +151,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     smi.scanner.setBatchSize(size);
-    smi.scanner.setTimeOut(timeOut);
+    smi.scanner.setTimeout(timeOut, TimeUnit.MILLISECONDS);
     if (isolated)
       smi.scanner.enableIsolation();
     else
@@ -208,13 +208,19 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   }
   
   @Override
-  public void setTimeOut(final int timeOut) {
-    this.timeOut = timeOut;
+  public void setTimeOut(int timeOut) {
+    if (timeOut == Integer.MAX_VALUE)
+      setTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+    else
+      setTimeout(timeOut, TimeUnit.SECONDS);
   }
   
   @Override
   public int getTimeOut() {
-    return timeOut;
+    long timeout = getTimeout(TimeUnit.SECONDS);
+    if (timeout >= Integer.MAX_VALUE)
+      return Integer.MAX_VALUE;
+    return (int) timeout;
   }
   
   @Override

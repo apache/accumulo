@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -104,15 +105,18 @@ public interface ScannerBase extends Iterable<Entry<Key,Value>> {
   /**
    * This setting determines how long a scanner will automatically retry when a failure occurs. By default a scanner will retry forever.
    * 
+   * Setting to zero or Long.MAX_VALUE and TimeUnit.MILLISECONDS means to retry forever.
+   * 
    * @param timeOut
-   *          in seconds
+   * @param timeUnit
+   *          determines how timeout is interpreted
    */
-  public void setTimeOut(int timeOut);
+  public void setTimeout(long timeOut, TimeUnit timeUnit);
   
   /**
    * Returns the setting for how long a scanner will automatically retry when a failure occurs.
    * 
    * @return the timeout configured for this scanner
    */
-  public int getTimeOut();
+  public long getTimeout(TimeUnit timeUnit);
 }

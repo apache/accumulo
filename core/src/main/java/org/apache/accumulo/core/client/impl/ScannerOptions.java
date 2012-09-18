@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -44,7 +45,7 @@ public class ScannerOptions implements ScannerBase {
   
   protected SortedSet<Column> fetchedColumns = new TreeSet<Column>();
   
-  protected int timeOut = Integer.MAX_VALUE;
+  protected long timeOut = Long.MAX_VALUE;
 
   private String regexIterName = null;
   
@@ -185,16 +186,19 @@ public class ScannerOptions implements ScannerBase {
   }
   
   @Override
-  public void setTimeOut(int timeOut) {
+  public void setTimeout(long timeout, TimeUnit timeUnit) {
     if (timeOut <= 0) {
       throw new IllegalArgumentException("TimeOut must be positive : " + timeOut);
     }
 
-    this.timeOut = timeOut;
+    if (timeout == 0)
+      this.timeOut = Long.MAX_VALUE;
+    else
+      this.timeOut = timeUnit.toMillis(timeout);
   }
   
   @Override
-  public int getTimeOut() {
+  public long getTimeout(TimeUnit timeunit) {
     return timeOut;
   }
 }

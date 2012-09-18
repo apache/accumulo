@@ -99,7 +99,7 @@ public class TimeoutTest extends FunctionalTest {
     bw.close();
     
     BatchScanner bs = getConnector().createBatchScanner("timeout", Constants.NO_AUTHS, 2);
-    bs.setTimeOut(1);
+    bs.setTimeout(1, TimeUnit.SECONDS);
     bs.setRanges(Collections.singletonList(new Range()));
     
     // should not timeout

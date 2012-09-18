@@ -18,6 +18,7 @@ package org.apache.accumulo.server.monitor.servlets.trace;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -89,5 +90,13 @@ public class NullScanner implements Scanner {
   
   @Override
   public void removeScanIterator(String iteratorName) {}
+  
+  @Override
+  public void setTimeout(long timeOut, TimeUnit timeUnit) {}
+  
+  @Override
+  public long getTimeout(TimeUnit timeUnit) {
+    return 0;
+  }
   
 }

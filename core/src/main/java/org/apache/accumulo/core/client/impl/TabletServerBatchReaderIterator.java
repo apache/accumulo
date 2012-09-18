@@ -626,7 +626,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     TTransport transport = null;
     try {
       TabletClientService.Client client;
-      if (timeoutTracker.getTimeOut() < Integer.MAX_VALUE * 1000l)
+      if (timeoutTracker.getTimeOut() < Long.MAX_VALUE)
         client = ThriftUtil.getTServerClient(server, conf, timeoutTracker.getTimeOut());
       else
         client = ThriftUtil.getTServerClient(server, conf);

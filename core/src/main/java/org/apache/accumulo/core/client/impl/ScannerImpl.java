@@ -29,6 +29,7 @@ package org.apache.accumulo.core.client.impl;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
@@ -54,7 +55,6 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   private Text table;
   
   private int size;
-  private int timeOut;
   
   private Range range;
   private boolean isolated = false;
@@ -68,7 +68,6 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     this.authorizations = authorizations;
     
     this.size = Constants.SCAN_BATCH_SIZE;
-    this.timeOut = Integer.MAX_VALUE;
   }
   
   @Override
@@ -100,7 +99,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
    * Scanner object will have no effect on existing iterators.
    */
   public synchronized Iterator<Entry<Key,Value>> iterator() {
-    return new ScannerIterator(instance, credentials, table, authorizations, range, size, timeOut, this, isolated);
+    return new ScannerIterator(instance, credentials, table, authorizations, range, size, getTimeOut(), this, isolated);
   }
   
   @Override
@@ -111,5 +110,21 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
   @Override
   public synchronized void disableIsolation() {
     this.isolated = false;
+  }
+  
+  @Override
+  public void setTimeOut(int timeOut) {
+    if (timeOut == Integer.MAX_VALUE)
+      setTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+    else
+      setTimeout(timeOut, TimeUnit.SECONDS);
+  }
+  
+  @Override
+  public int getTimeOut() {
+    long timeout = getTimeout(TimeUnit.SECONDS);
+    if (timeout >= Integer.MAX_VALUE)
+      return Integer.MAX_VALUE;
+    return (int) timeout;
   }
 }
