@@ -279,6 +279,7 @@ public class LiveTServerSet implements Watcher {
             current.remove(server);
             info.cleanup();
           }
+          ZooReaderWriter.getInstance().delete(lockPath, -1);
         }
       }
       // log.debug("Current: " + current.keySet());
