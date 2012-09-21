@@ -18,6 +18,7 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -55,6 +56,8 @@ public class GrepCommand extends ScanCommand {
     final BatchScanner scanner = shellState.getConnector().createBatchScanner(tableName, auths, numThreads);
     scanner.setRanges(Collections.singletonList(getRange(cl, interpeter)));
     
+    scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
+
     for (int i = 0; i < cl.getArgs().length; i++) {
       setUpIterator(Integer.MAX_VALUE - cl.getArgs().length + i, "grep" + i, cl.getArgs()[i], scanner);
     }    

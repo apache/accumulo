@@ -20,12 +20,14 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -48,6 +50,7 @@ public class ScanCommand extends Command {
   protected Option timestampOpt;
   private Option optStartRowExclusive;
   private Option optEndRowExclusive;
+  private Option timeoutOption;
   
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
@@ -69,6 +72,9 @@ public class ScanCommand extends Command {
     // handle columns
     fetchColumns(cl, scanner, interpeter);
     
+    // set timeout
+    scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
+
     // output the records
     if (cl.hasOption(showFewOpt.getOpt())) {
       final String showLength = cl.getOptionValue(showFewOpt.getOpt());
@@ -92,6 +98,14 @@ public class ScanCommand extends Command {
     return 0;
   }
   
+  protected long getTimeout(final CommandLine cl) {
+    if (cl.hasOption(timeoutOption.getLongOpt())) {
+      return AccumuloConfiguration.getTimeInMillis(cl.getOptionValue(timeoutOption.getLongOpt()));
+    }
+    
+    return Long.MAX_VALUE;
+  }
+
   protected void addScanIterators(final Shell shellState, final Scanner scanner, final String tableName) {
     final List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
     if (tableScanIterators == null) {
@@ -223,6 +237,8 @@ public class ScanCommand extends Command {
     formatterOpt = new Option("fm", "formatter", true, "fully qualified name of the formatter class to use");
     interpreterOpt = new Option("i", "interpreter", true, "fully qualified name of the interpreter class to use");
     formatterInterpeterOpt = new Option("fi", "fmt-interpreter", true, "fully qualified name of a class that is a formatter and interpreter");
+    timeoutOption = new Option(null, "timeout", true,
+        "time before scan should fail if no data is returned. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
     
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
@@ -230,6 +246,7 @@ public class ScanCommand extends Command {
     showFewOpt.setRequired(false);
     showFewOpt.setArgName("int");
     formatterOpt.setArgName("className");
+    timeoutOption.setArgName("timeout");
     
     o.addOption(scanOptAuths);
     o.addOption(scanOptRow);
@@ -245,6 +262,7 @@ public class ScanCommand extends Command {
     o.addOption(formatterOpt);
     o.addOption(interpreterOpt);
     o.addOption(formatterInterpeterOpt);
+    o.addOption(timeoutOption);
     
     return o;
   }

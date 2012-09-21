@@ -17,12 +17,14 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
@@ -35,6 +37,15 @@ import org.apache.hadoop.io.Text;
 
 public class DeleteCommand extends Command {
   private Option deleteOptAuths, timestampOpt;
+  private Option timeoutOption;
+  
+  protected long getTimeout(final CommandLine cl) {
+    if (cl.hasOption(timeoutOption.getLongOpt())) {
+      return AccumuloConfiguration.getTimeInMillis(cl.getOptionValue(timeoutOption.getLongOpt()));
+    }
+    
+    return Long.MAX_VALUE;
+  }
   
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ConstraintViolationException {
@@ -57,7 +68,7 @@ public class DeleteCommand extends Command {
       m.putDelete(colf, colq);
     }
     final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(),
-        new BatchWriterConfig().setMaxMemory(m.estimatedMemoryUsed()).setMaxWriteThreads(1));
+        new BatchWriterConfig().setMaxMemory(m.estimatedMemoryUsed()).setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
     bw.addMutation(m);
     bw.close();
     return 0;
@@ -85,6 +96,11 @@ public class DeleteCommand extends Command {
     timestampOpt.setArgName("timestamp");
     o.addOption(timestampOpt);
     
+    timeoutOption = new Option(null, "timeout", true,
+        "time before insert should fail if no data is written. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
+    timeoutOption.setArgName("timeout");
+    o.addOption(timeoutOption);
+
     return o;
   }
   

@@ -18,6 +18,7 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -25,6 +26,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
@@ -40,7 +42,16 @@ import org.apache.hadoop.io.Text;
 
 public class InsertCommand extends Command {
   private Option insertOptAuths, timestampOpt;
+  private Option timeoutOption;
   
+  protected long getTimeout(final CommandLine cl) {
+    if (cl.hasOption(timeoutOption.getLongOpt())) {
+      return AccumuloConfiguration.getTimeInMillis(cl.getOptionValue(timeoutOption.getLongOpt()));
+    }
+    
+    return Long.MAX_VALUE;
+  }
+
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ConstraintViolationException {
     shellState.checkTableState();
@@ -64,7 +75,7 @@ public class InsertCommand extends Command {
       m.put(colf, colq, val);
     
     final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(),
-        new BatchWriterConfig().setMaxMemory(m.estimatedMemoryUsed()).setMaxWriteThreads(1));
+        new BatchWriterConfig().setMaxMemory(m.estimatedMemoryUsed()).setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
     bw.addMutation(m);
     try {
       bw.close();
@@ -108,6 +119,11 @@ public class InsertCommand extends Command {
     timestampOpt.setArgName("timestamp");
     o.addOption(timestampOpt);
     
+    timeoutOption = new Option(null, "timeout", true,
+        "time before insert should fail if no data is written. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
+    timeoutOption.setArgName("timeout");
+    o.addOption(timeoutOption);
+
     return o;
   }
   

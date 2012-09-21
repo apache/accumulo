@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -47,11 +49,14 @@ public class DeleteManyCommand extends ScanCommand {
     // handle remaining optional arguments
     scanner.setRange(getRange(cl, interpeter));
     
+    scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
+
     // handle columns
     fetchColumns(cl, scanner, interpeter);
     
     // output / delete the records
-    final BatchWriter writer = shellState.getConnector().createBatchWriter(tableName, new BatchWriterConfig());
+    final BatchWriter writer = shellState.getConnector()
+        .createBatchWriter(tableName, new BatchWriterConfig().setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
     shellState.printLines(new DeleterFormatter(writer, scanner, cl.hasOption(timestampOpt.getOpt()), shellState, cl.hasOption(forceOpt.getOpt())), false);
     
     return 0;
