@@ -77,6 +77,14 @@ public class InsertCommand extends Command {
       for (ConstraintViolationSummary cvs : e.getConstraintViolationSummaries()) {
         lines.add("		" + cvs.toString());
       }
+      
+      if (lines.size() == 0 || e.getUnknownExceptions() > 0) {
+        // must always print something
+        lines.add(" " + e.getClass().getName() + " : " + e.getMessage());
+        if (e.getCause() != null)
+          lines.add("   Caused by : " + e.getCause().getClass().getName() + " : " + e.getCause().getMessage());
+      }
+
       shellState.printLines(lines.iterator(), false);
     }
     return 0;
