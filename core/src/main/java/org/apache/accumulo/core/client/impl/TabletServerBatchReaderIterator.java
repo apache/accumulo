@@ -45,6 +45,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -626,7 +627,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     TTransport transport = null;
     try {
       TabletClientService.Client client;
-      if (timeoutTracker.getTimeOut() < Long.MAX_VALUE)
+      if (timeoutTracker.getTimeOut() < conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
         client = ThriftUtil.getTServerClient(server, conf, timeoutTracker.getTimeOut());
       else
         client = ThriftUtil.getTServerClient(server, conf);
