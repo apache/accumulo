@@ -101,6 +101,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private Set<String> timedoutServers;
   private long timeout;
 
+  private TabletLocator locator;
+
   public interface ResultReceiver {
     void receive(List<Entry<Key,Value>> entries);
   }
@@ -144,6 +146,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.options = new ScannerOptions(scannerOptions);
     resultsQueue = new ArrayBlockingQueue<List<Entry<Key,Value>>>(numThreads);
     
+    this.locator = new TimeoutTabletLocator(TabletLocator.getInstance(instance, credentials, new Text(table)), timeout);
+
     timeoutTrackers = Collections.synchronizedMap(new HashMap<String,TabletServerBatchReaderIterator.TimeoutTracker>());
     timedoutServers = Collections.synchronizedSet(new HashSet<String>());
     this.timeout = timeout;
@@ -240,7 +244,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     
-    binRanges(TabletLocator.getInstance(instance, credentials, new Text(table)), ranges, binnedRanges);
+    binRanges(locator, ranges, binnedRanges);
     
     doLookups(binnedRanges, receiver, columns);
   }
@@ -314,11 +318,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     for (List<Range> ranges : failures.values())
       allRanges.addAll(ranges);
     
-    TabletLocator tabletLocator = TabletLocator.getInstance(instance, credentials, new Text(table));
-    
     // since the first call to binRanges clipped the ranges to within a tablet, we should not get only
     // bin to the set of failed tablets
-    binRanges(tabletLocator, allRanges, binnedRanges);
+    binRanges(locator, allRanges, binnedRanges);
     
     doLookups(binnedRanges, receiver, columns);
   }
@@ -360,8 +362,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         doLookup(tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns, credentials, options, authorizations, instance.getConfiguration(),
             timeoutTracker);
         if (tsFailures.size() > 0) {
-          TabletLocator tabletLocator = TabletLocator.getInstance(instance, credentials, new Text(table));
-          tabletLocator.invalidateCache(tsFailures.keySet());
+          locator.invalidateCache(tsFailures.keySet());
           synchronized (failures) {
             failures.putAll(tsFailures);
           }
@@ -373,7 +374,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           failures.putAll(unscanned);
         }
         
-        TabletLocator.getInstance(instance, credentials, new Text(table)).invalidateCache(tsLocation);
+        locator.invalidateCache(tsLocation);
         log.debug(e.getMessage(), e);
       } catch (AccumuloSecurityException e) {
         log.debug(e.getMessage(), e);

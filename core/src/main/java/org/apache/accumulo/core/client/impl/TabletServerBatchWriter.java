@@ -592,18 +592,31 @@ public class TabletServerBatchWriter {
     private ExecutorService sendThreadPool;
     private Map<String,TabletServerMutations> serversMutations;
     private Set<String> queued;
+    private Map<String,TabletLocator> locators;
     
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<String,TabletServerMutations>();
       queued = new HashSet<String>();
       sendThreadPool = Executors.newFixedThreadPool(numSendThreads, new NamingThreadFactory(this.getClass().getName()));
+      locators = new HashMap<String,TabletLocator>();
     }
     
+    private TabletLocator getLocator(String tableId) {
+      TabletLocator ret = locators.get(tableId);
+      if (ret == null) {
+        ret = TabletLocator.getInstance(instance, credentials, new Text(tableId));
+        ret = new TimeoutTabletLocator(ret, timeout);
+        locators.put(tableId, ret);
+      }
+      
+      return ret;
+    }
+
     private void binMutations(MutationSet mutationsToProcess, Map<String,TabletServerMutations> binnedMutations) {
       try {
         Set<Entry<String,List<Mutation>>> es = mutationsToProcess.getMutations().entrySet();
         for (Entry<String,List<Mutation>> entry : es) {
-          TabletLocator locator = TabletLocator.getInstance(instance, credentials, new Text(entry.getKey()));
+          TabletLocator locator = getLocator(entry.getKey());
           
           String table = entry.getKey();
           List<Mutation> tableMutations = entry.getValue();

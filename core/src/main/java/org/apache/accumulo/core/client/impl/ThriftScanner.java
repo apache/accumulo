@@ -243,6 +243,8 @@ public class ThriftScanner {
           if ((currentTime - startTime) / 1000.0 > timeOut)
             throw new ScanTimedOutException();
           
+          log.trace(((currentTime - startTime) / 1000.0) + " " + timeOut);
+
           Span locateSpan = Trace.start("scan:locateTablet");
           try {
             loc = TabletLocator.getInstance(instance, credentials, scanState.tableName).locateTablet(scanState.startRow, scanState.skipStartRow, false);

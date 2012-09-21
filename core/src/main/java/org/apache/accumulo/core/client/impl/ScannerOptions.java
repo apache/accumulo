@@ -199,6 +199,6 @@ public class ScannerOptions implements ScannerBase {
   
   @Override
   public long getTimeout(TimeUnit timeunit) {
-    return timeOut;
+    return timeunit.convert(timeOut, TimeUnit.MILLISECONDS);
   }
 }

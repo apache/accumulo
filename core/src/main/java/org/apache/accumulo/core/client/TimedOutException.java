@@ -43,6 +43,11 @@ public class TimedOutException extends RuntimeException {
     
   }
 
+  public TimedOutException(String msg) {
+    super(msg);
+    this.timedoutServers = Collections.emptySet();
+  }
+
   public Set<String> getTimedOutSevers() {
     return Collections.unmodifiableSet(timedoutServers);
   }
