@@ -44,8 +44,8 @@ import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
-import org.apache.accumulo.server.security.SecurityOperationImpl;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.log4j.Logger;
@@ -54,7 +54,7 @@ import org.apache.thrift.TException;
 
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = Logger.getLogger(ClientServiceHandler.class);
-  private static SecurityOperation security = SecurityOperationImpl.getInstance();
+  private static SecurityOperation security = AuditedSecurityOperation.getInstance();
   private final TransactionWatcher transactionWatcher;
   private final Instance instance;
   

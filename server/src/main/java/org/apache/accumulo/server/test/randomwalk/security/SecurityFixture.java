@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.test.randomwalk.security;
 
 import java.net.InetAddress;
-import java.util.HashMap;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -47,28 +46,22 @@ public class SecurityFixture extends Fixture {
     conn.securityOperations().createUser(systemUserName, sysUserPass, new Authorizations());
     sysConn = instance.getConnector(systemUserName, sysUserPass);
     
-    SecurityHelper.setSystemConnector(state, sysConn);
-    SecurityHelper.setSysUserName(state, systemUserName);
-    SecurityHelper.setSysUserPass(state, sysUserPass);
+    WalkingSecurity.get(state).createUser(systemUserName, sysUserPass);
     
-    SecurityHelper.setTableExists(state, false);
-    SecurityHelper.setTableExists(state, false);
+    WalkingSecurity.get(state).changePassword(tableUserName, new byte[0]);
     
-    SecurityHelper.setTabUserPass(state, new byte[0]);
-    
-    SecurityHelper.setTableName(state, secTableName);
-    SecurityHelper.setTabUserName(state, tableUserName);
+    WalkingSecurity.get(state).setTableName(secTableName);
+    WalkingSecurity.get(state).setTabUserName(tableUserName);
     
     for (TablePermission tp : TablePermission.values()) {
-      SecurityHelper.setTabPerm(state, systemUserName, tp, false);
-      SecurityHelper.setTabPerm(state, tableUserName, tp, false);
+      WalkingSecurity.get(state).revokeTablePermission(systemUserName, secTableName, tp);
+      WalkingSecurity.get(state).revokeTablePermission(tableUserName, secTableName, tp);
     }
     for (SystemPermission sp : SystemPermission.values()) {
-      SecurityHelper.setSysPerm(state, systemUserName, sp, false);
-      SecurityHelper.setSysPerm(state, tableUserName, sp, false);
+      WalkingSecurity.get(state).revokeSystemPermission(systemUserName, sp);
+      WalkingSecurity.get(state).revokeSystemPermission(tableUserName, sp);
     }
-    SecurityHelper.setUserAuths(state, tableUserName, new Authorizations());
-    SecurityHelper.setAuthsMap(state, new HashMap<String,Integer>());
+    WalkingSecurity.get(state).changeAuthorizations(tableUserName, new Authorizations());
   }
   
   @Override
@@ -77,20 +70,20 @@ public class SecurityFixture extends Fixture {
     Validate.validate(state, log);
     Connector conn = state.getConnector();
     
-    if (SecurityHelper.getTableExists(state)) {
-      String secTableName = SecurityHelper.getTableName(state);
+    if (WalkingSecurity.get(state).getTableExists()) {
+      String secTableName = WalkingSecurity.get(state).getTableName();
       log.debug("Dropping tables: " + secTableName);
       
       conn.tableOperations().delete(secTableName);
     }
     
-    if (SecurityHelper.getTabUserExists(state)) {
-      String tableUserName = SecurityHelper.getTabUserName(state);
+    if (WalkingSecurity.get(state).userExists(WalkingSecurity.get(state).getTabUserName())) {
+      String tableUserName = WalkingSecurity.get(state).getTabUserName();
       log.debug("Dropping user: " + tableUserName);
       
       conn.securityOperations().dropUser(tableUserName);
     }
-    String systemUserName = SecurityHelper.getSysUserName(state);
+    String systemUserName = WalkingSecurity.get(state).getSysUserName();
     log.debug("Dropping user: " + systemUserName);
     conn.securityOperations().dropUser(systemUserName);
     

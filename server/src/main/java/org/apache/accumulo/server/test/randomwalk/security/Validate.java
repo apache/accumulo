@@ -39,13 +39,13 @@ public class Validate extends Test {
   public static void validate(State state, Logger log) throws Exception {
     Connector conn = state.getConnector();
     
-    boolean tableExists = SecurityHelper.getTableExists(state);
-    boolean cloudTableExists = conn.tableOperations().list().contains(SecurityHelper.getTableName(state));
+    boolean tableExists = WalkingSecurity.get(state).getTableExists();
+    boolean cloudTableExists = conn.tableOperations().list().contains(WalkingSecurity.get(state).getTableName());
     if (tableExists != cloudTableExists)
       throw new AccumuloException("Table existance out of sync");
     
-    boolean tableUserExists = SecurityHelper.getTabUserExists(state);
-    boolean cloudTableUserExists = conn.securityOperations().listUsers().contains(SecurityHelper.getTabUserName(state));
+    boolean tableUserExists = WalkingSecurity.get(state).userExists(WalkingSecurity.get(state).getTabUserName());
+    boolean cloudTableUserExists = conn.securityOperations().listUsers().contains(WalkingSecurity.get(state).getTabUserName());
     if (tableUserExists != cloudTableUserExists)
       throw new AccumuloException("Table User existance out of sync");
     
@@ -55,17 +55,16 @@ public class Validate extends Test {
     props.setProperty("target", "table");
     Authenticate.authenticate(conn, state, props);
     
-    boolean tabUserExists = SecurityHelper.getTabUserExists(state);
-    for (String user : new String[] {SecurityHelper.getSysUserName(state), SecurityHelper.getTabUserName(state)}) {
+    for (String user : new String[] {WalkingSecurity.get(state).getSysUserName(), WalkingSecurity.get(state).getTabUserName()}) {
       for (SystemPermission sp : SystemPermission.values()) {
-        boolean hasSp = SecurityHelper.getSysPerm(state, user, sp);
+        boolean hasSp = WalkingSecurity.get(state).hasSystemPermission(user, sp);
         boolean accuHasSp;
         try {
           accuHasSp = conn.securityOperations().hasSystemPermission(user, sp);
           log.debug("Just checked to see if user " + user + " has system perm " + sp.name() + " with answer " + accuHasSp);
         } catch (AccumuloSecurityException ae) {
           if (ae.getErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
-            if (tabUserExists)
+            if (tableUserExists)
               throw new AccumuloException("Got user DNE error when they should", ae);
             else
               continue;
@@ -77,14 +76,14 @@ public class Validate extends Test {
       }
       
       for (TablePermission tp : TablePermission.values()) {
-        boolean hasTp = SecurityHelper.getTabPerm(state, user, tp);
+        boolean hasTp = WalkingSecurity.get(state).hasTablePermission(user, WalkingSecurity.get(state).getTableName(), tp);
         boolean accuHasTp;
         try {
-          accuHasTp = conn.securityOperations().hasTablePermission(user, SecurityHelper.getTableName(state), tp);
+          accuHasTp = conn.securityOperations().hasTablePermission(user, WalkingSecurity.get(state).getTableName(), tp);
           log.debug("Just checked to see if user " + user + " has table perm " + tp.name() + " with answer " + accuHasTp);
         } catch (AccumuloSecurityException ae) {
           if (ae.getErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
-            if (tabUserExists)
+            if (tableUserExists)
               throw new AccumuloException("Got user DNE error when they should", ae);
             else
               continue;
@@ -102,13 +101,13 @@ public class Validate extends Test {
       
     }
     
-    Authorizations auths = SecurityHelper.getUserAuths(state, SecurityHelper.getTabUserName(state));
+    Authorizations auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabAuthInfo());
     Authorizations accuAuths;
     try {
-      accuAuths = conn.securityOperations().getUserAuthorizations(SecurityHelper.getTabUserName(state));
+      accuAuths = conn.securityOperations().getUserAuthorizations(WalkingSecurity.get(state).getTabUserName());
     } catch (AccumuloSecurityException ae) {
       if (ae.getErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
-        if (tabUserExists)
+        if (tableUserExists)
           throw new AccumuloException("Table user didn't exist when they should.", ae);
         else
           return;
