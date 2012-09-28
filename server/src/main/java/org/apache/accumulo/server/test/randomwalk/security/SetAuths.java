@@ -23,7 +23,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 
@@ -37,22 +36,20 @@ public class SetAuths extends Test {
     
     String targetUser = props.getProperty("system");
     String target;
-    boolean exists;
-    boolean hasPermission;
     if ("table".equals(targetUser)) {
-      target = SecurityHelper.getTabUserName(state);
-      exists = SecurityHelper.getTabUserExists(state);
-      conn = SecurityHelper.getSystemConnector(state);
-      hasPermission = SecurityHelper.getSysPerm(state, SecurityHelper.getSysUserName(state), SystemPermission.ALTER_USER);
+      target = WalkingSecurity.get(state).getTabUserName();
+      conn = WalkingSecurity.get(state).getSystemConnector();
     } else {
-      target = SecurityHelper.getSysUserName(state);
-      exists = true;
+      target = WalkingSecurity.get(state).getSysUserName();
       conn = state.getConnector();
-      hasPermission = true;
     }
+
+    boolean exists = WalkingSecurity.get(state).userExists(target);
+    boolean hasPermission = WalkingSecurity.get(state).canChangeAuthorizations(WalkingSecurity.get(state).getSysAuthInfo(), target);
+
     Authorizations auths;
     if (authsString.equals("_random")) {
-      String[] possibleAuths = SecurityHelper.getAuthsArray();
+      String[] possibleAuths = WalkingSecurity.get(state).getAuthsArray();
       
       Random r = new Random();
       int i = r.nextInt(possibleAuths.length);
@@ -88,7 +85,7 @@ public class SetAuths extends Test {
           throw new AccumuloException("Got unexpected exception", ae);
       }
     }
-    SecurityHelper.setUserAuths(state, target, auths);
+    WalkingSecurity.get(state).changeAuthorizations(target, auths);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }

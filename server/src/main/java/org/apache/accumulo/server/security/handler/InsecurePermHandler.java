@@ -137,5 +137,9 @@ public class InsecurePermHandler implements PermissionHandler {
   public void cleanUser(String user) throws AccumuloSecurityException {
     return;
   }
+
+  @Override
+  public void initTable(String table) throws AccumuloSecurityException {
+  }
   
 }

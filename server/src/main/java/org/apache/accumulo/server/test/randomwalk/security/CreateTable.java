@@ -22,7 +22,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.server.test.randomwalk.State;
@@ -32,14 +31,12 @@ public class CreateTable extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn = SecurityHelper.getSystemConnector(state);
+    Connector conn = WalkingSecurity.get(state).getSystemConnector();
     
-    String tableName = SecurityHelper.getTableName(state);
+    String tableName = WalkingSecurity.get(state).getTableName();
     
-    boolean exists = SecurityHelper.getTableExists(state);
-    boolean hasPermission = false;
-    if (SecurityHelper.getSysPerm(state, SecurityHelper.getSysUserName(state), SystemPermission.CREATE_TABLE))
-      hasPermission = true;
+    boolean exists = WalkingSecurity.get(state).getTableExists();
+    boolean hasPermission = WalkingSecurity.get(state).canCreateTable(WalkingSecurity.get(state).getSysAuthInfo());
     
     try {
       conn.tableOperations().create(tableName);
@@ -52,7 +49,7 @@ public class CreateTable extends Test {
         {
           try {
             state.getConnector().tableOperations().create(tableName);
-            SecurityHelper.setTableExists(state, true);
+            WalkingSecurity.get(state).initTable(tableName);
           } catch (TableExistsException tee) {
             if (exists)
               return;
@@ -69,9 +66,9 @@ public class CreateTable extends Test {
       else
         return;
     }
-    SecurityHelper.setTableExists(state, true);
+    WalkingSecurity.get(state).initTable(tableName);
     for (TablePermission tp : TablePermission.values())
-      SecurityHelper.setTabPerm(state, conn.whoami(), tp, true);
+      WalkingSecurity.get(state).grantTablePermission(conn.whoami(), tableName, tp);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }
