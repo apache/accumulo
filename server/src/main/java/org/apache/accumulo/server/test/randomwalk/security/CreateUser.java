@@ -22,6 +22,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 
@@ -29,12 +30,14 @@ public class CreateUser extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn = WalkingSecurity.get(state).getSystemConnector();
+    Connector conn = SecurityHelper.getSystemConnector(state);
     
-    String tableUserName = WalkingSecurity.get(state).getTabUserName();
+    String tableUserName = SecurityHelper.getTabUserName(state);
     
-    boolean exists = WalkingSecurity.get(state).userExists(tableUserName);
-    boolean hasPermission = WalkingSecurity.get(state).canCreateUser(WalkingSecurity.get(state).getSysAuthInfo(), tableUserName);
+    boolean exists = SecurityHelper.getTabUserExists(state);
+    boolean hasPermission = false;
+    if (SecurityHelper.getSysPerm(state, SecurityHelper.getSysUserName(state), SystemPermission.CREATE_USER))
+      hasPermission = true;
     byte[] tabUserPass = "Super Sekret Table User Password".getBytes();
     try {
       conn.securityOperations().createUser(tableUserName, tabUserPass, new Authorizations());
@@ -48,7 +51,8 @@ public class CreateUser extends Test {
           {
             if (!exists) {
               state.getConnector().securityOperations().createUser(tableUserName, tabUserPass, new Authorizations());
-              WalkingSecurity.get(state).createUser(tableUserName, tabUserPass);
+              SecurityHelper.setTabUserPass(state, tabUserPass);
+              SecurityHelper.setTabUserExists(state, true);
             }
             return;
           }
@@ -61,7 +65,8 @@ public class CreateUser extends Test {
           throw new AccumuloException("Got unexpected exception", ae);
       }
     }
-    WalkingSecurity.get(state).createUser(tableUserName, tabUserPass);
+    SecurityHelper.setTabUserPass(state, tabUserPass);
+    SecurityHelper.setTabUserExists(state, true);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }

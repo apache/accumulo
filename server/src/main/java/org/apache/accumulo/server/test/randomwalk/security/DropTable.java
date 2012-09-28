@@ -23,7 +23,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
@@ -38,19 +39,21 @@ public class DropTable extends Test {
   public static void dropTable(State state, Properties props) throws Exception {
     String sourceUser = props.getProperty("source", "system");
     Connector conn;
-    AuthInfo auth;
+    String username;
     if (sourceUser.equals("table")) {
-      auth = WalkingSecurity.get(state).getTabAuthInfo();
-      conn = WalkingSecurity.get(state).getTableConnector();
+      username = SecurityHelper.getTabUserName(state);
+      conn = state.getInstance().getConnector(username, SecurityHelper.getTabUserPass(state));
     } else {
-      auth = WalkingSecurity.get(state).getSysAuthInfo();
-      conn = WalkingSecurity.get(state).getSystemConnector();
+      username = SecurityHelper.getSysUserName(state);
+      conn = SecurityHelper.getSystemConnector(state);
     }
     
-    String tableName = WalkingSecurity.get(state).getTableName();
+    String tableName = SecurityHelper.getTableName(state);
     
-    boolean exists = WalkingSecurity.get(state).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state).canDeleteTable(auth, tableName);
+    boolean exists = SecurityHelper.getTableExists(state);
+    boolean hasPermission = false;
+    if (SecurityHelper.getSysPerm(state, username, SystemPermission.DROP_TABLE) || SecurityHelper.getTabPerm(state, username, TablePermission.DROP_TABLE))
+      hasPermission = true;
     
     try {
       conn.tableOperations().delete(tableName);
@@ -61,11 +64,14 @@ public class DropTable extends Test {
         else {
           // Drop anyway for sake of state
           state.getConnector().tableOperations().delete(tableName);
-          WalkingSecurity.get(state).cleanTablePermissions(tableName);
+          SecurityHelper.setTableExists(state, false);
+          for (String user : new String[] {SecurityHelper.getSysUserName(state), SecurityHelper.getTabUserName(state)})
+            for (TablePermission tp : TablePermission.values())
+              SecurityHelper.setTabPerm(state, user, tp, false);
           return;
         }
       } else if (ae.getErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
-        if (WalkingSecurity.get(state).userPassTransient(conn.whoami()))
+        if (SecurityHelper.sysUserPassTransient(state))
           return;
       }
       throw new AccumuloException("Got unexpected ae error code", ae);
@@ -75,7 +81,10 @@ public class DropTable extends Test {
       else
         return;
     }
-    WalkingSecurity.get(state).cleanTablePermissions(tableName);
+    SecurityHelper.setTableExists(state, false);
+    for (String user : new String[] {SecurityHelper.getSysUserName(state), SecurityHelper.getTabUserName(state)})
+      for (TablePermission tp : TablePermission.values())
+        SecurityHelper.setTabPerm(state, user, tp, false);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }

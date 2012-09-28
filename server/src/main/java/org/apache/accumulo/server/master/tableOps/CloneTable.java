@@ -31,8 +31,8 @@ import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.tables.TableManager;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SecurityOperationImpl;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.log4j.Logger;
 
@@ -183,7 +183,7 @@ class ClonePermissions extends MasterRepo {
     // give all table permissions to the creator
     for (TablePermission permission : TablePermission.values()) {
       try {
-        AuditedSecurityOperation.getInstance().grantTablePermission(SecurityConstants.getSystemCredentials(), cloneInfo.user, cloneInfo.tableId, permission);
+        SecurityOperationImpl.getInstance().grantTablePermission(SecurityConstants.getSystemCredentials(), cloneInfo.user, cloneInfo.tableId, permission);
       } catch (ThriftSecurityException e) {
         Logger.getLogger(FinishCloneTable.class).error(e.getMessage(), e);
         throw e;
@@ -198,7 +198,7 @@ class ClonePermissions extends MasterRepo {
   
   @Override
   public void undo(long tid, Master environment) throws Exception {
-    AuditedSecurityOperation.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), cloneInfo.tableId);
+    SecurityOperationImpl.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), cloneInfo.tableId);
   }
 }
 

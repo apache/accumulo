@@ -18,7 +18,6 @@ package org.apache.accumulo.server.test.randomwalk;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
-import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -26,7 +25,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.log4j.Logger;
 
@@ -89,19 +87,13 @@ public class State {
     if (connector == null) {
       String instance = props.getProperty("INSTANCE");
       String zookeepers = props.getProperty("ZOOKEEPERS");
-      AuthInfo auth = getAuthInfo();
-      connector = new ZooKeeperInstance(instance, zookeepers).getConnector(auth);
+      String username = props.getProperty("USERNAME");
+      String password = props.getProperty("PASSWORD");
+      connector = new ZooKeeperInstance(instance, zookeepers).getConnector(username, password.getBytes());
     }
     return connector;
   }
   
-  public AuthInfo getAuthInfo() {
-    String username = props.getProperty("USERNAME");
-    String password = props.getProperty("PASSWORD");
-    String instance = props.getProperty("INSTANCE");
-    return new AuthInfo(username, ByteBuffer.wrap(password.getBytes()), instance);
-  }
-
   public Instance getInstance() {
     if (instance == null) {
       instance = HdfsZooInstance.getInstance();

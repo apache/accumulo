@@ -31,12 +31,11 @@ public class AlterSystemPerm extends Test {
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getConnector();
-    WalkingSecurity ws = new WalkingSecurity(state);
     
     String action = props.getProperty("task", "toggle");
     String perm = props.getProperty("perm", "random");
     
-    String targetUser = WalkingSecurity.get(state).getSysUserName();
+    String targetUser = SecurityHelper.getSysUserName(state);
     
     SystemPermission sysPerm;
     if (perm.equals("random")) {
@@ -46,7 +45,7 @@ public class AlterSystemPerm extends Test {
     } else
       sysPerm = SystemPermission.valueOf(perm);
     
-    boolean hasPerm = ws.hasSystemPermission(targetUser, sysPerm);
+    boolean hasPerm = SecurityHelper.getSysPerm(state, SecurityHelper.getSysUserName(state), sysPerm);
     
     // toggle
     if (!"take".equals(action) && !"give".equals(action)) {
@@ -66,7 +65,6 @@ public class AlterSystemPerm extends Test {
           case GRANT_INVALID:
             if (sysPerm.equals(SystemPermission.GRANT))
               return;
-            throw new AccumuloException("Got GRANT_INVALID when not dealing with GRANT", ae);
           case PERMISSION_DENIED:
             throw new AccumuloException("Test user doesn't have root", ae);
           case USER_DOESNT_EXIST:
@@ -75,7 +73,7 @@ public class AlterSystemPerm extends Test {
             throw new AccumuloException("Got unexpected exception", ae);
         }
       }
-      ws.revokeSystemPermission(targetUser, sysPerm);
+      SecurityHelper.setSysPerm(state, SecurityHelper.getSysUserName(state), sysPerm, false);
     } else if ("give".equals(action)) {
       try {
         conn.securityOperations().grantSystemPermission(targetUser, sysPerm);
@@ -92,7 +90,7 @@ public class AlterSystemPerm extends Test {
             throw new AccumuloException("Got unexpected exception", ae);
         }
       }
-      ws.grantSystemPermission(targetUser, sysPerm);
+      SecurityHelper.setSysPerm(state, SecurityHelper.getSysUserName(state), sysPerm, true);
     }
   }
   

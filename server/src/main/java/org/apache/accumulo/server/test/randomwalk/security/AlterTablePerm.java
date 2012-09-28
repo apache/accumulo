@@ -24,7 +24,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 
@@ -42,16 +41,16 @@ public class AlterTablePerm extends Test {
     String perm = props.getProperty("perm", "random");
     String sourceUser = props.getProperty("source", "system");
     String targetUser = props.getProperty("target", "table");
-    boolean tabExists = WalkingSecurity.get(state).getTableExists();
+    boolean tabExists = SecurityHelper.getTableExists(state);
     
     String target;
     if ("table".equals(targetUser))
-      target = WalkingSecurity.get(state).getTabUserName();
+      target = SecurityHelper.getTabUserName(state);
     else
-      target = WalkingSecurity.get(state).getSysUserName();
+      target = SecurityHelper.getSysUserName(state);
     
-    boolean exists = WalkingSecurity.get(state).userExists(target);
-    boolean tableExists = WalkingSecurity.get(state).getTableExists();
+    boolean exists = SecurityHelper.getTabUserExists(state);
+    boolean tableExists = SecurityHelper.getTableExists(state);
     
     TablePermission tabPerm;
     if (perm.equals("random")) {
@@ -60,28 +59,26 @@ public class AlterTablePerm extends Test {
       tabPerm = TablePermission.values()[i];
     } else
       tabPerm = TablePermission.valueOf(perm);
-    String tableName = WalkingSecurity.get(state).getTableName();
-    boolean hasPerm = WalkingSecurity.get(state).hasTablePermission(target, tableName, tabPerm);
+    
+    boolean hasPerm = SecurityHelper.getTabPerm(state, target, tabPerm);
     boolean canGive;
-    AuthInfo source;
     if ("system".equals(sourceUser)) {
-      conn = WalkingSecurity.get(state).getSystemConnector();
-      source = WalkingSecurity.get(state).getSysAuthInfo();
+      conn = SecurityHelper.getSystemConnector(state);
+      canGive = SecurityHelper.getSysPerm(state, SecurityHelper.getSysUserName(state), SystemPermission.ALTER_USER)
+          || SecurityHelper.getTabPerm(state, SecurityHelper.getSysUserName(state), TablePermission.GRANT);
     } else if ("table".equals(sourceUser)) {
-      conn = WalkingSecurity.get(state).getTableConnector();
-      source = WalkingSecurity.get(state).getTabAuthInfo();
+      conn = state.getInstance().getConnector(SecurityHelper.getTabUserName(state), SecurityHelper.getTabUserPass(state));
+      canGive = SecurityHelper.getTabPerm(state, SecurityHelper.getTabUserName(state), TablePermission.GRANT);
     } else {
       conn = state.getConnector();
-      source = state.getAuthInfo();
+      canGive = true;
     }
     
-    canGive = WalkingSecurity.get(state).canGrantTable(source, target, WalkingSecurity.get(state).getTableName());
-
     // toggle
     if (!"take".equals(action) && !"give".equals(action)) {
       try {
         boolean res;
-        if (hasPerm != (res = state.getConnector().securityOperations().hasTablePermission(target, tableName, tabPerm)))
+        if (hasPerm != (res = state.getConnector().securityOperations().hasTablePermission(target, SecurityHelper.getTableName(state), tabPerm)))
           throw new AccumuloException("Test framework and accumulo are out of sync for user " + conn.whoami() + " for perm " + tabPerm.name()
               + " with local vs. accumulo being " + hasPerm + " " + res);
         
@@ -107,10 +104,9 @@ public class AlterTablePerm extends Test {
       }
     }
     
-    boolean trans = WalkingSecurity.get(state).userPassTransient(conn.whoami());
     if ("take".equals(action)) {
       try {
-        conn.securityOperations().revokeTablePermission(target, tableName, tabPerm);
+        conn.securityOperations().revokeTablePermission(target, SecurityHelper.getTableName(state), tabPerm);
       } catch (AccumuloSecurityException ae) {
         switch (ae.getErrorCode()) {
           case GRANT_INVALID:
@@ -118,7 +114,7 @@ public class AlterTablePerm extends Test {
               return;
           case PERMISSION_DENIED:
             if (canGive)
-              throw new AccumuloException(conn.whoami() + " failed to revoke permission to " + target + " when it should have worked", ae);
+              throw new AccumuloException("Test user failed to give permission when it should have worked", ae);
             return;
           case USER_DOESNT_EXIST:
             if (exists)
@@ -129,17 +125,17 @@ public class AlterTablePerm extends Test {
               throw new AccumuloException("Table doesn't exist but it should", ae);
             return;
           case BAD_CREDENTIALS:
-            if (!trans)
+            if (!SecurityHelper.sysUserPassTransient(state))
               throw new AccumuloException("Bad credentials for user " + conn.whoami());
             return;
           default:
             throw new AccumuloException("Got unexpected exception", ae);
         }
       }
-      WalkingSecurity.get(state).revokeTablePermission(target, tableName, tabPerm);
+      SecurityHelper.setTabPerm(state, target, tabPerm, false);
     } else if ("give".equals(action)) {
       try {
-        conn.securityOperations().grantTablePermission(target, tableName, tabPerm);
+        conn.securityOperations().grantTablePermission(target, SecurityHelper.getTableName(state), tabPerm);
       } catch (AccumuloSecurityException ae) {
         switch (ae.getErrorCode()) {
           case GRANT_INVALID:
@@ -148,7 +144,7 @@ public class AlterTablePerm extends Test {
             throw new AccumuloException("Got a grant invalid on non-System.GRANT option", ae);
           case PERMISSION_DENIED:
             if (canGive)
-              throw new AccumuloException(conn.whoami() + " failed to give permission to " + target + " when it should have worked", ae);
+              throw new AccumuloException("Test user failed to give permission when it should have worked", ae);
             return;
           case USER_DOESNT_EXIST:
             if (exists)
@@ -159,14 +155,14 @@ public class AlterTablePerm extends Test {
               throw new AccumuloException("Table doesn't exist but it should", ae);
             return;
           case BAD_CREDENTIALS:
-            if (!trans)
+            if (!SecurityHelper.sysUserPassTransient(state))
               throw new AccumuloException("Bad credentials for user " + conn.whoami());
             return;
           default:
             throw new AccumuloException("Got unexpected exception", ae);
         }
       }
-      WalkingSecurity.get(state).grantTablePermission(target, tableName, tabPerm);
+      SecurityHelper.setTabPerm(state, target, tabPerm, true);
     }
     
     if (!exists)
@@ -174,7 +170,7 @@ public class AlterTablePerm extends Test {
     if (!tableExists)
       throw new AccumuloException("Table shouldn't have existed, but apparantly does");
     if (!canGive)
-      throw new AccumuloException(conn.whoami() + " shouldn't have been able to grant privilege");
+      throw new AccumuloException("Source user shouldn't have been able to grant privilege");
     
   }
   

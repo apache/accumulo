@@ -45,8 +45,8 @@ import org.apache.accumulo.server.master.state.TabletLocationState;
 import org.apache.accumulo.server.master.state.TabletState;
 import org.apache.accumulo.server.master.state.tables.TableManager;
 import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
+import org.apache.accumulo.server.security.SecurityOperationImpl;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -190,7 +190,7 @@ class CleanUp extends MasterRepo {
     
     // remove any permissions associated with this table
     try {
-      AuditedSecurityOperation.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableId);
+      SecurityOperationImpl.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableId);
     } catch (ThriftSecurityException e) {
       log.error(e.getMessage(), e);
     }

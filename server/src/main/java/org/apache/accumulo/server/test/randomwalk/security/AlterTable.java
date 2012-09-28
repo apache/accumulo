@@ -24,6 +24,8 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
@@ -32,12 +34,15 @@ public class AlterTable extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn = WalkingSecurity.get(state).getSystemConnector();
+    Connector conn = SecurityHelper.getSystemConnector(state);
     
-    String tableName = WalkingSecurity.get(state).getTableName();
+    String tableName = SecurityHelper.getTableName(state);
     
-    boolean exists = WalkingSecurity.get(state).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state).canAlterTable(WalkingSecurity.get(state).getSysAuthInfo(), tableName);
+    boolean exists = SecurityHelper.getTableExists(state);
+    boolean hasPermission = false;
+    if (SecurityHelper.getSysPerm(state, SecurityHelper.getSysUserName(state), SystemPermission.ALTER_TABLE)
+        || SecurityHelper.getTabPerm(state, SecurityHelper.getSysUserName(state), TablePermission.ALTER_TABLE))
+      hasPermission = true;
     String newTableName = String.format("security_%s_%s_%d", InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_"), state.getPid(),
         System.currentTimeMillis());
     
@@ -55,7 +60,7 @@ public class AlterTable extends Test {
         else
           return;
       } else if (ae.getErrorCode().equals(SecurityErrorCode.BAD_CREDENTIALS)) {
-        if (WalkingSecurity.get(state).userPassTransient(conn.whoami()))
+        if (SecurityHelper.sysUserPassTransient(state))
           return;
       }
       throw new AccumuloException("Got unexpected ae error code", ae);
@@ -65,7 +70,7 @@ public class AlterTable extends Test {
       else
         return;
     }
-    WalkingSecurity.get(state).setTableName(newName);
+    SecurityHelper.setTableName(state, newName);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }

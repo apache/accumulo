@@ -22,6 +22,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.server.test.randomwalk.State;
@@ -31,12 +32,14 @@ public class CreateTable extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn = WalkingSecurity.get(state).getSystemConnector();
+    Connector conn = SecurityHelper.getSystemConnector(state);
     
-    String tableName = WalkingSecurity.get(state).getTableName();
+    String tableName = SecurityHelper.getTableName(state);
     
-    boolean exists = WalkingSecurity.get(state).getTableExists();
-    boolean hasPermission = WalkingSecurity.get(state).canCreateTable(WalkingSecurity.get(state).getSysAuthInfo());
+    boolean exists = SecurityHelper.getTableExists(state);
+    boolean hasPermission = false;
+    if (SecurityHelper.getSysPerm(state, SecurityHelper.getSysUserName(state), SystemPermission.CREATE_TABLE))
+      hasPermission = true;
     
     try {
       conn.tableOperations().create(tableName);
@@ -49,7 +52,7 @@ public class CreateTable extends Test {
         {
           try {
             state.getConnector().tableOperations().create(tableName);
-            WalkingSecurity.get(state).initTable(tableName);
+            SecurityHelper.setTableExists(state, true);
           } catch (TableExistsException tee) {
             if (exists)
               return;
@@ -66,9 +69,9 @@ public class CreateTable extends Test {
       else
         return;
     }
-    WalkingSecurity.get(state).initTable(tableName);
+    SecurityHelper.setTableExists(state, true);
     for (TablePermission tp : TablePermission.values())
-      WalkingSecurity.get(state).grantTablePermission(conn.whoami(), tableName, tp);
+      SecurityHelper.setTabPerm(state, conn.whoami(), tp, true);
     if (!hasPermission)
       throw new AccumuloException("Didn't get Security Exception when we should have");
   }

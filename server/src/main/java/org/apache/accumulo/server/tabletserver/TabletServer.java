@@ -153,9 +153,9 @@ import org.apache.accumulo.server.master.state.ZooTabletStateStore;
 import org.apache.accumulo.server.metrics.AbstractMetricsImpl;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.SecurityOperationImpl;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.tabletserver.Tablet.CommitSession;
 import org.apache.accumulo.server.tabletserver.Tablet.KVEntry;
@@ -2981,7 +2981,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   public void config(String hostname) {
     log.info("Tablet server starting on " + hostname);
-    security = AuditedSecurityOperation.getInstance();
+    security = SecurityOperationImpl.getInstance();
     clientAddress = new InetSocketAddress(hostname, 0);
     logger = new TabletServerLogger(this, getSystemConfiguration().getMemoryInBytes(Property.TSERV_WALOG_MAX_SIZE));
     

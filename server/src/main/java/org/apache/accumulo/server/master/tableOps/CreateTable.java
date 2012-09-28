@@ -38,9 +38,9 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.tables.TableManager;
-import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.SecurityOperationImpl;
 import org.apache.accumulo.server.tabletserver.TabletTime;
 import org.apache.accumulo.server.trace.TraceFileSystem;
 import org.apache.accumulo.server.util.MetadataTable;
@@ -231,7 +231,7 @@ class SetupPermissions extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master env) throws Exception {
     // give all table permissions to the creator
-    SecurityOperation security = AuditedSecurityOperation.getInstance();
+    SecurityOperation security = SecurityOperationImpl.getInstance();
     for (TablePermission permission : TablePermission.values()) {
       try {
         security.grantTablePermission(SecurityConstants.getSystemCredentials(), tableInfo.user, tableInfo.tableId, permission);
@@ -249,7 +249,7 @@ class SetupPermissions extends MasterRepo {
   
   @Override
   public void undo(long tid, Master env) throws Exception {
-    AuditedSecurityOperation.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableInfo.tableId);
+    SecurityOperationImpl.getInstance().deleteTable(SecurityConstants.getSystemCredentials(), tableInfo.tableId);
   }
   
 }
