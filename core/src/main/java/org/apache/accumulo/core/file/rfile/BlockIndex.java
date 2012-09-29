@@ -68,7 +68,7 @@ public class BlockIndex {
     }
 
     /**
-     * @param startKey
+     * @param key
      */
     public BlockIndexEntry(Key key) {
       this.key = key;

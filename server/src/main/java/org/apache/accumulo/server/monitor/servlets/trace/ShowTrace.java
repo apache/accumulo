@@ -98,8 +98,8 @@ public class ShowTrace extends Basic {
       @Override
       public void visit(int level, RemoteSpan parent, RemoteSpan node, Collection<RemoteSpan> children) {
         sb.append("<tr>\n");
-        sb.append(String.format("<td class='right'>%d+</td><td class='left'>%d</td>\n", node.stop - node.start, node.start - finalStart));
-        sb.append(String.format("<td style='text-indent: %dpx'>%s@%s</td>\n", level * 5, node.svc, node.sender));
+        sb.append(String.format("<td class='right'>%d+</td><td class='left'>%d</td>%n", node.stop - node.start, node.start - finalStart));
+        sb.append(String.format("<td style='text-indent: %dpx'>%s@%s</td>%n", level * 5, node.svc, node.sender));
         sb.append("<td>" + node.description + "</td>");
         boolean hasData = node.data != null && !node.data.isEmpty();
         if (hasData)
@@ -112,7 +112,7 @@ public class ShowTrace extends Basic {
         sb.append("  <table class='indent,noborder'>\n");
         for (Entry<String,String> entry : node.data.entrySet()) {
           sb.append("  <tr><td>" + BasicServlet.sanitize(entry.getKey()) + "</td>");
-          sb.append("<td>" + BasicServlet.sanitize(entry.getValue()) + "</td></tr>\n");
+          sb.append("<td>" + BasicServlet.sanitize(entry.getValue()) + "</td></tr>%n");
         }
         sb.append("  </table>");
         sb.append("</td>\n");

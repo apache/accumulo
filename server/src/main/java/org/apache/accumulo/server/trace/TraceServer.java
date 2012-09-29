@@ -20,13 +20,15 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cloudtrace.instrument.Span;
 import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
-import org.apache.accumulo.cloudtrace.thrift.SpanReceiver.Processor;
 import org.apache.accumulo.cloudtrace.thrift.SpanReceiver.Iface;
+import org.apache.accumulo.cloudtrace.thrift.SpanReceiver.Processor;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -178,7 +180,7 @@ public class TraceServer implements Watcher {
     final InetSocketAddress address = new InetSocketAddress(hostname, sock.getLocalPort());
     registerInZooKeeper(AddressUtil.toString(address));
     
-    writer = connector.createBatchWriter(table, 100l * 1024 * 1024, 5 * 1000l, 10);
+    writer = connector.createBatchWriter(table, new BatchWriterConfig().setMaxLatency(5, TimeUnit.SECONDS));
   }
   
   public void run() throws Exception {
@@ -209,7 +211,7 @@ public class TraceServer implements Watcher {
     } finally {
       writer = null;
       try {
-        writer = connector.createBatchWriter(table, 100l * 1024 * 1024, 5 * 1000l, 10);
+        writer = connector.createBatchWriter(table, new BatchWriterConfig());
       } catch (Exception ex) {
         log.error("Unable to create a batch writer: " + ex);
       }

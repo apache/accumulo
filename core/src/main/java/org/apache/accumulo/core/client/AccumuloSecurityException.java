@@ -26,7 +26,7 @@ import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 public class AccumuloSecurityException extends Exception {
   private static final long serialVersionUID = 1L;
   
-  private static String getDefaultErrorMessage(SecurityErrorCode errorcode) {
+  private static String getDefaultErrorMessage(final SecurityErrorCode errorcode) {
     switch (errorcode) {
       case BAD_CREDENTIALS:
         return "Username or Password is Invalid";
@@ -68,7 +68,7 @@ public class AccumuloSecurityException extends Exception {
    * @param cause
    *          the exception that caused this violation
    */
-  public AccumuloSecurityException(String user, SecurityErrorCode errorcode, Throwable cause) {
+  public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode, final Throwable cause) {
     super(getDefaultErrorMessage(errorcode), cause);
     this.user = user;
     this.errorCode = errorcode == null ? SecurityErrorCode.DEFAULT_SECURITY_ERROR : errorcode;
@@ -80,7 +80,7 @@ public class AccumuloSecurityException extends Exception {
    * @param errorcode
    *          the specific reason for this exception
    */
-  public AccumuloSecurityException(String user, SecurityErrorCode errorcode) {
+  public AccumuloSecurityException(final String user, final SecurityErrorCode errorcode) {
     super(getDefaultErrorMessage(errorcode));
     this.user = user;
     this.errorCode = errorcode == null ? SecurityErrorCode.DEFAULT_SECURITY_ERROR : errorcode;

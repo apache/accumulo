@@ -23,6 +23,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -91,7 +92,7 @@ public class TestBinaryRows {
       Logger.getLogger(Constants.CORE_PACKAGE_NAME).setLevel(Level.DEBUG);
       
       if (mode.equals("ingest") || mode.equals("delete")) {
-        BatchWriter bw = connector.createBatchWriter(table, 20000000l, 60l, 8);
+        BatchWriter bw = connector.createBatchWriter(table, new BatchWriterConfig());
         boolean delete = mode.equals("delete");
         
         for (long i = 0; i < num; i++) {
@@ -152,8 +153,8 @@ public class TestBinaryRows {
         
         long t2 = System.currentTimeMillis();
         
-        System.out.printf("time : %9.2f secs\n", ((t2 - t1) / 1000.0));
-        System.out.printf("rate : %9.2f entries/sec\n", num / ((t2 - t1) / 1000.0));
+        System.out.printf("time : %9.2f secs%n", ((t2 - t1) / 1000.0));
+        System.out.printf("rate : %9.2f entries/sec%n", num / ((t2 - t1) / 1000.0));
         
       } else if (mode.equals("randomLookups")) {
         int numLookups = 1000;
@@ -194,9 +195,9 @@ public class TestBinaryRows {
         
         long t2 = System.currentTimeMillis();
         
-        System.out.printf("time    : %9.2f secs\n", ((t2 - t1) / 1000.0));
-        System.out.printf("lookups : %9d keys\n", numLookups);
-        System.out.printf("rate    : %9.2f lookups/sec\n", numLookups / ((t2 - t1) / 1000.0));
+        System.out.printf("time    : %9.2f secs%n", ((t2 - t1) / 1000.0));
+        System.out.printf("lookups : %9d keys%n", numLookups);
+        System.out.printf("rate    : %9.2f lookups/sec%n", numLookups / ((t2 - t1) / 1000.0));
         
       } else if (mode.equals("split")) {
         TreeSet<Text> splits = new TreeSet<Text>();
@@ -207,7 +208,7 @@ public class TestBinaryRows {
           long splitPoint = i << shift;
           
           splits.add(new Text(encodeLong(splitPoint)));
-          System.out.printf("added split point 0x%016x  %,12d\n", splitPoint, splitPoint);
+          System.out.printf("added split point 0x%016x  %,12d%n", splitPoint, splitPoint);
         }
         
         connector.tableOperations().create(table);

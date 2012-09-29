@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
   public String why; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     WHY((short)1, "why");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();

@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
   public org.apache.accumulo.core.data.thrift.TKeyExtent extent; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     EXTENT((short)1, "extent");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();

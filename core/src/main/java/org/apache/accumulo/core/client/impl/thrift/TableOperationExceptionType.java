@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.HashMap;
 import org.apache.thrift.TEnum;
 
-public enum TableOperationExceptionType implements org.apache.thrift.TEnum {
+@SuppressWarnings("all") public enum TableOperationExceptionType implements org.apache.thrift.TEnum {
   EXISTS(0),
   NOTFOUND(1),
   OFFLINE(2),

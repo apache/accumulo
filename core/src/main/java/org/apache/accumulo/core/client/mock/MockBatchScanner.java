@@ -91,5 +91,4 @@ public class MockBatchScanner extends MockScannerBase implements BatchScanner {
   
   @Override
   public void close() {}
-  
 }

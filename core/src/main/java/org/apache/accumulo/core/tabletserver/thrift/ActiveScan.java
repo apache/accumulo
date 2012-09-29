@@ -69,7 +69,7 @@ import org.slf4j.LoggerFactory;
   public Map<String,Map<String,String>> ssio; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     CLIENT((short)2, "client"),
     USER((short)3, "user"),
     TABLE_ID((short)4, "tableId"),

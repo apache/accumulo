@@ -1,0 +1,18 @@
+<version>
+  1.4.2-SNAPSHOT
+</version>
+
+<archives>
+  CHANGEME/accumulo-core-1.4.2-SNAPSHOT.jar
+</archives>
+
+<skip_packages>
+  org.apache.accumulo.core.client.impl
+  org.apache.accumulo.core.client.mock
+  org.apache.accumulo.core.data.thrift
+</skip_packages>
+
+<packages>
+  org.apache.accumulo.core.client
+  org.apache.accumulo.core.data
+</packages>

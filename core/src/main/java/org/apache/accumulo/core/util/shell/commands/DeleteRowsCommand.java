@@ -27,10 +27,10 @@ public class DeleteRowsCommand extends Command {
   private Option forceOpt;
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, final Shell shellState) throws Exception {
-    String tableName = OptUtil.getTableOpt(cl, shellState);
-    Text startRow = OptUtil.getStartRow(cl);
-    Text endRow = OptUtil.getEndRow(cl);
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
+    final Text startRow = OptUtil.getStartRow(cl);
+    final Text endRow = OptUtil.getEndRow(cl);
     if (!cl.hasOption(forceOpt.getOpt()) && (startRow == null || endRow == null)) {
       shellState.getReader().printString("Not deleting unbounded range. Specify both ends, or use --force\n");
       return 1;
@@ -51,7 +51,7 @@ public class DeleteRowsCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     forceOpt = new Option("f", "force", false, "delete data even if start or end are not specified");
     o.addOption(OptUtil.startRowOpt());
     o.addOption(OptUtil.endRowOpt());

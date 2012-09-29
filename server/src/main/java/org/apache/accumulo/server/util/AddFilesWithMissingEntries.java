@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -70,7 +71,7 @@ public class AddFilesWithMissingEntries {
     Set<String> knownFiles = new HashSet<String>();
     
     int count = 0;
-    final MultiTableBatchWriter writer = connector.createMultiTableBatchWriter(100000, 1000, 4);
+    final MultiTableBatchWriter writer = connector.createMultiTableBatchWriter(new BatchWriterConfig());
     
     // collect the list of known files and the directory for each extent
     for (Entry<Key,Value> entry : scanner) {

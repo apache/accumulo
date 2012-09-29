@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
   public long splitCreationTime; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     EXTENT((short)1, "extent"),
     MAJOR((short)2, "major"),
     MINOR((short)3, "minor"),

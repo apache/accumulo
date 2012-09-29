@@ -18,6 +18,7 @@ package org.apache.accumulo.server.master.tableOps;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
@@ -54,15 +55,13 @@ import org.apache.hadoop.io.Text;
 class MakeDeleteEntries extends MasterRepo {
   
   private static final long serialVersionUID = 1L;
-  private static final long ARBITRARY_BUFFER_SIZE = 10000;
-  private static final long ARBITRARY_LATENCY = 1000;
 
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.info("creating delete entries for merged metadata tablets");
     Instance instance = master.getInstance();
     Connector conn = instance.getConnector(SecurityConstants.getSystemCredentials());
-    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, ARBITRARY_BUFFER_SIZE, ARBITRARY_LATENCY, 1);
+    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     AccumuloConfiguration conf = instance.getConfiguration();
     String tableDir = Constants.getMetadataTableDir(conf);
     for (FileStatus fs : master.getFileSystem().listStatus(new Path(tableDir))) {

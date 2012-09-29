@@ -23,11 +23,8 @@ import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.net.InetAddress;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -72,7 +69,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.ArgumentChecker;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -142,7 +138,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   
   // Used for specifying the iterators to be applied
   private static final String ITERATORS = PREFIX + ".iterators";
-  private static final String ITERATORS_OPTIONS = PREFIX + ".iterators.options";
   private static final String ITERATORS_DELIM = ",";
   
   private static final String READ_OFFLINE = PREFIX + ".read.offline";
@@ -213,7 +208,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     } catch (IOException ioe) {
       throw new RuntimeException(ioe);
     }
-
+    
   }
   
   /**
@@ -260,17 +255,24 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   public static void setRanges(Configuration conf, Collection<Range> ranges) {
     ArgumentChecker.notNull(ranges);
-    ArrayList<String> rangeStrings = new ArrayList<String>(ranges.size());
     try {
+      FileSystem fs = FileSystem.get(conf);
+      Path file = new Path(fs.getWorkingDirectory(), conf.get("mapred.job.name") + System.currentTimeMillis() + ".ranges");
+      conf.set(RANGES, file.toString());
+      FSDataOutputStream fos = fs.create(file, false);
+      fs.setPermission(file, new FsPermission(FsAction.ALL, FsAction.NONE, FsAction.NONE));
+      fs.deleteOnExit(file);
+      
+      fos.writeInt(ranges.size());
       for (Range r : ranges) {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        r.write(new DataOutputStream(baos));
-        rangeStrings.add(new String(Base64.encodeBase64(baos.toByteArray())));
+        r.write(fos);
       }
-    } catch (IOException ex) {
-      throw new IllegalArgumentException("Unable to encode ranges to Base64", ex);
+      fos.close();
+      
+      DistributedCache.addCacheFile(file.toUri(), conf);
+    } catch (IOException e) {
+      throw new RuntimeException("Unable to write ranges to file", e);
     }
-    conf.setStrings(RANGES, rangeStrings.toArray(new String[0]));
   }
   
   /**
@@ -382,32 +384,25 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     // First check to see if anything has been set already
     String iterators = conf.get(ITERATORS);
     
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    String newIter;
+    try {
+      cfg.write(new DataOutputStream(baos));
+      newIter = new String(Base64.encodeBase64(baos.toByteArray()));
+      baos.close();
+    } catch (IOException e) {
+      throw new IllegalArgumentException("unable to serialize IteratorSetting");
+    }
+    
     // No iterators specified yet, create a new string
     if (iterators == null || iterators.isEmpty()) {
-      iterators = new AccumuloIterator(cfg.getPriority(), cfg.getIteratorClass(), cfg.getName()).toString();
+      iterators = newIter;
     } else {
       // append the next iterator & reset
-      iterators = iterators.concat(ITERATORS_DELIM + new AccumuloIterator(cfg.getPriority(), cfg.getIteratorClass(), cfg.getName()).toString());
+      iterators = iterators.concat(ITERATORS_DELIM + newIter);
     }
     // Store the iterators w/ the job
     conf.set(ITERATORS, iterators);
-    for (Entry<String,String> entry : cfg.getOptions().entrySet()) {
-      if (entry.getValue() == null)
-        continue;
-      
-      String iteratorOptions = conf.get(ITERATORS_OPTIONS);
-      
-      // No options specified yet, create a new string
-      if (iteratorOptions == null || iteratorOptions.isEmpty()) {
-        iteratorOptions = new AccumuloIteratorOption(cfg.getName(), entry.getKey(), entry.getValue()).toString();
-      } else {
-        // append the next option & reset
-        iteratorOptions = iteratorOptions.concat(ITERATORS_DELIM + new AccumuloIteratorOption(cfg.getName(), entry.getKey(), entry.getValue()));
-      }
-      
-      // Store the options w/ the job
-      conf.set(ITERATORS_OPTIONS, iteratorOptions);
-    }
   }
   
   /**
@@ -490,7 +485,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   protected static Authorizations getAuthorizations(Configuration conf) {
     String authString = conf.get(AUTHORIZATIONS);
-    return authString == null ? Constants.NO_AUTHS : new Authorizations(authString.split(","));
+    return authString == null ? Constants.NO_AUTHS : new Authorizations(authString.getBytes());
   }
   
   /**
@@ -542,12 +537,21 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   protected static List<Range> getRanges(Configuration conf) throws IOException {
     ArrayList<Range> ranges = new ArrayList<Range>();
-    for (String rangeString : conf.getStringCollection(RANGES)) {
-      ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(rangeString.getBytes()));
-      Range range = new Range();
-      range.readFields(new DataInputStream(bais));
-      ranges.add(range);
+    FileSystem fs = FileSystem.get(conf);
+    String rangePath = conf.get(RANGES);
+    if (rangePath == null)
+      return ranges;
+    Path file = new Path(rangePath);
+    
+    FSDataInputStream fdis = fs.open(file);
+    int numRanges = fdis.readInt();
+    while (numRanges > 0) {
+      Range r = new Range();
+      r.readFields(fdis);
+      ranges.add(r);
+      numRanges--;
     }
+    fdis.close();
     return ranges;
   }
   
@@ -618,7 +622,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       
       if (!usesLocalIterators(conf)) {
         // validate that any scan-time iterators can be loaded by the the tablet servers
-        for (AccumuloIterator iter : getIterators(conf)) {
+        for (IteratorSetting iter : getIterators(conf)) {
           if (!c.instanceOperations().testClassLoad(iter.getIteratorClass(), SortedKeyValueIterator.class.getName()))
             throw new AccumuloException("Servers are unable to load " + iter.getIteratorClass() + " as a " + SortedKeyValueIterator.class.getName());
         }
@@ -657,45 +661,26 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @return a list of iterators
    * @see #addIterator(Configuration, IteratorSetting)
    */
-  protected static List<AccumuloIterator> getIterators(Configuration conf) {
+  protected static List<IteratorSetting> getIterators(Configuration conf) {
     
     String iterators = conf.get(ITERATORS);
     
     // If no iterators are present, return an empty list
     if (iterators == null || iterators.isEmpty())
-      return new ArrayList<AccumuloIterator>();
+      return new ArrayList<IteratorSetting>();
     
     // Compose the set of iterators encoded in the job configuration
     StringTokenizer tokens = new StringTokenizer(conf.get(ITERATORS), ITERATORS_DELIM);
-    List<AccumuloIterator> list = new ArrayList<AccumuloIterator>();
-    while (tokens.hasMoreTokens()) {
-      String itstring = tokens.nextToken();
-      list.add(new AccumuloIterator(itstring));
-    }
-    return list;
-  }
-  
-  /**
-   * Gets a list of the iterator options specified on this configuration.
-   * 
-   * @param conf
-   *          the Hadoop configuration object
-   * @return a list of iterator options
-   * @see #addIterator(Configuration, IteratorSetting)
-   */
-  protected static List<AccumuloIteratorOption> getIteratorOptions(Configuration conf) {
-    String iteratorOptions = conf.get(ITERATORS_OPTIONS);
-    
-    // If no options are present, return an empty list
-    if (iteratorOptions == null || iteratorOptions.isEmpty())
-      return new ArrayList<AccumuloIteratorOption>();
-    
-    // Compose the set of options encoded in the job configuration
-    StringTokenizer tokens = new StringTokenizer(conf.get(ITERATORS_OPTIONS), ITERATORS_DELIM);
-    List<AccumuloIteratorOption> list = new ArrayList<AccumuloIteratorOption>();
-    while (tokens.hasMoreTokens()) {
-      String optionString = tokens.nextToken();
-      list.add(new AccumuloIteratorOption(optionString));
+    List<IteratorSetting> list = new ArrayList<IteratorSetting>();
+    try {
+      while (tokens.hasMoreTokens()) {
+        String itstring = tokens.nextToken();
+        ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(itstring.getBytes()));
+        list.add(new IteratorSetting(new DataInputStream(bais)));
+        bais.close();
+      }
+    } catch (IOException e) {
+      throw new IllegalArgumentException("couldn't decode iterator settings");
     }
     return list;
   }
@@ -715,18 +700,9 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
      * @throws AccumuloException
      */
     protected void setupIterators(Configuration conf, Scanner scanner) throws AccumuloException {
-      List<AccumuloIterator> iterators = getIterators(conf);
-      List<AccumuloIteratorOption> options = getIteratorOptions(conf);
-      
-      Map<String,IteratorSetting> scanIterators = new HashMap<String,IteratorSetting>();
-      for (AccumuloIterator iterator : iterators) {
-        scanIterators.put(iterator.getIteratorName(), new IteratorSetting(iterator.getPriority(), iterator.getIteratorName(), iterator.getIteratorClass()));
-      }
-      for (AccumuloIteratorOption option : options) {
-        scanIterators.get(option.iteratorName).addOption(option.getKey(), option.getValue());
-      }
-      for (AccumuloIterator iterator : iterators) {
-        scanner.addScanIterator(scanIterators.get(iterator.getIteratorName()));
+      List<IteratorSetting> iterators = getIterators(conf);
+      for (IteratorSetting iterator : iterators) {
+        scanner.addScanIterator(iterator);
       }
     }
     
@@ -858,7 +834,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       
       Range metadataRange = new Range(new KeyExtent(new Text(tableId), startRow, null).getMetadataEntry(), true, null, false);
       Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-      ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+      Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
       scanner.fetchColumnFamily(Constants.METADATA_LAST_LOCATION_COLUMN_FAMILY);
       scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
       scanner.fetchColumnFamily(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
@@ -1078,13 +1054,13 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       if (currentKey == null)
         return 0f;
       if (range.getStartKey() != null && range.getEndKey() != null) {
-        if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW) != 0) {
+        if (!range.getStartKey().equals(range.getEndKey(), PartialKey.ROW)) {
           // just look at the row progress
           return getProgress(range.getStartKey().getRowData(), range.getEndKey().getRowData(), currentKey.getRowData());
-        } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM) != 0) {
+        } else if (!range.getStartKey().equals(range.getEndKey(), PartialKey.ROW_COLFAM)) {
           // just look at the column family progress
           return getProgress(range.getStartKey().getColumnFamilyData(), range.getEndKey().getColumnFamilyData(), currentKey.getColumnFamilyData());
-        } else if (range.getStartKey().compareTo(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL) != 0) {
+        } else if (!range.getStartKey().equals(range.getEndKey(), PartialKey.ROW_COLFAM_COLQUAL)) {
           // just look at the column qualifier progress
           return getProgress(range.getStartKey().getColumnQualifierData(), range.getEndKey().getColumnQualifierData(), currentKey.getColumnQualifierData());
         }
@@ -1143,101 +1119,4 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         out.writeUTF(locations[i]);
     }
   }
-  
-  /**
-   * The Class IteratorSetting. Encapsulates specifics for an Accumulo iterator's name & priority.
-   */
-  static class AccumuloIterator {
-    
-    private static final String FIELD_SEP = ":";
-    
-    private int priority;
-    private String iteratorClass;
-    private String iteratorName;
-    
-    public AccumuloIterator(int priority, String iteratorClass, String iteratorName) {
-      this.priority = priority;
-      this.iteratorClass = iteratorClass;
-      this.iteratorName = iteratorName;
-    }
-    
-    // Parses out a setting given an string supplied from an earlier toString() call
-    public AccumuloIterator(String iteratorSetting) {
-      // Parse the string to expand the iterator
-      StringTokenizer tokenizer = new StringTokenizer(iteratorSetting, FIELD_SEP);
-      priority = Integer.parseInt(tokenizer.nextToken());
-      iteratorClass = tokenizer.nextToken();
-      iteratorName = tokenizer.nextToken();
-    }
-    
-    public int getPriority() {
-      return priority;
-    }
-    
-    public String getIteratorClass() {
-      return iteratorClass;
-    }
-    
-    public String getIteratorName() {
-      return iteratorName;
-    }
-    
-    @Override
-    public String toString() {
-      return new String(priority + FIELD_SEP + iteratorClass + FIELD_SEP + iteratorName);
-    }
-    
-  }
-  
-  /**
-   * The Class AccumuloIteratorOption. Encapsulates specifics for an Accumulo iterator's optional configuration details - associated via the iteratorName.
-   */
-  static class AccumuloIteratorOption {
-    private static final String FIELD_SEP = ":";
-    
-    private String iteratorName;
-    private String key;
-    private String value;
-    
-    public AccumuloIteratorOption(String iteratorName, String key, String value) {
-      this.iteratorName = iteratorName;
-      this.key = key;
-      this.value = value;
-    }
-    
-    // Parses out an option given a string supplied from an earlier toString() call
-    public AccumuloIteratorOption(String iteratorOption) {
-      StringTokenizer tokenizer = new StringTokenizer(iteratorOption, FIELD_SEP);
-      this.iteratorName = tokenizer.nextToken();
-      try {
-        this.key = URLDecoder.decode(tokenizer.nextToken(), "UTF-8");
-        this.value = URLDecoder.decode(tokenizer.nextToken(), "UTF-8");
-      } catch (UnsupportedEncodingException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    
-    public String getIteratorName() {
-      return iteratorName;
-    }
-    
-    public String getKey() {
-      return key;
-    }
-    
-    public String getValue() {
-      return value;
-    }
-    
-    @Override
-    public String toString() {
-      try {
-        return new String(iteratorName + FIELD_SEP + URLEncoder.encode(key, "UTF-8") + FIELD_SEP + URLEncoder.encode(value, "UTF-8"));
-      } catch (UnsupportedEncodingException e) {
-        throw new RuntimeException(e);
-      }
-    }
-    
-  }
-  
 }

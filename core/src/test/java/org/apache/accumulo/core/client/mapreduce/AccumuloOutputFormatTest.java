@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -78,7 +79,7 @@ public class AccumuloOutputFormatTest {
     Connector c = mockInstance.getConnector("root", new byte[] {});
     c.tableOperations().create("testtable1");
     c.tableOperations().create("testtable2");
-    BatchWriter bw = c.createBatchWriter("testtable1", 10000L, 1000L, 4);
+    BatchWriter bw = c.createBatchWriter("testtable1", new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
       Mutation m = new Mutation(new Text(String.format("%09x", i + 1)));
       m.put(new Text(), new Text(), new Value(String.format("%09x", i).getBytes()));

@@ -35,23 +35,23 @@ import org.junit.Test;
 
 public class RowIteratorTest {
   
-  Iterator<Entry<Key,Value>> makeIterator(String... args) {
-    Map<Key,Value> result = new TreeMap<Key,Value>();
+  Iterator<Entry<Key,Value>> makeIterator(final String... args) {
+    final Map<Key,Value> result = new TreeMap<Key,Value>();
     for (String s : args) {
-      String parts[] = s.split("[ \t]");
-      Key key = new Key(parts[0], parts[1], parts[2]);
-      Value value = new Value(parts[3].getBytes());
+      final String parts[] = s.split("[ \t]");
+      final Key key = new Key(parts[0], parts[1], parts[2]);
+      final Value value = new Value(parts[3].getBytes());
       result.put(key, value);
     }
     return result.entrySet().iterator();
   }
   
-  List<List<Entry<Key,Value>>> getRows(Iterator<Entry<Key,Value>> iter) {
-    List<List<Entry<Key,Value>>> result = new ArrayList<List<Entry<Key,Value>>>();
-    RowIterator riter = new RowIterator(iter);
+  List<List<Entry<Key,Value>>> getRows(final Iterator<Entry<Key,Value>> iter) {
+    final List<List<Entry<Key,Value>>> result = new ArrayList<List<Entry<Key,Value>>>();
+    final RowIterator riter = new RowIterator(iter);
     while (riter.hasNext()) {
-      Iterator<Entry<Key,Value>> row = riter.next();
-      List<Entry<Key,Value>> rlist = new ArrayList<Entry<Key,Value>>();
+      final Iterator<Entry<Key,Value>> row = riter.next();
+      final List<Entry<Key,Value>> rlist = new ArrayList<Entry<Key,Value>>();
       while (row.hasNext())
         rlist.add(row.next());
       result.add(rlist);
@@ -100,7 +100,7 @@ public class RowIteratorTest {
   
   @Test
   public void testUnreadRow() {
-    RowIterator i = new RowIterator(makeIterator("a b c d", "a 1 2 3", "b 1 2 3"));
+    final RowIterator i = new RowIterator(makeIterator("a b c d", "a 1 2 3", "b 1 2 3"));
     assertTrue(i.hasNext());
     Iterator<Entry<Key,Value>> firstRow = i.next();
     assertEquals(0, i.getKVCount());

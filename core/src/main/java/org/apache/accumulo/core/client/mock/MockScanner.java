@@ -19,6 +19,7 @@ package org.apache.accumulo.core.client.mock;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -31,7 +32,6 @@ import org.apache.accumulo.core.security.Authorizations;
 
 public class MockScanner extends MockScannerBase implements Scanner {
   
-  int timeOut = 0;
   int batchSize = 0;
   Range range = new Range();
   
@@ -41,12 +41,18 @@ public class MockScanner extends MockScannerBase implements Scanner {
   
   @Override
   public void setTimeOut(int timeOut) {
-    this.timeOut = timeOut;
+    if (timeOut == Integer.MAX_VALUE)
+      setTimeout(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+    else
+      setTimeout(timeOut, TimeUnit.SECONDS);
   }
   
   @Override
   public int getTimeOut() {
-    return timeOut;
+    long timeout = getTimeout(TimeUnit.SECONDS);
+    if (timeout >= Integer.MAX_VALUE)
+      return Integer.MAX_VALUE;
+    return (int) timeout;
   }
   
   @Override

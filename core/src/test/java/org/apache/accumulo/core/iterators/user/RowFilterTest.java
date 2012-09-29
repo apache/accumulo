@@ -25,6 +25,7 @@ import junit.framework.TestCase;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -84,7 +85,7 @@ public class RowFilterTest extends TestCase {
     Connector conn = instance.getConnector("", "".getBytes());
     
     conn.tableOperations().create("table1");
-    BatchWriter bw = conn.createBatchWriter("table1", 1000000, 60000, 1);
+    BatchWriter bw = conn.createBatchWriter("table1", new BatchWriterConfig());
     
     Mutation m = new Mutation("0");
     m.put("cf1", "cq1", "1");

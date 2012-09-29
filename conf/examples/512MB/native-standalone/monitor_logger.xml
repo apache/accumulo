@@ -25,7 +25,7 @@
      <param name="MaxBackupIndex" value="10"/>
      <param name="Threshold"      value="DEBUG"/>
      <layout class="org.apache.log4j.PatternLayout">
-       <param name="ConversionPattern" value="%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %X{application} %m%n"/>
+       <param name="ConversionPattern" value="%d{ISO8601} [%-8c{2}] %-5p: %X{application} %m%n"/>
      </layout>	    
   </appender>
 
@@ -36,7 +36,7 @@
      <param name="MaxBackupIndex" value="10"/>
      <param name="Threshold"      value="INFO"/>
      <layout class="org.apache.log4j.PatternLayout">
-       <param name="ConversionPattern" value="%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %X{application} %m%n"/>
+       <param name="ConversionPattern" value="%d{ISO8601} [%-8c{2}] %-5p: %X{application} %m%n"/>
      </layout>	    
   </appender>
 

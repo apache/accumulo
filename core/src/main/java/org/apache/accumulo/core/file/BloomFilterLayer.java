@@ -440,7 +440,7 @@ public class BloomFilterLayer {
     
     long t2 = System.currentTimeMillis();
     
-    out.printf("write rate %6.2f\n", vals.size() / ((t2 - t1) / 1000.0));
+    out.printf("write rate %6.2f%n", vals.size() / ((t2 - t1) / 1000.0));
     
     bmfw.close();
     
@@ -468,7 +468,7 @@ public class BloomFilterLayer {
     
     t2 = System.currentTimeMillis();
     
-    out.printf("random lookup rate : %6.2f\n", 5000 / ((t2 - t1) / 1000.0));
+    out.printf("random lookup rate : %6.2f%n", 5000 / ((t2 - t1) / 1000.0));
     out.println("hits = " + hits);
     
     int count = 0;
@@ -495,7 +495,7 @@ public class BloomFilterLayer {
     
     t2 = System.currentTimeMillis();
     
-    out.printf("existant lookup rate %6.2f\n", 500 / ((t2 - t1) / 1000.0));
+    out.printf("existant lookup rate %6.2f%n", 500 / ((t2 - t1) / 1000.0));
     out.println("expected hits 500.  Receive hits: " + count);
     bmfr.close();
   }

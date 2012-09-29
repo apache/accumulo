@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client;
 
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Range;
 
@@ -44,4 +45,19 @@ public interface BatchScanner extends ScannerBase {
    * Cleans up and finalizes the scanner
    */
   void close();
+  
+  /**
+   * Sets a timeout threshold for a server to respond. The batch scanner will accomplish as much work as possible before throwing an exception. BatchScanner
+   * iterators will throw a {@link TimedOutException} when all needed servers timeout. Setting the timeout to zero or Long.MAX_VALUE and TimeUnit.MILLISECONDS
+   * means no timeout.
+   * 
+   * <p>
+   * If not set, there is not timeout. The BatchScanner will retry forever.
+   * 
+   * @param timeout
+   * @param timeUnit
+   *          determines how timeout is interpreted
+   */
+  @Override
+  void setTimeout(long timeout, TimeUnit timeUnit);
 }

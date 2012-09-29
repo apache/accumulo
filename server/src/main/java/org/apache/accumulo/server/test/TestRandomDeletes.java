@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Column;
@@ -92,7 +93,7 @@ public class TestRandomDeletes {
     java.util.Collections.shuffle(entries);
     
     Connector connector = HdfsZooInstance.getInstance().getConnector(credentials.user, credentials.password);
-    BatchWriter mutations = connector.createBatchWriter(t.toString(), 10000l, 10000l, 4);
+    BatchWriter mutations = connector.createBatchWriter(t.toString(), new BatchWriterConfig());
     ColumnVisibility cv = new ColumnVisibility("L1&L2&G1&GROUP2");
     
     for (int i = 0; i < (entries.size() + 1) / 2; i++) {

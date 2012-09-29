@@ -21,13 +21,14 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Map.Entry;
+import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -70,7 +71,7 @@ public class BatchWriterFlushTest extends FunctionalTest {
   
   private void runLatencyTest() throws Exception {
     // should automatically flush after 3 seconds
-    BatchWriter bw = getConnector().createBatchWriter("bwlt", 42000000l, 3000l, 3);
+    BatchWriter bw = getConnector().createBatchWriter("bwlt", new BatchWriterConfig());
     Scanner scanner = getConnector().createScanner("bwlt", Constants.NO_AUTHS);
     
     Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));
@@ -104,7 +105,7 @@ public class BatchWriterFlushTest extends FunctionalTest {
   }
   
   private void runFlushTest() throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException, Exception {
-    BatchWriter bw = getConnector().createBatchWriter("bwft", 42000000l, 20l, 3);
+    BatchWriter bw = getConnector().createBatchWriter("bwft", new BatchWriterConfig());
     Scanner scanner = getConnector().createScanner("bwft", Constants.NO_AUTHS);
     Random r = new Random();
     

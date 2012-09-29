@@ -88,6 +88,7 @@ import org.apache.accumulo.core.util.shell.commands.DropUserCommand;
 import org.apache.accumulo.core.util.shell.commands.EGrepCommand;
 import org.apache.accumulo.core.util.shell.commands.ExecfileCommand;
 import org.apache.accumulo.core.util.shell.commands.ExitCommand;
+import org.apache.accumulo.core.util.shell.commands.ExportTableCommand;
 import org.apache.accumulo.core.util.shell.commands.FlushCommand;
 import org.apache.accumulo.core.util.shell.commands.FormatterCommand;
 import org.apache.accumulo.core.util.shell.commands.GetAuthsCommand;
@@ -99,8 +100,10 @@ import org.apache.accumulo.core.util.shell.commands.HelpCommand;
 import org.apache.accumulo.core.util.shell.commands.HiddenCommand;
 import org.apache.accumulo.core.util.shell.commands.HistoryCommand;
 import org.apache.accumulo.core.util.shell.commands.ImportDirectoryCommand;
+import org.apache.accumulo.core.util.shell.commands.ImportTableCommand;
 import org.apache.accumulo.core.util.shell.commands.InfoCommand;
 import org.apache.accumulo.core.util.shell.commands.InsertCommand;
+import org.apache.accumulo.core.util.shell.commands.InterpreterCommand;
 import org.apache.accumulo.core.util.shell.commands.ListIterCommand;
 import org.apache.accumulo.core.util.shell.commands.ListScansCommand;
 import org.apache.accumulo.core.util.shell.commands.MaxRowCommand;
@@ -289,7 +292,7 @@ public class Shell extends ShellOptions {
     rootToken = new Token();
     
     Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(), new EGrepCommand(), new FormatterCommand(),
-        new GrepCommand(), new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
+        new InterpreterCommand(), new GrepCommand(), new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
     Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(), new ListScansCommand(), new TraceCommand()};
     Command[] execCommands = {new ExecfileCommand(), new HistoryCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
@@ -301,7 +304,8 @@ public class Shell extends ShellOptions {
     Command[] stateCommands = {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new NoTableCommand(), new SleepCommand(), new TableCommand(),
         new UserCommand(), new WhoAmICommand()};
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(), new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(),
-        new DUCommand(), new OfflineCommand(), new OnlineCommand(), new RenameTableCommand(), new TablesCommand()};
+        new DUCommand(), new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(), new OnlineCommand(), new RenameTableCommand(),
+        new TablesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(),
         new GetSplitsCommand(), new MergeCommand(), new SetGroupsCommand()};
     Command[] userCommands = {new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(), new PasswdCommand(),
@@ -437,7 +441,7 @@ public class Shell extends ShellOptions {
     if (disableAuthTimeout)
       sb.append("- Authorization timeout: disabled\n");
     else
-      sb.append("- Authorization timeout: ").append(String.format("%.2fs\n", authTimeout / 1000.0));
+      sb.append("- Authorization timeout: ").append(String.format("%.2fs%n", authTimeout / 1000.0));
     sb.append("- Debug: ").append(isDebuggingEnabled() ? "on" : "off").append("\n");
     if (!scanIteratorOptions.isEmpty()) {
       for (Entry<String,List<IteratorSetting>> entry : scanIteratorOptions.entrySet()) {
@@ -809,12 +813,6 @@ public class Shell extends ShellOptions {
     }
   }
   
-  public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate) throws IOException {
-    Class<? extends Formatter> formatterClass = getFormatter();
-    
-    printRecords(scanner, printTimestamps, paginate, formatterClass);
-  }
-  
   public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, Class<? extends Formatter> formatterClass)
       throws IOException {
     printLines(FormatterFactory.getFormatter(formatterClass, scanner, printTimestamps), paginate);
@@ -841,12 +839,12 @@ public class Shell extends ShellOptions {
     printException(cve, "");
     int COL1 = 50, COL2 = 14;
     int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, reader.getTermwidth() - COL1 - COL2 - 6));
-    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
-    logError(String.format("%-" + COL1 + "s | %" + COL2 + "s | %-" + col3 + "s\n", "Constraint class", "Violation code", "Violation Description"));
-    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+    logError(String.format("%-" + COL1 + "s | %" + COL2 + "s | %-" + col3 + "s%n", "Constraint class", "Violation code", "Violation Description"));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
     for (TConstraintViolationSummary cvs : cve.violationSummaries)
-      logError(String.format("%-" + COL1 + "s | %" + COL2 + "d | %-" + col3 + "s\n", cvs.constrainClass, cvs.violationCode, cvs.violationDescription));
-    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s\n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
+      logError(String.format("%-" + COL1 + "s | %" + COL2 + "d | %-" + col3 + "s%n", cvs.constrainClass, cvs.violationCode, cvs.violationDescription));
+    logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1), repeat("-", COL2), repeat("-", col3)));
   }
   
   public final void printException(Exception e) {

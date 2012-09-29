@@ -63,7 +63,7 @@ import org.slf4j.LoggerFactory;
   public double scanRate; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     RECS((short)1, "recs"),
     RECS_IN_MEMORY((short)2, "recsInMemory"),
     TABLETS((short)3, "tablets"),

@@ -748,15 +748,15 @@ public class BulkImporter {
         failedTablets.addAll(ft);
       
       sb.append("BULK IMPORT ASSIGNMENT STATISTICS\n");
-      sb.append(String.format("# of map files            : %,10d\n", numUniqueMapFiles));
-      sb.append(String.format("# map files with failures : %,10d %6.2f%s\n", completeFailures.size(), completeFailures.size() * 100.0 / numUniqueMapFiles, "%"));
-      sb.append(String.format("# failed failed map files : %,10d %s\n", failedFailures.size(), failedFailures.size() > 0 ? " <-- THIS IS BAD" : ""));
-      sb.append(String.format("# of tablets              : %,10d\n", counts.size()));
-      sb.append(String.format("# tablets imported to     : %,10d %6.2f%s\n", tabletsImportedTo, tabletsImportedTo * 100.0 / counts.size(), "%"));
-      sb.append(String.format("# tablets with failures   : %,10d %6.2f%s\n", failedTablets.size(), failedTablets.size() * 100.0 / counts.size(), "%"));
-      sb.append(String.format("min map files per tablet  : %,10d\n", min));
-      sb.append(String.format("max map files per tablet  : %,10d\n", max));
-      sb.append(String.format("avg map files per tablet  : %,10.2f (std dev = %.2f)\n", totalAssignments / (double) counts.size(), stddev));
+      sb.append(String.format("# of map files            : %,10d%n", numUniqueMapFiles));
+      sb.append(String.format("# map files with failures : %,10d %6.2f%s%n", completeFailures.size(), completeFailures.size() * 100.0 / numUniqueMapFiles, "%"));
+      sb.append(String.format("# failed failed map files : %,10d %s%n", failedFailures.size(), failedFailures.size() > 0 ? " <-- THIS IS BAD" : ""));
+      sb.append(String.format("# of tablets              : %,10d%n", counts.size()));
+      sb.append(String.format("# tablets imported to     : %,10d %6.2f%s%n", tabletsImportedTo, tabletsImportedTo * 100.0 / counts.size(), "%"));
+      sb.append(String.format("# tablets with failures   : %,10d %6.2f%s%n", failedTablets.size(), failedTablets.size() * 100.0 / counts.size(), "%"));
+      sb.append(String.format("min map files per tablet  : %,10d%n", min));
+      sb.append(String.format("max map files per tablet  : %,10d%n", max));
+      sb.append(String.format("avg map files per tablet  : %,10.2f (std dev = %.2f)%n", totalAssignments / (double) counts.size(), stddev));
       return sb.toString();
     }
   }

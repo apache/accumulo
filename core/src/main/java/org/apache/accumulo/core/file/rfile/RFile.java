@@ -487,6 +487,7 @@ public class RFile {
     private boolean isDefaultLocalityGroup;
     private boolean closed = false;
     private int version;
+    private boolean checkRange = true;
     
     private LocalityGroupReader(BlockFileReader reader, LocalityGroupMetadata lgm, int version) throws IOException {
       this.firstKey = lgm.firstKey;
@@ -572,6 +573,11 @@ public class RFile {
           IndexEntry indexEntry = iiter.next();
           entriesLeft = indexEntry.getNumEntries();
           currBlock = getDataBlock(indexEntry);
+          
+          checkRange = range.afterEndKey(indexEntry.getKey());
+          if (!checkRange)
+            hasTop = true;
+
         } else {
           rk = null;
           val = null;
@@ -584,7 +590,8 @@ public class RFile {
       rk.readFields(currBlock);
       val.readFields(currBlock);
       entriesLeft--;
-      hasTop = !range.afterEndKey(rk.getKey());
+      if (checkRange)
+        hasTop = !range.afterEndKey(rk.getKey());
     }
     
     private ABlockReader getDataBlock(IndexEntry indexEntry) throws IOException {
@@ -724,6 +731,10 @@ public class RFile {
           entriesLeft = indexEntry.getNumEntries();
           currBlock = getDataBlock(indexEntry);
 
+          checkRange = range.afterEndKey(indexEntry.getKey());
+          if (!checkRange)
+            hasTop = true;
+
           RelativeKey tmpRk = new RelativeKey();
           MByteSequence valbs = new MByteSequence(new byte[64], 0, 0);
 
@@ -749,7 +760,6 @@ public class RFile {
                 currKey = bie.getKey();
               }
             }
-            
           }
 
           fastSkipped = tmpRk.fastSkip(currBlock, startKey, valbs, prevKey, currKey);

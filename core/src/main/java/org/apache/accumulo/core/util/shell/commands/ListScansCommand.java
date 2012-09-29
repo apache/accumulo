@@ -36,13 +36,13 @@ public class ListScansCommand extends Command {
   }
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     
     List<String> tservers;
     
-    InstanceOperations instanceOps = shellState.getConnector().instanceOperations();
+    final InstanceOperations instanceOps = shellState.getConnector().instanceOperations();
     
-    boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
+    final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
     
     if (cl.hasOption(tserverOption.getOpt())) {
       tservers = new ArrayList<String>();
@@ -63,7 +63,7 @@ public class ListScansCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options opts = new Options();
+    final Options opts = new Options();
     
     tserverOption = new Option("ts", "tabletServer", true, "tablet server to list scans for");
     tserverOption.setArgName("tablet server");

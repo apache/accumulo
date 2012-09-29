@@ -108,4 +108,24 @@ public class ColumnVisibilityTest {
     shouldThrow("(A&B)|(C&D)&(E)");
     shouldThrow("a|b&c", "A&B&C|D", "(A&B)|(C&D)&(E)");
   }
+  
+  @Test
+  public void testQuotes() {
+    shouldThrow("\"\"");
+    shouldThrow("\"A\"A");
+    shouldThrow("\"A\"\"B\"");
+    shouldThrow("(A)\"B\"");
+    shouldThrow("\"A\"(B)");
+    shouldThrow("\"A");
+    shouldThrow("\"");
+    shouldThrow("\"B");
+    shouldThrow("A&\"B");
+    shouldThrow("A&\"B\\'");
+    
+    shouldNotThrow("\"A\"");
+    shouldNotThrow("(\"A\")");
+    shouldNotThrow("A&\"B.D\"");
+    shouldNotThrow("A&\"B\\\\D\"");
+    shouldNotThrow("A&\"B\\\"D\"");
+  }
 }

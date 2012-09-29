@@ -28,7 +28,7 @@ public class OnlineCommand extends TableOperation {
     return "starts the process of putting a table online";
   }
   
-  protected void doTableOp(Shell shellState, String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (tableName.equals(Constants.METADATA_TABLE_NAME)) {
       Shell.log.info("  The " + Constants.METADATA_TABLE_NAME + " is always online.");
     } else {

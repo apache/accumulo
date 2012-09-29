@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -52,7 +53,7 @@ public class BadIteratorMincTest extends FunctionalTest {
   @Override
   public void run() throws Exception {
     
-    BatchWriter bw = getConnector().createBatchWriter("foo", 1000000, 60000l, 2);
+    BatchWriter bw = getConnector().createBatchWriter("foo", new BatchWriterConfig());
     
     Mutation m = new Mutation(new Text("r1"));
     m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));

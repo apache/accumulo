@@ -211,7 +211,7 @@ public class MetadataTable {
     
     if (columns != null) {
       for (ColumnFQ column : columns)
-        ColumnFQ.fetch(scanner, column);
+        column.fetch(scanner);
     }
     
     scanner.setRange(new Range(new Key(startRow), true, new Key(endRow).followingKey(PartialKey.ROW), false));
@@ -236,7 +236,7 @@ public class MetadataTable {
     
     Scanner scanner = instance.getConnector(credentials.user, credentials.password).createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     
-    ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+    Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     
     // position at first entry in metadata table for given table

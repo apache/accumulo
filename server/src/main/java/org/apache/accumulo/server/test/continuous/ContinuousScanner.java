@@ -131,7 +131,7 @@ public class ContinuousScanner {
         // System.out.println("P2 "+delta +" "+numToScan+" "+distance+"  "+((double)numToScan/count ));
       }
       
-      System.out.printf("SCN %d %s %d %d\n", t1, new String(scanStart), (t2 - t1), count);
+      System.out.printf("SCN %d %s %d %d%n", t1, new String(scanStart), (t2 - t1), count);
       
       if (sleepTime > 0)
         UtilWaitThread.sleep(sleepTime);

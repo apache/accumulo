@@ -31,7 +31,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.user.IntersectingIterator.TermSource;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -127,7 +126,7 @@ public class IndexedDocIterator extends IntersectingIterator {
   }
   
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  synchronized public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     if (options.containsKey(indexFamilyOptionName))
       indexColf = new Text(options.get(indexFamilyOptionName));
@@ -162,7 +161,7 @@ public class IndexedDocIterator extends IntersectingIterator {
     Key docKey = buildDocKey();
     docSource.seek(new Range(docKey, true, null, false), docColfSet, true);
     log.debug("got doc key: " + docSource.getTopKey().toString());
-    if (docSource.hasTop() && docKey.compareTo(docSource.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL) == 0) {
+    if (docSource.hasTop() && docKey.equals(docSource.getTopKey(), PartialKey.ROW_COLFAM_COLQUAL)) {
       value = docSource.getTopValue();
     }
     log.debug("got doc value: " + value.toString());

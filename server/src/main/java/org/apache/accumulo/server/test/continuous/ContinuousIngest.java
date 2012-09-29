@@ -20,6 +20,7 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
@@ -29,6 +30,7 @@ import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.cloudtrace.instrument.receivers.ZooSpanClient;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -116,14 +118,15 @@ public class ContinuousIngest {
         conn.tableOperations().create(table);
       } catch (TableExistsException tee) {}
 
-    BatchWriter bw = conn.createBatchWriter(table, maxMemory, maxLatency, maxWriteThreads);
+    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
+        .setMaxWriteThreads(maxWriteThreads));
     bw = Trace.wrapAll(bw, new CountSampler(1024));
     
     Random r = new Random();
     
     byte[] ingestInstanceId = UUID.randomUUID().toString().getBytes();
     
-    System.out.printf("UUID %d %s\n", System.currentTimeMillis(), new String(ingestInstanceId));
+    System.out.printf("UUID %d %s%n", System.currentTimeMillis(), new String(ingestInstanceId));
     
     long count = 0;
     final int flushInterval = 1000000;
@@ -197,7 +200,7 @@ public class ContinuousIngest {
     long t1 = System.currentTimeMillis();
     bw.flush();
     long t2 = System.currentTimeMillis();
-    System.out.printf("FLUSH %d %d %d %d %d\n", t2, (t2 - lastFlushTime), (t2 - t1), count, flushInterval);
+    System.out.printf("FLUSH %d %d %d %d %d%n", t2, (t2 - lastFlushTime), (t2 - t1), count, flushInterval);
     lastFlushTime = t2;
     return lastFlushTime;
   }

@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
   public double queueSumDev; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     STATUS((short)1, "status"),
     ELAPSED((short)2, "elapsed"),
     NUM((short)3, "num"),

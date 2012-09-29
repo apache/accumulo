@@ -25,9 +25,10 @@ import org.apache.commons.cli.CommandLine;
 
 public class SystemPermissionsCommand extends Command {
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws IOException {
-    for (String p : SystemPermission.printableValues())
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws IOException {
+    for (String p : SystemPermission.printableValues()) {
       shellState.getReader().printString(p + "\n");
+    }
     return 0;
   }
   

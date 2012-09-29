@@ -41,6 +41,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -56,7 +57,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileUtil;
-import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Processor;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
@@ -64,7 +64,6 @@ import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
@@ -256,10 +255,10 @@ public class SimpleGarbageCollector implements Iface {
         // STEP 3: delete files
         if (safemode) {
           if (verbose)
-            System.out.println("SAFEMODE: There are " + candidates.size() + " data file candidates marked for deletion.\n"
-                + "          Examine the log files to identify them.\n" + "          They can be removed by executing: bin/accumulo gc --offline\n"
-                + "WARNING:  Do not run the garbage collector in offline mode unless you are positive\n"
-                + "          that the accumulo METADATA table is in a clean state, or that accumulo\n"
+            System.out.println("SAFEMODE: There are " + candidates.size() + " data file candidates marked for deletion.%n"
+                + "          Examine the log files to identify them.%n" + "          They can be removed by executing: bin/accumulo gc --offline%n"
+                + "WARNING:  Do not run the garbage collector in offline mode unless you are positive%n"
+                + "          that the accumulo METADATA table is in a clean state, or that accumulo%n"
                 + "          has not yet been run, in the case of an upgrade.");
           log.info("SAFEMODE: Listing all data file candidates for deletion");
           for (String s : candidates)
@@ -503,7 +502,7 @@ public class SimpleGarbageCollector implements Iface {
     scanner.clearColumns();
     scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
     scanner.fetchColumnFamily(Constants.METADATA_SCANFILE_COLUMN_FAMILY);
-    ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
+    Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
     
     TabletIterator tabletIterator = new TabletIterator(scanner, Constants.METADATA_KEYSPACE, false, true);
     
@@ -552,7 +551,7 @@ public class SimpleGarbageCollector implements Iface {
       Connector c;
       try {
         c = instance.getConnector(SecurityConstants.getSystemCredentials());
-        writer = c.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 3);
+        writer = c.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
       } catch (Exception e) {
         log.error("Unable to create writer to remove file from the !METADATA table", e);
       }

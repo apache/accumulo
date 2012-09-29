@@ -18,11 +18,11 @@ package org.apache.accumulo.server.util;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
@@ -31,7 +31,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -94,8 +93,8 @@ public class TabletIterator implements Iterator<Map<Key,Value>> {
     this.scanner = s;
     this.range = range;
     this.scanner.setRange(range);
-    ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
-    ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
+    Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
+    Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
     this.iter = s.iterator();
     this.returnPrevEndRow = returnPrevEndRow;
     this.returnDir = returnDir;

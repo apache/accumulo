@@ -114,7 +114,7 @@ public class AdminUtil<T> {
       
       zs.unreserve(tid, 0);
       
-      System.out.printf("txid: %016x  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %s\n", tid, status, debug, hlocks, wlocks, top);
+      System.out.printf("txid: %016x  status: %-18s  op: %-15s  locked: %-15s locking: %-15s top: %s%n", tid, status, debug, hlocks, wlocks, top);
     }
     
     if (heldLocks.size() != 0 || waitingLocks.size() != 0) {
@@ -122,10 +122,10 @@ public class AdminUtil<T> {
       System.out.println("The following locks did not have an associated FATE operation");
       System.out.println();
       for (Entry<Long,List<String>> entry : heldLocks.entrySet())
-        System.out.printf("txid: %016x  locked: %s\n", entry.getKey(), entry.getValue());
+        System.out.printf("txid: %016x  locked: %s%n", entry.getKey(), entry.getValue());
       
       for (Entry<Long,List<String>> entry : waitingLocks.entrySet())
-        System.out.printf("txid: %016x  locking: %s\n", entry.getKey(), entry.getValue());
+        System.out.printf("txid: %016x  locking: %s%n", entry.getKey(), entry.getValue());
     }
   }
   

@@ -523,6 +523,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
               case FINISHED:
                 state = ScanState.IDLE;
                 break;
+              case RUNNING:
+              default:
+                /* do nothing */
+                break;
             }
           }
           
@@ -544,6 +548,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
                 break;
               case FINISHED:
                 state = ScanState.IDLE;
+                break;
+              case RUNNING:
+              default:
+                /* do nothing */
                 break;
             }
           }

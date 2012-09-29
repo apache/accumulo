@@ -34,6 +34,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.cloudtrace.instrument.Span;
@@ -43,12 +44,15 @@ import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletServerMutations;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.KeyExtent;
@@ -71,7 +75,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
-
 
 /*
  * Differences from previous TabletServerBatchWriter
@@ -121,6 +124,8 @@ public class TabletServerBatchWriter {
   
   private long maxLatency;
   
+  private long timeout;
+
   private long lastProcessingStartTime;
   
   private long totalAdded = 0;
@@ -143,11 +148,52 @@ public class TabletServerBatchWriter {
   
   private Throwable lastUnknownError = null;
   
-  public TabletServerBatchWriter(Instance instance, AuthInfo credentials, long maxMemory, long maxLatency, int numSendThreads) {
+  private Map<String,TimeoutTracker> timeoutTrackers;
+
+  private static class TimeoutTracker {
+    
+    String server;
+    long timeOut;
+    long activityTime;
+    Long firstErrorTime = null;
+    
+    TimeoutTracker(String server, long timeOut) {
+      this.timeOut = timeOut;
+      this.server = server;
+    }
+    
+    void startingWrite() {
+      activityTime = System.currentTimeMillis();
+    }
+    
+    void madeProgress() {
+      activityTime = System.currentTimeMillis();
+      firstErrorTime = null;
+    }
+
+    void wroteNothing() {
+      if (firstErrorTime == null) {
+        firstErrorTime = activityTime;
+      } else if (System.currentTimeMillis() - firstErrorTime > timeOut) {
+        throw new TimedOutException(Collections.singleton(server));
+      }
+    }
+    
+    void errorOccured(Exception e) {
+      wroteNothing();
+    }
+
+    public long getTimeOut() {
+      return timeOut;
+    }
+  }
+
+  public TabletServerBatchWriter(Instance instance, AuthInfo credentials, BatchWriterConfig config) {
     this.instance = instance;
-    this.maxMem = maxMemory;
-    this.maxLatency = maxLatency <= 0 ? Long.MAX_VALUE : maxLatency;
+    this.maxMem = config.getMaxMemory();
+    this.maxLatency = config.getMaxLatency(TimeUnit.MILLISECONDS) <= 0 ? Long.MAX_VALUE : config.getMaxLatency(TimeUnit.MILLISECONDS);
     this.credentials = credentials;
+    this.timeout = config.getTimeout(TimeUnit.MILLISECONDS);
     mutations = new MutationSet();
     
     violations = new Violations();
@@ -159,9 +205,11 @@ public class TabletServerBatchWriter {
     
     jtimer = new Timer("BatchWriterLatencyTimer", true);
     
-    writer = new MutationWriter(numSendThreads);
+    writer = new MutationWriter(config.getMaxWriteThreads());
     failedMutations = new FailedMutations();
     
+    timeoutTrackers = Collections.synchronizedMap(new HashMap<String,TabletServerBatchWriter.TimeoutTracker>());
+
     if (this.maxLatency != Long.MAX_VALUE) {
       jtimer.schedule(new TimerTask() {
         public void run() {
@@ -242,7 +290,7 @@ public class TabletServerBatchWriter {
     }
   }
   
-  public synchronized void addMutation(String table, Iterator<Mutation> iterator) throws MutationsRejectedException {
+  public void addMutation(String table, Iterator<Mutation> iterator) throws MutationsRejectedException {
     while (iterator.hasNext()) {
       addMutation(table, iterator.next());
     }
@@ -447,7 +495,7 @@ public class TabletServerBatchWriter {
     unknownErrors++;
     this.lastUnknownError = t;
     this.notifyAll();
-    if (t instanceof TableDeletedException || t instanceof TableOfflineException)
+    if (t instanceof TableDeletedException || t instanceof TableOfflineException || t instanceof TimedOutException)
       log.debug(msg, t); // this is not unknown
     else
       log.error(msg, t);
@@ -544,18 +592,31 @@ public class TabletServerBatchWriter {
     private ExecutorService sendThreadPool;
     private Map<String,TabletServerMutations> serversMutations;
     private Set<String> queued;
+    private Map<String,TabletLocator> locators;
     
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<String,TabletServerMutations>();
       queued = new HashSet<String>();
       sendThreadPool = Executors.newFixedThreadPool(numSendThreads, new NamingThreadFactory(this.getClass().getName()));
+      locators = new HashMap<String,TabletLocator>();
     }
     
+    private TabletLocator getLocator(String tableId) {
+      TabletLocator ret = locators.get(tableId);
+      if (ret == null) {
+        ret = TabletLocator.getInstance(instance, credentials, new Text(tableId));
+        ret = new TimeoutTabletLocator(ret, timeout);
+        locators.put(tableId, ret);
+      }
+      
+      return ret;
+    }
+
     private void binMutations(MutationSet mutationsToProcess, Map<String,TabletServerMutations> binnedMutations) {
       try {
         Set<Entry<String,List<Mutation>>> es = mutationsToProcess.getMutations().entrySet();
         for (Entry<String,List<Mutation>> entry : es) {
-          TabletLocator locator = TabletLocator.getInstance(instance, credentials, new Text(entry.getKey()));
+          TabletLocator locator = getLocator(entry.getKey());
           
           String table = entry.getKey();
           List<Mutation> tableMutations = entry.getValue();
@@ -701,8 +762,15 @@ public class TabletServerBatchWriter {
           
           Span span = Trace.start("sendMutations");
           try {
+            
+            TimeoutTracker timeoutTracker = timeoutTrackers.get(location);
+            if (timeoutTracker == null) {
+              timeoutTracker = new TimeoutTracker(location, timeout);
+              timeoutTrackers.put(location, timeoutTracker);
+            }
+
             long st1 = System.currentTimeMillis();
-            failures = sendMutationsToTabletServer(location, mutationBatch);
+            failures = sendMutationsToTabletServer(location, mutationBatch, timeoutTracker);
             long st2 = System.currentTimeMillis();
             if (log.isTraceEnabled())
               log.trace("sent " + String.format("%,d", count) + " mutations to " + location + " in "
@@ -744,7 +812,8 @@ public class TabletServerBatchWriter {
       }
     }
     
-    private MutationSet sendMutationsToTabletServer(String location, Map<KeyExtent,List<Mutation>> tabMuts) throws IOException, AccumuloSecurityException,
+    private MutationSet sendMutationsToTabletServer(String location, Map<KeyExtent,List<Mutation>> tabMuts, TimeoutTracker timeoutTracker) throws IOException,
+        AccumuloSecurityException,
         AccumuloServerException {
       if (tabMuts.size() == 0) {
         return new MutationSet();
@@ -752,8 +821,16 @@ public class TabletServerBatchWriter {
       TInfo tinfo = Tracer.traceInfo();
       TTransport transport = null;
       
+      timeoutTracker.startingWrite();
+
       try {
-        TabletClientService.Iface client = ThriftUtil.getTServerClient(location, instance.getConfiguration());
+        TabletClientService.Iface client;
+        
+        if (timeoutTracker.getTimeOut() < instance.getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT))
+          client = ThriftUtil.getTServerClient(location, instance.getConfiguration(), timeoutTracker.getTimeOut());
+        else
+          client = ThriftUtil.getTServerClient(location, instance.getConfiguration());
+
         try {
           MutationSet allFailures = new MutationSet();
           
@@ -768,6 +845,7 @@ public class TabletServerBatchWriter {
             } catch (ConstraintViolationException e) {
               updatedConstraintViolations(Translator.translate(e.violationSummaries, Translator.TCVST));
             }
+            timeoutTracker.madeProgress();
           } else {
             
             long usid = client.startUpdate(tinfo, credentials);
@@ -790,13 +868,17 @@ public class TabletServerBatchWriter {
             }
             
             UpdateErrors updateErrors = client.closeUpdate(tinfo, usid);
+
             Map<KeyExtent,Long> failures = Translator.translate(updateErrors.failedExtents, Translator.TKET);
             updatedConstraintViolations(Translator.translate(updateErrors.violationSummaries, Translator.TCVST));
             updateAuthorizationFailures(Translator.translate(updateErrors.authorizationFailures, Translator.TKET));
             
+            long totalCommitted = 0;
+
             for (Entry<KeyExtent,Long> entry : failures.entrySet()) {
               KeyExtent failedExtent = entry.getKey();
               int numCommitted = (int) (long) entry.getValue();
+              totalCommitted += numCommitted;
               
               String table = failedExtent.getTableId().toString();
               
@@ -805,12 +887,21 @@ public class TabletServerBatchWriter {
               ArrayList<Mutation> mutations = (ArrayList<Mutation>) tabMuts.get(failedExtent);
               allFailures.addAll(table, mutations.subList(numCommitted, mutations.size()));
             }
+            
+            if (failures.keySet().containsAll(tabMuts.keySet()) && totalCommitted == 0) {
+              // nothing was successfully written
+              timeoutTracker.wroteNothing();
+            } else {
+              // successfully wrote something to tablet server
+              timeoutTracker.madeProgress();
+            }
           }
           return allFailures;
         } finally {
           ThriftUtil.returnClient((TServiceClient) client);
         }
       } catch (TTransportException e) {
+        timeoutTracker.errorOccured(e);
         throw new IOException(e);
       } catch (TApplicationException tae) {
         updateServerErrors(location, tae);

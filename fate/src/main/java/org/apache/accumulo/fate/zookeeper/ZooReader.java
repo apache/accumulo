@@ -28,12 +28,12 @@ public class ZooReader implements IZooReader {
   protected String keepers;
   protected int timeout;
   
-  protected ZooKeeper getSession(String keepers, int timeout, String auth) {
-    return ZooSession.getSession(keepers, timeout, auth);
+  protected ZooKeeper getSession(String keepers, int timeout, String scheme, byte[] auth) {
+    return ZooSession.getSession(keepers, timeout, scheme, auth);
   }
   
   protected ZooKeeper getZooKeeper() {
-    return getSession(keepers, timeout, null);
+    return getSession(keepers, timeout, null, null);
   }
   
   @Override

@@ -16,12 +16,15 @@
  */
 package org.apache.accumulo.core.security;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
@@ -87,6 +90,20 @@ public class ColumnVisibility {
     
     public int getTermEnd() {
       return end;
+    }
+    
+    public ByteSequence getTerm(byte expression[]) {
+      if (type != NodeType.TERM)
+        throw new RuntimeException();
+
+      if (expression[start] == '"') {
+        // its a quoted term
+        int qStart = start + 1;
+        int qEnd = end - 1;
+        
+        return new ArrayByteSequence(expression, qStart, qEnd - qStart);
+      }
+      return new ArrayByteSequence(expression, start, end - start);
     }
   }
   
@@ -181,6 +198,8 @@ public class ColumnVisibility {
       Node result = null;
       Node expr = null;
       int termStart = index;
+      boolean termComplete = false;
+
       while (index < expression.length) {
         switch (expression[index++]) {
           case '&': {
@@ -194,6 +213,7 @@ public class ColumnVisibility {
             result.add(expr);
             expr = null;
             termStart = index;
+            termComplete = false;
             break;
           }
           case '|': {
@@ -207,6 +227,7 @@ public class ColumnVisibility {
             result.add(expr);
             expr = null;
             termStart = index;
+            termComplete = false;
             break;
           }
           case '(': {
@@ -215,6 +236,7 @@ public class ColumnVisibility {
               throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
             expr = parse_(expression);
             termStart = index;
+            termComplete = false;
             break;
           }
           case ')': {
@@ -232,7 +254,35 @@ public class ColumnVisibility {
             result.end = index - 1;
             return result;
           }
+          case '"': {
+            if (termStart != index - 1)
+              throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
+
+            while (index < expression.length && expression[index] != '"') {
+              if (expression[index] == '\\') {
+                index++;
+                if (expression[index] != '\\' && expression[index] != '"')
+                  throw new BadArgumentException("invalid escaping within quotes", new String(expression), index - 1);
+              }
+              index++;
+            }
+            
+            if (index == expression.length)
+              throw new BadArgumentException("unclosed quote", new String(expression), termStart);
+            
+            if (termStart + 1 == index)
+              throw new BadArgumentException("empty term", new String(expression), termStart);
+
+            index++;
+            
+            termComplete = true;
+
+            break;
+          }
           default: {
+            if (termComplete)
+              throw new BadArgumentException("expression needs & or |", new String(expression), index - 1);
+
             byte c = expression[index - 1];
             if (!Authorizations.isValidAuthChar(c))
               throw new BadArgumentException("bad character (" + c + ")", new String(expression), index - 1);
@@ -275,6 +325,18 @@ public class ColumnVisibility {
     this(expression.getBytes());
   }
   
+  /**
+   * See {@link #ColumnVisibility(byte[])}
+   * 
+   * @param expression
+   * @param encoding
+   *          uses this encoding to convert the expression to a byte array
+   * @throws UnsupportedEncodingException
+   */
+  public ColumnVisibility(String expression, String encoding) throws UnsupportedEncodingException {
+    this(expression.getBytes(encoding));
+  }
+
   public ColumnVisibility(Text expression) {
     this(TextUtil.getBytes(expression));
   }
@@ -295,6 +357,7 @@ public class ColumnVisibility {
    * 
    * </pre>
    * 
+   *          <P>
    *          The following are not valid expressions for visibility:
    * 
    *          <pre>
@@ -306,6 +369,15 @@ public class ColumnVisibility {
    * )
    * dog|!cat
    * </pre>
+   * 
+   *          <P>
+   *          You can use any character you like in your column visibility expression with quoting. If your quoted term contains '&quot;' or '\' then escape
+   *          them with '\'. The {@link #quote(String)} method will properly quote and escape terms for you.
+   * 
+   *          <pre>
+   * &quot;A#C&quot;&B
+   * </pre>
+   * 
    */
   public ColumnVisibility(byte[] expression) {
     validate(expression);
@@ -340,5 +412,57 @@ public class ColumnVisibility {
   
   public Node getParseTree() {
     return node;
+  }
+  
+  /**
+   * see {@link #quote(byte[])}
+   * 
+   */
+  public static String quote(String term) {
+    return quote(term, "UTF-8");
+  }
+  
+  /**
+   * see {@link #quote(byte[])}
+   * 
+   */
+  public static String quote(String term, String encoding) {
+    try {
+      return new String(quote(term.getBytes(encoding)), encoding);
+    } catch (UnsupportedEncodingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+  
+  /**
+   * Use to properly quote terms in a column visibility expression. If no quoting is needed, then nothing is done.
+   * 
+   * <p>
+   * Examples of using quote :
+   * 
+   * <pre>
+   * import static org.apache.accumulo.core.security.ColumnVisibility.quote;
+   *   .
+   *   .
+   *   .
+   * ColumnVisibility cv = new ColumnVisibility(quote(&quot;A#C&quot;) + &quot;&amp;&quot; + quote(&quot;FOO&quot;));
+   * </pre>
+   * 
+   */
+
+  public static byte[] quote(byte[] term) {
+    boolean needsQuote = false;
+    
+    for (int i = 0; i < term.length; i++) {
+      if (!Authorizations.isValidAuthChar(term[i])) {
+        needsQuote = true;
+        break;
+      }
+    }
+    
+    if (!needsQuote)
+      return term;
+    
+    return VisibilityEvaluator.escape(term, true);
   }
 }

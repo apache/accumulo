@@ -37,10 +37,17 @@ public interface ABlockReader extends DataInput {
   /**
    * An indexable block supports seeking, getting a position, and associating an arbitrary index with the block
    * 
-   * @return
+   * @return true, if the block is indexable; otherwise false.
    */
   public boolean isIndexable();
+
   public void seek(int position);
+
+  /** Get the file position.
+
+   * @return the file position.
+   */
   public int getPosition();
+
   <T> T getIndex(Class<T> clazz);
 }

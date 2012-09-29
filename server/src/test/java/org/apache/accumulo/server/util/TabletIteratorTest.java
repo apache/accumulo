@@ -22,6 +22,7 @@ import junit.framework.TestCase;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.mock.MockInstance;
@@ -30,8 +31,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.server.util.TabletIterator;
 import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.hadoop.io.Text;
 
@@ -54,7 +53,7 @@ public class TabletIteratorTest extends TestCase {
         
         Mutation m = new Mutation(tablet);
         
-        BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+        BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
         for (Entry<Key,Value> entry : ds) {
           Key k = entry.getKey();
           m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), k.getTimestamp());
@@ -80,13 +79,13 @@ public class TabletIteratorTest extends TestCase {
     
     KeyExtent ke1 = new KeyExtent(new Text("0"), new Text("m"), null);
     Mutation mut1 = ke1.getPrevRowUpdateMutation();
-    ColumnFQ.put(mut1, Constants.METADATA_DIRECTORY_COLUMN, new Value("/d1".getBytes()));
+    Constants.METADATA_DIRECTORY_COLUMN.put(mut1, new Value("/d1".getBytes()));
     
     KeyExtent ke2 = new KeyExtent(new Text("0"), null, null);
     Mutation mut2 = ke2.getPrevRowUpdateMutation();
-    ColumnFQ.put(mut2, Constants.METADATA_DIRECTORY_COLUMN, new Value("/d2".getBytes()));
+    Constants.METADATA_DIRECTORY_COLUMN.put(mut2, new Value("/d2".getBytes()));
     
-    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 1);
+    BatchWriter bw1 = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     bw1.addMutation(mut1);
     bw1.addMutation(mut2);
     bw1.close();

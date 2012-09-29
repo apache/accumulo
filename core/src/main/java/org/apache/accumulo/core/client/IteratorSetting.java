@@ -16,6 +16,9 @@
  */
 package org.apache.accumulo.core.client;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,6 +31,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableUtils;
 
 /**
  * Configure an iterator for minc, majc, and/or scan. By default, IteratorSetting will be configured for scan.
@@ -42,7 +47,7 @@ import org.apache.hadoop.io.Text;
  * scanner.addScanIterator(cfg);
  * </pre>
  */
-public class IteratorSetting {
+public class IteratorSetting implements Writable {
   private int priority;
   private String name;
   private String iteratorClass;
@@ -185,6 +190,11 @@ public class IteratorSetting {
     this(priority, name, iteratorClass.getName());
   }
   
+  public IteratorSetting(DataInput din) throws IOException {
+    this.properties = new HashMap<String,String>();
+    this.readFields(din);
+  }
+
   /**
    * Add another option to the iterator.
    * 
@@ -296,5 +306,30 @@ public class IteratorSetting {
       return getSecond();
     }
     
+  }
+  
+  @Override
+  public void readFields(DataInput din) throws IOException {
+    priority = WritableUtils.readVInt(din);
+    name = WritableUtils.readString(din);
+    iteratorClass = WritableUtils.readString(din);
+    properties.clear();
+    int size = WritableUtils.readVInt(din);
+    while (size > 0) {
+      properties.put(WritableUtils.readString(din), WritableUtils.readString(din));
+      size--;
+    }
+  }
+  
+  @Override
+  public void write(DataOutput dout) throws IOException {
+    WritableUtils.writeVInt(dout, priority);
+    WritableUtils.writeString(dout, name);
+    WritableUtils.writeString(dout, iteratorClass);
+    WritableUtils.writeVInt(dout, properties.size());
+    for (Entry<String,String> e : properties.entrySet()) {
+      WritableUtils.writeString(dout, e.getKey());
+      WritableUtils.writeString(dout, e.getValue());
+    }
   }
 }

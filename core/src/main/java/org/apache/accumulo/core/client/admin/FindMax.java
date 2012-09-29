@@ -89,7 +89,7 @@ public class FindMax {
   
   private static Text _findMax(Scanner scanner, Text start, boolean inclStart, Text end, boolean inclEnd) {
     
-    // System.out.printf("findMax(%s, %s, %s, %s)\n", Key.toPrintableString(start.getBytes(), 0, start.getLength(), 1000), inclStart,
+    // System.out.printf("findMax(%s, %s, %s, %s)%n", Key.toPrintableString(start.getBytes(), 0, start.getLength(), 1000), inclStart,
     // Key.toPrintableString(end.getBytes(), 0, end.getLength(), 1000), inclEnd);
     
     int cmp = start.compareTo(end);

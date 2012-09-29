@@ -160,36 +160,40 @@ public class Constants {
   public static final String MAPFILE_EXTENSION = "map";
   public static final String GENERATED_TABLET_DIRECTORY_PREFIX = "t-";
   
-  public static String getBaseDir(AccumuloConfiguration conf) {
+  public static final String EXPORT_METADATA_FILE = "metadata.bin";
+  public static final String EXPORT_TABLE_CONFIG_FILE = "table_config.txt";
+  public static final String EXPORT_FILE = "exportMetadata.zip";
+  public static final String EXPORT_INFO_FILE = "accumulo_export_info.txt";
+
+  public static String getBaseDir(final AccumuloConfiguration conf) {
     return conf.get(Property.INSTANCE_DFS_DIR);
   }
   
-  public static String getTablesDir(AccumuloConfiguration conf) {
+  public static String getTablesDir(final AccumuloConfiguration conf) {
     return getBaseDir(conf) + "/tables";
   }
   
-  public static String getRecoveryDir(AccumuloConfiguration conf) {
+  public static String getRecoveryDir(final AccumuloConfiguration conf) {
     return getBaseDir(conf) + "/recovery";
   }
   
-  public static Path getDataVersionLocation(AccumuloConfiguration conf) {
+  public static Path getDataVersionLocation(final AccumuloConfiguration conf) {
     return new Path(getBaseDir(conf) + "/version");
   }
   
-  public static String getMetadataTableDir(AccumuloConfiguration conf) {
+  public static String getMetadataTableDir(final AccumuloConfiguration conf) {
     return getTablesDir(conf) + "/" + METADATA_TABLE_ID;
   }
   
-  public static String getRootTabletDir(AccumuloConfiguration conf) {
+  public static String getRootTabletDir(final AccumuloConfiguration conf) {
     return getMetadataTableDir(conf) + ZROOT_TABLET;
   }
   
   /**
    * @param conf
-   * @return
+   * @return The write-ahead log directory.
    */
-  public static String getWalDirectory(AccumuloConfiguration conf) {
+  public static String getWalDirectory(final AccumuloConfiguration conf) {
     return getBaseDir(conf) + "/wal";
   }
-  
 }

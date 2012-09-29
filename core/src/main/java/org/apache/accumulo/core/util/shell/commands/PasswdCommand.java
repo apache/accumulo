@@ -33,9 +33,9 @@ public class PasswdCommand extends Command {
   private Option userOpt;
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
-    String currentUser = shellState.getConnector().whoami();
-    String user = cl.getOptionValue(userOpt.getOpt(), currentUser);
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
+    final String currentUser = shellState.getConnector().whoami();
+    final String user = cl.getOptionValue(userOpt.getOpt(), currentUser);
     
     String password = null;
     String passwordConfirm = null;
@@ -61,15 +61,16 @@ public class PasswdCommand extends Command {
       return 0;
     } // user canceled
     
-    if (!password.equals(passwordConfirm))
+    if (!password.equals(passwordConfirm)) {
       throw new IllegalArgumentException("Passwords do not match");
-    
+    }
     byte[] pass = password.getBytes();
     shellState.getConnector().securityOperations().changeUserPassword(user, pass);
     // update the current credentials if the password changed was for
     // the current user
-    if (shellState.getConnector().whoami().equals(user))
+    if (shellState.getConnector().whoami().equals(user)) {
       shellState.updateUser(new AuthInfo(user, ByteBuffer.wrap(pass), shellState.getConnector().getInstance().getInstanceID()));
+    }
     Shell.log.debug("Changed password for user " + user);
     return 0;
   }
@@ -81,7 +82,7 @@ public class PasswdCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     userOpt = new Option(Shell.userOption, "user", true, "user to operate on");
     userOpt.setArgName("user");
     o.addOption(userOpt);

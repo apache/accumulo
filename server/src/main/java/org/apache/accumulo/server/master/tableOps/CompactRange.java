@@ -40,7 +40,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TIteratorSetting;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooReaderWriter.Mutator;
@@ -88,8 +87,8 @@ class CompactionDriver extends MasterRepo {
       range = range.clip(new Range(Constants.ROOT_TABLET_EXTENT.getMetadataEntry(), false, null, true));
     
     scanner.setRange(range);
-    ColumnFQ.fetch(scanner, Constants.METADATA_COMPACT_COLUMN);
-    ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
+    Constants.METADATA_COMPACT_COLUMN.fetch(scanner);
+    Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     
     // TODO since not using tablet iterator, are there any issues w/ splits merges?

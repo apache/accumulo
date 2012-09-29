@@ -18,8 +18,10 @@ package org.apache.accumulo.server.test.scalability;
 
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -71,7 +73,8 @@ public class Ingest extends ScaleTest {
     // create batch writer
     BatchWriter bw = null;
     try {
-      bw = conn.createBatchWriter(tableName, maxMemory, maxLatency, maxWriteThreads);
+      bw = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
+          .setMaxWriteThreads(maxWriteThreads));
     } catch (TableNotFoundException e) {
       System.out.println("Table not found: " + tableName);
       e.printStackTrace();

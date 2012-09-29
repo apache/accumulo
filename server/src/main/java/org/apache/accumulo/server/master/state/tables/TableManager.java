@@ -87,7 +87,7 @@ public class TableManager {
     return tableStateCache.get(tableId);
   }
   
-  public class IllegalTableTransitionException extends Exception {
+  public static class IllegalTableTransitionException extends Exception {
     private static final long serialVersionUID = 1L;
     
     final TableState oldState;

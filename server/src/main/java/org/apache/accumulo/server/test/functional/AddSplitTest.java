@@ -21,13 +21,14 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeSet;
 import java.util.Map.Entry;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -131,7 +132,7 @@ public class AddSplitTest extends FunctionalTest {
   }
   
   private void insertData(long ts) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
-    BatchWriter bw = getConnector().createBatchWriter("foo", 10000000, 60000l, 3);
+    BatchWriter bw = getConnector().createBatchWriter("foo", new BatchWriterConfig());
     
     for (int i = 0; i < 10000; i++) {
       String row = String.format("%09d", i);

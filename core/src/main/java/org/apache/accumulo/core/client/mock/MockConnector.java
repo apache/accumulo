@@ -16,9 +16,12 @@
  */
 package org.apache.accumulo.core.client.mock;
 
+import java.util.concurrent.TimeUnit;
+
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -61,6 +64,13 @@ public class MockConnector extends Connector {
   }
   
   @Override
+  public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, BatchWriterConfig config)
+      throws TableNotFoundException {
+    return createBatchDeleter(tableName, authorizations, numQueryThreads, config.getMaxMemory(), config.getMaxLatency(TimeUnit.MILLISECONDS),
+        config.getMaxWriteThreads());
+  }
+  
+  @Override
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
     if (acu.tables.get(tableName) == null)
       throw new TableNotFoundException(tableName, tableName, "no such table");
@@ -68,8 +78,18 @@ public class MockConnector extends Connector {
   }
   
   @Override
+  public BatchWriter createBatchWriter(String tableName, BatchWriterConfig config) throws TableNotFoundException {
+    return createBatchWriter(tableName, config.getMaxMemory(), config.getMaxLatency(TimeUnit.MILLISECONDS), config.getMaxWriteThreads());
+  }
+  
+  @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
     return new MockMultiTableBatchWriter(acu);
+  }
+  
+  @Override
+  public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
+    return createMultiTableBatchWriter(config.getMaxMemory(), config.getMaxLatency(TimeUnit.MILLISECONDS), config.getMaxWriteThreads());
   }
   
   @Override

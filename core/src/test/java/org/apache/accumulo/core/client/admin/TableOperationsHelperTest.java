@@ -182,6 +182,12 @@ public class TableOperationsHelperTest {
       }
       Assert.assertEquals(expected, settings.get(tablename));
     }
+    
+    @Override
+    public void importTable(String tableName, String exportDir) throws TableExistsException, AccumuloException, AccumuloSecurityException {}
+    
+    @Override
+    public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {}
   }
   
   @Test

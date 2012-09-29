@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
   public double progress; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     NAME((short)2, "name"),
     RUNTIME((short)5, "runtime"),
     PROGRESS((short)6, "progress");

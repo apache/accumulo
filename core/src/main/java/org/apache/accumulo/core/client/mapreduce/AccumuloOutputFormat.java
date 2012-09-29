@@ -19,10 +19,12 @@ package org.apache.accumulo.core.client.mapreduce;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
@@ -90,6 +92,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   private static final String MAX_MUTATION_BUFFER_SIZE = PREFIX + ".maxmemory";
   private static final String MAX_LATENCY = PREFIX + ".maxlatency";
   private static final String NUM_WRITE_THREADS = PREFIX + ".writethreads";
+  private static final String TIMEOUT = PREFIX + ".timeout";
   
   private static final long DEFAULT_MAX_MUTATION_BUFFER_SIZE = 50 * 1024 * 1024; // 50MB
   private static final int DEFAULT_MAX_LATENCY = 60 * 1000; // 1 minute
@@ -156,18 +159,38 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     conf.set(INSTANCE_NAME, instanceName);
   }
   
+  /**
+   * see {@link BatchWriterConfig#setMaxMemory(long)}
+   */
+
   public static void setMaxMutationBufferSize(Configuration conf, long numberOfBytes) {
     conf.setLong(MAX_MUTATION_BUFFER_SIZE, numberOfBytes);
   }
   
+  /**
+   * see {@link BatchWriterConfig#setMaxLatency(long, TimeUnit)}
+   */
+
   public static void setMaxLatency(Configuration conf, int numberOfMilliseconds) {
     conf.setInt(MAX_LATENCY, numberOfMilliseconds);
   }
   
+  /**
+   * see {@link BatchWriterConfig#setMaxWriteThreads(int)}
+   */
+
   public static void setMaxWriteThreads(Configuration conf, int numberOfThreads) {
     conf.setInt(NUM_WRITE_THREADS, numberOfThreads);
   }
   
+  /**
+   * see {@link BatchWriterConfig#setTimeout(long, TimeUnit)}
+   */
+  
+  public static void setTimeout(Configuration conf, long time, TimeUnit timeUnit) {
+    conf.setLong(TIMEOUT, timeUnit.toMillis(time));
+  }
+
   public static void setLogLevel(Configuration conf, Level level) {
     ArgumentChecker.notNull(level);
     conf.setInt(LOGLEVEL, level.toInt());
@@ -223,6 +246,10 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     return conf.getInt(NUM_WRITE_THREADS, DEFAULT_NUM_WRITE_THREADS);
   }
   
+  protected static long getTimeout(Configuration conf) {
+    return conf.getLong(TIMEOUT, Long.MAX_VALUE);
+  }
+
   protected static Level getLogLevel(Configuration conf) {
     if (conf.get(LOGLEVEL) != null)
       return Level.toLevel(conf.getInt(LOGLEVEL, Level.INFO.toInt()));
@@ -263,7 +290,9 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       
       if (!simulate) {
         this.conn = getInstance(conf).getConnector(getUsername(conf), getPassword(conf));
-        mtbw = conn.createMultiTableBatchWriter(getMaxMutationBufferSize(conf), getMaxLatency(conf), getMaxWriteThreads(conf));
+        mtbw = conn.createMultiTableBatchWriter(new BatchWriterConfig().setMaxMemory(getMaxMutationBufferSize(conf))
+            .setMaxLatency(getMaxLatency(conf), TimeUnit.MILLISECONDS).setMaxWriteThreads(getMaxWriteThreads(conf))
+            .setTimeout(getTimeout(conf), TimeUnit.MILLISECONDS));
       }
     }
     

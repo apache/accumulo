@@ -138,7 +138,7 @@ public class RFileTest extends TestCase {
         
       }
       
-      if (reader.getLastKey().compareTo(lastKey) != 0) {
+      if (!reader.getLastKey().equals(lastKey)) {
         throw new RuntimeException("Last key out of order " + reader.getLastKey() + " " + lastKey);
       }
     }

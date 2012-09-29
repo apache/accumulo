@@ -227,4 +227,14 @@ public class MockTableOperations extends TableOperationsHelper {
     
     return FindMax.findMax(new MockScanner(table, auths), startRow, startInclusive, endRow, endInclusive);
   }
+  
+  @Override
+  public void importTable(String tableName, String exportDir) throws TableExistsException, AccumuloException, AccumuloSecurityException {
+    throw new NotImplementedException();
+  }
+  
+  @Override
+  public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    throw new NotImplementedException();
+  }
 }

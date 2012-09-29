@@ -1,0 +1,14 @@
+There is a tool that can analyze the difference between APIs called
+japi-compliance[1]. This tool is useful for checking API compatability of
+different Accumulo versions.   To run this tool edit the xml files to specify
+the location of accumulo core jars and set the library version.  Then run the
+following command.
+
+  japi-compliance-checker.pl -skip-deprecated -old japi-accumulo-1.4.xml -new japi-accumulo-1.5.xml -l accumulo 
+
+
+[1]: http://ispras.linuxbase.org/index.php/Java_API_Compliance_Checker
+
+
+
+

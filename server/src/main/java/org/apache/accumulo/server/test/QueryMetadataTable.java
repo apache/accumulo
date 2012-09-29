@@ -128,7 +128,7 @@ public class QueryMetadataTable {
     for (Entry<Key,Value> entry : scanner) {
       System.out.print(".");
       if (count % 72 == 0) {
-        System.out.printf(" %,d\n", count);
+        System.out.printf(" %,d%n", count);
       }
       if (entry.getKey().compareRow(mdrow) == 0 && entry.getKey().getColumnFamily().compareTo(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY) == 0) {
         System.out.println(entry.getKey() + " " + entry.getValue());
@@ -141,7 +141,7 @@ public class QueryMetadataTable {
       
     }
     
-    System.out.printf(" %,d\n", count);
+    System.out.printf(" %,d%n", count);
     
     ArrayList<Text> rows = new ArrayList<Text>(rowSet);
     

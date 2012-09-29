@@ -72,6 +72,8 @@ public class Initialize {
   private static final Logger log = Logger.getLogger(Initialize.class);
   private static final String ROOT_USER = "root";
   private static boolean clearInstanceName = false;
+  private static String cliInstanceName = null;
+  private static String cliPassword = null;
   
   private static ConsoleReader reader = null;
   
@@ -372,7 +374,11 @@ public class Initialize {
     String instanceName, instanceNamePath = null;
     boolean exists = true;
     do {
-      instanceName = getConsoleReader().readLine("Instance name : ");
+      if (cliInstanceName == null) {
+        instanceName = getConsoleReader().readLine("Instance name : ");
+      } else {
+        instanceName = cliInstanceName;
+      }
       if (instanceName == null)
         System.exit(0);
       instanceName = instanceName.trim();
@@ -396,6 +402,9 @@ public class Initialize {
   }
   
   private static byte[] getRootPassword() throws IOException {
+    if (cliPassword != null) {
+      return cliPassword.getBytes();
+    }
     String rootpass;
     String confirmpass;
     do {
@@ -453,16 +462,23 @@ public class Initialize {
   public static void main(String[] args) {
     boolean justSecurity = false;
     
-    for (String arg : args) {
-      if (arg.equals("--reset-security")) {
-        justSecurity = true;
-      } else if (arg.equals("--clear-instance-name")) {
-        clearInstanceName = true;
-      } else {
-        RuntimeException e = new RuntimeException();
-        log.fatal("Bad argument " + arg, e);
-        throw e;
-      }
+    for (int i = 0; i < args.length; i++) {
+      if (args[i].equals("--reset-security")) {
+          justSecurity = true;
+        } else if (args[i].equals("--clear-instance-name")) {
+          clearInstanceName = true;
+        } else if (args[i].equals("--instance-name")) {
+            cliInstanceName = args[i+1];
+            i++;
+        } else if (args[i].equals("--password")) {
+            cliPassword = args[i+1];
+            i++;
+        } else {
+          RuntimeException e = new RuntimeException();
+          log.fatal("Usage: [--reset-security] [--clear-instance-name] [--instance-name {name}] [--password {password}]");
+          log.fatal("Bad argument " + args[i], e);
+          throw e;
+        }
     }
     
     try {

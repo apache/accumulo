@@ -38,12 +38,12 @@ public class CompactCommand extends TableOperation {
     return "sets all tablets for a table to major compact as soon as possible (based on current time)";
   }
   
-  protected void doTableOp(Shell shellState, String tableName) throws AccumuloException, AccumuloSecurityException {
+  protected void doTableOp(final Shell shellState, final String tableName) throws AccumuloException, AccumuloSecurityException {
     // compact the tables
     try {
-      if (wait)
+      if (wait) {
         Shell.log.info("Compacting table ...");
-      
+      }
       shellState.getConnector().tableOperations().compact(tableName, startRow, endRow, flush, wait);
       
       Shell.log.info("Compaction of table " + tableName + " " + (wait ? "completed" : "started") + " for given range");
@@ -53,7 +53,7 @@ public class CompactCommand extends TableOperation {
   }
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     flush = !cl.hasOption(noFlushOption.getOpt());
     startRow = OptUtil.getStartRow(cl);
     endRow = OptUtil.getEndRow(cl);
@@ -64,7 +64,7 @@ public class CompactCommand extends TableOperation {
   
   @Override
   public Options getOptions() {
-    Options opts = super.getOptions();
+    final Options opts = super.getOptions();
     
     opts.addOption(OptUtil.startRowOpt());
     opts.addOption(OptUtil.endRowOpt());

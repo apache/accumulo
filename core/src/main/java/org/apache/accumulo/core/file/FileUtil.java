@@ -338,7 +338,7 @@ public class FileUtil {
       
       long t2 = System.currentTimeMillis();
       
-      log.debug(String.format("Found midPoint from indexes in %6.2f secs.\n", ((t2 - t1) / 1000.0)));
+      log.debug(String.format("Found midPoint from indexes in %6.2f secs.%n", ((t2 - t1) / 1000.0)));
       
       ret.put(.5, mmfi.getTopKey());
       

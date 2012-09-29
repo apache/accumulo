@@ -817,4 +817,14 @@ public class SecurityOperation {
       throw new ThriftSecurityException(credentials.user, SecurityErrorCode.TABLE_DOESNT_EXIST);
     }
   }
+
+  public boolean canExport(AuthInfo credentials, String tableId) throws ThriftSecurityException {
+    authenticate(credentials);
+    return hasTablePermission(credentials.user, tableId, TablePermission.READ, false);
+  }
+  
+  public boolean canImport(AuthInfo credentials, String tableId) throws ThriftSecurityException {
+    authenticate(credentials);
+    return hasSystemPermission(credentials.user, SystemPermission.CREATE_TABLE, false);
+  }
 }

@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -121,7 +122,7 @@ public class TestMultiTableIngest {
       
       MultiTableBatchWriter b;
       try {
-        b = connector.createMultiTableBatchWriter(10000000, 1000000, 10);
+        b = connector.createMultiTableBatchWriter(new BatchWriterConfig());
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

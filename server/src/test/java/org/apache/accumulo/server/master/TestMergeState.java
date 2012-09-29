@@ -25,6 +25,7 @@ import java.util.Set;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.master.state.Assignment;
 import org.apache.accumulo.server.master.state.CurrentState;
 import org.apache.accumulo.server.master.state.MergeInfo;
@@ -80,7 +80,7 @@ public class TestMergeState {
   }
   
   private static void update(Connector c, Mutation m) throws TableNotFoundException, MutationsRejectedException {
-    BatchWriter bw = c.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000l, 1000l, 1);
+    BatchWriter bw = c.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
     bw.addMutation(m);
     bw.close();
   }
@@ -89,7 +89,7 @@ public class TestMergeState {
   public void test() throws Exception {
     Instance instance = new MockInstance();
     Connector connector = instance.getConnector("root", "secret");
-    BatchWriter bw = connector.createBatchWriter("!METADATA", 1000l, 1000l, 1);
+    BatchWriter bw = connector.createBatchWriter("!METADATA", new BatchWriterConfig());
     
     // Create a fake METADATA table with these splits
     String splits[] = {"a", "e", "j", "o", "t", "z"};
@@ -100,7 +100,7 @@ public class TestMergeState {
       Text split = new Text(s);
       Mutation prevRow = KeyExtent.getPrevRowUpdateMutation(new KeyExtent(tableId, split, pr));
       prevRow.put(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY, new Text("123456"), new Value("127.0.0.1:1234".getBytes()));
-      ColumnFQ.put(prevRow, Constants.METADATA_CHOPPED_COLUMN, new Value("junk".getBytes()));
+      Constants.METADATA_CHOPPED_COLUMN.put(prevRow, new Value("junk".getBytes()));
       bw.addMutation(prevRow);
       pr = split;
     }
@@ -126,8 +126,8 @@ public class TestMergeState {
     // Create the hole
     // Split the tablet at one end of the range
     Mutation m = new KeyExtent(tableId, new Text("t"), new Text("p")).getPrevRowUpdateMutation();
-    ColumnFQ.put(m, Constants.METADATA_SPLIT_RATIO_COLUMN, new Value("0.5".getBytes()));
-    ColumnFQ.put(m, Constants.METADATA_OLD_PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(new Text("o")));
+    Constants.METADATA_SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
+    Constants.METADATA_OLD_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(new Text("o")));
     update(connector, m);
     
     // do the state check
@@ -148,7 +148,7 @@ public class TestMergeState {
     // finish the split
     KeyExtent tablet = new KeyExtent(tableId, new Text("p"), new Text("o"));
     m = tablet.getPrevRowUpdateMutation();
-    ColumnFQ.put(m, Constants.METADATA_SPLIT_RATIO_COLUMN, new Value("0.5".getBytes()));
+    Constants.METADATA_SPLIT_RATIO_COLUMN.put(m, new Value("0.5".getBytes()));
     update(connector, m);
     metaDataStateStore.setLocations(Collections.singletonList(new Assignment(tablet, state.someTServer)));
     
@@ -158,7 +158,7 @@ public class TestMergeState {
     
     // chop it
     m = tablet.getPrevRowUpdateMutation();
-    ColumnFQ.put(m, Constants.METADATA_CHOPPED_COLUMN, new Value("junk".getBytes()));
+    Constants.METADATA_CHOPPED_COLUMN.put(m, new Value("junk".getBytes()));
     update(connector, m);
 
     stats = scan(state, metaDataStateStore);

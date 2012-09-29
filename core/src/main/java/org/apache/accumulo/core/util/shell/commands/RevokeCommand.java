@@ -40,7 +40,7 @@ public class RevokeCommand extends TableOperation {
   private String[] permission;
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     user = cl.hasOption(userOpt.getOpt()) ? cl.getOptionValue(userOpt.getOpt()) : shellState.getConnector().whoami();
     
     permission = cl.getArgs()[0].split("\\.", 2);
@@ -60,7 +60,7 @@ public class RevokeCommand extends TableOperation {
   }
   
   @Override
-  protected void doTableOp(Shell shellState, String tableName) throws Exception {
+  protected void doTableOp(final Shell shellState, final String tableName) throws Exception {
     try {
       shellState.getConnector().securityOperations().revokeTablePermission(user, tableName, TablePermission.valueOf(permission[1]));
       Shell.log.debug("Revoked from " + user + " the " + permission[1] + " permission on table " + tableName);
@@ -80,8 +80,8 @@ public class RevokeCommand extends TableOperation {
   }
   
   @Override
-  public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> completionSet) {
-    Token cmd = new Token(getName());
+  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> completionSet) {
+    final Token cmd = new Token(getName());
     cmd.addSubcommand(new Token(TablePermission.printableValues()));
     cmd.addSubcommand(new Token(SystemPermission.printableValues()));
     root.addSubcommand(cmd);
@@ -90,9 +90,9 @@ public class RevokeCommand extends TableOperation {
   @Override
   public Options getOptions() {
     super.getOptions();
-    Options o = new Options();
+    final Options o = new Options();
     
-    OptionGroup group = new OptionGroup();
+    final OptionGroup group = new OptionGroup();
     
     systemOpt = new Option("s", "system", false, "revoke a system permission");
     

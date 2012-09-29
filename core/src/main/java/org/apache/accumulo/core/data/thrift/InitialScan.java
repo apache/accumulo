@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
   public ScanResult result; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     SCAN_ID((short)1, "scanID"),
     RESULT((short)2, "result");
 

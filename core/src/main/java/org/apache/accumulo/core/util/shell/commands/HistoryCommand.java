@@ -34,17 +34,17 @@ public class HistoryCommand extends Command {
   private Option clearHist;
   
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     
-    String histDir = System.getenv("HOME") + "/.accumulo";
+    final String histDir = System.getenv("HOME") + "/.accumulo";
     int counter = 0;
     
     if (cl.hasOption(clearHist.getOpt())) {
       
       try {
         
-        FileWriter outFile = new FileWriter(histDir + "/shell_history.txt");
-        PrintWriter out = new PrintWriter(outFile);
+        final FileWriter outFile = new FileWriter(histDir + "/shell_history.txt");
+        final PrintWriter out = new PrintWriter(outFile);
         out.close();
         
       } catch (IOException e) {
@@ -55,7 +55,7 @@ public class HistoryCommand extends Command {
     
     else {
       try {
-        BufferedReader in = new BufferedReader(new FileReader(histDir + "/shell_history.txt"));
+        final BufferedReader in = new BufferedReader(new FileReader(histDir + "/shell_history.txt"));
         String Line;
         try {
           Line = in.readLine();
@@ -90,7 +90,7 @@ public class HistoryCommand extends Command {
   
   @Override
   public Options getOptions() {
-    Options o = new Options();
+    final Options o = new Options();
     
     clearHist = new Option("c", "clear", false, "clear history file");
     clearHist.setRequired(false);

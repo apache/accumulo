@@ -41,7 +41,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -66,7 +65,7 @@ public class MetaDataTableScanner implements Iterator<TabletLocationState> {
   }
 
   static public void configureScanner(ScannerBase scanner, CurrentState state) {
-    ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+    Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     scanner.fetchColumnFamily(Constants.METADATA_FUTURE_LOCATION_COLUMN_FAMILY);
     scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);

@@ -154,7 +154,7 @@ public class CollectTabletStats {
       reportHdfsBlockLocations(tabletFiles.get(ke));
     }
     
-    System.out.println("\n*** RUNNING TEST ***\n");
+    System.out.println("%n*** RUNNING TEST ***%n");
     
     ExecutorService threadPool = Executors.newFixedThreadPool(numThreads);
     
@@ -288,7 +288,7 @@ public class CollectTabletStats {
       double time = (t2 - t1) / 1000.0;
       
       System.out.printf("\t\ttablet: " + ke.getUUID() + "  thread: " + Thread.currentThread().getId()
-          + " count: %,d cells  time: %6.2f  rate: %,6.2f cells/sec\n", count, time, count / time);
+          + " count: %,d cells  time: %6.2f  rate: %,6.2f cells/sec%n", count, time, count / time);
       
       finishCdl.countDown();
     }
@@ -334,7 +334,7 @@ public class CollectTabletStats {
     }
     
     double time = (maxTime - minTime) / 1000.0;
-    System.out.printf("\tAggregate stats  count: %,d cells  time: %6.2f  rate: %,6.2f cells/sec\n", count, time, count / time);
+    System.out.printf("\tAggregate stats  count: %,d cells  time: %6.2f  rate: %,6.2f cells/sec%n", count, time, count / time);
     System.out.println();
     
     // run the gc between test so that object created during previous test are not
@@ -590,7 +590,7 @@ public class CollectTabletStats {
   }
   
   private static void printStat(String desc, Stat s) {
-    System.out.printf("\t\tDescription: [%30s]  average: %,6.2f  std dev: %,6.2f  min: %,d  max: %,d \n", desc, s.getAverage(), s.getStdDev(), s.getMin(),
+    System.out.printf("\t\tDescription: [%30s]  average: %,6.2f  std dev: %,6.2f  min: %,d  max: %,d %n", desc, s.getAverage(), s.getStdDev(), s.getMin(),
         s.getMax());
     
   }

@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
   public List<org.apache.accumulo.core.data.thrift.TMutation> mutations; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     TABLET_ID((short)1, "tabletID"),
     SEQ((short)2, "seq"),
     MUTATIONS((short)3, "mutations");

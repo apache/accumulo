@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
   public String status; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-  public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+  @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     SERVER((short)1, "server"),
     LAST_STATUS((short)2, "lastStatus"),
     STATUS((short)3, "status");

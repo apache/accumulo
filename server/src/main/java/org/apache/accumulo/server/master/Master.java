@@ -44,6 +44,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -84,7 +85,6 @@ import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -131,6 +131,8 @@ import org.apache.accumulo.server.master.tableOps.CloneTable;
 import org.apache.accumulo.server.master.tableOps.CompactRange;
 import org.apache.accumulo.server.master.tableOps.CreateTable;
 import org.apache.accumulo.server.master.tableOps.DeleteTable;
+import org.apache.accumulo.server.master.tableOps.ExportTable;
+import org.apache.accumulo.server.master.tableOps.ImportTable;
 import org.apache.accumulo.server.master.tableOps.RenameTable;
 import org.apache.accumulo.server.master.tableOps.TableRangeOp;
 import org.apache.accumulo.server.master.tableOps.TraceRepo;
@@ -336,9 +338,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
               // add delete entries to metadata table for bulk dirs
               
               log.info("Adding bulk dir delete entries to !METADATA table for upgrade");
-
-              BatchWriter bw = getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 4);
               
+              BatchWriter bw = getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+
               FileStatus[] tables = fs.globStatus(new Path(Constants.getTablesDir(getSystemConfiguration()) + "/*"));
               for (FileStatus tableDir : tables) {
                 FileStatus[] bulkDirs = fs.globStatus(new Path(tableDir.getPath() + "/bulk_*"));
@@ -581,8 +583,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         try {
           Connector conn = getConnector();
           Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
-          ColumnFQ.fetch(scanner, Constants.METADATA_FLUSH_COLUMN);
-          ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
+          Constants.METADATA_FLUSH_COLUMN.fetch(scanner);
+          Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
           scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
           scanner.fetchColumnFamily(Constants.METADATA_LOG_COLUMN_FAMILY);
           scanner.setRange(new KeyExtent(new Text(tableId), null, ByteBufferUtil.toText(startRow)).toMetadataRange());
@@ -1007,6 +1009,34 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           fate.seedTransaction(opid, new TraceRepo<Master>(new CompactRange(tableId, startRow, endRow, iterators)), autoCleanup);
           break;
         }
+        case IMPORT: {
+          String tableName = ByteBufferUtil.toString(arguments.get(0));
+          String exportDir = ByteBufferUtil.toString(arguments.get(1));
+          
+          if (!security.canImport(c, checkTableId(tableName, TableOperation.IMPORT)))
+            throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
+
+          checkNotMetadataTable(tableName, TableOperation.CREATE);
+          checkTableName(tableName, TableOperation.CREATE);
+          
+          fate.seedTransaction(opid, new TraceRepo<Master>(new ImportTable(c.user, tableName, exportDir)), autoCleanup);
+          break;
+        }
+        case EXPORT: {
+          String tableName = ByteBufferUtil.toString(arguments.get(0));
+          String exportDir = ByteBufferUtil.toString(arguments.get(1));
+          
+          String tableId = checkTableId(tableName, TableOperation.EXPORT);
+          
+          if (!security.canExport(c, tableId))
+            throw new ThriftSecurityException(c.user, SecurityErrorCode.PERMISSION_DENIED);
+
+          checkNotMetadataTable(tableName, TableOperation.EXPORT);
+          
+          fate.seedTransaction(opid, new TraceRepo<Master>(new ExportTable(tableName, tableId, exportDir)), autoCleanup);
+          break;
+        }
+
         default:
           throw new UnsupportedOperationException();
       }
@@ -1556,8 +1586,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
             range.getEndRow()), true);
         Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
         scanner.setRange(deleteRange);
-        ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
-        ColumnFQ.fetch(scanner, Constants.METADATA_TIME_COLUMN);
+        Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
+        Constants.METADATA_TIME_COLUMN.fetch(scanner);
         scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
         scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
         Set<String> datafiles = new TreeSet<String>();
@@ -1582,8 +1612,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           }
         }
         MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
-        
-        BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000000l, 100l, 1);
+        BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME,
+ new BatchWriterConfig());
         try {
           deleteTablets(deleteRange, bw, conn);
         } finally {
@@ -1592,11 +1622,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
 
         if (followingTablet != null) {
           log.debug("Updating prevRow of " + followingTablet + " to " + range.getPrevEndRow());
-          bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000l, 100l, 1);
+          bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
           try {
             Mutation m = new Mutation(followingTablet.getMetadataEntry());
-            ColumnFQ.put(m, Constants.METADATA_PREV_ROW_COLUMN, KeyExtent.encodePrevEndRow(range.getPrevEndRow()));
-            ColumnFQ.putDelete(m, Constants.METADATA_CHOPPED_COLUMN);
+            Constants.METADATA_PREV_ROW_COLUMN.put(m, KeyExtent.encodePrevEndRow(range.getPrevEndRow()));
+            Constants.METADATA_CHOPPED_COLUMN.putDelete(m);
             bw.addMutation(m);
             bw.flush();
           } finally {
@@ -1633,12 +1663,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         long fileCount = 0;
         Connector conn = getConnector();
         // Make file entries in highest tablet
-        bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, 1000000L, 1000L, 1);
+        bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
         Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
         scanner.setRange(scanRange);
-        ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
-        ColumnFQ.fetch(scanner, Constants.METADATA_TIME_COLUMN);
-        ColumnFQ.fetch(scanner, Constants.METADATA_DIRECTORY_COLUMN);
+        Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
+        Constants.METADATA_TIME_COLUMN.fetch(scanner);
+        Constants.METADATA_DIRECTORY_COLUMN.fetch(scanner);
         scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
         Mutation m = new Mutation(stopRow);
         String maxLogicalTime = null;
@@ -1666,7 +1696,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         if (range.isMeta())
           last = last.clip(Constants.METADATA_ROOT_TABLET_KEYSPACE);
         scanner.setRange(last);
-        ColumnFQ.fetch(scanner, Constants.METADATA_TIME_COLUMN);
+        Constants.METADATA_TIME_COLUMN.fetch(scanner);
         for (Entry<Key,Value> entry : scanner) {
           if (Constants.METADATA_TIME_COLUMN.hasColumns(entry.getKey())) {
             maxLogicalTime = TabletTime.maxMetadataTime(maxLogicalTime, entry.getValue().toString());
@@ -1674,7 +1704,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
         
         if (maxLogicalTime != null)
-          ColumnFQ.put(m, Constants.METADATA_TIME_COLUMN, new Value(maxLogicalTime.getBytes()));
+          Constants.METADATA_TIME_COLUMN.put(m, new Value(maxLogicalTime.getBytes()));
         
         if (!m.getUpdates().isEmpty()) {
           bw.addMutation(m);
@@ -1699,7 +1729,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         
         // Clean-up the last chopped marker
         m = new Mutation(stopRow);
-        ColumnFQ.putDelete(m, Constants.METADATA_CHOPPED_COLUMN);
+        Constants.METADATA_CHOPPED_COLUMN.putDelete(m);
         bw.addMutation(m);
         bw.flush();
         
@@ -1749,7 +1779,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       try {
         Connector conn = getConnector();
         Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-        ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+        Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
         KeyExtent start = new KeyExtent(range.getTableId(), range.getEndRow(), null);
         scanner.setRange(new Range(start.getMetadataEntry(), null));
         Iterator<Entry<Key,Value>> iterator = scanner.iterator();
@@ -1834,7 +1864,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     private void cleanupMutations() throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
       Connector connector = getConnector();
       Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-      ColumnFQ.fetch(scanner, Constants.METADATA_PREV_ROW_COLUMN);
+      Constants.METADATA_PREV_ROW_COLUMN.fetch(scanner);
       Set<KeyExtent> found = new HashSet<KeyExtent>();
       for (Entry<Key,Value> entry : scanner) {
         KeyExtent extent = new KeyExtent(entry.getKey().getRow(), entry.getValue());

@@ -46,7 +46,7 @@ public class TabletServerLocks {
           holder = new String(lockData);
         }
         
-        System.out.printf("%32s %16s\n", tabletServer, holder);
+        System.out.printf("%32s %16s%n", tabletServer, holder);
       }
     } else if (args.length == 2 && args[0].equals("-delete")) {
       ZooLock.deleteLock(tserverPath + "/" + args[1]);

@@ -29,11 +29,11 @@ import org.apache.commons.cli.CommandLine;
 
 public class TableCommand extends Command {
   @Override
-  public int execute(String fullCommand, CommandLine cl, Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    String tableName = cl.getArgs()[0];
-    if (!shellState.getConnector().tableOperations().exists(tableName))
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    final String tableName = cl.getArgs()[0];
+    if (!shellState.getConnector().tableOperations().exists(tableName)) {
       throw new TableNotFoundException(null, tableName, null);
-    
+    }
     shellState.setTableName(tableName);
     return 0;
   }
@@ -44,7 +44,7 @@ public class TableCommand extends Command {
   }
   
   @Override
-  public void registerCompletion(Token root, Map<Command.CompletionSet,Set<String>> special) {
+  public void registerCompletion(final Token root, final Map<Command.CompletionSet,Set<String>> special) {
     registerCompletionForTables(root, special);
   }
   

@@ -101,7 +101,7 @@ public abstract class Filter implements Writable {
    * @param hashType
    *          type of the hashing function (see {@link Hash}).
    */
-  protected Filter(int vectorSize, int nbHash, int hashType) {
+  protected Filter(final int vectorSize, final int nbHash, final int hashType) {
     this.vectorSize = vectorSize;
     this.nbHash = nbHash;
     this.hashType = hashType;
@@ -169,7 +169,7 @@ public abstract class Filter implements Writable {
    * @param keys
    *          The list of keys.
    */
-  public void add(List<Key> keys) {
+  public void add(final List<Key> keys) {
     if (keys == null) {
       throw new IllegalArgumentException("ArrayList<Key> may not be null");
     }
@@ -185,7 +185,7 @@ public abstract class Filter implements Writable {
    * @param keys
    *          The collection of keys.
    */
-  public void add(Collection<Key> keys) {
+  public void add(final Collection<Key> keys) {
     if (keys == null) {
       throw new IllegalArgumentException("Collection<Key> may not be null");
     }
@@ -211,7 +211,7 @@ public abstract class Filter implements Writable {
   
   // Writable interface
   
-  public void write(DataOutput out) throws IOException {
+  public void write(final DataOutput out) throws IOException {
     out.writeInt(VERSION);
     out.writeInt(this.nbHash);
     out.writeByte(this.hashType);
@@ -226,8 +226,8 @@ public abstract class Filter implements Writable {
     return VERSION;
   }
   
-  public void readFields(DataInput in) throws IOException {
-    int ver = in.readInt();
+  public void readFields(final DataInput in) throws IOException {
+    final int ver = in.readInt();
     rVersion = ver;
     if (ver > 0) { // old unversioned format
       this.nbHash = ver;
