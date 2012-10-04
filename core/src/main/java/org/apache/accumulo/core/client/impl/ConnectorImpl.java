@@ -139,6 +139,11 @@ public class ConnectorImpl extends Connector {
   }
   
   @Override
+  public MultiTableBatchWriter createMultiTableBatchWriter(BatchWriterConfig config) {
+    return new MultiTableBatchWriterImpl(instance, credentials, config);
+  }
+  
+  @Override
   public Scanner createScanner(String tableName, Authorizations authorizations) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName, authorizations);
     return new ScannerImpl(instance, credentials, getTableId(tableName), authorizations);
