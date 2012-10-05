@@ -345,6 +345,81 @@ public class MutationTest extends TestCase {
     assertEquals(2, m2.size());
     assertEquals(m2.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
     assertEquals(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
+  }
+  
+  Mutation convert(OldMutation old) throws IOException {
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(bos);
+    old.write(dos);
+    dos.close();
+    ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
+    DataInputStream dis = new DataInputStream(bis);
+    Mutation m = new Mutation();
+    m.readFields(dis);
+    dis.close();
+    return m;
+  }
+  
+  
+  public void testNewSerialization() throws Exception {
+    Mutation m1 = new Mutation("row");
+    ColumnVisibility vis = new ColumnVisibility("vis");
+    m1.put("cf", "cq", vis, "value");
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(bos);
+    m1.write(dos);
+    dos.close();
+
+    // write an old mutation
+    OldMutation m2 = new OldMutation("r1");
+    m2.put("cf1", "cq1", "v1");
+    m2.put("cf2", "cq2", new ColumnVisibility("cv2"), "v2");
+    bos = new ByteArrayOutputStream();
+    dos = new DataOutputStream(bos);
+    m2.write(dos);
+    dos.close();
+    long oldSize = dos.size(); 
+    ByteArrayInputStream bis = new ByteArrayInputStream(bos.toByteArray());
+    DataInputStream dis = new DataInputStream(bis);
+    m2.readFields(dis);
+    dis.close();
+    
+    // check it
+    assertEquals("r1", new String(m2.getRow()));
+    assertEquals(2, m2.getUpdates().size());
+    assertEquals(2, m2.size());
+    assertEquals(m2.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
+    assertEquals(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
+
+    m1 = convert(m2);
+    
+    assertEquals("r1", new String(m1.getRow()));
+    assertEquals(2, m1.getUpdates().size());
+    assertEquals(2, m1.size());
+    assertEquals(m1.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
+    assertEquals(m1.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
+    
+    Text exampleRow = new Text(" 123456789 123456789 123456789 123456789 123456789");
+    int exampleLen = exampleRow.getLength();
+    m1 = new Mutation(exampleRow);
+    m1.put("", "", "");
+
+    bos = new ByteArrayOutputStream();
+    dos = new DataOutputStream(bos);
+    m1.write(dos);
+    dos.close();
+    long newSize = dos.size();
+    assertTrue(newSize < oldSize);
+    System.out.println(String.format("%d %d %.2f%%", newSize - exampleLen, oldSize - exampleLen, (newSize-exampleLen) * 100. / (oldSize - exampleLen)));
+    byte[] ba = bos.toByteArray();
+    for (int i = 0; i < bos.size(); i += 4) {
+      for (int j = i; j < bos.size() && j < i + 4; j++) {
+        System.out.append(String.format("%02x", ba[j]));
+      }
+      System.out.append(" ");
+    }
+    System.out.println();
     
   }
+  
 }

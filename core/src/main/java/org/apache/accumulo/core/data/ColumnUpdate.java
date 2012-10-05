@@ -31,11 +31,10 @@ public class ColumnUpdate {
   private long timestamp;
   private boolean hasTimestamp;
   private byte[] val;
-  private byte[] data;
-  private int tsOffset;
   private boolean deleted;
+  private Mutation parent;
   
-  public ColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val, byte[] data, int tsOffset) {
+  public ColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val, Mutation m) {
     this.columnFamily = cf;
     this.columnQualifier = cq;
     this.columnVisibility = cv;
@@ -43,25 +42,14 @@ public class ColumnUpdate {
     this.timestamp = ts;
     this.deleted = deleted;
     this.val = val;
-    this.data = data;
-    this.tsOffset = tsOffset;
+    this.parent = m;
   }
   
+  // @Deprecated use org.apache.accumulo.data.Mutation#setSystemTimestamp(long);
   public void setSystemTimestamp(long v) {
     if (hasTimestamp)
       throw new IllegalStateException("Cannot set system timestamp when user set a timestamp");
-    
-    int tso = this.tsOffset;
-    data[tso++] = (byte) (v >>> 56);
-    data[tso++] = (byte) (v >>> 48);
-    data[tso++] = (byte) (v >>> 40);
-    data[tso++] = (byte) (v >>> 32);
-    data[tso++] = (byte) (v >>> 24);
-    data[tso++] = (byte) (v >>> 16);
-    data[tso++] = (byte) (v >>> 8);
-    data[tso++] = (byte) (v >>> 0);
-    
-    this.timestamp = v;
+    parent.setSystemTimestamp(v);
   }
   
   public boolean hasTimestamp() {
@@ -85,7 +73,9 @@ public class ColumnUpdate {
   }
   
   public long getTimestamp() {
-    return this.timestamp;
+    if (hasTimestamp)
+      return this.timestamp;
+    return parent.systemTime;
   }
   
   public boolean isDeleted() {

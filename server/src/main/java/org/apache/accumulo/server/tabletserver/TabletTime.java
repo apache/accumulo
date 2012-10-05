@@ -19,12 +19,10 @@
  */
 package org.apache.accumulo.server.tabletserver;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.server.util.time.RelativeTime;
 
@@ -57,13 +55,7 @@ public abstract class TabletTime {
   abstract long getAndUpdateTime();
   
   protected void setSystemTimes(Mutation mutation, long lastCommitTime) {
-    Collection<ColumnUpdate> updates = mutation.getUpdates();
-    for (ColumnUpdate cvp : updates) {
-      if (!cvp.hasTimestamp()) {
-        cvp.setSystemTimestamp(lastCommitTime);
-        
-      }
-    }
+    mutation.setSystemTimestamp(lastCommitTime);
   }
   
   static TabletTime getInstance(String metadataValue) {
