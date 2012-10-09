@@ -28,8 +28,10 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -47,7 +49,20 @@ public class PrintInfo {
     Option histogramOption = new Option("h", "histogram", false, "print a histogram of the key-value sizes");
     opts.addOption(histogramOption);
     
-    CommandLine commandLine = new BasicParser().parse(opts, args);
+    CommandLine commandLine = null;
+    try {
+      commandLine = new BasicParser().parse(opts, args);
+      if (commandLine.getArgs().length == 0) {
+        throw new ParseException("No files were given");
+      }
+      
+    } catch (ParseException e) {
+      System.err.println("Failed to parse command line : " + e.getMessage());
+      System.err.println();
+      HelpFormatter formatter = new HelpFormatter();
+      formatter.printHelp("rfile-info <rfile> {<rfile>}", opts);
+      System.exit(-1);
+    }
     
     boolean dump = commandLine.hasOption(dumpKeys.getOpt());
     boolean doHistogram = commandLine.hasOption(histogramOption.getOpt());
