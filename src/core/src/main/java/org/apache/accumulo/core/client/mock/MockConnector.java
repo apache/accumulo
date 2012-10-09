@@ -33,15 +33,17 @@ public class MockConnector extends Connector {
   
   String username;
   private final MockAccumulo acu;
+  private final Instance instance;
   
-  MockConnector(String username) {
-    this(username, new MockAccumulo());
+  MockConnector(String username, Instance instance) {
+    this(username, new MockAccumulo(), instance);
   }
   
   @SuppressWarnings("deprecation")
-  MockConnector(String username, MockAccumulo acu) {
+  MockConnector(String username, MockAccumulo acu, Instance instance) {
     this.username = username;
     this.acu = acu;
+    this.instance = instance;
   }
   
   @Override
@@ -75,7 +77,7 @@ public class MockConnector extends Connector {
   
   @Override
   public Instance getInstance() {
-    return new MockInstance();
+    return instance;
   }
   
   @Override
