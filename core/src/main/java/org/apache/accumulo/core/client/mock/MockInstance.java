@@ -87,7 +87,7 @@ public class MockInstance implements Instance {
   
   @Override
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    Connector conn = new MockConnector(user, acu);
+    Connector conn = new MockConnector(user, acu, this);
     conn.securityOperations().createUser(user, pass, new Authorizations());
     return conn;
   }
