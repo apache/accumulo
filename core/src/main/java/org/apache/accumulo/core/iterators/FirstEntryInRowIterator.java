@@ -75,7 +75,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   // this is only ever called immediately after getting "next" entry
   @Override
   protected void consume() throws IOException {
-    if (lastRowFound == null)
+    if (finished == true || lastRowFound == null)
       return;
     int count = 0;
     while (getSource().hasTop() && lastRowFound.equals(getSource().getTopKey().getRow())) {
@@ -92,11 +92,24 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
         Key nextKey = getSource().getTopKey().followingKey(PartialKey.ROW);
         if (!latestRange.afterEndKey(nextKey))
           getSource().seek(new Range(nextKey, true, latestRange.getEndKey(), latestRange.isEndKeyInclusive()), latestColumnFamilies, latestInclusive);
+        else
+        {
+          finished = true;
+          break;
+        }
       }
     }
     lastRowFound = getSource().hasTop() ? getSource().getTopKey().getRow(lastRowFound) : null;
   }
   
+  private boolean finished = true;
+
+  @Override
+  public boolean hasTop()
+  {
+    return !finished && getSource().hasTop();
+  }
+
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     // save parameters for future internal seeks
@@ -108,7 +121,8 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
     Key startKey = range.getStartKey();
     Range seekRange = new Range(startKey == null ? null : new Key(startKey.getRow()), true, range.getEndKey(), range.isEndKeyInclusive());
     super.seek(seekRange, columnFamilies, inclusive);
-    
+    finished = false;
+
     if (getSource().hasTop()) {
       lastRowFound = getSource().getTopKey().getRow();
       if (range.beforeStartKey(getSource().getTopKey()))
