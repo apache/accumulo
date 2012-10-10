@@ -32,7 +32,7 @@ import org.apache.hadoop.io.Text;
 public class FirstEntryInRowIterator extends SkippingIterator implements OptionDescriber {
   
   // options
-  private static final String NUM_SCANS_STRING_NAME = "scansBeforeSeek";
+  static final String NUM_SCANS_STRING_NAME = "scansBeforeSeek";
   
   // iterator predecessor seek options to pass through
   private Range latestRange;
