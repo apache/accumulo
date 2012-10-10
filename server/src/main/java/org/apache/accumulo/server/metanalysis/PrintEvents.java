@@ -18,6 +18,7 @@ package org.apache.accumulo.server.metanalysis;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -93,7 +94,7 @@ public class PrintEvents {
         m.readFields(dis);
         
         LogFileValue lfv = new LogFileValue();
-        lfv.mutations = new Mutation[] {m};
+        lfv.mutations = Collections.singletonList(m);
         
         System.out.println(LogFileValue.format(lfv, 1));
         

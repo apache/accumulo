@@ -63,8 +63,6 @@ public class MutationTest extends TestCase {
     assertEquals("cq1", new String(cu.getColumnQualifier()));
     assertEquals("", new String(cu.getColumnVisibility()));
     assertFalse(cu.hasTimestamp());
-    cu.setSystemTimestamp(42l);
-    assertEquals(42l, cu.getTimestamp());
     
     cu = updates.get(1);
     
@@ -87,7 +85,6 @@ public class MutationTest extends TestCase {
     assertEquals("cq1", new String(cu.getColumnQualifier()));
     assertEquals("", new String(cu.getColumnVisibility()));
     assertFalse(cu.hasTimestamp());
-    assertEquals(42l, cu.getTimestamp());
     
     cu = updates.get(1);
     
@@ -362,20 +359,13 @@ public class MutationTest extends TestCase {
   
   
   public void testNewSerialization() throws Exception {
-    Mutation m1 = new Mutation("row");
-    ColumnVisibility vis = new ColumnVisibility("vis");
-    m1.put("cf", "cq", vis, "value");
-    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    DataOutputStream dos = new DataOutputStream(bos);
-    m1.write(dos);
-    dos.close();
-
     // write an old mutation
     OldMutation m2 = new OldMutation("r1");
     m2.put("cf1", "cq1", "v1");
     m2.put("cf2", "cq2", new ColumnVisibility("cv2"), "v2");
-    bos = new ByteArrayOutputStream();
-    dos = new DataOutputStream(bos);
+    m2.putDelete("cf3", "cq3");
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    DataOutputStream dos = new DataOutputStream(bos);
     m2.write(dos);
     dos.close();
     long oldSize = dos.size(); 
@@ -386,18 +376,20 @@ public class MutationTest extends TestCase {
     
     // check it
     assertEquals("r1", new String(m2.getRow()));
-    assertEquals(2, m2.getUpdates().size());
-    assertEquals(2, m2.size());
+    assertEquals(3, m2.getUpdates().size());
+    assertEquals(3, m2.size());
     assertEquals(m2.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
     assertEquals(m2.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
+    assertEquals(m2.getUpdates().get(2), "cf3", "cq3", "", 0l, false, true, "");
 
-    m1 = convert(m2);
+    Mutation m1 = convert(m2);
     
     assertEquals("r1", new String(m1.getRow()));
-    assertEquals(2, m1.getUpdates().size());
-    assertEquals(2, m1.size());
+    assertEquals(3, m1.getUpdates().size());
+    assertEquals(3, m1.size());
     assertEquals(m1.getUpdates().get(0), "cf1", "cq1", "", 0l, false, false, "v1");
     assertEquals(m1.getUpdates().get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
+    assertEquals(m2.getUpdates().get(2), "cf3", "cq3", "", 0l, false, true, "");
     
     Text exampleRow = new Text(" 123456789 123456789 123456789 123456789 123456789");
     int exampleLen = exampleRow.getLength();

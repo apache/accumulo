@@ -144,6 +144,7 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.accumulo.server.master.state.Assignment;
@@ -1457,7 +1458,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         if (us.currentTablet != null) {
           List<Mutation> mutations = us.queuedMutations.get(us.currentTablet);
           for (TMutation tmutation : tmutations) {
-            Mutation mutation = new Mutation(tmutation);
+            Mutation mutation = new ServerMutation(tmutation);
             mutations.add(mutation);
             us.queuedMutationSize += mutation.numBytes();
           }
@@ -1672,7 +1673,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       long opid = writeTracker.startWrite(TabletType.type(keyExtent));
       
       try {
-        Mutation mutation = new Mutation(tmutation);
+        Mutation mutation = new ServerMutation(tmutation);
         List<Mutation> mutations = Collections.singletonList(mutation);
         
         Span prep = Trace.start("prep");

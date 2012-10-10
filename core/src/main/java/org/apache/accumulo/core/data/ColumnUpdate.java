@@ -32,9 +32,8 @@ public class ColumnUpdate {
   private boolean hasTimestamp;
   private byte[] val;
   private boolean deleted;
-  private Mutation parent;
   
-  public ColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val, Mutation m) {
+  public ColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
     this.columnFamily = cf;
     this.columnQualifier = cq;
     this.columnVisibility = cv;
@@ -42,14 +41,15 @@ public class ColumnUpdate {
     this.timestamp = ts;
     this.deleted = deleted;
     this.val = val;
-    this.parent = m;
   }
   
-  // @Deprecated use org.apache.accumulo.data.Mutation#setSystemTimestamp(long);
-  public void setSystemTimestamp(long v) {
+  /**
+   * @deprecated use setTimestamp(long);
+   * @param timestamp
+   */
+  public void setSystemTimestamp(long timestamp) {
     if (hasTimestamp)
       throw new IllegalStateException("Cannot set system timestamp when user set a timestamp");
-    parent.setSystemTimestamp(v);
   }
   
   public boolean hasTimestamp() {
@@ -73,9 +73,7 @@ public class ColumnUpdate {
   }
   
   public long getTimestamp() {
-    if (hasTimestamp)
-      return this.timestamp;
-    return parent.systemTime;
+    return this.timestamp;
   }
   
   public boolean isDeleted() {
@@ -90,4 +88,19 @@ public class ColumnUpdate {
     return new String(Arrays.toString(columnFamily)) + ":" + new String(Arrays.toString(columnQualifier)) + " ["
         + new String(Arrays.toString(columnVisibility)) + "] " + (hasTimestamp ? timestamp : "NO_TIME_STAMP") + " " + Arrays.toString(val) + " " + deleted;
   }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (!(obj instanceof ColumnUpdate))
+      return false;
+    ColumnUpdate upd = (ColumnUpdate)obj;
+    return Arrays.equals(getColumnFamily(), upd.getColumnFamily()) &&
+        Arrays.equals(getColumnQualifier(), upd.getColumnQualifier()) &&
+        Arrays.equals(getColumnVisibility(), upd.getColumnVisibility()) &&
+        isDeleted() == upd.isDeleted() &&
+        Arrays.equals(getValue(), upd.getValue()) &&
+        hasTimestamp() == upd.hasTimestamp() &&
+        getTimestamp() == upd.getTimestamp();
+  }
+  
 }

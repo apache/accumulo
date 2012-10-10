@@ -38,7 +38,6 @@ struct TMutation {
 	2:binary data,
 	3:list<binary> values
 	4:i32 entries
-	5:i64 systemTime
 }
 
 struct TKeyExtent {

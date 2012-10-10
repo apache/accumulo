@@ -37,6 +37,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.CachedConfiguration;
+import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.logger.LogEvents;
 import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
@@ -91,10 +92,10 @@ public class SortedLogRecoveryTest {
         result.key.tablet = (KeyExtent) fileExtentMutation;
         break;
       case MUTATION:
-        result.value.mutations = new Mutation[] {(Mutation) fileExtentMutation};
+        result.value.mutations = Arrays.asList((Mutation) fileExtentMutation);
         break;
       case MANY_MUTATIONS:
-        result.value.mutations = (Mutation[]) fileExtentMutation;
+        result.value.mutations = Arrays.asList((Mutation[])fileExtentMutation);
     }
     return result;
   }
@@ -142,12 +143,11 @@ public class SortedLogRecoveryTest {
   
   @Test
   public void testCompactionCrossesLogs() throws IOException {
-    // Create a test log
-    Mutation ignored = new Mutation(new Text("ignored"));
+    Mutation ignored = new ServerMutation(new Text("ignored"));
     ignored.put(cf, cq, value);
-    Mutation m = new Mutation(new Text("row1"));
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
-    Mutation m2 = new Mutation(new Text("row2"));
+    Mutation m2 = new ServerMutation(new Text("row2"));
     m2.put(cf, cq, value);
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, 1, "2"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 3, 1, "somefile"), createKeyValue(MUTATION, 2, 1, ignored), createKeyValue(MUTATION, 4, 1, ignored),};
@@ -180,15 +180,15 @@ public class SortedLogRecoveryTest {
   @Test
   public void testCompactionCrossesLogs5() throws IOException {
     // Create a test log
-    Mutation ignored = new Mutation(new Text("ignored"));
+    Mutation ignored = new ServerMutation(new Text("ignored"));
     ignored.put(cf, cq, value);
-    Mutation m = new Mutation(new Text("row1"));
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
-    Mutation m2 = new Mutation(new Text("row2"));
+    Mutation m2 = new ServerMutation(new Text("row2"));
     m2.put(cf, cq, value);
-    Mutation m3 = new Mutation(new Text("row3"));
+    Mutation m3 = new ServerMutation(new Text("row3"));
     m3.put(cf, cq, value);
-    Mutation m4 = new Mutation(new Text("row4"));
+    Mutation m4 = new ServerMutation(new Text("row4"));
     m4.put(cf, cq, value);
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 3, 1, "somefile"), createKeyValue(MUTATION, 2, 1, ignored), createKeyValue(MUTATION, 4, 1, ignored),};
@@ -218,17 +218,17 @@ public class SortedLogRecoveryTest {
   @Test
   public void testCompactionCrossesLogs6() throws IOException {
     // Create a test log
-    Mutation ignored = new Mutation(new Text("ignored"));
+    Mutation ignored = new ServerMutation(new Text("ignored"));
     ignored.put(cf, cq, value);
-    Mutation m = new Mutation(new Text("row1"));
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
-    Mutation m2 = new Mutation(new Text("row2"));
+    Mutation m2 = new ServerMutation(new Text("row2"));
     m2.put(cf, cq, value);
-    Mutation m3 = new Mutation(new Text("row3"));
+    Mutation m3 = new ServerMutation(new Text("row3"));
     m3.put(cf, cq, value);
-    Mutation m4 = new Mutation(new Text("row4"));
+    Mutation m4 = new ServerMutation(new Text("row4"));
     m4.put(cf, cq, value);
-    Mutation m5 = new Mutation(new Text("row5"));
+    Mutation m5 = new ServerMutation(new Text("row5"));
     m5.put(cf, cq, value);
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, 1, "2"), createKeyValue(DEFINE_TABLET, 1, 1, extent), createKeyValue(MUTATION, 1, 1, ignored),
         createKeyValue(MUTATION, 3, 1, m),};
@@ -277,7 +277,7 @@ public class SortedLogRecoveryTest {
   @Test
   public void testSimple() throws IOException {
     // Create a test log
-    Mutation m = new Mutation(new Text("row1"));
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent), createKeyValue(MUTATION, 2, 1, m),};
     Map<String,KeyValue[]> logs = new TreeMap<String,KeyValue[]>();
@@ -292,9 +292,9 @@ public class SortedLogRecoveryTest {
   @Test
   public void testSkipSuccessfulCompaction() throws IOException {
     // Create a test log
-    Mutation ignored = new Mutation(new Text("ignored"));
+    Mutation ignored = new ServerMutation(new Text("ignored"));
     ignored.put(cf, cq, value);
-    Mutation m = new Mutation(new Text("row1"));
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 3, 1, "somefile"), createKeyValue(COMPACTION_FINISH, 4, 1, null), createKeyValue(MUTATION, 2, 1, ignored),
@@ -311,9 +311,9 @@ public class SortedLogRecoveryTest {
   @Test
   public void testSkipSuccessfulCompactionAcrossFiles() throws IOException {
     // Create a test log
-    Mutation ignored = new Mutation(new Text("ignored"));
+    Mutation ignored = new ServerMutation(new Text("ignored"));
     ignored.put(cf, cq, value);
-    Mutation m = new Mutation(new Text("row1"));
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 3, 1, "somefile"), createKeyValue(MUTATION, 2, 1, ignored),};
@@ -332,11 +332,11 @@ public class SortedLogRecoveryTest {
   @Test
   public void testGetMutationsAfterCompactionStart() throws IOException {
     // Create a test log
-    Mutation ignored = new Mutation(new Text("ignored"));
+    Mutation ignored = new ServerMutation(new Text("ignored"));
     ignored.put(cf, cq, value);
-    Mutation m = new Mutation(new Text("row1"));
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
-    Mutation m2 = new Mutation(new Text("row2"));
+    Mutation m2 = new ServerMutation(new Text("row2"));
     m2.put(cf, cq, new Value("123".getBytes()));
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 3, 1, "somefile"), createKeyValue(MUTATION, 2, 1, ignored), createKeyValue(MUTATION, 4, 1, m),};
@@ -356,11 +356,11 @@ public class SortedLogRecoveryTest {
   @Test
   public void testDoubleFinish() throws IOException {
     // Create a test log
-    Mutation ignored = new Mutation(new Text("ignored"));
+    Mutation ignored = new ServerMutation(new Text("ignored"));
     ignored.put(cf, cq, value);
-    Mutation m = new Mutation(new Text("row1"));
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
-    Mutation m2 = new Mutation(new Text("row2"));
+    Mutation m2 = new ServerMutation(new Text("row2"));
     m2.put(cf, cq, new Value("123".getBytes()));
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_FINISH, 2, 1, null), createKeyValue(COMPACTION_START, 4, 1, "somefile"), createKeyValue(COMPACTION_FINISH, 6, 1, null),
@@ -378,13 +378,13 @@ public class SortedLogRecoveryTest {
   @Test
   public void testCompactionCrossesLogs2() throws IOException {
     // Create a test log
-    Mutation ignored = new Mutation(new Text("ignored"));
+    Mutation ignored = new ServerMutation(new Text("ignored"));
     ignored.put(cf, cq, value);
-    Mutation m = new Mutation(new Text("row1"));
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
-    Mutation m2 = new Mutation(new Text("row2"));
+    Mutation m2 = new ServerMutation(new Text("row2"));
     m2.put(cf, cq, value);
-    Mutation m3 = new Mutation(new Text("row3"));
+    Mutation m3 = new ServerMutation(new Text("row3"));
     m3.put(cf, cq, value);
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 3, 1, "somefile"), createKeyValue(MUTATION, 2, 1, ignored), createKeyValue(MUTATION, 4, 1, m),};
@@ -407,9 +407,9 @@ public class SortedLogRecoveryTest {
   @Test
   public void testBug1() throws IOException {
     // this unit test reproduces a bug that occurred, nothing should recover
-    Mutation m1 = new Mutation(new Text("row1"));
+    Mutation m1 = new ServerMutation(new Text("row1"));
     m1.put(cf, cq, value);
-    Mutation m2 = new Mutation(new Text("row2"));
+    Mutation m2 = new ServerMutation(new Text("row2"));
     m2.put(cf, cq, value);
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 30, 1, "somefile"), createKeyValue(COMPACTION_FINISH, 32, 1, "somefile"), createKeyValue(MUTATION, 29, 1, m1),
@@ -425,13 +425,13 @@ public class SortedLogRecoveryTest {
   @Test
   public void testBug2() throws IOException {
     // Create a test log
-    Mutation ignored = new Mutation(new Text("ignored"));
+    Mutation ignored = new ServerMutation(new Text("ignored"));
     ignored.put(cf, cq, value);
-    Mutation m = new Mutation(new Text("row1"));
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
-    Mutation m2 = new Mutation(new Text("row2"));
+    Mutation m2 = new ServerMutation(new Text("row2"));
     m2.put(cf, cq, value);
-    Mutation m3 = new Mutation(new Text("row3"));
+    Mutation m3 = new ServerMutation(new Text("row3"));
     m3.put(cf, cq, value);
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 2, 1, "somefile"), createKeyValue(COMPACTION_FINISH, 4, 1, null), createKeyValue(MUTATION, 3, 1, m),};
@@ -452,19 +452,19 @@ public class SortedLogRecoveryTest {
   @Test
   public void testCompactionCrossesLogs4() throws IOException {
     // Create a test log
-    Mutation ignored = new Mutation(new Text("ignored"));
+    Mutation ignored = new ServerMutation(new Text("ignored"));
     ignored.put(cf, cq, value);
-    Mutation m = new Mutation(new Text("row1"));
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
-    Mutation m2 = new Mutation(new Text("row2"));
+    Mutation m2 = new ServerMutation(new Text("row2"));
     m2.put(cf, cq, value);
-    Mutation m3 = new Mutation(new Text("row3"));
+    Mutation m3 = new ServerMutation(new Text("row3"));
     m3.put(cf, cq, value);
-    Mutation m4 = new Mutation(new Text("row4"));
+    Mutation m4 = new ServerMutation(new Text("row4"));
     m4.put(cf, cq, value);
-    Mutation m5 = new Mutation(new Text("row5"));
+    Mutation m5 = new ServerMutation(new Text("row5"));
     m5.put(cf, cq, value);
-    Mutation m6 = new Mutation(new Text("row6"));
+    Mutation m6 = new ServerMutation(new Text("row6"));
     m6.put(cf, cq, value);
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 4, 1, "somefile"),
@@ -501,17 +501,17 @@ public class SortedLogRecoveryTest {
   
   @Test
   public void testLookingForBug3() throws IOException {
-    Mutation ignored = new Mutation(new Text("ignored"));
+    Mutation ignored = new ServerMutation(new Text("ignored"));
     ignored.put(cf, cq, value);
-    Mutation m = new Mutation(new Text("row1"));
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put(cf, cq, value);
-    Mutation m2 = new Mutation(new Text("row2"));
+    Mutation m2 = new ServerMutation(new Text("row2"));
     m2.put(cf, cq, value);
-    Mutation m3 = new Mutation(new Text("row3"));
+    Mutation m3 = new ServerMutation(new Text("row3"));
     m3.put(cf, cq, value);
-    Mutation m4 = new Mutation(new Text("row4"));
+    Mutation m4 = new ServerMutation(new Text("row4"));
     m4.put(cf, cq, value);
-    Mutation m5 = new Mutation(new Text("row5"));
+    Mutation m5 = new ServerMutation(new Text("row5"));
     m5.put(cf, cq, value);
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
         createKeyValue(COMPACTION_START, 2, 1, "somefile"), createKeyValue(COMPACTION_FINISH, 3, 1, null), createKeyValue(MUTATION, 1, 1, ignored),
@@ -538,9 +538,9 @@ public class SortedLogRecoveryTest {
     // there was a bug where the oldest tablet id was used instead
     // of the newest
     
-    Mutation ignored = new Mutation("row1");
+    Mutation ignored = new ServerMutation(new Text("row1"));
     ignored.put("foo", "bar", "v1");
-    Mutation m = new Mutation(new Text("row1"));
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put("foo", "bar", "v1");
     
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 1, extent),
@@ -562,7 +562,7 @@ public class SortedLogRecoveryTest {
   public void testNoFinish0() throws Exception {
     // its possible that a minor compaction finishes successfully, but the process dies before writing the compaction event
     
-    Mutation ignored = new Mutation("row1");
+    Mutation ignored = new ServerMutation(new Text("row1"));
     ignored.put("foo", "bar", "v1");
     
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 2, extent),
@@ -581,9 +581,9 @@ public class SortedLogRecoveryTest {
   public void testNoFinish1() throws Exception {
     // its possible that a minor compaction finishes successfully, but the process dies before writing the compaction event
     
-    Mutation ignored = new Mutation("row1");
+    Mutation ignored = new ServerMutation(new Text("row1"));
     ignored.put("foo", "bar", "v1");
-    Mutation m = new Mutation("row1");
+    Mutation m = new ServerMutation(new Text("row1"));
     m.put("foo", "bar", "v2");
     
     KeyValue entries[] = new KeyValue[] {createKeyValue(OPEN, 0, -1, "1"), createKeyValue(DEFINE_TABLET, 1, 2, extent),

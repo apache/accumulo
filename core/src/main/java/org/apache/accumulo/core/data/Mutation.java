@@ -56,13 +56,17 @@ public class Mutation implements Writable {
   
   static final int VALUE_SIZE_COPY_CUTOFF = 1 << 15;
   
-  boolean useOldDeserialize = false;
-  byte[] row;
-  byte[] data;
-  int entries;
-  List<byte[]> values;
-  long systemTime = 0l;
+  public static enum SERIALIZED_FORMAT {
+     VERSION1,
+     VERSION2
+  };
   
+  private boolean useOldDeserialize = false;
+  private byte[] row;
+  private byte[] data;
+  private int entries;
+  private List<byte[]> values;
+
   // created this little class instead of using ByteArrayOutput stream and DataOutputStream
   // because both are synchronized... lots of small syncs slow things down
   private static class ByteBuffer {
@@ -416,8 +420,6 @@ public class Mutation implements Writable {
     byte[] cv = oldReadBytes(in);
     boolean hasts = in.readBoolean();
     long ts = in.readLong();
-    if (!hasts && ts != 0)
-      this.systemTime = ts;
     boolean deleted = in.readBoolean();
     
     byte[] val;
@@ -432,7 +434,7 @@ public class Mutation implements Writable {
       in.readBytes(val);
     }
     
-    return new ColumnUpdate(cf, cq, cv, hasts, ts, deleted, val, this);
+    return new ColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
   }
   
   private ColumnUpdate newDeserializeColumnUpdate(SimpleReader in) {
@@ -457,7 +459,7 @@ public class Mutation implements Writable {
       in.readBytes(val);
     }
     
-    return new ColumnUpdate(cf, cq, cv, hasts, ts, deleted, val, this);
+    return new ColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
   }
   
   private int cachedValLens = -1;
@@ -530,7 +532,6 @@ public class Mutation implements Writable {
         values.add(val);
       }
     }
-    systemTime = WritableUtils.readVLong(in);
   }
   
   public void oldReadFields(byte first, DataInput in) throws IOException {
@@ -592,7 +593,6 @@ public class Mutation implements Writable {
         out.write(val);
       }
     }
-    WritableUtils.writeVLong(out, systemTime);
   }
   
   @Override
@@ -629,11 +629,11 @@ public class Mutation implements Writable {
   
   public TMutation toThrift() {
     serialize();
-    return new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries, systemTime);
-  }
-
-  public void setSystemTimestamp(long v) {
-    this.systemTime = v;
+    return new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries);
   }
   
+  public SERIALIZED_FORMAT getSerializedFormat() {
+    return this.useOldDeserialize ? SERIALIZED_FORMAT.VERSION1 : SERIALIZED_FORMAT.VERSION2;
+  }
+
 }

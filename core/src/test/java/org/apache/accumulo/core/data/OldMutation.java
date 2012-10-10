@@ -363,7 +363,7 @@ public class OldMutation implements Writable {
       in.readBytes(val);
     }
     
-    return new ColumnUpdate(cf, cq, cv, hasts, ts, deleted, val, null);
+    return new ColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
   }
   
   private int cachedValLens = -1;
@@ -469,27 +469,24 @@ public class OldMutation implements Writable {
   
   public boolean equals(Mutation m) {
     serialize();
-    if (Arrays.equals(row, m.row) && entries == m.entries && Arrays.equals(data, m.data)) {
-      if (values == null && m.values == null)
-        return true;
-      
-      if (values != null && m.values != null && values.size() == m.values.size()) {
-        for (int i = 0; i < values.size(); i++) {
-          if (!Arrays.equals(values.get(i), m.values.get(i)))
-            return false;
-        }
-        
-        return true;
-      }
-      
+    if (!Arrays.equals(row, m.getRow()))
+      return false;
+    List<ColumnUpdate> oldcus = this.getUpdates();
+    List<ColumnUpdate> newcus = m.getUpdates();
+    if (oldcus.size() != newcus.size())
+      return false;
+    for (int i = 0; i < newcus.size(); i++) {
+      ColumnUpdate oldcu = oldcus.get(i);
+      ColumnUpdate newcu = newcus.get(i);
+      if (!oldcu.equals(newcu))
+        return false;
     }
-    
     return false;
   }
   
   public TMutation toThrift() {
     serialize();
-    return new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries, 0);
+    return new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries);
   }
   
 }

@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField DATA_FIELD_DESC = new org.apache.thrift.protocol.TField("data", org.apache.thrift.protocol.TType.STRING, (short)2);
   private static final org.apache.thrift.protocol.TField VALUES_FIELD_DESC = new org.apache.thrift.protocol.TField("values", org.apache.thrift.protocol.TType.LIST, (short)3);
   private static final org.apache.thrift.protocol.TField ENTRIES_FIELD_DESC = new org.apache.thrift.protocol.TField("entries", org.apache.thrift.protocol.TType.I32, (short)4);
-  private static final org.apache.thrift.protocol.TField SYSTEM_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("systemTime", org.apache.thrift.protocol.TType.I64, (short)5);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -46,15 +45,13 @@ import org.slf4j.LoggerFactory;
   public ByteBuffer data; // required
   public List<ByteBuffer> values; // required
   public int entries; // required
-  public long systemTime; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     ROW((short)1, "row"),
     DATA((short)2, "data"),
     VALUES((short)3, "values"),
-    ENTRIES((short)4, "entries"),
-    SYSTEM_TIME((short)5, "systemTime");
+    ENTRIES((short)4, "entries");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -77,8 +74,6 @@ import org.slf4j.LoggerFactory;
           return VALUES;
         case 4: // ENTRIES
           return ENTRIES;
-        case 5: // SYSTEM_TIME
-          return SYSTEM_TIME;
         default:
           return null;
       }
@@ -120,8 +115,7 @@ import org.slf4j.LoggerFactory;
 
   // isset id assignments
   private static final int __ENTRIES_ISSET_ID = 0;
-  private static final int __SYSTEMTIME_ISSET_ID = 1;
-  private BitSet __isset_bit_vector = new BitSet(2);
+  private BitSet __isset_bit_vector = new BitSet(1);
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -134,8 +128,6 @@ import org.slf4j.LoggerFactory;
             new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING            , true))));
     tmpMap.put(_Fields.ENTRIES, new org.apache.thrift.meta_data.FieldMetaData("entries", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
-    tmpMap.put(_Fields.SYSTEM_TIME, new org.apache.thrift.meta_data.FieldMetaData("systemTime", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TMutation.class, metaDataMap);
   }
@@ -147,8 +139,7 @@ import org.slf4j.LoggerFactory;
     ByteBuffer row,
     ByteBuffer data,
     List<ByteBuffer> values,
-    int entries,
-    long systemTime)
+    int entries)
   {
     this();
     this.row = row;
@@ -156,8 +147,6 @@ import org.slf4j.LoggerFactory;
     this.values = values;
     this.entries = entries;
     setEntriesIsSet(true);
-    this.systemTime = systemTime;
-    setSystemTimeIsSet(true);
   }
 
   /**
@@ -184,7 +173,6 @@ import org.slf4j.LoggerFactory;
       this.values = __this__values;
     }
     this.entries = other.entries;
-    this.systemTime = other.systemTime;
   }
 
   public TMutation deepCopy() {
@@ -198,8 +186,6 @@ import org.slf4j.LoggerFactory;
     this.values = null;
     setEntriesIsSet(false);
     this.entries = 0;
-    setSystemTimeIsSet(false);
-    this.systemTime = 0;
   }
 
   public byte[] getRow() {
@@ -332,29 +318,6 @@ import org.slf4j.LoggerFactory;
     __isset_bit_vector.set(__ENTRIES_ISSET_ID, value);
   }
 
-  public long getSystemTime() {
-    return this.systemTime;
-  }
-
-  public TMutation setSystemTime(long systemTime) {
-    this.systemTime = systemTime;
-    setSystemTimeIsSet(true);
-    return this;
-  }
-
-  public void unsetSystemTime() {
-    __isset_bit_vector.clear(__SYSTEMTIME_ISSET_ID);
-  }
-
-  /** Returns true if field systemTime is set (has been assigned a value) and false otherwise */
-  public boolean isSetSystemTime() {
-    return __isset_bit_vector.get(__SYSTEMTIME_ISSET_ID);
-  }
-
-  public void setSystemTimeIsSet(boolean value) {
-    __isset_bit_vector.set(__SYSTEMTIME_ISSET_ID, value);
-  }
-
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case ROW:
@@ -389,14 +352,6 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
-    case SYSTEM_TIME:
-      if (value == null) {
-        unsetSystemTime();
-      } else {
-        setSystemTime((Long)value);
-      }
-      break;
-
     }
   }
 
@@ -413,9 +368,6 @@ import org.slf4j.LoggerFactory;
 
     case ENTRIES:
       return Integer.valueOf(getEntries());
-
-    case SYSTEM_TIME:
-      return Long.valueOf(getSystemTime());
 
     }
     throw new IllegalStateException();
@@ -436,8 +388,6 @@ import org.slf4j.LoggerFactory;
       return isSetValues();
     case ENTRIES:
       return isSetEntries();
-    case SYSTEM_TIME:
-      return isSetSystemTime();
     }
     throw new IllegalStateException();
   }
@@ -488,15 +438,6 @@ import org.slf4j.LoggerFactory;
       if (!(this_present_entries && that_present_entries))
         return false;
       if (this.entries != that.entries)
-        return false;
-    }
-
-    boolean this_present_systemTime = true;
-    boolean that_present_systemTime = true;
-    if (this_present_systemTime || that_present_systemTime) {
-      if (!(this_present_systemTime && that_present_systemTime))
-        return false;
-      if (this.systemTime != that.systemTime)
         return false;
     }
 
@@ -556,16 +497,6 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetSystemTime()).compareTo(typedOther.isSetSystemTime());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetSystemTime()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.systemTime, typedOther.systemTime);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     return 0;
   }
 
@@ -612,10 +543,6 @@ import org.slf4j.LoggerFactory;
     if (!first) sb.append(", ");
     sb.append("entries:");
     sb.append(this.entries);
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("systemTime:");
-    sb.append(this.systemTime);
     first = false;
     sb.append(")");
     return sb.toString();
@@ -703,14 +630,6 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 5: // SYSTEM_TIME
-            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-              struct.systemTime = iprot.readI64();
-              struct.setSystemTimeIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -751,9 +670,6 @@ import org.slf4j.LoggerFactory;
       oprot.writeFieldBegin(ENTRIES_FIELD_DESC);
       oprot.writeI32(struct.entries);
       oprot.writeFieldEnd();
-      oprot.writeFieldBegin(SYSTEM_TIME_FIELD_DESC);
-      oprot.writeI64(struct.systemTime);
-      oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -784,10 +700,7 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetEntries()) {
         optionals.set(3);
       }
-      if (struct.isSetSystemTime()) {
-        optionals.set(4);
-      }
-      oprot.writeBitSet(optionals, 5);
+      oprot.writeBitSet(optionals, 4);
       if (struct.isSetRow()) {
         oprot.writeBinary(struct.row);
       }
@@ -806,15 +719,12 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetEntries()) {
         oprot.writeI32(struct.entries);
       }
-      if (struct.isSetSystemTime()) {
-        oprot.writeI64(struct.systemTime);
-      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TMutation struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(5);
+      BitSet incoming = iprot.readBitSet(4);
       if (incoming.get(0)) {
         struct.row = iprot.readBinary();
         struct.setRowIsSet(true);
@@ -839,10 +749,6 @@ import org.slf4j.LoggerFactory;
       if (incoming.get(3)) {
         struct.entries = iprot.readI32();
         struct.setEntriesIsSet(true);
-      }
-      if (incoming.get(4)) {
-        struct.systemTime = iprot.readI64();
-        struct.setSystemTimeIsSet(true);
       }
     }
   }
