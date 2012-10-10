@@ -408,6 +408,10 @@ public class Mutation implements Writable {
     return updates;
   }
   
+  protected ColumnUpdate newColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
+    return new ColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
+  }
+
   private ColumnUpdate deserializeColumnUpdate(SimpleReader in) {
     if (useOldDeserialize)
       return oldDeserializeColumnUpdate(in);
@@ -434,7 +438,7 @@ public class Mutation implements Writable {
       in.readBytes(val);
     }
     
-    return new ColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
+    return newColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
   }
   
   private ColumnUpdate newDeserializeColumnUpdate(SimpleReader in) {
@@ -459,7 +463,7 @@ public class Mutation implements Writable {
       in.readBytes(val);
     }
     
-    return new ColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
+    return newColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
   }
   
   private int cachedValLens = -1;

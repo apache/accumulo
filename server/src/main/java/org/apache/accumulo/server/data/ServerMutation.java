@@ -1,17 +1,16 @@
 package org.apache.accumulo.server.data;
 
+import static org.apache.accumulo.core.data.Mutation.SERIALIZED_FORMAT.VERSION2;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableUtils;
-import static org.apache.accumulo.core.data.Mutation.SERIALIZED_FORMAT.VERSION2;;
 
 /**
  * Mutation that holds system time as computed by the tablet server when not provided by the user.
@@ -60,19 +59,14 @@ public class ServerMutation extends Mutation {
   public long getSystemTimestamp() {
     return this.systemTime;
   }
-  
-  public List<ColumnUpdate> getUpdates() {
-    List<ColumnUpdate> updates = super.getUpdates();
-    List<ColumnUpdate> result = new ArrayList<ColumnUpdate>(updates.size());
-    for (ColumnUpdate update : updates) {
-      result.add(new ServerColumnUpdate(update, this));
-    }
-    return result;
+
+  @Override
+  protected ColumnUpdate newColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
+    return new ServerColumnUpdate(cf, cq, cv, hasts, ts, deleted, val, this);
   }
 
   @Override
   public long estimatedMemoryUsed() {
     return super.estimatedMemoryUsed() + 8;
   }
-
 }

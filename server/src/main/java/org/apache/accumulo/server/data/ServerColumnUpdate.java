@@ -6,8 +6,8 @@ public class ServerColumnUpdate extends ColumnUpdate {
   
   ServerMutation parent;
 
-  public ServerColumnUpdate(ColumnUpdate update, ServerMutation serverMutation) {
-    super(update.getColumnFamily(), update.getColumnQualifier(), update.getColumnVisibility(), update.hasTimestamp(), update.hasTimestamp() ? update.getTimestamp() : 0, update.isDeleted(), update.getValue());
+  public ServerColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val, ServerMutation serverMutation) {
+    super(cf, cq, cv, hasts, ts, deleted, val);
     parent = serverMutation;
   }
 
