@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.mock;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,9 +37,20 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.FindMax;
 import org.apache.accumulo.core.client.admin.TableOperationsHelper;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.commons.lang.NotImplementedException;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 public class MockTableOperations extends TableOperationsHelper {
@@ -160,7 +172,92 @@ public class MockTableOperations extends TableOperationsHelper {
   @Override
   public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) throws IOException, AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
-    throw new NotImplementedException();
+    long time = System.currentTimeMillis();
+    MockTable table = acu.tables.get(tableName);
+    if (table == null) {
+      throw new TableNotFoundException(null, tableName,
+          "The table was not found");
+    }
+    Path importPath = new Path(dir);
+    Path failurePath = new Path(failureDir);
+
+    FileSystem fs = acu.getFileSystem();
+    /*
+     * check preconditions
+     */
+    // directories are directories
+    if (fs.isFile(importPath)) {
+      throw new IOException("Import path must be a directory.");
+    }
+    if (fs.isFile(failurePath)) {
+      throw new IOException("Failure path must be a directory.");
+    }
+    // failures are writable
+    Path createPath = failurePath.suffix("/.createFile");
+    FSDataOutputStream createStream = null;
+    try {
+      createStream = fs.create(createPath);
+    } catch (IOException e) {
+      throw new IOException("Error path is not writable.");
+    } finally {
+      if (createStream != null) {
+        createStream.close();
+      }
+    }
+    fs.delete(createPath, false);
+    // failures are empty
+    FileStatus[] failureChildStats = fs.listStatus(failurePath);
+    if (failureChildStats.length > 0) {
+      throw new IOException("Error path must be empty.");
+    }
+    /*
+     * Begin the import - iterate the files in the path
+     */
+    for (FileStatus importStatus : fs.listStatus(importPath)) {
+      try {
+        FileSKVIterator importIterator = FileOperations.getInstance()
+            .openReader(importStatus.getPath().toString(), true, fs,
+                fs.getConf(), AccumuloConfiguration.getDefaultConfiguration());
+        while (importIterator.hasTop()) {
+          Key key = importIterator.getTopKey();
+          Value value = importIterator.getTopValue();
+          if (setTime) {
+            key.setTimestamp(time);
+          }
+          Mutation mutation = new Mutation(key.getRow());
+          if (!key.isDeleted()) {
+            mutation.put(key.getColumnFamily(), key.getColumnQualifier(),
+                new ColumnVisibility(key.getColumnVisibilityData().toArray()),
+                key.getTimestamp(), value);
+          } else {
+            mutation.putDelete(key.getColumnFamily(), key.getColumnQualifier(),
+                new ColumnVisibility(key.getColumnVisibilityData().toArray()),
+                key.getTimestamp());
+          }
+          table.addMutation(mutation);
+          importIterator.next();
+        }
+      } catch (Exception e) {
+        FSDataOutputStream failureWriter = null;
+        DataInputStream failureReader = null;
+        try {
+          failureWriter = fs.create(failurePath.suffix("/"
+              + importStatus.getPath().getName()));
+          failureReader = fs.open(importStatus.getPath());
+          int read = 0;
+          byte[] buffer = new byte[1024];
+          while (-1 != (read = failureReader.read(buffer))) {
+            failureWriter.write(buffer, 0, read);
+          }
+        } finally {
+          if (failureReader != null)
+            failureReader.close();
+          if (failureWriter != null)
+            failureWriter.close();
+        }
+      }
+      fs.delete(importStatus.getPath(), true);
+    }
   }
   
   @Override

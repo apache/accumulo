@@ -39,7 +39,7 @@ public class MockConnector extends Connector {
   private final Instance instance;
   
   MockConnector(String username, Instance instance) {
-    this(username, new MockAccumulo(), instance);
+    this(username, new MockAccumulo(MockInstance.getDefaultFileSystem()), instance);
   }
   
   @SuppressWarnings("deprecation")
