@@ -139,6 +139,7 @@ public class MockTableOperationsTest {
     fs.deleteOnExit(tempFile);
     fs.deleteOnExit(failures);
     fs.delete(failures, true);
+    fs.delete(tempFile, true);
     fs.mkdirs(failures);
     fs.mkdirs(tempFile.getParent());
     FileSKVWriter writer = FileOperations.getInstance().openWriter(
