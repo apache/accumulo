@@ -128,7 +128,7 @@ public class Accumulo {
       sortedProps.put(entry.getKey(), entry.getValue());
     
     for (Entry<String,String> entry : sortedProps.entrySet()) {
-      if (entry.getKey().toLowerCase().contains("password"))
+      if (entry.getKey().toLowerCase().contains("password") || entry.getKey().toLowerCase().contains("secret"))
         log.info(entry.getKey() + " = <hidden>");
       else
         log.info(entry.getKey() + " = " + entry.getValue());
