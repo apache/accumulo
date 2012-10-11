@@ -60,6 +60,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
     validAuthChars['_'] = true;
     validAuthChars['-'] = true;
     validAuthChars[':'] = true;
+    validAuthChars['.'] = true;
+    validAuthChars['/'] = true;
   }
   
   static final boolean isValidAuthChar(byte b) {

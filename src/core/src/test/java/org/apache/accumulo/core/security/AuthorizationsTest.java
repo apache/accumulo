@@ -18,6 +18,7 @@ package org.apache.accumulo.core.security;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.Test;
@@ -35,6 +36,22 @@ public class AuthorizationsTest {
     byte[] array = a.getAuthorizationsArray();
     Authorizations b = new Authorizations(array);
     assertEquals(a, b);
+  }
+  
+  @Test
+  public void testLegalCharacters() {
+    new Authorizations("_");
+    new Authorizations(".");
+    new Authorizations("A_/a.QO0D-l1");
+    new Authorizations("/");
+    new Authorizations("a");
+    new Authorizations("A");
+    try {
+      new Authorizations("|");
+      fail("Did not throw");
+    } catch (Exception ex) {
+      // ignored
+    }
   }
   
 }
