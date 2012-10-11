@@ -205,7 +205,6 @@ import org.apache.thrift.TServiceClient;
 import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
-import org.mortbay.log.Log;
 
 enum ScanRunState {
   QUEUED, RUNNING, FINISHED
