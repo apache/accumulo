@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -246,20 +247,25 @@ public class ZooUtil {
   }
   
   public static boolean isLockHeld(ZooKeeper zk, LockID lid) throws KeeperException, InterruptedException {
-    
-    List<String> children = zk.getChildren(lid.path, false);
-    
-    if (children.size() == 0) {
-      return false;
+    while (true) {
+      try {
+        List<String> children = zk.getChildren(lid.path, false);
+        
+        if (children.size() == 0) {
+          return false;
+        }
+        
+        Collections.sort(children);
+        
+        String lockNode = children.get(0);
+        if (!lid.node.equals(lockNode))
+          return false;
+        
+        Stat stat = zk.exists(lid.path + "/" + lid.node, false);
+        return stat != null && stat.getEphemeralOwner() == lid.eid;
+      } catch (KeeperException.ConnectionLossException ex) {
+        UtilWaitThread.sleep(1000);
+      } 
     }
-    
-    Collections.sort(children);
-    
-    String lockNode = children.get(0);
-    if (!lid.node.equals(lockNode))
-      return false;
-    
-    Stat stat = zk.exists(lid.path + "/" + lid.node, false);
-    return stat != null && stat.getEphemeralOwner() == lid.eid;
   }
 }
