@@ -133,7 +133,7 @@ public class MockTableOperationsTest {
 
   private ImportTestFilesAndData prepareTestFiles() throws Throwable {
     Configuration defaultConf = new Configuration();
-    Path tempFile = new Path("target/accumulo-test/import/sample.map");
+    Path tempFile = new Path("target/accumulo-test/import/sample.rf");
     Path failures = new Path("target/accumulo-test/failures/");
     FileSystem fs = FileSystem.get(new URI("file:///"), defaultConf);
     fs.deleteOnExit(tempFile);
@@ -144,6 +144,7 @@ public class MockTableOperationsTest {
     FileSKVWriter writer = FileOperations.getInstance().openWriter(
         tempFile.toString(), fs, defaultConf,
         AccumuloConfiguration.getDefaultConfiguration());
+    writer.startDefaultLocalityGroup();
     List<Pair<Key, Value>> keyVals = new ArrayList<Pair<Key, Value>>();
     for (int i = 0; i < 5; i++) {
       keyVals.add(new Pair<Key, Value>(new Key("a" + i, "b" + i, "c" + i,
