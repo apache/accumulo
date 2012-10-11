@@ -12,6 +12,7 @@
 # Author: John Vines <john@sqrrl.com>
 
 # Do NOT "set -e"
+install -d -m 0775 -o root -g accumulo /var/run/accumulo
 
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/lib/accumulo/bin
@@ -21,11 +22,11 @@ ACCUMULO_PROC=gc
 DAEMON=/usr/lib/accumulo/bin/start-server.sh
 IP=`ifconfig | grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1`
 DAEMON_ARGS="$IP gc \"garbage collector\""
-PIDFILE=/var/run/$NAME.pid
+PIDFILE=/var/run/accumulo/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
 # Read configuration variable file if it is present
-[ -r /etc/default/$NAME ] && . /etc/default/$NAME
+[ -r /etc/default/accumulo ] && . /etc/default/accumulo
 
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh
@@ -38,8 +39,10 @@ SCRIPTNAME=/etc/init.d/$NAME
 #
 # Function that starts the daemon/service
 #
-do_start()
-{
+do_start() {
+    TARGET_USER_NAME="ACCUMULO_USER"
+    TARGET_USER=$(eval "echo \$$TARGET_USER_NAME")
+
 	# Return
 	#  0 if daemon has been started
 	#  1 if daemon was already running
@@ -47,7 +50,7 @@ do_start()
 	
 	if [ "`jps -m | grep $ACCUMULO_PROC`" ] ; then return 1; fi
 	
-	$DAEMON $DAEMON_ARGS > /dev/null || return 1
+	su -s /bin/sh $TARGET_USER -c "$DAEMON $DAEMON_ARGS > /dev/null || return 1"
 
 	if [ "`jps -m | grep $ACCUMULO_PROC`" ] ; then return 0; fi
 	return 2
