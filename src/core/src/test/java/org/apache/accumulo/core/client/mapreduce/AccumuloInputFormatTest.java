@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
@@ -102,6 +103,24 @@ public class AccumuloInputFormatTest {
     Configuration conf = job.getConfiguration();
     String iterators = conf.get("AccumuloInputFormat.iterators");
     assertEquals("1:org.apache.accumulo.core.iterators.WholeRowIterator:WholeRow", iterators);
+  }
+
+  static abstract class GetRanges<K, V> extends InputFormatBase<K,V> {
+    public static List<Range> getRanges(Configuration conf) throws IOException {
+      return InputFormatBase.getRanges(conf);
+    }
+  };
+
+  @Test
+  public void testSetRanges() throws IOException {
+    JobContext job = new JobContext(new Configuration(), new JobID());
+    List<Range> ranges = new ArrayList<Range>();
+    for (int i = 0; i < 100000; i++) {
+      ranges.add(new Range(new Text(String.format("%05x", i))));
+    }
+    AccumuloInputFormat.setRanges(job.getConfiguration(), ranges);
+    List<Range> ranges2 = GetRanges.getRanges(job.getConfiguration());
+    assertEquals(ranges, ranges2);
   }
   
   @Test
