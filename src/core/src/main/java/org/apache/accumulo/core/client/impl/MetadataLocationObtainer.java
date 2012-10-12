@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocation;
+import org.apache.accumulo.core.client.impl.TabletLocator.TabletLocations;
 import org.apache.accumulo.core.client.impl.TabletLocatorImpl.TabletLocationObtainer;
 import org.apache.accumulo.core.client.impl.TabletServerBatchReaderIterator.ResultReceiver;
 import org.apache.accumulo.core.data.Column;
@@ -44,6 +45,7 @@ import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.OpTimer;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
@@ -68,12 +70,12 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
   
   @Override
-  public List<TabletLocation> lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent) throws AccumuloSecurityException,
+  public TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent) throws AccumuloSecurityException,
       AccumuloException {
-    
-    ArrayList<TabletLocation> list = new ArrayList<TabletLocation>();
-    
+
     try {
+      ArrayList<TabletLocation> list = new ArrayList<TabletLocation>();
+
       OpTimer opTimer = null;
       if (log.isTraceEnabled())
         opTimer = new OpTimer(log, Level.TRACE).start("Looking up in " + src.tablet_extent.getTableId() + " row=" + TextUtil.truncate(row) + "  extent="
@@ -98,12 +100,14 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       
       // System.out.println("results "+results.keySet());
       
-      SortedMap<KeyExtent,Text> metadata = MetadataTable.getMetadataLocationEntries(results);
+      Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>> metadata = MetadataTable.getMetadataLocationEntries(results);
       
-      for (Entry<KeyExtent,Text> entry : metadata.entrySet()) {
+      for (Entry<KeyExtent,Text> entry : metadata.getFirst().entrySet()) {
         list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));
       }
       
+      return new TabletLocations(list, metadata.getSecond());
+
     } catch (AccumuloServerException ase) {
       if (log.isTraceEnabled())
         log.trace(src.tablet_extent.getTableId() + " lookup failed, " + src.tablet_location + " server side exception");
@@ -118,7 +122,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       parent.invalidateCache(src.tablet_location);
     }
     
-    return list;
+    return null;
   }
   
   @Override
@@ -159,7 +163,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       throw e;
     }
     
-    SortedMap<KeyExtent,Text> metadata = MetadataTable.getMetadataLocationEntries(results);
+    SortedMap<KeyExtent,Text> metadata = MetadataTable.getMetadataLocationEntries(results).getFirst();
     
     for (Entry<KeyExtent,Text> entry : metadata.entrySet()) {
       list.add(new TabletLocation(entry.getKey(), entry.getValue().toString()));

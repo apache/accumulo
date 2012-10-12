@@ -126,6 +126,25 @@ public abstract class TabletLocator {
     return tl;
   }
   
+  public static class TabletLocations {
+    
+    private final List<TabletLocation> locations;
+    private final List<KeyExtent> locationless;
+    
+    public TabletLocations(List<TabletLocation> locations, List<KeyExtent> locationless) {
+      this.locations = locations;
+      this.locationless = locationless;
+    }
+    
+    public List<TabletLocation> getLocations() {
+      return locations;
+    }
+    
+    public List<KeyExtent> getLocationless() {
+      return locationless;
+    }
+  }
+
   public static class TabletLocation implements Comparable<TabletLocation> {
     private static WeakHashMap<String,WeakReference<String>> tabletLocs = new WeakHashMap<String,WeakReference<String>>();
     

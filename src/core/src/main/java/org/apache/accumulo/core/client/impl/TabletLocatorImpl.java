@@ -92,7 +92,10 @@ public class TabletLocatorImpl extends TabletLocator {
   private Lock wLock = rwLock.writeLock();
   
   public static interface TabletLocationObtainer {
-    List<TabletLocation> lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent) throws AccumuloSecurityException, AccumuloException;
+    /**
+     * @return null when unable to read information successfully
+     */
+    TabletLocations lookupTablet(TabletLocation src, Text row, Text stopRow, TabletLocator parent) throws AccumuloSecurityException, AccumuloException;
     
     List<TabletLocation> lookupTablets(String tserver, Map<KeyExtent,List<Range>> map, TabletLocator parent) throws AccumuloSecurityException,
         AccumuloException;
@@ -390,23 +393,31 @@ public class TabletLocatorImpl extends TabletLocator {
     TabletLocation ptl = parent.locateTablet(metadataRow, false, retry);
     
     if (ptl != null) {
-      List<TabletLocation> locations = locationObtainer.lookupTablet(ptl, metadataRow, lastTabletRow, parent);
-      if (locations.size() == 0 && !ptl.tablet_extent.equals(Constants.ROOT_TABLET_EXTENT)) {
-        // try the next tablet
+      TabletLocations locations = locationObtainer.lookupTablet(ptl, metadataRow, lastTabletRow, parent);
+      while (locations != null && locations.getLocations().isEmpty() && locations.getLocationless().isEmpty()
+          && !ptl.tablet_extent.equals(Constants.ROOT_TABLET_EXTENT)) {
+        // try the next tablet, the current tablet does not have any tablets that overlap the row
         Text er = ptl.tablet_extent.getEndRow();
         if (er != null && er.compareTo(lastTabletRow) < 0) {
           // System.out.println("er "+er+"  ltr "+lastTabletRow);
           ptl = parent.locateTablet(er, true, retry);
           if (ptl != null)
             locations = locationObtainer.lookupTablet(ptl, metadataRow, lastTabletRow, parent);
+          else
+            break;
+        } else {
+          break;
         }
       }
       
+      if (locations == null)
+        return;
+
       // cannot assume the list contains contiguous key extents... so it is probably
       // best to deal with each extent individually
       
       Text lastEndRow = null;
-      for (TabletLocation tabletLocation : locations) {
+      for (TabletLocation tabletLocation : locations.getLocations()) {
         
         KeyExtent ke = tabletLocation.tablet_extent;
         TabletLocation locToCache;
