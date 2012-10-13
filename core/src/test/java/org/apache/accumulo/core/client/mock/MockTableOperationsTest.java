@@ -20,25 +20,36 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
@@ -50,6 +61,69 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class MockTableOperationsTest {
+
+    @Test
+    public void testCreateUseVersions() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
+        Instance instance = new MockInstance("topstest");
+        Connector conn = instance.getConnector("user", "pass");
+        String t = "tableName1";
+        
+        {
+            conn.tableOperations().create(t, false, TimeType.LOGICAL);
+            
+            writeVersionable(conn, t, 3);
+            assertVersionable(conn, t, 3);
+            
+            IteratorSetting settings = new IteratorSetting(20,VersioningIterator.class);
+            conn.tableOperations().attachIterator(t, settings);
+            
+            assertVersionable(conn, t, 1);
+            
+            conn.tableOperations().delete(t);
+        }
+        
+        {
+            conn.tableOperations().create(t, true, TimeType.MILLIS);
+            
+            try {
+                IteratorSetting settings = new IteratorSetting(20,VersioningIterator.class);
+                conn.tableOperations().attachIterator(t, settings);
+                Assert.fail();
+            }
+            catch (IllegalArgumentException ex) {}
+            
+            writeVersionable(conn, t, 3);
+            assertVersionable(conn, t, 1);
+            
+            conn.tableOperations().delete(t);
+        }
+    }
+    
+    protected void writeVersionable(Connector c, String tableName, int size) throws TableNotFoundException, MutationsRejectedException {
+        for (int i=0; i < size; i++) {
+            BatchWriter w = c.createBatchWriter(tableName, 100, 100, 1);
+            Mutation m = new Mutation("row1");
+            m.put("cf", "cq", String.valueOf(i));
+            w.addMutation(m);
+            w.close();
+        }
+    }
+    
+    protected void assertVersionable(Connector c, String tableName, int size) throws TableNotFoundException {
+        BatchScanner s = c.createBatchScanner(tableName, Constants.NO_AUTHS, 1);
+        s.setRanges(Collections.singleton(Range.exact("row1", "cf", "cq")));
+        int count = 0;
+        for (Map.Entry<Key, Value> e: s) {
+            Assert.assertEquals("row1", e.getKey().getRow().toString());
+            Assert.assertEquals("cf", e.getKey().getColumnFamily().toString());
+            Assert.assertEquals("cq", e.getKey().getColumnQualifier().toString());
+            count++;
+            
+        }
+        Assert.assertEquals(size, count);
+        s.close();
+    }
+    
   @Test
   public void testTableNotFound() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
     Instance instance = new MockInstance("topstest");
