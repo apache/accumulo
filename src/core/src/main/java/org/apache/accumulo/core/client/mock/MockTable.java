@@ -86,9 +86,9 @@ public class MockTable {
   Map<String,EnumSet<TablePermission>> userPermissions = new HashMap<String,EnumSet<TablePermission>>();
   private TimeType timeType;
   
-  MockTable(boolean useVersions, TimeType timeType) {
+  MockTable(boolean limitVersion, TimeType timeType) {
     this.timeType = timeType;
-    settings = IteratorUtil.generateInitialTableProperties();
+    settings = IteratorUtil.generateInitialTableProperties(limitVersion);
     for (Entry<String,String> entry : AccumuloConfiguration.getDefaultConfiguration()) {
       String key = entry.getKey();
       if (key.startsWith(Property.TABLE_PREFIX.getKey()))

@@ -141,7 +141,7 @@ public class CreateTableCommand extends Command {
     // context
     
     if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
-      for (String key : IteratorUtil.generateInitialTableProperties().keySet())
+      for (String key : IteratorUtil.generateInitialTableProperties(true).keySet())
         shellState.getConnector().tableOperations().removeProperty(tableName, key);
     }
     
