@@ -2327,8 +2327,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       if (t == null) {
         // Tablet has probably been recently unloaded: repeated master
         // unload request is crossing the successful unloaded message
-        log.info("told to unload tablet that was not being served " + extent);
-        enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_FAILURE_NOT_SERVING, extent));
+        if (!recentlyUnloadedCache.contains(extent)) {
+          log.info("told to unload tablet that was not being served " + extent);
+          enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_FAILURE_NOT_SERVING, extent));
+        }
         return;
       }
       
@@ -2348,6 +2350,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       
       // stop serving tablet - client will get not serving tablet
       // exceptions
+      recentlyUnloadedCache.add(extent);
       onlineTablets.remove(extent);
       
       try {
@@ -2567,6 +2570,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private SortedMap<KeyExtent,Tablet> onlineTablets = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,Tablet>());
   private SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
   private SortedSet<KeyExtent> openingTablets = Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
+  private Set<KeyExtent> recentlyUnloadedCache = Collections.synchronizedSet(new SimpleLRUCache<KeyExtent>(10));
   
   private Thread majorCompactorThread;
   
