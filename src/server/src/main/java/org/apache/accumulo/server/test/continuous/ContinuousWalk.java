@@ -16,8 +16,13 @@
  */
 package org.apache.accumulo.server.test.continuous;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.zip.CRC32;
@@ -37,6 +42,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.Accumulo;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
@@ -47,6 +55,7 @@ import org.apache.log4j.PatternLayout;
 public class ContinuousWalk {
   
   private static String debugLog = null;
+  private static String authsFile = null;
   
   static class BadChecksumException extends RuntimeException {
     
@@ -64,6 +73,8 @@ public class ContinuousWalk {
     for (int i = 0; i < args.length; i++) {
       if (args[i].equals("--debug")) {
         debugLog = args[++i];
+      } else if (args[i].equals("--auths")) {
+        authsFile = args[++i];
       } else {
         al.add(args[i]);
       }
@@ -72,13 +83,41 @@ public class ContinuousWalk {
     return al.toArray(new String[al.size()]);
   }
   
+  static class RandomAuths {
+    private List<Authorizations> auths;
+    
+    RandomAuths(String file) throws IOException {
+      if (file == null) {
+        auths = Collections.singletonList(Constants.NO_AUTHS);
+        return;
+      }
+      
+      auths = new ArrayList<Authorizations>();
+      
+      FileSystem fs = FileSystem.get(new Configuration());
+      BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(file))));
+      
+      String line;
+      
+      while ((line = in.readLine()) != null) {
+        auths.add(new Authorizations(line.split(",")));
+      }
+      
+      in.close();
+    }
+    
+    Authorizations getAuths(Random r) {
+      return auths.get(r.nextInt(auths.size()));
+    }
+  }
+
   public static void main(String[] args) throws Exception {
     
     args = processOptions(args);
     
     if (args.length != 8) {
       throw new IllegalArgumentException("usage : " + ContinuousWalk.class.getName()
-          + " [--debug <debug log>] <instance name> <zookeepers> <user> <pass> <table> <min> <max> <sleep time>");
+          + " [--debug <debug log>] [--auths <file>] <instance name> <zookeepers> <user> <pass> <table> <min> <max> <sleep time>");
     }
     
     if (debugLog != null) {
@@ -108,13 +147,14 @@ public class ContinuousWalk {
     Tracer.getInstance().addReceiver(new ZooSpanClient(zooKeepers, path, localhost, "cwalk", 1000));
     Accumulo.enableTracing(localhost, "ContinuousWalk");
     Connector conn = instance.getConnector(user, password.getBytes());
-    Scanner scanner = conn.createScanner(table, new Authorizations());
     
     Random r = new Random();
+    RandomAuths randomAuths = new RandomAuths(authsFile);
     
     ArrayList<Value> values = new ArrayList<Value>();
     
     while (true) {
+      Scanner scanner = conn.createScanner(table, randomAuths.getAuths(r));
       String row = findAStartRow(min, max, scanner, r);
       
       while (row != null) {
@@ -228,6 +268,7 @@ public class ContinuousWalk {
     cksum.update(key.getRowData().toArray());
     cksum.update(key.getColumnFamilyData().toArray());
     cksum.update(key.getColumnQualifierData().toArray());
+    cksum.update(key.getColumnVisibilityData().toArray());
     cksum.update(value.get(), 0, ckOff);
     
     if (cksum.getValue() != storedCksum) {

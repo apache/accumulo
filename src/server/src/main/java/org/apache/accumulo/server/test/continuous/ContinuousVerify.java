@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
@@ -135,6 +136,20 @@ public class ContinuousVerify extends Configured implements Tool {
   
   @Override
   public int run(String[] args) throws Exception {
+    
+    String auths = "";
+    ArrayList<String> argsList = new ArrayList<String>();
+    
+    for (int i = 0; i < args.length; i++) {
+      if (args[i].equals("--auths")) {
+        auths = args[++i];
+      } else {
+        argsList.add(args[i]);
+      }
+    }
+    
+    args = argsList.toArray(new String[0]);
+
     if (args.length != 9) {
       throw new IllegalArgumentException("Usage : " + ContinuousVerify.class.getName()
           + " <instance name> <zookeepers> <user> <pass> <table> <output dir> <max mappers> <num reducers> <scan offline>");
@@ -165,9 +180,16 @@ public class ContinuousVerify extends Configured implements Tool {
     }
 
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), user, pass.getBytes(), clone, new Authorizations());
+    Authorizations authorizations;
+    if (auths == null || auths.trim().equals(""))
+      authorizations = Constants.NO_AUTHS;
+    else
+      authorizations = new Authorizations(auths.split(","));
+
+    AccumuloInputFormat.setInputInfo(job.getConfiguration(), user, pass.getBytes(), clone, authorizations);
     AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), instance, zookeepers);
     AccumuloInputFormat.setScanOffline(job.getConfiguration(), scanOffline);
+
     // set up ranges
     try {
       Set<Range> ranges = new ZooKeeperInstance(instance, zookeepers).getConnector(user, pass.getBytes()).tableOperations()

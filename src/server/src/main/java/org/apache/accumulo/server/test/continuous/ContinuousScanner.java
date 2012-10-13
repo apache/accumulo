@@ -29,7 +29,9 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.server.test.continuous.ContinuousWalk.RandomAuths;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
@@ -38,6 +40,7 @@ import org.apache.log4j.PatternLayout;
 
 public class ContinuousScanner {
   private static String debugLog = null;
+  private static String authsFile = null;
   
   private static String[] processOptions(String[] args) {
     ArrayList<String> al = new ArrayList<String>();
@@ -45,6 +48,8 @@ public class ContinuousScanner {
     for (int i = 0; i < args.length; i++) {
       if (args[i].equals("--debug")) {
         debugLog = args[++i];
+      } else if (args[i].equals("--auths")) {
+        authsFile = args[++i];
       } else {
         al.add(args[i]);
       }
@@ -59,7 +64,7 @@ public class ContinuousScanner {
     
     if (args.length != 9) {
       throw new IllegalArgumentException("usage : " + ContinuousScanner.class.getName()
-          + " [--debug <debug log>] <instance name> <zookeepers> <user> <pass> <table> <min> <max> <sleep time> <num to scan>");
+          + " [--debug <debug log>] [--auths <file>] <instance name> <zookeepers> <user> <pass> <table> <min> <max> <sleep time> <num to scan>");
     }
     
     if (debugLog != null) {
@@ -69,6 +74,8 @@ public class ContinuousScanner {
       logger.addAppender(new FileAppender(new PatternLayout("%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %m%n"), debugLog, true));
     }
     
+    Random r = new Random();
+
     String instanceName = args[0];
     String zooKeepers = args[1];
     
@@ -85,11 +92,12 @@ public class ContinuousScanner {
     
     int numToScan = Integer.parseInt(args[8]);
     
+    RandomAuths randomAuths = new RandomAuths(authsFile);
+
     Instance instance = new ZooKeeperInstance(instanceName, zooKeepers);
     Connector conn = instance.getConnector(user, password.getBytes());
-    Scanner scanner = conn.createScanner(table, Constants.NO_AUTHS);
-    
-    Random r = new Random();
+    Authorizations auths = randomAuths.getAuths(r);
+    Scanner scanner = conn.createScanner(table, auths);
     
     double delta = Math.min(.05, .05 / (numToScan / 1000.0));
     // System.out.println("Delta "+delta);

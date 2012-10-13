@@ -28,6 +28,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -64,6 +65,8 @@ public class ContinuousMoru extends Configured implements Tool {
     private byte[] iiId;
     private long count;
     
+    private static final ColumnVisibility EMPTY_VIS = new ColumnVisibility();
+
     public void setup(Context context) throws IOException, InterruptedException {
       int max_cf = context.getConfiguration().getInt(MAX_CF, -1);
       int max_cq = context.getConfiguration().getInt(MAX_CQ, -1);
@@ -92,7 +95,8 @@ public class ContinuousMoru extends Configured implements Tool {
         int offset = ContinuousWalk.getPrevRowOffset(val);
         if (offset > 0) {
           long rowLong = Long.parseLong(new String(val, offset, 16), 16);
-          Mutation m = ContinuousIngest.genMutation(rowLong, random.nextInt(max_cf), random.nextInt(max_cq), iiId, count++, key.getRowData().toArray(), random,
+          Mutation m = ContinuousIngest.genMutation(rowLong, random.nextInt(max_cf), random.nextInt(max_cq), EMPTY_VIS, iiId, count++, key.getRowData()
+              .toArray(), random,
               true);
           context.write(null, m);
         }
