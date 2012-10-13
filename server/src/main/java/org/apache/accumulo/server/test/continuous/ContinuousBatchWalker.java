@@ -32,7 +32,9 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.server.test.continuous.ContinuousWalk.RandomAuths;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
@@ -41,6 +43,7 @@ import org.apache.log4j.PatternLayout;
 
 public class ContinuousBatchWalker {
   private static String debugLog = null;
+  private static String authsFile = null;
   
   private static String[] processOptions(String[] args) {
     ArrayList<String> al = new ArrayList<String>();
@@ -48,6 +51,8 @@ public class ContinuousBatchWalker {
     for (int i = 0; i < args.length; i++) {
       if (args[i].equals("--debug")) {
         debugLog = args[++i];
+      } else if (args[i].equals("--auths")) {
+        authsFile = args[++i];
       } else {
         al.add(args[i]);
       }
@@ -62,7 +67,7 @@ public class ContinuousBatchWalker {
     
     if (args.length != 10) {
       throw new IllegalArgumentException("usage : " + ContinuousBatchWalker.class.getName()
-          + " [--debug <debug log>] <instance name> <zookeepers> <user> <pass> <table> <min> <max> <sleep time> <batch size> <query threads>");
+          + " [--debug <debug log>] [--auths <file>] <instance name> <zookeepers> <user> <pass> <table> <min> <max> <sleep time> <batch size> <query threads>");
     }
     
     if (debugLog != null) {
@@ -88,12 +93,14 @@ public class ContinuousBatchWalker {
     int batchSize = Integer.parseInt(args[8]);
     int numQueryThreads = Integer.parseInt(args[9]);
     
-    Connector conn = new ZooKeeperInstance(instanceName, zooKeepers).getConnector(user, password.getBytes());
-    Scanner scanner = conn.createScanner(table, Constants.NO_AUTHS);
-    BatchScanner bs = conn.createBatchScanner(table, Constants.NO_AUTHS, numQueryThreads);
-    
     Random r = new Random();
-    
+    RandomAuths randomAuths = new RandomAuths(authsFile);
+    Authorizations auths = randomAuths.getAuths(r);
+
+    Connector conn = new ZooKeeperInstance(instanceName, zooKeepers).getConnector(user, password.getBytes());
+    Scanner scanner = conn.createScanner(table, auths);
+    BatchScanner bs = conn.createBatchScanner(table, auths, numQueryThreads);
+
     while (true) {
       Set<Text> batch = getBatch(scanner, min, max, batchSize, r);
       

@@ -47,6 +47,11 @@ MAX_CF=32767
 #the maximum number of random column qualifiers to generate
 MAX_CQ=32767
 
+#an optional file in hdfs containing visibilites.  If left blank, then column
+#visibility will not be set.  If specified then a random line will be selected
+#from the file and used for column visibility for each linked list.
+VISIBILITIES=''
+
 #the max memory (in bytes) each ingester will use to buffer writes
 MAX_MEM=100000000
 
@@ -58,6 +63,11 @@ NUM_THREADS=4
 
 #the amount of time (in millis) to sleep between each query
 SLEEP_TIME=10
+
+#an optional file in hdfs containing line of comma seperated auths.  If
+#specified, walkers will randomly select lines from this file and use that to
+#set auths.
+AUTHS=''
 
 #time amount of time (in minutes) the agitator should sleep before killing
 KILL_SLEEP_TIME=20
@@ -81,6 +91,8 @@ VERFIY_OUT=/tmp/continuous_verify
 VERIFY_MAX_MAPS=64
 VERIFY_REDUCERS=64
 SCAN_OFFLINE=false
+#comma separated list of auths to use for verify
+VERIFY_AUTHS=''
 
 #settings related to the batch walker
 BATCH_WALKER_SLEEP=180000

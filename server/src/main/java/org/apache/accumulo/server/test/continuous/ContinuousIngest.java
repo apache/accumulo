@@ -16,8 +16,12 @@
  */
 package org.apache.accumulo.server.test.continuous;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -38,8 +42,12 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.test.FastFormat;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.FileAppender;
 import org.apache.log4j.Level;
@@ -49,15 +57,44 @@ import org.apache.log4j.PatternLayout;
 
 public class ContinuousIngest {
   
+  private static String visFile = null;
   private static String debugLog = null;
   private static final byte[] EMPTY_BYTES = new byte[0];
   
+  private static List<ColumnVisibility> visibilities;
+  
+  private static void initVisibilities() throws Exception {
+    if (visFile == null) {
+      visibilities = Collections.singletonList(new ColumnVisibility());
+      return;
+    }
+    
+    visibilities = new ArrayList<ColumnVisibility>();
+    
+    FileSystem fs = FileSystem.get(new Configuration());
+    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(visFile))));
+    
+    String line;
+    
+    while ((line = in.readLine()) != null) {
+      visibilities.add(new ColumnVisibility(line));
+    }
+    
+    in.close();
+  }
+
+  private static ColumnVisibility getVisibility(Random rand) {
+    return visibilities.get(rand.nextInt(visibilities.size()));
+  }
+
   private static String[] processOptions(String[] args) {
     ArrayList<String> al = new ArrayList<String>();
     
     for (int i = 0; i < args.length; i++) {
       if (args[i].equals("--debug")) {
         debugLog = args[++i];
+      } else if (args[i].equals("--visibilities")) {
+        visFile = args[++i];
       } else {
         al.add(args[i]);
       }
@@ -74,7 +111,7 @@ public class ContinuousIngest {
       throw new IllegalArgumentException(
           "usage : "
               + ContinuousIngest.class.getName()
-              + " [--debug <debug log>] <instance name> <zookeepers> <user> <pass> <table> <num> <min> <max> <max colf> <max colq> <max mem> <max latency> <max threads> <enable checksum>");
+              + " [--debug <debug log>] [--visibilities <file>] <instance name> <zookeepers> <user> <pass> <table> <num> <min> <max> <max colf> <max colq> <max mem> <max latency> <max threads> <enable checksum>");
     }
     
     if (debugLog != null) {
@@ -84,6 +121,8 @@ public class ContinuousIngest {
       logger.addAppender(new FileAppender(new PatternLayout("%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %m%n"), debugLog, true));
     }
     
+    initVisibilities();
+
     String instanceName = args[0];
     String zooKeepers = args[1];
     
@@ -145,6 +184,8 @@ public class ContinuousIngest {
     
     out: while (true) {
       // generate first set of nodes
+      ColumnVisibility cv = getVisibility(r);
+
       for (int index = 0; index < flushInterval; index++) {
         long rowLong = genLong(min, max, r);
         prevRows[index] = rowLong;
@@ -156,7 +197,7 @@ public class ContinuousIngest {
         firstColFams[index] = cf;
         firstColQuals[index] = cq;
         
-        Mutation m = genMutation(rowLong, cf, cq, ingestInstanceId, count, null, r, checksum);
+        Mutation m = genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null, r, checksum);
         count++;
         bw.addMutation(m);
       }
@@ -171,7 +212,7 @@ public class ContinuousIngest {
           long rowLong = genLong(min, max, r);
           byte[] prevRow = genRow(prevRows[index]);
           prevRows[index] = rowLong;
-          Mutation m = genMutation(rowLong, r.nextInt(maxColF), r.nextInt(maxColQ), ingestInstanceId, count, prevRow, r, checksum);
+          Mutation m = genMutation(rowLong, r.nextInt(maxColF), r.nextInt(maxColQ), cv, ingestInstanceId, count, prevRow, r, checksum);
           count++;
           bw.addMutation(m);
         }
@@ -184,7 +225,8 @@ public class ContinuousIngest {
       // create one big linked list, this makes all of the first inserts
       // point to something
       for (int index = 0; index < flushInterval - 1; index++) {
-        Mutation m = genMutation(firstRows[index], firstColFams[index], firstColQuals[index], ingestInstanceId, count, genRow(prevRows[index + 1]), r, checksum);
+        Mutation m = genMutation(firstRows[index], firstColFams[index], firstColQuals[index], cv, ingestInstanceId, count, genRow(prevRows[index + 1]), r,
+            checksum);
         count++;
         bw.addMutation(m);
       }
@@ -195,7 +237,7 @@ public class ContinuousIngest {
     
     bw.close();
   }
-  
+
   private static long flush(BatchWriter bw, long count, final int flushInterval, long lastFlushTime) throws MutationsRejectedException {
     long t1 = System.currentTimeMillis();
     bw.flush();
@@ -205,7 +247,8 @@ public class ContinuousIngest {
     return lastFlushTime;
   }
   
-  public static Mutation genMutation(long rowLong, int cfInt, int cqInt, byte[] ingestInstanceId, long count, byte[] prevRow, Random r, boolean checksum) {
+  public static Mutation genMutation(long rowLong, int cfInt, int cqInt, ColumnVisibility cv, byte[] ingestInstanceId, long count, byte[] prevRow, Random r,
+      boolean checksum) {
     // Adler32 is supposed to be faster, but according to wikipedia is not good for small data.... so used CRC32 instead
     CRC32 cksum = null;
     
@@ -219,11 +262,12 @@ public class ContinuousIngest {
       cksum.update(rowString);
       cksum.update(cfString);
       cksum.update(cqString);
+      cksum.update(cv.getExpression());
     }
     
     Mutation m = new Mutation(new Text(rowString));
     
-    m.put(new Text(cfString), new Text(cqString), createValue(ingestInstanceId, count, prevRow, cksum));
+    m.put(new Text(cfString), new Text(cqString), cv, createValue(ingestInstanceId, count, prevRow, cksum));
     return m;
   }
   
