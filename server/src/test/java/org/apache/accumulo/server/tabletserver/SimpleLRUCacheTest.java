@@ -21,7 +21,7 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 public class SimpleLRUCacheTest {
-  
+
   @Test
   public void test() {
     SimpleLRUCache<Integer> test = new SimpleLRUCache<Integer>(4);
@@ -34,5 +34,11 @@ public class SimpleLRUCacheTest {
     test.add(3);
     test.add(4);
     assertFalse(test.contains(0));
+    test.add(2);
+    test.add(2);
+    test.add(2);
+    test.add(2);
+    assertTrue(test.contains(3));
+    assertTrue(test.contains(4));
   }
 }
