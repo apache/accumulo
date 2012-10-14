@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.server.tabletserver;
 
-import static org.junit.Assert.*;
+import static junit.framework.Assert.*;
 
 import org.junit.Test;
 
