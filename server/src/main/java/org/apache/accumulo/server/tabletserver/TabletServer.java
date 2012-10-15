@@ -198,6 +198,7 @@ import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.Platform;
+import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -2327,7 +2328,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       if (t == null) {
         // Tablet has probably been recently unloaded: repeated master
         // unload request is crossing the successful unloaded message
-        if (!recentlyUnloadedCache.contains(extent)) {
+        if (!recentlyUnloadedCache.containsKey(extent)) {
           log.info("told to unload tablet that was not being served " + extent);
           enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_FAILURE_NOT_SERVING, extent));
         }
@@ -2350,7 +2351,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       
       // stop serving tablet - client will get not serving tablet
       // exceptions
-      recentlyUnloadedCache.add(extent);
+      recentlyUnloadedCache.put(extent, System.currentTimeMillis());
       onlineTablets.remove(extent);
       
       try {
@@ -2570,7 +2571,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private SortedMap<KeyExtent,Tablet> onlineTablets = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,Tablet>());
   private SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
   private SortedSet<KeyExtent> openingTablets = Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
-  private Set<KeyExtent> recentlyUnloadedCache = Collections.synchronizedSet(new SimpleLRUCache<KeyExtent>(10));
+  @SuppressWarnings("unchecked")
+  private Map<KeyExtent,Long> recentlyUnloadedCache = (Map<KeyExtent, Long>)Collections.synchronizedMap(new LRUMap(1000));
   
   private Thread majorCompactorThread;
   
