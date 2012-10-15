@@ -4,6 +4,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.server.master.LiveTServerSet;
@@ -31,7 +32,7 @@ public class FindOfflineTablets {
     String keepers = args[1];
     Instance zooInst = new ZooKeeperInstance(instance, keepers);
     MetaDataTableScanner scanner = new MetaDataTableScanner(zooInst, SecurityConstants.getSystemCredentials(), new Range());
-    LiveTServerSet tservers = new LiveTServerSet(zooInst, new Listener() {
+    LiveTServerSet tservers = new LiveTServerSet(zooInst, DefaultConfiguration.getDefaultConfiguration(), new Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {
         if (!deleted.isEmpty())
