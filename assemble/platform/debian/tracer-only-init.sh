@@ -21,4 +21,4 @@ if ! id -u accumulo_tracer >/dev/null 2>&1; then
 fi
 
 install -m 0755 -o root -g root init.d/accumulo-tracer /etc/init.d/
-update-rc.d accumulo-tracer defaults 
+update-rc.d accumulo-tracer start 21 2 3 4 5 . stop 20 0 1 6 .
