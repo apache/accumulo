@@ -25,12 +25,17 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import junit.framework.Assert;
+
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -53,7 +58,7 @@ public class MockConnectorTest {
   
   @Test
   public void testSunnyDay() throws Exception {
-    Connector c = new MockConnector("root");
+    Connector c = new MockConnector("root", new MockInstance());
     c.tableOperations().create("test");
     BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
@@ -79,7 +84,7 @@ public class MockConnectorTest {
   
   @Test
   public void testChangeAuths() throws Exception {
-    Connector c = new MockConnector("root");
+    Connector c = new MockConnector("root", new MockInstance());
     c.securityOperations().createUser("greg", new byte[] {}, new Authorizations("A", "B", "C"));
     assertTrue(c.securityOperations().getUserAuthorizations("greg").contains("A".getBytes()));
     c.securityOperations().changeUserAuthorizations("greg", new Authorizations("X", "Y", "Z"));
@@ -120,7 +125,7 @@ public class MockConnectorTest {
   
   @Test
   public void testDelete() throws Exception {
-    Connector c = new MockConnector("root");
+    Connector c = new MockConnector("root", new MockInstance());
     c.tableOperations().create("test");
     BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
     
@@ -159,7 +164,7 @@ public class MockConnectorTest {
   
   @Test
   public void testDeletewithBatchDeleter() throws Exception {
-    Connector c = new MockConnector("root");
+    Connector c = new MockConnector("root", new MockInstance());
     
     // make sure we are using a clean table
     if (c.tableOperations().exists("test"))
@@ -230,7 +235,7 @@ public class MockConnectorTest {
   @Test
   public void testCMod() throws Exception {
     // test writing to a table that the is being scanned
-    Connector c = new MockConnector("root");
+    Connector c = new MockConnector("root", new MockInstance());
     c.tableOperations().create("test");
     BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
     
@@ -281,7 +286,7 @@ public class MockConnectorTest {
   
   @Test
   public void testMockMultiTableBatchWriter() throws Exception {
-    Connector c = new MockConnector("root");
+    Connector c = new MockConnector("root", new MockInstance());
     c.tableOperations().create("a");
     c.tableOperations().create("b");
     MultiTableBatchWriter bw = c.createMultiTableBatchWriter(new BatchWriterConfig());
@@ -313,7 +318,7 @@ public class MockConnectorTest {
   
   @Test
   public void testUpdate() throws Exception {
-    Connector c = new MockConnector("root");
+    Connector c = new MockConnector("root", new MockInstance());
     c.tableOperations().create("test");
     BatchWriter bw = c.createBatchWriter("test", new BatchWriterConfig());
     
@@ -331,6 +336,15 @@ public class MockConnectorTest {
     
     assertEquals("9", entry.getValue().toString());
 
+  }
+  
+  @Test
+  public void testMockConnectorReturnsCorrectInstance() throws AccumuloException, 
+      AccumuloSecurityException{
+    String name = "an-interesting-instance-name";
+    Instance mockInstance = new MockInstance(name);
+    Assert.assertEquals(mockInstance, mockInstance.getConnector("foo", "bar").getInstance());
+    Assert.assertEquals(name, mockInstance.getConnector("foo","bar").getInstance().getInstanceName());
   }
 
 }

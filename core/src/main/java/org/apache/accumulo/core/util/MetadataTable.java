@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -118,7 +119,7 @@ public class MetadataTable {
     }
   }
   
-  public static SortedMap<KeyExtent,Text> getMetadataLocationEntries(SortedMap<Key,Value> entries) {
+  public static Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>> getMetadataLocationEntries(SortedMap<Key,Value> entries) {
     Key key;
     Value val;
     Text location = null;
@@ -126,6 +127,7 @@ public class MetadataTable {
     KeyExtent ke;
     
     SortedMap<KeyExtent,Text> results = new TreeMap<KeyExtent,Text>();
+    ArrayList<KeyExtent> locationless = new ArrayList<KeyExtent>();
     
     Text lastRowFromKey = new Text();
     
@@ -152,15 +154,19 @@ public class MetadataTable {
       else if (Constants.METADATA_PREV_ROW_COLUMN.equals(colf, colq))
         prevRow = new Value(val);
       
-      if (location != null && prevRow != null) {
+      if (prevRow != null) {
         ke = new KeyExtent(key.getRow(), prevRow);
-        results.put(ke, location);
-        
+        if (location != null)
+          results.put(ke, location);
+        else
+          locationless.add(ke);
+
         location = null;
         prevRow = null;
       }
     }
-    return results;
+    
+    return new Pair<SortedMap<KeyExtent,Text>,List<KeyExtent>>(results, locationless);
   }
   
   public static SortedMap<Text,SortedMap<ColumnFQ,Value>> getTabletEntries(Instance instance, KeyExtent ke, List<ColumnFQ> columns, AuthInfo credentials) {

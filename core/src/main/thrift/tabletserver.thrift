@@ -159,9 +159,3 @@ service TabletClientService extends client.ClientService {
 }
 
 typedef i32 TabletID
-
-struct TabletMutations {
-	1:TabletID tabletID,
-	2:i64 seq,
-	3:list<data.TMutation> mutations
-}

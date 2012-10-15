@@ -142,6 +142,7 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.logger.LogFileKey;
 import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.accumulo.server.master.state.Assignment;
@@ -195,6 +196,7 @@ import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.Platform;
+import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -1435,7 +1437,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         if (us.currentTablet != null) {
           List<Mutation> mutations = us.queuedMutations.get(us.currentTablet);
           for (TMutation tmutation : tmutations) {
-            Mutation mutation = new Mutation(tmutation);
+            Mutation mutation = new ServerMutation(tmutation);
             mutations.add(mutation);
             us.queuedMutationSize += mutation.numBytes();
           }
@@ -1646,7 +1648,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       long opid = writeTracker.startWrite(TabletType.type(keyExtent));
       
       try {
-        Mutation mutation = new Mutation(tmutation);
+        Mutation mutation = new ServerMutation(tmutation);
         List<Mutation> mutations = Collections.singletonList(mutation);
         
         Span prep = Trace.start("prep");
@@ -2296,8 +2298,10 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       if (t == null) {
         // Tablet has probably been recently unloaded: repeated master
         // unload request is crossing the successful unloaded message
-        log.info("told to unload tablet that was not being served " + extent);
-        enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_FAILURE_NOT_SERVING, extent));
+        if (!recentlyUnloadedCache.containsKey(extent)) {
+          log.info("told to unload tablet that was not being served " + extent);
+          enqueueMasterMessage(new TabletStatusMessage(TabletLoadState.UNLOAD_FAILURE_NOT_SERVING, extent));
+        }
         return;
       }
       
@@ -2317,6 +2321,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       
       // stop serving tablet - client will get not serving tablet
       // exceptions
+      recentlyUnloadedCache.put(extent, System.currentTimeMillis());
       onlineTablets.remove(extent);
       
       try {
@@ -2483,6 +2488,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
               openingTablets.remove(extentToOpen);
               onlineTablets.put(extentToOpen, tablet);
               openingTablets.notifyAll();
+              recentlyUnloadedCache.remove(tablet);
             }
           }
           tablet = null; // release this reference
@@ -2536,6 +2542,8 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private SortedMap<KeyExtent,Tablet> onlineTablets = Collections.synchronizedSortedMap(new TreeMap<KeyExtent,Tablet>());
   private SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
   private SortedSet<KeyExtent> openingTablets = Collections.synchronizedSortedSet(new TreeSet<KeyExtent>());
+  @SuppressWarnings("unchecked")
+  private Map<KeyExtent,Long> recentlyUnloadedCache = (Map<KeyExtent, Long>)Collections.synchronizedMap(new LRUMap(1000));
   
   private Thread majorCompactorThread;
   

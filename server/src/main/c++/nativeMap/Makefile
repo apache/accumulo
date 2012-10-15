@@ -18,13 +18,33 @@ HDRS=$(wildcard *.h) org_apache_accumulo_server_tabletserver_NativeMap.h
 CXX=g++
 
 ifeq ($(shell uname),Linux)
-LIBS:= libNativeMap-Linux-amd64-64.so libNativeMap-Linux-i386-32.so
-CXXFLAGS=-g -fPIC -shared -O2 -fno-omit-frame-pointer -fno-strict-aliasing -Wall  -I$(JAVA_HOME)/include/linux -I$(JAVA_HOME)/include
+  LIBS_32 := libNativeMap-Linux-i386-32.so
+  LIBS_64 := libNativeMap-Linux-amd64-64.so
+  
+  ifneq ($(DARCH),)
+    ifeq ($(DARCH),64)
+      LIBS := $(LIBS_64)
+    endif
+    ifeq ($(DARCH),32)
+      LIBS := $(LIBS_32)
+    endif
+    ifeq ($(DARCH),both)
+      LIBS := $(LIBS_64)$(LIBS_32)
+    endif
+    ifeq ($(LIBS),)
+      LIBS := $(LIBS_64)$(LIBS_32)
+    endif
+  else
+    DARCH := $(shell getconf LONG_BIT)
+    LIBS := $(LIBS_$(DARCH))
+  endif
+  
+  CXXFLAGS=-g -fPIC -shared -O2 -fno-omit-frame-pointer -fno-strict-aliasing -Wall -I$(JAVA_HOME)/include/linux -I$(JAVA_HOME)/include
 endif
 
 ifeq ($(shell uname),Darwin)
-LIBS:= libNativeMap-Mac_OS_X-x86_64-64.jnilib
-CXXFLAGS=-m64 -dynamiclib -O3 -I/System/Library/Frameworks/JavaVM.framework/Headers
+  LIBS:= libNativeMap-Mac_OS_X-x86_64-64.jnilib
+  CXXFLAGS=-m64 -dynamiclib -O3 -I/System/Library/Frameworks/JavaVM.framework/Headers
 endif
 
 INSTALL_DIR=../../../../../lib/native/map

@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.server.test.continuous.ContinuousIngest;
 
 public class Ingest extends ScaleTest {
@@ -91,6 +92,8 @@ public class Ingest extends ScaleTest {
     long count = 0;
     long totalBytes = 0;
     
+    ColumnVisibility cv = new ColumnVisibility();
+
     // start timer
     startTimer();
     
@@ -98,7 +101,7 @@ public class Ingest extends ScaleTest {
     while (count < numIngestEntries) {
       count++;
       long rowId = ContinuousIngest.genLong(minRow, maxRow, r);
-      Mutation m = ContinuousIngest.genMutation(rowId, r.nextInt(maxColF), r.nextInt(maxColQ), ingestInstanceId.getBytes(), count, null, r, false);
+      Mutation m = ContinuousIngest.genMutation(rowId, r.nextInt(maxColF), r.nextInt(maxColQ), cv, ingestInstanceId.getBytes(), count, null, r, false);
       totalBytes += m.numBytes();
       try {
         bw.addMutation(m);

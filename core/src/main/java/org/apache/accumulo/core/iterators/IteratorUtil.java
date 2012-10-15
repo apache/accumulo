@@ -63,13 +63,22 @@ public class IteratorUtil {
     
   }
   
-  public static Map<String,String> generateInitialTableProperties() {
+  /**
+   * Generate the initial (default) properties for a table
+   * @param limitVersion
+   *   include a VersioningIterator at priority 20 that retains a single version of a given K/V pair.
+   * @return A map of Table properties
+   */
+  public static Map<String,String> generateInitialTableProperties(boolean limitVersion) {
     TreeMap<String,String> props = new TreeMap<String,String>();
     
-    for (IteratorScope iterScope : IteratorScope.values()) {
-      props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers", "20," + VersioningIterator.class.getName());
-      props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers.opt.maxVersions", "1");
+    if (limitVersion) {
+        for (IteratorScope iterScope : IteratorScope.values()) {
+          props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers", "20," + VersioningIterator.class.getName());
+          props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers.opt.maxVersions", "1");
+        }
     }
+    
     return props;
   }
   

@@ -30,17 +30,27 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.fs.FileSystem;
 
 public class MockAccumulo {
   final Map<String,MockTable> tables = new HashMap<String,MockTable>();
   final Map<String,String> systemProperties = new HashMap<String,String>();
   Map<String,MockUser> users = new HashMap<String,MockUser>();
+  final FileSystem fs;
+  
+  MockAccumulo(FileSystem fs) {
+    this.fs = fs;
+  }
   
   {
     MockUser root = new MockUser("root", new byte[] {}, Constants.NO_AUTHS);
     root.permissions.add(SystemPermission.SYSTEM);
     users.put(root.name, root);
     createTable("root", Constants.METADATA_TABLE_NAME, true, TimeType.LOGICAL);
+  }
+  
+  public FileSystem getFileSystem() {
+    return fs;
   }
   
   void setProperty(String key, String value) {

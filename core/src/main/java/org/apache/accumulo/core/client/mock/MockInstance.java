@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.client.mock;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
@@ -30,7 +31,9 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
 public class MockInstance implements Instance {
@@ -41,16 +44,28 @@ public class MockInstance implements Instance {
   String instanceName;
   
   public MockInstance() {
-    acu = new MockAccumulo();
+    acu = new MockAccumulo(getDefaultFileSystem());
     instanceName = "mock-instance";
   }
   
+  static FileSystem getDefaultFileSystem() {
+    try {
+      return FileSystem.get(CachedConfiguration.getInstance());
+    } catch (IOException ex) {
+      throw new RuntimeException(ex);
+    }
+  }
+  
   public MockInstance(String instanceName) {
+    this(instanceName, getDefaultFileSystem());
+  }
+  
+  public MockInstance(String instanceName, FileSystem fs) {
     synchronized (instances) {
       if (instances.containsKey(instanceName))
         acu = instances.get(instanceName);
       else
-        instances.put(instanceName, acu = new MockAccumulo());
+        instances.put(instanceName, acu = new MockAccumulo(fs));
     }
     this.instanceName = instanceName;
   }
@@ -87,7 +102,7 @@ public class MockInstance implements Instance {
   
   @Override
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    Connector conn = new MockConnector(user, acu);
+    Connector conn = new MockConnector(user, acu, this);
     conn.securityOperations().createUser(user, pass, new Authorizations());
     return conn;
   }

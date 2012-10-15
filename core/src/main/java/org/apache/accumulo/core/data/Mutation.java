@@ -30,6 +30,7 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.io.WritableUtils;
 
 /**
  * <p>
@@ -55,11 +56,17 @@ public class Mutation implements Writable {
   
   static final int VALUE_SIZE_COPY_CUTOFF = 1 << 15;
   
+  public static enum SERIALIZED_FORMAT {
+     VERSION1,
+     VERSION2
+  };
+  
+  private boolean useOldDeserialize = false;
   private byte[] row;
   private byte[] data;
   private int entries;
   private List<byte[]> values;
-  
+
   // created this little class instead of using ByteArrayOutput stream and DataOutputStream
   // because both are synchronized... lots of small syncs slow things down
   private static class ByteBuffer {
@@ -100,32 +107,41 @@ public class Mutation implements Writable {
         data[offset++] = 0;
     }
     
-    void add(long v) {
-      reserve(8);
-      data[offset++] = (byte) (v >>> 56);
-      data[offset++] = (byte) (v >>> 48);
-      data[offset++] = (byte) (v >>> 40);
-      data[offset++] = (byte) (v >>> 32);
-      data[offset++] = (byte) (v >>> 24);
-      data[offset++] = (byte) (v >>> 16);
-      data[offset++] = (byte) (v >>> 8);
-      data[offset++] = (byte) (v >>> 0);
-    }
-    
-    void add(int i) {
-      reserve(4);
-      data[offset++] = (byte) (i >>> 24);
-      data[offset++] = (byte) (i >>> 16);
-      data[offset++] = (byte) (i >>> 8);
-      data[offset++] = (byte) (i >>> 0);
-    }
-    
     public byte[] toArray() {
       byte ret[] = new byte[offset];
       System.arraycopy(data, 0, ret, 0, offset);
       return ret;
     }
     
+    public void writeVLong(long i) {
+      reserve(9);
+      if (i >= -112 && i <= 127) {
+        data[offset++] = (byte)i;
+        return;
+      }
+        
+      int len = -112;
+      if (i < 0) {
+        i ^= -1L; // take one's complement'
+        len = -120;
+      }
+        
+      long tmp = i;
+      while (tmp != 0) {
+        tmp = tmp >> 8;
+        len--;
+      }
+        
+      data[offset++] = (byte)len;
+        
+      len = (len < -120) ? -(len + 120) : -(len + 112);
+        
+      for (int idx = len; idx != 0; idx--) {
+        int shiftbits = (idx - 1) * 8;
+        long mask = 0xFFL << shiftbits;
+        data[offset++] = (byte)((i & mask) >> shiftbits);
+      }
+    }
   }
   
   private static class SimpleReader {
@@ -135,10 +151,9 @@ public class Mutation implements Writable {
     SimpleReader(byte b[]) {
       this.data = b;
     }
-    
+
     int readInt() {
       return (data[offset++] << 24) + ((data[offset++] & 255) << 16) + ((data[offset++] & 255) << 8) + ((data[offset++] & 255) << 0);
-      
     }
     
     long readLong() {
@@ -155,6 +170,20 @@ public class Mutation implements Writable {
       return (data[offset++] == 1);
     }
     
+    long readVLong() {
+      byte firstByte = data[offset++];
+      int len =  WritableUtils.decodeVIntSize(firstByte);
+      if (len == 1) {
+        return firstByte;
+      }
+      long i = 0;
+      for (int idx = 0; idx < len-1; idx++) {
+        byte b = data[offset++];
+        i = i << 8;
+        i = i | (b & 0xFF);
+      }
+      return (WritableUtils.isNegativeVInt(firstByte) ? (i ^ -1L) : i);
+    }
   }
   
   private ByteBuffer buffer;
@@ -202,12 +231,12 @@ public class Mutation implements Writable {
   }
   
   private void put(byte b[]) {
-    buffer.add(b.length);
+    buffer.writeVLong(b.length);
     buffer.add(b);
   }
   
   private void put(Text t) {
-    buffer.add(t.getLength());
+    buffer.writeVLong(t.getLength());
     buffer.add(t.getBytes(), 0, t.getLength());
   }
   
@@ -216,11 +245,11 @@ public class Mutation implements Writable {
   }
   
   private void put(int i) {
-    buffer.add(i);
+    buffer.writeVLong(i);
   }
   
   private void put(long l) {
-    buffer.add(l);
+    buffer.writeVLong(l);
   }
   
   private void put(Text cf, Text cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
@@ -232,7 +261,8 @@ public class Mutation implements Writable {
     put(cq);
     put(cv);
     put(hasts);
-    put(ts);
+    if (hasts)
+      put(ts);
     put(deleted);
     
     if (val.length < VALUE_SIZE_COPY_CUTOFF) {
@@ -337,8 +367,18 @@ public class Mutation implements Writable {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value);
   }
   
-  private byte[] readBytes(SimpleReader in) {
+  private byte[] oldReadBytes(SimpleReader in) {
     int len = in.readInt();
+    if (len == 0)
+      return EMPTY_BYTES;
+    
+    byte bytes[] = new byte[len];
+    in.readBytes(bytes);
+    return bytes;
+  }
+  
+  private byte[] readBytes(SimpleReader in) {
+    int len = (int)in.readVLong();
     if (len == 0)
       return EMPTY_BYTES;
     
@@ -368,12 +408,21 @@ public class Mutation implements Writable {
     return updates;
   }
   
+  protected ColumnUpdate newColumnUpdate(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
+    return new ColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
+  }
+
   private ColumnUpdate deserializeColumnUpdate(SimpleReader in) {
-    byte[] cf = readBytes(in);
-    byte[] cq = readBytes(in);
-    byte[] cv = readBytes(in);
+    if (useOldDeserialize)
+      return oldDeserializeColumnUpdate(in);
+    return newDeserializeColumnUpdate(in);
+  }
+  
+  private ColumnUpdate oldDeserializeColumnUpdate(SimpleReader in) {
+    byte[] cf = oldReadBytes(in);
+    byte[] cq = oldReadBytes(in);
+    byte[] cv = oldReadBytes(in);
     boolean hasts = in.readBoolean();
-    int tso = in.offset;
     long ts = in.readLong();
     boolean deleted = in.readBoolean();
     
@@ -389,7 +438,32 @@ public class Mutation implements Writable {
       in.readBytes(val);
     }
     
-    return new ColumnUpdate(cf, cq, cv, hasts, ts, deleted, val, data, tso);
+    return newColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
+  }
+  
+  private ColumnUpdate newDeserializeColumnUpdate(SimpleReader in) {
+    byte[] cf = readBytes(in);
+    byte[] cq = readBytes(in);
+    byte[] cv = readBytes(in);
+    boolean hasts = in.readBoolean();
+    long ts = 0;
+    if (hasts)
+      ts = in.readVLong();
+    boolean deleted = in.readBoolean();
+    
+    byte[] val;
+    int valLen = (int)in.readVLong();
+    
+    if (valLen < 0) {
+      val = values.get((-1 * valLen) - 1);
+    } else if (valLen == 0) {
+      val = EMPTY_BYTES;
+    } else {
+      val = new byte[valLen];
+      in.readBytes(val);
+    }
+    
+    return newColumnUpdate(cf, cq, cv, hasts, ts, deleted, val);
   }
   
   private int cachedValLens = -1;
@@ -416,7 +490,7 @@ public class Mutation implements Writable {
   }
   
   public long estimatedMemoryUsed() {
-    return numBytes() + 230;
+    return numBytes() + 238;
   }
   
   /**
@@ -428,6 +502,12 @@ public class Mutation implements Writable {
   
   @Override
   public void readFields(DataInput in) throws IOException {
+    byte first = in.readByte();
+    if ((first & 0x80) != 0x80) {
+      oldReadFields(first, in);
+      return;
+    }
+    
     // Clear out cached column updates and value lengths so
     // that we recalculate them based on the (potentially) new
     // data we are about to read in.
@@ -435,7 +515,43 @@ public class Mutation implements Writable {
     cachedValLens = -1;
     buffer = null;
     
-    int len = in.readInt();
+    int len = WritableUtils.readVInt(in);
+    row = new byte[len];
+    in.readFully(row);
+    len = WritableUtils.readVInt(in);
+    data = new byte[len];
+    in.readFully(data);
+    entries = WritableUtils.readVInt(in);
+    
+    boolean valuesPresent = (first & 0x01) == 0x01;
+    if (!valuesPresent) {
+      values = null;
+    } else {
+      values = new ArrayList<byte[]>();
+      int numValues = WritableUtils.readVInt(in);
+      for (int i = 0; i < numValues; i++) {
+        len = WritableUtils.readVInt(in);
+        byte val[] = new byte[len];
+        in.readFully(val);
+        values.add(val);
+      }
+    }
+  }
+  
+  public void oldReadFields(byte first, DataInput in) throws IOException {
+    // Clear out cached column updates and value lengths so
+    // that we recalculate them based on the (potentially) new
+    // data we are about to read in.
+    useOldDeserialize = true;
+    updates = null;
+    cachedValLens = -1;
+    buffer = null;
+    byte b = (byte)in.readByte();
+    byte c = (byte)in.readByte();
+    byte d = (byte)in.readByte();
+    
+    int len = (((first & 0xff) << 24) | ((b & 0xff) << 16) |
+        ((c & 0xff) << 8) | (d & 0xff));
     row = new byte[len];
     in.readFully(row);
     len = in.readInt();
@@ -458,27 +574,29 @@ public class Mutation implements Writable {
     }
   }
   
+
+  
+  
   @Override
   public void write(DataOutput out) throws IOException {
     serialize();
-    out.writeInt(row.length);
-    out.write(row);
-    out.writeInt(data.length);
-    out.write(data);
-    out.writeInt(entries);
+    byte hasValues = (values == null) ? 0 : (byte)1; 
+    out.write((byte)(0x80 | hasValues));
     
-    if (values == null)
-      out.writeBoolean(false);
-    else {
-      out.writeBoolean(true);
-      out.writeInt(values.size());
+    WritableUtils.writeVInt(out, row.length);
+    out.write(row);
+    WritableUtils.writeVInt(out, data.length);
+    out.write(data);
+    WritableUtils.writeVInt(out, entries);
+    
+    if (hasValues > 0) {
+      WritableUtils.writeVInt(out, values.size());
       for (int i = 0; i < values.size(); i++) {
         byte val[] = values.get(i);
-        out.writeInt(val.length);
+        WritableUtils.writeVInt(out, val.length);
         out.write(val);
       }
     }
-    
   }
   
   @Override
@@ -518,4 +636,8 @@ public class Mutation implements Writable {
     return new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data), ByteBufferUtil.toByteBuffers(values), entries);
   }
   
+  public SERIALIZED_FORMAT getSerializedFormat() {
+    return this.useOldDeserialize ? SERIALIZED_FORMAT.VERSION1 : SERIALIZED_FORMAT.VERSION2;
+  }
+
 }

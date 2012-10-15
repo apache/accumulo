@@ -36,6 +36,7 @@ public class GrepCommand extends ScanCommand {
   
   private Option numThreadsOpt;
   
+  @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     
     final String tableName = OptUtil.getTableOpt(cl, shellState);
@@ -45,7 +46,7 @@ public class GrepCommand extends ScanCommand {
     }
     final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
     final ScanInterpreter interpeter = getInterpreter(cl, tableName, shellState);
-
+    
     // handle first argument, if present, the authorizations list to
     // scan with
     int numThreads = 20;
@@ -57,10 +58,10 @@ public class GrepCommand extends ScanCommand {
     scanner.setRanges(Collections.singletonList(getRange(cl, interpeter)));
     
     scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
-
+    
     for (int i = 0; i < cl.getArgs().length; i++) {
-      setUpIterator(Integer.MAX_VALUE - cl.getArgs().length + i, "grep" + i, cl.getArgs()[i], scanner);
-    }    
+      setUpIterator(Integer.MAX_VALUE - cl.getArgs().length + i, "grep" + i, cl.getArgs()[i], scanner, cl);
+    }
     try {
       // handle columns
       fetchColumns(cl, scanner, interpeter);
@@ -74,10 +75,10 @@ public class GrepCommand extends ScanCommand {
     return 0;
   }
   
-  protected void setUpIterator(final int prio, final String name, final String term, final BatchScanner scanner) throws IOException {
+  protected void setUpIterator(final int prio, final String name, final String term, final BatchScanner scanner, CommandLine cl) throws IOException {
     if (prio < 0) {
       throw new IllegalArgumentException("Priority < 0 " + prio);
-    }    
+    }
     final IteratorSetting grep = new IteratorSetting(prio, name, GrepIterator.class);
     GrepIterator.setTerm(grep, term);
     scanner.addScanIterator(grep);

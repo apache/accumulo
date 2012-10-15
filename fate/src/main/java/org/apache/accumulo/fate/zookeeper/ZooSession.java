@@ -77,6 +77,8 @@ class ZooSession {
     int sleepTime = 100;
     ZooKeeper zooKeeper = null;
     
+    long startTime = System.currentTimeMillis();
+
     while (tryAgain) {
       try {
         zooKeeper = new ZooKeeper(host, timeout, watcher);
@@ -89,6 +91,10 @@ class ZooSession {
           } else
             UtilWaitThread.sleep(TIME_BETWEEN_CONNECT_CHECKS_MS);
         }
+        
+        if (System.currentTimeMillis() - startTime > 2 * timeout)
+          throw new RuntimeException("Failed to connect to zookeeper (" + host + ") within 2x zookeeper timeout period " + timeout);
+
       } catch (UnknownHostException uhe) {
         // do not expect to recover from this
         log.warn(uhe.getClass().getName() + " : " + uhe.getMessage());

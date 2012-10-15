@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.KeyExtent;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.conf.ServerConfiguration;
@@ -208,10 +209,10 @@ public class SortedLogRecovery {
       // log.info("Replaying " + key);
       // log.info(value);
       if (key.event == MUTATION) {
-        mr.receive(value.mutations[0]);
+        mr.receive(value.mutations.get(0));
       } else if (key.event == MANY_MUTATIONS) {
-        for (int i = 0; i < value.mutations.length; i++) {
-          mr.receive(value.mutations[i]);
+        for (Mutation m : value.mutations) {
+          mr.receive(m);
         }
       } else {
         throw new RuntimeException("unexpected log key type: " + key.event);

@@ -138,9 +138,7 @@ public class DefaultLoadBalancerTest {
     
     // reassign offline extents
     assignTablets(remove.extents, servers, current, balancer);
-    
-    expectedCounts.put("t3", 3);
-    checkBalance(metadataTable, servers, expectedCounts);
+    checkBalance(metadataTable, servers, null);
   }
   
   private void assignTablets(List<KeyExtent> metadataTable, Map<TServerInstance,FakeTServer> servers, SortedMap<TServerInstance,TabletServerStatus> status,
@@ -259,16 +257,18 @@ public class DefaultLoadBalancerTest {
         fail("average number of tablets is " + average + " but a server has " + server.extents.size());
     }
     
-    for (FakeTServer server : servers.values()) {
-      Map<String,Integer> counts = new HashMap<String,Integer>();
-      for (KeyExtent extent : server.extents) {
-        String t = extent.getTableId().toString();
-        if (counts.get(t) == null)
-          counts.put(t, 0);
-        counts.put(t, counts.get(t) + 1);
-      }
-      for (Entry<String,Integer> entry : counts.entrySet()) {
-        assertEquals(expectedCounts.get(entry.getKey()), counts.get(entry.getKey()));
+    if (expectedCounts != null) {
+      for (FakeTServer server : servers.values()) {
+        Map<String,Integer> counts = new HashMap<String,Integer>();
+        for (KeyExtent extent : server.extents) {
+          String t = extent.getTableId().toString();
+          if (counts.get(t) == null)
+            counts.put(t, 0);
+          counts.put(t, counts.get(t) + 1);
+        }
+        for (Entry<String,Integer> entry : counts.entrySet()) {
+          assertEquals(expectedCounts.get(entry.getKey()), counts.get(entry.getKey()));
+        }
       }
     }
   }
