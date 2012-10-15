@@ -17,7 +17,11 @@
 all: nm ml
 
 nm: 
-	cd nativeMap ; make
+	cd nativeMap ; $(MAKE)
 
 ml:
-	cd mlock ; make
+	cd mlock ; $(MAKE)
+
+clean:
+	cd nativeMap ; $(MAKE) $@
+	cd mlock ; $(MAKE) $@
