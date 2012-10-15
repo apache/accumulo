@@ -21,5 +21,4 @@ if ! id -u accumulo_monitor >/dev/null 2>&1; then
 fi
 
 install -m 0755 -o root -g root init.d/accumulo-monitor /etc/init.d/
-update-rc.d accumulo-monitor defaults 
-
+update-rc.d accumulo-monitor start 21 2 3 4 5 . stop 20 0 1 6 .

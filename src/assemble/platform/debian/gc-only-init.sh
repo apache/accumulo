@@ -22,4 +22,4 @@ if ! id -u accumulo >/dev/null 2>&1; then
 fi
 
 install -m 0755 -o root -g root init.d/accumulo-gc /etc/init.d/
-update-rc.d accumulo-gc defaults 
+update-rc.d accumulo-gc start 21 2 3 4 5 . stop 20 0 1 6 .
