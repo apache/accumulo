@@ -97,10 +97,18 @@ public class RegExFilter extends Filter {
   @Override
   public boolean accept(Key key, Value value) {
     if (orFields)
-      return matches(rowMatcher, key.getRowData()) || matches(colfMatcher, key.getColumnFamilyData()) || matches(colqMatcher, key.getColumnQualifierData())
-          || matches(valueMatcher, value.get(), 0, value.get().length);
-    return matches(rowMatcher, key.getRowData()) && matches(colfMatcher, key.getColumnFamilyData()) && matches(colqMatcher, key.getColumnQualifierData())
-        && matches(valueMatcher, value.get(), 0, value.get().length);
+      return ( 
+          (matches(rowMatcher, rowMatcher == null ? null : key.getRowData())) || 
+          (matches(colfMatcher, colfMatcher == null ? null : key.getColumnFamilyData())) || 
+          (matches(colqMatcher, colqMatcher == null ? null : key.getColumnQualifierData())) || 
+          (matches(valueMatcher, value.get(), 0, value.get().length))
+          );
+    return (
+        (matches(rowMatcher, rowMatcher == null ? null : key.getRowData())) && 
+        (matches(colfMatcher, colfMatcher == null ? null : key.getColumnFamilyData())) && 
+        (matches(colqMatcher, colqMatcher == null ? null : key.getColumnQualifierData())) &&
+        (matches(valueMatcher, value.get(), 0, value.get().length))
+        );
   }
   
   @Override
