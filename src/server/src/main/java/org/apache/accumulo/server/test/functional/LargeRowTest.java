@@ -93,7 +93,7 @@ public class LargeRowTest extends FunctionalTest {
     
     getConnector().tableOperations().setProperty(REG_TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "" + SPLIT_THRESH);
     
-    UtilWaitThread.sleep(5000);
+    UtilWaitThread.sleep(10000);
     
     checkSplits(REG_TABLE_NAME, 1, 9);
     
