@@ -766,6 +766,10 @@ public class Shell extends ShellOptions {
   };
   
   public final void printLines(Iterator<String> lines, boolean paginate) throws IOException {
+    printLines(lines, paginate, null);
+  }
+
+  public final void printLines(Iterator<String> lines, boolean paginate, PrintLine out) throws IOException {
     int linesPrinted = 0;
     String prompt = "-- hit any key to continue or 'q' to quit --";
     int lastPromptLength = prompt.length();
@@ -778,44 +782,57 @@ public class Shell extends ShellOptions {
       if (nextLine == null)
         continue;
       for (String line : nextLine.split("\\n")) {
-        if (peek != null) {
-          reader.printString(peek);
-          reader.printNewline();
-          if (paginate) {
-            linesPrinted += peek.length() == 0 ? 0 : Math.ceil(peek.length() * 1.0 / termWidth);
-            
-            // check if displaying the next line would result in
-            // scrolling off the screen
-            if (linesPrinted + Math.ceil(lastPromptLength * 1.0 / termWidth) + Math.ceil(prompt.length() * 1.0 / termWidth)
-                + Math.ceil(line.length() * 1.0 / termWidth) > maxLines) {
-              linesPrinted = 0;
-              int numdashes = (termWidth - prompt.length()) / 2;
-              String nextPrompt = repeat("-", numdashes) + prompt + repeat("-", numdashes);
-              lastPromptLength = nextPrompt.length();
-              reader.printString(nextPrompt);
-              reader.flushConsole();
-              if (Character.toUpperCase((char) reader.readVirtualKey()) == 'Q') {
+        if (out == null) {
+          if (peek != null) {
+            reader.printString(peek);
+            reader.printNewline();
+            if (paginate) {
+              linesPrinted += peek.length() == 0 ? 0 : Math.ceil(peek.length() * 1.0 / termWidth);
+              
+              // check if displaying the next line would result in
+              // scrolling off the screen
+              if (linesPrinted + Math.ceil(lastPromptLength * 1.0 / termWidth) + Math.ceil(prompt.length() * 1.0 / termWidth)
+                  + Math.ceil(line.length() * 1.0 / termWidth) > maxLines) {
+                linesPrinted = 0;
+                int numdashes = (termWidth - prompt.length()) / 2;
+                String nextPrompt = repeat("-", numdashes) + prompt + repeat("-", numdashes);
+                lastPromptLength = nextPrompt.length();
+                reader.printString(nextPrompt);
+                reader.flushConsole();
+                if (Character.toUpperCase((char) reader.readVirtualKey()) == 'Q') {
+                  reader.printNewline();
+                  return;
+                }
                 reader.printNewline();
-                return;
+                termWidth = reader.getTermwidth();
+                maxLines = reader.getTermheight();
               }
-              reader.printNewline();
-              termWidth = reader.getTermwidth();
-              maxLines = reader.getTermheight();
             }
           }
+          peek = line;
+        } else {
+          out.print(line);
         }
-        peek = line;
       }
     }
-    if (peek != null) {
+    if (out == null && peek != null) {
       reader.printString(peek);
       reader.printNewline();
     }
   }
   
+  public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, Class<? extends Formatter> formatterClass,
+      PrintLine outFile) throws IOException {
+    printLines(FormatterFactory.getFormatter(formatterClass, scanner, printTimestamps), paginate, outFile);
+  }
+  
   public final void printRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, Class<? extends Formatter> formatterClass)
       throws IOException {
     printLines(FormatterFactory.getFormatter(formatterClass, scanner, printTimestamps), paginate);
+  }
+  
+  public final void printBinaryRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate, PrintLine outFile) throws IOException {
+    printLines(FormatterFactory.getFormatter(binaryFormatterClass, scanner, printTimestamps), paginate, outFile);
   }
   
   public final void printBinaryRecords(Iterable<Entry<Key,Value>> scanner, boolean printTimestamps, boolean paginate) throws IOException {
