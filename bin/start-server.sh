@@ -37,7 +37,9 @@ then
 fi
 SLAVES=`wc -l < ${ACCUMULO_HOME}/conf/slaves`
 
-if [ $HOST == localhost -o $HOST == "`hostname`" ] 
+ip=`ifconfig | grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1`
+
+if [ $HOST == localhost -o $HOST == "`hostname`" -o $HOST == "$ip" ] 
 then
   PID=`ps -ef | egrep ${ACCUMULO_HOME}/.*/accumulo.*.jar | grep "Main $SERVICE" | grep -v grep | awk {'print $2'} | head -1`
 else
@@ -45,21 +47,21 @@ else
 fi
 
 if [ -z $PID ]; then
-    echo "Starting $LONGNAME on $HOST"
-    if [ $HOST == localhost  -o $HOST == "`hostname`" ] 
-    then
-       ${bin}/accumulo ${SERVICE} --address $1 >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err & 
-       MAX_FILES_OPEN=`bash -c 'ulimit -n'`
-    else
-       $SSH $HOST "bash -c 'exec nohup ${bin}/accumulo ${SERVICE} --address $1 >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err' &"
-       MAX_FILES_OPEN=`$SSH $HOST "bash -c 'ulimit -n'"` 
-    fi
+  echo "Starting $LONGNAME on $HOST"
+  if [ $HOST == localhost -o $HOST == "`hostname`" -o $HOST == "$ip" ] 
+  then
+    ${bin}/accumulo ${SERVICE} --address $1 >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err & 
+    MAX_FILES_OPEN=`bash -c 'ulimit -n'`
+  else
+    $SSH $HOST "bash -c 'exec nohup ${bin}/accumulo ${SERVICE} --address $1 >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err' &"
+    MAX_FILES_OPEN=`$SSH $HOST "bash -c 'ulimit -n'"` 
+  fi
 
-    if [ -n "$MAX_FILES_OPEN" ] && [ -n "$SLAVES" ] ; then
-       if [ "$SLAVES" -gt 10 ] && [ "$MAX_FILES_OPEN" -lt 65536 ]; then
-          echo "WARN : Max files open on $HOST is $MAX_FILES_OPEN, recommend 65536"
-       fi
+  if [ -n "$MAX_FILES_OPEN" ] && [ -n "$SLAVES" ] ; then
+    if [ "$SLAVES" -gt 10 ] && [ "$MAX_FILES_OPEN" -lt 65536 ]; then
+      echo "WARN : Max files open on $HOST is $MAX_FILES_OPEN, recommend 65536"
     fi
+  fi
 else
-    echo "$HOST : $LONGNAME already running (${PID})"
+  echo "$HOST : $LONGNAME already running (${PID})"
 fi
