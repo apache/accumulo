@@ -57,6 +57,11 @@ if(scalar(@slaves) < $maxKill){
 	$maxKill = scalar(@slaves);
 }
 
+if ($minKill > $maxKill){
+    print STDERR "WARN setting minKill to equal maxKill\n";
+    $minKill = $maxKill;
+}
+
 while(1){
 
 	$numToKill = int(rand($maxKill - $minKill + 1)) + $minKill;
