@@ -1,3 +1,49 @@
+Release Notes - Apache Accumulo - Version 1.4.2
+
+** Bug
+    * [ACCUMULO-131] - ZookeeperInstance gets stuck when given bad host
+    * [ACCUMULO-409] - Failed bulk import files are copied through master
+    * [ACCUMULO-410] - Bulk import may copy successful files into fail dir
+    * [ACCUMULO-557] - unexpected behavior in the shell with special characters
+    * [ACCUMULO-642] - BatchVerify randomwalk test does not close its scanner
+    * [ACCUMULO-643] - CheckBalance in randomwalk tests is too sensitive
+    * [ACCUMULO-644] - randomwalk won't run out of a codebase served on a shared filesystem
+    * [ACCUMULO-654] - OfflineIterator does not bound range
+    * [ACCUMULO-675] - WrappingIterator's seenSeek should be protected
+    * [ACCUMULO-676] - root tablet taken off line before non-root metadata tables
+    * [ACCUMULO-678] - tablet server shutdown may not work through a master failure
+    * [ACCUMULO-681] - close consistency check failure
+    * [ACCUMULO-682] - Native library compiling fails on OS X 10.7 (Lion)
+    * [ACCUMULO-683] - Accumulo ignores HDFS max replication configuration
+    * [ACCUMULO-719] - Failure compiling native libraries on Mac OSX 10.7.4
+    * [ACCUMULO-753] - root tablet reference is not consulted during file gc
+    * [ACCUMULO-766] - master is "leaking" ZooLock objects
+    * [ACCUMULO-768] - Typo in User Manual on MapReduce Analytics
+    * [ACCUMULO-770] - TableLoadBalancer / DefaultLoadBalancer assigns tables unevenly
+    * [ACCUMULO-772] - Unexpected insert error not displayed in shell
+    * [ACCUMULO-777] - isLockHeld needs better bullet-proofing against transient errors
+    * [ACCUMULO-779] - ZooStore can starve completed Repos
+    * [ACCUMULO-782] - MockConnector returns a MockInstance that is not equivalent to it's parent MockInstance
+    * [ACCUMULO-784] - agitator maxkill/minkill issue
+    * [ACCUMULO-794] - FirstEntryInRowIterator can scan through entire last row in range
+    * [ACCUMULO-795] - MockTable doesn't obey useVersions parameter
+    * [ACCUMULO-798] - large ParNew can cause long-term stop-the-world java GC
+    * [ACCUMULO-800] - don't log the instance.secret
+    * [ACCUMULO-801] - Cobertura coverage not generated
+    * [ACCUMULO-805] - stack trace in MockTableOperationsTest
+    * [ACCUMULO-806] - tablet locator fails when the metadata table has empty sections
+    * [ACCUMULO-815] - timing too tight on LargeRowTest functional test
+
+** Improvement
+    * [ACCUMULO-364] - Security Policy file should be an example
+    * [ACCUMULO-507] - Large amount of ranges can prevent job from kicking off
+    * [ACCUMULO-663] - RegexFilter make unecessary object creations
+    * [ACCUMULO-674] - Convert default log4j to use log4j date formatters
+    * [ACCUMULO-752] - Add support for importDirectory to the mock instance
+    * [ACCUMULO-810] - Add authorizations to continuous ingest test
+    * [ACCUMULO-812] - create a utility to find unhosted tablets
+
+
 Release Notes - Apache Accumulo - Version 1.4.1
 
 ** Bug
