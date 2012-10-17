@@ -31,10 +31,6 @@ import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 
-/**
- * @author jwvines
- * 
- */
 public class SecurityHelper {
   protected final static Logger log = Logger.getLogger(SecurityHelper.class);
   
