@@ -158,6 +158,8 @@ public class RelativeKey implements WritableComparable<RelativeKey> {
   }
   
   static class MByteSequence extends ArrayByteSequence {
+    private static final long serialVersionUID = 1L;
+
     MByteSequence(byte[] data, int offset, int length) {
       super(data, offset, length);
     }

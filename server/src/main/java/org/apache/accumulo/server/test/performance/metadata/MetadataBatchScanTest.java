@@ -92,7 +92,7 @@ public class MetadataBatchScanTest {
       
       bw.close();
     } else if (args[0].equals("writeFiles")) {
-      BatchWriter bw = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, 10000000, 60000l, 3);
+      BatchWriter bw = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
       
       for (KeyExtent extent : extents) {
         

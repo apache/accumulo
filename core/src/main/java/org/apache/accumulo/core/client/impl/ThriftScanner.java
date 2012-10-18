@@ -149,12 +149,12 @@ public class ThriftScanner {
       throw new AccumuloServerException(server, tae);
     } catch (TooManyFilesException e) {
       log.debug("Tablet (" + extent + ") has too many files " + server + " : " + e);
-    } catch (TException e) {
-      log.debug("Error getting transport to " + server + " : " + e);
     } catch (ThriftSecurityException e) {
       log.warn("Security Violation in scan request to " + server + ": " + e);
       throw new AccumuloSecurityException(e.user, e.code, e);
-    }
+    } catch (TException e) {
+      log.debug("Error getting transport to " + server + " : " + e);
+    } 
     
     throw new AccumuloException("getBatchFromServer: failed");
   }
@@ -321,24 +321,6 @@ public class ThriftScanner {
             throw new IsolationException();
           
           UtilWaitThread.sleep(100);
-        } catch (TException e) {
-          TabletLocator.getInstance(instance, credentials, scanState.tableName).invalidateCache(loc.tablet_location);
-          error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage() + " " + loc;
-          if (!error.equals(lastError))
-            log.debug(error);
-          else if (log.isTraceEnabled())
-            log.trace(error);
-          lastError = error;
-          loc = null;
-          
-          // do not want to continue using the same scan id, if a timeout occurred could cause a batch to be skipped
-          // because a thread on the server side may still be processing the timed out continue scan
-          scanState.scanID = null;
-          
-          if (scanState.isolated)
-            throw new IsolationException();
-          
-          UtilWaitThread.sleep(100);
         } catch (NoSuchScanIDException e) {
           error = "Scan failed, no such scan id " + scanState.scanID + " " + loc;
           if (!error.equals(lastError))
@@ -368,6 +350,24 @@ public class ThriftScanner {
           // not sure what state the scan session on the server side is
           // in after this occurs, so lets be cautious and start a new
           // scan session
+          scanState.scanID = null;
+          
+          if (scanState.isolated)
+            throw new IsolationException();
+          
+          UtilWaitThread.sleep(100);
+        } catch (TException e) {
+          TabletLocator.getInstance(instance, credentials, scanState.tableName).invalidateCache(loc.tablet_location);
+          error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage() + " " + loc;
+          if (!error.equals(lastError))
+            log.debug(error);
+          else if (log.isTraceEnabled())
+            log.trace(error);
+          lastError = error;
+          loc = null;
+          
+          // do not want to continue using the same scan id, if a timeout occurred could cause a batch to be skipped
+          // because a thread on the server side may still be processing the timed out continue scan
           scanState.scanID = null;
           
           if (scanState.isolated)

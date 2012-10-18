@@ -909,9 +909,9 @@ public class TabletServerBatchWriter {
       } catch (ThriftSecurityException e) {
         updateAuthorizationFailures(tabMuts.keySet());
         throw new AccumuloSecurityException(e.user, e.code, e);
-      } catch (TException e) {
-        throw new IOException(e);
       } catch (NoSuchScanIDException e) {
+        throw new IOException(e);
+      } catch (TException e) {
         throw new IOException(e);
       } finally {
         ThriftTransportPool.getInstance().returnTransport(transport);

@@ -99,7 +99,7 @@ public class BadIteratorMincTest extends FunctionalTest {
     
     // now try putting bad iterator back and deleting the table
     getConnector().tableOperations().setProperty("foo", Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.badi", "30," + BadIterator.class.getName());
-    bw = getConnector().createBatchWriter("foo", 1000000, 60000l, 2);
+    bw = getConnector().createBatchWriter("foo", new BatchWriterConfig());
     m = new Mutation(new Text("r2"));
     m.put(new Text("acf"), new Text("foo"), new Value("1".getBytes()));
     bw.addMutation(m);
