@@ -1,11 +1,12 @@
 package org.apache.accumulo.core.client;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Test;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTest;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -17,7 +18,7 @@ import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
+import org.junit.Test;
 
 public class TestThrift1474 {
   
