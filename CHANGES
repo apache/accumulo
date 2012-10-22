@@ -17,6 +17,7 @@ Release Notes - Apache Accumulo - Version 1.4.2
     * [ACCUMULO-683] - Accumulo ignores HDFS max replication configuration
     * [ACCUMULO-719] - Failure compiling native libraries on Mac OSX 10.7.4
     * [ACCUMULO-753] - root tablet reference is not consulted during file gc
+    * [ACCUMULO-764] - stack overflow when starting tablet server after recent java update to 1.6.0_35
     * [ACCUMULO-766] - master is "leaking" ZooLock objects
     * [ACCUMULO-768] - Typo in User Manual on MapReduce Analytics
     * [ACCUMULO-770] - TableLoadBalancer / DefaultLoadBalancer assigns tables unevenly
@@ -33,10 +34,11 @@ Release Notes - Apache Accumulo - Version 1.4.2
     * [ACCUMULO-805] - stack trace in MockTableOperationsTest
     * [ACCUMULO-806] - tablet locator fails when the metadata table has empty sections
     * [ACCUMULO-815] - timing too tight on LargeRowTest functional test
+    * [ACCUMULO-823] - /bin/start-server.sh: line 40: ifconfig: command not found 
+    * [ACCUMULO-826] - MapReduce over accumlo fails if process that started job is killed
 
 ** Improvement
     * [ACCUMULO-364] - Security Policy file should be an example
-    * [ACCUMULO-507] - Large amount of ranges can prevent job from kicking off
     * [ACCUMULO-663] - RegexFilter make unecessary object creations
     * [ACCUMULO-674] - Convert default log4j to use log4j date formatters
     * [ACCUMULO-752] - Add support for importDirectory to the mock instance
