@@ -136,7 +136,7 @@ public class ScanCommand extends Command {
   
   protected void printRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner, final Class<? extends Formatter> formatter)
       throws IOException {
-    printRecords(cl, shellState, scanner, formatter);
+    printRecords(cl, shellState, scanner, formatter, null);
   }
   
   protected void printRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner,
