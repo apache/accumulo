@@ -178,8 +178,19 @@
       <plugin>
         <artifactId>maven-source-plugin</artifactId>
         <configuration>
+          <attach>true</attach>
           <outputDirectory>../lib</outputDirectory>
         </configuration>
+          <executions>
+            <execution>
+              <id>attach-sources</id>
+              <phase>package</phase>
+              <goals>
+                <goal>jar-no-fork</goal>
+                <goal>test-jar-no-fork</goal>
+              </goals>
+            </execution>
+          </executions>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
