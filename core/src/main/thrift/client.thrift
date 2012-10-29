@@ -94,3 +94,10 @@ service ClientService {
     map<string, string> getTableConfiguration(2:string tableName) throws (1:ThriftTableOperationException tope);
     bool checkClass(1:cloudtrace.TInfo tinfo, 2:string className, 3:string interfaceMatch);
 }
+
+// Only used for a unit test
+service ThriftTest {
+  bool success();
+  bool fails();
+  bool throwsError() throws (1:security.ThriftSecurityException ex);
+}

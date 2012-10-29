@@ -178,8 +178,19 @@
       <plugin>
         <artifactId>maven-source-plugin</artifactId>
         <configuration>
+          <attach>true</attach>
           <outputDirectory>../lib</outputDirectory>
         </configuration>
+          <executions>
+            <execution>
+              <id>attach-sources</id>
+              <phase>package</phase>
+              <goals>
+                <goal>jar-no-fork</goal>
+                <goal>test-jar-no-fork</goal>
+              </goals>
+            </execution>
+          </executions>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
@@ -589,7 +600,7 @@
       <dependency>
         <groupId>org.apache.thrift</groupId>
         <artifactId>libthrift</artifactId>
-        <version>0.8.0</version>
+        <version>0.9.0</version>
       </dependency>
       <dependency>
         <groupId>jline</groupId>

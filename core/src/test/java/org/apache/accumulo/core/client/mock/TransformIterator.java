@@ -14,34 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.server.tabletserver;
+package org.apache.accumulo.core.client.mock;
 
-import java.util.List;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.hadoop.io.Text;
 
-import org.apache.accumulo.core.data.Mutation;
+public class TransformIterator extends WrappingIterator {
 
-public class TabletMutations {
-  private final int tid; 
-  private final int seq; 
-  private final List<Mutation> mutations;
-
-  public TabletMutations(int tid, int seq, List<Mutation> mutations) {
-    this.tid = tid;
-    this.seq = seq;
-    this.mutations = mutations;
+  @Override
+  public Key getTopKey() {
+    Key k = getSource().getTopKey();
+    return new Key(new Text(k.getRow().toString().toLowerCase()), k.getColumnFamily(), k.getColumnQualifier(), k.getColumnVisibility(), k.getTimestamp());
   }
-
-  public List<Mutation> getMutations() {
-    return mutations;
-  }
-
-  public int getTid() {
-    return tid;
-  }
-  public int getSeq() {
-    return seq;
-  }
-  
-  
-  
 }
+
+

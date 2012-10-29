@@ -14,14 +14,10 @@
 # limitations under the License.
 
 # ya... I know, this is a bad recursive makefile...
-all: nm ml
+all: nm 
 
 nm: 
 	cd nativeMap ; $(MAKE)
 
-ml:
-	cd mlock ; $(MAKE)
-
 clean:
 	cd nativeMap ; $(MAKE) $@
-	cd mlock ; $(MAKE) $@

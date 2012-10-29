@@ -136,7 +136,7 @@ public class TestMergeState {
     Assert.assertEquals(MergeState.WAITING_FOR_OFFLINE, newState);
     
     // unassign the tablets
-    BatchDeleter deleter = connector.createBatchDeleter("!METADATA", Constants.NO_AUTHS, 1000, 1000l, 1000l, 1);
+    BatchDeleter deleter = connector.createBatchDeleter("!METADATA", Constants.NO_AUTHS, 1000, new BatchWriterConfig());
     deleter.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     deleter.setRanges(Collections.singletonList(new Range()));
     deleter.delete();

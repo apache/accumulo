@@ -95,13 +95,13 @@ public class Writer {
       try {
         updateServer(m, tabLoc.tablet_extent, tabLoc.tablet_location, credentials, instance.getConfiguration());
         return;
-      } catch (TException e) {
-        log.trace("server = " + tabLoc.tablet_location, e);
-        TabletLocator.getInstance(instance, credentials, table).invalidateCache(tabLoc.tablet_extent);
       } catch (NotServingTabletException e) {
         log.trace("Not serving tablet, server = " + tabLoc.tablet_location);
         TabletLocator.getInstance(instance, credentials, table).invalidateCache(tabLoc.tablet_extent);
-      }
+      } catch (TException e) {
+        log.trace("server = " + tabLoc.tablet_location, e);
+        TabletLocator.getInstance(instance, credentials, table).invalidateCache(tabLoc.tablet_extent);
+      } 
       
       UtilWaitThread.sleep(500);
     }

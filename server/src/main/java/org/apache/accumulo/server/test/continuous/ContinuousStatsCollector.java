@@ -160,7 +160,6 @@ public class ContinuousStatsCollector {
   
   private static String getMRStats() throws Exception {
     Configuration conf = CachedConfiguration.getInstance();
-    @SuppressWarnings("deprecation")
     // No alternatives for hadoop 20
     JobClient jc = new JobClient(new org.apache.hadoop.mapred.JobConf(conf));
     

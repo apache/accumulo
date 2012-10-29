@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -101,7 +102,7 @@ public class MockTableOperationsTest {
     
     protected void writeVersionable(Connector c, String tableName, int size) throws TableNotFoundException, MutationsRejectedException {
         for (int i=0; i < size; i++) {
-            BatchWriter w = c.createBatchWriter(tableName, 100, 100, 1);
+            BatchWriter w = c.createBatchWriter(tableName, new BatchWriterConfig());
             Mutation m = new Mutation("row1");
             m.put("cf", "cq", String.valueOf(i));
             w.addMutation(m);

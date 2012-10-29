@@ -370,7 +370,6 @@ public class DefaultServlet extends BasicServlet {
     try {
       InetSocketAddress address = JobTracker.getAddress(conf);
       
-      @SuppressWarnings("deprecation")
       // No alternative api in hadoop 20
       JobClient jc = new JobClient(new org.apache.hadoop.mapred.JobConf(conf));
       String httpAddress = conf.get("mapred.job.tracker.http.address");

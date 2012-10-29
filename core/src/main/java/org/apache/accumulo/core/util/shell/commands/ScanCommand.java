@@ -38,6 +38,7 @@ import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
 import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.Shell.PrintFile;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -46,13 +47,19 @@ import org.apache.hadoop.io.Text;
 
 public class ScanCommand extends Command {
   
-  private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, showFewOpt, formatterOpt, interpreterOpt, formatterInterpeterOpt;
+  private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, showFewOpt, formatterOpt, interpreterOpt, formatterInterpeterOpt,
+      outputFileOpt;
+  
   protected Option timestampOpt;
   private Option optStartRowExclusive;
   private Option optEndRowExclusive;
   private Option timeoutOption;
   
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
+
+    final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
+    final PrintFile printFile = outputFile == null ? null : new PrintFile(outputFile);
+    
     final String tableName = OptUtil.getTableOpt(cl, shellState);
     
     final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
@@ -84,7 +91,7 @@ public class ScanCommand extends Command {
           throw new IllegalArgumentException();
         }
         BinaryFormatter.getlength(length);
-        printBinaryRecords(cl, shellState, scanner);
+        printBinaryRecords(cl, shellState, scanner, printFile);
       } catch (NumberFormatException nfe) {
         shellState.getReader().printString("Arg must be an integer. \n");
       } catch (IllegalArgumentException iae) {
@@ -92,7 +99,10 @@ public class ScanCommand extends Command {
       }
       
     } else {
-        printRecords(cl, shellState, scanner, formatter);
+      printRecords(cl, shellState, scanner, formatter, printFile);
+    }
+    if (printFile != null) {
+      printFile.close();
     }
     
     return 0;
@@ -124,12 +134,31 @@ public class ScanCommand extends Command {
     }
   }
   
-  protected void printRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner, final Class<? extends Formatter> formatter) throws IOException {
-    shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), formatter);
+  protected void printRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner, final Class<? extends Formatter> formatter)
+      throws IOException {
+    printRecords(cl, shellState, scanner, formatter, null);
   }
   
+  protected void printRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner,
+      final Class<? extends Formatter> formatter, PrintFile outFile) throws IOException {
+    if (outFile == null) {
+      shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), formatter);
+    } else {
+      shellState.printRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), formatter, outFile);
+    }
+  }
+
   protected void printBinaryRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner) throws IOException {
-    shellState.printBinaryRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
+    printBinaryRecords(cl, shellState, scanner, null);
+  }
+  
+  protected void printBinaryRecords(final CommandLine cl, final Shell shellState, final Iterable<Entry<Key,Value>> scanner, PrintFile outFile)
+      throws IOException {
+    if (outFile == null) {
+      shellState.printBinaryRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()));
+    } else {
+      shellState.printBinaryRecords(scanner, cl.hasOption(timestampOpt.getOpt()), !cl.hasOption(disablePaginationOpt.getOpt()), outFile);
+    }
   }
   
   protected ScanInterpreter getInterpreter(final CommandLine cl, final String tableName, final Shell shellState) throws Exception {
@@ -239,6 +268,7 @@ public class ScanCommand extends Command {
     formatterInterpeterOpt = new Option("fi", "fmt-interpreter", true, "fully qualified name of a class that is a formatter and interpreter");
     timeoutOption = new Option(null, "timeout", true,
         "time before scan should fail if no data is returned. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
+    outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     
     scanOptAuths.setArgName("comma-separated-authorizations");
     scanOptRow.setArgName("row");
@@ -247,6 +277,7 @@ public class ScanCommand extends Command {
     showFewOpt.setArgName("int");
     formatterOpt.setArgName("className");
     timeoutOption.setArgName("timeout");
+    outputFileOpt.setArgName("file");
     
     o.addOption(scanOptAuths);
     o.addOption(scanOptRow);
@@ -263,6 +294,7 @@ public class ScanCommand extends Command {
     o.addOption(interpreterOpt);
     o.addOption(formatterInterpeterOpt);
     o.addOption(timeoutOption);
+    o.addOption(outputFileOpt);
     
     return o;
   }

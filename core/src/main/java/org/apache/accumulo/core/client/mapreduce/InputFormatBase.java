@@ -74,13 +74,6 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.filecache.DistributedCache;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.permission.FsAction;
-import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -115,7 +108,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   private static final String INPUT_INFO_HAS_BEEN_SET = PREFIX + ".configured";
   private static final String INSTANCE_HAS_BEEN_SET = PREFIX + ".instanceConfigured";
   private static final String USERNAME = PREFIX + ".username";
-  private static final String PASSWORD_PATH = PREFIX + ".password";
+  private static final String PASSWORD = PREFIX + ".password";
   private static final String TABLE_NAME = PREFIX + ".tablename";
   private static final String AUTHORIZATIONS = PREFIX + ".authorizations";
   
@@ -187,28 +180,10 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     
     ArgumentChecker.notNull(user, passwd, table);
     conf.set(USERNAME, user);
+    conf.set(PASSWORD, new String(Base64.encodeBase64(passwd)));
     conf.set(TABLE_NAME, table);
     if (auths != null && !auths.isEmpty())
       conf.set(AUTHORIZATIONS, auths.serialize());
-    
-    try {
-      FileSystem fs = FileSystem.get(conf);
-      Path file = new Path(fs.getWorkingDirectory(), conf.get("mapred.job.name") + System.currentTimeMillis() + ".pw");
-      conf.set(PASSWORD_PATH, file.toString());
-      FSDataOutputStream fos = fs.create(file, false);
-      fs.setPermission(file, new FsPermission(FsAction.ALL, FsAction.NONE, FsAction.NONE));
-      fs.deleteOnExit(file);
-      
-      byte[] encodedPw = Base64.encodeBase64(passwd);
-      fos.writeInt(encodedPw.length);
-      fos.write(encodedPw);
-      fos.close();
-      
-      DistributedCache.addCacheFile(file.toUri(), conf);
-    } catch (IOException ioe) {
-      throw new RuntimeException(ioe);
-    }
-    
   }
   
   /**
@@ -255,24 +230,17 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   public static void setRanges(Configuration conf, Collection<Range> ranges) {
     ArgumentChecker.notNull(ranges);
+    ArrayList<String> rangeStrings = new ArrayList<String>(ranges.size());
     try {
-      FileSystem fs = FileSystem.get(conf);
-      Path file = new Path(fs.getWorkingDirectory(), conf.get("mapred.job.name") + System.currentTimeMillis() + ".ranges");
-      conf.set(RANGES, file.toString());
-      FSDataOutputStream fos = fs.create(file, false);
-      fs.setPermission(file, new FsPermission(FsAction.ALL, FsAction.NONE, FsAction.NONE));
-      fs.deleteOnExit(file);
-      
-      fos.writeInt(ranges.size());
       for (Range r : ranges) {
-        r.write(fos);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        r.write(new DataOutputStream(baos));
+        rangeStrings.add(new String(Base64.encodeBase64(baos.toByteArray())));
       }
-      fos.close();
-      
-      DistributedCache.addCacheFile(file.toUri(), conf);
-    } catch (IOException e) {
-      throw new RuntimeException("Unable to write ranges to file", e);
+    } catch (IOException ex) {
+      throw new IllegalArgumentException("Unable to encode ranges to Base64", ex);
     }
+    conf.setStrings(RANGES, rangeStrings.toArray(new String[0]));
   }
   
   /**
@@ -441,26 +409,18 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     return conf.get(USERNAME);
   }
   
+  
   /**
-   * Gets the password from the configuration.
+   * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
+   * provide a charset safe conversion to a string, and is not intended to be secure.
    * 
    * @param conf
    *          the Hadoop configuration object
    * @return the BASE64-encoded password
-   * @throws IOException
    * @see #setInputInfo(Configuration, String, byte[], String, Authorizations)
    */
-  protected static byte[] getPassword(Configuration conf) throws IOException {
-    FileSystem fs = FileSystem.get(conf);
-    Path file = new Path(conf.get(PASSWORD_PATH));
-    
-    FSDataInputStream fdis = fs.open(file);
-    int length = fdis.readInt();
-    byte[] encodedPassword = new byte[length];
-    fdis.read(encodedPassword);
-    fdis.close();
-    
-    return Base64.decodeBase64(encodedPassword);
+  protected static byte[] getPassword(Configuration conf) {
+    return Base64.decodeBase64(conf.get(PASSWORD, "").getBytes());
   }
   
   /**
@@ -511,10 +471,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @return an accumulo tablet locator
    * @throws TableNotFoundException
    *           if the table name set on the configuration doesn't exist
-   * @throws IOException
-   *           if the input format is unable to read the password file from the FileSystem
    */
-  protected static TabletLocator getTabletLocator(Configuration conf) throws TableNotFoundException, IOException {
+  protected static TabletLocator getTabletLocator(Configuration conf) throws TableNotFoundException {
     if (conf.getBoolean(MOCK, false))
       return new MockTabletLocator();
     Instance instance = getInstance(conf);
@@ -537,21 +495,12 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   protected static List<Range> getRanges(Configuration conf) throws IOException {
     ArrayList<Range> ranges = new ArrayList<Range>();
-    FileSystem fs = FileSystem.get(conf);
-    String rangePath = conf.get(RANGES);
-    if (rangePath == null)
-      return ranges;
-    Path file = new Path(rangePath);
-    
-    FSDataInputStream fdis = fs.open(file);
-    int numRanges = fdis.readInt();
-    while (numRanges > 0) {
-      Range r = new Range();
-      r.readFields(fdis);
-      ranges.add(r);
-      numRanges--;
+    for (String rangeString : conf.getStringCollection(RANGES)) {
+      ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(rangeString.getBytes()));
+      Range range = new Range();
+      range.readFields(new DataInputStream(bais));
+      ranges.add(range);
     }
-    fdis.close();
     return ranges;
   }
   
@@ -809,7 +758,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   }
   
   Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(Configuration conf, String tableName, List<Range> ranges) throws TableNotFoundException,
-      AccumuloException, AccumuloSecurityException, IOException {
+      AccumuloException, AccumuloSecurityException {
     
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<String,Map<KeyExtent,List<Range>>>();
     

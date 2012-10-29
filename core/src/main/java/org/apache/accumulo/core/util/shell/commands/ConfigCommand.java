@@ -35,6 +35,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
+import org.apache.accumulo.core.util.shell.Shell.PrintFile;
 import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -42,7 +43,7 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class ConfigCommand extends Command {
-  private Option tableOpt, deleteOpt, setOpt, filterOpt, disablePaginationOpt;
+  private Option tableOpt, deleteOpt, setOpt, filterOpt, disablePaginationOpt, outputFileOpt;
   
   private int COL1 = 8, COL2 = 7;
   private ConsoleReader reader;
@@ -60,8 +61,8 @@ public class ConfigCommand extends Command {
     root.addSubcommand(cmd);
   }
   
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      IOException, ClassNotFoundException {
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, IOException, ClassNotFoundException {
     reader = shellState.getReader();
     
     final String tableName = cl.getOptionValue(tableOpt.getOpt());
@@ -77,7 +78,7 @@ public class ConfigCommand extends Command {
       if (tableName != null) {
         if (!Property.isValidTablePropertyKey(property)) {
           Shell.log.warn("Invalid per-table property : " + property + ", still removing from zookeeper if it's there.");
-        }        
+        }
         shellState.getConnector().tableOperations().removeProperty(tableName, property);
         Shell.log.debug("Successfully deleted table configuration option.");
       } else {
@@ -92,7 +93,7 @@ public class ConfigCommand extends Command {
       String property = cl.getOptionValue(setOpt.getOpt()), value = null;
       if (!property.contains("=")) {
         throw new BadArgumentException("Missing '=' operator in set operation.", fullCommand, fullCommand.indexOf(property));
-      }     
+      }
       final String pair[] = property.split("=", 2);
       property = pair[0];
       value = pair[1];
@@ -100,7 +101,7 @@ public class ConfigCommand extends Command {
       if (tableName != null) {
         if (!Property.isValidTablePropertyKey(property)) {
           throw new BadArgumentException("Invalid per-table property.", fullCommand, fullCommand.indexOf(property));
-        }   
+        }
         if (property.equals(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey())) {
           new ColumnVisibility(value); // validate that it is a valid expression
         }
@@ -117,6 +118,9 @@ public class ConfigCommand extends Command {
       // display properties
       final TreeMap<String,String> systemConfig = new TreeMap<String,String>();
       systemConfig.putAll(shellState.getConnector().instanceOperations().getSystemConfiguration());
+      
+      final String outputFile = cl.getOptionValue(outputFileOpt.getOpt());
+      final PrintFile printFile = outputFile == null ? null : new PrintFile(outputFile);
       
       final TreeMap<String,String> siteConfig = new TreeMap<String,String>();
       siteConfig.putAll(shellState.getConnector().instanceOperations().getSiteConfiguration());
@@ -191,7 +195,10 @@ public class ConfigCommand extends Command {
         }
       }
       printConfFooter(output);
-      shellState.printLines(output.iterator(), !cl.hasOption(disablePaginationOpt.getOpt()));
+      shellState.printLines(output.iterator(), !cl.hasOption(disablePaginationOpt.getOpt()), printFile);
+      if (printFile != null) {
+        printFile.close();
+      }
     }
     return 0;
   }
@@ -230,11 +237,13 @@ public class ConfigCommand extends Command {
     setOpt = new Option("s", "set", true, "set a per-table property");
     filterOpt = new Option("f", "filter", true, "show only properties that contain this string");
     disablePaginationOpt = new Option("np", "no-pagination", false, "disables pagination of output");
-    
+    outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
+
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
     setOpt.setArgName("property=value");
     filterOpt.setArgName("string");
+    outputFileOpt.setArgName("file");
     
     og.addOption(deleteOpt);
     og.addOption(setOpt);
@@ -243,6 +252,7 @@ public class ConfigCommand extends Command {
     o.addOption(tableOpt);
     o.addOptionGroup(og);
     o.addOption(disablePaginationOpt);
+    o.addOption(outputFileOpt);
     
     return o;
   }
