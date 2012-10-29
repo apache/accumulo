@@ -67,9 +67,21 @@ have password-less ssh set up as described in the hadoop documentation.
 You will need to have hadoop installed and configured on your system.  Accumulo
 1.5.0-SNAPSHOT has been tested with hadoop version 0.20.2.  To avoid data loss,
 you must enable HDFS durable sync.  How you enable this depends on your version
-of Hadoop.  For older versions of Hadoop set dfs.support.append to true in
-hdfs-site.xml.  For newer versions set dfs.durable.sync to true.  After setting
-these properties restart HDFS.  See ACCUMULO-623 for more information.
+of Hadoop. Please consult the table below for information regarding your version.
+If you need to set the coniguration, please be sure to restart HDFS. See 
+ACCUMULO-623 for more information.
+
+HADOOP RELEASE          VERSION           SYNC NAME             DEFAULT
+Apache Hadoop           0.20.205          dfs.support.append    false
+Apache Hadoop            0.23.x           dfs.support.append    true
+Apache Hadoop             1.0.x           dfs.support.append    false
+Apache Hadoop             1.1.x           dfs.durable.sync      true
+Apache Hadoop          2.0.0-2.0.2        dfs.support.append    true
+Cloudera CDH             3u0-3u3             ????               true
+Cloudera CDH               3u4            dfs.support.append    true
+Hortonworks HDP           `1.0            dfs.support.append    false
+Hortonworks HDP           `1.1            dfs.support.append    false
+
 
 The example accumulo configuration files are placed in directories based on the 
 memory footprint for the accumulo processes.  If you are using native libraries
