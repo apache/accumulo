@@ -45,7 +45,7 @@ import org.apache.log4j.Logger;
  * 
  */
 public class WalkingSecurity extends SecurityOperation implements Authorizor, Authenticator, PermissionHandler {
-  State state;
+  State state= null;
   protected final static Logger log = Logger.getLogger(WalkingSecurity.class);
   
   private static final String tableName = "secTableName";
@@ -76,7 +76,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
 
   public static WalkingSecurity get(State state) {
-    if (instance != null && instance.state != state) {
+    if (instance == null || instance.state != state) {
       instance = new WalkingSecurity(state);
       state.set(tableExists, Boolean.toString(false));
       state.set(authsMap, new HashMap<String,Integer>());
@@ -272,6 +272,10 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
       state.set("system" + connector, toRet);
     }
     return toRet;
+  }
+
+  public void setSystemConnector(Connector conn) throws AccumuloException, AccumuloSecurityException {
+    state.set("system" + connector, conn);
   }
 
   public Connector getTableConnector() throws AccumuloException, AccumuloSecurityException {

@@ -49,6 +49,7 @@ public class SecurityFixture extends Fixture {
     WalkingSecurity.get(state).createUser(systemUserName, sysUserPass);
     
     WalkingSecurity.get(state).changePassword(tableUserName, new byte[0]);
+    WalkingSecurity.get(state).setSystemConnector(sysConn);
     
     WalkingSecurity.get(state).setTableName(secTableName);
     WalkingSecurity.get(state).setTabUserName(tableUserName);
