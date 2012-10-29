@@ -3179,7 +3179,17 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   private static void ensureHdfsSyncIsEnabled(FileSystem fs) {
     if (fs instanceof DistributedFileSystem) {
       if (!fs.getConf().getBoolean("dfs.durable.sync", false) && !fs.getConf().getBoolean("dfs.support.append", false)) {
-        String msg = "Must set dfs.durable.sync OR dfs.support.append to true.  Which one needs to be set depends on your version of HDFS.  See ACCUMULO-623.";
+        String msg = "Must set dfs.durable.sync OR dfs.support.append to true.  Which one needs to be set depends on your version of HDFS.  See ACCUMULO-623. \n"+
+        		"HADOOP RELEASE          VERSION           SYNC NAME             DEFAULT\n"+
+            "Apache Hadoop           0.20.205          dfs.support.append    false\n"+
+            "Apache Hadoop            0.23.x           dfs.support.append    true\n"+
+            "Apache Hadoop             1.0.x           dfs.support.append    false\n"+
+            "Apache Hadoop             1.1.x           dfs.durable.sync      true\n"+
+            "Apache Hadoop          2.0.0-2.0.2        dfs.support.append    true\n"+
+            "Cloudera CDH             3u0-3u3             ????               true\n"+
+            "Cloudera CDH               3u4            dfs.support.append    true\n"+
+            "Hortonworks HDP           `1.0            dfs.support.append    false\n"+
+            "Hortonworks HDP           `1.1            dfs.support.append    false";
         log.fatal(msg);
         System.exit(-1);
       }
