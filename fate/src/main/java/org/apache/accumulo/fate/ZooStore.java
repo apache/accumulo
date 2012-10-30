@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.nio.charset.Charset;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -53,6 +54,8 @@ public class ZooStore<T> implements TStore<T> {
   private SecureRandom idgenerator;
   private long statusChangeEvents = 0;
   private int reservationsWaiting = 0;
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   private byte[] serialize(Object o) {
     
@@ -104,7 +107,7 @@ public class ZooStore<T> implements TStore<T> {
       try {
         // looking at the code for SecureRandom, it appears to be thread safe
         long tid = Math.abs(idgenerator.nextLong());
-        zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(), NodeExistsPolicy.FAIL);
+        zk.putPersistentData(getTXPath(tid), TStatus.NEW.name().getBytes(utf8), NodeExistsPolicy.FAIL);
         return tid;
       } catch (NodeExistsException nee) {
         // exist, so just try another random #
@@ -359,7 +362,7 @@ public class ZooStore<T> implements TStore<T> {
     verifyReserved(tid);
     
     try {
-      zk.putPersistentData(getTXPath(tid), status.name().getBytes(), NodeExistsPolicy.OVERWRITE);
+      zk.putPersistentData(getTXPath(tid), status.name().getBytes(utf8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -387,7 +390,7 @@ public class ZooStore<T> implements TStore<T> {
     
     try {
       if (so instanceof String) {
-        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, ("S " + so).getBytes(), NodeExistsPolicy.OVERWRITE);
+        zk.putPersistentData(getTXPath(tid) + "/prop_" + prop, ("S " + so).getBytes(utf8), NodeExistsPolicy.OVERWRITE);
       } else {
         byte[] sera = serialize(so);
         byte[] data = new byte[sera.length + 2];

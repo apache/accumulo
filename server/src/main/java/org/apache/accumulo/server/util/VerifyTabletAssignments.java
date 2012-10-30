@@ -18,6 +18,7 @@ package org.apache.accumulo.server.util;
 
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -70,6 +71,8 @@ import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 
 public class VerifyTabletAssignments {
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   public static void main(String[] args) throws Exception {
     Options opts = new Options();
@@ -129,7 +132,7 @@ public class VerifyTabletAssignments {
       System.exit(1);
     }
     
-    Connector conn = instance.getConnector(user, passw.getBytes());
+    Connector conn = instance.getConnector(user, passw.getBytes(utf8));
     ServerConfiguration conf = new ServerConfiguration(instance);
     for (String table : conn.tableOperations().list())
       checkTable(conf.getConfiguration(), user, passw, table, null, cl.hasOption(verboseOption.getOpt()));
@@ -149,7 +152,7 @@ public class VerifyTabletAssignments {
     SortedSet<KeyExtent> tablets = new TreeSet<KeyExtent>();
     
     MetadataTable.getEntries(HdfsZooInstance.getInstance(),
-        new AuthInfo(user, ByteBuffer.wrap(pass.getBytes()), HdfsZooInstance.getInstance().getInstanceID()), table, false, locations, tablets);
+        new AuthInfo(user, ByteBuffer.wrap(pass.getBytes(utf8)), HdfsZooInstance.getInstance().getInstanceID()), table, false, locations, tablets);
     
     final HashSet<KeyExtent> failures = new HashSet<KeyExtent>();
     
@@ -180,7 +183,7 @@ public class VerifyTabletAssignments {
         @Override
         public void run() {
           try {
-            checkTabletServer(conf, user, ByteBuffer.wrap(pass.getBytes()), entry, failures);
+            checkTabletServer(conf, user, ByteBuffer.wrap(pass.getBytes(utf8)), entry, failures);
           } catch (Exception e) {
             System.err.println("Failure on ts " + entry.getKey() + " " + e.getMessage());
             e.printStackTrace();

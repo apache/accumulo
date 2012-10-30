@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -70,6 +71,8 @@ public class SendLogToChainsaw extends XMLLayout {
   private LongRange dateFilter = null;
   
   private LevelRangeFilter levelFilter = null;
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   public SendLogToChainsaw(String directory, String fileNameFilter, String host, int port, Date start, Date end, String regex, String level) throws Exception {
     
@@ -135,7 +138,7 @@ public class SendLogToChainsaw extends XMLLayout {
                 out = convertLine(line, threadName);
                 if (null != out) {
                   if (socket != null && socket.isConnected())
-                    socket.getOutputStream().write(out.getBytes());
+                    socket.getOutputStream().write(out.getBytes(utf8));
                   else
                     System.err.println("Unable to send data to transport");
                 }

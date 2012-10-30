@@ -22,6 +22,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -333,6 +334,8 @@ class CopyFailed extends MasterRepo {
   private String source;
   private String bulk;
   private String error;
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   public CopyFailed(String tableId, String source, String bulk, String error) {
     this.tableId = tableId;
@@ -427,7 +430,7 @@ class CopyFailed extends MasterRepo {
         if (fs.exists(dest))
           continue;
         
-        bifCopyQueue.addWork(orig.getName(), (failure + "," + dest).getBytes());
+        bifCopyQueue.addWork(orig.getName(), (failure + "," + dest).getBytes(utf8));
         workIds.add(orig.getName());
         log.debug("tid " + tid + " added to copyq: " + orig + " to " + dest + ": failed");
       }

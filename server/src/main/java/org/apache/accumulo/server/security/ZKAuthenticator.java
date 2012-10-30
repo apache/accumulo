@@ -22,6 +22,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -56,6 +57,8 @@ public final class ZKAuthenticator implements Authenticator {
   private static final Logger log = Logger.getLogger(ZKAuthenticator.class);
   private static Authenticator zkAuthenticatorInstance = null;
   private static String rootUserName = null;
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   private final String ZKUserAuths = "/Authorizations";
   private final String ZKUserSysPerms = "/System";
@@ -122,7 +125,7 @@ public final class ZKAuthenticator implements Authenticator {
         }
         
         // prep parent node of users with root username
-        zoo.putPersistentData(ZKUserPath, rootuser.getBytes(), NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(ZKUserPath, rootuser.getBytes(utf8), NodeExistsPolicy.FAIL);
         
         // create the root user with all system privileges, no table privileges, and no record-level authorizations
         Set<SystemPermission> rootPerms = new TreeSet<SystemPermission>();

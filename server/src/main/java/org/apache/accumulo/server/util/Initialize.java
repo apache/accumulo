@@ -18,6 +18,7 @@ package org.apache.accumulo.server.util;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map.Entry;
@@ -108,6 +109,8 @@ public class Initialize {
     initialMetadataConf.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
     initialMetadataConf.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
   }
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   public static boolean doInit(Configuration conf, FileSystem fs) throws IOException {
     if (!ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_URI).equals(""))
@@ -263,7 +266,7 @@ public class Initialize {
       
       // root's directory
       Key rootDirKey = new Key(rootExtent, Constants.METADATA_DIRECTORY_COLUMN.getColumnFamily(), Constants.METADATA_DIRECTORY_COLUMN.getColumnQualifier(), 0);
-      mfw.append(rootDirKey, new Value("/root_tablet".getBytes()));
+      mfw.append(rootDirKey, new Value("/root_tablet".getBytes(utf8)));
       
       // root's prev row
       Key rootPrevRowKey = new Key(rootExtent, Constants.METADATA_PREV_ROW_COLUMN.getColumnFamily(), Constants.METADATA_PREV_ROW_COLUMN.getColumnQualifier(), 0);
@@ -274,11 +277,11 @@ public class Initialize {
       
       // table tablet's directory
       Key tableDirKey = new Key(tableExtent, Constants.METADATA_DIRECTORY_COLUMN.getColumnFamily(), Constants.METADATA_DIRECTORY_COLUMN.getColumnQualifier(), 0);
-      mfw.append(tableDirKey, new Value(Constants.TABLE_TABLET_LOCATION.getBytes()));
+      mfw.append(tableDirKey, new Value(Constants.TABLE_TABLET_LOCATION.getBytes(utf8)));
       
       // table tablet time
       Key tableTimeKey = new Key(tableExtent, Constants.METADATA_TIME_COLUMN.getColumnFamily(), Constants.METADATA_TIME_COLUMN.getColumnQualifier(), 0);
-      mfw.append(tableTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes()));
+      mfw.append(tableTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(utf8)));
       
       // table tablet's prevrow
       Key tablePrevRowKey = new Key(tableExtent, Constants.METADATA_PREV_ROW_COLUMN.getColumnFamily(), Constants.METADATA_PREV_ROW_COLUMN.getColumnQualifier(),
@@ -291,11 +294,11 @@ public class Initialize {
       // default's directory
       Key defaultDirKey = new Key(defaultExtent, Constants.METADATA_DIRECTORY_COLUMN.getColumnFamily(),
           Constants.METADATA_DIRECTORY_COLUMN.getColumnQualifier(), 0);
-      mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_LOCATION.getBytes()));
+      mfw.append(defaultDirKey, new Value(Constants.DEFAULT_TABLET_LOCATION.getBytes(utf8)));
       
       // default's time
       Key defaultTimeKey = new Key(defaultExtent, Constants.METADATA_TIME_COLUMN.getColumnFamily(), Constants.METADATA_TIME_COLUMN.getColumnQualifier(), 0);
-      mfw.append(defaultTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes()));
+      mfw.append(defaultTimeKey, new Value((TabletTime.LOGICAL_TIME_ID + "0").getBytes(utf8)));
       
       // default's prevrow
       Key defaultPrevRowKey = new Key(defaultExtent, Constants.METADATA_PREV_ROW_COLUMN.getColumnFamily(),
@@ -344,7 +347,7 @@ public class Initialize {
     // setup instance name
     if (clearInstanceName)
       zoo.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
-    zoo.putPersistentData(instanceNamePath, uuid.getBytes(), NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(instanceNamePath, uuid.getBytes(utf8), NodeExistsPolicy.FAIL);
     
     // setup the instance
     String zkInstanceRoot = Constants.ZROOT + "/" + uuid;
@@ -358,7 +361,7 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTRACERS, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTERS, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_LOCK, new byte[0], NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_GOAL_STATE, MasterGoalState.NORMAL.toString().getBytes(), NodeExistsPolicy.FAIL);
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZMASTER_GOAL_STATE, MasterGoalState.NORMAL.toString().getBytes(utf8), NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZGC_LOCK, new byte[0], NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + Constants.ZCONFIG, new byte[0], NodeExistsPolicy.FAIL);
@@ -402,7 +405,7 @@ public class Initialize {
   
   private static byte[] getRootPassword() throws IOException {
     if (cliPassword != null) {
-      return cliPassword.getBytes();
+      return cliPassword.getBytes(utf8);
     }
     String rootpass;
     String confirmpass;
@@ -416,7 +419,7 @@ public class Initialize {
       if (!rootpass.equals(confirmpass))
         log.error("Passwords do not match");
     } while (!rootpass.equals(confirmpass));
-    return rootpass.getBytes();
+    return rootpass.getBytes(utf8);
   }
   
   private static void initSecurity(String iid, byte[] rootpass) throws AccumuloSecurityException {

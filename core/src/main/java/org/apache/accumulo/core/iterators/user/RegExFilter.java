@@ -18,6 +18,7 @@ package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,6 +35,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  * A Filter that matches entries based on Java regular expressions.
  */
 public class RegExFilter extends Filter {
+
+  private static final Charset utf8 = Charset.forName("UTF8");  
   
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
@@ -193,7 +196,7 @@ public class RegExFilter extends Filter {
       try {
         this.encoding = options.get(ENCODING);
         @SuppressWarnings("unused")
-        String test = new String("test".getBytes(), encoding);
+        String test = new String("test".getBytes(utf8), encoding);
       } catch (UnsupportedEncodingException e) {
         e.printStackTrace();
         return false;

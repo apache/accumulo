@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -52,6 +53,8 @@ public class Merge {
   
   private static final Logger log = Logger.getLogger(Merge.class);
   
+  private static final Charset utf8 = Charset.forName("UTF8");
+  
   protected void message(String format, Object... args) {
     log.info(String.format(format, args));
   }
@@ -62,7 +65,7 @@ public class Merge {
     String table = null;
     long goalSize = -1;
     String user = "root";
-    byte[] password = "secret".getBytes();
+    byte[] password = "secret".getBytes(utf8);
     boolean force = false;
     Text begin = null;
     Text end = null;
@@ -94,7 +97,7 @@ public class Merge {
     	table = commandLine.getOptionValue("u");
     }
     if (commandLine.hasOption("p")) {
-        password = commandLine.getOptionValue("p").getBytes();
+        password = commandLine.getOptionValue("p").getBytes(utf8);
     }
     if (commandLine.hasOption("f")) {
       force = true;

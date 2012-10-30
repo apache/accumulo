@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.master.state;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +31,8 @@ import org.apache.zookeeper.data.Stat;
 public class DeadServerList {
   private static final Logger log = Logger.getLogger(DeadServerList.class);
   private final String path;
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   public DeadServerList(String path) {
     this.path = path;
@@ -72,7 +75,7 @@ public class DeadServerList {
   public void post(String server, String cause) {
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     try {
-      zoo.putPersistentData(path + "/" + server, cause.getBytes(), NodeExistsPolicy.SKIP);
+      zoo.putPersistentData(path + "/" + server, cause.getBytes(utf8), NodeExistsPolicy.SKIP);
     } catch (Exception ex) {
       log.error(ex, ex);
     }

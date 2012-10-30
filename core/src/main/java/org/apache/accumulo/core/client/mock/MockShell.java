@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
 
 import jline.ConsoleReader;
 
@@ -35,6 +36,8 @@ public class MockShell extends Shell {
   
   protected InputStream in;
   protected Writer writer;
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   public MockShell(InputStream in, Writer writer) throws IOException {
     super();
@@ -132,6 +135,6 @@ public class MockShell extends Shell {
       sb.append(command).append(NEWLINE);
     }
     
-    return new ByteArrayInputStream(sb.toString().getBytes());
+    return new ByteArrayInputStream(sb.toString().getBytes(utf8));
   }
 }

@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.nio.charset.Charset;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -26,6 +28,9 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.zookeeper.KeeperException;
 
 public class TablePropUtil {
+
+  private static final Charset utf8 = Charset.forName("UTF8");
+  
   public static boolean setTableProperty(String tableId, String property, String value) throws KeeperException, InterruptedException {
     if (!isPropertyValid(property, value))
       return false;
@@ -36,7 +41,7 @@ public class TablePropUtil {
     
     // create the zk node for this property and set it's data to the specified value
     String zPath = zkTablePath + "/" + property;
-    ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(), NodeExistsPolicy.OVERWRITE);
+    ZooReaderWriter.getInstance().putPersistentData(zPath, value.getBytes(utf8), NodeExistsPolicy.OVERWRITE);
     
     return true;
   }

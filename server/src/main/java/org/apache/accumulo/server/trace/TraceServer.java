@@ -19,6 +19,7 @@ package org.apache.accumulo.server.trace;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
+import java.nio.charset.Charset;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
@@ -76,6 +77,8 @@ public class TraceServer implements Watcher {
   private Connector connector;
   final String table;
 
+  private static final Charset utf8 = Charset.forName("UTF8");
+
   private static void put(Mutation m, String cf, String cq, byte[] bytes, int len) {
     m.put(new Text(cf), new Text(cq), new Value(bytes, 0, len));
   }
@@ -121,7 +124,7 @@ public class TraceServer implements Watcher {
       Mutation spanMutation = new Mutation(new Text(idString));
       Mutation indexMutation = new Mutation(new Text("idx:" + s.svc + ":" + startString));
       long diff = s.stop - s.start;
-      indexMutation.put(new Text(s.description), new Text(s.sender), new Value((idString + ":" + Long.toHexString(diff)).getBytes()));
+      indexMutation.put(new Text(s.description), new Text(s.sender), new Value((idString + ":" + Long.toHexString(diff)).getBytes(utf8)));
       ByteArrayTransport transport = new ByteArrayTransport();
       TCompactProtocol protocol = new TCompactProtocol(transport);
       s.write(protocol);
@@ -157,7 +160,7 @@ public class TraceServer implements Watcher {
     table = conf.get(Property.TRACE_TABLE);
     while (true) {
       try {
-        connector = serverConfiguration.getInstance().getConnector(conf.get(Property.TRACE_USER), conf.get(Property.TRACE_PASSWORD).getBytes());
+        connector = serverConfiguration.getInstance().getConnector(conf.get(Property.TRACE_USER), conf.get(Property.TRACE_PASSWORD).getBytes(utf8));
         if (!connector.tableOperations().exists(table)) {
           connector.tableOperations().create(table);
         }
@@ -221,7 +224,7 @@ public class TraceServer implements Watcher {
   private void registerInZooKeeper(String name) throws Exception {
     String root = ZooUtil.getRoot(serverConfiguration.getInstance()) + Constants.ZTRACERS;
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes());
+    String path = zoo.putEphemeralSequential(root + "/trace-", name.getBytes(utf8));
     zoo.exists(path, this);
   }
   

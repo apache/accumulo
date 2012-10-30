@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.server.master.tableOps;
 
+import java.nio.charset.Charset;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -37,6 +39,8 @@ public class RenameTable extends MasterRepo {
   private String tableId;
   private String oldTableName;
   private String newTableName;
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   @Override
   public long isReady(long tid, Master environment) throws Exception {
@@ -70,7 +74,7 @@ public class RenameTable extends MasterRepo {
             throw new ThriftTableOperationException(null, oldTableName, TableOperation.RENAME, TableOperationExceptionType.NOTFOUND,
                 "Name changed while processing");
           }
-          return newTableName.getBytes();
+          return newTableName.getBytes(utf8);
         }
       });
       Tables.clearCache(instance);

@@ -24,6 +24,7 @@ package org.apache.accumulo.server.tabletserver;
  */
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -145,6 +146,8 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 
 public class Tablet {
   
+  private Charset utf8 = Charset.forName("UTF8");
+    
   enum MajorCompactionReason {
     // do not change the order, the order of this enum determines the order
     // in which queued major compactions are executed
@@ -2174,7 +2177,7 @@ public class Tablet {
     private DataFileValue stats;
     private String mergeFile;
     private long flushId;
-    
+
     MinorCompactionTask(String mergeFile, CommitSession commitSession, long flushId) {
       queued = System.currentTimeMillis();
       minorCompactionWaitingToStart = true;
@@ -2405,7 +2408,7 @@ public class Tablet {
       List<IteratorSetting> allIters = new ArrayList<IteratorSetting>();
       for (int i = 1; i < tokens.length; i++) {
         Hex hex = new Hex();
-        List<IteratorSetting> iters = IteratorUtil.decodeIteratorSettings(hex.decode(tokens[i].split("=")[1].getBytes()));
+        List<IteratorSetting> iters = IteratorUtil.decodeIteratorSettings(hex.decode(tokens[i].split("=")[1].getBytes(utf8)));
         allIters.addAll(iters);
       }
       

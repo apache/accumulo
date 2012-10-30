@@ -16,10 +16,14 @@
  */
 package org.apache.accumulo.core.util;
 
+import java.nio.charset.Charset;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.io.Text;
 
 public class Encoding {
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   public static String encodeAsBase64FileName(Text data) {
     String encodedRow = new String(Base64.encodeBase64(TextUtil.getBytes(data)));
@@ -39,7 +43,7 @@ public class Encoding {
     
     node = node.replace('_', '/').replace('-', '+');
     
-    return Base64.decodeBase64(node.getBytes());
+    return Base64.decodeBase64(node.getBytes(utf8));
   }
   
 }

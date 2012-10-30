@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Random;
 
@@ -81,13 +82,14 @@ public class RandomWriter {
   
   public static void main(String[] args) throws MutationsRejectedException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
     long start = System.currentTimeMillis();
+    final Charset utf8 = Charset.forName("UTF8");
     if (args.length != 3) {
       log.error("Usage: bin/accumulo " + RandomWriter.class.getName() + " <username> <password> <num_mutations_to_write>");
       return;
     }
     log.info("starting at " + start + " for user " + args[0]);
     try {
-      Connector connector = HdfsZooInstance.getInstance().getConnector(args[0], args[1].getBytes());
+      Connector connector = HdfsZooInstance.getInstance().getConnector(args[0], args[1].getBytes(utf8));
       BatchWriter bw = connector.createBatchWriter(table_name, new BatchWriterConfig());
       long num_mutations = Long.parseLong(args[2]);
       log.info("Writing " + num_mutations + " mutations...");
