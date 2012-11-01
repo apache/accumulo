@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,8 +44,10 @@ import org.apache.hadoop.io.Text;
  * This iterator works in a similar way to the RowDeletingIterator. See its javadoc about locality groups.
  */
 public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, OptionDescriber {
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
-  public static final Value SUPPRESS_ROW_VALUE = new Value("SUPPRESS_ROW".getBytes());
+  public static final Value SUPPRESS_ROW_VALUE = new Value("SUPPRESS_ROW".getBytes(utf8));
   
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[] {});
   

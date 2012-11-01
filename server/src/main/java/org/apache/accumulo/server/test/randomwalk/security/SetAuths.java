@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 
@@ -30,7 +31,7 @@ public class SetAuths extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn;
+    AuthInfo auth;
     
     String authsString = props.getProperty("auths", "_random");
     
@@ -38,15 +39,16 @@ public class SetAuths extends Test {
     String target;
     if ("table".equals(targetUser)) {
       target = WalkingSecurity.get(state).getTabUserName();
-      conn = WalkingSecurity.get(state).getSystemConnector();
+      auth = WalkingSecurity.get(state).getSysAuthInfo();
     } else {
       target = WalkingSecurity.get(state).getSysUserName();
-      conn = state.getConnector();
+      auth = state.getAuthInfo();
     }
-
+    Connector conn = state.getInstance().getConnector(auth);
+    
     boolean exists = WalkingSecurity.get(state).userExists(target);
-    boolean hasPermission = WalkingSecurity.get(state).canChangeAuthorizations(WalkingSecurity.get(state).getSysAuthInfo(), target);
-
+    boolean hasPermission = WalkingSecurity.get(state).canChangeAuthorizations(auth, target);
+    
     Authorizations auths;
     if (authsString.equals("_random")) {
       String[] possibleAuths = WalkingSecurity.get(state).getAuthsArray();

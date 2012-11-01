@@ -31,7 +31,7 @@ public class CreateTable extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn = WalkingSecurity.get(state).getSystemConnector();
+    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getSysAuthInfo());
     
     String tableName = WalkingSecurity.get(state).getTableName();
     

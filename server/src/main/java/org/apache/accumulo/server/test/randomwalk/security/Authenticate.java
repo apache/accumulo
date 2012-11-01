@@ -30,24 +30,21 @@ public class Authenticate extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn = WalkingSecurity.get(state).getSystemConnector();
-    
-    authenticate(conn, state, props);
+    authenticate(WalkingSecurity.get(state).getSysAuthInfo(), state, props);
   }
   
-  public static void authenticate(Connector conn, State state, Properties props) throws Exception {
+  public static void authenticate(AuthInfo auth, State state, Properties props) throws Exception {
     String targetProp = props.getProperty("target");
     boolean success = Boolean.parseBoolean(props.getProperty("valid"));
     
+    Connector conn = state.getInstance().getConnector(auth);
+    
     String target;
     
-    AuthInfo auth;
     if (targetProp.equals("table")) {
       target = WalkingSecurity.get(state).getTabUserName();
-      auth = WalkingSecurity.get(state).getTabAuthInfo();
     } else {
       target = WalkingSecurity.get(state).getSysUserName();
-      auth = WalkingSecurity.get(state).getSysAuthInfo();
     }
     boolean exists = WalkingSecurity.get(state).userExists(target);
     // Copy so if failed it doesn't mess with the password stored in state

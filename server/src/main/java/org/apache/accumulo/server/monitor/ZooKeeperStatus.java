@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.monitor;
 
 import java.net.InetSocketAddress;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,6 +36,8 @@ public class ZooKeeperStatus implements Runnable {
   private static final Logger log = Logger.getLogger(ZooKeeperStatus.class);
   
   private volatile boolean stop = false;
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   public static class ZooKeeperState {
     public final String keeper;
@@ -80,7 +83,7 @@ public class ZooKeeperStatus implements Runnable {
             addr = new InetSocketAddress(parts[0], 2181);
           
           transport = TTimeoutTransport.create(addr, 10 * 1000l);
-          transport.write("stat\n".getBytes(), 0, 5);
+          transport.write("stat\n".getBytes(utf8), 0, 5);
           StringBuilder response = new StringBuilder();
           try {
             transport.flush();

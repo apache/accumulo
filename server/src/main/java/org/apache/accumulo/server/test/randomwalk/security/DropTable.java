@@ -37,15 +37,13 @@ public class DropTable extends Test {
   
   public static void dropTable(State state, Properties props) throws Exception {
     String sourceUser = props.getProperty("source", "system");
-    Connector conn;
     AuthInfo auth;
     if (sourceUser.equals("table")) {
       auth = WalkingSecurity.get(state).getTabAuthInfo();
-      conn = WalkingSecurity.get(state).getTableConnector();
     } else {
       auth = WalkingSecurity.get(state).getSysAuthInfo();
-      conn = WalkingSecurity.get(state).getSystemConnector();
     }
+    Connector conn = state.getInstance().getConnector(auth);
     
     String tableName = WalkingSecurity.get(state).getTableName();
     

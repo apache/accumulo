@@ -24,9 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -45,7 +43,7 @@ import org.apache.log4j.Logger;
  * 
  */
 public class WalkingSecurity extends SecurityOperation implements Authorizor, Authenticator, PermissionHandler {
-  State state= null;
+  State state = null;
   protected final static Logger log = Logger.getLogger(WalkingSecurity.class);
   
   private static final String tableName = "secTableName";
@@ -60,13 +58,13 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   private static final String authsMap = "authorizationsCountMap";
   private static final String lastKey = "lastMutationKey";
   private static final String filesystem = "securityFileSystem";
-
+  
   private static WalkingSecurity instance = null;
   
   public WalkingSecurity(Authorizor author, Authenticator authent, PermissionHandler pm, String instanceId) {
     super(author, authent, pm, instanceId);
   }
-
+  
   public WalkingSecurity(State state2) {
     super(state2.getInstance().getInstanceID());
     this.state = state2;
@@ -74,17 +72,17 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     authenticator = this;
     permHandle = this;
   }
-
+  
   public static WalkingSecurity get(State state) {
     if (instance == null || instance.state != state) {
       instance = new WalkingSecurity(state);
       state.set(tableExists, Boolean.toString(false));
       state.set(authsMap, new HashMap<String,Integer>());
     }
-
+    
     return instance;
   }
-
+  
   @Override
   public void initialize(String instanceId) {
     throw new UnsupportedOperationException("nope");
@@ -104,7 +102,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public boolean validSecurityHandlers(Authorizor one, PermissionHandler two) {
     return this.getClass().equals(one.getClass()) && this.getClass().equals(two.getClass());
   }
-
+  
   @Override
   public void initializeSecurity(String rootuser) throws AccumuloSecurityException {
     throw new UnsupportedOperationException("nope");
@@ -134,12 +132,16 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     }
     return userList;
   }
-
+  
   @Override
   public boolean authenticateUser(String user, ByteBuffer password, String instanceId) {
-    return Arrays.equals((byte[]) state.get(user + userPass), password.array());
+    byte[] pass = (byte[]) state.get(user + userPass);
+    boolean ret = Arrays.equals(pass, password.array());
+    if (!ret)
+      log.debug("auTHENTIcAtION IssuE- " + user + " user's password is not " + new String(password.array()) + " to the state, it is " + new String(pass));
+    return ret;
   }
-
+  
   @Override
   public void createUser(String user, byte[] pass) throws AccumuloSecurityException {
     state.set(user + userExists, Boolean.toString(true));
@@ -149,24 +151,17 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   @Override
   public void dropUser(String user) throws AccumuloSecurityException {
     state.set(user + userExists, Boolean.toString(false));
-    for (SystemPermission sp : SystemPermission.values()) {
-      revokeSystemPermission(user, sp);
-    }
-    if (getTableExists())
-      try{
-        for (TablePermission tp : TablePermission.values())
-          revokeTablePermission(user, getTableName(), tp);
-      } catch (TableNotFoundException tnfe) {
-        log.error("This really shouldn't happen", tnfe);
-      }
+    cleanUser(user);
+    if (user.equals(getTabUserName()))
+      state.set("table" + connector, null);
   }
-
+  
   @Override
   public void changePassword(String user, byte[] pass) throws AccumuloSecurityException {
     state.set(user + userPass, pass);
     state.set(user + userPass + "time", System.currentTimeMillis());
   }
-
+  
   @Override
   public boolean userExists(String user) {
     return Boolean.parseBoolean(state.getString(user + userExists));
@@ -174,9 +169,11 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   
   @Override
   public boolean hasSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
-    return Boolean.parseBoolean(state.getString("Sys" + userName + permission.name()));
+    boolean res = Boolean.parseBoolean(state.getString("Sys" + user + permission.name()));
+    log.debug("Sys"+user+permission.name() + " is the key; user " + user + " for " + permission + " is " + res);
+    return res;
   }
-
+  
   @Override
   public boolean hasCachedSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     return hasSystemPermission(user, permission);
@@ -184,7 +181,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   
   @Override
   public boolean hasTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
-    return Boolean.parseBoolean(state.getString("Tab" + table + userName + permission.name()));
+    return Boolean.parseBoolean(state.getString("Tab" + table + user + permission.name()));
   }
   
   @Override
@@ -209,6 +206,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   
   private static void setSysPerm(State state, String userName, SystemPermission tp, boolean value) {
     log.debug((value ? "Gave" : "Took") + " the system permission " + tp.name() + (value ? " to" : " from") + " user " + userName);
+    log.debug("Seriously, Sys" + userName+tp.name() + " is being set to " + Boolean.toString(value));
     state.set("Sys" + userName + tp.name(), Boolean.toString(value));
   }
   
@@ -218,7 +216,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     if (tp.equals(TablePermission.READ) || tp.equals(TablePermission.WRITE))
       state.set("Tab" + table + userName + tp.name() + "time", System.currentTimeMillis());
   }
-
+  
   @Override
   public void revokeTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
     setTabPerm(state, user, permission, table, false);
@@ -236,10 +234,11 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   
   @Override
   public void cleanUser(String user) throws AccumuloSecurityException {
-    for (TablePermission tp : TablePermission.values())
-      try {
-        revokeTablePermission(user, null, tp);
-      } catch (TableNotFoundException e) {}
+    if (getTableExists())      
+      for (TablePermission tp : TablePermission.values())
+        try {
+          revokeTablePermission(user, getTableName(), tp);
+        } catch (TableNotFoundException e) {}
     for (SystemPermission sp : SystemPermission.values())
       revokeSystemPermission(user, sp);
   }
@@ -256,7 +255,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public String getSysUserName() {
     return state.getString("system" + userName);
   }
-
+  
   public void setTabUserName(String name) {
     state.set("table" + userName, name);
   }
@@ -264,33 +263,11 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public void setSysUserName(String name) {
     state.set("system" + userName, name);
   }
-
-  public Connector getSystemConnector() throws AccumuloException, AccumuloSecurityException {
-    Connector toRet = (Connector) state.get("system" + connector);
-    if (toRet == null) {
-      toRet = state.getInstance().getConnector(getSysAuthInfo());
-      state.set("system" + connector, toRet);
-    }
-    return toRet;
-  }
-
-  public void setSystemConnector(Connector conn) throws AccumuloException, AccumuloSecurityException {
-    state.set("system" + connector, conn);
-  }
-
-  public Connector getTableConnector() throws AccumuloException, AccumuloSecurityException {
-    Connector toRet = (Connector) state.get("table" + connector);
-    if (toRet == null) {
-      toRet = state.getInstance().getConnector(getTabAuthInfo());
-      state.set("table" + connector, toRet);
-    }
-    return toRet;
-  }
-
+    
   public String getTableName() {
     return state.getString(tableName);
   }
-
+  
   public boolean getTableExists() {
     return Boolean.parseBoolean(state.getString(tableExists));
   }
@@ -302,11 +279,11 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public AuthInfo getTabAuthInfo() {
     return new AuthInfo(getTabUserName(), ByteBuffer.wrap(getTabPassword()), state.getInstance().getInstanceID());
   }
-
+  
   public byte[] getUserPassword(String user) {
     return (byte[]) state.get(user + userPass);
   }
-
+  
   public byte[] getSysPassword() {
     return (byte[]) state.get(getSysUserName() + userPass);
   }
@@ -314,9 +291,9 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public byte[] getTabPassword() {
     return (byte[]) state.get(getTabUserName() + userPass);
   }
-
+  
   public boolean userPassTransient(String user) {
-    return System.currentTimeMillis() - state.getInteger(user + userPass + "time") < 1000;
+    return System.currentTimeMillis() - state.getLong(user + userPass + "time") < 1000;
   }
   
   public void setTableName(String tName) {
@@ -332,10 +309,10 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public String[] getAuthsArray() {
     return new String[] {"Fishsticks", "PotatoSkins", "Ribs", "Asparagus", "Paper", "Towels", "Lint", "Brush", "Celery"};
   }
-
+  
   public boolean inAmbiguousZone(String userName, TablePermission tp) {
     if (tp.equals(TablePermission.READ) || tp.equals(TablePermission.WRITE)) {
-      Long setTime = (Long) state.get("Tab" + userName + tp.name() + "time");
+      Long setTime = state.getLong("Tab" + userName + tp.name() + "time");
       if (System.currentTimeMillis() < (setTime + 1000))
         return true;
     }
@@ -346,11 +323,11 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public Map<String,Integer> getAuthsMap() {
     return (Map<String,Integer>) state.get(authsMap);
   }
-
+  
   public String getLastKey() {
     return state.getString(lastKey);
   }
-
+  
   public void increaseAuthMap(String s, int increment) {
     Integer curVal = getAuthsMap().get(s);
     if (curVal == null) {
@@ -359,7 +336,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
     }
     curVal += increment;
   }
-
+  
   public FileSystem getFs() {
     FileSystem fs = null;
     try {

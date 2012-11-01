@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.mapreduce;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
@@ -65,6 +66,8 @@ import org.apache.log4j.Logger;
  */
 public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   private static final Logger log = Logger.getLogger(AccumuloOutputFormat.class);
+  
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   private static final String PREFIX = AccumuloOutputFormat.class.getSimpleName();
   private static final String OUTPUT_INFO_HAS_BEEN_SET = PREFIX + ".configured";
@@ -184,7 +187,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * string, and is not intended to be secure.
    */
   protected static byte[] getPassword(Configuration conf) {
-    return Base64.decodeBase64(conf.get(PASSWORD, "").getBytes());
+    return Base64.decodeBase64(conf.get(PASSWORD, "").getBytes(utf8));
   }
   
   protected static boolean canCreateTables(Configuration conf) {

@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.File;
+import java.nio.charset.Charset;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -31,6 +32,8 @@ import org.apache.hadoop.io.Text;
 
 public class AddSplitsCommand extends Command {
   private Option optSplitsFile, base64Opt;
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
     final String tableName = OptUtil.getTableOpt(cl, shellState);
@@ -46,7 +49,7 @@ public class AddSplitsCommand extends Command {
       while (file.hasNextLine()) {
         line = file.nextLine();
         if (!line.isEmpty()) {
-          splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
+          splits.add(decode ? new Text(Base64.decodeBase64(line.getBytes(utf8))) : new Text(line));
         }
       }
     } else {

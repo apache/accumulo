@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -31,6 +32,8 @@ import org.apache.log4j.Logger;
 // A ReadWriteLock that can be implemented in ZooKeeper.  Features the ability to store data
 // with the lock, and recover the lock using that data to find the lock.
 public class DistributedReadWriteLock implements java.util.concurrent.locks.ReadWriteLock {
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   static enum LockType {
     READ, WRITE,
@@ -71,7 +74,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     }
     
     public byte[] getLockData() {
-      byte typeBytes[] = type.name().getBytes();
+      byte typeBytes[] = type.name().getBytes(utf8);
       byte[] result = new byte[userData.length + 1 + typeBytes.length];
       System.arraycopy(typeBytes, 0, result, 0, typeBytes.length);
       result[typeBytes.length] = ':';

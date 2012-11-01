@@ -35,9 +35,7 @@ public class AlterTablePerm extends Test {
     alter(state, props);
   }
   
-  public static void alter(State state, Properties props) throws Exception {
-    Connector conn;
-    
+  public static void alter(State state, Properties props) throws Exception {    
     String action = props.getProperty("task", "toggle");
     String perm = props.getProperty("perm", "random");
     String sourceUser = props.getProperty("source", "system");
@@ -65,15 +63,13 @@ public class AlterTablePerm extends Test {
     boolean canGive;
     AuthInfo source;
     if ("system".equals(sourceUser)) {
-      conn = WalkingSecurity.get(state).getSystemConnector();
       source = WalkingSecurity.get(state).getSysAuthInfo();
     } else if ("table".equals(sourceUser)) {
-      conn = WalkingSecurity.get(state).getTableConnector();
       source = WalkingSecurity.get(state).getTabAuthInfo();
     } else {
-      conn = state.getConnector();
       source = state.getAuthInfo();
     }
+    Connector conn = state.getInstance().getConnector(source);
     
     canGive = WalkingSecurity.get(state).canGrantTable(source, target, WalkingSecurity.get(state).getTableName());
 

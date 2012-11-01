@@ -20,6 +20,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -34,9 +35,11 @@ public class ZooReaderWriter extends org.apache.accumulo.fate.zookeeper.ZooReade
   private static final String USER = "accumulo";
   private static ZooReaderWriter instance = null;
   private static IZooReaderWriter retryingInstance = null;
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   public ZooReaderWriter(String string, int timeInMillis, String secret) {
-    super(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes());
+    super(string, timeInMillis, SCHEME, (USER + ":" + secret).getBytes(utf8));
   }
   
   public static synchronized ZooReaderWriter getInstance() {

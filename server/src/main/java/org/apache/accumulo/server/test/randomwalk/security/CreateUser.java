@@ -29,7 +29,7 @@ public class CreateUser extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn = WalkingSecurity.get(state).getSystemConnector();
+    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getSysAuthInfo());
     
     String tableUserName = WalkingSecurity.get(state).getTabUserName();
     

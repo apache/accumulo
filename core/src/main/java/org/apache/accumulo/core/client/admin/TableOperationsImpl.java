@@ -20,6 +20,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -108,6 +109,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private AuthInfo credentials;
   
   private static final Logger log = Logger.getLogger(TableOperationsImpl.class);
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   /**
    * @param instance
@@ -188,7 +191,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void create(String tableName, boolean limitVersion, TimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException {
     ArgumentChecker.notNull(tableName, timeType);
     
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(timeType.name().getBytes()));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(utf8)), ByteBuffer.wrap(timeType.name().getBytes(utf8)));
     
     Map<String,String> opts = IteratorUtil.generateInitialTableProperties(limitVersion);
     
@@ -485,7 +488,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     
     ArgumentChecker.notNull(tableName);
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(utf8)), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
         : TextUtil.getByteBuffer(end));
     Map<String,String> opts = new HashMap<String,String>();
     try {
@@ -500,7 +503,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     
     ArgumentChecker.notNull(tableName);
     ByteBuffer EMPTY = ByteBuffer.allocate(0);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(utf8)), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
         : TextUtil.getByteBuffer(end));
     Map<String,String> opts = new HashMap<String,String>();
     try {
@@ -597,7 +600,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void delete(String tableName) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ArgumentChecker.notNull(tableName);
     
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(utf8)));
     Map<String,String> opts = new HashMap<String,String>();
     
     try {
@@ -623,7 +626,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (!Collections.disjoint(propertiesToExclude, propertiesToSet.keySet()))
       throw new IllegalArgumentException("propertiesToSet and propertiesToExclude not disjoint");
     
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.getBytes()), ByteBuffer.wrap(newTableName.getBytes()));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(srcTableId.getBytes(utf8)), ByteBuffer.wrap(newTableName.getBytes(utf8)));
     Map<String,String> opts = new HashMap<String,String>();
     opts.putAll(propertiesToSet);
     for (String prop : propertiesToExclude)
@@ -651,7 +654,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       TableExistsException {
     
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes()), ByteBuffer.wrap(newTableName.getBytes()));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldTableName.getBytes(utf8)), ByteBuffer.wrap(newTableName.getBytes(utf8)));
     Map<String,String> opts = new HashMap<String,String>();
     doTableOperation(TableOperation.RENAME, args, opts);
   }
@@ -700,7 +703,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (flush)
       _flush(tableId, start, end, true);
     
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes()), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.getBytes(utf8)), start == null ? EMPTY : TextUtil.getByteBuffer(start), end == null ? EMPTY
         : TextUtil.getByteBuffer(end), ByteBuffer.wrap(IteratorUtil.encodeIteratorSettings(iterators)));
 
     Map<String,String> opts = new HashMap<String,String>();
@@ -1017,8 +1020,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw new AccumuloException("Bulk import failure directory " + failPath + " is not empty");
     }
     
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(dir.getBytes()), ByteBuffer.wrap(failureDir.getBytes()),
-        ByteBuffer.wrap((setTime + "").getBytes()));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(utf8)), ByteBuffer.wrap(dir.getBytes(utf8)), ByteBuffer.wrap(failureDir.getBytes(utf8)),
+        ByteBuffer.wrap((setTime + "").getBytes(utf8)));
     Map<String,String> opts = new HashMap<String,String>();
     
     try {
@@ -1044,7 +1047,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void offline(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     
     ArgumentChecker.notNull(tableName);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(utf8)));
     Map<String,String> opts = new HashMap<String,String>();
     
     try {
@@ -1067,7 +1070,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     ArgumentChecker.notNull(tableName);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(utf8)));
     Map<String,String> opts = new HashMap<String,String>();
     
     try {
@@ -1152,7 +1155,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Logger.getLogger(this.getClass()).warn("Failed to check if imported table references external java classes : " + ioe.getMessage());
     }
     
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(importDir.getBytes()));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(utf8)), ByteBuffer.wrap(importDir.getBytes(utf8)));
     
     Map<String,String> opts = Collections.emptyMap();
     
@@ -1169,7 +1172,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void exportTable(String tableName, String exportDir) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(tableName, exportDir);
     
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes()), ByteBuffer.wrap(exportDir.getBytes()));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(utf8)), ByteBuffer.wrap(exportDir.getBytes(utf8)));
     
     Map<String,String> opts = Collections.emptyMap();
     

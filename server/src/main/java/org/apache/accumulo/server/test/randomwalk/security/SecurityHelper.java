@@ -86,7 +86,7 @@ public class SecurityHelper {
   }
   
   public static boolean sysUserPassTransient(State state) {
-    return System.currentTimeMillis() - state.getInteger(masterPass + "time") < 1000;
+    return System.currentTimeMillis() - state.getLong(masterPass + "time") < 1000;
   }
 
   public static byte[] getTabUserPass(State state) {
@@ -100,7 +100,7 @@ public class SecurityHelper {
   }
   
   public static boolean tabUserPassTransient(State state) {
-    return System.currentTimeMillis() - state.getInteger(tUserPass + "time") < 1000;
+    return System.currentTimeMillis() - state.getLong(tUserPass + "time") < 1000;
   }
 
   public static boolean getTabUserExists(State state) {

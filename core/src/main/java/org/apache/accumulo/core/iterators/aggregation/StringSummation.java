@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.iterators.aggregation;
 
+import java.nio.charset.Charset;
+
 import org.apache.accumulo.core.data.Value;
 
 /**
@@ -26,8 +28,10 @@ public class StringSummation implements Aggregator {
   
   long sum = 0;
   
+  private static final Charset utf8 = Charset.forName("UTF8");
+  
   public Value aggregate() {
-    return new Value(Long.toString(sum).getBytes());
+    return new Value(Long.toString(sum).getBytes(utf8));
   }
   
   public void collect(Value value) {

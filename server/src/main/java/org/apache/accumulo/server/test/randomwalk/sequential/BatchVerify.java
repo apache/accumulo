@@ -41,9 +41,9 @@ public class BatchVerify extends Test {
     
     Random rand = new Random();
     
-    int numWrites = state.getInteger("numWrites");
+    long numWrites = state.getLong("numWrites");
     int maxVerify = Integer.parseInt(props.getProperty("maxVerify", "2000"));
-    int numVerify = rand.nextInt(maxVerify - 1) + 1;
+    long numVerify = rand.nextInt(maxVerify - 1) + 1;
     
     if (numVerify > (numWrites / 4)) {
       numVerify = numWrites / 4;
@@ -56,8 +56,8 @@ public class BatchVerify extends Test {
       int count = 0;
       List<Range> ranges = new ArrayList<Range>();
       while (count < numVerify) {
-        int rangeStart = rand.nextInt(numWrites);
-        int rangeEnd = rangeStart + 99;
+        long rangeStart = rand.nextInt((int) numWrites);
+        long rangeEnd = rangeStart + 99;
         if (rangeEnd > (numWrites - 1)) {
           rangeEnd = numWrites - 1;
         }

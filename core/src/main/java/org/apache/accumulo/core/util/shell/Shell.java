@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -151,6 +152,8 @@ import org.apache.log4j.Logger;
 public class Shell extends ShellOptions {
   public static final Logger log = Logger.getLogger(Shell.class);
   private static final Logger audit = Logger.getLogger(Shell.class.getName() + ".audit");
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   public static final String CHARSET = "ISO-8859-1";
   public static final int NO_FIXED_ARG_LENGTH_CHECK = -1;
@@ -267,7 +270,7 @@ public class Shell extends ShellOptions {
         return true;
       } // user canceled
       
-      pass = passw.getBytes();
+      pass = passw.getBytes(utf8);
       this.setTableName("");
       connector = instance.getConnector(user, pass);
       this.credentials = new AuthInfo(user, ByteBuffer.wrap(pass), connector.getInstance().getInstanceID());
@@ -508,7 +511,7 @@ public class Shell extends ShellOptions {
             } // user canceled
             
             try {
-              authFailed = !connector.securityOperations().authenticateUser(connector.whoami(), pwd.getBytes());
+              authFailed = !connector.securityOperations().authenticateUser(connector.whoami(), pwd.getBytes(utf8));
             } catch (Exception e) {
               ++exitCode;
               printException(e);

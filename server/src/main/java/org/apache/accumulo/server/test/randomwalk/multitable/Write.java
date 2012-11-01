@@ -76,7 +76,7 @@ public class Write extends Test {
     // add mutation
     bw.addMutation(m);
     
-    state.set("numWrites", state.getInteger("numWrites") + 1);
+    state.set("numWrites", state.getLong("numWrites") + 1);
   }
   
 }

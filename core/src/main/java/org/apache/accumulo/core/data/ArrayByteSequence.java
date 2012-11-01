@@ -17,11 +17,14 @@
 package org.apache.accumulo.core.data;
 
 import java.io.Serializable;
+import java.nio.charset.Charset;
 
 public class ArrayByteSequence extends ByteSequence implements Serializable {
   
   private static final long serialVersionUID = 1L;
 
+  private static final Charset utf8 = Charset.forName("UTF8");
+  
   protected byte data[];
   protected int offset;
   protected int length;
@@ -45,7 +48,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   }
   
   public ArrayByteSequence(String s) {
-    this(s.getBytes());
+    this(s.getBytes(utf8));
   }
   
   @Override

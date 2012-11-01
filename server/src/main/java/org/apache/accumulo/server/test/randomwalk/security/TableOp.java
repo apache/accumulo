@@ -53,7 +53,7 @@ public class TableOp extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn = WalkingSecurity.get(state).getTableConnector();
+    Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getTabAuthInfo());
 
     String action = props.getProperty("action", "_random");
     TablePermission tp;
@@ -145,7 +145,7 @@ public class TableOp extends Test {
           if (ambiguousZone) {
             Thread.sleep(1000);
             try {
-              writer = conn.createBatchWriter(tableName, 9000l, 0l, 1);
+              writer = conn.createBatchWriter(tableName, new BatchWriterConfig().setMaxWriteThreads(1));
               writer.addMutation(m);
               writer.close();
             } catch (MutationsRejectedException mre2) {

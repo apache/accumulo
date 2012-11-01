@@ -143,7 +143,7 @@ public class SecurityOperation {
   
   private void authenticate(String user, ByteBuffer password, String instance) throws ThriftSecurityException {
     if (!instance.equals(HdfsZooInstance.getInstance().getInstanceID()))
-      throw new ThriftSecurityException(user, SecurityErrorCode.INVALID_INSTANCEID);
+      throw new ThriftSecurityException(user + '_' + instance + '_' + HdfsZooInstance.getInstance().getInstanceID(), SecurityErrorCode.INVALID_INSTANCEID);
     
     if (user.equals(SecurityConstants.SYSTEM_USERNAME)) {
       if (Arrays.equals(SecurityConstants.getSystemCredentials().password.array(), password.array())
@@ -153,8 +153,10 @@ public class SecurityOperation {
         throw new ThriftSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
     }
     
-    if (!authenticator.authenticateUser(user, password, instance))
+    if (!authenticator.authenticateUser(user, password, instance)) {
+      log.debug("It appears that " + user + " password isn't " + new String(password.array()));
       throw new ThriftSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
+    }
   }
   
   private void authenticate(AuthInfo credentials) throws ThriftSecurityException {
@@ -817,7 +819,7 @@ public class SecurityOperation {
       throw new ThriftSecurityException(credentials.user, SecurityErrorCode.TABLE_DOESNT_EXIST);
     }
   }
-
+  
   public boolean canExport(AuthInfo credentials, String tableId) throws ThriftSecurityException {
     authenticate(credentials);
     return hasTablePermission(credentials.user, tableId, TablePermission.READ, false);

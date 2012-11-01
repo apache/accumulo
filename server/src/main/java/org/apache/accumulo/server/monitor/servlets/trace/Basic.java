@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.monitor.servlets.trace;
 
+import java.nio.charset.Charset;
 import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
@@ -36,6 +37,8 @@ import org.apache.accumulo.server.monitor.servlets.BasicServlet;
 abstract class Basic extends BasicServlet {
   
   private static final long serialVersionUID = 1L;
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   public static String getStringParameter(HttpServletRequest req, String name, String defaultValue) {
     String result = req.getParameter(name);
@@ -65,7 +68,7 @@ abstract class Basic extends BasicServlet {
   protected Scanner getScanner(StringBuilder sb) throws AccumuloException {
     AccumuloConfiguration conf = Monitor.getSystemConfiguration();
     String user = conf.get(Property.TRACE_USER);
-    byte[] passwd = conf.get(Property.TRACE_PASSWORD).getBytes();
+    byte[] passwd = conf.get(Property.TRACE_PASSWORD).getBytes(utf8);
     String table = conf.get(Property.TRACE_TABLE);
     try {
       Connector conn = HdfsZooInstance.getInstance().getConnector(user, passwd);

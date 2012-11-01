@@ -25,6 +25,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 import org.apache.log4j.Logger;
@@ -51,9 +52,9 @@ public class Validate extends Test {
     
     Properties props = new Properties();
     props.setProperty("target", "system");
-    Authenticate.authenticate(conn, state, props);
+    Authenticate.authenticate(state.getAuthInfo(), state, props);
     props.setProperty("target", "table");
-    Authenticate.authenticate(conn, state, props);
+    Authenticate.authenticate(state.getAuthInfo(), state, props);
     
     for (String user : new String[] {WalkingSecurity.get(state).getSysUserName(), WalkingSecurity.get(state).getTabUserName()}) {
       for (SystemPermission sp : SystemPermission.values()) {
@@ -101,12 +102,13 @@ public class Validate extends Test {
       
     }
     
-    Authorizations auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabAuthInfo());
     Authorizations accuAuths;
+    Authorizations auths;
     try {
+      auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabAuthInfo());
       accuAuths = conn.securityOperations().getUserAuthorizations(WalkingSecurity.get(state).getTabUserName());
-    } catch (AccumuloSecurityException ae) {
-      if (ae.getErrorCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
+    } catch (ThriftSecurityException ae) {
+      if (ae.getCode().equals(SecurityErrorCode.USER_DOESNT_EXIST)) {
         if (tableUserExists)
           throw new AccumuloException("Table user didn't exist when they should.", ae);
         else

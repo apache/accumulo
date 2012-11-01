@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -59,6 +60,8 @@ import org.apache.log4j.Logger;
 public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   
   protected Text nullText = new Text();
+  
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   protected Text getPartition(Key key) {
     return key.getRow();
@@ -417,7 +420,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     String[] columnStrings = columns.split("\n");
     Text[] columnTexts = new Text[columnStrings.length];
     for (int i = 0; i < columnStrings.length; i++) {
-      columnTexts[i] = new Text(Base64.decodeBase64(columnStrings[i].getBytes()));
+      columnTexts[i] = new Text(Base64.decodeBase64(columnStrings[i].getBytes(utf8)));
     }
     return columnTexts;
   }
@@ -431,7 +434,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     if (flags == null)
       return null;
     
-    byte[] bytes = Base64.decodeBase64(flags.getBytes());
+    byte[] bytes = Base64.decodeBase64(flags.getBytes(utf8));
     boolean[] bFlags = new boolean[bytes.length];
     for (int i = 0; i < bytes.length; i++) {
       if (bytes[i] == 1)

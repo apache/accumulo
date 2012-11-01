@@ -148,7 +148,6 @@
 	<edge id="security.AlterTable" weight="10"/>
 	<edge id="SystemChangeSystemPass" weight="60"/>
 	<edge id="SystemChangeTablePass" weight="10"/>
-	<edge id="TableChangeTablePass" weight="10"/>
 	<edge id="AuthenticateSystemRight" weight="50"/>
 	<edge id="AuthenticateSystemWrong" weight="50"/>
 	<edge id="AuthenticateTableRight" weight="10"/>
@@ -157,7 +156,6 @@
 	<edge id="RandomAuths" weight="10"/>
 	<edge id="security.AlterSystemPerm" weight="60"/>
 	<edge id="security.AlterTablePerm" weight="10"/>
-	<edge id="security.TableOp" weight="10"/>
 </node>
 
 <node id="dummy.YesUserNoTable">
@@ -193,7 +191,6 @@
 	<edge id="security.AlterTable" weight="60"/>
 	<edge id="SystemChangeSystemPass" weight="60"/>
 	<edge id="SystemChangeTablePass" weight="10"/>
-	<edge id="TableChangeTablePass" weight="10"/>
 	<edge id="AuthenticateSystemRight" weight="50"/>
 	<edge id="AuthenticateSystemWrong" weight="50"/>
 	<edge id="AuthenticateTableRight" weight="10"/>
@@ -202,8 +199,6 @@
 	<edge id="RandomAuths" weight="10"/>
 	<edge id="security.AlterSystemPerm" weight="60"/>
 	<edge id="security.AlterTablePerm" weight="10"/>
-	<edge id="security.TableOp" weight="10"/>
-
 </node>
 
 <node id="dummy.YesUserYesTable">

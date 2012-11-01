@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -35,6 +36,8 @@ public class GrepIterator extends Filter {
   
   private byte term[];
   
+  private static final Charset utf8 = Charset.forName("UTF8");
+    
   @Override
   public boolean accept(Key k, Value v) {
     return match(v.get()) || match(k.getRowData()) || match(k.getColumnFamilyData()) || match(k.getColumnQualifierData());
@@ -88,7 +91,7 @@ public class GrepIterator extends Filter {
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    term = options.get("term").getBytes();
+    term = options.get("term").getBytes(utf8);
   }
   
   /**

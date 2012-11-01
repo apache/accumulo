@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.master.state;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -47,6 +48,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
   private static final String TABLES_OPTION = "tables";
   private static final String MERGES_OPTION = "merges";
   // private static final Logger log = Logger.getLogger(TabletStateChangeIterator.class);
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   Set<TServerInstance> current;
   Set<String> onlineTables;
@@ -93,7 +96,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     try {
       Map<Text,MergeInfo> result = new HashMap<Text,MergeInfo>();
       DataInputBuffer buffer = new DataInputBuffer();
-      byte[] data = Base64.decodeBase64(merges.getBytes());
+      byte[] data = Base64.decodeBase64(merges.getBytes(utf8));
       buffer.reset(data, data.length);
       while (buffer.available() > 0) {
         MergeInfo mergeInfo = new MergeInfo();

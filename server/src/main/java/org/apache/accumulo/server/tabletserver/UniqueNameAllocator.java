@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.tabletserver;
 
+import java.nio.charset.Charset;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
@@ -36,6 +37,8 @@ public class UniqueNameAllocator {
   private long maxAllocated = 0;
   private String nextNamePath;
   private Random rand;
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   private UniqueNameAllocator() {
     nextNamePath = Constants.ZROOT + "/" + HdfsZooInstance.getInstance().getInstanceID() + Constants.ZNEXT_FILE;
@@ -52,7 +55,7 @@ public class UniqueNameAllocator {
           public byte[] mutate(byte[] currentValue) throws Exception {
             long l = Long.parseLong(new String(currentValue), Character.MAX_RADIX);
             l += allocate;
-            return Long.toString(l, Character.MAX_RADIX).getBytes();
+            return Long.toString(l, Character.MAX_RADIX).getBytes(utf8);
           }
         });
         

@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.util;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -216,7 +217,8 @@ public class CheckForMetadataProblems {
   }
   
   public static void main(String[] args) throws Exception {
-    args = processOptions(args);
+   final Charset utf8 = Charset.forName("UTF8");
+   args = processOptions(args);
     
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Instance instance = HdfsZooInstance.getInstance();
@@ -224,7 +226,7 @@ public class CheckForMetadataProblems {
 
     if (args.length == 2) {
       user = args[0];
-      pass = args[1].getBytes();
+      pass = args[1].getBytes(utf8);
       checkMetadataTableEntries(conf, fs, offline, fix);
     } else if (args.length == 0 && offline) {
       checkMetadataTableEntries(conf, fs, offline, fix);

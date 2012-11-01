@@ -31,20 +31,17 @@ public class ChangePass extends Test {
   
   @Override
   public void visit(State state, Properties props) throws Exception {
-    Connector conn;
-    
     String target = props.getProperty("target");
     String source = props.getProperty("source");
     
     AuthInfo auth;
     if (source.equals("system")) {
-      conn = WalkingSecurity.get(state).getSystemConnector();
       auth = WalkingSecurity.get(state).getSysAuthInfo();
     } else {
-      conn = WalkingSecurity.get(state).getTableConnector();
       auth = WalkingSecurity.get(state).getTabAuthInfo();
     }
-    
+    Connector conn = state.getInstance().getConnector(auth);
+        
     boolean hasPerm;
     boolean targetExists;
     if (target.equals("table")) {
@@ -64,6 +61,7 @@ public class ChangePass extends Test {
     newPass = bi.toString(36).getBytes();
     
     try {
+      log.debug("Changing password for user " + target + " to " + new String(newPass));
       conn.securityOperations().changeUserPassword(target, newPass);
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {

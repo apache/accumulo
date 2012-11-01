@@ -19,7 +19,6 @@ package org.apache.accumulo.server.test.randomwalk.security;
 import java.net.InetAddress;
 
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -31,10 +30,7 @@ public class SecurityFixture extends Fixture {
   @Override
   public void setUp(State state) throws Exception {
     String secTableName, systemUserName, tableUserName;
-    Connector sysConn;
-    
     Connector conn = state.getConnector();
-    Instance instance = state.getInstance();
     
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
     
@@ -44,12 +40,13 @@ public class SecurityFixture extends Fixture {
     
     byte[] sysUserPass = "sysUser".getBytes();
     conn.securityOperations().createUser(systemUserName, sysUserPass, new Authorizations());
-    sysConn = instance.getConnector(systemUserName, sysUserPass);
     
+    state.set("rootUserPass", state.getAuthInfo().password.array());
+    
+    WalkingSecurity.get(state).setSysUserName(systemUserName);
     WalkingSecurity.get(state).createUser(systemUserName, sysUserPass);
     
     WalkingSecurity.get(state).changePassword(tableUserName, new byte[0]);
-    WalkingSecurity.get(state).setSystemConnector(sysConn);
     
     WalkingSecurity.get(state).setTableName(secTableName);
     WalkingSecurity.get(state).setTabUserName(tableUserName);

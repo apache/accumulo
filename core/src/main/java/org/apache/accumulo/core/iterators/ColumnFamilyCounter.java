@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.iterators;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Map;
 
@@ -30,6 +31,8 @@ public class ColumnFamilyCounter implements SortedKeyValueIterator<Key,Value> {
   private SortedKeyValueIterator<Key,Value> source;
   private Key key;
   private Value value;
+
+  private static final Charset utf8 = Charset.forName("UTF8");
   
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
@@ -58,7 +61,7 @@ public class ColumnFamilyCounter implements SortedKeyValueIterator<Key,Value> {
       }
       
       this.key = new Key(currentRow.toArray(), currentColf.toArray(), new byte[0], new byte[0], ts);
-      this.value = new Value(Integer.toString(count).getBytes());
+      this.value = new Value(Integer.toString(count).getBytes(utf8));
       
     } else {
       this.key = null;

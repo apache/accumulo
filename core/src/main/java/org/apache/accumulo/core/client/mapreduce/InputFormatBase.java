@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -104,6 +105,8 @@ import org.apache.log4j.Logger;
 public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static final Logger log = Logger.getLogger(InputFormatBase.class);
   
+  private static final Charset utf8 = Charset.forName("UTF8");
+
   private static final String PREFIX = AccumuloInputFormat.class.getSimpleName();
   private static final String INPUT_INFO_HAS_BEEN_SET = PREFIX + ".configured";
   private static final String INSTANCE_HAS_BEEN_SET = PREFIX + ".instanceConfigured";
@@ -420,7 +423,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    * @see #setInputInfo(Configuration, String, byte[], String, Authorizations)
    */
   protected static byte[] getPassword(Configuration conf) {
-    return Base64.decodeBase64(conf.get(PASSWORD, "").getBytes());
+    return Base64.decodeBase64(conf.get(PASSWORD, "").getBytes(utf8));
   }
   
   /**
@@ -445,7 +448,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    */
   protected static Authorizations getAuthorizations(Configuration conf) {
     String authString = conf.get(AUTHORIZATIONS);
-    return authString == null ? Constants.NO_AUTHS : new Authorizations(authString.getBytes());
+    return authString == null ? Constants.NO_AUTHS : new Authorizations(authString.getBytes(utf8));
   }
   
   /**
@@ -496,7 +499,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
   protected static List<Range> getRanges(Configuration conf) throws IOException {
     ArrayList<Range> ranges = new ArrayList<Range>();
     for (String rangeString : conf.getStringCollection(RANGES)) {
-      ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(rangeString.getBytes()));
+      ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(rangeString.getBytes(utf8)));
       Range range = new Range();
       range.readFields(new DataInputStream(bais));
       ranges.add(range);
@@ -516,8 +519,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     Set<Pair<Text,Text>> columns = new HashSet<Pair<Text,Text>>();
     for (String col : conf.getStringCollection(COLUMNS)) {
       int idx = col.indexOf(":");
-      Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes()) : Base64.decodeBase64(col.substring(0, idx).getBytes()));
-      Text cq = idx < 0 ? null : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes()));
+      Text cf = new Text(idx < 0 ? Base64.decodeBase64(col.getBytes(utf8)) : Base64.decodeBase64(col.substring(0, idx).getBytes(utf8)));
+      Text cq = idx < 0 ? null : new Text(Base64.decodeBase64(col.substring(idx + 1).getBytes(utf8)));
       columns.add(new Pair<Text,Text>(cf, cq));
     }
     return columns;
@@ -624,7 +627,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     try {
       while (tokens.hasMoreTokens()) {
         String itstring = tokens.nextToken();
-        ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(itstring.getBytes()));
+        ByteArrayInputStream bais = new ByteArrayInputStream(Base64.decodeBase64(itstring.getBytes(utf8)));
         list.add(new IteratorSetting(new DataInputStream(bais)));
         bais.close();
       }

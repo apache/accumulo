@@ -21,6 +21,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 import jline.ConsoleReader;
 
@@ -47,6 +48,8 @@ public class Admin {
   public static void main(String[] args) {
     boolean everything;
     
+    final Charset utf8 = Charset.forName("UTF8");
+    
     CommandLine cl = null;
     Options opts = new Options();
     opts.addOption("u", true, "optional administrator user name");
@@ -64,7 +67,7 @@ public class Admin {
       args = cl.getArgs();
       
       user = cl.hasOption("u") ? cl.getOptionValue("u") : "root";
-      pass = cl.hasOption("p") ? cl.getOptionValue("p").getBytes() : null;
+      pass = cl.hasOption("p") ? cl.getOptionValue("p").getBytes(utf8) : null;
       force = cl.hasOption("f");
       
       if (!((cl.getArgs().length == 1 && (args[0].equalsIgnoreCase("stopMaster") || args[0].equalsIgnoreCase("stopAll"))) || (cl.getArgs().length == 2 && args[0]
@@ -98,7 +101,7 @@ public class Admin {
         } else {
           if (pass == null) {
             try {
-              pass = new ConsoleReader().readLine("Enter current password for '" + user + "': ", '*').getBytes();
+              pass = new ConsoleReader().readLine("Enter current password for '" + user + "': ", '*').getBytes(utf8);
             } catch (IOException ioe) {
               log.error("Password not specified and unable to prompt: " + ioe);
               System.exit(4);

@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -79,15 +81,15 @@ public class State {
     return (String) stateMap.get(key);
   }
   
-  public Integer getInteger(String key) {
-    return (Integer) stateMap.get(key);
+  public Long getLong(String key) {
+    return (Long) stateMap.get(key);
   }
   
   public String getProperty(String key) {
     return props.getProperty(key);
   }
   
-  public Connector getConnector() throws Exception {
+  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     if (connector == null) {
       String instance = props.getProperty("INSTANCE");
       String zookeepers = props.getProperty("ZOOKEEPERS");
@@ -101,7 +103,7 @@ public class State {
     String username = props.getProperty("USERNAME");
     String password = props.getProperty("PASSWORD");
     String instance = props.getProperty("INSTANCE");
-    return new AuthInfo(username, ByteBuffer.wrap(password.getBytes()), instance);
+    return new AuthInfo(username, ByteBuffer.wrap(password.getBytes()), new ZooKeeperInstance(instance, props.getProperty("ZOOKEEPERS")).getInstanceID());
   }
 
   public Instance getInstance() {
