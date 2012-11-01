@@ -54,7 +54,7 @@ public class TableOp extends Test {
   @Override
   public void visit(State state, Properties props) throws Exception {
     Connector conn = state.getInstance().getConnector(WalkingSecurity.get(state).getTabAuthInfo());
-
+    
     String action = props.getProperty("action", "_random");
     TablePermission tp;
     if ("_random".equalsIgnoreCase(action)) {
@@ -72,7 +72,7 @@ public class TableOp extends Test {
         boolean canRead = WalkingSecurity.get(state).canScan(WalkingSecurity.get(state).getTabAuthInfo(), tableName);
         Authorizations auths = WalkingSecurity.get(state).getUserAuthorizations(WalkingSecurity.get(state).getTabAuthInfo());
         boolean ambiguousZone = WalkingSecurity.get(state).inAmbiguousZone(conn.whoami(), tp);
-
+        
         try {
           Scanner scan = conn.createScanner(tableName, conn.securityOperations().getUserAuthorizations(conn.whoami()));
           int seen = 0;
@@ -118,9 +118,9 @@ public class TableOp extends Test {
         break;
       }
       case WRITE:
-        // boolean canWrite = WalkingSecurity.get(state).canWrite(WalkingSecurity.get(state).getTabAuthInfo(), tableName);
+        boolean canWrite = WalkingSecurity.get(state).canWrite(WalkingSecurity.get(state).getTabAuthInfo(), tableName);
         boolean ambiguousZone = WalkingSecurity.get(state).inAmbiguousZone(conn.whoami(), tp);
-
+        
         String key = WalkingSecurity.get(state).getLastKey() + "1";
         Mutation m = new Mutation(new Text(key));
         for (String s : WalkingSecurity.get(state).getAuthsArray()) {
@@ -140,8 +140,10 @@ public class TableOp extends Test {
           writer.close();
         } catch (MutationsRejectedException mre) {
           // Currently no method for detecting reason for mre. Waiting on ACCUMULO-670
-          // For now, just wait a second and go again!
-
+          // For now, just wait a second and go again if they can write!
+          if (!canWrite)
+            return;
+          
           if (ambiguousZone) {
             Thread.sleep(1000);
             try {
@@ -195,7 +197,7 @@ public class TableOp extends Test {
           WalkingSecurity.get(state).increaseAuthMap(s, 1);
         fs.delete(dir, true);
         fs.delete(fail, true);
-
+        
         if (!WalkingSecurity.get(state).canBulkImport(WalkingSecurity.get(state).getTabAuthInfo(), tableName))
           throw new AccumuloException("Bulk Import succeeded when it should have failed: " + dir + " table " + tableName);
         break;

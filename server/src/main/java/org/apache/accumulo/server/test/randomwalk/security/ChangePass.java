@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.test.randomwalk.security;
 
-import java.math.BigInteger;
 import java.util.Properties;
 import java.util.Random;
 
@@ -56,9 +55,8 @@ public class ChangePass extends Test {
     Random r = new Random();
     
     byte[] newPass = new byte[r.nextInt(50) + 1];
-    r.nextBytes(newPass);
-    BigInteger bi = new BigInteger(newPass);
-    newPass = bi.toString(36).getBytes();
+    for (int i =0; i < newPass.length; i++)
+      newPass[i] = (byte) ((r.nextInt(26)+65) & 0xFF);
     
     try {
       log.debug("Changing password for user " + target + " to " + new String(newPass));

@@ -77,6 +77,10 @@ public class State {
     return stateMap.get(key);
   }
   
+  public HashMap<String, Object> getMap() {
+    return stateMap;
+  }
+  
   public String getString(String key) {
     return (String) stateMap.get(key);
   }

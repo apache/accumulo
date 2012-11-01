@@ -30,6 +30,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.handler.Authenticator;
@@ -46,14 +48,14 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   State state = null;
   protected final static Logger log = Logger.getLogger(WalkingSecurity.class);
   
-  private static final String tableName = "secTableName";
+  private static final String tableName = "SecurityTableName";
   private static final String userName = "UserName";
   
   private static final String userPass = "UserPass";
   private static final String userExists = "UserExists";
   private static final String tableExists = "TableExists";
   
-  private static final String connector = "UserConn";
+  private static final String connector = "UserConnection";
   
   private static final String authsMap = "authorizationsCountMap";
   private static final String lastKey = "lastMutationKey";
@@ -137,8 +139,6 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public boolean authenticateUser(String user, ByteBuffer password, String instanceId) {
     byte[] pass = (byte[]) state.get(user + userPass);
     boolean ret = Arrays.equals(pass, password.array());
-    if (!ret)
-      log.debug("auTHENTIcAtION IssuE- " + user + " user's password is not " + new String(password.array()) + " to the state, it is " + new String(pass));
     return ret;
   }
   
@@ -146,6 +146,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public void createUser(String user, byte[] pass) throws AccumuloSecurityException {
     state.set(user + userExists, Boolean.toString(true));
     changePassword(user, pass);
+    cleanUser(user);
   }
   
   @Override
@@ -169,8 +170,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   
   @Override
   public boolean hasSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
-    boolean res = Boolean.parseBoolean(state.getString("Sys" + user + permission.name()));
-    log.debug("Sys"+user+permission.name() + " is the key; user " + user + " for " + permission + " is " + res);
+    boolean res = Boolean.parseBoolean(state.getString("Sys-" + user +'-'+ permission.name()));
     return res;
   }
   
@@ -181,7 +181,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   
   @Override
   public boolean hasTablePermission(String user, String table, TablePermission permission) throws AccumuloSecurityException, TableNotFoundException {
-    return Boolean.parseBoolean(state.getString("Tab" + table + user + permission.name()));
+    return Boolean.parseBoolean(state.getString("Tab-" + user + '-'+ permission.name()));
   }
   
   @Override
@@ -206,15 +206,16 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   
   private static void setSysPerm(State state, String userName, SystemPermission tp, boolean value) {
     log.debug((value ? "Gave" : "Took") + " the system permission " + tp.name() + (value ? " to" : " from") + " user " + userName);
-    log.debug("Seriously, Sys" + userName+tp.name() + " is being set to " + Boolean.toString(value));
-    state.set("Sys" + userName + tp.name(), Boolean.toString(value));
+    state.set("Sys-" + userName +'-'+ tp.name(), Boolean.toString(value));
   }
   
   private void setTabPerm(State state, String userName, TablePermission tp, String table, boolean value) {
+    if (table.equals(userName))
+      throw new RuntimeException("This is also fucked up");
     log.debug((value ? "Gave" : "Took") + " the table permission " + tp.name() + (value ? " to" : " from") + " user " + userName);
-    state.set("Tab" + table + userName + tp.name(), Boolean.toString(value));
+    state.set("Tab-" + userName +'-'+ tp.name(), Boolean.toString(value));
     if (tp.equals(TablePermission.READ) || tp.equals(TablePermission.WRITE))
-      state.set("Tab" + table + userName + tp.name() + "time", System.currentTimeMillis());
+      state.set("Tab-" + userName +'-'+ tp.name() +'-'+ "time", System.currentTimeMillis());
   }
   
   @Override
@@ -226,7 +227,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   public void cleanTablePermissions(String table) throws AccumuloSecurityException, TableNotFoundException {
     for (String user : new String[] {getSysUserName(), getTabUserName()}) {
       for (TablePermission tp : TablePermission.values()) {
-        revokeTablePermission(user, null, tp);
+        revokeTablePermission(user, table, tp);
       }
     }
     state.set(tableExists, Boolean.toString(false));
@@ -312,7 +313,9 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   
   public boolean inAmbiguousZone(String userName, TablePermission tp) {
     if (tp.equals(TablePermission.READ) || tp.equals(TablePermission.WRITE)) {
-      Long setTime = state.getLong("Tab" + userName + tp.name() + "time");
+      Long setTime = state.getLong("Tab-" + userName +'-'+ tp.name() +'-'+ "time");
+      if (setTime == null)
+        throw new RuntimeException("WTF? Tab-" + userName +'-'+ tp.name() +'-'+ "time is null");
       if (System.currentTimeMillis() < (setTime + 1000))
         return true;
     }
@@ -353,5 +356,15 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
       state.set(filesystem, fs);
     }
     return fs;
+  }
+  
+  public boolean canAskAboutUser(AuthInfo credentials, String user) throws ThriftSecurityException {
+    try {
+      return super.canAskAboutUser(credentials, user);
+    } catch (ThriftSecurityException tse) {
+      if (tse.getCode().equals(SecurityErrorCode.PERMISSION_DENIED))
+        return false;
+      throw tse;
+    }
   }
 }

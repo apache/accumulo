@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.test.randomwalk.security;
 
 import java.net.InetAddress;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.Authorizations;
@@ -34,13 +35,22 @@ public class SecurityFixture extends Fixture {
     
     String hostname = InetAddress.getLocalHost().getHostName().replaceAll("[-.]", "_");
     
-    systemUserName = String.format("system_%s_%s_%d", hostname, state.getPid(), System.currentTimeMillis());
-    tableUserName = String.format("table_%s_%s_%d", hostname, state.getPid(), System.currentTimeMillis());
-    secTableName = String.format("security_%s_%s_%d", hostname, state.getPid(), System.currentTimeMillis());
+    systemUserName = String.format("system_%s", hostname);
+    tableUserName = String.format("table_%s", hostname);
+    secTableName = String.format("security_%s", hostname);
+    
+    if (conn.tableOperations().exists(secTableName))
+      conn.tableOperations().delete(secTableName);
+    Set<String> users = conn.securityOperations().listUsers();
+    if (users.contains(tableUserName))
+      conn.securityOperations().dropUser(tableUserName);
+    if (users.contains(systemUserName))
+      conn.securityOperations().dropUser(systemUserName);
     
     byte[] sysUserPass = "sysUser".getBytes();
     conn.securityOperations().createUser(systemUserName, sysUserPass, new Authorizations());
     
+    WalkingSecurity.get(state).setTableName(secTableName);
     state.set("rootUserPass", state.getAuthInfo().password.array());
     
     WalkingSecurity.get(state).setSysUserName(systemUserName);
@@ -48,7 +58,6 @@ public class SecurityFixture extends Fixture {
     
     WalkingSecurity.get(state).changePassword(tableUserName, new byte[0]);
     
-    WalkingSecurity.get(state).setTableName(secTableName);
     WalkingSecurity.get(state).setTabUserName(tableUserName);
     
     for (TablePermission tp : TablePermission.values()) {
