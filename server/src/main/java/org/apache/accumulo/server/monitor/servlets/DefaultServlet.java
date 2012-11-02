@@ -22,7 +22,6 @@ import java.io.FilePermission;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PermissionCollection;
@@ -65,8 +64,6 @@ import org.apache.hadoop.mapred.JobTracker;
 public class DefaultServlet extends BasicServlet {
   
   private static final long serialVersionUID = 1L;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   @Override
   protected String getTitle(HttpServletRequest req) {
@@ -93,7 +90,7 @@ public class DefaultServlet extends BasicServlet {
     		  while ((n = data.read(buffer)) > 0)
     			  out.write(buffer, 0, n);
     	  } else {
-    		  out.write(("could not get resource " + path + "").getBytes(utf8));
+    		  out.write(("could not get resource " + path + "").getBytes());
     	  }
       } finally {
     	  data.close();

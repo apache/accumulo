@@ -28,7 +28,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -235,8 +234,6 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
   
   private ServerConfiguration serverConfig;
   private LogSorter logSorter = null;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public TabletServer(ServerConfiguration conf, FileSystem fs) {
     super();
@@ -2700,7 +2697,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
       };
       
-      byte[] lockContent = new ServerServices(getClientAddressString(), Service.TSERV_CLIENT).toString().getBytes(utf8);
+      byte[] lockContent = new ServerServices(getClientAddressString(), Service.TSERV_CLIENT).toString().getBytes();
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
         

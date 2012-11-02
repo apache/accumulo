@@ -21,7 +21,6 @@ import static java.lang.Math.min;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -217,8 +216,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   private MasterState state = MasterState.INITIAL;
   
   private Fate<Master> fate;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   volatile private SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections
       .unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
@@ -295,8 +292,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         String[] tablePropsToDelete = new String[] {"table.scan.cache.size", "table.scan.cache.enable"};
 
         for (String id : Tables.getIdToNameMap(instance).keySet()) {
-          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_FLUSH_ID, "0".getBytes(utf8), NodeExistsPolicy.SKIP);
-          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_ID, "0".getBytes(utf8), NodeExistsPolicy.SKIP);
+          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_FLUSH_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
+          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
           
           for (String prop : tablePropsToDelete) {
             String propPath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_CONF + "/" + prop;
@@ -578,7 +575,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           public byte[] mutate(byte[] currentValue) throws Exception {
             long flushID = Long.parseLong(new String(currentValue));
             flushID++;
-            return ("" + flushID).getBytes(utf8);
+            return ("" + flushID).getBytes();
           }
         });
       } catch (NoNodeException nne) {
@@ -1154,7 +1151,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   
   private void setMasterGoalState(MasterGoalState state) {
     try {
-      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMASTER_GOAL_STATE, state.name().getBytes(utf8),
+      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMASTER_GOAL_STATE, state.name().getBytes(),
           NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
       log.error("Unable to set master goal state in zookeeper");
@@ -1728,7 +1725,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
         
         if (maxLogicalTime != null)
-          Constants.METADATA_TIME_COLUMN.put(m, new Value(maxLogicalTime.getBytes(utf8)));
+          Constants.METADATA_TIME_COLUMN.put(m, new Value(maxLogicalTime.getBytes()));
         
         if (!m.getUpdates().isEmpty()) {
           bw.addMutation(m);
@@ -2198,7 +2195,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     boolean locked = false;
     while (System.currentTimeMillis() - current < waitTime) {
       masterLock = new ZooLock(zMasterLoc);
-      if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes(utf8))) {
+      if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes())) {
         locked = true;
         break;
       }
@@ -2208,7 +2205,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       log.info("Failed to get master lock, even after waiting for session timeout, becoming back-up server");
       while (true) {
         masterLock = new ZooLock(zMasterLoc);
-        if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes(utf8))) {
+        if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes())) {
           break;
         }
         UtilWaitThread.sleep(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS);

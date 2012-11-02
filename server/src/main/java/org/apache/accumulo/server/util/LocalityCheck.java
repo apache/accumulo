@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.util;
 
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,8 +37,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class LocalityCheck {
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public int run(String[] args) throws Exception {
     if (args.length < 4) {
@@ -48,7 +45,7 @@ public class LocalityCheck {
     }
     ZooKeeperInstance instance = new ZooKeeperInstance(args[0], args[1]);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
-    Connector connector = instance.getConnector(args[2], args[3].getBytes(utf8));
+    Connector connector = instance.getConnector(args[2], args[3].getBytes());
     Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     scanner.fetchColumnFamily(Constants.METADATA_CURRENT_LOCATION_COLUMN_FAMILY);
     scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);

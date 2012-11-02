@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.util;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -39,8 +38,6 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
 public class ChangeSecret {
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public static void main(String[] args) throws Exception {
     String oldPass = null;
@@ -133,7 +130,7 @@ public class ChangeSecret {
     });
     String path = "/accumulo/instances/" + inst.getInstanceName();
     orig.recursiveDelete(path, NodeMissingPolicy.SKIP);
-    new_.putPersistentData(path, newInstanceId.getBytes(utf8), NodeExistsPolicy.OVERWRITE);
+    new_.putPersistentData(path, newInstanceId.getBytes(), NodeExistsPolicy.OVERWRITE);
     return newInstanceId;
   }
   

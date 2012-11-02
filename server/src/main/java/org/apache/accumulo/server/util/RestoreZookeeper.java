@@ -18,7 +18,6 @@ package org.apache.accumulo.server.util;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.util.Stack;
 
 import javax.xml.parsers.SAXParser;
@@ -38,8 +37,6 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 public class RestoreZookeeper {
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   private static class Restore extends DefaultHandler {
     ZooKeeper zk = null;
@@ -77,9 +74,9 @@ public class RestoreZookeeper {
     }
     
     private void create(String path, String value, String encoding) {
-      byte[] data = value.getBytes(utf8);
+      byte[] data = value.getBytes();
       if ("base64".equals(encoding))
-        data = Base64.decodeBase64(value.getBytes(utf8));
+        data = Base64.decodeBase64(value.getBytes());
       try {
         try {
           ZooUtil.putPersistentData(zk, path, data, overwrite ? NodeExistsPolicy.OVERWRITE : NodeExistsPolicy.FAIL);

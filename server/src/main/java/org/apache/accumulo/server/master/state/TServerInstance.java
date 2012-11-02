@@ -21,7 +21,6 @@ package org.apache.accumulo.server.master.state;
 
 import java.io.Serializable;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
@@ -42,8 +41,6 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   private InetSocketAddress location;
   private String session;
   private String cachedStringRepresentation;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public TServerInstance(InetSocketAddress address, String session) {
     this.location = address;
@@ -121,7 +118,7 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
   
   public Value asMutationValue() {
-    return new Value(org.apache.accumulo.core.util.AddressUtil.toString(getLocation()).getBytes(utf8));
+    return new Value(org.apache.accumulo.core.util.AddressUtil.toString(getLocation()).getBytes());
   }
   
   public InetSocketAddress getLocation() {

@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.util;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -38,9 +37,6 @@ public class CleanZookeeper {
    *           error connecting to accumulo or zookeeper
    */
   public static void main(String[] args) throws IOException {
-
-    final Charset utf8 = Charset.forName("UTF8");
-	  
     if (args.length < 1) {
       System.err.println("Usage: " + CleanZookeeper.class.getName() + " hostname[:port] [auth]");
       System.exit(1);
@@ -48,7 +44,7 @@ public class CleanZookeeper {
     String root = Constants.ZROOT;
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
     if (args.length == 2) {
-      zk.getZooKeeper().addAuthInfo("digest", args[1].getBytes(utf8));
+      zk.getZooKeeper().addAuthInfo("digest", args[1].getBytes());
     }
     
     try {

@@ -22,7 +22,6 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -1100,8 +1099,6 @@ public class RFile {
     int max_row = 10000;
     int max_cf = 10;
     int max_cq = 10;
-
-    Charset utf8 = Charset.forName("UTF8");
     
     // FSDataOutputStream fsout = fs.create(new Path("/tmp/test.rf"));
     
@@ -1119,7 +1116,7 @@ public class RFile {
         Text cf = new Text(String.format("CF%06d", j));
         for (int k = 0; k < max_cq; k++) {
           Text cq = new Text(String.format("CQ%06d", k));
-          w.append(new Key(row, cf, cq), new Value((c++ + "").getBytes(utf8)));
+          w.append(new Key(row, cf, cq), new Value((c++ + "").getBytes()));
         }
       }
     }

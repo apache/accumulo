@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -46,8 +45,6 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   
   protected static final String TYPE = "type";
   protected static final String CLASS_PREFIX = "class:";
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public static enum Type {
     /**
@@ -176,7 +173,7 @@ public abstract class LongCombiner extends TypedValueCombiner<Long> {
   public static class StringEncoder implements Encoder<Long> {
     @Override
     public byte[] encode(Long v) {
-      return Long.toString(v).getBytes(utf8);
+      return Long.toString(v).getBytes();
     }
     
     @Override

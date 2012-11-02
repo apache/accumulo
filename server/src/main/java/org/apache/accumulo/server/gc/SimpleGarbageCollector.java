@@ -19,7 +19,6 @@ package org.apache.accumulo.server.gc;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.nio.charset.Charset;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Locale;
@@ -99,8 +98,6 @@ import org.apache.zookeeper.KeeperException;
 
 public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   static final Options OPTS = new Options();
   static final Option OPT_VERBOSE_MODE = new Option("v", "verbose", false, "extra information will get printed to stdout also");
@@ -370,7 +367,7 @@ public class SimpleGarbageCollector implements Iface {
     
     while (true) {
       lock = new ZooLock(path);
-      if (lock.tryLock(lockWatcher, new ServerServices(address, Service.GC_CLIENT).toString().getBytes(utf8))) {
+      if (lock.tryLock(lockWatcher, new ServerServices(address, Service.GC_CLIENT).toString().getBytes())) {
         break;
       }
       UtilWaitThread.sleep(1000);

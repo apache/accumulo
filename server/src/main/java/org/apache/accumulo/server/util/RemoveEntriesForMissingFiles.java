@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.nio.charset.Charset;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
@@ -44,14 +43,13 @@ public class RemoveEntriesForMissingFiles {
   private static Logger log = Logger.getLogger(RemoveEntriesForMissingFiles.class);
   
   public static void main(String[] args) throws Exception {
-    final Charset utf8 = Charset.forName("UTF8");
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     if (args.length < 4) {
       System.err.println("Usage: accumulo.server.util.RemoveEntriesForMissingFiles instance zookeepers username password [delete]");
       System.exit(1);
     }
     Instance instance = new ZooKeeperInstance(args[0], args[1]);
-    Connector connector = instance.getConnector(args[2], args[3].getBytes(utf8));
+    Connector connector = instance.getConnector(args[2], args[3].getBytes());
     Scanner metadata = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     metadata.setBatchSize(1000 * 1000);
     metadata.setRange(Constants.METADATA_KEYSPACE);

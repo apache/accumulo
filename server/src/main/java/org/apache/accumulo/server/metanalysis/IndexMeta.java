@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.metanalysis;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -53,14 +52,12 @@ import org.apache.log4j.Logger;
 
 public class IndexMeta extends Configured implements Tool {
   
-  private static final Charset utf8 = Charset.forName("UTF8");
-    
   public static class IndexMapper extends Mapper<LogFileKey,LogFileValue,Text,Mutation> {
     private static final Text CREATE_EVENTS_TABLE = new Text("createEvents");
     private static final Text TABLET_EVENTS_TABLE = new Text("tabletEvents");
     private Map<Integer,KeyExtent> tabletIds = new HashMap<Integer,KeyExtent>();
     private String uuid = null;
-
+    
     @Override
     protected void setup(Context context) throws java.io.IOException, java.lang.InterruptedException {
       tabletIds = new HashMap<Integer,KeyExtent>();
@@ -104,14 +101,14 @@ public class IndexMeta extends Configured implements Tool {
       
       if (prevRow != null) {
         Mutation createEvent = new Mutation(new Text(m.getRow()));
-        createEvent.put(prevRow, new Text(String.format("%020d", timestamp)), new Value(metaTablet.toString().getBytes(utf8)));
+        createEvent.put(prevRow, new Text(String.format("%020d", timestamp)), new Value(metaTablet.toString().getBytes()));
         context.write(CREATE_EVENTS_TABLE, createEvent);
       }
       
       Mutation tabletEvent = new Mutation(new Text(m.getRow()));
       tabletEvent.put(new Text(String.format("%020d", timestamp)), new Text("mut"), new Value(serMut));
-      tabletEvent.put(new Text(String.format("%020d", timestamp)), new Text("mtab"), new Value(metaTablet.toString().getBytes(utf8)));
-      tabletEvent.put(new Text(String.format("%020d", timestamp)), new Text("log"), new Value(logFile.getBytes(utf8)));
+      tabletEvent.put(new Text(String.format("%020d", timestamp)), new Text("mtab"), new Value(metaTablet.toString().getBytes()));
+      tabletEvent.put(new Text(String.format("%020d", timestamp)), new Text("log"), new Value(logFile.getBytes()));
       context.write(TABLET_EVENTS_TABLE, tabletEvent);
     }
   }
@@ -149,7 +146,7 @@ public class IndexMeta extends Configured implements Tool {
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
     AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), instance, zookeepers);
-    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), user, pass.getBytes(utf8), false, null);
+    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), user, pass.getBytes(), false, null);
     
     job.setMapperClass(IndexMapper.class);
 

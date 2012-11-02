@@ -40,8 +40,6 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   private HashSet<ByteSequence> auths = new HashSet<ByteSequence>();
   private List<byte[]> authsList = new ArrayList<byte[]>();
   private List<byte[]> immutableList = Collections.unmodifiableList(authsList);
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   private static final boolean[] validAuthChars = new boolean[256];
   
@@ -116,7 +114,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
       authsString = authsString.substring(HEADER.length());
       if (authsString.length() > 0) {
         for (String encAuth : authsString.split(",")) {
-          byte[] auth = Base64.decodeBase64(encAuth.getBytes(utf8));
+          byte[] auth = Base64.decodeBase64(encAuth.getBytes());
           auths.add(new ArrayByteSequence(auth));
         }
         checkAuths();
@@ -167,7 +165,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable {
   }
   
   public byte[] getAuthorizationsArray() {
-    return serialize().getBytes(utf8);
+    return serialize().getBytes();
   }
   
   public List<byte[]> getAuthorizations() {

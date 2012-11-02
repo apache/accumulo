@@ -22,7 +22,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -402,8 +401,6 @@ public class BloomFilterLayer {
   }
   
   public static void main(String[] args) throws IOException {
-    final Charset utf8 = Charset.forName("UTF8");
-
     PrintStream out = System.out;
     
     Random r = new Random();
@@ -437,8 +434,8 @@ public class BloomFilterLayer {
     
     for (Integer i : vals) {
       String fi = String.format("%010d", i);
-      bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1")), new Value(("v" + fi).getBytes(utf8)));
-      bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf2")), new Value(("v" + fi).getBytes(utf8)));
+      bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf1")), new Value(("v" + fi).getBytes()));
+      bmfw.append(new org.apache.accumulo.core.data.Key(new Text("r" + fi), new Text("cf2")), new Value(("v" + fi).getBytes()));
     }
     
     long t2 = System.currentTimeMillis();

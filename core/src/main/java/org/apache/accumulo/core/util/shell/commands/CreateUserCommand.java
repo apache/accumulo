@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -33,8 +32,6 @@ import org.apache.commons.cli.Options;
 
 public class CreateUserCommand extends Command {
   private Option scanOptAuths;
-  
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   static Authorizations parseAuthorizations(final String field) {
     if (field == null || field.isEmpty()) {
@@ -63,7 +60,7 @@ public class CreateUserCommand extends Command {
       throw new IllegalArgumentException("Passwords do not match");
     }
     final Authorizations authorizations = parseAuthorizations(cl.hasOption(scanOptAuths.getOpt()) ? cl.getOptionValue(scanOptAuths.getOpt()) : "");
-    shellState.getConnector().securityOperations().createUser(user, password.getBytes(utf8), authorizations);
+    shellState.getConnector().securityOperations().createUser(user, password.getBytes(), authorizations);
     Shell.log.debug("Created user " + user + " with" + (authorizations.isEmpty() ? " no" : "") + " initial scan authorizations"
         + (!authorizations.isEmpty() ? " " + authorizations : ""));
     return 0;

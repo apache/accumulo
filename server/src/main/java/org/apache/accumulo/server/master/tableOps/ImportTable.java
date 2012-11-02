@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Serializable;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -171,8 +170,6 @@ class PopulateMetadataTable extends MasterRepo {
   private static final long serialVersionUID = 1L;
   
   private ImportedTableInfo tableInfo;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   PopulateMetadataTable(ImportedTableInfo ti) {
     this.tableInfo = ti;
@@ -249,14 +246,14 @@ class PopulateMetadataTable extends MasterRepo {
             
             if (m == null) {
               m = new Mutation(metadataRow);
-              Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes(utf8))));
+              Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes())));
               currentRow = metadataRow;
             }
             
             if (!currentRow.equals(metadataRow)) {
               mbw.addMutation(m);
               m = new Mutation(metadataRow);
-              Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes(utf8))));
+              Constants.METADATA_DIRECTORY_COLUMN.put(m, new Value(FastFormat.toZeroPaddedString(dirCount++, 8, 16, "/c-".getBytes())));
             }
             
             m.put(key.getColumnFamily(), cq, val);

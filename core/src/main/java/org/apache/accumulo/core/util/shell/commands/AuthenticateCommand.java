@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,9 +28,6 @@ import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 
 public class AuthenticateCommand extends Command {
-
-  private static final Charset utf8 = Charset.forName("UTF8");
-
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
     final String user = cl.getArgs()[0];
@@ -40,7 +36,7 @@ public class AuthenticateCommand extends Command {
       shellState.getReader().printNewline();
       return 0;
     } // user canceled
-    final byte[] password = p.getBytes(utf8);
+    final byte[] password = p.getBytes();
     final boolean valid = shellState.getConnector().securityOperations().authenticateUser(user, password);
     shellState.getReader().printString((valid ? "V" : "Not v") + "alid\n");
     return 0;

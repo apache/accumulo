@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -35,8 +34,6 @@ import org.apache.accumulo.core.util.shell.Shell;
 public class QuotedStringTokenizer implements Iterable<String> {
   private ArrayList<String> tokens;
   private String input;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public QuotedStringTokenizer(final String t) throws BadArgumentException {
     tokens = new ArrayList<String>();
@@ -60,7 +57,7 @@ public class QuotedStringTokenizer implements Iterable<String> {
     
     final byte[] token = new byte[input.length()];
     int tokenLength = 0;
-    final byte[] inputBytes = input.getBytes(utf8);
+    final byte[] inputBytes = input.getBytes();
     for (int i = 0; i < input.length(); ++i) {
       final char ch = input.charAt(i);
       

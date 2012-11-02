@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.master.tableOps;
 
-import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -186,8 +185,6 @@ public class CompactRange extends MasterRepo {
   private byte[] startRow;
   private byte[] endRow;
   private IteratorConfig iterators;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public CompactRange(String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators) throws ThriftTableOperationException {
     this.tableId = tableId;
@@ -242,7 +239,7 @@ public class CompactRange extends MasterRepo {
             encodedIterators.append(new String(hex.encode(IteratorUtil.encodeIteratorSettings(iterators))));
           }
           
-          return ("" + flushID + encodedIterators).getBytes(utf8);
+          return ("" + flushID + encodedIterators).getBytes();
         }
       });
       
@@ -275,7 +272,7 @@ public class CompactRange extends MasterRepo {
           encodedIterators.append(tokens[i]);
         }
         
-        return ("" + flushID + encodedIterators).getBytes(utf8);
+        return ("" + flushID + encodedIterators).getBytes();
       }
     });
 

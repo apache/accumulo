@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.fate.zookeeper;
 
-import java.nio.charset.Charset;
-
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.log4j.Logger;
@@ -27,8 +25,6 @@ import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.data.Stat;
 
 public class ZooReservation {
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public static boolean attempt(IZooReaderWriter zk, String path, String reservationID, String debugInfo) throws KeeperException, InterruptedException {
     if (reservationID.contains(":"))
@@ -36,7 +32,7 @@ public class ZooReservation {
     
     while (true) {
       try {
-        zk.putPersistentData(path, (reservationID + ":" + debugInfo).getBytes(utf8), NodeExistsPolicy.FAIL);
+        zk.putPersistentData(path, (reservationID + ":" + debugInfo).getBytes(), NodeExistsPolicy.FAIL);
         return true;
       } catch (NodeExistsException nee) {
         Stat stat = new Stat();

@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.security;
 
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,8 +38,6 @@ public class ColumnVisibility {
   
   Node node = null;
   private byte[] expression;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   /**
    * Accessor for the underlying byte string.
@@ -163,7 +160,7 @@ public class ColumnVisibility {
   public byte[] flatten() {
     StringBuilder builder = new StringBuilder();
     flatten(node, expression, builder);
-    return builder.toString().getBytes(utf8);
+    return builder.toString().getBytes();
   }
   
   private static class ColumnVisibilityParser {
@@ -325,7 +322,7 @@ public class ColumnVisibility {
    * @param expression
    */
   public ColumnVisibility(String expression) {
-    this(expression.getBytes(utf8));
+    this(expression.getBytes());
   }
   
   /**

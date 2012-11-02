@@ -21,7 +21,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.TreeSet;
@@ -45,8 +44,6 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
   private static final String NUM_SUBBINS = PREFIX + ".subBins";
   
   private Configuration conf;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public int getPartition(Text key, Writable value, int numPartitions) {
     try {
@@ -92,7 +89,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
             Scanner in = new Scanner(new BufferedReader(new FileReader(path.toString())));
             try {
               while (in.hasNextLine())
-                cutPoints.add(new Text(Base64.decodeBase64(in.nextLine().getBytes(utf8))));
+                cutPoints.add(new Text(Base64.decodeBase64(in.nextLine().getBytes())));
             } finally {
               in.close();
             }

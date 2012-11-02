@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.iterators.conf;
 
-import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -33,8 +32,6 @@ public class ColumnSet {
   
   private ColHashKey lookupCol = new ColHashKey();
   private ColFamHashKey lookupCF = new ColFamHashKey();
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public ColumnSet() {
     objectsCF = new HashSet<ColFamHashKey>();
@@ -138,7 +135,7 @@ public class ColumnSet {
   static Text decode(String s) {
     Text t = new Text();
     
-    byte[] sb = s.getBytes(utf8);
+    byte[] sb = s.getBytes();
     
     // very inefficient code
     for (int i = 0; i < sb.length; i++) {

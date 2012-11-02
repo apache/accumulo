@@ -18,7 +18,6 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Map.Entry;
 import java.util.Scanner;
 import java.util.SortedSet;
@@ -53,8 +52,6 @@ public class CreateTableCommand extends Command {
   private Option base64Opt;
   private Option createTableOptFormatter;
   public static String testTable;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableExistsException,
       TableNotFoundException, IOException, ClassNotFoundException {
@@ -81,7 +78,7 @@ public class CreateTableCommand extends Command {
       while (file.hasNextLine()) {
         line = file.nextLine();
         if (!line.isEmpty()) {
-          partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes(utf8))) : new Text(line));
+          partitions.add(decode ? new Text(Base64.decodeBase64(line.getBytes())) : new Text(line));
         }
       }
     } else if (cl.hasOption(createTableOptCopySplits.getOpt())) {

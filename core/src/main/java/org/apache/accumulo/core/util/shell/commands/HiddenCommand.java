@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.util.shell.commands;
 
-import java.nio.charset.Charset;
 import java.security.SecureRandom;
 import java.util.Random;
 
@@ -29,8 +28,6 @@ import org.apache.commons.codec.binary.Base64;
 
 public class HiddenCommand extends Command {
   private static Random rand = new SecureRandom();
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   @Override
   public String description() {
@@ -45,7 +42,7 @@ public class HiddenCommand extends Command {
       shellState.getReader().printString(
           new String(Base64.decodeBase64(("ICAgICAgIC4tLS4KICAgICAgLyAvXCBcCiAgICAgKCAvLS1cICkKICAgICAuPl8gIF88LgogICAgLyB8ICd8ICcgXAog"
               + "ICAvICB8Xy58Xy4gIFwKICAvIC98ICAgICAgfFwgXAogfCB8IHwgfFwvfCB8IHwgfAogfF98IHwgfCAgfCB8IHxffAogICAgIC8gIF9fICBcCiAgICAvICAv"
-              + "ICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvICAvICAgICAgXCB8IHwKIHxfXy8gICAgICAgIFx8X3wK").getBytes(utf8))));
+              + "ICBcICBcCiAgIC8gIC8gICAgXCAgXF8KIHwvICAvICAgICAgXCB8IHwKIHxfXy8gICAgICAgIFx8X3wK").getBytes())));
       shellState.getReader().printNewline();
     } else {
       throw new ShellCommandException(ErrorCode.UNRECOGNIZED_COMMAND, getName());

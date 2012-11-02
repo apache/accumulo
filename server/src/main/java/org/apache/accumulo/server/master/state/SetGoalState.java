@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.server.master.state;
 
-import java.nio.charset.Charset;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
@@ -32,8 +30,6 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.hadoop.fs.FileSystem;
 
 public class SetGoalState {
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   /**
    * Utility program that will change the goal state for the master from the command line.
@@ -47,7 +43,7 @@ public class SetGoalState {
 
     FileSystem fs = FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration());
     Accumulo.waitForZookeeperAndHdfs(fs);
-    ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(utf8),
+    ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZMASTER_GOAL_STATE, args[0].getBytes(),
         NodeExistsPolicy.OVERWRITE);
   }
   
