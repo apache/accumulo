@@ -457,6 +457,12 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       log.warn(why);
       throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.OTHER, why);
     }
+    if (Tables.getNameToIdMap(HdfsZooInstance.getInstance()).containsKey(tableName))
+    {
+      String why = "Table name already exists: " + tableName;
+      throw new ThriftTableOperationException(null, tableName, operation, TableOperationExceptionType.EXISTS, why);      
+    }
+
   }
   
   public void mustBeOnline(final String tableId) throws ThriftTableOperationException {

@@ -110,7 +110,6 @@ public final class ZKAuthenticator implements Authenticator {
     try {
       constructUser(user, ZKSecurityTool.createPass(pass));
     } catch (KeeperException e) {
-      log.error(e, e);
       if (e.code().equals(KeeperException.Code.NODEEXISTS))
         throw new AccumuloSecurityException(user, SecurityErrorCode.USER_EXISTS, e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
@@ -134,9 +133,9 @@ public final class ZKAuthenticator implements Authenticator {
       log.error(e, e);
       throw new RuntimeException(e);
     } catch (KeeperException e) {
-      log.error(e, e);
       if (e.code().equals(KeeperException.Code.NONODE))
         throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST, e);
+      log.error(e, e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
     }
   }

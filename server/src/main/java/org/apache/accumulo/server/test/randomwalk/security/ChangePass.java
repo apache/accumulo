@@ -59,7 +59,6 @@ public class ChangePass extends Test {
       newPass[i] = (byte) ((r.nextInt(26)+65) & 0xFF);
     
     try {
-      log.debug("Changing password for user " + target + " to " + new String(newPass));
       conn.securityOperations().changeUserPassword(target, newPass);
     } catch (AccumuloSecurityException ae) {
       switch (ae.getErrorCode()) {
