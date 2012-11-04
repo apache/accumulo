@@ -88,6 +88,7 @@ class TeraSortBenchmark(Benchmark):
         log.debug("Running: %r", command)
         out, err = handle.communicate("")
         log.debug("Process finished: %d (%s)", handle.returncode, ' '.join(handle.command))
+        self.assertEqual(handle.returncode, 0, "Job did not complete successfully")
         return handle.returncode, out, err
         
     def needsAuthentication(self):
