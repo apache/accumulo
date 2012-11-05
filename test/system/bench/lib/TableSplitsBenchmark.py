@@ -35,35 +35,31 @@ class TableSplitsBenchmark(Benchmark):
     tablename = 'test_splits'
 
     def setUp(self): 
-        random.jumpahead(int(time.time()))
-        num = random.randint(1, 100000)
-        self.tablename = self.tablename + "_" + str(num)     
         # Need to generate a splits file for each speed
-        #code, out, err = cloudshell.run(self.username, self.password, 'table %s\n' % self.tablename)
-        #if out.find('no such table') == -1:
-        #    log.debug('Deleting table %s' % self.tablename)
-        #    code, out, err = cloudshell.run('user %s\n%s\ndeletetable %s\n' % (self.user, 
-        #                                                                          self.password, 
-        #                                                                          self.tablename))
-        #    self.sleep(5)
+        code, out, err = cloudshell.run(self.username, self.password, 'table %s\n' % self.tablename)
+        if out.find('does not exist') == -1:
+            log.debug('Deleting table %s' % self.tablename)
+            code, out, err = cloudshell.run(self.username, self.password, 'deletetable %s -f\n' % self.tablename)
+            self.assertEqual(code, 0, "Could not delete table")
         Benchmark.setUp(self)
 
     def runTest(self):             
         command = 'createtable %s -sf %s\n' % (self.tablename, self.splitsfile)
         log.debug("Running Command %r", command)
         code, out, err = cloudshell.run(self.username, self.password, command)
+        self.assertEqual(code, 0, 'Could not create table: %s' % out)
         return code, out, err
 
     def shortDescription(self):
         return 'Creates a table with splits. Lower score is better.'
         
     def tearDown(self):
+        command = 'deletetable %s -f\n' % self.tablename
+        log.debug("Running Command %r", command)
+        code, out, err = cloudshell.run(self.username, self.password, command)
+        self.assertEqual(code, 0, "Could not delete table")
+        log.debug("Process finished")        
         Benchmark.tearDown(self)
-        # self.sleep(5)
-        # command = 'deletetable test_splits\n'
-        # log.debug("Running Command %r", command)
-        # code, out, err = cloudshell.run(self.username, self.password, command)
-        # log.debug("Process finished")        
 
     def setSpeed(self, speed):
         dir = os.path.dirname(os.path.realpath(__file__))
