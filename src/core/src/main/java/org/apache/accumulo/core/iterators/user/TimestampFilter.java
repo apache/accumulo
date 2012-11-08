@@ -17,8 +17,8 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -33,7 +33,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  * A Filter that matches entries whose timestamps fall within a range.
  */
 public class TimestampFilter extends Filter {
-  private static final String LONG_PREFIX = "LONG";
   private final SimpleDateFormat dateParser = initDateParser();
   
   private static SimpleDateFormat initDateParser() {
@@ -87,20 +86,10 @@ public class TimestampFilter extends Filter {
       throw new IllegalArgumentException("must have either start or end for " + TimestampFilter.class.getName());
     
     try {
-      if (hasStart) {
-        String s = options.get(START);
-        if (s.startsWith(LONG_PREFIX))
-          start = Long.valueOf(s.substring(LONG_PREFIX.length()));
-        else
-          start = dateParser.parse(s).getTime();
-      }
-      if (hasEnd) {
-        String s = options.get(END);
-        if (s.startsWith(LONG_PREFIX))
-          end = Long.valueOf(s.substring(LONG_PREFIX.length()));
-        else
-          end = dateParser.parse(s).getTime();
-      }
+      if (hasStart)
+        start = dateParser.parse(options.get(START)).getTime();
+      if (hasEnd)
+        end = dateParser.parse(options.get(END)).getTime();
     } catch (Exception e) {
       throw new IllegalArgumentException(e);
     }
@@ -127,8 +116,8 @@ public class TimestampFilter extends Filter {
     IteratorOptions io = super.describeOptions();
     io.setName("tsfilter");
     io.setDescription("TimestampFilter displays entries with timestamps between specified values");
-    io.addNamedOption("start", "start timestamp (yyyyMMddHHmmssz or LONG<longstring>)");
-    io.addNamedOption("end", "end timestamp (yyyyMMddHHmmssz or LONG<longstring>)");
+    io.addNamedOption("start", "start timestamp (yyyyMMddHHmmssz)");
+    io.addNamedOption("end", "end timestamp (yyyyMMddHHmmssz)");
     io.addNamedOption("startInclusive", "true or false");
     io.addNamedOption("endInclusive", "true or false");
     return io;
@@ -137,27 +126,11 @@ public class TimestampFilter extends Filter {
   @Override
   public boolean validateOptions(Map<String,String> options) {
     super.validateOptions(options);
-    boolean hasStart = false;
-    boolean hasEnd = false;
     try {
-      if (options.containsKey(START)) {
-        hasStart = true;
-        String s = options.get(START);
-        if (s.startsWith(LONG_PREFIX))
-          Long.valueOf(s.substring(LONG_PREFIX.length()));
-        else
-          dateParser.parse(s);
-      }
-      if (options.containsKey(END)) {
-        hasEnd = true;
-        String s = options.get(END);
-        if (s.startsWith(LONG_PREFIX))
-          Long.valueOf(s.substring(LONG_PREFIX.length()));
-        else
-          dateParser.parse(s);
-      }
-      if (!hasStart && !hasEnd)
-        return false;
+      if (options.containsKey(START))
+        dateParser.parse(options.get(START));
+      if (options.containsKey(END))
+        dateParser.parse(options.get(END));
       if (options.get(START_INCL) != null)
         Boolean.parseBoolean(options.get(START_INCL));
       if (options.get(END_INCL) != null)
@@ -212,13 +185,8 @@ public class TimestampFilter extends Filter {
    *          boolean indicating whether the start is inclusive
    */
   public static void setStart(IteratorSetting is, String start, boolean startInclusive) {
-    SimpleDateFormat dateParser = initDateParser();
-    try {
-      long startTS = dateParser.parse(start).getTime();
-      setStart(is, startTS, startInclusive);
-    } catch (ParseException e) {
-      throw new IllegalArgumentException("couldn't parse " + start);
-    }
+    is.addOption(START, start);
+    is.addOption(START_INCL, Boolean.toString(startInclusive));
   }
   
   /**
@@ -232,13 +200,8 @@ public class TimestampFilter extends Filter {
    *          boolean indicating whether the end is inclusive
    */
   public static void setEnd(IteratorSetting is, String end, boolean endInclusive) {
-    SimpleDateFormat dateParser = initDateParser();
-    try {
-      long endTS = dateParser.parse(end).getTime();
-      setEnd(is, endTS, endInclusive);
-    } catch (ParseException e) {
-      throw new IllegalArgumentException("couldn't parse " + end);
-    }
+    is.addOption(END, end);
+    is.addOption(END_INCL, Boolean.toString(endInclusive));
   }
   
   /**
@@ -285,7 +248,8 @@ public class TimestampFilter extends Filter {
    *          boolean indicating whether the start is inclusive
    */
   public static void setStart(IteratorSetting is, long start, boolean startInclusive) {
-    is.addOption(START, LONG_PREFIX + Long.toString(start));
+    SimpleDateFormat dateParser = initDateParser();
+    is.addOption(START, dateParser.format(new Date(start)));
     is.addOption(START_INCL, Boolean.toString(startInclusive));
   }
   
@@ -300,7 +264,8 @@ public class TimestampFilter extends Filter {
    *          boolean indicating whether the end is inclusive
    */
   public static void setEnd(IteratorSetting is, long end, boolean endInclusive) {
-    is.addOption(END, LONG_PREFIX + Long.toString(end));
+    SimpleDateFormat dateParser = initDateParser();
+    is.addOption(END, dateParser.format(new Date(end)));
     is.addOption(END_INCL, Boolean.toString(endInclusive));
   }
 }
