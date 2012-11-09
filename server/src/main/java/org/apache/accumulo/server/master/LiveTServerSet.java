@@ -51,6 +51,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.KeeperException.NotEmptyException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.data.Stat;
@@ -279,7 +280,11 @@ public class LiveTServerSet implements Watcher {
             current.remove(server);
             info.cleanup();
           }
-          ZooReaderWriter.getInstance().delete(lockPath, -1);
+          try {
+            ZooReaderWriter.getInstance().delete(lockPath, -1);
+          } catch (NotEmptyException ex) {
+            // race condition: tserver created the lock after our last check; we'll see it at the next check
+          }
         }
       }
       // log.debug("Current: " + current.keySet());
