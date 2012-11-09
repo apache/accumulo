@@ -2048,9 +2048,16 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
     for (TServerInstance server : currentServers) {
       try {
-        TabletServerStatus status = tserverSet.getConnection(server).getTableMap();
-        result.put(server, status);
-        // TODO maybe remove from bad servers
+        Thread t = Thread.currentThread();
+        String oldName = t.getName();
+        try {
+          t.setName("Getting status from " + server);
+          TabletServerStatus status = tserverSet.getConnection(server).getTableMap();
+          // TODO maybe remove from bad servers
+          result.put(server, status);
+        } finally {
+          t.setName(oldName);
+        }
       } catch (Exception ex) {
         log.error("unable to get tablet server status " + server + " " + ex.toString());
         log.debug("unable to get tablet server status " + server, ex);
