@@ -208,7 +208,7 @@ public class MutationTest extends TestCase {
   }
   
   public void testPutsString() {
-    Mutation m = new Mutation(new Text("r1"));
+    Mutation m = new Mutation("r1");
     
     m.put("cf1", "cq1", nv("v1"));
     m.put("cf2", "cq2", new ColumnVisibility("cv2"), nv("v2"));
@@ -239,7 +239,7 @@ public class MutationTest extends TestCase {
   }
   
   public void testPutsStringString() {
-    Mutation m = new Mutation(new Text("r1"));
+    Mutation m = new Mutation("r1");
     
     m.put("cf1", "cq1", "v1");
     m.put("cf2", "cq2", new ColumnVisibility("cv2"), "v2");
@@ -250,6 +250,38 @@ public class MutationTest extends TestCase {
     m.putDelete("cf6", "cq6", new ColumnVisibility("cv6"));
     m.putDelete("cf7", "cq7", 7l);
     m.putDelete("cf8", "cq8", new ColumnVisibility("cv8"), 8l);
+    
+    assertEquals(8, m.size());
+    assertEquals("r1", new String(m.getRow()));
+    
+    List<ColumnUpdate> updates = m.getUpdates();
+    
+    assertEquals(8, m.size());
+    assertEquals(8, updates.size());
+    
+    assertEquals(updates.get(0), "cf1", "cq1", "", 0l, false, false, "v1");
+    assertEquals(updates.get(1), "cf2", "cq2", "cv2", 0l, false, false, "v2");
+    assertEquals(updates.get(2), "cf3", "cq3", "", 3l, true, false, "v3");
+    assertEquals(updates.get(3), "cf4", "cq4", "cv4", 4l, true, false, "v4");
+    
+    assertEquals(updates.get(4), "cf5", "cq5", "", 0l, false, true, "");
+    assertEquals(updates.get(5), "cf6", "cq6", "cv6", 0l, false, true, "");
+    assertEquals(updates.get(6), "cf7", "cq7", "", 7l, true, true, "");
+    assertEquals(updates.get(7), "cf8", "cq8", "cv8", 8l, true, true, "");
+  }
+  
+  public void testByteArrays() {
+    Mutation m = new Mutation("r1".getBytes());
+    
+    m.put("cf1".getBytes(), "cq1".getBytes(), "v1".getBytes());
+    m.put("cf2".getBytes(), "cq2".getBytes(), new ColumnVisibility("cv2"), "v2".getBytes());
+    m.put("cf3".getBytes(), "cq3".getBytes(), 3l, "v3".getBytes());
+    m.put("cf4".getBytes(), "cq4".getBytes(), new ColumnVisibility("cv4"), 4l, "v4".getBytes());
+    
+    m.putDelete("cf5".getBytes(), "cq5".getBytes());
+    m.putDelete("cf6".getBytes(), "cq6".getBytes(), new ColumnVisibility("cv6"));
+    m.putDelete("cf7".getBytes(), "cq7".getBytes(), 7l);
+    m.putDelete("cf8".getBytes(), "cq8".getBytes(), new ColumnVisibility("cv8"), 8l);
     
     assertEquals(8, m.size());
     
@@ -268,7 +300,7 @@ public class MutationTest extends TestCase {
     assertEquals(updates.get(6), "cf7", "cq7", "", 7l, true, true, "");
     assertEquals(updates.get(7), "cf8", "cq8", "cv8", 8l, true, true, "");
   }
-  
+
   /**
    * Test for regression on bug 3422. If a {@link Mutation} object is reused for multiple calls to readFields, the mutation would previously be "locked in" to
    * the first set of column updates (and value lengths). Hadoop input formats reuse objects when reading, so if Mutations are used with an input format (or as

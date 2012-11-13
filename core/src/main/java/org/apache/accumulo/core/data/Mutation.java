@@ -27,7 +27,6 @@ import java.util.List;
 import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
@@ -261,17 +260,17 @@ public class Mutation implements Writable {
   }
   
   private void put(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
-    put(cf, cf.length, cq, cq.length, cv, hasts, ts, deleted, val);
+    put(cf, cf.length, cq, cq.length, cv, hasts, ts, deleted, val, val.length);
   }
 
   /*
    * When dealing with Text object the length must be gotten from the object, not from the byte array.
    */
   private void put(Text cf, Text cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
-    put(cf.getBytes(), cf.getLength(), cq.getBytes(), cq.getLength(), cv, hasts, ts, deleted, val);
+    put(cf.getBytes(), cf.getLength(), cq.getBytes(), cq.getLength(), cv, hasts, ts, deleted, val, val.length);
   }
   
-  private void put(byte[] cf, int cfLength, byte[] cq, int cqLength, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
+  private void put(byte[] cf, int cfLength, byte[] cq, int cqLength, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val, int valLength) {
     if (buffer == null) {
       throw new IllegalStateException("Can not add to mutation after serializing it");
     }
@@ -284,14 +283,14 @@ public class Mutation implements Writable {
     }
     put(deleted);
     
-    if (val.length < VALUE_SIZE_COPY_CUTOFF) {
-      put(val);
+    if (valLength < VALUE_SIZE_COPY_CUTOFF) {
+      put(val, valLength);
     } else {
       if (values == null) {
         values = new ArrayList<byte[]>();
       }
-      byte copy[] = new byte[val.length];
-      System.arraycopy(val, 0, copy, 0, val.length);
+      byte copy[] = new byte[valLength];
+      System.arraycopy(val, 0, copy, 0, valLength);
       values.add(copy);
       put(-1 * values.size());
     }
@@ -303,8 +302,12 @@ public class Mutation implements Writable {
     put(new Text(cf.toString()), new Text(cq.toString()), cv, hasts, ts, deleted, val);
   }
   
+  private void put(Text cf, Text cq, byte[] cv, boolean hasts, long ts, boolean deleted, Text val) {
+    put(cf.getBytes(), cf.getLength(), cq.getBytes(), cq.getLength(), cv, hasts, ts, deleted, val.getBytes(), val.getLength());
+  }
+
   private void put(CharSequence cf, CharSequence cq, byte[] cv, boolean hasts, long ts, boolean deleted, CharSequence val) {
-    put(cf, cq, cv, hasts, ts, deleted, TextUtil.getBytes(new Text(val.toString())));
+    put(new Text(cf.toString()), new Text(cq.toString()), cv, hasts, ts, deleted, new Text(val.toString()));
   }
 
   public void put(Text columnFamily, Text columnQualifier, Value value) {
@@ -340,53 +343,85 @@ public class Mutation implements Writable {
   }
   
   public void put(CharSequence columnFamily, CharSequence columnQualifier, Value value) {
-    put(columnFamily.toString(), columnQualifier.toString(), EMPTY_BYTES, false, 0l, false, value.get());
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value.get());
   }
   
   public void put(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, Value value) {
-    put(columnFamily.toString(), columnQualifier.toString(), columnVisibility.getExpression(), false, 0l, false, value.get());
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value.get());
   }
   
   public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp, Value value) {
-    put(columnFamily.toString(), columnQualifier.toString(), EMPTY_BYTES, true, timestamp, false, value.get());
+    put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value.get());
   }
   
   public void put(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, long timestamp, Value value) {
-    put(columnFamily.toString(), columnQualifier.toString(), columnVisibility.getExpression(), true, timestamp, false, value.get());
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value.get());
   }
   
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier) {
-    put(columnFamily.toString(), columnQualifier.toString(), EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
   }
   
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility) {
-    put(columnFamily.toString(), columnQualifier.toString(), columnVisibility.getExpression(), false, 0l, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true, EMPTY_BYTES);
   }
   
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier, long timestamp) {
-    put(columnFamily.toString(), columnQualifier.toString(), EMPTY_BYTES, true, timestamp, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, true, EMPTY_BYTES);
   }
   
   public void putDelete(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, long timestamp) {
-    put(columnFamily.toString(), columnQualifier.toString(), columnVisibility.getExpression(), true, timestamp, true, EMPTY_BYTES);
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true, EMPTY_BYTES);
   }
   
   public void put(CharSequence columnFamily, CharSequence columnQualifier, CharSequence value) {
-    put(columnFamily.toString(), columnQualifier.toString(), EMPTY_BYTES, false, 0l, false, value.toString());
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value);
   }
   
   public void put(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, CharSequence value) {
-    put(columnFamily.toString(), columnQualifier.toString(), columnVisibility.getExpression(), false, 0l, false, value.toString());
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value);
   }
   
   public void put(CharSequence columnFamily, CharSequence columnQualifier, long timestamp, CharSequence value) {
-    put(columnFamily.toString(), columnQualifier.toString(), EMPTY_BYTES, true, timestamp, false, value.toString());
+    put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value);
   }
   
   public void put(CharSequence columnFamily, CharSequence columnQualifier, ColumnVisibility columnVisibility, long timestamp, CharSequence value) {
-    put(columnFamily.toString(), columnQualifier.toString(), columnVisibility.getExpression(), true, timestamp, false, value.toString());
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value);
   }
   
+  public void put(byte[] columnFamily, byte[] columnQualifier, byte[] value) {
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value);
+  }
+  
+  public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, byte[] value) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value);
+  }
+  
+  public void put(byte[] columnFamily, byte[] columnQualifier, long timestamp, byte[] value) {
+    put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value);
+  }
+  
+  public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, long timestamp, byte[] value) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value);
+  }
+  
+  public void putDelete(byte[] columnFamily, byte[] columnQualifier) {
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
+  }
+  
+  public void putDelete(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true, EMPTY_BYTES);
+  }
+  
+  public void putDelete(byte[] columnFamily, byte[] columnQualifier, long timestamp) {
+    put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, true, EMPTY_BYTES);
+  }
+  
+  public void putDelete(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, long timestamp) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true, EMPTY_BYTES);
+  }
+
   private byte[] oldReadBytes(SimpleReader in) {
     int len = in.readInt();
     if (len == 0)
