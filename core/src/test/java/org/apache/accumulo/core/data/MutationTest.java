@@ -31,6 +31,28 @@ import org.apache.hadoop.io.Text;
 
 public class MutationTest extends TestCase {
   
+  private static String toHexString(byte[] ba) {
+    StringBuilder str = new StringBuilder();
+    for (int i = 0; i < ba.length; i++) {
+      str.append(String.format("%x", ba[i]));
+    }
+    return str.toString();
+  }
+
+  /* Test constructing a Mutation using a byte buffer. The byte array
+   * returned as the row is converted to a hexadecimal string for easy
+   * comparision.
+   */
+  public void testByteConstructor() {
+    Mutation m = new Mutation("0123456789".getBytes());
+    assertEquals("30313233343536373839", toHexString(m.getRow()));
+  }
+  
+  public void testLimitedByteConstructor() {
+    Mutation m = new Mutation("0123456789".getBytes(), 2, 5);
+    assertEquals("3233343536", toHexString(m.getRow()));
+  }
+  
   public void test1() {
     Mutation m = new Mutation(new Text("r1"));
     m.put(new Text("cf1"), new Text("cq1"), new Value("v1".getBytes()));
