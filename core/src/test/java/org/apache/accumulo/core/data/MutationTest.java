@@ -30,6 +30,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
 
 public class MutationTest extends TestCase {
+  
   public void test1() {
     Mutation m = new Mutation(new Text("r1"));
     m.put(new Text("cf1"), new Text("cq1"), new Value("v1".getBytes()));
@@ -402,15 +403,19 @@ public class MutationTest extends TestCase {
     dos.close();
     long newSize = dos.size();
     assertTrue(newSize < oldSize);
-    System.out.println(String.format("%d %d %.2f%%", newSize - exampleLen, oldSize - exampleLen, (newSize-exampleLen) * 100. / (oldSize - exampleLen)));
+    assertEquals(10, newSize - exampleLen);
+    assertEquals(68, oldSize - exampleLen);
+    // I am converting to integer to avoid comparing floats which are inaccurate
+    assertEquals(14705, (int)(((newSize-exampleLen) * 100. / (oldSize - exampleLen)) * 1000));
+    StringBuilder sb = new StringBuilder();
     byte[] ba = bos.toByteArray();
     for (int i = 0; i < bos.size(); i += 4) {
       for (int j = i; j < bos.size() && j < i + 4; j++) {
-        System.out.append(String.format("%02x", ba[j]));
+        sb.append(String.format("%02x", ba[j]));
       }
-      System.out.append(" ");
+      sb.append(" ");
     }
-    System.out.println();
+    assertEquals("80322031 32333435 36373839 20313233 34353637 38392031 32333435 36373839 20313233 34353637 38392031 32333435 36373839 06000000 00000001 ", sb.toString());
     
   }
   
