@@ -210,9 +210,7 @@ public class Mutation implements Writable {
   }
   
   public Mutation(Text row) {
-    this.row = new byte[row.getLength()];
-    System.arraycopy(row.getBytes(), 0, this.row, 0, row.getLength());
-    buffer = new ByteBuffer();
+    this(row.getBytes(), 0, row.getLength());
   }
   
   public Mutation(CharSequence row) {
