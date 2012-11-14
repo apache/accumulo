@@ -301,19 +301,16 @@ public class LiveTServerSet implements Watcher {
   }
   
   public synchronized TServerConnection getConnection(TServerInstance server) throws TException {
-    TServerConnection result;
-    synchronized (this) {
-      if (server == null)
-        return null;
-      TServerInfo serverInfo = current.get(server.hostPort());
-      // lock was lost?
-      if (serverInfo == null)
-        return null;
-      // instance changed?
-      if (!serverInfo.instance.equals(server))
-        return null;
-      result = serverInfo.connection;
-    }
+    if (server == null)
+      return null;
+    TServerInfo serverInfo = current.get(server.hostPort());
+    // lock was lost?
+    if (serverInfo == null)
+      return null;
+    // instance changed?
+    if (!serverInfo.instance.equals(server))
+      return null;
+    TServerConnection result = serverInfo.connection;
     return result;
   }
   
