@@ -192,7 +192,7 @@ public class TServerUtils {
       @Override
       public void run() {
         if (pool.getCorePoolSize() <= pool.getActiveCount()) {
-          int larger = pool.getCorePoolSize() + 2;
+          int larger = pool.getCorePoolSize() + Math.min(pool.getQueue().size(), 2);
           log.info("Increasing server thread pool size on " + serverName + " to " + larger);
           pool.setMaximumPoolSize(larger);
           pool.setCorePoolSize(larger);
