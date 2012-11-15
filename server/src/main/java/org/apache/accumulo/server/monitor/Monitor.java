@@ -294,11 +294,11 @@ public class Monitor {
           client = MasterClient.getConnection(HdfsZooInstance.getInstance());
           if (client != null) {
             mmi = client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
+            retry = false;
           } else {
             mmi = null;
           }
           Monitor.gcStatus = fetchGcStatus();
-          retry = false;
         } catch (Exception e) {
           mmi = null;
           log.info("Error fetching stats: " + e);
