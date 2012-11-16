@@ -23,7 +23,7 @@ import java.io.Writer;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;

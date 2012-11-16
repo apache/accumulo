@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeMap;
 
-import junit.framework.Assert;
 import junit.framework.TestCase;
 
 import org.apache.accumulo.core.Constants;
@@ -288,10 +287,10 @@ public class IntersectingIteratorTest extends TestCase {
     bs.addScanIterator(ii);
     bs.setRanges(Collections.singleton(new Range()));
     Iterator<Entry<Key,Value>> iterator = bs.iterator();
-    Assert.assertTrue(iterator.hasNext());
+    assertTrue(iterator.hasNext());
     Entry<Key,Value> next = iterator.next();
     Key key = next.getKey();
-    Assert.assertEquals(key.getColumnQualifier(), new Text("5000000000000000"));
-    Assert.assertFalse(iterator.hasNext());
+    assertEquals(key.getColumnQualifier(), new Text("5000000000000000"));
+    assertFalse(iterator.hasNext());
   }
 }

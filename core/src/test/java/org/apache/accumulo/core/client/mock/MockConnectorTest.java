@@ -16,16 +16,14 @@
  */
 package org.apache.accumulo.core.client.mock;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
-
-import junit.framework.Assert;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -343,8 +341,8 @@ public class MockConnectorTest {
       AccumuloSecurityException{
     String name = "an-interesting-instance-name";
     Instance mockInstance = new MockInstance(name);
-    Assert.assertEquals(mockInstance, mockInstance.getConnector("foo", "bar").getInstance());
-    Assert.assertEquals(name, mockInstance.getConnector("foo","bar").getInstance().getInstanceName());
+    assertEquals(mockInstance, mockInstance.getConnector("foo", "bar").getInstance());
+    assertEquals(name, mockInstance.getConnector("foo","bar").getInstance().getInstanceName());
   }
 
 }

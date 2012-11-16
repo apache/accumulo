@@ -21,7 +21,7 @@ import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
-import junit.framework.Assert;
+import static org.junit.Assert.*;
 
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock.QueueLock;
 import org.junit.Test;
@@ -67,7 +67,7 @@ public class DistributedReadWriteLockTest {
     
     void read() {
       for (int i = 0; i < data.length; i++)
-        Assert.assertEquals(counter, data[i]);
+        assertEquals(counter, data[i]);
     }
     
     void write() {

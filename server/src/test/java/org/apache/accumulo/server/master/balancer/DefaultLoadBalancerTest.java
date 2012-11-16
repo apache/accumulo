@@ -16,10 +16,7 @@
  */
 package org.apache.accumulo.server.master.balancer;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -31,8 +28,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.Map.Entry;
-
-import junit.framework.Assert;
 
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TableInfo;
@@ -198,7 +193,7 @@ public class DefaultLoadBalancerTest {
         servers.get(migration.newServer).extents.add(migration.tablet);
       }
     }
-    Assert.assertEquals(8, moved);
+    assertEquals(8, moved);
   }
   
   @Test
@@ -243,7 +238,7 @@ public class DefaultLoadBalancerTest {
       }
     }
     // average is 58, with 2 at 59: we need 48 more moved to the short server
-    Assert.assertEquals(48, moved);
+    assertEquals(48, moved);
   }
   
   private void checkBalance(List<KeyExtent> metadataTable, Map<TServerInstance,FakeTServer> servers, Map<String,Integer> expectedCounts) {
