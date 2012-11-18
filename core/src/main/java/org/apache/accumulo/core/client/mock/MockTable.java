@@ -53,9 +53,8 @@ public class MockTable {
     }
     
     @Override
-    public boolean equals(Object obj) {
-      MockMemKey other = (MockMemKey) obj;
-      return super.equals(other) && count == other.count;
+    public boolean equals(Object other) {
+      return (other instanceof MockMemKey) && super.equals((MockMemKey)other) && count == ((MockMemKey)other).count;
     }
     
     @Override
