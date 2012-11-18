@@ -74,7 +74,7 @@ public class ThriftScanner {
   private static final byte[] EMPTY_BYTES = new byte[0];
   private static final Logger log = Logger.getLogger(ThriftScanner.class);
   
-  public static Map<TabletType,Set<String>> serversWaitedForWrites = new EnumMap<TabletType,Set<String>>(TabletType.class);
+  public static final Map<TabletType,Set<String>> serversWaitedForWrites = new EnumMap<TabletType,Set<String>>(TabletType.class);
   
   static {
     for (TabletType ttype : TabletType.values()) {

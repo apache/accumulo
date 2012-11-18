@@ -53,7 +53,7 @@ import org.apache.thrift.transport.TTransportException;
 public class TServerUtils {
   private static final Logger log = Logger.getLogger(TServerUtils.class);
   
-  public static ThreadLocal<String> clientAddress = new ThreadLocal<String>();
+  public static final ThreadLocal<String> clientAddress = new ThreadLocal<String>();
   
   public static class ServerPort {
     public final TServer server;

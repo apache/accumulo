@@ -39,7 +39,7 @@ public class LocalityGroupUtil {
   
   // private static final Logger log = Logger.getLogger(ColumnFamilySet.class);
   
-  public static Set<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
+  public static final Set<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
   
   public static Set<ByteSequence> families(Collection<Column> columns) {
     Set<ByteSequence> result = new HashSet<ByteSequence>(columns.size());

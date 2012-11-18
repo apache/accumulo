@@ -61,7 +61,7 @@ public class MetricsConfiguration {
   
   private static int CONFIG_FILE_CHECK_COUNTER = 100;
   
-  public static long CONFIG_FILE_RELOAD_DELAY = 60000;
+  public final static long CONFIG_FILE_RELOAD_DELAY = 60000;
   
   private MetricsConfigWatcher watcher = null;
   
