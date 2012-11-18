@@ -27,7 +27,7 @@ if [ "$VERSION" -ne 1 ] ; then
    # Nope: bail
    echo "***********************************************"
    echo "* thrift is not available                     *"
-   echo "*   expecting 'thrift -version' to return 0.8 *"
+   echo "*   expecting 'thrift -version' to return 0.9 *"
    echo "***********************************************"
    exit 0
 fi
