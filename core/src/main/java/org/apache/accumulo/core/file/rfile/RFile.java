@@ -56,6 +56,7 @@ import org.apache.accumulo.core.file.rfile.BlockIndex.BlockIndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.RelativeKey.MByteSequence;
+import org.apache.accumulo.core.file.rfile.RelativeKey.SkippR;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -78,7 +79,9 @@ public class RFile {
   private RFile() {}
   
   private static final int RINDEX_MAGIC = 0x20637474;
+  static final int RINDEX_VER_7 = 7;
   static final int RINDEX_VER_6 = 6;
+  // static final int RINDEX_VER_5 = 5; // unreleased
   static final int RINDEX_VER_4 = 4;
   static final int RINDEX_VER_3 = 3;
   
@@ -327,6 +330,7 @@ public class RFile {
       previousColumnFamilies = new HashSet<ByteSequence>();
     }
     
+    @Override
     public synchronized void close() throws IOException {
       
       if (closed) {
@@ -338,7 +342,7 @@ public class RFile {
       ABlockWriter mba = fileWriter.prepareMetaBlock("RFile.index");
       
       mba.writeInt(RINDEX_MAGIC);
-      mba.writeInt(RINDEX_VER_6);
+      mba.writeInt(RINDEX_VER_7);
       
       if (currentLocalityGroup != null)
         localityGroups.add(currentLocalityGroup);
@@ -369,6 +373,7 @@ public class RFile {
       }
     }
     
+    @Override
     public void append(Key key, Value value) throws IOException {
       
       if (dataClosed) {
@@ -685,14 +690,12 @@ public class RFile {
           // and speed up others.
 
           MByteSequence valbs = new MByteSequence(new byte[64], 0, 0);
-          RelativeKey tmpRk = new RelativeKey();
-          Key pKey = new Key(getTopKey());
-          int fastSkipped = tmpRk.fastSkip(currBlock, startKey, valbs, pKey, getTopKey());
-          if (fastSkipped > 0) {
-            entriesLeft -= fastSkipped;
+          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey());
+          if (skippr.skipped > 0) {
+            entriesLeft -= skippr.skipped;
             val = new Value(valbs.toArray());
-            prevKey = pKey;
-            rk = tmpRk;
+            prevKey = skippr.prevKey;
+            rk = skippr.rk;
           }
           
           reseek = false;
@@ -704,8 +707,6 @@ public class RFile {
           reseek = false;
         }
       }
-      
-      int fastSkipped = -1;
       
       if (reseek) {
         iiter = index.lookup(startKey);
@@ -735,7 +736,6 @@ public class RFile {
           if (!checkRange)
             hasTop = true;
 
-          RelativeKey tmpRk = new RelativeKey();
           MByteSequence valbs = new MByteSequence(new byte[64], 0, 0);
 
           Key currKey = null;
@@ -747,7 +747,8 @@ public class RFile {
               if (bie != null) {
                 // we are seeked to the current position of the key in the index
                 // need to prime the read process and read this key from the block
-                tmpRk.setPrevKey(bie.getKey());
+                RelativeKey tmpRk = new RelativeKey();
+                tmpRk.setPrevKey(bie.getPrevKey());
                 tmpRk.readFields(currBlock);
                 val = new Value();
 
@@ -756,18 +757,19 @@ public class RFile {
                 
                 // just consumed one key from the input stream, so subtract one from entries left
                 entriesLeft = bie.getEntriesLeft() - 1;
-                prevKey = new Key(bie.getKey());
+                prevKey = new Key(bie.getPrevKey());
                 currKey = bie.getKey();
               }
             }
           }
 
-          fastSkipped = tmpRk.fastSkip(currBlock, startKey, valbs, prevKey, currKey);
-          entriesLeft -= fastSkipped;
+          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, currKey);
+          prevKey = skippr.prevKey;
+          entriesLeft -= skippr.skipped;
           val = new Value(valbs.toArray());
           // set rk when everything above is successful, if exception
           // occurs rk will not be set
-          rk = tmpRk;
+          rk = skippr.rk;
         }
       }
       
@@ -842,7 +844,7 @@ public class RFile {
       
       if (magic != RINDEX_MAGIC)
         throw new IOException("Did not see expected magic number, saw " + magic);
-      if (ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
+      if (ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
         throw new IOException("Did not see expected version, saw " + ver);
       
       int size = mb.readInt();

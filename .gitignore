@@ -83,6 +83,7 @@
 /core/.classpath
 
 # /examples/
+/examples/lib
 /examples/target
 /examples/.settings
 /examples/.classpath
@@ -124,6 +125,12 @@
 /trace/.classpath
 /trace/.project
 /trace/.settings
+
+# /test/
+/test/target
+/test/.classpath
+/test/.project
+/test/.settings
 
 # /test/system/auto/
 /test/system/auto/*.pyc

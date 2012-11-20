@@ -58,13 +58,15 @@ public class BlockIndex {
   public static class BlockIndexEntry implements Comparable<BlockIndexEntry> {
     
     private Key key;
+    private Key prevKey;
     private int entriesLeft;
     private int pos;
     
-    public BlockIndexEntry(int pos, int entriesLeft, Key key) {
+    public BlockIndexEntry(int pos, int entriesLeft, Key key, Key prevKey) {
       this.pos = pos;
       this.entriesLeft = entriesLeft;
       this.key = key;
+      this.prevKey = prevKey;
     }
 
     /**
@@ -87,14 +89,18 @@ public class BlockIndex {
       return key.compareTo(o.key);
     }
     
+    @Override
     public String toString() {
       return key + " " + entriesLeft + " " + pos;
+    }
+    
+    public Key getPrevKey() {
+      return prevKey;
     }
   }
   
   public BlockIndexEntry seekBlock(Key startKey, ABlockReader cacheBlock) {
 
-    
     // get a local ref to the index, another thread could change it
     BlockIndexEntry[] blockIndex = this.blockIndex;
     
@@ -150,12 +156,13 @@ public class BlockIndex {
 
     while (count < (indexEntry.getNumEntries() - interval + 1)) {
 
+      Key myPrevKey = rk.getKey();
       int pos = cacheBlock.getPosition();
       rk.readFields(cacheBlock);
       val.readFields(cacheBlock);
 
       if (count > 0 && count % interval == 0) {
-        index.add(new BlockIndexEntry(pos, indexEntry.getNumEntries() - count, rk.getKey()));
+        index.add(new BlockIndexEntry(pos, indexEntry.getNumEntries() - count, rk.getKey(), myPrevKey));
       }
       
       count++;
