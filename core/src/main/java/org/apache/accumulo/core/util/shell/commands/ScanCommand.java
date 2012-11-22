@@ -39,7 +39,7 @@ import org.apache.accumulo.core.util.interpret.ScanInterpreter;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.Shell.PrintFile;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -166,9 +166,9 @@ public class ScanCommand extends Command {
     Class<? extends ScanInterpreter> clazz = null;
     try {
       if (cl.hasOption(interpreterOpt.getOpt())) {
-        clazz = AccumuloClassLoader.loadClass(cl.getOptionValue(interpreterOpt.getOpt()), ScanInterpreter.class);
+        clazz = AccumuloVFSClassLoader.loadClass(cl.getOptionValue(interpreterOpt.getOpt()), ScanInterpreter.class);
       } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
-        clazz = AccumuloClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()), ScanInterpreter.class);
+        clazz = AccumuloVFSClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()), ScanInterpreter.class);
       }
     } catch (ClassNotFoundException e) {
       shellState.getReader().printString("Interpreter class could not be loaded.\n" + e.getMessage() + "\n");
@@ -187,10 +187,10 @@ public class ScanCommand extends Command {
     
     try {
       if (cl.hasOption(formatterOpt.getOpt())) {
-        return AccumuloClassLoader.loadClass(cl.getOptionValue(formatterOpt.getOpt()), Formatter.class);
+        return AccumuloVFSClassLoader.loadClass(cl.getOptionValue(formatterOpt.getOpt()), Formatter.class);
         
       } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
-        return AccumuloClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()), Formatter.class);
+        return AccumuloVFSClassLoader.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()), Formatter.class);
       }
     } catch (ClassNotFoundException e) {
       shellState.getReader().printString("Formatter class could not be loaded.\n" + e.getMessage() + "\n");

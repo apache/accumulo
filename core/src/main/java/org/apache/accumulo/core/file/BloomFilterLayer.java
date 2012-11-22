@@ -51,7 +51,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
@@ -113,7 +113,7 @@ public class BloomFilterLayer {
        * load KeyFunctor
        */
       try {
-        Class<? extends KeyFunctor> clazz = AccumuloClassLoader.loadClass(acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR), KeyFunctor.class);
+        Class<? extends KeyFunctor> clazz = AccumuloVFSClassLoader.loadClass(acuconf.get(Property.TABLE_BLOOM_KEY_FUNCTOR), KeyFunctor.class);
         transformer = clazz.newInstance();
         
       } catch (Exception e) {
@@ -207,7 +207,7 @@ public class BloomFilterLayer {
              */
             ClassName = in.readUTF();
             
-            Class<? extends KeyFunctor> clazz = AccumuloClassLoader.loadClass(ClassName, KeyFunctor.class);
+            Class<? extends KeyFunctor> clazz = AccumuloVFSClassLoader.loadClass(ClassName, KeyFunctor.class);
             transformer = clazz.newInstance();
             
             /**

@@ -14,27 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.util.shell.commands;
+package org.apache.commons.vfs2.provider;
 
-import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.Shell.Command;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.commons.cli.CommandLine;
+import org.apache.commons.vfs2.FileSystem;
+import org.apache.commons.vfs2.FileSystemConfigBuilder;
 
-public class ClasspathCommand extends Command {
+public class HdfsFileSystemConfigBuilder extends FileSystemConfigBuilder {
+
+  private final static HdfsFileSystemConfigBuilder BUILDER = new HdfsFileSystemConfigBuilder(); 
+  
+  private String hdfsUri = null;
+  
+  public String getHdfsUri() {
+    return hdfsUri;
+  }
+
+  public void setHdfsUri(String hdfsUri) {
+    this.hdfsUri = hdfsUri;
+  }
+
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) {
-    AccumuloVFSClassLoader.printClassPath();
-    return 0;
+  protected Class<? extends FileSystem> getConfigClass() {
+    return ReadOnlyHdfsFileSystem.class;
   }
   
-  @Override
-  public String description() {
-    return "lists the current files on the classpath";
+  public static HdfsFileSystemConfigBuilder getInstance() {
+    return BUILDER;
   }
   
-  @Override
-  public int numArgs() {
-    return 0;
-  }
 }

@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 /**
  * 
@@ -107,7 +107,7 @@ public class MockInstanceOperations implements InstanceOperations {
   @Override
   public boolean testClassLoad(String className, String asTypeName) throws AccumuloException, AccumuloSecurityException {
     try {
-      AccumuloClassLoader.loadClass(className, Class.forName(asTypeName));
+      AccumuloVFSClassLoader.loadClass(className, Class.forName(asTypeName));
     } catch (ClassNotFoundException e) {
       e.printStackTrace();
       return false;

@@ -157,7 +157,7 @@ import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -513,7 +513,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     T instance = null;
     
     try {
-      Class<? extends T> clazz = AccumuloClassLoader.loadClass(clazzName, base);
+      Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
       instance = clazz.newInstance();
       log.info("Loaded class : " + clazzName);
     } catch (Exception e) {

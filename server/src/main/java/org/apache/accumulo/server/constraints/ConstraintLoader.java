@@ -22,7 +22,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Constraint;
 import org.apache.accumulo.server.conf.TableConfiguration;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
 public class ConstraintLoader {
@@ -35,7 +35,7 @@ public class ConstraintLoader {
       for (Entry<String,String> entry : conf) {
         if (entry.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())) {
           String className = entry.getValue();
-          Class<? extends Constraint> clazz = AccumuloClassLoader.loadClass(className, Constraint.class);
+          Class<? extends Constraint> clazz = AccumuloVFSClassLoader.loadClass(className, Constraint.class);
           log.debug("Loaded constraint " + clazz.getName() + " for " + conf.getTableId());
           cc.addConstraint(clazz.newInstance());
         }

@@ -14,27 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.util.shell.commands;
+package org.apache.commons.vfs2.provider;
 
-import org.apache.accumulo.core.util.shell.Shell;
-import org.apache.accumulo.core.util.shell.Shell.Command;
-import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
-import org.apache.commons.cli.CommandLine;
+import org.apache.commons.vfs2.FileContent;
+import org.apache.commons.vfs2.FileContentInfo;
+import org.apache.commons.vfs2.FileContentInfoFactory;
+import org.apache.commons.vfs2.FileSystemException;
+import org.apache.commons.vfs2.impl.DefaultFileContentInfo;
 
-public class ClasspathCommand extends Command {
-  @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) {
-    AccumuloVFSClassLoader.printClassPath();
-    return 0;
+public class HdfsReadOnlyFileContentInfoFactory implements FileContentInfoFactory {
+
+  public FileContentInfo create(FileContent fileContent) throws FileSystemException {
+    //TODO: Need to figure out a way to get this information from the file.
+    String content = "text/plain";
+    String encoding = "UTF-8";
+    return new DefaultFileContentInfo(content, encoding);
   }
   
-  @Override
-  public String description() {
-    return "lists the current files on the classpath";
-  }
-  
-  @Override
-  public int numArgs() {
-    return 0;
-  }
 }

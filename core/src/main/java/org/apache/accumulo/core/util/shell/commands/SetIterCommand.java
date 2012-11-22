@@ -43,7 +43,7 @@ import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
 import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.ShellCommandException.ErrorCode;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -123,7 +123,7 @@ public class SetIterCommand extends Command {
     OptionDescriber skvi;
     Class<? extends OptionDescriber> clazz;
     try {
-      clazz = AccumuloClassLoader.loadClass(className, OptionDescriber.class);
+      clazz = AccumuloVFSClassLoader.loadClass(className, OptionDescriber.class);
       skvi = clazz.newInstance();
     } catch (ClassNotFoundException e) {
       throw new IllegalArgumentException(e.getMessage());

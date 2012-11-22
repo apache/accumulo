@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.aggregation.Aggregator;
 import org.apache.accumulo.core.iterators.conf.ColumnToClassMapping;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
 /**
@@ -193,7 +193,7 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
         return false;
       Class<? extends Aggregator> clazz;
       try {
-        clazz = AccumuloClassLoader.loadClass(classname, Aggregator.class);
+        clazz = AccumuloVFSClassLoader.loadClass(classname, Aggregator.class);
         clazz.newInstance();
       } catch (ClassNotFoundException e) {
         throw new IllegalArgumentException("class not found: " + classname);

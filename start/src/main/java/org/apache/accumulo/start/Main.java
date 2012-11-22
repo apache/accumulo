@@ -19,7 +19,7 @@ package org.apache.accumulo.start;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public class Main {
   
@@ -36,36 +36,37 @@ public class Main {
       
       Class<?> runTMP = null;
       
-      Thread.currentThread().setContextClassLoader(AccumuloClassLoader.getClassLoader());
+      ClassLoader cl = AccumuloVFSClassLoader.getClassLoader();
+      Thread.currentThread().setContextClassLoader(cl);
       
       if (args[0].equals("master")) {
-        runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.master.Master");
+        runTMP = AccumuloVFSClassLoader.loadClass("org.apache.accumulo.server.master.Master");
       } else if (args[0].equals("tserver")) {
-        runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.tabletserver.TabletServer");
+        runTMP = AccumuloVFSClassLoader.loadClass("org.apache.accumulo.server.tabletserver.TabletServer");
       } else if (args[0].equals("shell")) {
-        runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.core.util.shell.Shell");
+        runTMP = AccumuloVFSClassLoader.loadClass("org.apache.accumulo.core.util.shell.Shell");
       } else if (args[0].equals("init")) {
-        runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.util.Initialize");
+        runTMP = AccumuloVFSClassLoader.loadClass("org.apache.accumulo.server.util.Initialize");
       } else if (args[0].equals("admin")) {
-        runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.util.Admin");
+        runTMP = AccumuloVFSClassLoader.loadClass("org.apache.accumulo.server.util.Admin");
       } else if (args[0].equals("gc")) {
-        runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.gc.SimpleGarbageCollector");
+        runTMP = AccumuloVFSClassLoader.loadClass("org.apache.accumulo.server.gc.SimpleGarbageCollector");
       } else if (args[0].equals("monitor")) {
-        runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.monitor.Monitor");
+        runTMP = AccumuloVFSClassLoader.loadClass("org.apache.accumulo.server.monitor.Monitor");
       } else if (args[0].equals("tracer")) {
-        runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.server.trace.TraceServer");
+        runTMP = AccumuloVFSClassLoader.loadClass("org.apache.accumulo.server.trace.TraceServer");
       } else if (args[0].equals("classpath")) {
-        AccumuloClassLoader.printClassPath();
+        AccumuloVFSClassLoader.printClassPath();
         return;
       } else if (args[0].equals("version")) {
-        runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.core.Constants");
+        runTMP = AccumuloVFSClassLoader.loadClass("org.apache.accumulo.core.Constants");
         System.out.println(runTMP.getField("VERSION").get(null));
         return;
       } else if (args[0].equals("rfile-info") ) {
-        runTMP = AccumuloClassLoader.loadClass("org.apache.accumulo.core.file.rfile.PrintInfo");
+        runTMP = AccumuloVFSClassLoader.loadClass("org.apache.accumulo.core.file.rfile.PrintInfo");
       } else {
         try {
-          runTMP = AccumuloClassLoader.loadClass(args[0]);
+          runTMP = AccumuloVFSClassLoader.loadClass(args[0]);
         } catch (ClassNotFoundException cnfe) {
           System.out.println("Classname " + args[0] + " not found.  Please make sure you use the wholly qualified package name.");
           System.exit(1);
@@ -96,7 +97,8 @@ public class Main {
       };
       
       Thread t = new Thread(r, args[0]);
-      t.setContextClassLoader(AccumuloClassLoader.getClassLoader());
+      ClassLoader tcl = AccumuloVFSClassLoader.getClassLoader();
+      t.setContextClassLoader(tcl);
       t.start();
     } catch (Throwable t) {
       System.err.println("Uncaught exception: " + t.getMessage());

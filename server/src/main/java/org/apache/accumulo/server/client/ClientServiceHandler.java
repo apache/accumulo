@@ -47,7 +47,7 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.security.Authenticator;
 import org.apache.accumulo.server.security.ZKAuthenticator;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
@@ -279,7 +279,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     Class shouldMatch;
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
-      Class test = AccumuloClassLoader.loadClass(className, shouldMatch);
+      Class test = AccumuloVFSClassLoader.loadClass(className, shouldMatch);
       test.newInstance();
       return true;
     } catch (ClassCastException e) {

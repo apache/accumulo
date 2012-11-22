@@ -38,7 +38,7 @@ import org.apache.accumulo.core.iterators.system.SynchronizedIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TIteratorSetting;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.log4j.Logger;
@@ -224,7 +224,7 @@ public class IteratorUtil {
        
         Class<? extends SortedKeyValueIterator<K,V>> clazz;
         if (useAccumuloClassLoader){
-          clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloClassLoader.loadClass(iterInfo.className, SortedKeyValueIterator.class);
+          clazz = (Class<? extends SortedKeyValueIterator<K,V>>) AccumuloVFSClassLoader.loadClass(iterInfo.className, SortedKeyValueIterator.class);
         }else{
           clazz = (Class<? extends SortedKeyValueIterator<K,V>>) Class.forName(iterInfo.className).asSubclass(SortedKeyValueIterator.class);
         }

@@ -42,7 +42,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
@@ -290,7 +290,7 @@ public abstract class FunctionalTest {
     String clazz = remainingArgs[0];
     String opt = remainingArgs[1];
     
-    Class<? extends FunctionalTest> testClass = AccumuloClassLoader.loadClass(clazz, FunctionalTest.class);
+    Class<? extends FunctionalTest> testClass = AccumuloVFSClassLoader.loadClass(clazz, FunctionalTest.class);
     FunctionalTest fTest = testClass.newInstance();
     
     fTest.setMaster(master);
