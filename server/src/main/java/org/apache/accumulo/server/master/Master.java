@@ -2099,8 +2099,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         synchronized (recoveriesInProgress) {
           if (!recoveriesInProgress.contains(filename)) {
             Master.log.info("Starting recovery of " + filename + " created for " + host + ", tablet " + extent + " holds a reference");
+            AccumuloConfiguration aconf = getConfiguration().getConfiguration();
+            RecoverLease impl = createInstanceFromPropertyName(aconf, Property.MASTER_LEASE_RECOVERY_IMPLEMETATION, RecoverLease.class, new RecoverLease());
+            impl.init(host, filename);
             long tid = fate.startTransaction();
-            fate.seedTransaction(tid, new RecoverLease(host, filename), true);
+            fate.seedTransaction(tid, impl, true);
             recoveriesInProgress.add(filename);
           }
         }
