@@ -33,7 +33,6 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -66,7 +65,7 @@ import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.util.NamingThreadFactory;
+import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -597,7 +596,7 @@ public class TabletServerBatchWriter {
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<String,TabletServerMutations>();
       queued = new HashSet<String>();
-      sendThreadPool = Executors.newFixedThreadPool(numSendThreads, new NamingThreadFactory(this.getClass().getName()));
+      sendThreadPool = new SimpleThreadPool(numSendThreads, this.getClass().getName());
       locators = new HashMap<String,TabletLocator>();
     }
     
