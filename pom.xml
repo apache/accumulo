@@ -197,7 +197,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <environmentVariables>
-             <ACCUMULO_HOME>../test/src/test/resources</ACCUMULO_HOME>
+             <ACCUMULO_HOME>..</ACCUMULO_HOME>
           </environmentVariables>
         </configuration>
       </plugin>

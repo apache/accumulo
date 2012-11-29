@@ -109,7 +109,9 @@ public class AccumuloVFSClassLoader {
       }
     }
     try {
-      ACC_CONF.addResource(new File(SITE_CONF).toURI().toURL());
+      File siteFile = new File(SITE_CONF);
+      if (siteFile.exists())
+        ACC_CONF.addResource(siteFile.toURI().toURL());
     } catch (MalformedURLException e) {
       throw new RuntimeException("Unable to create configuration from accumulo-site file: " + SITE_CONF, e);
     }
