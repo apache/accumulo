@@ -89,6 +89,13 @@
 /examples/.classpath
 /examples/.project
 
+# /examples/instamo/
+/examples/instamo/target
+/examples/instamo/.classpath
+/examples/instamo/.project
+/examples/instamo/.settings/
+
+
 # /examples/simple/
 /examples/simple/target
 /examples/simple/.classpath
