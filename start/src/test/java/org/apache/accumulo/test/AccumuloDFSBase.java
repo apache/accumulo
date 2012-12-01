@@ -42,7 +42,11 @@ public class AccumuloDFSBase {
     System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
   }
 
-  protected static final String HDFS_URI = "hdfs://localhost:8020";
+  // Choose an IANA unassigned port
+  // http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml
+  protected static final Integer HDFS_PORT = 8620;
+  
+  protected static final String HDFS_URI = "hdfs://localhost:" + HDFS_PORT;
   
   protected static Configuration conf = null;
   protected static DefaultFileSystemManager vfs = null;
@@ -82,7 +86,7 @@ public class AccumuloDFSBase {
     conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 100); //100K blocksize
     
     try {
-      cluster = new MiniDFSCluster(8020, conf, 1, true, true, true, null, null, null, null);
+      cluster = new MiniDFSCluster(HDFS_PORT, conf, 1, true, true, true, null, null, null, null);
       cluster.waitActive();
     } catch (IOException e) {
       throw new RuntimeException("Error setting up mini cluster", e);

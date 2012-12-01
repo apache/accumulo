@@ -104,7 +104,7 @@ public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
     AccumuloContextClassLoader accl = (AccumuloContextClassLoader) acl;
     AccumuloReloadingVFSClassLoader arvcl = accl.getClassLoader(AccumuloContextClassLoader.DEFAULT_CONTEXT);
     Assert.assertEquals(1, arvcl.getFiles().length);
-    Assert.assertTrue(arvcl.getFiles()[0].getURL().toString().equals("hdfs://localhost:8020/accumulo/classpath/HelloWorld.jar"));
+    Assert.assertTrue(arvcl.getFiles()[0].getURL().toString().equals(AccumuloDFSBase.HDFS_URI + "/accumulo/classpath/HelloWorld.jar"));
     Class<?> clazz1 = arvcl.loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
     Assert.assertEquals("Hello World!", o1.toString());
@@ -146,7 +146,7 @@ public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
     //DEFAULT CONTEXT
     AccumuloReloadingVFSClassLoader arvcl = accl.getClassLoader(AccumuloContextClassLoader.DEFAULT_CONTEXT);
     Assert.assertEquals(1, arvcl.getFiles().length);
-    Assert.assertTrue(arvcl.getFiles()[0].getURL().toString().equals("hdfs://localhost:8020/accumulo/classpath/HelloWorld.jar"));
+    Assert.assertTrue(arvcl.getFiles()[0].getURL().toString().equals(AccumuloDFSBase.HDFS_URI + "/accumulo/classpath/HelloWorld.jar"));
     Class<?> clazz1 = arvcl.loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
     Assert.assertEquals("Hello World!", o1.toString());
@@ -154,7 +154,7 @@ public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
     //APPLICATION CONTEXT
     AccumuloReloadingVFSClassLoader arvcl2 = accl.getClassLoader("application1");
     Assert.assertEquals(1, arvcl2.getFiles().length);
-    Assert.assertTrue(arvcl2.getFiles()[0].getURL().toString().equals("hdfs://localhost:8020/application1/classpath/HelloWorld.jar"));
+    Assert.assertTrue(arvcl2.getFiles()[0].getURL().toString().equals(AccumuloDFSBase.HDFS_URI + "/application1/classpath/HelloWorld.jar"));
     Class<?> clazz2 = arvcl2.loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
     Assert.assertEquals("Hello World!", o2.toString());

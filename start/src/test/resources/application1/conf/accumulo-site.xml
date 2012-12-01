@@ -106,7 +106,7 @@
 	</property>
 	<property>
 		<name>classloader.vfs.context.classpath.system</name>
-		<value>hdfs://localhost:8020/accumulo/classpath</value>
+		<value>hdfs://localhost:8620/accumulo/classpath</value>
 	</property>
 	<property>
 		<name>classloader.vfs.context.names</name>
@@ -114,7 +114,7 @@
 	</property>
 	<property>
 		<name>classloader.vfs.context.classpath.application1</name>
-		<value>hdfs://localhost:8020/application1/classpath</value>
+		<value>hdfs://localhost:8620/application1/classpath</value>
 	</property>
 
 </configuration>
