@@ -40,7 +40,7 @@ Open the accumulo shell and look at the data.  The row is the MD5 hash of the fi
 
 Run the CharacterHistogram MapReduce to add some information about the file.
 
-    $ bin/tool.sh lib/examples-simple*[^c].jar org.apache.accumulo.examples.simple.filedata.CharacterHistogram instance zookeepers username password dataTable exampleVis exampleVis
+    $ bin/tool.sh lib/examples-simple*[^cs].jar org.apache.accumulo.examples.simple.filedata.CharacterHistogram instance zookeepers username password dataTable exampleVis exampleVis
 
 Scan again to see the histogram stored in the 'info' column family.
 

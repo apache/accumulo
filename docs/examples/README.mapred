@@ -50,7 +50,7 @@ for the column family count.
 
 After creating the table, run the word count map reduce job.
 
-    $ bin/tool.sh lib/examples-simple*[^c].jar org.apache.accumulo.examples.simple.mapreduce.WordCount instance zookeepers /user/username/wc wordCount -u username -p password
+    $ bin/tool.sh lib/examples-simple*[^cs].jar org.apache.accumulo.examples.simple.mapreduce.WordCount instance zookeepers /user/username/wc wordCount -u username -p password
     
     11/02/07 18:20:11 INFO input.FileInputFormat: Total input paths to process : 1
     11/02/07 18:20:12 INFO mapred.JobClient: Running job: job_201102071740_0003
