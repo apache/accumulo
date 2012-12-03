@@ -133,23 +133,33 @@ public class RemoteLogger {
     }
   }
   
+  private void checkClosed() throws LoggerClosedException {
+    if (client == null)
+      throw new LoggerClosedException();
+  }
+  
   public synchronized void defineTablet(int seq, int tid, KeyExtent tablet) throws NoSuchLogIDException, LoggerClosedException, TException {
+    checkClosed();
     client.defineTablet(null, logFile.id, seq, tid, tablet.toThrift());
   }
   
   public synchronized void log(int seq, int tid, Mutation mutation) throws NoSuchLogIDException, LoggerClosedException, TException {
+    checkClosed();
     client.log(null, logFile.id, seq, tid, mutation.toThrift());
   }
   
   public synchronized void logManyTablets(List<TabletMutations> mutations) throws NoSuchLogIDException, LoggerClosedException, TException {
+    checkClosed();
     client.logManyTablets(null, logFile.id, mutations);
   }
   
   public synchronized void minorCompactionFinished(int seq, int tid, String fqfn) throws NoSuchLogIDException, LoggerClosedException, TException {
+    checkClosed();
     client.minorCompactionFinished(null, logFile.id, seq, tid, fqfn);
   }
   
   public synchronized void minorCompactionStarted(int seq, int tid, String fqfn) throws NoSuchLogIDException, LoggerClosedException, TException {
+    checkClosed();
     client.minorCompactionStarted(null, logFile.id, seq, tid, fqfn);
   }
   
