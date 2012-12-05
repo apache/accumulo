@@ -24,16 +24,23 @@ if [ ! -f /etc/default/accumulo ]; then
   touch /etc/default/accumulo
 fi
 
-if ! grep "ACCUMULO_MONITOR_USER=" /etc/default/accumulo  >> /dev/null ; then
-  echo "ACCUMULO_MONITOR_USER=accumulo_monitor" >> /etc/default/accumulo
-fi
- 
-if ! id -u accumulo_monitor >/dev/null 2>&1; then
-  if ! egrep "^accumulo:" /etc/group > /dev/null; then
-    groupadd accumulo
-  fi 
-  useradd -d /usr/lib/accumulo -g accumulo accumulo_monitor
+if ! grep "ACCUMULO_USER=" /etc/default/accumulo  >> /dev/null ; then
+  echo "ACCUMULO_USER=accumulo" >> /etc/default/accumulo
 fi
 
-install -m 0755 -o root -g root init.d/accumulo-monitor /etc/init.d/
-update-rc.d accumulo-monitor start 21 2 3 4 5 . stop 20 0 1 6 .
+if ! id -u accumulo >/dev/null 2>&1; then
+  groupArg="U"
+  if egrep "^accumulo:" /etc/group >> /dev/null; then
+    groupArg="g accumulo"
+  fi
+  useradd -$groupArg -d /usr/lib/accumulo accumulo
+fi
+
+install -m 0755 -o root -g root init.d/accumulo-master /etc/init.d/
+if [ -e "`which update-rc.d`" ]; then 
+  update-rc.d accumulo-master start 21 2 3 4 5 . stop 19 0 1 6 .
+elif [ -e "`which chkconfig`" ]; then
+  chkconfig --add accumulo-master
+else
+  echo "No update-rc.d or chkconfig, rc levels not set for accumulo-master"
+fi
