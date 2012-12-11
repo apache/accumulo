@@ -21,7 +21,6 @@ import java.io.FileInputStream;
 import java.io.FilePermission;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetSocketAddress;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PermissionCollection;
@@ -55,9 +54,6 @@ import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.apache.hadoop.hdfs.protocol.FSConstants;
 import org.apache.hadoop.ipc.RemoteException;
-import org.apache.hadoop.mapred.ClusterStatus;
-import org.apache.hadoop.mapred.JobClient;
-import org.apache.hadoop.mapred.JobTracker;
 
 public class DefaultServlet extends BasicServlet {
   
@@ -81,13 +77,17 @@ public class DefaultServlet extends BasicServlet {
       path = path.substring(1);
       InputStream data = BasicServlet.class.getClassLoader().getResourceAsStream(path);
       ServletOutputStream out = resp.getOutputStream();
-      if (data != null) {
-        byte[] buffer = new byte[1024];
-        int n;
-        while ((n = data.read(buffer)) > 0)
-          out.write(buffer, 0, n);
-      } else {
-        out.write(("could not get resource " + path + "").getBytes());
+      try {
+        if (data != null) {
+          byte[] buffer = new byte[1024];
+          int n;
+          while ((n = data.read(buffer)) > 0)
+            out.write(buffer, 0, n);
+        } else {
+          out.write(("could not get resource " + path + "").getBytes());
+        }
+      } finally {
+        data.close();
       }
     } catch (Throwable t) {
       log.error(t, t);
@@ -111,9 +111,10 @@ public class DefaultServlet extends BasicServlet {
       
       @Override
       public IOException run() {
+        InputStream data = null;
         try {
           File file = new File(aHome + path);
-          InputStream data = new FileInputStream(file.getAbsolutePath());
+          data = new FileInputStream(file.getAbsolutePath());
           byte[] buffer = new byte[1024];
           int n;
           ServletOutputStream out = resp.getOutputStream();
@@ -122,6 +123,14 @@ public class DefaultServlet extends BasicServlet {
           return null;
         } catch (IOException e) {
           return e;
+        } finally {
+          if (data != null) {
+            try {
+              data.close();
+            } catch (IOException ex) {
+              log.error(ex, ex);
+            }
+          }
         }
       }
     }, acc);
@@ -205,10 +214,6 @@ public class DefaultServlet extends BasicServlet {
     
     sb.append("<td class='noborder'>\n");
     doHdfsTable(sb);
-    sb.append("</td>\n");
-    
-    sb.append("<td class='noborder'>\n");
-    doJobTrackerTable(sb);
     sb.append("</td>\n");
     
     sb.append("<td class='noborder'>\n");
@@ -319,33 +324,6 @@ public class DefaultServlet extends BasicServlet {
       sb.append("<tr><td colspan='2'>Permission&nbsp;Denied</td></tr>\n");
     } catch (Exception ex) {
       sb.append("<tr><td colspan='2'><span class='error'>Down</span></td></tr>\n");
-    }
-    sb.append("</table>\n");
-  }
-  
-  private void doJobTrackerTable(StringBuilder sb) {
-    // Job Tracker
-    Configuration conf = CachedConfiguration.getInstance();
-    sb.append("<table>\n");
-    try {
-      InetSocketAddress address = JobTracker.getAddress(conf);
-      @SuppressWarnings("deprecation")
-      JobClient jc = new JobClient(new org.apache.hadoop.mapred.JobConf(conf));
-      String httpAddress = conf.get("mapred.job.tracker.http.address");
-      String port = httpAddress.split(":")[1];
-      String href = "http://" + address.getHostName() + ":" + port;
-      String activeUrl = href + "/machines.jsp?type=active";
-      String blacklistUrl = href + "/machines.jsp?type=blacklisted";
-      sb.append("<tr><th colspan='2'><a href='" + href + "'>JobTracker</a></th></tr>\n");
-      boolean highlight = false;
-      tableRow(sb, (highlight = !highlight), "Running&nbsp;Jobs", jc.jobsToComplete().length);
-      ClusterStatus status = jc.getClusterStatus();
-      tableRow(sb, (highlight = !highlight), "Map&nbsp;Tasks", status.getMapTasks() + "/" + status.getMaxMapTasks());
-      tableRow(sb, (highlight = !highlight), "Reduce&nbsp;Tasks", status.getReduceTasks() + "/" + status.getMaxReduceTasks());
-      tableRow(sb, (highlight = !highlight), "<a href='" + activeUrl + "'>Trackers</a>", status.getTaskTrackers());
-      tableRow(sb, (highlight = !highlight), "<a href='" + blacklistUrl + "'>Blacklisted</a>", status.getBlacklistedTrackers());
-    } catch (Exception ex) {
-      sb.append("<tr><td colspan='2'><span class='error'>Job Tracker is Down</span></td></tr>\n");
     }
     sb.append("</table>\n");
   }

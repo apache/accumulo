@@ -38,11 +38,7 @@
       <artifactId>accumulo-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.hadoop</groupId>
+      <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
       <scope>runtime</scope>
     </dependency>
@@ -144,4 +140,41 @@
     </plugins>
   </build>
   <modelVersion>4.0.0</modelVersion>
+
+  <profiles>
+    <!-- profile for building against Hadoop 1.0.x
+    Activate by not specifying hadoop.profile -->
+    <profile>
+      <id>hadoop-1.0</id>
+      <activation>
+        <property>
+          <name>!hadoop.profile</name>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-core</artifactId>
+        </dependency>
+      </dependencies>
+    </profile>
+    <!-- profile for building against Hadoop 2.0.x
+    Activate using: mvn -Dhadoop.profile=2.0 -->
+    <profile>
+      <id>hadoop-2.0</id>
+      <activation>
+        <property>
+          <name>hadoop.profile</name>
+          <value>2.0</value>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-client</artifactId>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
+
 </project>

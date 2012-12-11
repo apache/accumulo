@@ -17,7 +17,13 @@ However, if you only have source code, or you wish to make changes, you need to
 have maven configured to get Accumulo prerequisites from repositories.  See
 the pom.xml file for the necessary components.
 
-Run "mvn package && mvn assembly:single -N"
+Run "mvn package && mvn assembly:single -N". By default,
+Accumulo compiles against Hadoop 1.0.4.  To compile against a different version
+that is compatible with Hadoop 1.0, specify hadoop.version on the command line,
+e.g. "-Dhadoop.version=0.20.205.0" or "-Dhadoop.version=1.1.0".  To compile 
+against Hadoop 2.0, specify "-Dhadoop.profile=2.0".  By default this uses
+2.0.2-alpha.  To compile against a different 2.0-compatible version, specify
+the profile and version, e.g. "-Dhadoop.profile=2.0 -Dhadoop.version=0.23.5".
 
 If you are running on another Unix-like operating system (OSX, etc) then
 you may wish to build the native libraries.  They are not strictly necessary
