@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Random;
 import java.util.TimerTask;
 
@@ -277,12 +278,17 @@ public class MiniAccumuloCluster {
     
     zooCfgFile = new File(confDir, "zoo.cfg");
     fileWriter = new FileWriter(zooCfgFile);
-    fileWriter.append("tickTime=1000\n");
-    fileWriter.append("initLimit=10\n");
-    fileWriter.append("syncLimit=5\n");
-    fileWriter.append("clientPort=" + zooKeeperPort + "\n");
-    fileWriter.append("maxClientCnxns=100\n");
-    fileWriter.append("dataDir=" + zooKeeperDir.getAbsolutePath() + "\n");
+    
+    // zookeeper uses Properties to read its config, so use that to write inorder to properly escape things like Windows paths
+    Properties zooCfg = new Properties();
+    zooCfg.setProperty("tickTime", "1000");
+    zooCfg.setProperty("initLimit", "10");
+    zooCfg.setProperty("syncLimit", "5");
+    zooCfg.setProperty("clientPort", zooKeeperPort + "");
+    zooCfg.setProperty("maxClientCnxns", "100");
+    zooCfg.setProperty("dataDir", zooKeeperDir.getAbsolutePath());
+    zooCfg.store(fileWriter, null);
+
     fileWriter.close();
     
   }
