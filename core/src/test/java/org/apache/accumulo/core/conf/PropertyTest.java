@@ -92,5 +92,8 @@ public class PropertyTest {
     typeCheckValidFormat(PropertyType.HOSTLIST, "localhost", "server1,server2,server3", "server1:1111,server2:3333", "localhost:1111", "server2:1111",
         "www.server", "www.server:1111", "www.server.com", "www.server.com:111");
     typeCheckInvalidFormat(PropertyType.HOSTLIST, ":111", "local host");
+    
+    typeCheckValidFormat(PropertyType.ABSOLUTEPATH, "d:\\foo12", "c:\\foo\\g", "c:\\foo\\c", "/foo", "/foo/c", "c:\\", "/");
+    typeCheckInvalidFormat(PropertyType.ABSOLUTEPATH, "foo12", "foo/g", "foo\\c");
   }
 }
