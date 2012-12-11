@@ -9,8 +9,53 @@
   <url>http://maven.apache.org</url>
   <properties>
     <accumulo.version>1.5.0-SNAPSHOT</accumulo.version>
+    <hadoop-one.version>1.0.4</hadoop-one.version>
+    <hadoop-two.version>2.0.2-alpha</hadoop-two.version>
     <maclass>org.apache.accumulo.instamo.MapReduceExample</maclass>
   </properties>
+  <profiles>
+    <!-- profile for building against Hadoop 1.0.x
+    Activate by not specifying hadoop.profile -->
+    <profile>
+      <id>hadoop-1.0</id>
+      <activation>
+        <property>
+          <name>!hadoop.profile</name>
+        </property>
+      </activation>
+      <properties>
+        <hadoop.version>${hadoop-one.version}</hadoop.version>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-core</artifactId>
+          <version>${hadoop.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+    <!-- profile for building against Hadoop 2.0.x
+    Activate using: mvn -Dhadoop.profile=2.0 -->
+    <profile>
+      <id>hadoop-2.0</id>
+      <activation>
+        <property>
+          <name>hadoop.profile</name>
+          <value>2.0</value>
+        </property>
+      </activation>
+      <properties>
+        <hadoop.version>${hadoop-two.version}</hadoop.version>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-client</artifactId>
+          <version>${hadoop.version}</version>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
@@ -32,11 +77,6 @@
       <groupId>org.apache.zookeeper</groupId>
       <artifactId>zookeeper</artifactId>
       <version>3.3.4</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-core</artifactId>
-      <version>1.0.1</version>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>

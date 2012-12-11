@@ -498,6 +498,62 @@
         </plugins>
       </reporting>
     </profile>
+    <!-- profile for building against Hadoop 1.0.x
+    Activate by not specifying hadoop.profile -->
+    <profile>
+      <id>hadoop-1.0</id>
+      <activation>
+        <property>
+          <name>!hadoop.profile</name>
+        </property>
+      </activation>
+      <properties>
+        <hadoop.version>1.0.4</hadoop.version>
+        <slf4j.version>1.4.3</slf4j.version>
+      </properties>
+      <dependencyManagement>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-core</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>provided</scope>
+          </dependency>
+        </dependencies>
+      </dependencyManagement>
+    </profile>
+    <!-- profile for building against Hadoop 2.0.x
+    Activate using: mvn -Dhadoop.profile=2.0 -->
+    <profile>
+      <id>hadoop-2.0</id>
+      <activation>
+        <property>
+          <name>hadoop.profile</name>
+          <value>2.0</value>
+        </property>
+      </activation>
+      <properties>
+        <slf4j.version>1.6.1</slf4j.version>
+        <hadoop.version>2.0.2-alpha</hadoop.version>
+        <avro.version>1.5.3</avro.version>
+      </properties>
+      <dependencyManagement>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hadoop.version}</version>
+            <scope>provided</scope>
+          </dependency>
+          <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+            <version>${avro.version}</version>
+            <scope>provided</scope>
+          </dependency>
+        </dependencies>
+      </dependencyManagement>
+    </profile>
   </profiles>
 
   <dependencyManagement>
@@ -512,15 +568,9 @@
 
       <!-- provided dependencies needed at runtime -->
       <dependency>
-        <groupId>org.apache.hadoop</groupId>
-        <artifactId>hadoop-core</artifactId>
-        <version>0.20.205.0</version>
-        <scope>provided</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.hadoop</groupId>
+        <groupId>org.apache.zookeeper</groupId>
         <artifactId>zookeeper</artifactId>
-        <version>3.3.1</version>
+        <version>${zookeeper.version}</version>
         <scope>provided</scope>
       </dependency>
       <dependency>
@@ -532,7 +582,7 @@
       <dependency>
         <groupId>org.mortbay.jetty</groupId>
         <artifactId>jetty</artifactId>
-        <version>[5.1,7.0)</version>
+        <version>[6.1,7.0)</version>
         <scope>provided</scope>
       </dependency>
 
@@ -645,12 +695,12 @@
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
-        <version>1.4.3</version>
+        <version>${slf4j.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-log4j12</artifactId>
-        <version>1.4.3</version>
+        <version>${slf4j.version}</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -695,6 +745,7 @@
 
   <properties>
     <targetJdk>1.6</targetJdk>
+    <zookeeper.version>3.3.1</zookeeper.version>
   </properties>
 
 </project>
