@@ -104,23 +104,22 @@ public class RFileOperations extends FileOperations {
   @Override
   public FileSKVWriter openWriter(String file, FileSystem fs, Configuration conf, AccumuloConfiguration acuconf) throws IOException {
     int hrep = conf.getInt("dfs.replication", -1);
-    int trep = conf.getInt(Property.TABLE_FILE_REPLICATION.getKey(), acuconf.getCount(Property.TABLE_FILE_REPLICATION));
+    int trep = acuconf.getCount(Property.TABLE_FILE_REPLICATION);
     int rep = hrep;
     if (trep > 0 && trep != hrep) {
       rep = trep;
     }
     long hblock = conf.getLong("dfs.block.size", 1 << 26);
-    long tblock = conf.getLong(Property.TABLE_FILE_BLOCK_SIZE.getKey(), acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));
+    long tblock = acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE);
     long block = hblock;
     if (tblock > 0)
       block = tblock;
     int bufferSize = conf.getInt("io.file.buffer.size", 4096);
     
-    long blockSize = conf.getLong(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
-    long indexBlockSize = conf.getLong(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX.getKey(),
-        acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
+    long blockSize = acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
+    long indexBlockSize = acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX);
     
-    String compression = conf.get(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
+    String compression = acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE);
     
     CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(fs.create(new Path(file), false, bufferSize, (short) rep, block), compression, conf);
     Writer writer = new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize);
