@@ -32,7 +32,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -51,7 +50,6 @@ import org.apache.accumulo.core.file.blockfile.ABlockReader;
 import org.apache.accumulo.core.file.blockfile.ABlockWriter;
 import org.apache.accumulo.core.file.blockfile.BlockFileReader;
 import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
-import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.BlockIndex.BlockIndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
@@ -62,11 +60,6 @@ import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.HeapIterator;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.log4j.Logger;
 
@@ -1092,102 +1085,5 @@ public class RFile {
         lgr.setInterruptFlag(interruptFlag);
       }
     }
-  }
-  
-  public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
-    FileSystem fs = FileSystem.get(conf);
-    
-    int max_row = 10000;
-    int max_cf = 10;
-    int max_cq = 10;
-    
-    // FSDataOutputStream fsout = fs.create(new Path("/tmp/test.rf"));
-    
-    // RFile.Writer w = new RFile.Writer(fsout, 1000, "gz", conf);
-    CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(fs, new Path("/tmp/test.rf"), "gz", conf);
-    RFile.Writer w = new RFile.Writer(_cbw, 100000);
-    
-    w.startDefaultLocalityGroup();
-    
-    int c = 0;
-    
-    for (int i = 0; i < max_row; i++) {
-      Text row = new Text(String.format("R%06d", i));
-      for (int j = 0; j < max_cf; j++) {
-        Text cf = new Text(String.format("CF%06d", j));
-        for (int k = 0; k < max_cq; k++) {
-          Text cq = new Text(String.format("CQ%06d", k));
-          w.append(new Key(row, cf, cq), new Value((c++ + "").getBytes()));
-        }
-      }
-    }
-    
-    w.close();
-    // fsout.close();
-    
-    // Logger.getLogger("accumulo.core.file.rfile").setLevel(Level.DEBUG);
-    long t1 = System.currentTimeMillis();
-    FSDataInputStream fsin = fs.open(new Path("/tmp/test.rf"));
-    long t2 = System.currentTimeMillis();
-    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, new Path("/tmp/test.rf"), conf, null, null);
-    RFile.Reader r = new RFile.Reader(_cbr);
-    long t3 = System.currentTimeMillis();
-    
-    System.out.println("Open time " + (t2 - t1) + " " + (t3 - t2));
-    
-    SortedKeyValueIterator<Key,Value> rd = r.deepCopy(null);
-    SortedKeyValueIterator<Key,Value> rd2 = r.deepCopy(null);
-    
-    Random rand = new Random(10);
-    
-    seekRandomly(100, max_row, max_cf, max_cq, r, rand);
-    
-    rand = new Random(10);
-    seekRandomly(100, max_row, max_cf, max_cq, rd, rand);
-    
-    rand = new Random(10);
-    seekRandomly(100, max_row, max_cf, max_cq, rd2, rand);
-    
-    r.closeDeepCopies();
-    
-    seekRandomly(100, max_row, max_cf, max_cq, r, rand);
-    
-    rd = r.deepCopy(null);
-    
-    seekRandomly(100, max_row, max_cf, max_cq, rd, rand);
-    
-    r.close();
-    fsin.close();
-    
-    seekRandomly(100, max_row, max_cf, max_cq, r, rand);
-  }
-  
-  private static void seekRandomly(int num, int max_row, int max_cf, int max_cq, SortedKeyValueIterator<Key,Value> rd, Random rand) throws Exception {
-    long t1 = System.currentTimeMillis();
-    
-    for (int i = 0; i < num; i++) {
-      Text row = new Text(String.format("R%06d", rand.nextInt(max_row)));
-      Text cf = new Text(String.format("CF%06d", rand.nextInt(max_cf)));
-      Text cq = new Text(String.format("CQ%06d", rand.nextInt(max_cq)));
-      
-      Key sk = new Key(row, cf, cq);
-      rd.seek(new Range(sk, null), new ArrayList<ByteSequence>(), false);
-      if (!rd.hasTop() || !rd.getTopKey().equals(sk)) {
-        System.err.println(sk + " != " + rd.getTopKey());
-      }
-      
-    }
-    
-    long t2 = System.currentTimeMillis();
-    
-    double delta = ((t2 - t1) / 1000.0);
-    System.out.println("" + delta + " " + num / delta);
-    
-    System.gc();
-    System.gc();
-    System.gc();
-    
-    Thread.sleep(3000);
   }
 }
