@@ -32,7 +32,7 @@ import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Partitioner;
 
 /**
@@ -45,6 +45,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
   
   private Configuration conf;
   
+  @Override
   public int getPartition(Text key, Writable value, int numPartitions) {
     try {
       return findPartition(key, getCutPoints(), getNumSubBins());
@@ -117,7 +118,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
   /**
    * Sets the hdfs file name to use, containing a newline separated list of Base64 encoded split points that represent ranges for partitioning
    */
-  public static void setSplitFile(JobContext job, String file) {
+  public static void setSplitFile(Job job, String file) {
     URI uri = new Path(file).toUri();
     DistributedCache.addCacheFile(uri, job.getConfiguration());
     job.getConfiguration().set(CUTFILE_KEY, uri.getPath());
@@ -126,7 +127,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
   /**
    * Sets the number of random sub-bins per range
    */
-  public static void setNumSubBins(JobContext job, int num) {
+  public static void setNumSubBins(Job job, int num) {
     job.getConfiguration().setInt(NUM_SUBBINS, num);
   }
 }
