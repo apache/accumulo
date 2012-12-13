@@ -41,8 +41,8 @@ public class AccumuloFileOutputFormatTest {
   static Path f = null;
   
   @Before
-  public void setup() {
-    job = ContextFactory.createJob();
+  public void setup() throws IOException {
+    job = new Job();
     
     Path file = new Path("target/");
     f = new Path(file, "_temporary");

@@ -23,7 +23,6 @@ import java.lang.reflect.InvocationTargetException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.MapContext;
@@ -41,7 +40,6 @@ import org.apache.hadoop.mapreduce.TaskAttemptID;
  */
 public class ContextFactory {
   
-  private static final Constructor<?> JOB_CONSTRUCTOR;
   private static final Constructor<?> JOB_CONTEXT_CONSTRUCTOR;
   private static final Constructor<?> TASK_CONTEXT_CONSTRUCTOR;
   private static final Constructor<?> TASK_ID_CONSTRUCTOR;
@@ -60,7 +58,6 @@ public class ContextFactory {
       v21 = false;
     }
     useV21 = v21;
-    Class<?> jobCls;
     Class<?> jobContextCls;
     Class<?> taskContextCls;
     Class<?> mapCls;
@@ -68,7 +65,6 @@ public class ContextFactory {
     Class<?> innerMapContextCls;
     try {
       if (v21) {
-        jobCls = Class.forName(PACKAGE + ".Job");
         jobContextCls = Class.forName(PACKAGE + ".task.JobContextImpl");
         taskContextCls = Class.forName(PACKAGE + ".task.TaskAttemptContextImpl");
         TASK_TYPE_CLASS = Class.forName(PACKAGE + ".TaskType");
@@ -76,7 +72,6 @@ public class ContextFactory {
         mapCls = Class.forName(PACKAGE + ".lib.map.WrappedMapper");
         innerMapContextCls = Class.forName(PACKAGE + ".lib.map.WrappedMapper$Context");
       } else {
-        jobCls = Class.forName(PACKAGE + ".Job");
         jobContextCls = Class.forName(PACKAGE + ".JobContext");
         taskContextCls = Class.forName(PACKAGE + ".TaskAttemptContext");
         TASK_TYPE_CLASS = null;
@@ -88,7 +83,6 @@ public class ContextFactory {
       throw new IllegalArgumentException("Can't find class", e);
     }
     try {
-      JOB_CONSTRUCTOR = jobCls.getConstructor(Configuration.class, String.class);
       JOB_CONTEXT_CONSTRUCTOR = jobContextCls.getConstructor(Configuration.class, JobID.class);
       JOB_CONTEXT_CONSTRUCTOR.setAccessible(true);
       TASK_CONTEXT_CONSTRUCTOR = taskContextCls.getConstructor(Configuration.class, TaskAttemptID.class);
@@ -114,22 +108,6 @@ public class ContextFactory {
       throw new IllegalArgumentException("Can't run constructor ", e);
     } catch (NoSuchMethodException e) {
       throw new IllegalArgumentException("Can't find constructor ", e);
-    }
-  }
-  
-  public static Job createJob() {
-    return createJob(new Configuration());
-  }
-  
-  public static Job createJob(Configuration conf) {
-    try {
-      return (Job) JOB_CONSTRUCTOR.newInstance(conf, new JobID("local", 0).toString());
-    } catch (InstantiationException e) {
-      throw new IllegalArgumentException("Can't create object", e);
-    } catch (IllegalAccessException e) {
-      throw new IllegalArgumentException("Can't create object", e);
-    } catch (InvocationTargetException e) {
-      throw new IllegalArgumentException("Can't create object", e);
     }
   }
   
@@ -174,19 +152,16 @@ public class ContextFactory {
     return createMapContext(m, tac, reader, writer, null, null, split);
   }
   
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public static <K1,V1,K2,V2> Mapper<K1,V1,K2,V2>.Context createMapContext(Mapper<K1,V1,K2,V2> m, TaskAttemptContext tac, RecordReader<K1,V1> reader,
       RecordWriter<K2,V2> writer, OutputCommitter committer, StatusReporter reporter, InputSplit split) {
     try {
       if (useV21) {
         Object basis = MAP_CONTEXT_IMPL_CONSTRUCTOR.newInstance(tac.getConfiguration(), tac.getTaskAttemptID(), reader, writer, committer, reporter, split);
-        @SuppressWarnings("unchecked")
-        Mapper<K1,V1,K2,V2>.Context newInstance = (Mapper<K1,V1,K2,V2>.Context) MAP_CONTEXT_CONSTRUCTOR.newInstance(MAP_CONSTRUCTOR.newInstance(), basis);
-        return newInstance;
+        return (Mapper.Context) MAP_CONTEXT_CONSTRUCTOR.newInstance((Mapper<K1,V1,K2,V2>) MAP_CONSTRUCTOR.newInstance(), basis);
       } else {
-        @SuppressWarnings("unchecked")
-        Mapper<K1,V1,K2,V2>.Context newInstance = (Mapper<K1,V1,K2,V2>.Context) MAP_CONTEXT_CONSTRUCTOR.newInstance(m, tac.getConfiguration(),
-            tac.getTaskAttemptID(), reader, writer, committer, reporter, split);
-        return newInstance;
+        return (Mapper.Context) MAP_CONTEXT_CONSTRUCTOR.newInstance(m, tac.getConfiguration(), tac.getTaskAttemptID(), reader, writer, committer, reporter,
+            split);
       }
     } catch (InstantiationException e) {
       throw new IllegalArgumentException("Can't create object", e);
