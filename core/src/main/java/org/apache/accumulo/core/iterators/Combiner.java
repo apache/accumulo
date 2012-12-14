@@ -63,7 +63,7 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
      */
     public ValueIterator(SortedKeyValueIterator<Key,Value> source) {
       this.source = source;
-      topKey = source.getTopKey();
+      topKey = new Key(source.getTopKey());
       hasNext = _hasNext();
     }
     
