@@ -958,10 +958,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         String oldThreadName = Thread.currentThread().getName();
         
         try {
-          runState.set(ScanRunState.RUNNING);
-          Thread.currentThread().setName("Client: " + session.client + " User: " + session.user + " Start: " + session.startTime + " Table: ");
           if (isCancelled() || session == null)
             return;
+
+          runState.set(ScanRunState.RUNNING);
+          Thread.currentThread().setName("Client: " + session.client + " User: " + session.user + " Start: " + session.startTime + " Table: ");
 
           long maxResultsSize = acuConf.getMemoryInBytes(Property.TABLE_SCAN_MAXMEM);
           long bytesAdded = 0;
