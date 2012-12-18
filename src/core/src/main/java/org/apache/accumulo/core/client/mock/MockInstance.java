@@ -18,6 +18,7 @@ package org.apache.accumulo.core.client.mock;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
@@ -103,7 +105,10 @@ public class MockInstance implements Instance {
   @Override
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
     Connector conn = new MockConnector(user, acu, this);
-    conn.securityOperations().createUser(user, pass, new Authorizations());
+    if (!acu.users.containsKey(user))
+      conn.securityOperations().createUser(user, pass, new Authorizations());
+    else if (!Arrays.equals(acu.users.get(user).password, pass))
+        throw new AccumuloSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
     return conn;
   }
   
