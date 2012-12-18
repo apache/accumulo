@@ -443,6 +443,15 @@ public class FilterTest {
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 31);
+    
+    try {
+      TimestampFilter.setStart(is, 253402300800001l, true);
+      assertTrue(false);
+    } catch (Exception e) {}
+    try {
+      TimestampFilter.setEnd(is, 253402300800001l, true);
+      assertTrue(false);
+    } catch (Exception e) {}
   }
   
   @Test

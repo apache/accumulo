@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
@@ -185,6 +186,11 @@ public class TimestampFilter extends Filter {
    *          boolean indicating whether the start is inclusive
    */
   public static void setStart(IteratorSetting is, String start, boolean startInclusive) {
+    try {
+      initDateParser().parse(start);
+    } catch (ParseException e) {
+      throw new IllegalArgumentException(e);
+    }
     is.addOption(START, start);
     is.addOption(START_INCL, Boolean.toString(startInclusive));
   }
@@ -200,6 +206,11 @@ public class TimestampFilter extends Filter {
    *          boolean indicating whether the end is inclusive
    */
   public static void setEnd(IteratorSetting is, String end, boolean endInclusive) {
+    try {
+      initDateParser().parse(end);
+    } catch (ParseException e) {
+      throw new IllegalArgumentException(e);
+    }
     is.addOption(END, end);
     is.addOption(END_INCL, Boolean.toString(endInclusive));
   }
@@ -248,9 +259,7 @@ public class TimestampFilter extends Filter {
    *          boolean indicating whether the start is inclusive
    */
   public static void setStart(IteratorSetting is, long start, boolean startInclusive) {
-    SimpleDateFormat dateParser = initDateParser();
-    is.addOption(START, dateParser.format(new Date(start)));
-    is.addOption(START_INCL, Boolean.toString(startInclusive));
+    setStart(is, initDateParser().format(new Date(start)), startInclusive);
   }
   
   /**
@@ -264,8 +273,6 @@ public class TimestampFilter extends Filter {
    *          boolean indicating whether the end is inclusive
    */
   public static void setEnd(IteratorSetting is, long end, boolean endInclusive) {
-    SimpleDateFormat dateParser = initDateParser();
-    is.addOption(END, dateParser.format(new Date(end)));
-    is.addOption(END_INCL, Boolean.toString(endInclusive));
+    setEnd(is, initDateParser().format(new Date(end)), endInclusive);
   }
 }
