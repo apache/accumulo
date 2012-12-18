@@ -49,7 +49,7 @@ public class FindMaxTest extends TestCase {
   public void test1() throws Exception {
     MockInstance mi = new MockInstance();
     
-    Connector conn = mi.getConnector("root", "foo");
+    Connector conn = mi.getConnector("root", "");
     conn.tableOperations().create("foo");
     
     BatchWriter bw = conn.createBatchWriter("foo", new BatchWriterConfig());

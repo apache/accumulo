@@ -50,7 +50,7 @@ public class FormatterCommandTest {
     // Keep the Shell AUDIT log off the test output
     Logger.getLogger(Shell.class).setLevel(Level.WARN);
     
-    final String[] args = new String[] {"-fake", "-u", "root", "-p", "passwd"};
+    final String[] args = new String[] {"-fake", "-u", "root", "-p", ""};
    
     final String[] commands = createCommands();
     
