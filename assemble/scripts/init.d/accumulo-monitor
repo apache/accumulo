@@ -1,12 +1,13 @@
 #! /bin/sh
+# chkconfig: 2345 21 20
 ### BEGIN INIT INFO
-# Provides:         accumulo-tracer
-# Required-Start:   $network $local_fs zookeeper-server
+# Provides:         accumulo-monitor
+# Required-Start:   $network $local_fs 
 # Required-Stop:    $network $local_fs
 # Default-Start:    2 3 4 5
 # Default-Stop:     0 1 6
-# Short-Description: accumulo tracer 
-# Description:      The accumulo tracer provides a mechanism for tracing accumulo calls
+# Short-Description: accumulo monitor process on 50095
+# Description:      The accumulo monitor provides a convenient mechanism for monitoring accumulo
 ### END INIT INFO
 
 # Licensed to the Apache Software Foundation (ASF) under one or more
@@ -29,12 +30,12 @@ install -d -m 0775 -o root -g accumulo /var/run/accumulo
 
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin:/usr/lib/accumulo/bin
-DESC="Accumulo Tracer"
-NAME=accumulo-tracer
-ACCUMULO_PROC=tracer
+DESC="Accumulo Monitor"
+NAME=accumulo-monitor
+ACCUMULO_PROC=monitor
 DAEMON=/usr/lib/accumulo/bin/start-server.sh
 IP=`ifconfig | grep inet[^6] | awk '{print $2}' | sed 's/addr://' | grep -v 0.0.0.0 | grep -v 127.0.0.1 | head -n 1`
-DAEMON_ARGS="$IP tracer"
+DAEMON_ARGS="$IP monitor"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
@@ -42,7 +43,12 @@ SCRIPTNAME=/etc/init.d/$NAME
 [ -r /etc/default/accumulo ] && . /etc/default/accumulo
 
 # Load the VERBOSE setting and other rcS variables
-. /lib/init/vars.sh
+if [ -f /lib/init/vars.sh ]; then
+  . /lib/init/vars.sh
+else
+  log_daemon_msg() { logger "$@"; }
+  log_end_msg() { [ $1 -eq 0 ] && RES=OK; logger ${RES:=FAIL}; }
+fi
 
 # Define LSB log_* functions.
 # Depend on lsb-base (>= 3.2-14) to ensure that this file is present
@@ -54,7 +60,7 @@ SCRIPTNAME=/etc/init.d/$NAME
 #
 do_start()
 {
-    TARGET_USER_NAME="ACCUMULO_TRACER_USER"
+    TARGET_USER_NAME="ACCUMULO_MONITOR_USER"
     TARGET_USER=$(eval "echo \$$TARGET_USER_NAME")
 	# Return
 	#  0 if daemon has been started

@@ -36,5 +36,11 @@ if ! id -u accumulo >/dev/null 2>&1; then
   useradd -$groupArg -d /usr/lib/accumulo accumulo
 fi
 
-install -m 0755 -o root -g root init.d/accumulo-master /etc/init.d/
-update-rc.d accumulo-master start 21 2 3 4 5 . stop 19 0 1 6 .
+install -m 0755 -o root -g root init.d/accumulo-tserver /etc/init.d/
+if [ -e "`which update-rc.d`" ]; then 
+  update-rc.d accumulo-tserver start 21 2 3 4 5 . stop 15 0 1 6 .
+elif [ -e "`which chkconfig`" ]; then
+  chkconfig --add accumulo-tserver
+else
+  echo "No update-rc.d or chkconfig, rc levels not set for accumulo-tserver"
+fi
