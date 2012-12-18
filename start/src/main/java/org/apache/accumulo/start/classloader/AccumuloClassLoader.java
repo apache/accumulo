@@ -151,11 +151,10 @@ public class AccumuloClassLoader {
     String envJars = System.getenv("ACCUMULO_XTRAJARS");
     if (null != envJars && !envJars.equals(""))
       cp = cp.append(",").append(envJars);
-    String[] cps = replaceEnvVars(cp.toString(), System.getenv()).split(",");
     ArrayList<URL> urls = new ArrayList<URL>();
-    for (String classpath : cps) {
+    for (String classpath : cp.toString().split(",")) {
       if (!classpath.startsWith("#")) {
-        addUrl(classpath, urls);
+        addUrl(replaceEnvVars(classpath, System.getenv()), urls);
       }
     }
     return urls;
@@ -167,16 +166,16 @@ public class AccumuloClassLoader {
     String envJars = System.getenv("ACCUMULO_XTRAJARS");
     if (null != envJars && !envJars.equals(""))
       cp = cp.append(",").append(envJars);
-    String[] cps = replaceEnvVars(cp.toString(), System.getenv()).split(",");
     ArrayList<URL> urls = new ArrayList<URL>();
-    for (String classpath : cps) {
+    for (String classpath : cp.toString().split(",")) {
       if (!classpath.startsWith("#")) {
         classpath = classpath.trim();
         if (classpath.length() == 0)
           continue;
         
         classpath = replaceEnvVars(classpath, System.getenv());
-        
+        if (classpath == null)
+          continue;
         // Try to make a URI out of the classpath
         URI uri = null;
         try {
@@ -217,17 +216,18 @@ public class AccumuloClassLoader {
     String cp = getAccumuloClasspathStrings();
     if (cp == null)
       return new ArrayList<URL>();
-    String[] cps = replaceEnvVars(cp, System.getenv()).split(",");
     ArrayList<URL> urls = new ArrayList<URL>();
-    for (String classpath : cps) {
+    for (String classpath : cp.split(",")) {
       if (!classpath.startsWith("#")) {
-        addUrl(classpath, urls);
+        addUrl(replaceEnvVars(classpath, System.getenv()), urls);
       }
     }
     return urls;
   }
   
   private static void addUrl(String classpath, ArrayList<URL> urls) throws MalformedURLException {
+    if (classpath == null)
+      return;
     classpath = classpath.trim();
     if (classpath.length() == 0)
       return;
@@ -275,7 +275,7 @@ public class AccumuloClassLoader {
       String varName = envMatcher.group().substring(1);
       String varValue = env.get(varName);
       if (varValue == null) {
-        varValue = "";
+        return null;
       }
       classpath = (classpath.substring(0, envMatcher.start()) + varValue + classpath.substring(envMatcher.end()));
       envMatcher.reset(classpath);
@@ -409,7 +409,8 @@ public class AccumuloClassLoader {
           // setting this interval below 1 second is probably not helpful because the file modification time is in seconds
           monitor.setInterval(1000);
           monitor.start();
-          myListener.waitForFirstCall();
+          if (monitoredDirs.size() != 0)
+            myListener.waitForFirstCall();
           log.debug("Create Dynamic ClassLoader using URLs: " + dynamicURLs.toString());
           // the file system listner must run once to get the state of the filesystem, and it only detects changes on subsequent runs
           // we need to check to see if the set of files has changed since we started monitoring, so that we know we are monitoring all of the files
