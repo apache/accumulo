@@ -47,7 +47,7 @@ import org.junit.Test;
  */
 public class TestConfirmDeletes {
   
-  AuthInfo auth = new AuthInfo("root", ByteBuffer.wrap("secret".getBytes()), "instance");
+  AuthInfo auth = new AuthInfo("root", ByteBuffer.wrap("".getBytes()), "instance");
 
   SortedSet<String> newSet(String... s) {
     SortedSet<String> result = new TreeSet<String>(Arrays.asList(s));

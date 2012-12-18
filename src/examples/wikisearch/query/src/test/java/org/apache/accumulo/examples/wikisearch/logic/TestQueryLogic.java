@@ -116,7 +116,7 @@ public class TestQueryLogic {
     conf.set(WikipediaConfiguration.NUM_GROUPS, "1");
     
     MockInstance i = new MockInstance();
-    c = i.getConnector("root", "pass");
+    c = i.getConnector("root", "");
     for (String table : TABLE_NAMES) {
       try {
         c.tableOperations().delete(table);

@@ -88,7 +88,7 @@ public class TestMergeState {
   @Test
   public void test() throws Exception {
     Instance instance = new MockInstance();
-    Connector connector = instance.getConnector("root", "secret");
+    Connector connector = instance.getConnector("root", "");
     BatchWriter bw = connector.createBatchWriter("!METADATA", 1000l, 1000l, 1);
     
     // Create a fake METADATA table with these splits
@@ -112,7 +112,7 @@ public class TestMergeState {
     
     // Read out the TabletLocationStates
     MockCurrentState state = new MockCurrentState(new MergeInfo(new KeyExtent(tableId, new Text("p"), new Text("e")), MergeInfo.Operation.MERGE));
-    AuthInfo auths = new AuthInfo("root", ByteBuffer.wrap("secret".getBytes()), "instance");
+    AuthInfo auths = new AuthInfo("root", ByteBuffer.wrap("".getBytes()), "instance");
     
     // Verify the tablet state: hosted, and count
     MetaDataStateStore metaDataStateStore = new MetaDataStateStore(instance, auths, state);
