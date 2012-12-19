@@ -55,7 +55,7 @@ import org.apache.thrift.TException;
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = Logger.getLogger(ClientServiceHandler.class);
   private static Authenticator authenticator = ZKAuthenticator.getInstance();
-  private final TransactionWatcher transactionWatcher;
+  protected final TransactionWatcher transactionWatcher;
   private final Instance instance;
   
   public ClientServiceHandler(Instance instance, TransactionWatcher transactionWatcher) {
