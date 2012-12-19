@@ -113,6 +113,8 @@ public class AddFilesWithMissingEntries {
     log.info(row.toString());
     final Path path = new Path(ServerConstants.getTablesDir() + "/" + tableId + directory);
     for (FileStatus file : fs.listStatus(path)) {
+      if (file.getPath().getName().endsWith("_tmp") || file.getPath().getName().endsWith("_tmp.rf"))
+        continue;
       final String filename = directory + "/" + file.getPath().getName();
       if (!knownFiles.contains(filename)) {
         count++;
