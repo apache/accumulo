@@ -122,10 +122,10 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
       throw new IllegalStateException("Instance info can only be set once per job");
     conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
-    
     ArgumentChecker.notNull(instanceName, zooKeepers);
     conf.set(INSTANCE_NAME, instanceName);
     conf.set(ZOOKEEPERS, zooKeepers);
+    System.out.println("instance set: " + conf.get(INSTANCE_HAS_BEEN_SET));
   }
   
   public static void setMockInstance(Configuration conf, String instanceName) {

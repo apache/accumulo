@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URLEncoder;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -34,12 +35,7 @@ import java.util.regex.Pattern;
 
 import javax.net.SocketFactory;
 
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.MissingOptionException;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
+import org.apache.accumulo.core.cli.Help;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang.math.LongRange;
 import org.apache.log4j.Category;
@@ -51,6 +47,9 @@ import org.apache.log4j.spi.LoggingEvent;
 import org.apache.log4j.spi.ThrowableInformation;
 import org.apache.log4j.varia.LevelRangeFilter;
 import org.apache.log4j.xml.XMLLayout;
+
+import com.beust.jcommander.IStringConverter;
+import com.beust.jcommander.Parameter;
 
 public class SendLogToChainsaw extends XMLLayout {
   
@@ -211,52 +210,48 @@ public class SendLogToChainsaw extends XMLLayout {
     return result;
   }
   
-  private static Options getOptions() {
-    Options opts = new Options();
-    
-    Option dirOption = new Option("d", "logDirectory", true, "ACCUMULO log directory path");
-    dirOption.setArgName("dir");
-    dirOption.setRequired(true);
-    opts.addOption(dirOption);
-    
-    Option fileFilterOption = new Option("f", "fileFilter", true, "filter to apply to names of logs");
-    fileFilterOption.setArgName("filter");
-    fileFilterOption.setRequired(false);
-    opts.addOption(fileFilterOption);
-    
-    Option hostOption = new Option("h", "host", true, "host where chainsaw is running");
-    hostOption.setArgName("hostname");
-    hostOption.setRequired(true);
-    opts.addOption(hostOption);
-    
-    Option portOption = new Option("p", "port", true, "port where XMLSocketReceiver is listening");
-    portOption.setArgName("portnum");
-    portOption.setRequired(true);
-    opts.addOption(portOption);
-    
-    Option startOption = new Option("s", "start", true, "start date filter (yyyyMMddHHmmss)");
-    startOption.setArgName("date");
-    startOption.setRequired(true);
-    opts.addOption(startOption);
-    
-    Option endOption = new Option("e", "end", true, "end date filter (yyyyMMddHHmmss)");
-    endOption.setArgName("date");
-    endOption.setRequired(true);
-    opts.addOption(endOption);
-    
-    Option levelOption = new Option("l", "level", true, "filter log level");
-    levelOption.setArgName("level");
-    levelOption.setRequired(false);
-    opts.addOption(levelOption);
-    
-    Option msgFilter = new Option("m", "messageFilter", true, "regex filter for log messages");
-    msgFilter.setArgName("regex");
-    msgFilter.setRequired(false);
-    opts.addOption(msgFilter);
-    
-    return opts;
+  private static class DateConverter implements IStringConverter<Date> {
+    @Override
+    public Date convert(String value) {
+      SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+      try {
+        return formatter.parse(value);
+      } catch (ParseException e) {
+        throw new RuntimeException(e);
+      }
+    }
     
   }
+  
+  private static class Opts extends Help {
+    
+    @Parameter(names={"-d", "--logDirectory"}, description="ACCUMULO log directory path", required=true)
+    String dir;
+    
+    @Parameter(names={"-f", "--fileFilter"}, description="filter to apply to names of logs")
+    String filter;
+    
+    @Parameter(names={"-h", "--host"}, description="host where chainsaw is running", required=true)
+    String hostname;
+    
+    @Parameter(names={"-p", "--port"}, description="port where XMLSocketReceiver is listening", required=true)
+    int portnum;
+    
+    @Parameter(names={"-s", "--start"}, description="start date filter (yyyyMMddHHmmss)", required=true, converter=DateConverter.class)
+    Date startDate;
+    
+    @Parameter(names={"-e", "--end"}, description="end date filter (yyyyMMddHHmmss)", required=true, converter=DateConverter.class)
+    Date endDate;
+    
+    @Parameter(names={"-l", "--level"}, description="filter log level")
+    String level;
+    
+    @Parameter(names={"-m", "--messageFilter"}, description="regex filter for log messages")
+    String regex;
+  }
+  
+  
+  
   
   /**
    * 
@@ -272,47 +267,10 @@ public class SendLogToChainsaw extends XMLLayout {
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
+    Opts opts = new Opts();
+    opts.parseArgs(SendLogToChainsaw.class.getName(), args);
     
-    Options o = getOptions();
-    CommandLine cl = null;
-    try {
-    cl = new BasicParser().parse(o, args);
-    } catch (MissingOptionException e) {
-    	System.out.println(e.toString());
-    	HelpFormatter formatter = new HelpFormatter();
-    	formatter.printHelp( "SendLogToChainsaw", o );
-    	return;
-    }
-    
-    String logDir = cl.getOptionValue(o.getOption("d").getOpt());
-    String fileNameFilter = null;
-    if (cl.hasOption(o.getOption("f").getOpt()))
-      fileNameFilter = cl.getOptionValue(o.getOption("f").getOpt());
-    String chainsawHost = cl.getOptionValue(o.getOption("h").getOpt());
-    int chainsawPort = 0;
-    try {
-      chainsawPort = Integer.parseInt(cl.getOptionValue(o.getOption("p").getOpt()));
-    } catch (NumberFormatException nfe) {
-      System.err.println("Unable to parse port number");
-      System.exit(-1);
-    }
-    SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-    Date startDate = null;
-    if (cl.hasOption(o.getOption("s").getOpt())) {
-      startDate = formatter.parse(cl.getOptionValue(o.getOption("s").getOpt()));
-    }
-    Date endDate = null;
-    if (cl.hasOption(o.getOption("e").getOpt())) {
-      endDate = formatter.parse(cl.getOptionValue(o.getOption("e").getOpt()));
-    }
-    String msgFilter = null;
-    if (cl.hasOption(o.getOption("m").getOpt()))
-      msgFilter = cl.getOptionValue(o.getOption("m").getOpt());
-    String levelFilter = null;
-    if (cl.hasOption(o.getOption("l").getOpt()))
-      levelFilter = cl.getOptionValue(o.getOption("l").getOpt());
-    
-    SendLogToChainsaw c = new SendLogToChainsaw(logDir, fileNameFilter, chainsawHost, chainsawPort, startDate, endDate, msgFilter, levelFilter);
+    SendLogToChainsaw c = new SendLogToChainsaw(opts.dir, opts.filter, opts.hostname, opts.portnum, opts.startDate, opts.endDate, opts.regex, opts.level);
     c.processLogFiles();
   }
   

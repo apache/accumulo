@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,17 +30,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import jline.ConsoleReader;
-
 import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
@@ -58,105 +55,52 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.MissingArgumentException;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 
+import com.beust.jcommander.Parameter;
+
 public class VerifyTabletAssignments {
   
+  static class Opts extends ClientOpts {
+    @Parameter(names={"-v", "--verbose"}, description="verbose mode (prints locations of tablets)")
+    boolean verbose = false;
+  }
+  
   public static void main(String[] args) throws Exception {
-    Options opts = new Options();
-    
-    Option zooKeeperInstance = new Option("z", "zooKeeperInstance", true, "use a zookeeper instance with the given instance name and list of zoo hosts");
-    zooKeeperInstance.setArgName("name hosts");
-    zooKeeperInstance.setArgs(2);
-    opts.addOption(zooKeeperInstance);
-    
-    Option usernameOption = new Option("u", "user", true, "username (required)");
-    usernameOption.setArgName("user");
-    usernameOption.setRequired(true);
-    opts.addOption(usernameOption);
-    
-    Option passwOption = new Option("p", "password", true, "password (prompt for password if this option is missing)");
-    passwOption.setArgName("pass");
-    opts.addOption(passwOption);
-    
-    Option verboseOption = new Option("v", "verbose", false, "verbose mode (prints locations of tablets)");
-    opts.addOption(verboseOption);
-    
-    CommandLine cl = null;
-    String user = null;
-    String passw = null;
-    Instance instance = null;
-    ConsoleReader reader = new ConsoleReader();
-    try {
-      cl = new BasicParser().parse(opts, args);
-      
-      if (cl.hasOption(zooKeeperInstance.getOpt()) && cl.getOptionValues(zooKeeperInstance.getOpt()).length != 2)
-        throw new MissingArgumentException(zooKeeperInstance);
-      
-      user = cl.getOptionValue(usernameOption.getOpt());
-      passw = cl.getOptionValue(passwOption.getOpt());
-      
-      if (cl.hasOption(zooKeeperInstance.getOpt())) {
-        String[] zkOpts = cl.getOptionValues(zooKeeperInstance.getOpt());
-        instance = new ZooKeeperInstance(zkOpts[0], zkOpts[1]);
-      } else {
-        instance = HdfsZooInstance.getInstance();
-      }
-      
-      if (passw == null)
-        passw = reader.readLine("Enter current password for '" + user + "'@'" + instance.getInstanceName() + "': ", '*');
-      if (passw == null) {
-        reader.printNewline();
-        return;
-      } // user canceled
-      
-      if (cl.getArgs().length != 0)
-        throw new ParseException("Unrecognized arguments: " + cl.getArgList());
-      
-    } catch (ParseException e) {
-      PrintWriter pw = new PrintWriter(System.err);
-      new HelpFormatter().printHelp(pw, Integer.MAX_VALUE, "accumulo " + VerifyTabletAssignments.class.getName(), null, opts, 2, 5, null, true);
-      pw.flush();
-      System.exit(1);
-    }
-    
-    Connector conn = instance.getConnector(user, passw.getBytes());
-    ServerConfiguration conf = new ServerConfiguration(instance);
+    Opts opts = new Opts();
+    opts.parseArgs(VerifyTabletAssignments.class.getName(), args);
+
+    Connector conn = opts.getConnector();
     for (String table : conn.tableOperations().list())
-      checkTable(conf.getConfiguration(), user, passw, table, null, cl.hasOption(verboseOption.getOpt()));
+      checkTable(opts, table, null);
     
   }
   
-  private static void checkTable(final AccumuloConfiguration conf, final String user, final String pass, String table, HashSet<KeyExtent> check, boolean verbose)
+  private static void checkTable(final Opts opts, String tableName, HashSet<KeyExtent> check)
       throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, InterruptedException {
     
     if (check == null)
-      System.out.println("Checking table " + table);
+      System.out.println("Checking table " + tableName);
     else
-      System.out.println("Checking table " + table + " again, failures " + check.size());
+      System.out.println("Checking table " + tableName + " again, failures " + check.size());
     
     Map<KeyExtent,String> locations = new TreeMap<KeyExtent,String>();
     SortedSet<KeyExtent> tablets = new TreeSet<KeyExtent>();
     
-    MetadataTable.getEntries(HdfsZooInstance.getInstance(),
-        new AuthInfo(user, ByteBuffer.wrap(pass.getBytes()), HdfsZooInstance.getInstance().getInstanceID()), table, false, locations, tablets);
+    Connector conn = opts.getConnector();
+    Instance inst = conn.getInstance();
+    MetadataTable.getEntries(conn.getInstance(),
+        new AuthInfo(opts.user, ByteBuffer.wrap(opts.getPassword()), inst.getInstanceID()), tableName, false, locations, tablets);
     
     final HashSet<KeyExtent> failures = new HashSet<KeyExtent>();
     
     for (KeyExtent keyExtent : tablets)
       if (!locations.containsKey(keyExtent))
         System.out.println(" Tablet " + keyExtent + " has no location");
-      else if (verbose)
+      else if (opts.verbose)
         System.out.println(" Tablet " + keyExtent + " is located at " + locations.get(keyExtent));
     
     Map<String,List<KeyExtent>> extentsPerServer = new TreeMap<String,List<KeyExtent>>();
@@ -173,14 +117,14 @@ public class VerifyTabletAssignments {
     }
     
     ExecutorService tp = Executors.newFixedThreadPool(20);
-    
+    final ServerConfiguration conf = new ServerConfiguration(inst);
     for (final Entry<String,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
       Runnable r = new Runnable() {
         
         @Override
         public void run() {
           try {
-            checkTabletServer(conf, user, ByteBuffer.wrap(pass.getBytes()), entry, failures);
+            checkTabletServer(conf.getConfiguration(), opts.user, ByteBuffer.wrap(opts.getPassword()), entry, failures);
           } catch (Exception e) {
             System.err.println("Failure on ts " + entry.getKey() + " " + e.getMessage());
             e.printStackTrace();
@@ -198,7 +142,7 @@ public class VerifyTabletAssignments {
     while (!tp.awaitTermination(1, TimeUnit.HOURS)) {}
     
     if (failures.size() > 0)
-      checkTable(conf, user, pass, table, failures, verbose);
+      checkTable(opts, tableName, failures);
   }
   
   private static void checkFailures(String server, HashSet<KeyExtent> failures, MultiScanResult scanResult) {

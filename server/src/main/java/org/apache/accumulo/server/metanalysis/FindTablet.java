@@ -18,60 +18,35 @@ package org.apache.accumulo.server.metanalysis;
 
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Finds tablet creation events.
  */
 public class FindTablet {
+  
+  static public class Opts extends ClientOpts {
+    @Parameter(names={"-r", "--row"}, required=true, description="find tablets that contain this row")
+    String row = null;
+    
+    @Parameter(names="--tableId", required=true, description="table id")
+    String tableId = null;
+  }
+  
   public static void main(String[] args) throws Exception {
+    Opts opts = new Opts();
+    opts.parseArgs(FindTablet.class.getName(), args);
     
-    Options options = new Options();
-    options.addOption("r", "row", true, "find tablets that contain this row");
-    
-    GnuParser parser = new GnuParser();
-    CommandLine cmd = null;
-    try {
-      cmd = parser.parse(options, args);
-      if (cmd.getArgs().length != 5) {
-        throw new ParseException("Command takes no arguments");
-      }
-    } catch (ParseException e) {
-      System.err.println("Failed to parse command line " + e.getMessage());
-      System.err.println();
-      HelpFormatter formatter = new HelpFormatter();
-      formatter.printHelp(FindTablet.class.getSimpleName() + " <instance> <zookeepers> <user> <pass> <table ID>", options);
-      System.exit(-1);
-    }
-    
-    String instance = cmd.getArgs()[0];
-    String zookeepers = cmd.getArgs()[1];
-    String user = cmd.getArgs()[2];
-    String pass = cmd.getArgs()[3];
-    String tableID = cmd.getArgs()[4];
-    
-    ZooKeeperInstance zki = new ZooKeeperInstance(instance, zookeepers);
-    Connector conn = zki.getConnector(user, pass);
-    
-    if (cmd.hasOption('r')) {
-      findContainingTablets(conn, tableID, cmd.getOptionValue('r'));
-    } else {
-      System.err.println("ERROR :  No search criteria given");
-    }
+    findContainingTablets(opts);
   }
 
   /**
@@ -80,16 +55,16 @@ public class FindTablet {
    * @param tableID
    * @param option
    */
-  private static void findContainingTablets(Connector conn, String tableID, String row) throws Exception {
-    Range range = new KeyExtent(new Text(tableID), null, null).toMetadataRange();
+  private static void findContainingTablets(Opts opts) throws Exception {
+    Range range = new KeyExtent(new Text(opts.tableId), null, null).toMetadataRange();
 
-    Scanner scanner = conn.createScanner("createEvents", new Authorizations());
-    
+    Scanner scanner = opts.getConnector().createScanner("createEvents", opts.auths);
     scanner.setRange(range);
-    
+
+    Text row = new Text(opts.row);
     for (Entry<Key,Value> entry : scanner) {
       KeyExtent ke = new KeyExtent(entry.getKey().getRow(), new Value(TextUtil.getBytes(entry.getKey().getColumnFamily())));
-      if (ke.contains(new Text(row))) {
+      if (ke.contains(row)) {
         System.out.println(entry.getKey().getColumnQualifier() + " " + ke + " " + entry.getValue());
       }
     }

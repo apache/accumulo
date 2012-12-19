@@ -18,12 +18,13 @@ package org.apache.accumulo.examples.simple.dirlist;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.LongCombiner;
@@ -32,6 +33,8 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.examples.simple.filedata.ChunkCombiner;
 import org.apache.accumulo.examples.simple.filedata.FileDataIngest;
 import org.apache.hadoop.io.Text;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Recursively lists the files and directories under a given path, ingests their names and file info into one Accumulo table, indexes the file names in a
@@ -116,50 +119,52 @@ public class Ingest {
     }
   }
   
+  static class Opts extends ClientOpts {
+    @Parameter(names="--dirTable", description="a table to hold the directory information")
+    String nameTable = "dirTable";
+    @Parameter(names="--indexTable", description="an index over the ingested data")
+    String indexTable = "indexTable";
+    @Parameter(names="--dataTable", description="the file data, chunked into parts")
+    String dataTable = "dataTable";
+    @Parameter(names="--vis", description="the visibility to mark the data", converter=VisibilityConverter.class)
+    ColumnVisibility visibility = new ColumnVisibility();
+    @Parameter(names="--chunkSize", description="the size of chunks when breaking down files")
+    int chunkSize = 100000;
+    @Parameter(description="<dir> { <dir> ... }")
+    List<String> directories = new ArrayList<String>();
+  }
+  
+  
   public static void main(String[] args) throws Exception {
-    if (args.length < 10) {
-      System.out.println("usage: " + Ingest.class.getSimpleName()
-          + " <instance> <zoo> <user> <pass> <dir table> <index table> <data table> <visibility> <data chunk size> <dir>{ <dir>}");
-      System.exit(1);
+    Opts opts = new Opts();
+    opts.parseArgs(Ingest.class.getName(), args);
+    
+    Connector conn = opts.getConnector();
+    if (!conn.tableOperations().exists(opts.nameTable))
+      conn.tableOperations().create(opts.nameTable);
+    if (!conn.tableOperations().exists(opts.indexTable))
+      conn.tableOperations().create(opts.indexTable);
+    if (!conn.tableOperations().exists(opts.dataTable)) {
+      conn.tableOperations().create(opts.dataTable);
+      conn.tableOperations().attachIterator(opts.dataTable, new IteratorSetting(1, ChunkCombiner.class));
     }
     
-    String instance = args[0];
-    String zooKeepers = args[1];
-    String user = args[2];
-    String pass = args[3];
-    String nameTable = args[4];
-    String indexTable = args[5];
-    String dataTable = args[6];
-    ColumnVisibility colvis = new ColumnVisibility(args[7]);
-    int chunkSize = Integer.parseInt(args[8]);
-    
-    Connector conn = new ZooKeeperInstance(instance, zooKeepers).getConnector(user, pass.getBytes());
-    if (!conn.tableOperations().exists(nameTable))
-      conn.tableOperations().create(nameTable);
-    if (!conn.tableOperations().exists(indexTable))
-      conn.tableOperations().create(indexTable);
-    if (!conn.tableOperations().exists(dataTable)) {
-      conn.tableOperations().create(dataTable);
-      conn.tableOperations().attachIterator(dataTable, new IteratorSetting(1, ChunkCombiner.class));
-    }
-    
-    BatchWriter dirBW = conn.createBatchWriter(nameTable, new BatchWriterConfig());
-    BatchWriter indexBW = conn.createBatchWriter(indexTable, new BatchWriterConfig());
-    BatchWriter dataBW = conn.createBatchWriter(dataTable, new BatchWriterConfig());
-    FileDataIngest fdi = new FileDataIngest(chunkSize, colvis);
-    for (int i = 9; i < args.length; i++) {
-      recurse(new File(args[i]), colvis, dirBW, indexBW, fdi, dataBW);
+    BatchWriter dirBW = conn.createBatchWriter(opts.nameTable, opts.getBatchWriterConfig());
+    BatchWriter indexBW = conn.createBatchWriter(opts.indexTable, opts.getBatchWriterConfig());
+    BatchWriter dataBW = conn.createBatchWriter(opts.dataTable, opts.getBatchWriterConfig());
+    FileDataIngest fdi = new FileDataIngest(opts.chunkSize, opts.visibility);
+    for (String dir : opts.directories) {
+      recurse(new File(dir), opts.visibility, dirBW, indexBW, fdi, dataBW);
       
       // fill in parent directory info
-      String file = args[i];
       int slashIndex = -1;
-      while ((slashIndex = file.lastIndexOf("/")) > 0) {
-        file = file.substring(0, slashIndex);
-        ingest(new File(file), colvis, dirBW, indexBW, fdi, dataBW);
+      while ((slashIndex = dir.lastIndexOf("/")) > 0) {
+        dir = dir.substring(0, slashIndex);
+        ingest(new File(dir), opts.visibility, dirBW, indexBW, fdi, dataBW);
       }
     }
-    ingest(new File("/"), colvis, dirBW, indexBW, fdi, dataBW);
-    
+    ingest(new File("/"), opts.visibility, dirBW, indexBW, fdi, dataBW);
+
     dirBW.close();
     indexBW.close();
     dataBW.close();

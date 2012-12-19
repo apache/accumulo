@@ -38,6 +38,7 @@ import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.cloudtrace.instrument.thrift.TraceWrap;
 import org.apache.accumulo.cloudtrace.thrift.TInfo;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -84,11 +85,6 @@ import org.apache.accumulo.server.util.OfflineMetadataScanner;
 import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.util.TabletIterator;
 import org.apache.accumulo.server.zookeeper.ZooLock;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -96,20 +92,21 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
+import com.beust.jcommander.Parameter;
+
 public class SimpleGarbageCollector implements Iface {
   private static final Text EMPTY_TEXT = new Text();
   
-  static final Options OPTS = new Options();
-  static final Option OPT_VERBOSE_MODE = new Option("v", "verbose", false, "extra information will get printed to stdout also");
-  static final Option OPT_SAFE_MODE = new Option("s", "safemode", false, "safe mode will not delete files");
-  static final Option OPT_OFFLINE = new Option("o", "offline", false,
-      "offline mode will run once and check data files directly; this is dangerous if accumulo is running or not shut down properly");
-  static final Option OPT_ADDRESS = new Option("a", "address", true, "specify our local address");
-  static {
-    OPTS.addOption(OPT_VERBOSE_MODE);
-    OPTS.addOption(OPT_SAFE_MODE);
-    OPTS.addOption(OPT_OFFLINE);
-    OPTS.addOption(OPT_ADDRESS);
+  static class Opts extends Help {
+    @Parameter(names={"-v", "--verbose"}, description="extra information will get printed to stdout also")
+    boolean verbose = false;
+    @Parameter(names={"-s", "--safemode"}, description="safe mode will not delete files")
+    boolean safeMode = false;
+    @Parameter(names={"-o", "--offline"}, description=
+      "offline mode will run once and check data files directly; this is dangerous if accumulo is running or not shut down properly")
+    boolean offline = false;
+    @Parameter(names={"-a", "--address"}, description="specify our local address")
+    String address = null;
   }
 
   // how much of the JVM's available memory should it use gathering candidates
@@ -142,25 +139,17 @@ public class SimpleGarbageCollector implements Iface {
     Accumulo.init(fs, serverConf, "gc");
     String address = "localhost";
     SimpleGarbageCollector gc = new SimpleGarbageCollector();
-    try {
-      final CommandLine commandLine = new BasicParser().parse(OPTS, args);
-      if (commandLine.getArgs().length != 0)
-        throw new ParseException("Extraneous arguments");
-      
-      if (commandLine.hasOption(OPT_SAFE_MODE.getOpt()))
-        gc.setSafeMode();
-      if (commandLine.hasOption(OPT_OFFLINE.getOpt()))
-        gc.setOffline();
-      if (commandLine.hasOption(OPT_VERBOSE_MODE.getOpt()))
-        gc.setVerbose();
-      address = commandLine.getOptionValue(OPT_ADDRESS.getOpt());
-      if (address != null)
-        gc.useAddress(address);
-    } catch (ParseException e) {
-      String str = "Can't parse the command line options";
-      log.fatal(str, e);
-      throw new IllegalArgumentException(str, e);
-    }
+    Opts opts = new Opts();
+    opts.parseArgs(SimpleGarbageCollector.class.getName(), args);
+    
+    if (opts.safeMode)
+      gc.setSafeMode();
+    if (opts.offline)
+      gc.setOffline();
+    if (opts.verbose)
+      gc.setVerbose();
+    if (opts.address != null)
+      gc.useAddress(address);
     
     gc.init(fs, instance, SecurityConstants.getSystemCredentials());
     Accumulo.enableTracing(address, "gc");
@@ -377,8 +366,9 @@ public class SimpleGarbageCollector implements Iface {
   private InetSocketAddress startStatsService() throws UnknownHostException {
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(this));
     int port = instance.getConfiguration().getPort(Property.GC_PORT);
+    long maxMessageSize = instance.getConfiguration().getMemoryInBytes(Property.GENERAL_MAX_MESSAGE_SIZE);
     try {
-      TServerUtils.startTServer(port, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000);
+      TServerUtils.startTServer(port, processor, this.getClass().getSimpleName(), "GC Monitor Service", 2, 1000, maxMessageSize);
     } catch (Exception ex) {
       log.fatal(ex, ex);
       throw new RuntimeException(ex);

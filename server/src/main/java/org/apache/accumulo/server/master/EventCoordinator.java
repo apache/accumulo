@@ -39,7 +39,7 @@ public class EventCoordinator {
   }
   
   synchronized public void event(String msg, Object... args) {
-    log.info(String.format(msg, args));
+    log.info(String.format(msg, args), new Throwable());
     eventCounter++;
     notifyAll();
   }

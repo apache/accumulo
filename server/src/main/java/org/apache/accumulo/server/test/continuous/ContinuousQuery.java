@@ -21,41 +21,33 @@ import java.util.Random;
 
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.server.test.continuous.ContinuousIngest.BaseOpts;
 import org.apache.hadoop.io.Text;
+
+import com.beust.jcommander.Parameter;
 
 public class ContinuousQuery {
   
+  public static class Opts extends BaseOpts {
+    @Parameter(names="--sleep", description="the time to wait between queries", converter=TimeConverter.class)
+    long sleepTime = 100;
+  }
+  
   public static void main(String[] args) throws Exception {
-    if (args.length != 8) {
-      throw new IllegalArgumentException("usage : " + ContinuousIngest.class.getName()
-          + " <instance name> <zookeepers> <user> <pass> <table> <min> <max> <sleep time>");
-    }
+    Opts opts = new Opts();
+    opts.parseArgs(ContinuousQuery.class.getName(), args);
     
-    String instanceName = args[0];
-    String zooKeepers = args[1];
-    
-    String user = args[2];
-    String password = args[3];
-    
-    String table = args[4];
-    
-    long min = Long.parseLong(args[5]);
-    long max = Long.parseLong(args[6]);
-    
-    long sleepTime = Long.parseLong(args[7]);
-    
-    Connector conn = new ZooKeeperInstance(instanceName, zooKeepers).getConnector(user, password.getBytes());
-    Scanner scanner = conn.createScanner(table, new Authorizations());
+    Connector conn = opts.getConnector();
+    Scanner scanner = conn.createScanner(opts.tableName, opts.auths);
+    scanner.setBatchSize(opts.scanBatchSize);
     
     Random r = new Random();
     
     while (true) {
-      byte[] row = ContinuousIngest.genRow(min, max, r);
+      byte[] row = ContinuousIngest.genRow(opts.min, opts.max, r);
       
       int count = 0;
       
@@ -69,11 +61,8 @@ public class ContinuousQuery {
       
       System.out.printf("SRQ %d %s %d %d%n", t1, new String(row), (t2 - t1), count);
       
-      if (sleepTime > 0)
-        Thread.sleep(sleepTime);
-      
+      if (opts.sleepTime > 0)
+        Thread.sleep(opts.sleepTime);
     }
-    
   }
-  
 }

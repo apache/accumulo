@@ -22,12 +22,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.SummingArrayCombiner;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configured;
@@ -36,6 +36,8 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * A MapReduce that computes a histogram of byte frequency for each file and stores the histogram alongside the file data. The {@link ChunkInputFormat} is used
@@ -72,15 +74,23 @@ public class CharacterHistogram extends Configured implements Tool {
     }
   }
   
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names="--vis")
+    String visibilities = "";
+  }
+  
+  
   @Override
   public int run(String[] args) throws Exception {
     Job job = new Job(getConf(), this.getClass().getSimpleName());
     job.setJarByClass(this.getClass());
-    
+
+    Opts opts = new Opts();
+    opts.parseArgs(CharacterHistogram.class.getName(), args);
+
     job.setInputFormatClass(ChunkInputFormat.class);
-    ChunkInputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
-    ChunkInputFormat.setInputInfo(job.getConfiguration(), args[2], args[3].getBytes(), args[4], new Authorizations(args[5].split(",")));
-    job.getConfiguration().set(VIS, args[6]);
+    opts.setAccumuloConfigs(job);
+    job.getConfiguration().set(VIS, opts.visibilities.toString());
     
     job.setMapperClass(HistMapper.class);
     job.setMapOutputKeyClass(Text.class);
@@ -89,8 +99,6 @@ public class CharacterHistogram extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
-    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), args[2], args[3].getBytes(), false, args[4]);
     
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

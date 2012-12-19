@@ -19,7 +19,6 @@ package org.apache.accumulo.server.test.continuous;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -29,36 +28,40 @@ import java.util.zip.CRC32;
 
 import org.apache.accumulo.cloudtrace.instrument.Span;
 import org.apache.accumulo.cloudtrace.instrument.Trace;
-import org.apache.accumulo.cloudtrace.instrument.Tracer;
-import org.apache.accumulo.cloudtrace.instrument.receivers.ZooSpanClient;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
-import org.apache.accumulo.server.Accumulo;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
+
+import com.beust.jcommander.IStringConverter;
+import com.beust.jcommander.Parameter;
 
 
 public class ContinuousWalk {
   
-  private static String debugLog = null;
-  private static String authsFile = null;
+  static public class Opts extends ContinuousQuery.Opts {
+    class RandomAuthsConverter implements IStringConverter<RandomAuths> {
+      @Override
+      public RandomAuths convert(String value) {
+        try {
+          return new RandomAuths(value);
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+    }
+    @Parameter(names="--authsFile", description="read the authorities to use from a file")
+    RandomAuths randomAuths = new RandomAuths();
+  }
   
   static class BadChecksumException extends RuntimeException {
-    
     private static final long serialVersionUID = 1L;
     
     public BadChecksumException(String msg) {
@@ -67,24 +70,12 @@ public class ContinuousWalk {
     
   }
   
-  private static String[] processOptions(String[] args) {
-    ArrayList<String> al = new ArrayList<String>();
-    
-    for (int i = 0; i < args.length; i++) {
-      if (args[i].equals("--debug")) {
-        debugLog = args[++i];
-      } else if (args[i].equals("--auths")) {
-        authsFile = args[++i];
-      } else {
-        al.add(args[i]);
-      }
-    }
-    
-    return al.toArray(new String[al.size()]);
-  }
-  
   static class RandomAuths {
     private List<Authorizations> auths;
+    
+    RandomAuths() {
+      auths = Collections.singletonList(Constants.NO_AUTHS);
+    }
     
     RandomAuths(String file) throws IOException {
       if (file == null) {
@@ -96,14 +87,14 @@ public class ContinuousWalk {
       
       FileSystem fs = FileSystem.get(new Configuration());
       BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(file))));
-      
-      String line;
-      
-      while ((line = in.readLine()) != null) {
-        auths.add(new Authorizations(line.split(",")));
+      try {
+        String line;
+        while ((line = in.readLine()) != null) {
+          auths.add(new Authorizations(line.split(",")));
+        }
+      } finally {
+        in.close();
       }
-      
-      in.close();
     }
     
     Authorizations getAuths(Random r) {
@@ -112,50 +103,18 @@ public class ContinuousWalk {
   }
 
   public static void main(String[] args) throws Exception {
+    Opts opts = new Opts();
+    opts.parseArgs(ContinuousWalk.class.getName(), args);
     
-    args = processOptions(args);
-    
-    if (args.length != 8) {
-      throw new IllegalArgumentException("usage : " + ContinuousWalk.class.getName()
-          + " [--debug <debug log>] [--auths <file>] <instance name> <zookeepers> <user> <pass> <table> <min> <max> <sleep time>");
-    }
-    
-    if (debugLog != null) {
-      Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
-      logger.setLevel(Level.TRACE);
-      logger.setAdditivity(false);
-      logger.addAppender(new FileAppender(new PatternLayout("%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %m%n"), debugLog, true));
-    }
-    
-    String instanceName = args[0];
-    String zooKeepers = args[1];
-    
-    String user = args[2];
-    String password = args[3];
-    
-    String table = args[4];
-    
-    long min = Long.parseLong(args[5]);
-    long max = Long.parseLong(args[6]);
-    
-    long sleepTime = Long.parseLong(args[7]);
-    
-    Instance instance = new ZooKeeperInstance(instanceName, zooKeepers);
-    
-    String localhost = InetAddress.getLocalHost().getHostName();
-    String path = ZooUtil.getRoot(instance) + Constants.ZTRACERS;
-    Tracer.getInstance().addReceiver(new ZooSpanClient(zooKeepers, path, localhost, "cwalk", 1000));
-    Accumulo.enableTracing(localhost, "ContinuousWalk");
-    Connector conn = instance.getConnector(user, password.getBytes());
+    Connector conn = opts.getConnector();
     
     Random r = new Random();
-    RandomAuths randomAuths = new RandomAuths(authsFile);
     
     ArrayList<Value> values = new ArrayList<Value>();
     
     while (true) {
-      Scanner scanner = conn.createScanner(table, randomAuths.getAuths(r));
-      String row = findAStartRow(min, max, scanner, r);
+      Scanner scanner = conn.createScanner(opts.tableName, opts.randomAuths.getAuths(r));
+      String row = findAStartRow(opts.min, opts.max, scanner, r);
       
       while (row != null) {
         
@@ -184,12 +143,12 @@ public class ContinuousWalk {
           row = null;
         }
         
-        if (sleepTime > 0)
-          Thread.sleep(sleepTime);
+        if (opts.sleepTime > 0)
+          Thread.sleep(opts.sleepTime);
       }
       
-      if (sleepTime > 0)
-        Thread.sleep(sleepTime);
+      if (opts.sleepTime > 0)
+        Thread.sleep(opts.sleepTime);
     }
   }
   

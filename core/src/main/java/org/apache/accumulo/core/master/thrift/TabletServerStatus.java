@@ -1111,7 +1111,7 @@ import org.slf4j.LoggerFactory;
                 for (int _i1 = 0; _i1 < _map0.size; ++_i1)
                 {
                   String _key2; // required
-                  TableInfo _val3; // optional
+                  TableInfo _val3; // required
                   _key2 = iprot.readString();
                   _val3 = new TableInfo();
                   _val3.read(iprot);

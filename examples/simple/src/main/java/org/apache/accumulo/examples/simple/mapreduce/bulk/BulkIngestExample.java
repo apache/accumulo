@@ -21,9 +21,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mapreduce.AccumuloFileOutputFormat;
 import org.apache.accumulo.core.client.mapreduce.lib.partition.RangePartitioner;
 import org.apache.accumulo.core.data.Key;
@@ -43,6 +42,8 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Example map reduce job that bulk ingest data into an accumulo table. The expected input is text files containing tab separated key value pairs on each line.
@@ -92,11 +93,16 @@ public class BulkIngestExample extends Configured implements Tool {
     }
   }
   
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names="--inputDir", required=true)
+    String inputDir;
+    @Parameter(names="--workDir", required=true)
+    String workDir;
+  }
+  
   public int run(String[] args) {
-    if (args.length != 7) {
-      System.out.println("ERROR: Wrong number of parameters: " + args.length + " instead of 7.");
-      return printUsage();
-    }
+    Opts opts = new Opts();
+    opts.parseArgs(BulkIngestExample.class.getName(), args);
     
     Configuration conf = getConf();
     PrintStream out = null;
@@ -112,23 +118,17 @@ public class BulkIngestExample extends Configured implements Tool {
       
       job.setReducerClass(ReduceClass.class);
       job.setOutputFormatClass(AccumuloFileOutputFormat.class);
+      opts.setAccumuloConfigs(job);
       
-      Instance instance = new ZooKeeperInstance(args[0], args[1]);
-      String user = args[2];
-      byte[] pass = args[3].getBytes();
-      String tableName = args[4];
-      String inputDir = args[5];
-      String workDir = args[6];
+      Connector connector = opts.getConnector();
       
-      Connector connector = instance.getConnector(user, pass);
-      
-      TextInputFormat.setInputPaths(job, new Path(inputDir));
-      AccumuloFileOutputFormat.setOutputPath(job, new Path(workDir + "/files"));
+      TextInputFormat.setInputPaths(job, new Path(opts.inputDir));
+      AccumuloFileOutputFormat.setOutputPath(job, new Path(opts.workDir + "/files"));
       
       FileSystem fs = FileSystem.get(conf);
-      out = new PrintStream(new BufferedOutputStream(fs.create(new Path(workDir + "/splits.txt"))));
+      out = new PrintStream(new BufferedOutputStream(fs.create(new Path(opts.workDir + "/splits.txt"))));
       
-      Collection<Text> splits = connector.tableOperations().getSplits(tableName, 100);
+      Collection<Text> splits = connector.tableOperations().getSplits(opts.tableName, 100);
       for (Text split : splits)
         out.println(new String(Base64.encodeBase64(TextUtil.getBytes(split))));
       
@@ -136,13 +136,13 @@ public class BulkIngestExample extends Configured implements Tool {
       out.close();
       
       job.setPartitionerClass(RangePartitioner.class);
-      RangePartitioner.setSplitFile(job, workDir + "/splits.txt");
+      RangePartitioner.setSplitFile(job, opts.workDir + "/splits.txt");
       
       job.waitForCompletion(true);
-      Path failures = new Path(workDir, "failures");
+      Path failures = new Path(opts.workDir, "failures");
       fs.delete(failures, true);
-      fs.mkdirs(new Path(workDir, "failures"));
-      connector.tableOperations().importDirectory(tableName, workDir + "/files", workDir + "/failures", false);
+      fs.mkdirs(new Path(opts.workDir, "failures"));
+      connector.tableOperations().importDirectory(opts.tableName, opts.workDir + "/files", opts.workDir + "/failures", false);
       
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -151,11 +151,6 @@ public class BulkIngestExample extends Configured implements Tool {
         out.close();
     }
     
-    return 0;
-  }
-  
-  private int printUsage() {
-    System.out.println("accumulo " + this.getClass().getName() + " <instanceName> <zooKeepers> <username> <password> <table> <input dir> <work dir> ");
     return 0;
   }
   

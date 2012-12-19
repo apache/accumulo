@@ -19,20 +19,18 @@ package org.apache.accumulo.examples.simple.dirlist;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Computes recursive counts over file system information and stores them back into the same Accumulo table. See docs/examples/README.dirlist for instructions.
@@ -42,10 +40,7 @@ public class FileCount {
   private int entriesScanned;
   private int inserts;
   
-  private Connector conn;
-  private Authorizations auths;
-  private ColumnVisibility colvis;
-  private String table;
+  private Opts opts;
   
   private static class CountValue {
     int dirCount = 0;
@@ -172,7 +167,7 @@ public class FileCount {
   
   private Mutation createMutation(int depth, String dir, CountValue countVal) {
     Mutation m = new Mutation(String.format("%03d%s", depth, dir));
-    m.put(QueryUtil.DIR_COLF, QueryUtil.COUNTS_COLQ, colvis, countVal.toValue());
+    m.put(QueryUtil.DIR_COLF, QueryUtil.COUNTS_COLQ, opts.visibility, countVal.toValue());
     return m;
   }
   
@@ -202,7 +197,6 @@ public class FileCount {
       } else if (!currentDir.equals(dir)) {
         batchWriter.addMutation(createMutation(depth - 1, currentDir, countVal));
         inserts++;
-        
         currentDir = dir;
         countVal.clear();
       }
@@ -216,7 +210,7 @@ public class FileCount {
           // in this case the higher depth will not insert anything if the
           // dir has no children, so insert something here
           Mutation m = new Mutation(key.getRow());
-          m.put(QueryUtil.DIR_COLF, QueryUtil.COUNTS_COLQ, colvis, tmpCount.toValue());
+          m.put(QueryUtil.DIR_COLF, QueryUtil.COUNTS_COLQ, opts.visibility, tmpCount.toValue());
           batchWriter.addMutation(m);
           inserts++;
         }
@@ -235,20 +229,8 @@ public class FileCount {
     }
   }
   
-  FileCount(String instance, String zookeepers, String user, String password, String table, String auths, String colvis, boolean mock) throws Exception {
-    Instance inst;
-    if (mock) {
-      inst = new MockInstance(instance);
-    } else {
-      inst = new ZooKeeperInstance(instance, zookeepers);
-    }
-    this.conn = inst.getConnector(user, password);
-    if (auths.length() > 0)
-      this.auths = new Authorizations(auths.split(","));
-    else
-      this.auths = new Authorizations();
-    this.colvis = new ColumnVisibility(colvis);
-    this.table = table;
+  FileCount(Opts opts) throws Exception {
+    this.opts = opts;
   }
   
   public void run() throws Exception {
@@ -256,8 +238,10 @@ public class FileCount {
     entriesScanned = 0;
     inserts = 0;
     
-    Scanner scanner = conn.createScanner(table, auths);
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig());
+    Connector conn = opts.getConnector();
+    Scanner scanner = conn.createScanner(opts.tableName, opts.auths);
+    scanner.setBatchSize(opts.scanBatchSize);
+    BatchWriter bw = conn.createBatchWriter(opts.tableName, opts.getBatchWriterConfig());
     
     long t1 = System.currentTimeMillis();
     
@@ -282,14 +266,17 @@ public class FileCount {
     System.out.printf("Counts inserted        : %,d %n", inserts);
   }
   
+  public static class Opts extends ClientOnRequiredTable {
+    @Parameter(names="--vis", description="use a given visibility for the new counts", converter=VisibilityConverter.class)
+    ColumnVisibility visibility = new ColumnVisibility();
+  }
+  
   public static void main(String[] args) throws Exception {
-    if (args.length != 7) {
-      System.out.println("usage: " + FileCount.class.getSimpleName() + " <instance> <zookeepers> <user> <pass> <table> <auths> <colvis>");
-      System.exit(1);
-    }
-    
-    FileCount fileCount = new FileCount(args[0], args[1], args[2], args[3], args[4], args[5], args[6], false);
-    
+    Opts opts = new Opts();
+    String programName = FileCount.class.getName();
+    opts.parseArgs(programName, args);
+
+    FileCount fileCount = new FileCount(opts);
     fileCount.run();
   }
 }

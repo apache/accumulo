@@ -58,17 +58,17 @@ class RowHashBenchmark(Benchmark):
             self.sleep(15)
         code, out, err = cloudshell.run(self.username, self.password, "createtable %s -sf %s\n" % (self.output_table, file))
         command = self.buildcommand('org.apache.accumulo.examples.simple.mapreduce.TeraSortIngest',
-                                    self.numrows(),
-                                    self.keysizemin(),
-                                    self.keysizemax(),
-                                    self.minvaluesize(),
-                                    self.maxvaluesize(),
-                                    self.input_table, 
-                                    self.getInstance(),
-                                    self.getZookeepers(),
-                                    self.getUsername(),
-                                    self.getPassword(),
-                                    self.maxmaps)
+                                    '--count', self.numrows(),
+                                    '-nk', self.keysizemin(),
+                                    '-xk', self.keysizemax(),
+                                    '-nv', self.minvaluesize(),
+                                    '-xv', self.maxvaluesize(),
+                                    '-t', self.input_table, 
+                                    '-i', self.getInstance(),
+                                    '-z', self.getZookeepers(),
+                                    '-u', self.getUsername(),
+                                    '-p', self.getPassword(),
+                                    --splits', self.maxmaps)
         handle = runner.start(command, stdin=subprocess.PIPE)
         log.debug("Running: %r", command)
         out, err = handle.communicate("")  

@@ -32,8 +32,11 @@ class BinaryTest(unittest.TestCase, TestUtilsMixin):
         
         # initialize the database
         self.createTable("bt")
-    def test(self, *args):
-        handle = self.runClassOn(self.masterHost(), testClass, list(args))
+    def test(self, mode, table, min, max):
+        handle = self.runClassOn(self.masterHost(), testClass, 
+                                 ['-u', 'root',
+                                  '--mode', mode, '-t', table, 
+                                  '--start', min, '--count', max])
         self.waitForStop(handle, 200)
         
     def tearDown(self):
@@ -49,7 +52,6 @@ class BinaryTest(unittest.TestCase, TestUtilsMixin):
         self.test("verify","bt","75000","25000")
         self.test("randomLookups","bt","75000","25000")
         self.test("verifyDeleted","bt","25000","50000")
-        self.shutdown_accumulo()
 
 class BinaryPreSplitTest(BinaryTest):
     "Test inserting binary data into accumulo with a presplit table (this will place binary data in !METADATA)"

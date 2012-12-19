@@ -33,7 +33,7 @@ class WriteLots(unittest.TestCase, TestUtilsMixin):
 
     def ingest(self, host, start, count, **kwargs):
         klass = 'org.apache.accumulo.server.test.TestIngest'
-        args = '-tsbw -size 50 -random 56 %d %d 1' % (count, start)
+        args = '--user root --size 50 --random 56 --rows %d --start %d --cols 1' % (count, start)
         return self.runClassOn(host, klass, args.split(), **kwargs)
 
     def setUp(self):

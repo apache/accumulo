@@ -23,9 +23,9 @@ import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -36,36 +36,32 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.logger.LogFileValue;
 import org.apache.hadoop.io.Text;
 
+import com.beust.jcommander.Parameter;
+
 /**
  * Looks up and prints mutations indexed by IndexMeta
  */
 public class PrintEvents {
   
+  static class Opts extends ClientOpts {
+    @Parameter(names={"-t", "--tableId"}, description="table id", required=true)
+    String tableId;
+    @Parameter(names={"-e", "--endRow"}, description="end row")
+    String endRow;
+    @Parameter(names={"-t", "--time"}, description="time, in milliseconds", required=true)
+    long time;
+  }
+  
   /**
    * @param args
    */
   public static void main(String[] args) throws Exception {
-    if (args.length != 7) {
-      System.err.println("Usage : " + IndexMeta.class + " <instance> <zookeepers> <user> <pass> <tableId> <endRow> <time>");
-      return;
-    }
+    Opts opts = new Opts();
+    opts.parseArgs(PrintEvents.class.getName(), args);
     
-    String instance = args[0];
-    String zookeepers = args[1];
-    String user = args[2];
-    String pass = args[3];
-    String tableId = args[4];
-    String endRow = args[5];
-    Long time = Long.parseLong(args[6]);
+    Connector conn = opts.getConnector();
     
-    ZooKeeperInstance zki = new ZooKeeperInstance(instance, zookeepers);
-    Connector conn = zki.getConnector(user, pass);
-    
-    if (endRow.equals("null")) {
-      endRow = null;
-    }
-
-    printEvents(conn, tableId, endRow, time);
+    printEvents(conn, opts.tableId, opts.endRow, opts.time);
   }
   
   /**

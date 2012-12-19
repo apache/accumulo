@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.examples.simple.dirlist.FileCount.Opts;
 import org.apache.hadoop.io.Text;
 
 public class CountTest extends TestCase {
@@ -61,7 +62,11 @@ public class CountTest extends TestCase {
     scanner.fetchColumn(new Text("dir"), new Text("counts"));
     assertFalse(scanner.iterator().hasNext());
     
-    FileCount fc = new FileCount("counttest", null, "root", "", "dirlisttable", "", "", true);
+    Opts opts = new Opts();
+    opts.instance = "counttest";
+    opts.tableName = "dirlisttable";
+    opts.mock = true;
+    FileCount fc = new FileCount(opts);
     fc.run();
     
     ArrayList<Pair<String,String>> expected = new ArrayList<Pair<String,String>>();

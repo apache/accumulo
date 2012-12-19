@@ -22,17 +22,18 @@ import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.IntersectingIterator;
 import org.apache.hadoop.io.Text;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Using the doc2word table created by Reverse.java, this program randomly selects N words per document. Then it continually queries a random set of words in
@@ -42,35 +43,31 @@ import org.apache.hadoop.io.Text;
  */
 
 public class ContinuousQuery {
-  public static void main(String[] args) throws Exception {
-    
-    if (args.length != 7 && args.length != 8) {
-      System.err.println("Usage : " + ContinuousQuery.class.getName()
-          + " <instance> <zoo keepers> <shard table> <doc2word table> <user> <pass> <num query terms> [iterations]");
-      System.exit(-1);
-    }
-    
-    String instance = args[0];
-    String zooKeepers = args[1];
-    String table = args[2];
-    String docTable = args[3];
-    String user = args[4];
-    String pass = args[5];
-    int numTerms = Integer.parseInt(args[6]);
+  
+  static class Opts extends ClientOpts {
+    @Parameter(names="--shardTable", required=true, description="name of the shard table")
+    String table = null;
+    @Parameter(names="--doc2Term", required=true, description="name of the doc2Term table")
+    String doc2Term;
+    @Parameter(names="--terms", required=true, description="the number of terms in the query")
+    int numTerms;
+    @Parameter(names="--count", description="the number of queries to run")
     long iterations = Long.MAX_VALUE;
-    if (args.length > 7)
-      iterations = Long.parseLong(args[7]);
+  }
+  
+  public static void main(String[] args) throws Exception {
+    Opts opts = new Opts();
+    opts.parseArgs(ContinuousQuery.class.getName(), args);
     
-    ZooKeeperInstance zki = new ZooKeeperInstance(instance, zooKeepers);
-    Connector conn = zki.getConnector(user, pass.getBytes());
+    Connector conn = opts.getConnector();
     
-    ArrayList<Text[]> randTerms = findRandomTerms(conn.createScanner(docTable, Constants.NO_AUTHS), numTerms);
+    ArrayList<Text[]> randTerms = findRandomTerms(conn.createScanner(opts.doc2Term, opts.auths), opts.numTerms);
     
     Random rand = new Random();
     
-    BatchScanner bs = conn.createBatchScanner(table, Constants.NO_AUTHS, 20);
+    BatchScanner bs = conn.createBatchScanner(opts.table, opts.auths, opts.scanThreads);
     
-    for (long i = 0; i < iterations; i += 1) {
+    for (long i = 0; i < opts.iterations; i += 1) {
       Text[] columns = randTerms.get(rand.nextInt(randTerms.size()));
       
       bs.clearScanIterators();

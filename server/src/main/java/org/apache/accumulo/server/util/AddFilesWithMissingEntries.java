@@ -16,14 +16,12 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.BatchWriterConfig;
-import org.apache.accumulo.core.client.Connector;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -32,10 +30,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -43,25 +38,32 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+import com.beust.jcommander.Parameter;
+
 public class AddFilesWithMissingEntries {
   
   static final Logger log = Logger.getLogger(AddFilesWithMissingEntries.class);
-  static boolean update = false;
+  
+  public static class Opts extends ClientOpts {
+    @Parameter(names="-update", description="Make changes to the !METADATA table to include missing files")
+    boolean update = false;
+  }
+  
   
   /**
+   * A utility to add files to the !METADATA table that are not listed in the root tablet.  
+   * This is a recovery tool for someone who knows what they are doing.  It might be better to 
+   * save off files, and recover your instance by re-initializing and importing the existing files.
+   *  
    * @param args
    */
   public static void main(String[] args) throws Exception {
-    if (args.length > 1 || new HashSet<String>(Arrays.asList(args)).contains("-?")) {
-      System.err.println("Usage: bin/accumulo " + AddFilesWithMissingEntries.class.getName() + " [update]");
-      System.exit(1);
-    }
-    update = args.length > 0;
-    final AuthInfo creds = SecurityConstants.getSystemCredentials();
-    final Connector connector = HdfsZooInstance.getInstance().getConnector(creds.getUser(), creds.getPassword());
+    Opts opts = new Opts();
+    opts.parseArgs(AddFilesWithMissingEntries.class.getName(), args);
+    
     final Key rootTableEnd = new Key(Constants.ROOT_TABLET_EXTENT.getEndRow());
     final Range range = new Range(rootTableEnd.followingKey(PartialKey.ROW), true, Constants.METADATA_RESERVED_KEYSPACE_START_KEY, false);
-    final Scanner scanner = connector.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    final Scanner scanner = opts.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
     scanner.setRange(range);
     final Configuration conf = new Configuration();
     final FileSystem fs = FileSystem.get(conf);
@@ -71,7 +73,7 @@ public class AddFilesWithMissingEntries {
     Set<String> knownFiles = new HashSet<String>();
     
     int count = 0;
-    final MultiTableBatchWriter writer = connector.createMultiTableBatchWriter(new BatchWriterConfig());
+    final MultiTableBatchWriter writer = opts.getConnector().createMultiTableBatchWriter(opts.getBatchWriterConfig());
     
     // collect the list of known files and the directory for each extent
     for (Entry<Key,Value> entry : scanner) {
@@ -81,7 +83,7 @@ public class AddFilesWithMissingEntries {
       if (!ke.equals(last)) {
         if (directory != null) {
           // add any files in the directory unknown to the key extent
-          count += addUnknownFiles(fs, directory, knownFiles, last, writer);
+          count += addUnknownFiles(fs, directory, knownFiles, last, writer, opts.update);
         }
         directory = null;
         knownFiles.clear();
@@ -98,13 +100,13 @@ public class AddFilesWithMissingEntries {
     }
     if (directory != null) {
       // catch the last key extent
-      count += addUnknownFiles(fs, directory, knownFiles, last, writer);
+      count += addUnknownFiles(fs, directory, knownFiles, last, writer, opts.update);
     }
     log.info("There were " + count + " files that are unknown to the metadata table");
     writer.close();
   }
   
-  private static int addUnknownFiles(FileSystem fs, String directory, Set<String> knownFiles, KeyExtent ke, MultiTableBatchWriter writer) throws Exception {
+  private static int addUnknownFiles(FileSystem fs, String directory, Set<String> knownFiles, KeyExtent ke, MultiTableBatchWriter writer, boolean update) throws Exception {
     int count = 0;
     final String tableId = ke.getTableId().toString();
     final Text row = ke.getMetadataEntry();

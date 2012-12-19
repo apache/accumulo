@@ -29,66 +29,47 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
+import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
+
+import com.beust.jcommander.Parameter;
 
 
 public class TraceDump {
   static final long DEFAULT_TIME_IN_MILLIS = 10 * 60 * 1000l;
   
-  private static final Options OPTIONS = new Options();
-  public static final Option LIST_SPANS = new Option("l", "list", false, "List recent traces.");
-  public static final Option START_TIME = new Option("s", "start", true, "The start time of traces to display");
-  public static final Option END_TIME = new Option("e", "end", true, "The end time of traces to display");
-  public static final Option DUMP_TRACE = new Option("d", "dump", false, "Dump the traces");
-  public static final Option INSTANCE_URL = new Option("i", "instance", true, "URL to point to accumulo.");
-  public static final String TRACE_TABLE = "trace";
-  
-  static {
-    for (Option opt : new Option[] {LIST_SPANS, START_TIME, END_TIME, DUMP_TRACE, INSTANCE_URL}) {
-      OPTIONS.addOption(opt);
-    }
+  static class Opts extends ClientOnDefaultTable {
+    @Parameter(names={"-l", "--list"}, description="List recent traces")
+    boolean list = false;
+    @Parameter(names={"-s", "--start"}, description="The start time of traces to display")
+    String start;
+    @Parameter(names={"-e", "--end"}, description="The end time of traces to display")
+    String end;
+    @Parameter(names={"-d", "--dump"}, description="Dump the traces")
+    boolean dump = false;
+    @Parameter(names={"-i", "--instance"}, description="URL to point to accumulo.")
+    String instance;
+    @Parameter(description=" <trace id> { <trace id> ... }")
+    List<String> traceIds = new ArrayList<String>();
+    Opts() { super("trace");}
   }
   
   public static void main(String[] args) throws Exception {
-    CommandLine commandLine = new BasicParser().parse(OPTIONS, args);
+    Opts opts = new Opts();
+    opts.parseArgs(TraceDump.class.getName(), args);
     int code = 0;
-    if (code == 0 && commandLine.hasOption(LIST_SPANS.getLongOpt())) {
-      code = listSpans(commandLine);
+    if (opts.list) {
+      code = listSpans(opts);
     }
-    if (code == 0 && commandLine.hasOption(DUMP_TRACE.getLongOpt())) {
-      code = dumpTrace(commandLine);
+    if (code == 0 && opts.dump) {
+      code = dumpTrace(opts);
     }
     System.exit(code);
-  }
-  
-  public static InstanceUserPassword getInstance(CommandLine commandLine) {
-    InstanceUserPassword result = null;
-    String url = commandLine.getOptionValue(INSTANCE_URL.getOpt(), "zoo://root:secret@localhost/test");
-    if (!url.startsWith("zoo://")) {
-      throw new IllegalArgumentException("Instance url must start with zoo://");
-    }
-    String uri = url.substring(6); // root:secret@localhost/test
-    String parts[] = uri.split("@", 2); // root:secret, localhost/test
-    String userPass = parts[0];
-    String zooInstance = parts[1];
-    parts = userPass.split(":", 2); // root, secret
-    String user = parts[0];
-    String password = parts[1];
-    parts = zooInstance.split("/", 2); // localhost, test
-    String zoo = parts[0];
-    String instance = parts[1];
-    result = new InstanceUserPassword(new ZooKeeperInstance(instance, zoo), user, password);
-    return result;
   }
   
   public static List<RemoteSpan> sortByStart(Collection<RemoteSpan> spans) {
@@ -102,13 +83,13 @@ public class TraceDump {
     return spanList;
   }
   
-  private static int listSpans(CommandLine commandLine) throws Exception {
+  private static int listSpans(Opts opts) throws Exception {
     PrintStream out = System.out;
     long endTime = System.currentTimeMillis();
     long startTime = endTime - DEFAULT_TIME_IN_MILLIS;
-    InstanceUserPassword info = getInstance(commandLine);
-    Connector conn = info.instance.getConnector(info.username, info.password);
-    Scanner scanner = conn.createScanner(TRACE_TABLE, conn.securityOperations().getUserAuthorizations(info.username));
+    Connector conn = opts.getConnector();
+    Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
+    scanner.setBatchSize(opts.scanBatchSize);
     Range range = new Range(new Text("start:" + Long.toHexString(startTime)), new Text("start:" + Long.toHexString(endTime)));
     scanner.setRange(range);
     out.println("Trace            Day/Time                 (ms)  Start");
@@ -123,15 +104,15 @@ public class TraceDump {
     void print(String line);
   }
   
-  private static int dumpTrace(CommandLine commandLine) throws Exception {
+  private static int dumpTrace(Opts opts) throws Exception {
     final PrintStream out = System.out;
-    InstanceUserPassword info = getInstance(commandLine);
-    Connector conn = info.instance.getConnector(info.username, info.password);
+    Connector conn = opts.getConnector();
     
     int count = 0;
-    for (Object arg : commandLine.getArgList()) {
-      Scanner scanner = conn.createScanner(TRACE_TABLE, conn.securityOperations().getUserAuthorizations(info.username));
-      Range range = new Range(new Text(arg.toString()));
+    for (String traceId : opts.traceIds) {
+      Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
+      scanner.setBatchSize(opts.scanBatchSize);
+      Range range = new Range(new Text(traceId.toString()));
       scanner.setRange(range);
       count = printTrace(scanner, new Printer() {
         @Override

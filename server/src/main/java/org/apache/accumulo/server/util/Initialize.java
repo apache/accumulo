@@ -26,6 +26,7 @@ import java.util.UUID;
 import jline.ConsoleReader;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -63,6 +64,8 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs.Ids;
 
+import com.beust.jcommander.Parameter;
+
 /**
  * This class is used to setup the directory structure and the root tablet to get an instance started
  * 
@@ -70,9 +73,6 @@ import org.apache.zookeeper.ZooDefs.Ids;
 public class Initialize {
   private static final Logger log = Logger.getLogger(Initialize.class);
   private static final String ROOT_USER = "root";
-  private static boolean clearInstanceName = false;
-  private static String cliInstanceName = null;
-  private static String cliPassword = null;
   
   private static ConsoleReader reader = null;
   
@@ -109,7 +109,7 @@ public class Initialize {
     initialMetadataConf.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
   }
   
-  public static boolean doInit(Configuration conf, FileSystem fs) throws IOException {
+  public static boolean doInit(Opts opts, Configuration conf, FileSystem fs) throws IOException {
     if (!ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_URI).equals(""))
       log.info("Hadoop Filesystem is " + ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_DFS_URI));
     else
@@ -152,34 +152,34 @@ public class Initialize {
     // abort, we don't leave an inconsistent HDFS/ZooKeeper structure
     String instanceNamePath;
     try {
-      instanceNamePath = getInstanceNamePath();
+      instanceNamePath = getInstanceNamePath(opts);
     } catch (Exception e) {
       log.fatal("Failed to talk to zookeeper", e);
       return false;
     }
-    byte[] rootpass = getRootPassword();
-    return initialize(instanceNamePath, fs, rootpass);
+    opts.rootpass = getRootPassword(opts);
+    return initialize(opts, instanceNamePath, fs);
   }
   
-  public static boolean initialize(String instanceNamePath, FileSystem fs, byte[] rootpass) {
+  public static boolean initialize(Opts opts, String instanceNamePath, FileSystem fs) {
     
     UUID uuid = UUID.randomUUID();
     try {
-      initZooKeeper(uuid.toString(), instanceNamePath);
+      initZooKeeper(opts, uuid.toString(), instanceNamePath);
     } catch (Exception e) {
       log.fatal("Failed to initialize zookeeper", e);
       return false;
     }
     
     try {
-      initFileSystem(fs, fs.getConf(), uuid);
+      initFileSystem(opts, fs, fs.getConf(), uuid);
     } catch (Exception e) {
       log.fatal("Failed to initialize filesystem", e);
       return false;
     }
     
     try {
-      initSecurity(uuid.toString(), rootpass);
+      initSecurity(opts, uuid.toString());
     } catch (Exception e) {
       log.fatal("Failed to initialize security", e);
       return false;
@@ -201,7 +201,7 @@ public class Initialize {
     }
   }
 
-  private static void initFileSystem(FileSystem fs, Configuration conf, UUID uuid) throws IOException {
+  private static void initFileSystem(Opts opts, FileSystem fs, Configuration conf, UUID uuid) throws IOException {
     FileStatus fstat;
     
     // the actual disk location of the root tablet
@@ -335,14 +335,14 @@ public class Initialize {
     }
   }
   
-  private static void initZooKeeper(String uuid, String instanceNamePath) throws KeeperException, InterruptedException {
+  private static void initZooKeeper(Opts opts, String uuid, String instanceNamePath) throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
     ZooUtil.putPersistentData(zoo.getZooKeeper(), Constants.ZROOT, new byte[0], -1, NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
     ZooUtil.putPersistentData(zoo.getZooKeeper(), Constants.ZROOT + Constants.ZINSTANCES, new byte[0], -1, NodeExistsPolicy.SKIP, Ids.OPEN_ACL_UNSAFE);
     
     // setup instance name
-    if (clearInstanceName)
+    if (opts.clearInstanceName)
       zoo.recursiveDelete(instanceNamePath, NodeMissingPolicy.SKIP);
     zoo.putPersistentData(instanceNamePath, uuid.getBytes(), NodeExistsPolicy.FAIL);
     
@@ -368,15 +368,15 @@ public class Initialize {
     zoo.putPersistentData(zkInstanceRoot + Constants.ZRECOVERY, new byte[] {'0'}, NodeExistsPolicy.FAIL);
   }
   
-  private static String getInstanceNamePath() throws IOException, KeeperException, InterruptedException {
+  private static String getInstanceNamePath(Opts opts) throws IOException, KeeperException, InterruptedException {
     // setup the instance name
     String instanceName, instanceNamePath = null;
     boolean exists = true;
     do {
-      if (cliInstanceName == null) {
+      if (opts.cliInstanceName == null) {
         instanceName = getConsoleReader().readLine("Instance name : ");
       } else {
-        instanceName = cliInstanceName;
+        instanceName = opts.cliInstanceName;
       }
       if (instanceName == null)
         System.exit(0);
@@ -384,7 +384,7 @@ public class Initialize {
       if (instanceName.length() == 0)
         continue;
       instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
-      if (clearInstanceName) {
+      if (opts.clearInstanceName) {
         exists = false;
         break;
       } else if ((boolean) (exists = ZooReaderWriter.getInstance().exists(instanceNamePath))) {
@@ -392,7 +392,7 @@ public class Initialize {
         if (decision == null)
           System.exit(0);
         if (decision.length() == 1 && decision.toLowerCase(Locale.ENGLISH).charAt(0) == 'y') {
-          clearInstanceName = true;
+          opts.clearInstanceName = true;
           exists = false;
         }
       }
@@ -400,9 +400,9 @@ public class Initialize {
     return instanceNamePath;
   }
   
-  private static byte[] getRootPassword() throws IOException {
-    if (cliPassword != null) {
-      return cliPassword.getBytes();
+  private static byte[] getRootPassword(Opts opts) throws IOException {
+    if (opts.cliPassword != null) {
+      return opts.cliPassword.getBytes();
     }
     String rootpass;
     String confirmpass;
@@ -419,8 +419,8 @@ public class Initialize {
     return rootpass.getBytes();
   }
   
-  private static void initSecurity(String iid, byte[] rootpass) throws AccumuloSecurityException {
-    new ZKAuthenticator(iid).initializeSecurity(SecurityConstants.getSystemCredentials(), ROOT_USER, rootpass);
+  private static void initSecurity(Opts opts, String iid) throws AccumuloSecurityException {
+    new ZKAuthenticator(iid).initializeSecurity(SecurityConstants.getSystemCredentials(), ROOT_USER, opts.rootpass);
   }
   
   protected static void initMetadataConfig() throws IOException {
@@ -458,27 +458,27 @@ public class Initialize {
     return (fs.exists(ServerConstants.getInstanceIdLocation()) || fs.exists(ServerConstants.getDataVersionLocation()));
   }
   
-  public static void main(String[] args) {
-    boolean justSecurity = false;
+  static class Opts extends Help {
+    @Parameter(names="--reset-security", description="just update the security information")
+    boolean resetSecurity = false;
+    @Parameter(names="--clear-instance-name", description="delete any existing instance name without prompting")
+    boolean clearInstanceName = false;
+    @Parameter(names="--instance-name", description="the instance name, if not provided, will prompt")
+    String cliInstanceName;
+    @Parameter(names="--password", description="set the password on the command line")
+    String cliPassword;
+    @Parameter(names="--held", help=true)
     
-    for (int i = 0; i < args.length; i++) {
-      if (args[i].equals("--reset-security")) {
-          justSecurity = true;
-        } else if (args[i].equals("--clear-instance-name")) {
-          clearInstanceName = true;
-        } else if (args[i].equals("--instance-name")) {
-            cliInstanceName = args[i+1];
-            i++;
-        } else if (args[i].equals("--password")) {
-            cliPassword = args[i+1];
-            i++;
-        } else {
-          RuntimeException e = new RuntimeException();
-          log.fatal("Usage: [--reset-security] [--clear-instance-name] [--instance-name {name}] [--password {password}]");
-          log.fatal("Bad argument " + args[i], e);
-          throw e;
-        }
-    }
+    byte[] rootpass = null;
+  }
+  
+  
+  
+  public static void main(String[] args) {
+    Opts opts = new Opts();
+    opts.parseArgs(Initialize.class.getName(), args);
+    
+    boolean justSecurity = false;
     
     try {
       SecurityUtil.serverLogin();
@@ -487,11 +487,13 @@ public class Initialize {
       FileSystem fs = FileUtil.getFileSystem(conf, ServerConfiguration.getSiteConfiguration());
 
       if (justSecurity) {
-        if (isInitialized(fs))
-          initSecurity(HdfsZooInstance.getInstance().getInstanceID(), getRootPassword());
-        else
+        if (isInitialized(fs)) {
+          opts.rootpass = getRootPassword(opts);
+          initSecurity(opts, HdfsZooInstance.getInstance().getInstanceID());
+        } else {
           log.fatal("Attempted to reset security on accumulo before it was initialized");
-      } else if (!doInit(conf, fs))
+        }
+      } else if (!doInit(opts, conf, fs))
         System.exit(-1);
     } catch (Exception e) {
       log.fatal(e, e);

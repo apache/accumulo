@@ -34,15 +34,13 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.test.TestIngest.IngestArgs;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
+import com.beust.jcommander.Parameter;
+
 
 public class VerifyIngest {
-  private static String username = "root";
-  private static byte[] passwd = "secret".getBytes();
   
   private static final Logger log = Logger.getLogger(VerifyIngest.class);
   
@@ -54,11 +52,17 @@ public class VerifyIngest {
     return Integer.parseInt(k.getColumnQualifier().toString().split("_")[1]);
   }
   
+  public static class Opts extends TestIngest.Opts {
+    @Parameter(names="-useGet", description="fetches values one at a time, instead of scanning")
+    boolean useGet = false;
+  }
+  
   public static void main(String[] args) {
-    IngestArgs ingestArgs = TestIngest.parseArgs(args);
-    Instance instance = HdfsZooInstance.getInstance();
+    Opts opts = new Opts();
+    opts.parseArgs(VerifyIngest.class.getName(), args);
+    Instance instance = opts.getInstance();
     try {
-      if (ingestArgs.trace) {
+      if (opts.trace) {
         String name = VerifyIngest.class.getSimpleName();
         DistributedTrace.enable(instance, new ZooReader(instance.getZooKeepers(), instance.getZooKeepersSessionTimeOut()), name, null);
         Trace.on(name);
@@ -68,36 +72,36 @@ public class VerifyIngest {
       Connector connector = null;
       while (connector == null) {
         try {
-          connector = instance.getConnector(username, passwd);
+          connector = opts.getConnector();
         } catch (AccumuloException e) {
           log.warn("Could not connect to accumulo; will retry: " + e);
           UtilWaitThread.sleep(1000);
         }
       }
       
-      byte[][] bytevals = TestIngest.generateValues(ingestArgs);
+      byte[][] bytevals = TestIngest.generateValues(opts);
       
       Authorizations labelAuths = new Authorizations("L1", "L2", "G1", "GROUP2");
       
-      int expectedRow = ingestArgs.startRow;
+      int expectedRow = opts.startRow;
       int expectedCol = 0;
       int recsRead = 0;
       
       long bytesRead = 0;
       long t1 = System.currentTimeMillis();
       
-      byte randomValue[] = new byte[ingestArgs.dataSize];
+      byte randomValue[] = new byte[opts.dataSize];
       Random random = new Random();
       
-      Key endKey = new Key(new Text("row_" + String.format("%010d", ingestArgs.rows + ingestArgs.startRow)));
+      Key endKey = new Key(new Text("row_" + String.format("%010d", opts.rows + opts.startRow)));
       
       int errors = 0;
       
-      while (expectedRow < (ingestArgs.rows + ingestArgs.startRow)) {
+      while (expectedRow < (opts.rows + opts.startRow)) {
         
-        if (ingestArgs.useGet) {
-          Text rowKey = new Text("row_" + String.format("%010d", expectedRow + ingestArgs.startRow));
-          Text colf = new Text(ingestArgs.columnFamily);
+        if (opts.useGet) {
+          Text rowKey = new Text("row_" + String.format("%010d", expectedRow + opts.startRow));
+          Text colf = new Text(opts.columnFamily);
           Text colq = new Text("col_" + String.format("%05d", expectedCol));
           
           Scanner scanner = connector.createScanner("test_ingest", labelAuths);
@@ -115,8 +119,8 @@ public class VerifyIngest {
           }
           
           byte ev[];
-          if (ingestArgs.random) {
-            ev = TestIngest.genRandomValue(random, randomValue, ingestArgs.seed, expectedRow, expectedCol);
+          if (opts.random != null) {
+            ev = TestIngest.genRandomValue(random, randomValue, opts.random.intValue(), expectedRow, expectedCol);
           } else {
             ev = bytevals[expectedCol % bytevals.length];
           }
@@ -135,22 +139,20 @@ public class VerifyIngest {
           }
           
           expectedCol++;
-          if (expectedCol >= ingestArgs.cols) {
+          if (expectedCol >= opts.cols) {
             expectedCol = 0;
             expectedRow++;
           }
           
         } else {
           
-          int batchSize = 10000;
-          
           Key startKey = new Key(new Text("row_" + String.format("%010d", expectedRow)));
           
           Scanner scanner = connector.createScanner("test_ingest", labelAuths);
-          scanner.setBatchSize(batchSize);
+          scanner.setBatchSize(opts.scanBatchSize);
           scanner.setRange(new Range(startKey, endKey));
-          for (int j = 0; j < ingestArgs.cols; j++) {
-            scanner.fetchColumn(new Text(ingestArgs.columnFamily), new Text("col_" + String.format("%05d", j)));
+          for (int j = 0; j < opts.cols; j++) {
+            scanner.fetchColumn(new Text(opts.columnFamily), new Text("col_" + String.format("%05d", j)));
           }
           
           int recsReadBefore = recsRead;
@@ -176,16 +178,16 @@ public class VerifyIngest {
               errors++;
             }
             
-            if (expectedRow >= (ingestArgs.rows + ingestArgs.startRow)) {
-              log.error("expectedRow (" + expectedRow + ") >= (ingestArgs.rows + ingestArgs.startRow)  (" + (ingestArgs.rows + ingestArgs.startRow)
+            if (expectedRow >= (opts.rows + opts.startRow)) {
+              log.error("expectedRow (" + expectedRow + ") >= (ingestArgs.rows + ingestArgs.startRow)  (" + (opts.rows + opts.startRow)
                   + "), get batch returned data passed end key");
               errors++;
               break;
             }
             
             byte value[];
-            if (ingestArgs.random) {
-              value = TestIngest.genRandomValue(random, randomValue, ingestArgs.seed, expectedRow, colNum);
+            if (opts.random != null) {
+              value = TestIngest.genRandomValue(random, randomValue, opts.random.intValue(), expectedRow, colNum);
             } else {
               value = bytevals[colNum % bytevals.length];
             }
@@ -196,13 +198,13 @@ public class VerifyIngest {
               errors++;
             }
             
-            if (ingestArgs.hasTimestamp && entry.getKey().getTimestamp() != ingestArgs.timestamp) {
+            if (opts.timestamp >= 0 && entry.getKey().getTimestamp() != opts.timestamp) {
               log.error("unexpected timestamp " + entry.getKey().getTimestamp() + ", rowNum : " + rowNum + " colNum : " + colNum);
               errors++;
             }
             
             expectedCol++;
-            if (expectedCol >= ingestArgs.cols) {
+            if (expectedCol >= opts.cols) {
               expectedCol = 0;
               expectedRow++;
             }
@@ -224,8 +226,8 @@ public class VerifyIngest {
         System.exit(1);
       }
       
-      if (expectedRow != (ingestArgs.rows + ingestArgs.startRow)) {
-        log.error("Did not read expected number of rows. Saw " + (expectedRow - ingestArgs.startRow) + " expected " + ingestArgs.rows);
+      if (expectedRow != (opts.rows + opts.startRow)) {
+        log.error("Did not read expected number of rows. Saw " + (expectedRow - opts.startRow) + " expected " + opts.rows);
         System.exit(1);
       } else {
         System.out.printf("%,12d records read | %,8d records/sec | %,12d bytes read | %,8d bytes/sec | %6.3f secs   %n", recsRead,

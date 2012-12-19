@@ -44,7 +44,7 @@ class CompactionTest(SimpleBulkTest):
         handle = self.runClassOn(
             self.masterHost(),
             'org.apache.accumulo.server.test.CreateRFiles',
-            "testrf 4 0 500000 59".split())
+            "--output testrf --numThreads 4 --start 0 --end 500000 --splits 59".split())
         out, err = handle.communicate()
         self.assert_(handle.returncode == 0)
 

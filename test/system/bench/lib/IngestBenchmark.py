@@ -60,12 +60,12 @@ class IngestBenchmark(Benchmark):
             commands[s] = '%s %s -username %s -password %s -size %d -random %d %d %d %d' % (
                 accumulo('bin', 'accumulo'),
                 'org.apache.accumulo.server.test.TestIngest',
-                self.username, self.password,
-                self.size(),
-                self.random(),
-                self.count(),
-                i*self.count(),
-                1)
+                '-u', self.username, '-p', self.password,
+                '--size', self.size(),
+                '--random', self.random(),
+                '--rows', self.count(),
+                '--start', i*self.count(),
+                '--cols', 1)
         results = runEach(commands)
         codes = {}
         for slave, (code, out, err) in results.items():

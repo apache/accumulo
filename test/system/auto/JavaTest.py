@@ -49,7 +49,7 @@ class JavaTest(TestUtilsMixin, unittest.TestCase):
         assert handle.returncode==0
 
     def runJTest(self,host, cmd):
-        return self.runClassOn(host, 'org.apache.accumulo.server.test.functional.FunctionalTest', ['-m',host,'-u',ROOT,'-p',ROOT_PASSWORD,'-i',INSTANCE_NAME,self.testClass,cmd])
+        return self.runClassOn(host, 'org.apache.accumulo.server.test.functional.FunctionalTest', ['-u',ROOT,'-p',ROOT_PASSWORD,'-i',INSTANCE_NAME,'--classname', self.testClass,'--opt', cmd])
         
     def runTest(self):
         handle = self.runJTest(self.masterHost(),'run')

@@ -17,6 +17,7 @@
 package org.apache.accumulo.server.test.functional;
 
 import java.io.File;
+import java.util.Arrays;
 
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -42,7 +43,7 @@ public class CacheTestClean {
     } else {
       File[] files = reportDir.listFiles();
       if (files.length != 0)
-        throw new Exception("dir " + reportDir + " is not empty");
+        throw new Exception("dir " + reportDir + " is not empty: " + Arrays.asList(files));
     }
     
   }

@@ -17,33 +17,27 @@
 package org.apache.accumulo.server.test.continuous;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
 import org.apache.accumulo.cloudtrace.instrument.CountSampler;
 import org.apache.accumulo.cloudtrace.instrument.Trace;
-import org.apache.accumulo.cloudtrace.instrument.Tracer;
-import org.apache.accumulo.cloudtrace.instrument.receivers.ZooSpanClient;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.server.test.FastFormat;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -54,17 +48,64 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 
+import com.beust.jcommander.IStringConverter;
+import com.beust.jcommander.Parameter;
+
 
 public class ContinuousIngest {
   
-  private static String visFile = null;
-  private static String debugLog = null;
+  static public class BaseOpts extends ClientOpts {
+    public class DebugConverter implements IStringConverter<String> {
+      @Override
+      public String convert(String debugLog) {
+        Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
+        logger.setLevel(Level.TRACE);
+        logger.setAdditivity(false);
+        try {
+          logger.addAppender(new FileAppender(new PatternLayout("%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %m%n"), debugLog, true));
+        } catch (IOException ex) {
+          throw new RuntimeException(ex);
+        }
+        return debugLog;
+      }
+    }
+    
+    @Parameter(names="--min", description="lowest random row number to use")
+    long min = 0;
+    
+    @Parameter(names="--max", description="maximum random row number to use")
+    long max = Long.MAX_VALUE;
+    
+    @Parameter(names="--debugLog", description="file to write debugging output", converter=DebugConverter.class)
+    String debugLog = null;
+    
+    @Parameter(names="--table", description="table to use")
+    String tableName="ci";
+  }
+  
+  static public class Opts extends BaseOpts {
+    @Parameter(names="--num", description="the number of entries to ingest")
+    long num = Long.MAX_VALUE;
+    
+    @Parameter(names="--maxColF", description="maximum column family value to use")
+    short maxColF = Short.MAX_VALUE;
+    
+    @Parameter(names="--maxColQ", description="maximum column qualifier value to use")
+    short maxColQ = Short.MAX_VALUE;
+ 
+    @Parameter(names="--addCheckSum", description="turn on checksums")
+    boolean checksum = false;
+    
+    @Parameter(names="--visibilities", description="read the visibilities to ingest with from a file")
+    String visFile = null;
+  }
+  
   private static final byte[] EMPTY_BYTES = new byte[0];
   
   private static List<ColumnVisibility> visibilities;
   
-  private static void initVisibilities() throws Exception {
-    if (visFile == null) {
+  private static void initVisibilities(Opts opts) throws Exception {
+    if (opts.visFile == null) {
       visibilities = Collections.singletonList(new ColumnVisibility());
       return;
     }
@@ -72,7 +113,7 @@ public class ContinuousIngest {
     visibilities = new ArrayList<ColumnVisibility>();
     
     FileSystem fs = FileSystem.get(new Configuration());
-    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(visFile))));
+    BufferedReader in = new BufferedReader(new InputStreamReader(fs.open(new Path(opts.visFile))));
     
     String line;
     
@@ -87,78 +128,24 @@ public class ContinuousIngest {
     return visibilities.get(rand.nextInt(visibilities.size()));
   }
 
-  private static String[] processOptions(String[] args) {
-    ArrayList<String> al = new ArrayList<String>();
-    
-    for (int i = 0; i < args.length; i++) {
-      if (args[i].equals("--debug")) {
-        debugLog = args[++i];
-      } else if (args[i].equals("--visibilities")) {
-        visFile = args[++i];
-      } else {
-        al.add(args[i]);
-      }
-    }
-    
-    return al.toArray(new String[al.size()]);
-  }
-  
   public static void main(String[] args) throws Exception {
     
-    args = processOptions(args);
+    Opts opts = new Opts();
+    opts.parseArgs(ContinuousIngest.class.getName(), args);
     
-    if (args.length != 14) {
-      throw new IllegalArgumentException(
-          "usage : "
-              + ContinuousIngest.class.getName()
-              + " [--debug <debug log>] [--visibilities <file>] <instance name> <zookeepers> <user> <pass> <table> <num> <min> <max> <max colf> <max colq> <max mem> <max latency> <max threads> <enable checksum>");
-    }
-    
-    if (debugLog != null) {
-      Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
-      logger.setLevel(Level.TRACE);
-      logger.setAdditivity(false);
-      logger.addAppender(new FileAppender(new PatternLayout("%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %m%n"), debugLog, true));
-    }
-    
-    initVisibilities();
+    initVisibilities(opts);
 
-    String instanceName = args[0];
-    String zooKeepers = args[1];
-    
-    String user = args[2];
-    String password = args[3];
-    
-    String table = args[4];
-    
-    long num = Long.parseLong(args[5]);
-    long min = Long.parseLong(args[6]);
-    long max = Long.parseLong(args[7]);
-    short maxColF = Short.parseShort(args[8]);
-    short maxColQ = Short.parseShort(args[9]);
-    
-    long maxMemory = Long.parseLong(args[10]);
-    long maxLatency = Integer.parseInt(args[11]);
-    int maxWriteThreads = Integer.parseInt(args[12]);
-    
-    boolean checksum = Boolean.parseBoolean(args[13]);
-    
-    if (min < 0 || max < 0 || max <= min) {
+    if (opts.min < 0 || opts.max < 0 || opts.max <= opts.min) {
       throw new IllegalArgumentException("bad min and max");
     }
-    Instance instance = new ZooKeeperInstance(instanceName, zooKeepers);
-    Connector conn = instance.getConnector(user, password);
-    String localhost = InetAddress.getLocalHost().getHostName();
-    String path = ZooUtil.getRoot(instance) + Constants.ZTRACERS;
-    Tracer.getInstance().addReceiver(new ZooSpanClient(zooKeepers, path, localhost, "cingest", 1000));
+    Connector conn = opts.getConnector();
     
-    if (!conn.tableOperations().exists(table))
+    if (!conn.tableOperations().exists(opts.tableName))
       try {
-        conn.tableOperations().create(table);
+        conn.tableOperations().create(opts.tableName);
       } catch (TableExistsException tee) {}
 
-    BatchWriter bw = conn.createBatchWriter(table, new BatchWriterConfig().setMaxMemory(maxMemory).setMaxLatency(maxLatency, TimeUnit.MILLISECONDS)
-        .setMaxWriteThreads(maxWriteThreads));
+    BatchWriter bw = conn.createBatchWriter(opts.tableName, opts.getBatchWriterConfig());
     bw = Trace.wrapAll(bw, new CountSampler(1024));
     
     Random r = new Random();
@@ -187,38 +174,38 @@ public class ContinuousIngest {
       ColumnVisibility cv = getVisibility(r);
 
       for (int index = 0; index < flushInterval; index++) {
-        long rowLong = genLong(min, max, r);
+        long rowLong = genLong(opts.min, opts.max, r);
         prevRows[index] = rowLong;
         firstRows[index] = rowLong;
         
-        int cf = r.nextInt(maxColF);
-        int cq = r.nextInt(maxColQ);
+        int cf = r.nextInt(opts.maxColF);
+        int cq = r.nextInt(opts.maxColQ);
         
         firstColFams[index] = cf;
         firstColQuals[index] = cq;
         
-        Mutation m = genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null, r, checksum);
+        Mutation m = genMutation(rowLong, cf, cq, cv, ingestInstanceId, count, null, r, opts.checksum);
         count++;
         bw.addMutation(m);
       }
       
       lastFlushTime = flush(bw, count, flushInterval, lastFlushTime);
-      if (count >= num)
+      if (count >= opts.num)
         break out;
       
       // generate subsequent sets of nodes that link to previous set of nodes
       for (int depth = 1; depth < maxDepth; depth++) {
         for (int index = 0; index < flushInterval; index++) {
-          long rowLong = genLong(min, max, r);
+          long rowLong = genLong(opts.min, opts.max, r);
           byte[] prevRow = genRow(prevRows[index]);
           prevRows[index] = rowLong;
-          Mutation m = genMutation(rowLong, r.nextInt(maxColF), r.nextInt(maxColQ), cv, ingestInstanceId, count, prevRow, r, checksum);
+          Mutation m = genMutation(rowLong, r.nextInt(opts.maxColF), r.nextInt(opts.maxColQ), cv, ingestInstanceId, count, prevRow, r, opts.checksum);
           count++;
           bw.addMutation(m);
         }
         
         lastFlushTime = flush(bw, count, flushInterval, lastFlushTime);
-        if (count >= num)
+        if (count >= opts.num)
           break out;
       }
       
@@ -226,16 +213,17 @@ public class ContinuousIngest {
       // point to something
       for (int index = 0; index < flushInterval - 1; index++) {
         Mutation m = genMutation(firstRows[index], firstColFams[index], firstColQuals[index], cv, ingestInstanceId, count, genRow(prevRows[index + 1]), r,
-            checksum);
+            opts.checksum);
         count++;
         bw.addMutation(m);
       }
       lastFlushTime = flush(bw, count, flushInterval, lastFlushTime);
-      if (count >= num)
+      if (count >= opts.num)
         break out;
     }
     
     bw.close();
+    opts.stopTracing();
   }
 
   private static long flush(BatchWriter bw, long count, final int flushInterval, long lastFlushTime) throws MutationsRejectedException {

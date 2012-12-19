@@ -21,19 +21,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Takes a list of files and archives them into Accumulo keyed on the SHA1 hashes of the files. See docs/examples/README.filedata for instructions.
@@ -166,31 +169,33 @@ public class FileDataIngest {
     return sb.toString();
   }
   
+  public static class Opts extends ClientOnRequiredTable {
+    @Parameter(names="--vis", description="use a given visibility for the new counts", converter=VisibilityConverter.class)
+    ColumnVisibility visibility = new ColumnVisibility();
+    
+    @Parameter(names="--chunk", description="size of the chunks used to store partial files")
+    int chunkSize = 64*1024;
+    
+    @Parameter(description="<file> { <file> ... }")
+    List<String> files = new ArrayList<String>();
+  }
+  
+  
   public static void main(String[] args) throws Exception {
-    if (args.length < 8) {
-      System.out.println("usage: " + FileDataIngest.class.getSimpleName()
-          + " <instance> <zoo> <user> <pass> <data table> <visibility> <data chunk size> <file>{ <file>}");
-      System.exit(1);
-    }
+    Opts opts = new Opts();
+    opts.parseArgs(FileDataIngest.class.getName(), args);
     
-    String instance = args[0];
-    String zooKeepers = args[1];
-    String user = args[2];
-    String pass = args[3];
-    String dataTable = args[4];
-    ColumnVisibility colvis = new ColumnVisibility(args[5]);
-    int chunkSize = Integer.parseInt(args[6]);
-    
-    Connector conn = new ZooKeeperInstance(instance, zooKeepers).getConnector(user, pass.getBytes());
-    if (!conn.tableOperations().exists(dataTable)) {
-      conn.tableOperations().create(dataTable);
-      conn.tableOperations().attachIterator(dataTable, new IteratorSetting(1, ChunkCombiner.class));
+    Connector conn = opts.getConnector();
+    if (!conn.tableOperations().exists(opts.tableName)) {
+      conn.tableOperations().create(opts.tableName);
+      conn.tableOperations().attachIterator(opts.tableName, new IteratorSetting(1, ChunkCombiner.class));
     }
-    BatchWriter bw = conn.createBatchWriter(dataTable, new BatchWriterConfig());
-    FileDataIngest fdi = new FileDataIngest(chunkSize, colvis);
-    for (int i = 7; i < args.length; i++) {
-      fdi.insertFileData(args[i], bw);
+    BatchWriter bw = conn.createBatchWriter(opts.tableName, opts.getBatchWriterConfig());
+    FileDataIngest fdi = new FileDataIngest(opts.chunkSize, opts.visibility);
+    for (String filename : opts.files) {
+      fdi.insertFileData(filename, bw);
     }
     bw.close();
+    opts.stopTracing();
   }
 }

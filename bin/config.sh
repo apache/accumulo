@@ -66,6 +66,7 @@ then
     exit 1
 fi
 export HADOOP_HOME
+export HADOOP_HOME_WARN_SUPPRESS=leavemealone
 
 if [ ! -f "$ACCUMULO_HOME/conf/masters" -o ! -f "$ACCUMULO_HOME/conf/slaves" ]
 then

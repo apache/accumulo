@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.Random;
 
 import org.apache.accumulo.core.Constants;
@@ -71,7 +72,7 @@ public class BatchWriterFlushTest extends FunctionalTest {
   
   private void runLatencyTest() throws Exception {
     // should automatically flush after 3 seconds
-    BatchWriter bw = getConnector().createBatchWriter("bwlt", new BatchWriterConfig());
+    BatchWriter bw = getConnector().createBatchWriter("bwlt", new BatchWriterConfig().setMaxLatency(2000, TimeUnit.MILLISECONDS));
     Scanner scanner = getConnector().createScanner("bwlt", Constants.NO_AUTHS);
     
     Mutation m = new Mutation(new Text(String.format("r_%10d", 1)));

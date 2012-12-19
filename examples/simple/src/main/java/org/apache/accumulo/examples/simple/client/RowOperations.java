@@ -20,16 +20,15 @@ import java.io.IOException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -50,13 +49,12 @@ public class RowOperations {
   
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException,
       MutationsRejectedException {
-    if (args.length != 4) {
-      log.error("Usage: <instance name> <zoo keepers> <username> <password>");
-      return;
-    }
+    
+    ClientOpts opts = new ClientOpts();
+    opts.parseArgs(RowOperations.class.getName(), args);
     
     // First the setup work
-    connector = new ZooKeeperInstance(args[0], args[1]).getConnector(args[2], args[3].getBytes());
+    connector = opts.getConnector();
     
     // lets create an example table
     connector.tableOperations().create(table);
@@ -94,7 +92,7 @@ public class RowOperations {
     mut3.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
     
     // Now we'll make a Batch Writer
-    bw = connector.createBatchWriter(table, new BatchWriterConfig());
+    bw = connector.createBatchWriter(table, opts.getBatchWriterConfig());
     
     // And add the mutations
     bw.addMutation(mut1);
@@ -105,9 +103,9 @@ public class RowOperations {
     bw.flush();
     
     // Now lets look at the rows
-    Scanner rowThree = getRow(new Text("row3"));
-    Scanner rowTwo = getRow(new Text("row2"));
-    Scanner rowOne = getRow(new Text("row1"));
+    Scanner rowThree = getRow(opts, new Text("row3"));
+    Scanner rowTwo = getRow(opts, new Text("row2"));
+    Scanner rowOne = getRow(opts, new Text("row1"));
     
     // And print them
     log.info("This is everything");
@@ -117,13 +115,13 @@ public class RowOperations {
     System.out.flush();
     
     // Now lets delete rowTwo with the iterator
-    rowTwo = getRow(new Text("row2"));
+    rowTwo = getRow(opts, new Text("row2"));
     deleteRow(rowTwo);
     
     // Now lets look at the rows again
-    rowThree = getRow(new Text("row3"));
-    rowTwo = getRow(new Text("row2"));
-    rowOne = getRow(new Text("row1"));
+    rowThree = getRow(opts, new Text("row3"));
+    rowTwo = getRow(opts, new Text("row2"));
+    rowOne = getRow(opts, new Text("row1"));
     
     // And print them
     log.info("This is row1 and row3");
@@ -135,12 +133,12 @@ public class RowOperations {
     // Should only see the two rows
     // Now lets delete rowOne without passing in the iterator
     
-    deleteRow(row1);
+    deleteRow(opts, row1);
     
     // Now lets look at the rows one last time
-    rowThree = getRow(new Text("row3"));
-    rowTwo = getRow(new Text("row2"));
-    rowOne = getRow(new Text("row1"));
+    rowThree = getRow(opts, new Text("row3"));
+    rowTwo = getRow(opts, new Text("row2"));
+    rowOne = getRow(opts, new Text("row1"));
     
     // And print them
     log.info("This is just row3");
@@ -164,14 +162,15 @@ public class RowOperations {
   
   /**
    * Deletes a row given a text object
+   * @param opts 
    * 
    * @param row
    * @throws TableNotFoundException
    * @throws AccumuloSecurityException
    * @throws AccumuloException
    */
-  private static void deleteRow(Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    deleteRow(getRow(row));
+  private static void deleteRow(ClientOpts opts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    deleteRow(getRow(opts, row));
   }
   
   /**
@@ -206,6 +205,7 @@ public class RowOperations {
   
   /**
    * Gets a scanner over one row
+   * @param opts 
    * 
    * @param row
    * @return
@@ -214,9 +214,10 @@ public class RowOperations {
    * @throws AccumuloException
    * @throws IOException
    */
-  private static Scanner getRow(Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  private static Scanner getRow(ClientOpts opts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // Create a scanner
     Scanner scanner = connector.createScanner(table, Constants.NO_AUTHS);
+    scanner.setBatchSize(opts.scanBatchSize);
     // Say start key is the one with key of row
     // and end key is the one that immediately follows the row
     scanner.setRange(new Range(row));

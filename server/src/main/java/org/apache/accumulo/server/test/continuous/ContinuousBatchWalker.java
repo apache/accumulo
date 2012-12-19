@@ -24,95 +24,51 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.test.continuous.ContinuousWalk.RandomAuths;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.FileAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
+
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.validators.PositiveInteger;
 
 public class ContinuousBatchWalker {
-  private static String debugLog = null;
-  private static String authsFile = null;
-  
-  private static String[] processOptions(String[] args) {
-    ArrayList<String> al = new ArrayList<String>();
-    
-    for (int i = 0; i < args.length; i++) {
-      if (args[i].equals("--debug")) {
-        debugLog = args[++i];
-      } else if (args[i].equals("--auths")) {
-        authsFile = args[++i];
-      } else {
-        al.add(args[i]);
-      }
-    }
-    
-    return al.toArray(new String[al.size()]);
+
+  static class Opts extends ContinuousWalk.Opts {
+    @Parameter(names="--numToScan", description="Number rows to scan between sleeps", required=true, validateWith=PositiveInteger.class)
+    long numToScan = 0;
   }
-  
+
   public static void main(String[] args) throws Exception {
     
-    args = processOptions(args);
-    
-    if (args.length != 10) {
-      throw new IllegalArgumentException("usage : " + ContinuousBatchWalker.class.getName()
-          + " [--debug <debug log>] [--auths <file>] <instance name> <zookeepers> <user> <pass> <table> <min> <max> <sleep time> <batch size> <query threads>");
-    }
-    
-    if (debugLog != null) {
-      Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
-      logger.setLevel(Level.TRACE);
-      logger.setAdditivity(false);
-      logger.addAppender(new FileAppender(new PatternLayout("%d{dd HH:mm:ss,SSS} [%-8c{2}] %-5p: %m%n"), debugLog, true));
-    }
-    
-    String instanceName = args[0];
-    String zooKeepers = args[1];
-    
-    String user = args[2];
-    String password = args[3];
-    
-    String table = args[4];
-    
-    long min = Long.parseLong(args[5]);
-    long max = Long.parseLong(args[6]);
-    
-    long sleepTime = Long.parseLong(args[7]);
-    
-    int batchSize = Integer.parseInt(args[8]);
-    int numQueryThreads = Integer.parseInt(args[9]);
+    Opts opts = new Opts();
+    opts.parseArgs(ContinuousBatchWalker.class.getName(), args);
     
     Random r = new Random();
-    RandomAuths randomAuths = new RandomAuths(authsFile);
-    Authorizations auths = randomAuths.getAuths(r);
+    Authorizations auths = opts.randomAuths.getAuths(r);
 
-    Connector conn = new ZooKeeperInstance(instanceName, zooKeepers).getConnector(user, password.getBytes());
-    Scanner scanner = conn.createScanner(table, auths);
-    BatchScanner bs = conn.createBatchScanner(table, auths, numQueryThreads);
+    Connector conn = opts.getConnector();
+    Scanner scanner = conn.createScanner(opts.tableName, auths);
+    scanner.setBatchSize(opts.scanBatchSize);
+    
+    BatchScanner bs = conn.createBatchScanner(opts.tableName, auths, opts.scanThreads);
 
     while (true) {
-      Set<Text> batch = getBatch(scanner, min, max, batchSize, r);
-      
+      Set<Text> batch = getBatch(scanner, opts.min, opts.max, opts.scanBatchSize, r);
       List<Range> ranges = new ArrayList<Range>(batch.size());
       
       for (Text row : batch) {
         ranges.add(new Range(row));
       }
       
-      runBatchScan(batchSize, bs, batch, ranges);
+      runBatchScan(opts.scanBatchSize, bs, batch, ranges);
       
-      UtilWaitThread.sleep(sleepTime);
+      UtilWaitThread.sleep(opts.sleepTime);
     }
     
   }

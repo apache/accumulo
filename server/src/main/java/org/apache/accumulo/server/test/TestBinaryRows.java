@@ -21,9 +21,8 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -31,18 +30,11 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.io.Text;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+
+import com.beust.jcommander.Parameter;
 
 public class TestBinaryRows {
-  private static String username = "root";
-  private static byte[] passwd = "secret".getBytes();
-  private static String mode = null;
-  private static String table = null;
-  private static long start = 0;
-  private static long num = 0;
   private static final long byteOnes;
   
   static {
@@ -76,28 +68,29 @@ public class TestBinaryRows {
     return l;
   }
   
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names="--mode", description="either 'ingest', 'delete', 'randomLookups', 'split', 'verify', 'verifyDeleted'", required=true)
+    String mode;
+    @Parameter(names="--start", description="the lowest numbered row")
+    long start = 0;
+    @Parameter(names="--count", description="number of rows to ingest", required=true)
+    long num = 0;
+  }
+  
   public static void main(String[] args) {
-    mode = args[0];
-    if (args.length < 4) {
-      System.err.println("ERROR : " + mode + " is not a valid operation or insufficient arguments.");
-      throw new RuntimeException("config error");
-    }
-    table = args[1];
-    start = Long.parseLong(args[2]);
-    num = Long.parseLong(args[3]);
+    Opts opts = new Opts();
+    opts.parseArgs(TestBinaryRows.class.getName(), args);
     
     try {
-      Connector connector = HdfsZooInstance.getInstance().getConnector(username, passwd);
+      Connector connector = opts.getConnector();
       
-      Logger.getLogger(Constants.CORE_PACKAGE_NAME).setLevel(Level.DEBUG);
-      
-      if (mode.equals("ingest") || mode.equals("delete")) {
-        BatchWriter bw = connector.createBatchWriter(table, new BatchWriterConfig());
-        boolean delete = mode.equals("delete");
+      if (opts.mode.equals("ingest") || opts.mode.equals("delete")) {
+        BatchWriter bw = connector.createBatchWriter(opts.tableName, opts.getBatchWriterConfig());
+        boolean delete = opts.mode.equals("delete");
         
-        for (long i = 0; i < num; i++) {
-          byte[] row = encodeLong(i + start);
-          String value = "" + (i + start);
+        for (long i = 0; i < opts.num; i++) {
+          byte[] row = encodeLong(i + opts.start);
+          String value = "" + (i + opts.start);
           
           Mutation m = new Mutation(new Text(row));
           if (delete) {
@@ -109,10 +102,11 @@ public class TestBinaryRows {
         }
         
         bw.close();
-      } else if (mode.equals("verifyDeleted")) {
-        Scanner s = connector.createScanner(table, Constants.NO_AUTHS);
-        Key startKey = new Key(encodeLong(start), "cf".getBytes(), "cq".getBytes(), new byte[0], Long.MAX_VALUE);
-        Key stopKey = new Key(encodeLong(start + num - 1), "cf".getBytes(), "cq".getBytes(), new byte[0], 0);
+      } else if (opts.mode.equals("verifyDeleted")) {
+        Scanner s = connector.createScanner(opts.tableName, opts.auths);
+        s.setBatchSize(opts.scanBatchSize);
+        Key startKey = new Key(encodeLong(opts.start), "cf".getBytes(), "cq".getBytes(), new byte[0], Long.MAX_VALUE);
+        Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), "cf".getBytes(), "cq".getBytes(), new byte[0], 0);
         s.setBatchSize(50000);
         s.setRange(new Range(startKey, stopKey));
         
@@ -122,16 +116,16 @@ public class TestBinaryRows {
           System.exit(1);
         }
         
-      } else if (mode.equals("verify")) {
+      } else if (opts.mode.equals("verify")) {
         long t1 = System.currentTimeMillis();
         
-        Scanner s = connector.createScanner(table, Constants.NO_AUTHS);
-        Key startKey = new Key(encodeLong(start), "cf".getBytes(), "cq".getBytes(), new byte[0], Long.MAX_VALUE);
-        Key stopKey = new Key(encodeLong(start + num - 1), "cf".getBytes(), "cq".getBytes(), new byte[0], 0);
-        s.setBatchSize(50000);
+        Scanner s = connector.createScanner(opts.tableName, opts.auths);
+        Key startKey = new Key(encodeLong(opts.start), "cf".getBytes(), "cq".getBytes(), new byte[0], Long.MAX_VALUE);
+        Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), "cf".getBytes(), "cq".getBytes(), new byte[0], 0);
+        s.setBatchSize(opts.scanBatchSize);
         s.setRange(new Range(startKey, stopKey));
         
-        long i = start;
+        long i = opts.start;
         
         for (Entry<Key,Value> e : s) {
           Key k = e.getKey();
@@ -144,8 +138,8 @@ public class TestBinaryRows {
           i++;
         }
         
-        if (i != start + num) {
-          System.err.println("ERROR : did not see expected number of rows, saw " + (i - start) + " expected " + num);
+        if (i != opts.start + opts.num) {
+          System.err.println("ERROR : did not see expected number of rows, saw " + (i - opts.start) + " expected " + opts.num);
           System.err.println("exiting... ARGHHHHHH");
           System.exit(1);
           
@@ -154,9 +148,9 @@ public class TestBinaryRows {
         long t2 = System.currentTimeMillis();
         
         System.out.printf("time : %9.2f secs%n", ((t2 - t1) / 1000.0));
-        System.out.printf("rate : %9.2f entries/sec%n", num / ((t2 - t1) / 1000.0));
+        System.out.printf("rate : %9.2f entries/sec%n", opts.num / ((t2 - t1) / 1000.0));
         
-      } else if (mode.equals("randomLookups")) {
+      } else if (opts.mode.equals("randomLookups")) {
         int numLookups = 1000;
         
         Random r = new Random();
@@ -164,9 +158,10 @@ public class TestBinaryRows {
         long t1 = System.currentTimeMillis();
         
         for (int i = 0; i < numLookups; i++) {
-          long row = (Math.abs(r.nextLong()) % num) + start;
+          long row = (Math.abs(r.nextLong()) % opts.num) + opts.start;
           
-          Scanner s = connector.createScanner(table, Constants.NO_AUTHS);
+          Scanner s = connector.createScanner(opts.tableName, opts.auths);
+          s.setBatchSize(opts.scanBatchSize);
           Key startKey = new Key(encodeLong(row), "cf".getBytes(), "cq".getBytes(), new byte[0], Long.MAX_VALUE);
           Key stopKey = new Key(encodeLong(row), "cf".getBytes(), "cq".getBytes(), new byte[0], 0);
           s.setRange(new Range(startKey, stopKey));
@@ -199,10 +194,10 @@ public class TestBinaryRows {
         System.out.printf("lookups : %9d keys%n", numLookups);
         System.out.printf("rate    : %9.2f lookups/sec%n", numLookups / ((t2 - t1) / 1000.0));
         
-      } else if (mode.equals("split")) {
+      } else if (opts.mode.equals("split")) {
         TreeSet<Text> splits = new TreeSet<Text>();
-        int shift = (int) start;
-        int count = (int) num;
+        int shift = (int) opts.start;
+        int count = (int) opts.num;
         
         for (long i = 0; i < count; i++) {
           long splitPoint = i << shift;
@@ -211,11 +206,11 @@ public class TestBinaryRows {
           System.out.printf("added split point 0x%016x  %,12d%n", splitPoint, splitPoint);
         }
         
-        connector.tableOperations().create(table);
-        connector.tableOperations().addSplits(table, splits);
+        connector.tableOperations().create(opts.tableName);
+        connector.tableOperations().addSplits(opts.tableName, splits);
         
       } else {
-        System.err.println("ERROR : " + mode + " is not a valid operation.");
+        System.err.println("ERROR : " + opts.mode + " is not a valid operation.");
         System.exit(1);
       }
     } catch (Exception e) {

@@ -260,6 +260,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         public void run() {
           // This frees the main thread and will cause the master to exit
           clientService.stop();
+          Master.this.nextEvent.event("stopped event loop");
         }
         
       }, 100l, 1000l);
@@ -2162,7 +2163,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(new MasterClientServiceHandler()));
     clientService = TServerUtils.startServer(getSystemConfiguration(), Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
-        Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK).server;
+        Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE).server;
     
     while (!clientService.isServing()) {
       UtilWaitThread.sleep(100);

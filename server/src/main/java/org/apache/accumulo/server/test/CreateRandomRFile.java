@@ -49,6 +49,10 @@ public class CreateRandomRFile {
   }
   
   public static void main(String[] args) {
+    if (args.length != 2) {
+      System.err.println("Usage CreateRandomRFile <filename> <size>");
+      System.exit(-1);
+    }
     file = args[0];
     num = Integer.parseInt(args[1]);
     long rands[] = new long[num];

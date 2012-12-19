@@ -917,17 +917,18 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       @Override
       public void run() {
         
-        ScanSession scanSession = (ScanSession) sessionManager.getSession(scanID);
+        final ScanSession scanSession = (ScanSession) sessionManager.getSession(scanID);
         String oldThreadName = Thread.currentThread().getName();
         
         try {
           runState.set(ScanRunState.RUNNING);
-          Thread.currentThread().setName(
-              "User: " + scanSession.user + " Start: " + scanSession.startTime + " Client: " + scanSession.client + " Tablet: " + scanSession.extent);
 
           if (isCancelled() || scanSession == null)
             return;
           
+          Thread.currentThread().setName(
+              "User: " + scanSession.user + " Start: " + scanSession.startTime + " Client: " + scanSession.client + " Tablet: " + scanSession.extent);
+
           Tablet tablet = onlineTablets.get(scanSession.extent);
           
           if (tablet == null) {
@@ -2625,7 +2626,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
 
   private int startServer(AccumuloConfiguration conf, Property portHint, TProcessor processor, String threadName) throws UnknownHostException {
     ServerPort sp = TServerUtils.startServer(conf, portHint, processor, this.getClass().getSimpleName(), threadName, Property.TSERV_PORTSEARCH,
-        Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK);
+        Property.TSERV_MINTHREADS, Property.TSERV_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE);
     this.server = sp.server;
     return sp.port;
   }
@@ -2884,8 +2885,13 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           return set;
         }
         
-        List<ColumnFQ> columnsToFetch = Arrays.asList(new ColumnFQ[] {Constants.METADATA_DIRECTORY_COLUMN, Constants.METADATA_PREV_ROW_COLUMN,
-            Constants.METADATA_SPLIT_RATIO_COLUMN, Constants.METADATA_OLD_PREV_ROW_COLUMN, Constants.METADATA_TIME_COLUMN});
+        List<ColumnFQ> columnsToFetch = Arrays.asList(new ColumnFQ[] {
+            Constants.METADATA_DIRECTORY_COLUMN, 
+            Constants.METADATA_PREV_ROW_COLUMN,
+            Constants.METADATA_SPLIT_RATIO_COLUMN, 
+            Constants.METADATA_OLD_PREV_ROW_COLUMN, 
+            Constants.METADATA_TIME_COLUMN
+        });
         
         if (tabletsKeyValues == null) {
           tabletsKeyValues = new TreeMap<Key,Value>();

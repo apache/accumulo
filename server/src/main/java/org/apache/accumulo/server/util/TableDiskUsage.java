@@ -16,28 +16,33 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.server.client.HdfsZooInstance;
-import org.apache.accumulo.server.conf.ServerConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 
+import com.beust.jcommander.Parameter;
+
 public class TableDiskUsage {
+  
+  static class Opts extends ClientOpts {
+    @Parameter(description=" <table> { <table> ... } ")
+    List<String> tables = new ArrayList<String>();
+  }
   
   /**
    * @param args
    */
   public static void main(String[] args) throws Exception {
     FileSystem fs = FileSystem.get(new Configuration());
-    
-    Instance instance = HdfsZooInstance.getInstance();
-    ServerConfiguration conf = new ServerConfiguration(instance);
-    Connector conn = instance.getConnector("root", "secret");
-    
-    org.apache.accumulo.core.util.TableDiskUsage.printDiskUsage(conf.getConfiguration(), Arrays.asList(args), fs, conn);
+    Opts opts = new Opts();
+    opts.parseArgs(TableDiskUsage.class.getName(), args);
+    Connector conn = opts.getConnector();
+    org.apache.accumulo.core.util.TableDiskUsage.printDiskUsage(DefaultConfiguration.getInstance(), opts.tables, fs, conn);
   }
   
 }

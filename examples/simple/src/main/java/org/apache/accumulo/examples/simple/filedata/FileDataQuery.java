@@ -43,10 +43,10 @@ public class FileDataQuery {
   private ChunkInputStream cis;
   Scanner scanner;
   
-  public FileDataQuery(String instanceName, String zooKeepers, String user, String password, String tableName, Authorizations auths) throws AccumuloException,
+  public FileDataQuery(String instanceName, String zooKeepers, String user, byte[] password, String tableName, Authorizations auths) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException {
     ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
-    conn = instance.getConnector(user, password.getBytes());
+    conn = instance.getConnector(user, password);
     lastRefs = new ArrayList<Entry<Key,Value>>();
     cis = new ChunkInputStream();
     scanner = conn.createScanner(tableName, auths);

@@ -26,7 +26,7 @@ class DeleteRowsTest(JavaTest):
 class DeleteRowsSplitTest(JavaTest):
     "Test Delete Rows Split"
 
-    maxRuntime = 180
+    maxRuntime = 300
     order = 92
     testClass="org.apache.accumulo.server.test.functional.DeleteRowsSplitTest"
 

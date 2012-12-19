@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.examples.simple.helloworld;
 
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -33,20 +34,18 @@ import org.apache.hadoop.util.ToolRunner;
  * Inserts 10K rows (50K entries) into accumulo with each row having 5 entries using an OutputFormat.
  */
 public class InsertWithOutputFormat extends Configured implements Tool {
+
   // this is a tool because when you run a mapreduce, you will need to use the
   // ToolRunner
   // if you want libjars to be passed properly to the map and reduce tasks
   // even though this class isn't a mapreduce
   @Override
   public int run(String[] args) throws Exception {
-    if (args.length != 5) {
-      System.out.println("Usage: bin/tool.sh " + this.getClass().getName() + " <instance name> <zoo keepers> <username> <password> <tablename>");
-      return 1;
-    }
-    Text tableName = new Text(args[4]);
+    ClientOnRequiredTable opts = new ClientOnRequiredTable();
+    opts.parseArgs(this.getClass().getName(), args);
+    
     Job job = new Job(getConf());
-    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
-    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), args[2], args[3].getBytes(), true, null);
+    opts.setAccumuloConfigs(job);
     job.setOutputFormatClass(AccumuloOutputFormat.class);
     
     // when running a mapreduce, you won't need to instantiate the output
@@ -55,7 +54,7 @@ public class InsertWithOutputFormat extends Configured implements Tool {
     // output.collect(tableName, mutation)
     TaskAttemptContext context = ContextFactory.createTaskAttemptContext(job);
     RecordWriter<Text,Mutation> rw = new AccumuloOutputFormat().getRecordWriter(context);
-    
+    Text table = new Text(opts.tableName);
     Text colf = new Text("colfam");
     System.out.println("writing ...");
     for (int i = 0; i < 10000; i++) {
@@ -63,7 +62,7 @@ public class InsertWithOutputFormat extends Configured implements Tool {
       for (int j = 0; j < 5; j++) {
         m.put(colf, new Text(String.format("colqual_%d", j)), new Value((String.format("value_%d_%d", i, j)).getBytes()));
       }
-      rw.write(tableName, m); // repeat until done
+      rw.write(table, m); // repeat until done
       if (i % 100 == 0)
         System.out.println(i);
     }
