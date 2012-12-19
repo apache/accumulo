@@ -577,7 +577,7 @@ public class BulkImporter {
   private List<KeyExtent> assignMapFiles(AuthInfo credentials, String location, Map<KeyExtent,List<PathSize>> assignmentsPerTablet) throws AccumuloException,
       AccumuloSecurityException {
     try {
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, instance.getConfiguration());
+      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, instance.getConfiguration(), Property.TSERV_CLIENTPORT, Property.TSERV_BULK_TIMEOUT);
       try {
         HashMap<KeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files = new HashMap<KeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>>();
         for (Entry<KeyExtent,List<PathSize>> entry : assignmentsPerTablet.entrySet()) {

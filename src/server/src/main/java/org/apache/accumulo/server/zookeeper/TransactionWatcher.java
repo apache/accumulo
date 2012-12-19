@@ -47,7 +47,9 @@ public class TransactionWatcher {
     
     @Override
     public boolean transactionAlive(String type, long tid) throws Exception {
-      return rdr.exists(ZooUtil.getRoot(instance) + "/" + type + "/" + Long.toString(tid));
+      String path = ZooUtil.getRoot(instance) + "/" + type + "/" + Long.toString(tid);
+      rdr.sync(path);
+      return rdr.exists(path);
     }
     
     public static void start(String type, long tid) throws KeeperException, InterruptedException {

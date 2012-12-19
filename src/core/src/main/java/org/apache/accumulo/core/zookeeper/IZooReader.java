@@ -38,4 +38,5 @@ public interface IZooReader {
   
   public abstract boolean exists(String zPath, Watcher watcher) throws KeeperException, InterruptedException;
   
+  public void sync(final String path) throws KeeperException, InterruptedException;
 }

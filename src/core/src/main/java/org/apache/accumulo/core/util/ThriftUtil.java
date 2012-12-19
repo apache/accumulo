@@ -76,9 +76,14 @@ public class ThriftUtil {
   }
   
   static public TabletClientService.Iface getTServerClient(String address, AccumuloConfiguration conf) throws TTransportException {
-    return getClient(new TabletClientService.Client.Factory(), address, Property.TSERV_CLIENTPORT, Property.GENERAL_RPC_TIMEOUT, conf);
+    return getTServerClient(address, conf, Property.TSERV_CLIENTPORT, Property.GENERAL_RPC_TIMEOUT);
   }
   
+  static public TabletClientService.Iface getTServerClient(String address, AccumuloConfiguration conf, Property port, Property timeout) throws TTransportException {
+    return getClient(new TabletClientService.Client.Factory(), address, port, timeout, conf);
+  }
+  
+
   public static void execute(String address, AccumuloConfiguration conf, ClientExec<TabletClientService.Iface> exec) throws AccumuloException,
       AccumuloSecurityException {
     while (true) {

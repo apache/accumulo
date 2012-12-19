@@ -856,7 +856,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         throw e.asThriftException();
       }
       
-      ArrayList<TKeyExtent> failures = new ArrayList<TKeyExtent>();
+      List<TKeyExtent> failures = new ArrayList<TKeyExtent>();
       
       for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
         TKeyExtent tke = entry.getKey();
@@ -874,9 +874,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             failures.add(tke);
           }
         }
-        
       }
-      
       return failures;
     }
     
