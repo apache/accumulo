@@ -17,6 +17,10 @@
 package org.apache.accumulo.core.cli;
 
 import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.Map.Entry;
+import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cloudtrace.instrument.Trace;
@@ -31,9 +35,13 @@ import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -137,6 +145,9 @@ public class ClientOpts extends Help {
   @Parameter(names={"-fake", "--mock"}, description="Use a mock Instance")
   public boolean mock=false;
   
+  @Parameter(names="--site-file", description="Read the given accumulo site file to find the accumulo instance")
+  public String siteFile = null;
+  
   public void startDebugLogging() {
     if (debug)
       Logger.getLogger(Constants.CORE_PACKAGE_NAME).setLevel(Level.TRACE);
@@ -171,11 +182,41 @@ public class ClientOpts extends Help {
   
   protected Instance cachedInstance = null;
   
+  @SuppressWarnings("deprecation")
   synchronized public Instance getInstance() {
     if (cachedInstance != null)
       return cachedInstance;
     if (mock)
       return cachedInstance = new MockInstance(instance);
+    if (siteFile != null) {
+      AccumuloConfiguration config = new AccumuloConfiguration() {
+        Configuration xml = new Configuration();
+        {
+          xml.addResource(new Path(siteFile));
+        }
+        
+        @Override
+        public Iterator<Entry<String,String>> iterator() {
+          TreeMap<String, String> map = new TreeMap<String, String>();
+          for (Entry<String, String> props : DefaultConfiguration.getInstance())
+            map.put(props.getKey(), props.getValue());
+          for (Entry<String, String> props : xml)
+            map.put(props.getKey(), props.getValue());
+          return map.entrySet().iterator();
+        }
+        
+        @Override
+        public String get(Property property) {
+          String value = xml.get(property.getKey());
+          if (value != null)
+            return value;
+          return DefaultConfiguration.getInstance().get(property);
+        }
+      };
+      this.zookeepers = config.get(Property.INSTANCE_ZK_HOST);
+      Path instanceDir = new Path(config.get(Property.INSTANCE_DFS_DIR), "instance_id");
+      return cachedInstance = new ZooKeeperInstance(UUID.fromString(ZooKeeperInstance.getInstanceIDFromHdfs(instanceDir)), zookeepers);
+    }
     return cachedInstance = new ZooKeeperInstance(this.instance, this.zookeepers);
   }
   
