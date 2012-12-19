@@ -52,6 +52,7 @@ General_CLASSPATH = """
     $ACCUMULO_HOME/server/target/classes/,
     $ACCUMULO_HOME/core/target/classes/,
     $ACCUMULO_HOME/start/target/classes/,
+    $ACCUMULO_HOME/fate/target/classes/,
     $ACCUMULO_HOME/examples/instamo/target/classes,
     $ACCUMULO_HOME/examples/simple/target/classes,
     $ACCUMULO_HOME/lib/[^.].$ACCUMULO_VERSION.jar, 

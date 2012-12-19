@@ -18,6 +18,7 @@ package org.apache.accumulo.fate.zookeeper;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
@@ -76,12 +77,12 @@ public class ZooReader implements IZooReader {
   
   @Override
   public void sync(final String path) throws KeeperException, InterruptedException {
-    final int[] rc = { 0 };
+    final AtomicInteger rc = new AtomicInteger();
     final AtomicBoolean waiter = new AtomicBoolean(false);
     getZooKeeper().sync(path, new VoidCallback() {
       @Override
       public void processResult(int code, String arg1, Object arg2) {
-        rc[0] = code;
+        rc.set(code);
         synchronized (waiter) {
           waiter.set(true);
           waiter.notifyAll();
@@ -91,12 +92,11 @@ public class ZooReader implements IZooReader {
       while (!waiter.get())
         waiter.wait();
     }
-    Code code = Code.get(rc[0]);
+    Code code = Code.get(rc.get());
     if (code != KeeperException.Code.OK) {
       throw KeeperException.create(code);
     }
-  }
-  
+  }  
   
   public ZooReader(String keepers, int timeout) {
     this.keepers = keepers;
