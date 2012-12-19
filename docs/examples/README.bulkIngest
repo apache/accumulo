@@ -28,7 +28,7 @@ accumulo instance name, and a comma-separated list of zookeepers.
     $ ./bin/accumulo org.apache.accumulo.examples.simple.mapreduce.bulk.SetupTable instance zookeepers username password test_bulk row_00000333 row_00000666
     $ ./bin/accumulo org.apache.accumulo.examples.simple.mapreduce.bulk.GenerateTestData 0 1000 bulk/test_1.txt
     
-    $ ./bin/tool.sh lib/examples-simple-*[^c].jar org.apache.accumulo.examples.simple.mapreduce.bulk.BulkIngestExample instance zookeepers username password test_bulk bulk tmp/bulkWork
+    $ ./bin/tool.sh lib/examples-simple-*[^cs].jar org.apache.accumulo.examples.simple.mapreduce.bulk.BulkIngestExample instance zookeepers username password test_bulk bulk tmp/bulkWork
     $ ./bin/accumulo org.apache.accumulo.examples.simple.mapreduce.bulk.VerifyIngest instance zookeepers username password test_bulk 0 1000
 
 For a high level discussion of bulk ingest, see the docs dir.
