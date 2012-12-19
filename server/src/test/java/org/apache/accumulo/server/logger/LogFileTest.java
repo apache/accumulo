@@ -96,6 +96,7 @@ public class LogFileTest {
     m = new ServerMutation(new Text("row"));
     m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis"), 12345, new Value("value".getBytes()));
     m.put(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"), new Value("value".getBytes()));
+    m.putDelete(new Text("cf"), new Text("cq"), new ColumnVisibility("vis2"));
     readWrite(MUTATION, 8, 9, null, null, new Mutation[] {m}, key, value);
     assertEquals(key.event, MUTATION);
     assertEquals(key.seq, 8);
