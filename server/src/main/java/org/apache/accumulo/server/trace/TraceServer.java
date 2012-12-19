@@ -242,12 +242,20 @@ public class TraceServer implements Watcher {
   public void process(WatchedEvent event) {
     log.debug("event " + event.getPath() + " " + event.getType() + " " + event.getState());
     if (event.getState() == KeeperState.Expired) {
-      log.warn("Logger lost zookeeper registration at " + event.getPath());
+      log.warn("Trace server lost zookeeper registration at " + event.getPath());
       server.stop();
     } else if (event.getType() == EventType.NodeDeleted) {
-      log.warn("Logger zookeeper entry lost " + event.getPath());
+      log.warn("Trace server zookeeper entry lost " + event.getPath());
       server.stop();
     }
+    try {
+    if (ZooReaderWriter.getInstance().exists(event.getPath(), this))
+      return;
+    } catch (Exception ex) {
+      log.error(ex, ex);
+    }
+    log.warn("Trace server unable to reset watch on zookeeper registration");
+    server.stop();
   }
   
 }
