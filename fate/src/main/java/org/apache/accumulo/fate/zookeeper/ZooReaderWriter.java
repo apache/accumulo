@@ -22,13 +22,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.security.SecurityPermission;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.fate.util.UtilWaitThread;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.BadVersionException;
@@ -205,21 +203,5 @@ public class ZooReaderWriter extends ZooReader implements IZooReaderWriter {
     putPersistentData(path, new byte[] {}, NodeExistsPolicy.SKIP);
   }
 
-  @Override
-  public void sync(final String path) throws KeeperException, InterruptedException {
-    final AtomicBoolean waiter = new AtomicBoolean(false);
-    getZooKeeper().sync(path, new VoidCallback() {
-      @Override
-      public void processResult(int arg0, String arg1, Object arg2) {
-        synchronized (waiter) {
-          waiter.set(true);
-          waiter.notifyAll();
-        }
-      }}, null);
-    synchronized (waiter) {
-      if (!waiter.get())
-        waiter.wait();
-    }
-  }
-  
+
 }

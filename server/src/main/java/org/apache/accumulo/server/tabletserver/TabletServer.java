@@ -49,7 +49,6 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingDeque;
@@ -869,40 +868,36 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     @Override
-    public List<TKeyExtent> bulkImport(TInfo tinfo, AuthInfo credentials, final long tid, final Map<TKeyExtent,Map<String,MapFileInfo>> files, final boolean setTime)
-        throws TException {
+    public List<TKeyExtent> bulkImport(TInfo tinfo, AuthInfo credentials, long tid, Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime)
+        throws ThriftSecurityException {
       
       try {
         if (!authenticator.hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM))
           throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
-        return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<TKeyExtent>>() {
-          public List<TKeyExtent> call() throws Exception {
-            List<TKeyExtent> failures = new ArrayList<TKeyExtent>();
-            for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
-              TKeyExtent tke = entry.getKey();
-              Map<String,MapFileInfo> fileMap = entry.getValue();
-              
-              Tablet importTablet = onlineTablets.get(new KeyExtent(tke));
-              
-              if (importTablet == null) {
-                failures.add(tke);
-              } else {
-                try {
-                  importTablet.importMapFiles(tid, fileMap, setTime);
-                } catch (IOException ioe) {
-                  log.info("files " + fileMap.keySet() + " not imported to " + new KeyExtent(tke) + ": " + ioe.getMessage());
-                  failures.add(tke);
-                }
-              }
-            }
-            return failures;
-          }
-        });
       } catch (AccumuloSecurityException e) {
         throw e.asThriftException();
-      } catch (Exception ex) {
-        throw new TException(ex);
       }
+      
+      List<TKeyExtent> failures = new ArrayList<TKeyExtent>();
+      
+      for (Entry<TKeyExtent,Map<String,MapFileInfo>> entry : files.entrySet()) {
+        TKeyExtent tke = entry.getKey();
+        Map<String,MapFileInfo> fileMap = entry.getValue();
+        
+        Tablet importTablet = onlineTablets.get(new KeyExtent(tke));
+        
+        if (importTablet == null) {
+          failures.add(tke);
+        } else {
+          try {
+            importTablet.importMapFiles(tid, fileMap, setTime);
+          } catch (IOException ioe) {
+            log.info("files " + fileMap.keySet() + " not imported to " + new KeyExtent(tke) + ": " + ioe.getMessage());
+            failures.add(tke);
+          }
+        }
+      }
+      return failures;
     }
     
     private class NextBatchTask extends ScanTask<ScanBatch> {

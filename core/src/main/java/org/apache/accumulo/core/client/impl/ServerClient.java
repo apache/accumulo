@@ -125,7 +125,7 @@ public class ServerClient {
   
   public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections) throws TTransportException {
     AccumuloConfiguration conf = instance.getConfiguration();
-    return getConnection(instance, false, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+    return getConnection(instance, preferCachedConnections, conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
   }
   
   public static Pair<String,ClientService.Client> getConnection(Instance instance, boolean preferCachedConnections, long rpcTimeout) throws TTransportException {
