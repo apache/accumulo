@@ -385,6 +385,16 @@ public class LogService implements MutationLogger.Iface, Watcher {
         service.stop();
       }
     }
+    ZooReaderWriter zoo = ZooReaderWriter.getInstance();
+    try {
+      if (!zoo.exists(this.ephemeralNode, this)) {
+        LOG.fatal("Stopping server, zookeeper entry lost " + event.getPath());
+        service.stop();
+      }
+    } catch (Exception ex) {
+      LOG.fatal("Stopping server, cannot reset watch" + ex);
+      service.stop();
+    }
   }
   
   @Override
