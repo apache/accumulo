@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.security.SecureClassLoader;
-import java.util.Arrays;
 import java.util.Enumeration;
 
 import org.apache.commons.vfs2.FileChangeEvent;
@@ -154,7 +153,17 @@ public class AccumuloReloadingVFSClassLoader extends SecureClassLoader implement
   
   @Override
   public String toString() {
-    return Arrays.toString(this.files);
+    StringBuilder buf = new StringBuilder();
+    
+    for (FileObject f : files) {
+      try {
+        buf.append("\t").append(f.getURL().toString()).append("\n");
+      } catch (FileSystemException e) {
+        log.error("Error getting URL for file", e);
+      }
+    }
+    
+    return buf.toString();
   }
   
 }

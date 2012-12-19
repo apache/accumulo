@@ -198,6 +198,8 @@ import org.apache.accumulo.server.zookeeper.ZooCache;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.start.Platform;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
+import org.apache.accumulo.start.classloader.vfs.ContextManager;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
@@ -3052,6 +3054,68 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       }
     }
     
+    try {
+      AccumuloVFSClassLoader.getContextManager().setContextConfig(new ContextManager.ContextConfig() {
+        
+        @Override
+        public boolean isIsolated(String context) {
+          return false;
+        }
+        
+        @Override
+        public Set<String> getContextURIs(String context) {
+          String key = Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + context;
+          
+          Iterator<Entry<String,String>> iter = getSystemConfiguration().iterator();
+          while (iter.hasNext()) {
+            Entry<String,String> entry = iter.next();
+            if (entry.getKey().equals(key)) {
+              return new HashSet<String>(Arrays.asList(entry.getValue().split(",")));
+            }
+          }
+          
+          return null;
+        }
+      });
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    // A task that cleans up unused classloader contexts
+    TimerTask contextCleaner = new TimerTask() {
+      @Override
+      public void run() {
+        ArrayList<KeyExtent> extents;
+        
+        synchronized (onlineTablets) {
+          extents = new ArrayList<KeyExtent>(onlineTablets.keySet());
+        }
+        
+        Set<Text> tables = new HashSet<Text>();
+        
+        for (KeyExtent keyExtent : extents) {
+          tables.add(keyExtent.getTableId());
+        }
+        
+        HashSet<String> contexts = new HashSet<String>();
+        
+        for (Text tableid : tables) {
+          String context = getTableConfiguration(new KeyExtent(tableid, null, null)).get(Property.TABLE_CLASSPATH);
+          if (!context.equals("")) {
+            contexts.add(context);
+          }
+        }
+        
+        try {
+          AccumuloVFSClassLoader.getContextManager().removeUnusedContexts(contexts);
+        } catch (IOException e) {
+          log.warn(e.getMessage(), e);
+        }
+      }
+    };
+    
+    SimpleTimer.getInstance().schedule(contextCleaner, 60000, 60000);
+
     FileSystemMonitor.start(getSystemConfiguration(), Property.TSERV_MONITOR_FS);
     
     TimerTask gcDebugTask = new TimerTask() {

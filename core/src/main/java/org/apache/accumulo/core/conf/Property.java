@@ -291,11 +291,11 @@ public enum Property {
       "The Formatter class to apply on results in the shell"),
   TABLE_INTERPRETER_CLASS("table.interepreter", DefaultScanInterpreter.class.getName(), PropertyType.STRING,
       "The ScanInterpreter class to apply on scan arguments in the shell"),
+  TABLE_CLASSPATH("table.classpath.context", "", PropertyType.STRING, "Per table classpath"),
       
       
   //VFS ClassLoader properties
   VFS_CLASSLOADER_PREFIX("classloader.vfs", null, PropertyType.PREFIX, "Properties in this category affect the VFS ClassLoader"),
-  VFS_CLASSLOADER_ENABLED("classloader.vfs.enabled", "false", PropertyType.BOOLEAN, "Enable/disable VFS Classloader"),
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY("classloader.vfs.context.classpath.system", "", PropertyType.STRING,
           "Classpath for the system context"),
   VFS_CLASSLOADER_CONTEXT_NAMES_PROPERTY("classloader.vfs.context.names", "", PropertyType.STRING, 
@@ -303,6 +303,7 @@ public enum Property {
   VFS_CONTEXT_CLASSPATH_PROPERTY("classloader.vfs.context.classpath.", null, PropertyType.PREFIX, "Classpath for this context");
       
   
+
   private String key, defaultValue, description;
   private PropertyType type;
   
@@ -364,7 +365,7 @@ public enum Property {
     // white list prefixes
     return key.startsWith(Property.TABLE_PREFIX.getKey()) || key.startsWith(Property.TSERV_PREFIX.getKey()) || key.startsWith(Property.LOGGER_PREFIX.getKey())
         || key.startsWith(Property.MASTER_PREFIX.getKey()) || key.startsWith(Property.GC_PREFIX.getKey())
-        || key.startsWith(Property.MONITOR_PREFIX.getKey() + "banner.");
+        || key.startsWith(Property.MONITOR_PREFIX.getKey() + "banner.") || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey());
   }
   
   public static Property getPropertyByKey(String key) {

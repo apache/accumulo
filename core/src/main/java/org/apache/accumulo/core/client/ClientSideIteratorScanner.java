@@ -188,7 +188,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
         
         @Override
         public void registerSideChannel(final SortedKeyValueIterator<Key,Value> iter) {}
-      }, false);
+      }, false, null);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

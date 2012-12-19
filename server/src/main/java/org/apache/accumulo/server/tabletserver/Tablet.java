@@ -122,6 +122,7 @@ import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.accumulo.server.util.MetadataTable.LogEntry;
 import org.apache.accumulo.server.util.TabletOperations;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.conf.Configuration;
@@ -1469,6 +1470,13 @@ public class Tablet {
           + " entries created)");
     }
     
+    String contextName = acuTableConf.get(Property.TABLE_CLASSPATH);
+    if (contextName != null && !contextName.equals("")) {
+      // initialize context classloader, instead of possibly waiting for it to initialize for a scan
+      // TODO this could hang causing other tablets to fail to load
+      AccumuloVFSClassLoader.getContextManager().getClassLoader(contextName);
+    }
+
     // do this last after tablet is completely setup because it
     // could cause major compaction to start
     datafileManager = new DatafileManager(datafiles);

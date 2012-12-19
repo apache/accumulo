@@ -51,7 +51,7 @@ public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "log", Logger.getLogger(AccumuloVFSClassLoader.class));
     ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
     Assert.assertTrue((acl instanceof URLClassLoader));
-    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloContextClassLoader) null);
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
   }
   
   /*
@@ -67,7 +67,7 @@ public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "log", Logger.getLogger(AccumuloVFSClassLoader.class));
     ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
     Assert.assertTrue((acl instanceof URLClassLoader));
-    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloContextClassLoader) null);
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
     // URLClassLoader ucl = (URLClassLoader) acl;
     // URL[] classpath = ucl.getURLs();
     // System.out.println(Arrays.toString(classpath));
@@ -97,71 +97,19 @@ public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "log", Logger.getLogger(AccumuloVFSClassLoader.class));
     ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
-    Assert.assertTrue((acl instanceof AccumuloContextClassLoader));
-    AccumuloContextClassLoader accl = (AccumuloContextClassLoader) acl;
-    AccumuloReloadingVFSClassLoader arvcl = accl.getClassLoader(AccumuloContextClassLoader.DEFAULT_CONTEXT);
+    Assert.assertTrue((acl instanceof AccumuloReloadingVFSClassLoader));
+    AccumuloReloadingVFSClassLoader arvcl = (AccumuloReloadingVFSClassLoader) acl;
     Assert.assertEquals(1, arvcl.getFiles().length);
     Assert.assertTrue(arvcl.getFiles()[0].getURL().toString().equals(AccumuloDFSBase.HDFS_URI + "/accumulo/classpath/HelloWorld.jar"));
     Class<?> clazz1 = arvcl.loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
     Assert.assertEquals("Hello World!", o1.toString());
-    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloContextClassLoader) null);
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
     
     hdfs.delete(DEFAULT, true);
     
   }
-  
-  @Test
-  public void testAdditionalContextConfigured() throws Exception {
-    
-    // Create default and application1 context directory
-    FileSystem hdfs = cluster.getFileSystem();
-    Path DEFAULT = new Path("/accumulo/classpath");
-    hdfs.mkdirs(DEFAULT);
-    Path APPLICATION = new Path("/application1/classpath");
-    hdfs.mkdirs(APPLICATION);
-    
-    // Copy jar file to DEFAULT and APPLICATION directories
-    URL jarPath = this.getClass().getResource("/HelloWorld.jar");
-    Path src = new Path(jarPath.toURI().toString());
-    Path dst = new Path(DEFAULT, src.getName());
-    hdfs.copyFromLocalFile(src, dst);
-    dst = new Path(APPLICATION, src.getName());
-    hdfs.copyFromLocalFile(src, dst);
-    
-    URL defaultDir = this.getClass().getResource("/application1");
-    Configuration conf = new Configuration(hdfs.getConf());
-    conf.addResource(new File(defaultDir.getPath() + "/conf/accumulo-site.xml").toURI().toURL());
-    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "ACC_CONF", conf);
-    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
-    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "log", Logger.getLogger(AccumuloVFSClassLoader.class));
-    
-    ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
-    Assert.assertTrue((acl instanceof AccumuloContextClassLoader));
-    AccumuloContextClassLoader accl = (AccumuloContextClassLoader) acl;
-    // DEFAULT CONTEXT
-    AccumuloReloadingVFSClassLoader arvcl = accl.getClassLoader(AccumuloContextClassLoader.DEFAULT_CONTEXT);
-    Assert.assertEquals(1, arvcl.getFiles().length);
-    Assert.assertTrue(arvcl.getFiles()[0].getURL().toString().equals(AccumuloDFSBase.HDFS_URI + "/accumulo/classpath/HelloWorld.jar"));
-    Class<?> clazz1 = arvcl.loadClass("test.HelloWorld");
-    Object o1 = clazz1.newInstance();
-    Assert.assertEquals("Hello World!", o1.toString());
-    
-    // APPLICATION CONTEXT
-    AccumuloReloadingVFSClassLoader arvcl2 = accl.getClassLoader("application1");
-    Assert.assertEquals(1, arvcl2.getFiles().length);
-    Assert.assertTrue(arvcl2.getFiles()[0].getURL().toString().equals(AccumuloDFSBase.HDFS_URI + "/application1/classpath/HelloWorld.jar"));
-    Class<?> clazz2 = arvcl2.loadClass("test.HelloWorld");
-    Object o2 = clazz2.newInstance();
-    Assert.assertEquals("Hello World!", o2.toString());
-    
-    Assert.assertTrue(!o1.equals(o2));
-    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloContextClassLoader) null);
-    
-    hdfs.delete(DEFAULT, true);
-    hdfs.delete(APPLICATION, true);
-    
-  }
+
   
   @Test
   public void testLoadClass() throws Exception {
@@ -191,7 +139,7 @@ public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
     Object o1 = clazz1.newInstance();
     Assert.assertEquals("Hello World!", o1.toString());
     
-    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloContextClassLoader) null);
+    Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
     
     hdfs.delete(DEFAULT, true);
     hdfs.delete(APPLICATION, true);

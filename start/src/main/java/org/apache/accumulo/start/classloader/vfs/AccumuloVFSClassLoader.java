@@ -74,8 +74,6 @@ public class AccumuloVFSClassLoader {
 
   private static final Logger log = Logger.getLogger(AccumuloVFSClassLoader.class);
   
-  public static final String VFS_CLASSLOADER_ENABLED = "classloader.vfs.enabled";
-  
   public static final String VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY = "classloader.vfs.context.classpath.system";
   
   public static final String VFS_CLASSLOADER_CONTEXT_NAMES_PROPERTY = "classloader.vfs.context.names";
@@ -84,10 +82,12 @@ public class AccumuloVFSClassLoader {
   
   private static DefaultFileSystemManager vfs = null;
   private static ClassLoader parent = null;
-  private static volatile AccumuloContextClassLoader loader = null;
+  private static volatile AccumuloReloadingVFSClassLoader loader = null;
   private static final Object lock = new Object();
   private static final Configuration ACC_CONF = new Configuration();  
   private static final String SITE_CONF;
+  private static ContextManager contextManager;
+
   static {
     String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
     if (System.getenv("ACCUMULO_HOME") != null) {
@@ -230,11 +230,6 @@ public class AccumuloVFSClassLoader {
       synchronized (lock) {
         if (null == loader) {
           
-          if (ACC_CONF.getBoolean(VFS_CLASSLOADER_ENABLED, false) == false) {
-            localLoader = AccumuloClassLoader.getClassLoader();
-            return localLoader;
-          }
-          
           if (null == vfs) {
             vfs = new DefaultFileSystemManager();
             //TODO: Might be able to use a different cache impl or specify cache directory in configuration.
@@ -276,18 +271,18 @@ public class AccumuloVFSClassLoader {
             vfs.setCacheStrategy(CacheStrategy.ON_RESOLVE);
             vfs.init();
           }
-                    
-          //Set up the 2nd tier class loader
+          
+          // Set up the 2nd tier class loader
           if (null == parent)
             parent = getAccumuloClassLoader();
           
-          //Get the default context classpaths from the configuration
+          // Get the default context classpaths from the configuration
           String[] defaultPaths = ACC_CONF.getStrings(VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY);
           if (null == defaultPaths || defaultPaths.length == 0) {
-            log.info("Default context not configured.");
             localLoader = parent;
             return localLoader;
           }
+
           ArrayList<FileObject> defaultClassPath = new ArrayList<FileObject>();
           for (String path : defaultPaths) {
             FileObject fo = vfs.resolveFile(path);
@@ -301,30 +296,7 @@ public class AccumuloVFSClassLoader {
           }
           
           //Create the Accumulo Context ClassLoader using the DEFAULT_CONTEXT
-          loader = new AccumuloContextClassLoader(defaultClassPath.toArray(new FileObject[defaultClassPath.size()]), vfs, parent);
-
-          //Add the other contexts
-          String[] contexts = ACC_CONF.getStrings(VFS_CLASSLOADER_CONTEXT_NAMES_PROPERTY);
-          if (null != contexts) {
-            for (String context : contexts) {
-              String[] contextPaths = ACC_CONF.getStrings(VFS_CONTEXT_CLASSPATH_PROPERTY + context);
-              if (null != contextPaths) {
-                ArrayList<FileObject> contextClassPath = new ArrayList<FileObject>();
-                for (String cp : contextPaths) {
-                  FileObject fo = vfs.resolveFile(cp);
-                  if (fo.getType().equals(FileType.FILE)) {
-                    contextClassPath.add(fo);
-                  } else {
-                    for (FileObject child : fo.getChildren()) {
-                      contextClassPath.add(child);                
-                    }                    
-                  }
-                }
-                log.debug("Creating Context ClassLoader for context: " + context + " using paths: " + contextClassPath.toString());
-                loader.addContext(context, contextClassPath.toArray(new FileObject[contextClassPath.size()]));
-              }
-            }
-          }
+          loader = new AccumuloReloadingVFSClassLoader(defaultClassPath.toArray(new FileObject[defaultClassPath.size()]), vfs, parent);
         }
       }
       localLoader = loader;
@@ -335,18 +307,20 @@ public class AccumuloVFSClassLoader {
   public static void printClassPath() {
     try {
       ClassLoader cl = getClassLoader();
-      if (ACC_CONF.getBoolean(VFS_CLASSLOADER_ENABLED, false) == false) {
-        //If using older classloader, then use its printClassPath method
-        AccumuloClassLoader.printClassPath();
-      } else if (cl instanceof URLClassLoader) {
+      if (cl instanceof URLClassLoader) {
         //If VFS class loader enabled, but no contexts defined.
         URLClassLoader ucl = (URLClassLoader) cl;
         System.out.println("URL classpath items are: \n");
         for (URL u : ucl.getURLs()) {
-          System.out.println(u.toExternalForm());
+          System.out.println("\t" + u.toExternalForm());
         }
-      } else if (cl instanceof AccumuloContextClassLoader) {
+      } else if (cl instanceof AccumuloReloadingVFSClassLoader) {
         //If VFS class loader enabled and contexts are defined
+        System.out.println("URL classpath items are: \n");
+        URLClassLoader ucl = (URLClassLoader) cl.getParent();
+        for (URL u : ucl.getURLs()) {
+          System.out.println("\t" + u.toExternalForm());
+        }
         System.out.println("VFS classpaths items are:\n" + getClassLoader().toString());
       } else {
         System.out.println("Unknown classloader configuration");
@@ -357,9 +331,18 @@ public class AccumuloVFSClassLoader {
   }
 
   
+  public static synchronized ContextManager getContextManager() throws IOException {
+    // TODO is there problem with using this lck?
+    
+    if (contextManager == null) {
+      contextManager = new ContextManager(vfs, getClassLoader());
+    }
+
+    return contextManager;
+  }
+
   public static void close() {
     if (null != vfs)
       vfs.close();
   }
-  
 }
