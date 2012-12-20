@@ -43,7 +43,7 @@ public class ZooZap {
   static class Opts extends ClientOpts {
     @Parameter(names="-master", description="remove master locks")
     boolean zapMaster = false;
-    @Parameter(names="-tserver", description="remove tablet server locks")
+    @Parameter(names="-tservers", description="remove tablet server locks")
     boolean zapTservers = false;
     @Parameter(names="-tracers", description="remove tracer locks")
     boolean zapTracers = false;
