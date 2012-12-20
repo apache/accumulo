@@ -42,8 +42,6 @@ class RowHashBenchmark(Benchmark):
     output_table = 'RowHashTestOutput'
 
     def setUp(self): 
-        #if (not os.getenv("HADOOP_CLASSPATH")):
-        #    os.putenv("HADOOP_CLASSPATH", self.getjars(":"))
         dir = os.path.dirname(os.path.realpath(__file__))
         file = os.path.join( dir, 'splits' )  
         code, out, err = cloudshell.run(self.username, self.password, 'table %s\n' % self.input_table) 
@@ -63,12 +61,12 @@ class RowHashBenchmark(Benchmark):
                                     '-xk', self.keysizemax(),
                                     '-nv', self.minvaluesize(),
                                     '-xv', self.maxvaluesize(),
-                                    '-t', self.input_table, 
+                                    '--table', self.input_table, 
                                     '-i', self.getInstance(),
                                     '-z', self.getZookeepers(),
                                     '-u', self.getUsername(),
                                     '-p', self.getPassword(),
-                                    --splits', self.maxmaps)
+                                    '--splits', self.maxmaps)
         handle = runner.start(command, stdin=subprocess.PIPE)
         log.debug("Running: %r", command)
         out, err = handle.communicate("")  
@@ -78,6 +76,13 @@ class RowHashBenchmark(Benchmark):
         code, out, err = cloudshell.run(self.username, self.password, "deletetable -f %s\n" % self.input_table)
         self.assertEqual(code, 0, 'Could not delete %s, %s' % (self.input_table, out))
         code, out, err = cloudshell.run(self.username, self.password, "deletetable -f %s\n" % self.output_table)
+        self.assertEqual(code, 0, 'Could not delete %s, %s' % (self.output_table, out))
+        Benchmark.tearDown(self)
+
+    def tearDown(self):
+        code, out, err = cloudshell.run(self.username, self.password, "deletetable %s\n" % self.input_table)
+        self.assertEqual(code, 0, 'Could not delete %s, %s' % (self.input_table, out))
+        code, out, err = cloudshell.run(self.username, self.password, "deletetable %s\n" % self.output_table)
         self.assertEqual(code, 0, 'Could not delete %s, %s' % (self.output_table, out))
         Benchmark.tearDown(self)
 

@@ -55,6 +55,9 @@ def main():
     if not os.getenv('ZOOKEEPER_HOME'):
         print 'Please set the environment variable \'ZOOKEEPER_HOME\' before running the benchmarks'
         sys.exit(0)
+    if not os.getenv('ACCUMULO_HOME'):
+        print 'Please set the environment variable \'ACCUMULO_HOME\' before running the benchmarks'
+        sys.exit(0)
     import textwrap
     benchmarks = getBenchmarks()
     benchmarks.sort(benchComparator)
