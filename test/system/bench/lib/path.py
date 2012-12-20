@@ -17,9 +17,7 @@
 import os
 
 HERE = os.path.dirname(__file__)
-ACCUMULO_HOME = os.path.normpath(
-    os.path.join(HERE, *(os.pardir,)*4)
-    )
+ACCUMULO_HOME = os.getenv('ACCUMULO_HOME')
 
 def accumulo(*args):
     return os.path.join(ACCUMULO_HOME, *args)

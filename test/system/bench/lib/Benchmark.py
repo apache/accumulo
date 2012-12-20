@@ -91,10 +91,7 @@ class Benchmark(unittest.TestCase):
         return 0
     
     def findjar(self, path):
-        globjar = glob.glob(path)
-        for j in globjar:
-            if j.find('javadoc') >= 0 or j.find('sources') >= 0:
-                globjar.remove(j)
+        globjar = [ j for j in glob.glob(path) if j.find('javadoc') == -1 and j.find('sources') == -1 ]
         return globjar[0]
         
     # Returns the location of the local examples jar
@@ -104,10 +101,12 @@ class Benchmark(unittest.TestCase):
     # Returns a string of core, thrift and zookeeper jars with a specified delim
     def getjars(self, delim=','):
         accumulo_core_jar = self.findjar(accumulo('lib', 'accumulo-core*.jar'))
-        accumulo_start_jar = self.findjar(accumulo('lib', 'accumulo-start*.jar'))
+        accumulo_start_jar = self.findjar(accumulo('lib', 'accumulo-start*.jar'))       
+        cloudtrace_jar = self.findjar(accumulo('lib', 'cloudtrace*.jar'))
         accumulo_thrift_jar = self.findjar(accumulo('lib', 'libthrift*.jar'))
         accumulo_zookeeper_jar = self.findjar(os.path.join(os.getenv('ZOOKEEPER_HOME'), 'zookeeper*.jar'))
-        return delim.join([accumulo_core_jar, accumulo_thrift_jar, accumulo_zookeeper_jar, accumulo_start_jar])
+        return delim.join([accumulo_core_jar, accumulo_thrift_jar, accumulo_zookeeper_jar, accumulo_start_jar,
+            cloudtrace_jar])
        
     # Builds the running command for the map/reduce class specified sans the arguments
     def buildcommand(self, classname, *args):

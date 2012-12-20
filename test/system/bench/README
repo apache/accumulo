@@ -38,5 +38,6 @@ The 4th Benchmark is Terasort.  Run the benchmarks with speed 'slow' to do a ful
 
 4. Misc
 
-These benchmarks create tables in accumulo named 'test_ingest' and 'CloudIngestTest'.  These tables are *NOT* deleted
-at the end of the benchmarks.
+These benchmarks create tables in accumulo named 'test_ingest' and 'CloudIngestTest'.  These tables are deleted
+at the end of the benchmarks. The benchmarks will also alter user auths while it runs. It is recommended that
+a benchmark user is created.

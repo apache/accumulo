@@ -23,7 +23,7 @@ from lib.options import log
     
 def run(username, password, input):
     "Run a command in accumulo"
-    handle = runner.start([path.accumulo('bin', 'accumulo'), 'shell -u %s -p %s' % (username, password) ],
+    handle = runner.start([path.accumulo('bin', 'accumulo'), 'shell', '-u', username, '-p', password],
                           stdin=subprocess.PIPE)
     log.debug("Running: %r", input)
     out, err = handle.communicate(input)

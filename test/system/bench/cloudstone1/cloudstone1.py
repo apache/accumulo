@@ -29,7 +29,7 @@ class CloudStone1(Benchmark):
                'and we can reach all the slaves. Lower is better.'
 
     def runTest(self):
-        code, out, err = cloudshell.run(self.username, self.password, 'table !METADATA\nscan\n')
+        code, out, err = cloudshell.run(self.username, self.password, 'table !METADATA\nscan -np\n')
         results = runAll('echo help | %s shell' %
                          accumulo('bin', 'accumulo'))
                          
