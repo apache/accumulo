@@ -34,5 +34,5 @@ echo "`wc -l scanners.txt`" >> $CONFIG_OUT
 echo "`wc -l batch_walkers.txt`" >> $CONFIG_OUT
 
 
-nohup $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.test.continuous.ContinuousStatsCollector -t $TABLE -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS >$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_stats.out 2>$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_stats.err &
+nohup $ACCUMULO_HOME/bin/accumulo org.apache.accumulo.server.test.continuous.ContinuousStatsCollector --table $TABLE -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS >$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_stats.out 2>$CONTINUOUS_LOG_DIR/`date +%Y%m%d%H%M%S`_`hostname`_stats.err &
 

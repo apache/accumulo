@@ -18,5 +18,5 @@
 
 . mapred-setup.sh
 
-$ACCUMULO_HOME/bin/tool.sh "$SERVER_LIBJAR" org.apache.accumulo.server.test.continuous.ContinuousMoru -libjars "$SERVER_LIBJAR" -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS -t $TABLE --min $MIN --max $MAX --maxColF $MAX_CF --maxColQ $MAX_CQ --batchMemory $MAX_MEM --batchLatency $MAX_LATENCY --batchThreads $NUM_THREADS --maxMappers $VERIFY_MAX_MAPS
+$ACCUMULO_HOME/bin/tool.sh "$SERVER_LIBJAR" org.apache.accumulo.server.test.continuous.ContinuousMoru -libjars "$SERVER_LIBJAR" -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS --table $TABLE --min $MIN --max $MAX --maxColF $MAX_CF --maxColQ $MAX_CQ --batchMemory $MAX_MEM --batchLatency $MAX_LATENCY --batchThreads $NUM_THREADS --maxMappers $VERIFY_MAX_MAPS
 

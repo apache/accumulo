@@ -113,7 +113,7 @@ public class ContinuousWalk {
     ArrayList<Value> values = new ArrayList<Value>();
     
     while (true) {
-      Scanner scanner = conn.createScanner(opts.tableName, opts.randomAuths.getAuths(r));
+      Scanner scanner = conn.createScanner(opts.getTableName(), opts.randomAuths.getAuths(r));
       String row = findAStartRow(opts.min, opts.max, scanner, r);
       
       while (row != null) {

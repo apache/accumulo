@@ -23,7 +23,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
@@ -135,10 +135,7 @@ public class ContinuousVerify extends Configured implements Tool {
     }
   }
   
-  static class Opts extends ClientOpts {
-    @Parameter(names="--table", description="table to verify")
-    String tableName = "ci";
-    
+  static class Opts extends ClientOnDefaultTable {
     @Parameter(names="--output", description="location in HDFS to store the results; must not exist", required=true)
     String outputDir = "/tmp/continuousVerify";
     
@@ -150,6 +147,8 @@ public class ContinuousVerify extends Configured implements Tool {
     
     @Parameter(names="--offline", description="perform the verification directly on the files while the table is offline")
     boolean scanOffline = false;
+    
+    public Opts() { super("ci"); }
   }
   
   @Override
@@ -160,13 +159,13 @@ public class ContinuousVerify extends Configured implements Tool {
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
     
-    String clone = opts.tableName;
+    String clone = opts.getTableName();
     Connector conn = null;
     if (opts.scanOffline) {
       Random random = new Random();
-      clone = opts.tableName + "_" + String.format("%016x", Math.abs(random.nextLong()));
+      clone = opts.getTableName() + "_" + String.format("%016x", Math.abs(random.nextLong()));
       conn = opts.getConnector();
-      conn.tableOperations().clone(opts.tableName, clone, true, new HashMap<String,String>(), new HashSet<String>());
+      conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(), new HashSet<String>());
       conn.tableOperations().offline(clone);
     }
 
@@ -177,7 +176,7 @@ public class ContinuousVerify extends Configured implements Tool {
 
     // set up ranges
     try {
-      Set<Range> ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.tableName, new Range(), opts.maxMaps);
+      Set<Range> ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
       AccumuloInputFormat.setRanges(job.getConfiguration(), ranges);
       AccumuloInputFormat.disableAutoAdjustRanges(job.getConfiguration());
     } catch (Exception e) {

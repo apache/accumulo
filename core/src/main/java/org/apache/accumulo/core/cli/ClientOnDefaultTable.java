@@ -16,6 +16,10 @@
  */
 package org.apache.accumulo.core.cli;
 
+import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
+import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
+import org.apache.hadoop.mapreduce.Job;
+
 import com.beust.jcommander.Parameter;
 
 public class ClientOnDefaultTable extends ClientOpts {
@@ -33,4 +37,11 @@ public class ClientOnDefaultTable extends ClientOpts {
       return defaultTable;
     return tableName;
   }
+  
+  public void setAccumuloConfigs(Job job) {
+    super.setAccumuloConfigs(job);
+    AccumuloInputFormat.setInputInfo(job.getConfiguration(), user, getPassword(), getTableName(), auths);
+    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), user, getPassword(), true, getTableName());
+  }
+
 }

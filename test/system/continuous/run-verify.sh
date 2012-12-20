@@ -24,9 +24,8 @@ if [ -n "$VERIFY_AUTHS" ] ; then
 	AUTH_OPT="--auths $VERIFY_AUTHS";
 fi
 SCAN_OPT=--offline
-if [ "$SCAN_OFFLINE" == "false" ] then
+if [ "$SCAN_OFFLINE" == "false" ] ; then
        SCAN_OPT=
 fi
 
-$ACCUMULO_HOME/bin/tool.sh "$SERVER_LIBJAR" org.apache.accumulo.server.test.continuous.ContinuousVerify -libjars "$SERVER_LIBJAR" $AUTH_OPT -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS -t $TABLE --output $VERFIY_OUT --maxMappers $VERIFY_MAX_MAPS --reduces $VERIFY_REDUCERS $SCAN_OPT
-
+$ACCUMULO_HOME/bin/tool.sh "$SERVER_LIBJAR" org.apache.accumulo.server.test.continuous.ContinuousVerify -libjars "$SERVER_LIBJAR" $AUTH_OPT -i $INSTANCE_NAME -z $ZOO_KEEPERS -u $USER -p $PASS --table $TABLE --output $VERFIY_OUT --maxMappers $VERIFY_MAX_MAPS --reducers $VERIFY_REDUCERS $SCAN_OPT

@@ -134,7 +134,7 @@ public class ContinuousMoru extends Configured implements Tool {
     
     // set up ranges
     try {
-      Set<Range> ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.tableName, new Range(), opts.maxMaps);
+      Set<Range> ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
       AccumuloInputFormat.setRanges(job.getConfiguration(), ranges);
       AccumuloInputFormat.disableAutoAdjustRanges(job.getConfiguration());
     } catch (Exception e) {

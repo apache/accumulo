@@ -30,7 +30,7 @@ import java.util.zip.Checksum;
 import org.apache.accumulo.cloudtrace.instrument.CountSampler;
 import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -54,7 +54,7 @@ import com.beust.jcommander.Parameter;
 
 public class ContinuousIngest {
   
-  static public class BaseOpts extends ClientOpts {
+  static public class BaseOpts extends ClientOnDefaultTable {
     public class DebugConverter implements IStringConverter<String> {
       @Override
       public String convert(String debugLog) {
@@ -78,19 +78,25 @@ public class ContinuousIngest {
     
     @Parameter(names="--debugLog", description="file to write debugging output", converter=DebugConverter.class)
     String debugLog = null;
-    
-    @Parameter(names="--table", description="table to use")
-    String tableName="ci";
+
+    BaseOpts() { super("ci"); }
+  }
+  
+  public static class ShortConverter implements IStringConverter<Short> {
+    @Override
+    public Short convert(String value) {
+      return Short.valueOf(value);
+    }
   }
   
   static public class Opts extends BaseOpts {
     @Parameter(names="--num", description="the number of entries to ingest")
     long num = Long.MAX_VALUE;
     
-    @Parameter(names="--maxColF", description="maximum column family value to use")
+    @Parameter(names="--maxColF", description="maximum column family value to use", converter=ShortConverter.class)
     short maxColF = Short.MAX_VALUE;
     
-    @Parameter(names="--maxColQ", description="maximum column qualifier value to use")
+    @Parameter(names="--maxColQ", description="maximum column qualifier value to use", converter=ShortConverter.class)
     short maxColQ = Short.MAX_VALUE;
  
     @Parameter(names="--addCheckSum", description="turn on checksums")
@@ -140,12 +146,12 @@ public class ContinuousIngest {
     }
     Connector conn = opts.getConnector();
     
-    if (!conn.tableOperations().exists(opts.tableName))
+    if (!conn.tableOperations().exists(opts.getTableName()))
       try {
-        conn.tableOperations().create(opts.tableName);
+        conn.tableOperations().create(opts.getTableName());
       } catch (TableExistsException tee) {}
 
-    BatchWriter bw = conn.createBatchWriter(opts.tableName, opts.getBatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter(opts.getTableName(), opts.getBatchWriterConfig());
     bw = Trace.wrapAll(bw, new CountSampler(1024));
     
     Random r = new Random();
