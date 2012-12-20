@@ -73,7 +73,7 @@ public class DfsLogger {
 
   private LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<DfsLogger.LogWork>();
   
-  private String closeLock = new String("foo");
+  private final Object closeLock = new Object();
   
   private static final DfsLogger.LogWork CLOSED_MARKER = new DfsLogger.LogWork(null, null);
   

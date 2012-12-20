@@ -48,7 +48,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     private ByteSequence lastRow = null;
     private long timeout;
     
-    private Scanner scanner;
+    private final Scanner scanner;
     private ScannerOptions opts;
     private Range range;
     private int batchSize;

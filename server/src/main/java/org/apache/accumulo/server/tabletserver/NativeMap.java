@@ -59,9 +59,9 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
   
   private long nmPointer;
   
-  private ReadWriteLock rwLock;
-  private Lock rlock;
-  private Lock wlock;
+  private final ReadWriteLock rwLock;
+  private final Lock rlock;
+  private final Lock wlock;
   
   int modCount = 0;
   

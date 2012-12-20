@@ -55,7 +55,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
   
   private static final Logger log = Logger.getLogger(ProblemReports.class);
   
-  private LRUMap problemReports = new LRUMap(1000);
+  private final LRUMap problemReports = new LRUMap(1000);
   
   /*
    * use a thread pool so that reporting a problem never blocks

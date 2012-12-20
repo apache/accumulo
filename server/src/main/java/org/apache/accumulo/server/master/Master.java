@@ -220,7 +220,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   volatile private SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections
       .unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
   
-  private Set<String> recoveriesInProgress = Collections.synchronizedSet(new HashSet<String>());
+  private final Set<String> recoveriesInProgress = Collections.synchronizedSet(new HashSet<String>());
 
   synchronized private MasterState getMasterState() {
     return state;

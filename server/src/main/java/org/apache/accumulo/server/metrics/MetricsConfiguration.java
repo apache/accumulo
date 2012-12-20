@@ -51,7 +51,7 @@ public class MetricsConfiguration {
   
   private Configuration config = null;
   
-  private Object lock = new Object();
+  private final Object lock = new Object();
   
   private boolean needsReloading = false;
   

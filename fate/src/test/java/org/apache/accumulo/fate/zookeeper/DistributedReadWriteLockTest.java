@@ -32,7 +32,7 @@ public class DistributedReadWriteLockTest {
   public static class MockQueueLock implements QueueLock {
     
     long next = 0L;
-    SortedMap<Long,byte[]> locks = new TreeMap<Long,byte[]>();
+    final SortedMap<Long,byte[]> locks = new TreeMap<Long,byte[]>();
     
     @Override
     synchronized public SortedMap<Long,byte[]> getEarlierEntries(long entry) {
@@ -85,8 +85,8 @@ public class DistributedReadWriteLockTest {
     QueueLock qlock = new MockQueueLock();
     
     final ReadWriteLock locker = new DistributedReadWriteLock(qlock, "locker1".getBytes());
-    Lock readLock = locker.readLock();
-    Lock writeLock = locker.writeLock();
+    final Lock readLock = locker.readLock();
+    final Lock writeLock = locker.writeLock();
     readLock.lock();
     readLock.unlock();
     writeLock.lock();
@@ -101,7 +101,7 @@ public class DistributedReadWriteLockTest {
       threads[i] = new Thread() {
         public void run() {
           if (which % 2 == 0) {
-            Lock wl = locker.writeLock();
+            final Lock wl = locker.writeLock();
             wl.lock();
             try {
               data.write();
@@ -109,7 +109,7 @@ public class DistributedReadWriteLockTest {
               wl.unlock();
             }
           } else {
-            Lock rl = locker.readLock();
+            final Lock rl = locker.readLock();
             rl.lock();
             data.read();
             try {

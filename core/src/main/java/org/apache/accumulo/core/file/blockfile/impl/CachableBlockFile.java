@@ -435,17 +435,17 @@ public class CachableBlockFile {
 
   public static class CachedBlockRead extends BlockRead {
     private SeekableByteArrayInputStream seekableInput;
-    private CacheEntry cb;
+    private final CacheEntry cb;
     
     public CachedBlockRead(CacheEntry cb, byte buf[]) {
-      this(new SeekableByteArrayInputStream(buf), buf.length);
-      this.cb = cb;
+      this(new SeekableByteArrayInputStream(buf), buf.length, cb);
     }
     
-    private CachedBlockRead(SeekableByteArrayInputStream seekableInput, long size) {
-      super(seekableInput, size);
-      this.seekableInput = seekableInput;
-    }
+    private CachedBlockRead(SeekableByteArrayInputStream seekableInput, long size, CacheEntry cb) {
+        super(seekableInput, size);
+        this.seekableInput = seekableInput;
+        this.cb = cb;
+      }
 
     @Override
     public void seek(int position) {

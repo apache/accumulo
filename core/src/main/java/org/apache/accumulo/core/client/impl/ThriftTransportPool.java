@@ -79,7 +79,7 @@ public class ThriftTransportPool {
   }
   
   private static class Closer implements Runnable {
-    ThriftTransportPool pool;
+    final ThriftTransportPool pool;
     
     public Closer(ThriftTransportPool pool) {
       this.pool = pool;

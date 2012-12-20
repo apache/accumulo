@@ -144,7 +144,7 @@ public class AccumuloClassLoader {
   private static ClassLoader parent = null;
   private static volatile ClassLoader loader = null;
   private static AccumuloFilesystemAlterationMonitor monitor = null;
-  private static Object lock = new Object();
+  private static final Object lock = new Object();
   
   private static ArrayList<URL> findDynamicURLs() throws IOException {
     StringBuilder cp = new StringBuilder(getAccumuloDynamicClasspathStrings());

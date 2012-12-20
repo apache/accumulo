@@ -87,8 +87,8 @@ public class TabletLocatorImpl extends TabletLocator {
   
   private TreeSet<KeyExtent> badExtents = new TreeSet<KeyExtent>();
   private ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
-  private Lock rLock = rwLock.readLock();
-  private Lock wLock = rwLock.writeLock();
+  private final Lock rLock = rwLock.readLock();
+  private final Lock wLock = rwLock.writeLock();
   
   public static interface TabletLocationObtainer {
     /**

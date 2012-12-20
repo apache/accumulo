@@ -250,7 +250,7 @@ public class TabletServerResourceManager {
   }
   
   private class MemoryManagementFramework {
-    private Map<KeyExtent,TabletStateImpl> tabletReports;
+    private final Map<KeyExtent,TabletStateImpl> tabletReports;
     private LinkedBlockingQueue<TabletStateImpl> memUsageReports;
     private long lastMemCheckTime = System.currentTimeMillis();
     private long maxMem;
@@ -378,7 +378,7 @@ public class TabletServerResourceManager {
     }
   }
   
-  private Object commitHold = new String("");
+  private final Object commitHold = new Object();
   private volatile boolean holdCommits = false;
   private long holdStartTime;
   

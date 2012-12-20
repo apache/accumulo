@@ -371,9 +371,9 @@ public class Tablet {
   
   private TabletMemory tabletMemory;
   
-  private TabletTime tabletTime;
+  private final TabletTime tabletTime;
   private long persistedTime;
-  private Object timeLock = new Object();
+  private final Object timeLock = new Object();
   
   private Path location; // absolute path of this tablets dir
   private TServerInstance lastLocation;
@@ -447,7 +447,7 @@ public class Tablet {
   
   private final int logId;
   // ensure we only have one reader/writer of our bulk file notes at at time
-  public Object bulkFileImportLock = new Object();
+  public final Object bulkFileImportLock = new Object();
   
   public int getLogId() {
     return logId;
@@ -3710,7 +3710,7 @@ public class Tablet {
   private boolean removingLogs = false;
   
   // this lock is basically used to synchronize writing of log info to !METADATA
-  private ReentrantLock logLock = new ReentrantLock();
+  private final ReentrantLock logLock = new ReentrantLock();
   
   public synchronized int getLogCount() {
     return currentLogs.size();

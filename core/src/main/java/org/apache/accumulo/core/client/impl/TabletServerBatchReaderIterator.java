@@ -91,7 +91,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private Iterator<Entry<Key,Value>> batchIterator;
   private List<Entry<Key,Value>> batch;
   private static final List<Entry<Key,Value>> LAST_BATCH = new ArrayList<Map.Entry<Key,Value>>();
-  private Object nextLock = new Object();
+  private final Object nextLock = new Object();
   
   private long failSleepTime = 100;
   
@@ -331,7 +331,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     private Map<KeyExtent,List<Range>> tabletsRanges;
     private ResultReceiver receiver;
     private Semaphore semaphore = null;
-    private Map<KeyExtent,List<Range>> failures;
+    private final Map<KeyExtent,List<Range>> failures;
     private List<Column> columns;
     private int semaphoreSize;
     

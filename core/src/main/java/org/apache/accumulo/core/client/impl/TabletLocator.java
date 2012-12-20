@@ -146,7 +146,7 @@ public abstract class TabletLocator {
   }
 
   public static class TabletLocation implements Comparable<TabletLocation> {
-    private static WeakHashMap<String,WeakReference<String>> tabletLocs = new WeakHashMap<String,WeakReference<String>>();
+    private static final WeakHashMap<String,WeakReference<String>> tabletLocs = new WeakHashMap<String,WeakReference<String>>();
     
     private static String dedupeLocation(String tabletLoc) {
       synchronized (tabletLocs) {
