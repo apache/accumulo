@@ -466,7 +466,7 @@ public class Monitor {
     int port = config.getConfiguration().getPort(Property.MONITOR_PORT);
     try {
       log.debug("Creating monitor on port " + port);
-      server = EmbeddedWebServer.create(port);
+      server = new EmbeddedWebServer(hostname, port);
     } catch (Throwable ex) {
       log.error("Unable to start embedded web server", ex);
       throw new RuntimeException(ex);
