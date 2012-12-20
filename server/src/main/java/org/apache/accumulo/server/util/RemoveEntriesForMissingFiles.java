@@ -65,7 +65,10 @@ public class RemoveEntriesForMissingFiles {
       count++;
       Key key = entry.getKey();
       String table = new String(KeyExtent.tableOfMetadataRow(entry.getKey().getRow()));
-      Path map = new Path(ServerConstants.getTablesDir() + "/" + table + key.getColumnQualifier().toString());
+      String file = key.getColumnQualifier().toString();
+      if (!file.startsWith("/"))
+        file = "/" + file;
+      Path map = new Path(ServerConstants.getTablesDir() + "/" + table + file);
       if (!fs.exists(map)) {
         missing++;
         log.info("File " + map + " is missing");
