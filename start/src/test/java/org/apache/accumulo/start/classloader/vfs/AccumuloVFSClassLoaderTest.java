@@ -100,7 +100,8 @@ public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
     Assert.assertTrue((acl instanceof AccumuloReloadingVFSClassLoader));
     AccumuloReloadingVFSClassLoader arvcl = (AccumuloReloadingVFSClassLoader) acl;
     Assert.assertEquals(1, arvcl.getFiles().length);
-    Assert.assertTrue(arvcl.getFiles()[0].getURL().toString().equals(AccumuloDFSBase.HDFS_URI + "/accumulo/classpath/HelloWorld.jar"));
+    // We can't be sure what the authority/host will be due to FQDN mappings, so just check the path
+    Assert.assertTrue(arvcl.getFiles()[0].getURL().toString().endsWith("/accumulo/classpath/HelloWorld.jar"));
     Class<?> clazz1 = arvcl.loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
     Assert.assertEquals("Hello World!", o1.toString());

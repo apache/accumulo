@@ -19,6 +19,7 @@ package org.apache.accumulo.test;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
 
 import org.apache.commons.vfs2.CacheStrategy;
 import org.apache.commons.vfs2.FileSystemException;
@@ -29,7 +30,6 @@ import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.impl.FileContentInfoFilenameFactory;
 import org.apache.commons.vfs2.provider.ReadOnlyHdfsFileProvider;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.apache.log4j.Level;
@@ -41,16 +41,20 @@ public class AccumuloDFSBase {
   static {
     System.setProperty("org.apache.commons.logging.Log", "org.apache.commons.logging.impl.NoOpLog");
   }
-
-  // Choose an IANA unassigned port
-  // http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml
-  protected static final Integer HDFS_PORT = 8620;
-  
-  protected static final String HDFS_URI = "hdfs://localhost:" + HDFS_PORT;
   
   protected static Configuration conf = null;
   protected static DefaultFileSystemManager vfs = null;
   protected static MiniDFSCluster cluster = null;
+  
+  // Choose an IANA unassigned port
+  // http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml
+  // TODO Given that the URI for the NameNode is statically declared in config files
+  // in src/test/resources, we have to assert the given port. It would be better to let
+  // MiniDFSCluster find a free port to use and then update the URI to be used in the VFS tests
+  protected static final Integer HDFS_PORT = 8620;
+  protected static final URI HDFS_URI;
+  
+  
   static {
     Logger.getRootLogger().setLevel(Level.ERROR);
     
@@ -59,7 +63,6 @@ public class AccumuloDFSBase {
     
     //Setup HDFS
     conf = new Configuration();
-    conf.set(FileSystem.FS_DEFAULT_NAME_KEY, HDFS_URI);
     conf.set("hadoop.security.token.service.use_ip", "true");
     
     // MiniDFSCluster will check the permissions on the data directories, but does not
@@ -88,6 +91,9 @@ public class AccumuloDFSBase {
     try {
       cluster = new MiniDFSCluster(HDFS_PORT, conf, 1, true, true, true, null, null, null, null);
       cluster.waitActive();
+      // We can't assume that the hostname of "localhost" will still be "localhost" after
+      // starting up the NameNode. We may get mapped into a FQDN via settings in /etc/hosts.
+      HDFS_URI = cluster.getFileSystem().getUri();
     } catch (IOException e) {
       throw new RuntimeException("Error setting up mini cluster", e);
     }
