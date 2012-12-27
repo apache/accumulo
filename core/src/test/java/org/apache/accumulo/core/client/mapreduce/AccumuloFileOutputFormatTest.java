@@ -87,6 +87,23 @@ public class AccumuloFileOutputFormatTest {
   }
   
   @Test
+  public void writeBadVisibility() throws IOException, InterruptedException {
+    AccumuloFileOutputFormat afof = new AccumuloFileOutputFormat();
+    RecordWriter<Key,Value> rw = afof.getRecordWriter(tac);
+    
+    Path file = afof.getDefaultWorkFile(tac, ".rf");
+
+    rw.write(new Key("r1", "cf1", "cq1", "A&B"), new Value("".getBytes()));
+    rw.write(new Key("r1", "cf1", "cq2", "A&B"), new Value("".getBytes()));
+    try {
+      rw.write(new Key("r1", "cf1", "cq2", "A&"), new Value("".getBytes()));
+      assertFalse(true);
+    } catch (Exception e) {}
+    
+    file.getFileSystem(tac.getConfiguration()).delete(file.getParent(), true);
+  }
+
+  @Test
   public void validateConfiguration() throws IOException, InterruptedException {
     
     int a = 7;

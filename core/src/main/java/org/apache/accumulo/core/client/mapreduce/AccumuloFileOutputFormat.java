@@ -17,6 +17,7 @@
 package org.apache.accumulo.core.client.mapreduce;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Instance;
@@ -24,11 +25,14 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ArgumentChecker;
+import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
@@ -160,6 +164,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);
     final Path file = this.getDefaultWorkFile(context, "." + extension);
     
+    final LRUMap validVisibilities = new LRUMap(1000);
+
     return new RecordWriter<Key,Value>() {
       FileSKVWriter out = null;
       
@@ -171,6 +177,14 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
       
       @Override
       public void write(Key key, Value value) throws IOException {
+        
+        Boolean wasChecked = (Boolean) validVisibilities.get(key.getColumnVisibilityData());
+        if (wasChecked == null) {
+          byte[] cv = key.getColumnVisibilityData().toArray();
+          new ColumnVisibility(cv);
+          validVisibilities.put(new ArrayByteSequence(Arrays.copyOf(cv, cv.length)), Boolean.TRUE);
+        }
+
         if (out == null) {
           out = FileOperations.getInstance().openWriter(file.toString(), file.getFileSystem(conf), conf, acuConf);
           out.startDefaultLocalityGroup();
