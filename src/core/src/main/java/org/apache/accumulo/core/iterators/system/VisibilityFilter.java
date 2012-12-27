@@ -25,6 +25,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.VisibilityEvaluator;
 import org.apache.accumulo.core.security.VisibilityParseException;
+import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.io.Text;
@@ -71,6 +72,9 @@ public class VisibilityFilter extends Filter {
       cache.put(new Text(testVis), bb);
       return bb;
     } catch (VisibilityParseException e) {
+      log.error("Parse Error", e);
+      return false;
+    } catch (BadArgumentException e) {
       log.error("Parse Error", e);
       return false;
     }
