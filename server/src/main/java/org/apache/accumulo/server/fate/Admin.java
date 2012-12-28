@@ -20,12 +20,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
@@ -53,7 +53,7 @@ public class Admin {
   }
   
   @Parameters(commandDescription="List the existing FATE transactions")
-  static class ListOpts {
+  static class PrintOpts {
   }
   
   public static void main(String[] args) throws Exception {
@@ -64,7 +64,7 @@ public class Admin {
     jc.addCommand("fail", fail);
     DeleteOpts deleteOpts = new DeleteOpts();
     jc.addCommand("delete", deleteOpts);
-    jc.addCommand("list", new ListOpts());
+    jc.addCommand("print", new PrintOpts());
     jc.parse(args);
     if (opts.help || jc.getParsedCommand() == null) {
       jc.usage();
@@ -80,9 +80,9 @@ public class Admin {
     ZooStore<Master> zs = new ZooStore<Master>(path, zk);
     
     if (jc.getParsedCommand().equals("fail")) {
-      admin.prepFail(zs, masterPath, args[1]);
+      admin.prepFail(zs, zk, masterPath, args[1]);
     } else if (jc.getParsedCommand().equals("delete")) {
-      admin.prepDelete(zs, masterPath, args[1]);
+      admin.prepDelete(zs, zk, masterPath, args[1]);
       admin.deleteLocks(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS, args[1]);
     } else if (jc.getParsedCommand().equals("print")) {
       admin.print(zs, zk, ZooUtil.getRoot(instance) + Constants.ZTABLE_LOCKS);

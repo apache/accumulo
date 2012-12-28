@@ -18,6 +18,7 @@ package org.apache.accumulo.fate;
 
 import java.io.Serializable;
 import java.util.EnumSet;
+import java.util.List;
 
 /**
  * Transaction Store: a place to save transactions
@@ -129,4 +130,12 @@ public interface TStore<T> {
    */
   public void delete(long tid);
   
+  /**
+   * list all transaction ids in store
+   * 
+   * @return
+   */
+
+  public List<Long> list();
+
 }

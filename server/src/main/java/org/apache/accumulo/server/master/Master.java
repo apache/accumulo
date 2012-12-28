@@ -90,6 +90,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.fate.TStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -2153,8 +2154,18 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     
     // TODO: add shutdown for fate object
     try {
-      fate = new Fate<Master>(this, new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
-          ZooReaderWriter.getRetryingInstance()), 4);
+      final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
+          ZooReaderWriter.getRetryingInstance()), 1000 * 60 * 60 * 8);
+      
+      fate = new Fate<Master>(this, store, 4);
+      
+      SimpleTimer.getInstance().schedule(new TimerTask() {
+        
+        @Override
+        public void run() {
+          store.ageOff();
+        }
+      }, 63000, 63000);
     } catch (KeeperException e) {
       throw new IOException(e);
     } catch (InterruptedException e) {

@@ -129,8 +129,8 @@ public class AdminUtil<T> {
     }
   }
   
-  public void prepDelete(ZooStore<T> zs, String path, String txidStr) {
-    checkGlobalLock(path);
+  public void prepDelete(ZooStore<T> zs, IZooReaderWriter zk, String path, String txidStr) {
+    checkGlobalLock(zk, path);
     
     long txid = Long.parseLong(txidStr, 16);
     zs.reserve(txid);
@@ -138,8 +138,8 @@ public class AdminUtil<T> {
     zs.unreserve(txid, 0);
   }
   
-  public void prepFail(ZooStore<T> zs, String path, String txidStr) {
-    checkGlobalLock(path);
+  public void prepFail(ZooStore<T> zs, IZooReaderWriter zk, String path, String txidStr) {
+    checkGlobalLock(zk, path);
     
     long txid = Long.parseLong(txidStr, 16);
     zs.reserve(txid);
@@ -163,9 +163,17 @@ public class AdminUtil<T> {
     }
   }
   
-  public void checkGlobalLock(String path) {
-    if (ZooLock.getLockData(path) != null) {
-      System.err.println("ERROR: Master lock is held, not running");
+  public void checkGlobalLock(IZooReaderWriter zk, String path) {
+    try {
+      if (ZooLock.getLockData(zk.getZooKeeper(), path) != null) {
+        System.err.println("ERROR: Master lock is held, not running");
+        System.exit(-1);
+      }
+    } catch (KeeperException e) {
+      System.err.println("ERROR: Could not read master lock, not running " + e.getMessage());
+      System.exit(-1);
+    } catch (InterruptedException e) {
+      System.err.println("ERROR: Could not read master lock, not running" + e.getMessage());
       System.exit(-1);
     }
   }
