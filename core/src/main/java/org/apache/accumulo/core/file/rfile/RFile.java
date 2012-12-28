@@ -751,7 +751,7 @@ public class RFile {
                 // just consumed one key from the input stream, so subtract one from entries left
                 entriesLeft = bie.getEntriesLeft() - 1;
                 prevKey = new Key(bie.getPrevKey());
-                currKey = bie.getKey();
+                currKey = tmpRk.getKey();
               }
             }
           }
