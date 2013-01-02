@@ -83,6 +83,7 @@ struct ActiveScan {
     10:list<data.TColumn> columns
     11:list<data.IterInfo> ssiList
     12:map<string, map<string, string>> ssio  /* Server Side Iterator Options */
+    13:list<binary> authorizations
 }
 
 struct TIteratorSetting {

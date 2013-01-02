@@ -537,7 +537,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           }
           
           activeScans.add(new ActiveScan(ss.client, ss.user, ss.extent.getTableId().toString(), ct - ss.startTime, ct - ss.lastAccessTime, ScanType.SINGLE,
-              state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translator.CT), ss.ssiList, ss.ssio));
+              state, ss.extent.toThrift(), Translator.translate(ss.columnSet, Translator.CT), ss.ssiList, ss.ssio, ss.auths.getAuthorizationsBB()));
           
         } else if (session instanceof MultiScanSession) {
           MultiScanSession mss = (MultiScanSession) session;
@@ -563,7 +563,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           }
           
           activeScans.add(new ActiveScan(mss.client, mss.user, mss.threadPoolExtent.getTableId().toString(), ct - mss.startTime, ct - mss.lastAccessTime,
-              ScanType.BATCH, state, mss.threadPoolExtent.toThrift(), Translator.translate(mss.columnSet, Translator.CT), mss.ssiList, mss.ssio));
+              ScanType.BATCH, state, mss.threadPoolExtent.toThrift(), Translator.translate(mss.columnSet, Translator.CT), mss.ssiList, mss.ssio, mss.auths.getAuthorizationsBB()));
         }
       }
       
@@ -731,6 +731,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     public HashSet<Column> columnSet;
     public List<IterInfo> ssiList;
     public Map<String,Map<String,String>> ssio;
+    public Authorizations auths;
     public long entriesReturned = 0;
     public Stat nbTimes = new Stat();
     public long batchCount = 0;
@@ -1135,13 +1136,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       scanSession.columnSet = new HashSet<Column>();
       scanSession.ssiList = ssiList;
       scanSession.ssio = ssio;
+      scanSession.auths = new Authorizations(authorizations);
       scanSession.interruptFlag = new AtomicBoolean();
       
       for (TColumn tcolumn : columns) {
         scanSession.columnSet.add(new Column(tcolumn));
       }
       
-      scanSession.scanner = tablet.createScanner(new Range(range), batchSize, scanSession.columnSet, new Authorizations(authorizations), ssiList, ssio,
+      scanSession.scanner = tablet.createScanner(new Range(range), batchSize, scanSession.columnSet, scanSession.auths, ssiList, ssio,
           isolated, scanSession.interruptFlag);
       
       long sid = sessionManager.createSession(scanSession, true);
