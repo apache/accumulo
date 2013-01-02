@@ -16,7 +16,7 @@
 # limitations under the License.
 
 # postinst script for Apache Accumulo native libraries
-if [ -z $JAVA_HOME -o ! -f $JAVA_HOME/jre/bin/ ] ; then
+if [ -z "$JAVA_HOME" -o ! -f "$JAVA_HOME/jre/bin/" ] ; then
   JAVA_HOME=`readlink -f /usr/bin/java`
   JAVA_HOME=`dirname $JAVA_HOME`
   JAVA_HOME=`cd $JAVA_HOME/../../; pwd`
