@@ -115,7 +115,7 @@ if [ -z $ACCUMULO_LOG_DIR ]; then
 fi
 
 if [ ! -d "$ACCUMULO_LOG_DIR" ]; then
-  mkdir $ACCUMULO_LOG_DIR;
+  mkdir -p $ACCUMULO_LOG_DIR;
 fi
 
 #Export the variables just in case they are not exported
