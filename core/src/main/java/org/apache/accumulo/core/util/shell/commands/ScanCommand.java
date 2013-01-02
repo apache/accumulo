@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -239,9 +240,16 @@ public class ScanCommand extends Command {
     final String user = shellState.getConnector().whoami();
     Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
     if (cl.hasOption(scanOptAuths.getOpt())) {
-      auths = CreateUserCommand.parseAuthorizations(cl.getOptionValue(scanOptAuths.getOpt()));
+      auths = ScanCommand.parseAuthorizations(cl.getOptionValue(scanOptAuths.getOpt()));
     }
     return auths;
+  }
+  
+  static Authorizations parseAuthorizations(final String field) {
+    if (field == null || field.isEmpty()) {
+      return Constants.NO_AUTHS;
+    }
+    return new Authorizations(field.split(","));
   }
   
   @Override
