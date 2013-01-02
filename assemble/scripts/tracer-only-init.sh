@@ -37,7 +37,7 @@ fi
 
 install -m 0755 -o root -g root init.d/accumulo-tracer /etc/init.d/
 if [ -e "`which update-rc.d`" ]; then 
-  update-rc.d accumulo-tracer start 21 2 3 4 5 . stop 20 0 1 6 .
+  update-rc.d accumulo-tracer start 22 2 3 4 5 . stop 20 0 1 6 .
 elif [ -e "`which chkconfig`" ]; then
   chkconfig --add accumulo-tracer
 else
