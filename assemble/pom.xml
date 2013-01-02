@@ -271,14 +271,6 @@
                       </mapper>
                     </data>
                     <data>
-                      <src>${accumulo-top}/NOTICE</src>
-                      <type>file</type>
-                      <mapper>
-                        <type>perm</type>
-                      <prefix>/usr/lib/accumulo</prefix>
-                      </mapper>
-                    </data>
-                    <data>
                       <src>${accumulo-top}/CHANGES</src>
                       <type>file</type>
                       <mapper>
@@ -321,6 +313,15 @@
                         <prefix>/usr/lib/accumulo/conf</prefix>
                       </mapper>
                       <excludes>**/.svn/**,**/accumulo-site.xml,**/accumulo-env.sh,**/accumulo-metrics.xml,**/test-*,**/slaves,**/masters,**/tracers,**/gc,**/monitor</excludes>
+                    </data>
+                    <data>
+                      <src>${accumulo-top}/conf/examples</src>
+                      <type>directory</type>
+                      <mapper>
+                        <type>perm</type>
+                        <prefix>/usr/lib/accumulo/conf/examples</prefix>
+                      </mapper>
+                      <excludes>**/.svn/**</excludes>
                     </data>
                   </dataSet>
                 </configuration>
