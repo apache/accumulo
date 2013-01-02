@@ -71,16 +71,24 @@ XML_FILES=${ACCUMULO_HOME}/conf
 CLASSPATH=${XML_FILES}:${START_JAR}:${COMMONS_JCI_JARS}:${COMMONS_VFS_JARS}:${HADOOP_CLASSPATH}
 
 if [ -z $JAVA_HOME -o ! -d $JAVA_HOME ]; then
-    echo "JAVA_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-    exit 1
+  echo "JAVA_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+  exit 1
 fi
 if [ -z $HADOOP_HOME -o ! -d $HADOOP_HOME ]; then
-    echo "HADOOP_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-    exit 1
+  echo "HADOOP_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+  exit 1
 fi
 if [ -z $ZOOKEEPER_HOME -o ! -d $ZOOKEEPER_HOME ]; then
-    echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
-    exit 1
+  echo "ZOOKEEPER_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+  exit 1
+fi
+if [ -z $ACCUMULO_LOG_DIR ]; then
+  echo "ACCUMULO_LOG_DIR is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+  exit 1
+fi
+
+if [ ! -d "$ACCUMULO_LOG_DIR" ]; then
+  mkdir $ACCUMULO_LOG_DIR;
 fi
 
 #Export the variables just in case they are not exported
