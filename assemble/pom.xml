@@ -260,7 +260,7 @@
                         <type>perm</type>
                         <prefix>/usr/lib/accumulo/lib</prefix>
                       </mapper>
-                      <excludes>**/.svn/**</excludes>
+                      <excludes>**/.svn/**,**/lib/native/**</excludes>
                     </data>
                     <data>
                       <src>${accumulo-top}/NOTICE</src>
