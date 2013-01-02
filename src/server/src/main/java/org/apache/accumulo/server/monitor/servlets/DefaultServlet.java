@@ -50,10 +50,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hdfs.DistributedFileSystem;
-import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
-import org.apache.hadoop.hdfs.protocol.FSConstants;
-import org.apache.hadoop.ipc.RemoteException;
 
 public class DefaultServlet extends BasicServlet {
   
@@ -213,10 +209,6 @@ public class DefaultServlet extends BasicServlet {
     sb.append("</td>\n");
     
     sb.append("<td class='noborder'>\n");
-    doHdfsTable(sb);
-    sb.append("</td>\n");
-    
-    sb.append("<td class='noborder'>\n");
     doZooKeeperTable(sb);
     sb.append("</td>\n");
     
@@ -292,38 +284,6 @@ public class DefaultServlet extends BasicServlet {
       } catch (Exception e) {
         log.debug(e, e);
       }
-    }
-    sb.append("</table>\n");
-  }
-  
-  private void doHdfsTable(StringBuilder sb) throws IOException {
-    // HDFS
-    Configuration conf = CachedConfiguration.getInstance();
-    DistributedFileSystem fs = (DistributedFileSystem) FileSystem.get(conf);
-    String httpAddress = conf.get("dfs.http.address");
-    String port = httpAddress.split(":")[1];
-    String href = "http://" + fs.getUri().getHost() + ":" + port;
-    String liveUrl = href + "/dfsnodelist.jsp?whatNodes=LIVE";
-    String deadUrl = href + "/dfsnodelist.jsp?whatNodes=DEAD";
-    sb.append("<table>\n");
-    sb.append("<tr><th colspan='2'><a href='" + href + "'>NameNode</a></th></tr>\n");
-    try {
-      boolean highlight = false;
-      tableRow(sb, (highlight = !highlight), "Unreplicated&nbsp;Capacity", bytes(fs.getRawCapacity()));
-      tableRow(sb, (highlight = !highlight), "%&nbsp;Used", NumberType.commas(fs.getRawUsed() * 100. / fs.getRawCapacity(), 0, 90, 0, 100) + "%");
-      tableRow(sb, (highlight = !highlight), "Corrupt&nbsp;Blocks", NumberType.commas(fs.getCorruptBlocksCount(), 0, 0));
-      DatanodeInfo[] liveNodes = fs.getClient().datanodeReport(FSConstants.DatanodeReportType.LIVE);
-      DatanodeInfo[] deadNodes = fs.getClient().datanodeReport(FSConstants.DatanodeReportType.DEAD);
-      tableRow(sb, (highlight = !highlight), "<a href='" + liveUrl + "'>Live&nbsp;Data&nbsp;Nodes</a>", NumberType.commas(liveNodes.length));
-      tableRow(sb, (highlight = !highlight), "<a href='" + deadUrl + "'>Dead&nbsp;Data&nbsp;Nodes</a>", NumberType.commas(deadNodes.length));
-      long count = 0;
-      for (DatanodeInfo stat : liveNodes)
-        count += stat.getXceiverCount();
-      tableRow(sb, (highlight = !highlight), "Xceivers", NumberType.commas(count));
-    } catch (RemoteException ex) {
-      sb.append("<tr><td colspan='2'>Permission&nbsp;Denied</td></tr>\n");
-    } catch (Exception ex) {
-      sb.append("<tr><td colspan='2'><span class='error'>Down</span></td></tr>\n");
     }
     sb.append("</table>\n");
   }
