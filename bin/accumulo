@@ -15,8 +15,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+_readlink ()
+{
+  result=`readlink -f $1 2>/dev/null`
+  if [ $? -eq 0 ];
+  then
+    echo $result
+    return 0
+  fi
 
-bin=`dirname "$0"`
+  oldPath=$1
+  if [ -n `echo $oldPath | egrep "^[.]"` ]; then
+    oldPath=`echo $1 | sed -e 's#[.]/##'`
+  fi
+  if [ -z `echo $oldPath | egrep '^/'` ]; then
+    oldPath="`pwd`/$oldPath"
+  fi
+  newPath=$oldPath
+  while [ "$newPath" ];
+  do
+    oldPath=$newPath  
+    newPath=`readlink $newPath`
+  done
+
+  echo $oldPath
+  return 0
+}
+
+bin=`_readlink $0`
+bin=`dirname "$bin"`
 bin=`cd "$bin"; pwd`
 
 . "$bin"/config.sh
