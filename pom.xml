@@ -396,6 +396,15 @@
                   </mapper>
                   <excludes>**/.svn/**,**/accumulo-site.xml,**/accumulo-env.sh,**/accumulo-metrics.xml,**/test-*,**/slaves,**/masters,**/tracers,**/gc,**/monitor</excludes>
                 </data>
+                <data>
+                  <src>conf/examples</src>
+                  <type>directory</type>
+                  <mapper>
+                    <type>perm</type>
+                    <prefix>/usr/lib/accumulo/conf/examples</prefix>
+                  </mapper>
+                  <excludes>**/.svn/**</excludes>
+                </data>
               </dataSet>
             </configuration>
           </execution>

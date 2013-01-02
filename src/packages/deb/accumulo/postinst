@@ -37,7 +37,7 @@ fi
 if [ -z $HADOOP_HOME ]; then
   HADOOP_HOME="/usr/lib/hadoop"
 fi
-for files in `ls /etc/accumulo/conf/accumulo-env.sh.*`; do
+for files in `ls /etc/accumulo/conf/examples/*/*/accumulo-env.sh`; do
   sed -i -e "s:/path/to/java:$JAVA_HOME:" $files 
   sed -i -e "s:/path/to/zookeeper:$ZOOKEEPER_HOME:" $files 
   sed -i -e "s:/path/to/hadoop:$HADOOP_HOME:" $files 
