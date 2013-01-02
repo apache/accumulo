@@ -48,7 +48,7 @@ then
   ip=`python -c 'import socket as s; print s.gethostbyname(s.getfqdn())'`
 fi
 
-if [ $HOST == localhost -o $HOST == "`hostname`" -o $HOST == "$ip" ] 
+if [ "$HOST" = "localhost" -o "$HOST" = "`hostname`" -o "$HOST" = "$ip" ] 
 then
   PID=`ps -ef | egrep ${ACCUMULO_HOME}/.*/accumulo.*.jar | grep "Main $SERVICE" | grep -v grep | awk {'print $2'} | head -1`
 else
@@ -57,7 +57,7 @@ fi
 
 if [ -z $PID ]; then
   echo "Starting $LONGNAME on $HOST"
-  if [ $HOST == localhost -o $HOST == "`hostname`" -o $HOST == "$ip" ] 
+  if [ "$HOST" = "localhost" -o "$HOST" = "`hostname`" -o "$HOST" = "$ip" ] 
   then
     ${bin}/accumulo ${SERVICE} --address $1 >${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.out 2>${ACCUMULO_LOG_DIR}/${SERVICE}_${LOGHOST}.err & 
     MAX_FILES_OPEN=`bash -c 'ulimit -n'`
