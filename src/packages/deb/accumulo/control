@@ -21,7 +21,7 @@ Package: accumulo
 Version: [[version]]
 Section: misc
 Architecture: all
-Depends: java6-runtime, hadoop, hadoop-zookeeper, coreutils, ssh-server
+Depends: java6-runtime, hadoop, zookeeper, coreutils, ssh-server
 Recommends: accumulo-native
 Description: Accumulo is a large distributed structured store based on Google's BigTable design.
 Distribution: development
