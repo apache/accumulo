@@ -60,7 +60,7 @@ public class CreateUserCommand extends Command {
       throw new IllegalArgumentException("Passwords do not match");
     }
     final Authorizations authorizations = parseAuthorizations(cl.hasOption(scanOptAuths.getOpt()) ? cl.getOptionValue(scanOptAuths.getOpt()) : "");
-    shellState.getConnector().securityOperations().createUser(user, password.getBytes(), authorizations);
+    shellState.getConnector().securityOperations().createUser(user, password.getBytes());
     Shell.log.debug("Created user " + user + " with" + (authorizations.isEmpty() ? " no" : "") + " initial scan authorizations"
         + (!authorizations.isEmpty() ? " " + authorizations : ""));
     return 0;

@@ -44,7 +44,7 @@ public class SecurityFixture extends Fixture {
     secTableName = String.format("security_%s_%s_%d", hostname, state.getPid(), System.currentTimeMillis());
     
     byte[] sysUserPass = "sysUser".getBytes();
-    conn.securityOperations().createUser(systemUserName, sysUserPass, new Authorizations());
+    conn.securityOperations().createUser(systemUserName, sysUserPass);
     sysConn = instance.getConnector(systemUserName, sysUserPass);
     
     SecurityHelper.setSystemConnector(state, sysConn);

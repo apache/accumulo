@@ -44,8 +44,23 @@ public interface SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
+   * @deprecated Use {@link #createUser(String,byte[])} instead
    */
   public void createUser(String user, byte[] password, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Create a user
+   * 
+   * @param user
+   *          the name of the user to create
+   * @param password
+   *          the plaintext password for the user
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission to create a user
+   */
+  public void createUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Delete a user

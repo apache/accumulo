@@ -65,7 +65,7 @@ public class MiniAccumuloClusterTest {
     
     conn.tableOperations().create("table1");
     
-    conn.securityOperations().createUser("user1", "pass1".getBytes(), new Authorizations("A", "B"));
+    conn.securityOperations().createUser("user1", "pass1".getBytes());
     conn.securityOperations().grantTablePermission("user1", "table1", TablePermission.WRITE);
     conn.securityOperations().grantTablePermission("user1", "table1", TablePermission.READ);
     
