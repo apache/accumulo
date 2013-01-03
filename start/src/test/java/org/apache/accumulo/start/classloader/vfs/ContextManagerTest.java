@@ -17,9 +17,7 @@
 package org.apache.accumulo.start.classloader.vfs;
 
 import java.net.URL;
-import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Set;
 
 import org.apache.accumulo.start.classloader.vfs.ContextManager.ContextConfig;
 import org.apache.accumulo.test.AccumuloDFSBase;
@@ -61,11 +59,11 @@ public class ContextManagerTest extends AccumuloDFSBase {
     ContextManager cm = new ContextManager(vfs, ClassLoader.getSystemClassLoader());
     cm.setContextConfig(new ContextConfig() {
       @Override
-      public Set<String> getContextURIs(String context) {
+      public String getContextURIs(String context) {
         if (context.equals("CX1")) {
-          return new HashSet<String>(Arrays.asList(new Path(TEST_DIR, "HelloWorld.jar").toUri().toString()));
+          return new Path(TEST_DIR, "HelloWorld.jar").toUri().toString();
         } else if (context.equals("CX2")) {
-          return new HashSet<String>(Arrays.asList(new Path(TEST_DIR2, "HelloWorld.jar").toUri().toString()));
+          return new Path(TEST_DIR2, "HelloWorld.jar").toUri().toString();
         }
         return null;
       }

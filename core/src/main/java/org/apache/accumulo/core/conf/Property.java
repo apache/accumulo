@@ -24,6 +24,7 @@ import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.interpret.DefaultScanInterpreter;
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 
 public enum Property {
   // instance properties (must be the same for every node in an instance)
@@ -44,11 +45,12 @@ public enum Property {
   // general properties
   GENERAL_PREFIX("general.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of accumulo overall, but do not have to be consistent throughout a cloud."),
-  GENERAL_CLASSPATHS(AccumuloClassLoader.CLASSPATH_PROPERTY_NAME, AccumuloClassLoader.DEFAULT_CLASSPATH_VALUE, PropertyType.STRING,
+  GENERAL_CLASSPATHS(AccumuloClassLoader.CLASSPATH_PROPERTY_NAME, AccumuloClassLoader.ACCUMULO_CLASSPATH_VALUE, PropertyType.STRING,
       "A list of all of the places to look for a class. Order does matter, as it will look for the jar "
           + "starting in the first location to the last. Please note, hadoop conf and hadoop lib directories NEED to be here, "
           + "along with accumulo lib and zookeeper directory. Supports full regex on filename alone."), // needs special treatment in accumulo start jar
-  GENERAL_DYNAMIC_CLASSPATHS(AccumuloClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME, AccumuloClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE, PropertyType.STRING,
+  GENERAL_DYNAMIC_CLASSPATHS(AccumuloVFSClassLoader.DYNAMIC_CLASSPATH_PROPERTY_NAME, AccumuloVFSClassLoader.DEFAULT_DYNAMIC_CLASSPATH_VALUE,
+      PropertyType.STRING,
       "A list of all of the places where changes in jars or classes will force a reload of the classloader."),
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION, "Time to wait on I/O for simple, short RPC calls"),
   GENERAL_KERBEROS_KEYTAB("general.kerberos.keytab", "", PropertyType.PATH, "Path to the kerberos keytab to use. Leave blank if not using kerberoized hdfs"),
@@ -295,12 +297,9 @@ public enum Property {
       
       
   //VFS ClassLoader properties
-  VFS_CLASSLOADER_PREFIX("classloader.vfs", null, PropertyType.PREFIX, "Properties in this category affect the VFS ClassLoader"),
-  VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY("classloader.vfs.context.classpath.system", "", PropertyType.STRING,
-          "Classpath for the system context"),
-  VFS_CLASSLOADER_CONTEXT_NAMES_PROPERTY("classloader.vfs.context.names", "", PropertyType.STRING, 
-          "Comma separated list of context names"),
-  VFS_CONTEXT_CLASSPATH_PROPERTY("classloader.vfs.context.classpath.", null, PropertyType.PREFIX, "Classpath for this context");
+  VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
+      "Configuration for a system level vfs classloader.  Accumulo jar can be configured here and loaded out of HDFS."),
+  VFS_CONTEXT_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY, null, PropertyType.PREFIX, "Classpath for this context");
       
   
 

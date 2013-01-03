@@ -98,11 +98,6 @@
 			values.
 		</description>
 	</property>
-
-	<!-- VFS ClassLoader Settings -->
-	<property>
-		<name>classloader.vfs.enabled</name>
-		<value>true</value>
-	</property>
+	
 
 </configuration>

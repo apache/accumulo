@@ -17,47 +17,31 @@
 package org.apache.accumulo.start.classloader.vfs;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
-import org.apache.commons.vfs2.FileType;
 
 public class ContextManager {
   
   // there is a lock per context so that one context can initialize w/o blocking another context
   private class Context {
     AccumuloReloadingVFSClassLoader loader;
-    Set<String> uris;
+    String uris;
     boolean closed = false;
     
-    Context(Set<String> uris) {
-      this.uris = new HashSet<String>(uris);
+    Context(String uris) {
+      this.uris = uris;
     }
     
     synchronized AccumuloReloadingVFSClassLoader getClassLoader() throws FileSystemException {
       if (closed)
         return null;
-
+      
       if (loader == null) {
-        ArrayList<FileObject> defaultClassPath = new ArrayList<FileObject>();
-        for (String path : uris) {
-          FileObject fo = vfs.resolveFile(path);
-          if (fo.getType().equals(FileType.FILE)) {
-            defaultClassPath.add(fo);
-          } else {
-            for (FileObject child : fo.getChildren()) {
-              defaultClassPath.add(child);
-            }
-          }
-        }
-        
-        loader = new AccumuloReloadingVFSClassLoader(defaultClassPath.toArray(new FileObject[0]), vfs, parent);
+        loader = new AccumuloReloadingVFSClassLoader(uris, vfs, parent);
       }
       
       return loader;
@@ -82,7 +66,7 @@ public class ContextManager {
   }
   
   public interface ContextConfig {
-    Set<String> getContextURIs(String context);
+    String getContextURIs(String context);
     
     boolean isIsolated(String context);
   }
@@ -100,7 +84,7 @@ public class ContextManager {
   
   public ClassLoader getClassLoader(String contextName) throws FileSystemException {
 
-    Set<String> uris = config.getContextURIs(contextName);
+    String uris = config.getContextURIs(contextName);
     
     if (uris == null)
       throw new IllegalArgumentException("Unknown context " + contextName);

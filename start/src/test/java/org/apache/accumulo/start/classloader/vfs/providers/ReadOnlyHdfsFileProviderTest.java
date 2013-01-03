@@ -14,11 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.commons.vfs2.provider;
+package org.apache.accumulo.start.classloader.vfs.providers;
 
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileObject;
+import org.apache.accumulo.start.classloader.vfs.providers.ReadOnlyHdfsFileProvider;
 import org.apache.accumulo.test.AccumuloDFSBase;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;

@@ -55,7 +55,8 @@ public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
   public void testConstructor() throws Exception {
     FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
     FileObject[] dirContents = testDir.getChildren();
-    cl = new AccumuloReloadingVFSClassLoader(dirContents, vfs, ClassLoader.getSystemClassLoader());
+    
+    cl = new AccumuloReloadingVFSClassLoader(TEST_DIR.toUri().toString(), vfs, ClassLoader.getSystemClassLoader());
     FileObject[] files = cl.getFiles();
     Assert.assertArrayEquals(dirContents, files);
   }
@@ -64,7 +65,8 @@ public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
   public void testReloading() throws Exception {
     FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
     FileObject[] dirContents = testDir.getChildren();
-    cl = new AccumuloReloadingVFSClassLoader(dirContents, vfs, ClassLoader.getSystemClassLoader(), 1000);
+    
+    cl = new AccumuloReloadingVFSClassLoader(TEST_DIR.toUri().toString(), vfs, ClassLoader.getSystemClassLoader(), 1000);
     FileObject[] files = cl.getFiles();
     Assert.assertArrayEquals(dirContents, files);
 

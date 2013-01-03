@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.commons.vfs2.provider;
+package org.apache.accumulo.start.classloader.vfs.providers;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,6 +26,7 @@ import org.apache.commons.vfs2.FileSystem;
 import org.apache.commons.vfs2.FileSystemConfigBuilder;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemOptions;
+import org.apache.commons.vfs2.provider.AbstractOriginatingFileProvider;
 import org.apache.commons.vfs2.provider.http.HttpFileNameParser;
 
 public class ReadOnlyHdfsFileProvider extends AbstractOriginatingFileProvider {

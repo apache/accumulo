@@ -3065,14 +3065,14 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         }
         
         @Override
-        public Set<String> getContextURIs(String context) {
+        public String getContextURIs(String context) {
           String key = Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + context;
           
           Iterator<Entry<String,String>> iter = getSystemConfiguration().iterator();
           while (iter.hasNext()) {
             Entry<String,String> entry = iter.next();
             if (entry.getKey().equals(key)) {
-              return new HashSet<String>(Arrays.asList(entry.getValue().split(",")));
+              return entry.getValue();
             }
           }
           

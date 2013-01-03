@@ -48,11 +48,7 @@ bin=`cd "$bin"; pwd`
 
 . "$bin"/config.sh
 
-START_JAR=$ACCUMULO_HOME/lib/accumulo-start-$ACCUMULO_VERSION.jar
-COMMONS_JCI_JARS=$ACCUMULO_HOME/lib/commons-jci-core-1.0.jar:$ACCUMULO_HOME/lib/commons-jci-fam-1.0.jar:$ACCUMULO_HOME/lib/log4j-1.2.16.jar:$ACCUMULO_HOME/lib/commons-logging-1.0.4.jar:$ACCUMULO_HOME/lib/commons-logging-api-1.0.4.jar
-START_CLASSES_DIR=$ACCUMULO_HOME/src/start/target/classes
-COMMONS_VFS_JARS=$ACCUMULO_HOME/lib/commons-vfs2-2.0.jar
-HADOOP_CLASSPATH=`$HADOOP_HOME/bin/hadoop classpath`
+START_JAR=$ACCUMULO_HOME/lib/accumulo-start-$ACCUMULO_VERSION.jar:$ACCUMULO_HOME/lib/log4j-1.2.16.jar
 
 locationByProgram() 
 {
@@ -95,7 +91,7 @@ else
 fi
 
 XML_FILES=${ACCUMULO_HOME}/conf
-CLASSPATH=${XML_FILES}:${START_JAR}:${COMMONS_JCI_JARS}:${COMMONS_VFS_JARS}:${HADOOP_CLASSPATH}
+CLASSPATH=${XML_FILES}:${START_JAR}
 
 if [ -z $JAVA_HOME -o ! -d $JAVA_HOME ]; then
   echo "JAVA_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"

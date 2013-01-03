@@ -101,11 +101,7 @@
 
 	<!-- VFS ClassLoader Settings -->
 	<property>
-		<name>classloader.vfs.enabled</name>
-		<value>true</value>
-	</property>
-	<property>
-		<name>classloader.vfs.context.classpath.system</name>
+		<name>general.vfs.classpaths</name>
 		<value>hdfs://localhost:8620/accumulo/classpath</value>
 	</property>
 

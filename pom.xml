@@ -144,7 +144,7 @@
             <configuration>
               <outputDirectory>../lib</outputDirectory>
               <!-- just grab the non-provided runtime dependencies -->
-              <includeArtifactIds>commons-collections,commons-configuration,commons-io,commons-lang,jline,log4j,libthrift,commons-jci-core,commons-jci-fam,commons-logging,commons-logging-api,commons-vfs2,gson,jcommander</includeArtifactIds>
+              <includeArtifactIds>commons-collections,commons-configuration,commons-io,commons-lang,jline,log4j,libthrift,commons-logging,commons-logging-api,commons-vfs2,gson,jcommander</includeArtifactIds>
               <excludeTransitive>true</excludeTransitive>
             </configuration>
           </execution>
@@ -195,11 +195,6 @@
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <configuration>
-          <environmentVariables>
-             <ACCUMULO_HOME>..</ACCUMULO_HOME>
-          </environmentVariables>
-        </configuration>
       </plugin>
     </plugins>
 

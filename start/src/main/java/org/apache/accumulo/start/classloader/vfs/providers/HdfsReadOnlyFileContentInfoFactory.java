@@ -14,32 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.commons.vfs2.provider;
+package org.apache.accumulo.start.classloader.vfs.providers;
 
-import org.apache.commons.vfs2.FileSystem;
-import org.apache.commons.vfs2.FileSystemConfigBuilder;
+import org.apache.commons.vfs2.FileContent;
+import org.apache.commons.vfs2.FileContentInfo;
+import org.apache.commons.vfs2.FileContentInfoFactory;
+import org.apache.commons.vfs2.FileSystemException;
+import org.apache.commons.vfs2.impl.DefaultFileContentInfo;
 
-public class HdfsFileSystemConfigBuilder extends FileSystemConfigBuilder {
+public class HdfsReadOnlyFileContentInfoFactory implements FileContentInfoFactory {
 
-  private final static HdfsFileSystemConfigBuilder BUILDER = new HdfsFileSystemConfigBuilder(); 
-  
-  private String hdfsUri = null;
-  
-  public String getHdfsUri() {
-    return hdfsUri;
-  }
-
-  public void setHdfsUri(String hdfsUri) {
-    this.hdfsUri = hdfsUri;
-  }
-
-  @Override
-  protected Class<? extends FileSystem> getConfigClass() {
-    return ReadOnlyHdfsFileSystem.class;
-  }
-  
-  public static HdfsFileSystemConfigBuilder getInstance() {
-    return BUILDER;
+  public FileContentInfo create(FileContent fileContent) throws FileSystemException {
+    //TODO: Need to figure out a way to get this information from the file.
+    String content = "text/plain";
+    String encoding = "UTF-8";
+    return new DefaultFileContentInfo(content, encoding);
   }
   
 }

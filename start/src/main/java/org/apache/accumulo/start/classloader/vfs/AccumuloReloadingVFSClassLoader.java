@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.security.SecureClassLoader;
+import java.util.ArrayList;
 import java.util.Enumeration;
 
 import org.apache.commons.vfs2.FileChangeEvent;
@@ -44,21 +45,46 @@ public class AccumuloReloadingVFSClassLoader extends SecureClassLoader implement
   /* 5 minute timeout */
   private static final int DEFAULT_TIMEOUT = 300000;
   
-  private FileObject[] files = null;
+  private String uris;
+  private FileObject[] files;
   private FileSystemManager vfs = null;
   private ClassLoader parent = null;
   private DefaultFileMonitor monitor = null;
   private volatile VFSClassLoader cl = null;
-  
-  public AccumuloReloadingVFSClassLoader(FileObject[] files, FileSystemManager vfs, ClassLoader parent) throws FileSystemException {
-    this(files, vfs, parent, DEFAULT_TIMEOUT);
+
+  private synchronized VFSClassLoader getClassloader() {
+    if (cl == null) {
+      try {
+        files = AccumuloVFSClassLoader.resolve(vfs, uris);
+        
+        if (null != parent)
+          setClassloader(new VFSClassLoader(files, vfs, parent));
+        else
+          setClassloader(new VFSClassLoader(files, vfs));
+
+      } catch (FileSystemException fse) {
+        throw new RuntimeException(fse);
+      }
+    }
+    
+    return cl;
   }
   
-  public AccumuloReloadingVFSClassLoader(FileObject[] files, FileSystemManager vfs, ClassLoader parent, long monitorDelay) throws FileSystemException {
-    this.files = files;
+  private synchronized void setClassloader(VFSClassLoader cl) {
+    this.cl = cl;
+    
+  }
+
+  public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs, ClassLoader parent, long monitorDelay) throws FileSystemException {
+    super(parent);
+    
+    this.uris = uris;
     this.vfs = vfs;
     this.parent = parent;
     
+    ArrayList<FileObject> pathsToMonitor = new ArrayList<FileObject>();
+    files = AccumuloVFSClassLoader.resolve(vfs, uris, pathsToMonitor);
+
     if (null != parent)
       cl = new VFSClassLoader(files, vfs, parent);
     else
@@ -66,12 +92,18 @@ public class AccumuloReloadingVFSClassLoader extends SecureClassLoader implement
     
     monitor = new DefaultFileMonitor(this);
     monitor.setDelay(monitorDelay);
-    monitor.setRecursive(true);
-    for (FileObject file : files)
+    monitor.setRecursive(false);
+    for (FileObject file : pathsToMonitor) {
       monitor.addFile(file);
+      log.debug("monitoring " + file);
+    }
     monitor.start();
   }
   
+  public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs, ClassLoader parent) throws FileSystemException {
+    this(uris, vfs, parent, DEFAULT_TIMEOUT);
+  }
+
   public FileObject[] getFiles() {
     return this.files;
   }
@@ -86,24 +118,24 @@ public class AccumuloReloadingVFSClassLoader extends SecureClassLoader implement
   public void fileCreated(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
       log.debug(event.getFile().getURL().toString() + " created, recreating classloader");
-    cl = new VFSClassLoader(files, vfs, parent);
+    setClassloader(null);
   }
 
   public void fileDeleted(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
       log.debug(event.getFile().getURL().toString() + " changed, recreating classloader");
-    cl = new VFSClassLoader(files, vfs, parent);
+    setClassloader(null);
   }
 
   public void fileChanged(FileChangeEvent event) throws Exception {
     if (log.isDebugEnabled())
       log.debug(event.getFile().getURL().toString() + " deleted, recreating classloader");
-    cl = new VFSClassLoader(files, vfs, parent);
+    setClassloader(null);
   }
 
   @Override
   public Class<?> loadClass(String name) throws ClassNotFoundException {
-     return this.cl.loadClass(name);
+     return this.getClassloader().loadClass(name);
   }
   
   @Override
@@ -118,37 +150,37 @@ public class AccumuloReloadingVFSClassLoader extends SecureClassLoader implement
 
   @Override
   public URL getResource(String name) {
-    return this.cl.getResource(name);
+    return this.getClassloader().getResource(name);
   }
 
   @Override
   public Enumeration<URL> getResources(String name) throws IOException {
-    return this.cl.getResources(name);
+    return this.getClassloader().getResources(name);
   }
 
   @Override
   public InputStream getResourceAsStream(String name) {
-    return this.cl.getResourceAsStream(name);
+    return this.getClassloader().getResourceAsStream(name);
   }
 
   @Override
   public synchronized void setDefaultAssertionStatus(boolean enabled) {
-    this.cl.setDefaultAssertionStatus(enabled);
+    this.getClassloader().setDefaultAssertionStatus(enabled);
   }
 
   @Override
   public synchronized void setPackageAssertionStatus(String packageName, boolean enabled) {
-    this.cl.setPackageAssertionStatus(packageName, enabled);
+    this.getClassloader().setPackageAssertionStatus(packageName, enabled);
   }
 
   @Override
   public synchronized void setClassAssertionStatus(String className, boolean enabled) {
-    this.cl.setClassAssertionStatus(className, enabled);
+    this.getClassloader().setClassAssertionStatus(className, enabled);
   }
 
   @Override
   public synchronized void clearAssertionStatus() {
-    this.cl.clearAssertionStatus();
+    this.getClassloader().clearAssertionStatus();
   }
   
   @Override
@@ -165,5 +197,7 @@ public class AccumuloReloadingVFSClassLoader extends SecureClassLoader implement
     
     return buf.toString();
   }
+
+
   
 }
