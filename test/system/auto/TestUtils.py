@@ -57,7 +57,7 @@ General_CLASSPATH = """
     $ACCUMULO_HOME/examples/simple/target/classes,
     $ACCUMULO_HOME/lib/[^.].$ACCUMULO_VERSION.jar, 
     $ACCUMULO_HOME/lib/[^.].*.jar, 
-    $ZOOKEEPER_HOME/zookeeper[^.].*.jar,"
+    $ZOOKEEPER_HOME/zookeeper[^.].*.jar,
     $HADOOP_HOME/conf,$HADOOP_HOME/[^.].*.jar, 
     $HADOOP_HOME/lib/[^.].*.jar
 """
