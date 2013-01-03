@@ -48,7 +48,7 @@ class WriteLots(unittest.TestCase, TestUtilsMixin):
 
     def runTest(self):
         N = 10*len(self.hosts)
-        waitTime = 60 * N * self.options.rows / 200000 + 30
+        waitTime = 60 * N * self.options.rows / 200000 + 90
 
         log.info("Starting %d clients", N)
         handles = []
