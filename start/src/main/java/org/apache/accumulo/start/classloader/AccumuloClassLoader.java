@@ -61,15 +61,7 @@ public class AccumuloClassLoader {
       // accumulo home should be set
       SITE_CONF = System.getenv("ACCUMULO_HOME") + "/conf/" + configFile;
     } else {
-      try {
-        URL siteUrl = AccumuloClassLoader.getClassLoader().getResource(configFile);
-        if (siteUrl != null)
-          SITE_CONF = siteUrl.toString();
-        else
-          SITE_CONF = null;
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
+      SITE_CONF = null;
     }
 
     //Register the shutdown hook
@@ -192,7 +184,11 @@ public class AccumuloClassLoader {
           if (extJars != null && extJars.length > 0) {
             for (File jar : extJars)
               urls.add(jar.toURI().toURL());
+          } else {
+            log.warn("ignoring classpath entry " + classpath);
           }
+        } else {
+          log.warn("ignoring classpath entry " + classpath);
         }
       }
     } else {
