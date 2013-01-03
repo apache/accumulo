@@ -50,12 +50,20 @@ fi
 # Replicate to all slaves to avoid network contention on startup
 #
 NUM_SLAVES=`wc -l $ACCUMULO_HOME/conf/slaves | grep -P '^\d+(?= )' -o`
-$HADOOP_HOME/bin/hadoop fs -setrep -R $NUM_SLAVES $SYSTEM_CONTEXT_HDFS_DIR  > /dev/null
+
+#let each datanode service around 50 clients
+let "REP=$NUM_SLAVES/50"
+
+if [ $REP -lt 3 ]; then
+  REP=3
+fi
 
 #
 # Copy all jars in lib to the system context directory
 #
 hadoop fs -moveFromLocal $ACCUMULO_HOME/lib/*.jar $SYSTEM_CONTEXT_HDFS_DIR  > /dev/null
+
+$HADOOP_HOME/bin/hadoop fs -setrep -R $REP $SYSTEM_CONTEXT_HDFS_DIR  > /dev/null
 
 #
 # We need two of the jars in lib, copy them back out and remove them from the system context dir
