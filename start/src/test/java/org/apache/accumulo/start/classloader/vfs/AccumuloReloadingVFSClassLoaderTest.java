@@ -20,6 +20,8 @@ import java.net.URL;
 
 import org.apache.accumulo.test.AccumuloDFSBase;
 import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSystemException;
+import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
@@ -34,8 +36,7 @@ public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
   private static final Path TEST_DIR = new Path(HDFS_URI + "/test-dir");
 
   private FileSystem hdfs = null;
-  private AccumuloReloadingVFSClassLoader cl = null;
- 
+
   @Before
   public void setup() throws Exception {
     Logger.getRootLogger().setLevel(Level.ERROR);
@@ -51,14 +52,36 @@ public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
     
   }
   
+  FileObject[] createFileSystems(FileObject[] fos) throws FileSystemException {
+    FileObject[] rfos = new FileObject[fos.length];
+    for (int i = 0; i < fos.length; i++) {
+      if (vfs.canCreateFileSystem(fos[i]))
+        rfos[i] = vfs.createFileSystem(fos[i]);
+      else
+        rfos[i] = fos[i];
+    }
+    
+    return rfos;
+  }
+
   @Test
   public void testConstructor() throws Exception {
     FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
     FileObject[] dirContents = testDir.getChildren();
     
-    cl = new AccumuloReloadingVFSClassLoader(TEST_DIR.toUri().toString(), vfs, ClassLoader.getSystemClassLoader());
-    FileObject[] files = cl.getFiles();
-    Assert.assertArrayEquals(dirContents, files);
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(TEST_DIR.toUri().toString(), vfs, new ReloadingClassLoader() {
+      @Override
+      public ClassLoader getClassLoader() {
+        return ClassLoader.getSystemClassLoader();
+      }
+    });
+    
+    VFSClassLoader cl = (VFSClassLoader) arvcl.getClassLoader();
+    
+    FileObject[] files = cl.getFileObjects();
+    Assert.assertArrayEquals(createFileSystems(dirContents), files);
+    
+    arvcl.close();
   }
   
   @Test
@@ -66,16 +89,22 @@ public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
     FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
     FileObject[] dirContents = testDir.getChildren();
     
-    cl = new AccumuloReloadingVFSClassLoader(TEST_DIR.toUri().toString(), vfs, ClassLoader.getSystemClassLoader(), 1000);
-    FileObject[] files = cl.getFiles();
-    Assert.assertArrayEquals(dirContents, files);
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(TEST_DIR.toUri().toString(), vfs, new ReloadingClassLoader() {
+      @Override
+      public ClassLoader getClassLoader() {
+        return ClassLoader.getSystemClassLoader();
+      }
+    }, 1000);
+    
+    FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
+    Assert.assertArrayEquals(createFileSystems(dirContents), files);
 
-    Class<?> clazz1 = cl.loadClass("test.HelloWorld");
+    Class<?> clazz1 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
     Assert.assertEquals("Hello World!", o1.toString());
 
     //Check that the class is the same before the update
-    Class<?> clazz1_5 = cl.loadClass("test.HelloWorld");
+    Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Assert.assertEquals(clazz1, clazz1_5);
     
     //Update the class
@@ -87,7 +116,7 @@ public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
     //Wait for the monitor to notice
     Thread.sleep(2000);
     
-    Class<?> clazz2 = cl.loadClass("test.HelloWorld");
+    Class<?> clazz2 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Object o2 = clazz2.newInstance();
     Assert.assertEquals("Hello World!", o2.toString());
     
@@ -95,11 +124,11 @@ public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
     Assert.assertFalse(clazz1.equals(clazz2));
     Assert.assertFalse(o1.equals(o2));
     
+    arvcl.close();
   }
   
   @After
   public void tearDown() throws Exception {
-    cl.close();
     this.hdfs.delete(TEST_DIR, true);
   }
 

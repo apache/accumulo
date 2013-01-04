@@ -55,7 +55,7 @@ public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
     Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", new File(defaultDir.getPath() + "/conf/accumulo-site.xml").toURI().toURL().toString());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
     ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
-    Assert.assertTrue((acl instanceof AccumuloReloadingVFSClassLoader));
+    Assert.assertTrue((acl instanceof VFSClassLoader));
     Assert.assertTrue((acl.getParent() instanceof URLClassLoader));
 
     // URLClassLoader ucl = (URLClassLoader) acl;
@@ -88,7 +88,7 @@ public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
     Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", new File(defaultDir.getPath() + "/conf/accumulo-site.xml").toURI().toURL().toString());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
     ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
-    Assert.assertTrue((acl instanceof AccumuloReloadingVFSClassLoader));
+    Assert.assertTrue((acl instanceof VFSClassLoader));
     Assert.assertTrue((acl.getParent() instanceof VFSClassLoader));
     VFSClassLoader arvcl = (VFSClassLoader) acl.getParent();
     Assert.assertEquals(1, arvcl.getFileObjects().length);

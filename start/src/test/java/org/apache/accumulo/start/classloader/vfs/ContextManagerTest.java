@@ -22,6 +22,8 @@ import java.util.HashSet;
 import org.apache.accumulo.start.classloader.vfs.ContextManager.ContextConfig;
 import org.apache.accumulo.test.AccumuloDFSBase;
 import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSystemException;
+import org.apache.commons.vfs2.impl.VFSClassLoader;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.After;
@@ -53,10 +55,28 @@ public class ContextManagerTest extends AccumuloDFSBase {
 
   }
 
+  FileObject[] createFileSystems(FileObject[] fos) throws FileSystemException {
+    FileObject[] rfos = new FileObject[fos.length];
+    for (int i = 0; i < fos.length; i++) {
+      if (vfs.canCreateFileSystem(fos[i]))
+        rfos[i] = vfs.createFileSystem(fos[i]);
+      else
+        rfos[i] = fos[i];
+    }
+    
+    return rfos;
+  }
+
   @Test
   public void differentContexts() throws Exception {
     
-    ContextManager cm = new ContextManager(vfs, ClassLoader.getSystemClassLoader());
+    ContextManager cm = new ContextManager(vfs, new ReloadingClassLoader() {
+      @Override
+      public ClassLoader getClassLoader() {
+        return ClassLoader.getSystemClassLoader();
+      }
+    });
+
     cm.setContextConfig(new ContextConfig() {
       @Override
       public String getContextURIs(String context) {
@@ -78,15 +98,14 @@ public class ContextManagerTest extends AccumuloDFSBase {
     FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
     FileObject[] dirContents = testDir.getChildren();
     ClassLoader cl1 = cm.getClassLoader("CX1");
-    FileObject[] files = ((AccumuloReloadingVFSClassLoader) cl1).getFiles();
-    Assert.assertArrayEquals(dirContents, files);
-
+    FileObject[] files = ((VFSClassLoader) cl1).getFileObjects();
+    Assert.assertArrayEquals(createFileSystems(dirContents), files);
 
     FileObject testDir2 = vfs.resolveFile(TEST_DIR2.toUri().toString());
     FileObject[] dirContents2 = testDir2.getChildren();
     ClassLoader cl2 = cm.getClassLoader("CX2");
-    FileObject[] files2 = ((AccumuloReloadingVFSClassLoader) cl2).getFiles();
-    Assert.assertArrayEquals(dirContents2, files2);
+    FileObject[] files2 = ((VFSClassLoader) cl2).getFileObjects();
+    Assert.assertArrayEquals(createFileSystems(dirContents2), files2);
     
     Class<?> defaultContextClass = cl1.loadClass("test.HelloWorld");
     Object o1 = defaultContextClass.newInstance();

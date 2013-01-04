@@ -76,7 +76,7 @@ public class AccumuloVFSClassLoader {
   
   private static DefaultFileSystemManager vfs = null;
   private static ClassLoader parent = null;
-  private static volatile ClassLoader loader = null;
+  private static volatile ReloadingClassLoader loader = null;
   private static final Object lock = new Object();
 
   private static ContextManager contextManager;
@@ -154,7 +154,7 @@ public class AccumuloVFSClassLoader {
     return classpath.toArray(new FileObject[classpath.size()]);
   }
 
-  private static ClassLoader createDynamicClassloader(ClassLoader parent) throws FileSystemException, IOException {
+  private static ReloadingClassLoader createDynamicClassloader(final ClassLoader parent) throws FileSystemException, IOException {
     String dynamicCPath = AccumuloClassLoader.getAccumuloString(DYNAMIC_CLASSPATH_PROPERTY_NAME, DEFAULT_DYNAMIC_CLASSPATH_VALUE);
     
     String envJars = System.getenv("ACCUMULO_XTRAJARS");
@@ -164,15 +164,22 @@ public class AccumuloVFSClassLoader {
       else
         dynamicCPath = envJars;
     
+    ReloadingClassLoader wrapper = new ReloadingClassLoader() {
+      @Override
+      public ClassLoader getClassLoader() {
+        return parent;
+      }
+    };
+
     if (dynamicCPath == null || dynamicCPath.equals(""))
-      return parent;
+      return wrapper;
 
     // TODO monitor time for lib/ext was 1 sec... should this be configurable?
-    return new AccumuloReloadingVFSClassLoader(dynamicCPath, vfs, parent, 1000);
+    return new AccumuloReloadingVFSClassLoader(dynamicCPath, vfs, wrapper, 1000);
   }
 
   public static ClassLoader getClassLoader() throws IOException {
-    ClassLoader localLoader = loader;
+    ReloadingClassLoader localLoader = loader;
     while (null == localLoader) {
       synchronized (lock) {
         if (null == loader) {
@@ -229,17 +236,17 @@ public class AccumuloVFSClassLoader {
           if (vfsCP.length == 0) {
             localLoader = createDynamicClassloader(parent);
             loader = localLoader;
-            return localLoader;
+            return localLoader.getClassLoader();
           }
           
           //Create the Accumulo Context ClassLoader using the DEFAULT_CONTEXT
-          localLoader = new VFSClassLoader(vfsCP, vfs, parent);
-          localLoader = createDynamicClassloader(localLoader);
+          localLoader = createDynamicClassloader(new VFSClassLoader(vfsCP, vfs, parent));
           loader = localLoader;
         }
       }
     }
-    return localLoader;
+
+    return localLoader.getClassLoader();
   }
   
   public static void printClassPath() {
@@ -271,8 +278,6 @@ public class AccumuloVFSClassLoader {
               System.out.println("\t" + u.toExternalForm());
             }
 
-        } else if (classLoader instanceof AccumuloReloadingVFSClassLoader) {
-          System.out.println("VFS classpaths items are:\n" + classLoader.toString());
         } else if (classLoader instanceof VFSClassLoader) {
           System.out.println("VFS classpaths items are:");
           VFSClassLoader vcl = (VFSClassLoader) classLoader;
@@ -291,10 +296,17 @@ public class AccumuloVFSClassLoader {
 
   
   public static synchronized ContextManager getContextManager() throws IOException {
-    // TODO is there problem with using this lck?
-    
     if (contextManager == null) {
-      contextManager = new ContextManager(vfs, getClassLoader());
+      contextManager = new ContextManager(vfs, new ReloadingClassLoader() {
+        @Override
+        public ClassLoader getClassLoader() {
+          try {
+            return AccumuloVFSClassLoader.getClassLoader();
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      });
     }
 
     return contextManager;

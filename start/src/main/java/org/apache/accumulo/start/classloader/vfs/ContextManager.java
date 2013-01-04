@@ -58,9 +58,9 @@ public class ContextManager {
 
   private volatile ContextConfig config;
   private FileSystemManager vfs;
-  private ClassLoader parent;
+  private ReloadingClassLoader parent;
   
-  ContextManager(FileSystemManager vfs, ClassLoader parent) {
+  ContextManager(FileSystemManager vfs, ReloadingClassLoader parent) {
     this.vfs = vfs;
     this.parent = parent;
   }
@@ -116,7 +116,7 @@ public class ContextManager {
       return getClassLoader(contextName);
     }
     
-    return loader;
+    return loader.getClassLoader();
 
   }
   
