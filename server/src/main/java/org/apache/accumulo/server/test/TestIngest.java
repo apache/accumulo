@@ -208,7 +208,7 @@ public class TestIngest {
             AccumuloConfiguration.getDefaultConfiguration());
         writer.startDefaultLocalityGroup();
       } else {
-        bw = connector.createBatchWriter("test_ingest", new BatchWriterConfig());
+        bw = connector.createBatchWriter(opts.getTableName(), new BatchWriterConfig());
       }
       connector.securityOperations().changeUserAuthorizations(opts.user, AUTHS);
       Text labBA = new Text(opts.columnVisibility.getExpression());
