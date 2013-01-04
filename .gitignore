@@ -153,3 +153,7 @@
 /test/system/continuous/continuous-env.sh
 /test/system/continuous/walkers.txt
 /test/system/continuous/ingesters.txt
+
+# JetBrains IDE
+.idea
+*.iml
