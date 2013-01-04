@@ -43,6 +43,7 @@ do
 	thrift ${THRIFT_ARGS} --gen java $f || fail unable to generate java thrift classes
 	thrift ${THRIFT_ARGS} --gen py $f || fail unable to generate python thrift classes
 	thrift ${THRIFT_ARGS} --gen rb $f || fail unable to generate ruby thrift classes
+	thrift ${THRIFT_ARGS} --gen cpp $f || fail unable to generate cpp thrift classes
 done
 find target/gen-java -name '*.java' -print | xargs sed -i.orig -e 's/public class /@SuppressWarnings("all") public class /'
 find target/gen-java -name '*.java' -print | xargs sed -i.orig -e 's/public enum /@SuppressWarnings("all") public enum /'

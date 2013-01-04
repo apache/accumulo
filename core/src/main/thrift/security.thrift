@@ -15,6 +15,7 @@
 * limitations under the License.
 */
 namespace java org.apache.accumulo.core.security.thrift
+namespace cpp org.apache.accumulo.core.security.thrift
 
 enum SecurityErrorCode {
     DEFAULT_SECURITY_ERROR = 0,

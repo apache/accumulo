@@ -32,9 +32,9 @@ public class CompactionsType extends CellType<TableInfo> {
     if (obj == null)
       return "-";
     TableInfo summary = (TableInfo) obj;
-    Compacting c = summary.major;
+    Compacting c = summary.majors;
     if (fieldName.equals("minor"))
-      c = summary.minor;
+      c = summary.minors;
     else if (fieldName.equals("scans"))
       c = summary.scans;
     if (c == null)
@@ -48,11 +48,11 @@ public class CompactionsType extends CellType<TableInfo> {
       return -1;
     if (o2 == null)
       return 1;
-    Compacting c1 = o1.major;
-    Compacting c2 = o2.major;
+    Compacting c1 = o1.majors;
+    Compacting c2 = o2.majors;
     if (fieldName.equals("minor")) {
-      c1 = o1.minor;
-      c2 = o2.minor;
+      c1 = o1.minors;
+      c2 = o2.minors;
     } else if (fieldName.equals("scans")) {
       c1 = o1.scans;
       c2 = o2.scans;

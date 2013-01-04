@@ -15,6 +15,7 @@
 * limitations under the License.
 */
 namespace java org.apache.accumulo.core.data.thrift
+namespace cpp org.apache.accumulo.core.data.thrift
 
 typedef i64 ScanID
 typedef i64 UpdateID

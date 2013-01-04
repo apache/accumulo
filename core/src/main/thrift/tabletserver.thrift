@@ -15,6 +15,7 @@
 * limitations under the License.
 */
 namespace java org.apache.accumulo.core.tabletserver.thrift
+namespace cpp org.apache.accumulo.core.tabletserver.thrift
 
 include "data.thrift"
 include "security.thrift"
@@ -50,9 +51,9 @@ struct ActionStats {
 
 struct TabletStats {
     1:data.TKeyExtent extent
-    2:ActionStats major
-    3:ActionStats minor
-    4:ActionStats split
+    2:ActionStats majors
+    3:ActionStats minors
+    4:ActionStats splits
     5:i64 numEntries
     6:double ingestRate
     7:double queryRate

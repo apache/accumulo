@@ -34,9 +34,9 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TabletStats");
 
   private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-  private static final org.apache.thrift.protocol.TField MAJOR_FIELD_DESC = new org.apache.thrift.protocol.TField("major", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-  private static final org.apache.thrift.protocol.TField MINOR_FIELD_DESC = new org.apache.thrift.protocol.TField("minor", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-  private static final org.apache.thrift.protocol.TField SPLIT_FIELD_DESC = new org.apache.thrift.protocol.TField("split", org.apache.thrift.protocol.TType.STRUCT, (short)4);
+  private static final org.apache.thrift.protocol.TField MAJORS_FIELD_DESC = new org.apache.thrift.protocol.TField("majors", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+  private static final org.apache.thrift.protocol.TField MINORS_FIELD_DESC = new org.apache.thrift.protocol.TField("minors", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+  private static final org.apache.thrift.protocol.TField SPLITS_FIELD_DESC = new org.apache.thrift.protocol.TField("splits", org.apache.thrift.protocol.TType.STRUCT, (short)4);
   private static final org.apache.thrift.protocol.TField NUM_ENTRIES_FIELD_DESC = new org.apache.thrift.protocol.TField("numEntries", org.apache.thrift.protocol.TType.I64, (short)5);
   private static final org.apache.thrift.protocol.TField INGEST_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("ingestRate", org.apache.thrift.protocol.TType.DOUBLE, (short)6);
   private static final org.apache.thrift.protocol.TField QUERY_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("queryRate", org.apache.thrift.protocol.TType.DOUBLE, (short)7);
@@ -49,9 +49,9 @@ import org.slf4j.LoggerFactory;
   }
 
   public org.apache.accumulo.core.data.thrift.TKeyExtent extent; // required
-  public ActionStats major; // required
-  public ActionStats minor; // required
-  public ActionStats split; // required
+  public ActionStats majors; // required
+  public ActionStats minors; // required
+  public ActionStats splits; // required
   public long numEntries; // required
   public double ingestRate; // required
   public double queryRate; // required
@@ -60,9 +60,9 @@ import org.slf4j.LoggerFactory;
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     EXTENT((short)1, "extent"),
-    MAJOR((short)2, "major"),
-    MINOR((short)3, "minor"),
-    SPLIT((short)4, "split"),
+    MAJORS((short)2, "majors"),
+    MINORS((short)3, "minors"),
+    SPLITS((short)4, "splits"),
     NUM_ENTRIES((short)5, "numEntries"),
     INGEST_RATE((short)6, "ingestRate"),
     QUERY_RATE((short)7, "queryRate"),
@@ -83,12 +83,12 @@ import org.slf4j.LoggerFactory;
       switch(fieldId) {
         case 1: // EXTENT
           return EXTENT;
-        case 2: // MAJOR
-          return MAJOR;
-        case 3: // MINOR
-          return MINOR;
-        case 4: // SPLIT
-          return SPLIT;
+        case 2: // MAJORS
+          return MAJORS;
+        case 3: // MINORS
+          return MINORS;
+        case 4: // SPLITS
+          return SPLITS;
         case 5: // NUM_ENTRIES
           return NUM_ENTRIES;
         case 6: // INGEST_RATE
@@ -147,11 +147,11 @@ import org.slf4j.LoggerFactory;
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.data.thrift.TKeyExtent.class)));
-    tmpMap.put(_Fields.MAJOR, new org.apache.thrift.meta_data.FieldMetaData("major", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.MAJORS, new org.apache.thrift.meta_data.FieldMetaData("majors", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ActionStats.class)));
-    tmpMap.put(_Fields.MINOR, new org.apache.thrift.meta_data.FieldMetaData("minor", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.MINORS, new org.apache.thrift.meta_data.FieldMetaData("minors", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ActionStats.class)));
-    tmpMap.put(_Fields.SPLIT, new org.apache.thrift.meta_data.FieldMetaData("split", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.SPLITS, new org.apache.thrift.meta_data.FieldMetaData("splits", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ActionStats.class)));
     tmpMap.put(_Fields.NUM_ENTRIES, new org.apache.thrift.meta_data.FieldMetaData("numEntries", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
@@ -170,9 +170,9 @@ import org.slf4j.LoggerFactory;
 
   public TabletStats(
     org.apache.accumulo.core.data.thrift.TKeyExtent extent,
-    ActionStats major,
-    ActionStats minor,
-    ActionStats split,
+    ActionStats majors,
+    ActionStats minors,
+    ActionStats splits,
     long numEntries,
     double ingestRate,
     double queryRate,
@@ -180,9 +180,9 @@ import org.slf4j.LoggerFactory;
   {
     this();
     this.extent = extent;
-    this.major = major;
-    this.minor = minor;
-    this.split = split;
+    this.majors = majors;
+    this.minors = minors;
+    this.splits = splits;
     this.numEntries = numEntries;
     setNumEntriesIsSet(true);
     this.ingestRate = ingestRate;
@@ -201,14 +201,14 @@ import org.slf4j.LoggerFactory;
     if (other.isSetExtent()) {
       this.extent = new org.apache.accumulo.core.data.thrift.TKeyExtent(other.extent);
     }
-    if (other.isSetMajor()) {
-      this.major = new ActionStats(other.major);
+    if (other.isSetMajors()) {
+      this.majors = new ActionStats(other.majors);
     }
-    if (other.isSetMinor()) {
-      this.minor = new ActionStats(other.minor);
+    if (other.isSetMinors()) {
+      this.minors = new ActionStats(other.minors);
     }
-    if (other.isSetSplit()) {
-      this.split = new ActionStats(other.split);
+    if (other.isSetSplits()) {
+      this.splits = new ActionStats(other.splits);
     }
     this.numEntries = other.numEntries;
     this.ingestRate = other.ingestRate;
@@ -223,9 +223,9 @@ import org.slf4j.LoggerFactory;
   @Override
   public void clear() {
     this.extent = null;
-    this.major = null;
-    this.minor = null;
-    this.split = null;
+    this.majors = null;
+    this.minors = null;
+    this.splits = null;
     setNumEntriesIsSet(false);
     this.numEntries = 0;
     setIngestRateIsSet(false);
@@ -260,75 +260,75 @@ import org.slf4j.LoggerFactory;
     }
   }
 
-  public ActionStats getMajor() {
-    return this.major;
+  public ActionStats getMajors() {
+    return this.majors;
   }
 
-  public TabletStats setMajor(ActionStats major) {
-    this.major = major;
+  public TabletStats setMajors(ActionStats majors) {
+    this.majors = majors;
     return this;
   }
 
-  public void unsetMajor() {
-    this.major = null;
+  public void unsetMajors() {
+    this.majors = null;
   }
 
-  /** Returns true if field major is set (has been assigned a value) and false otherwise */
-  public boolean isSetMajor() {
-    return this.major != null;
+  /** Returns true if field majors is set (has been assigned a value) and false otherwise */
+  public boolean isSetMajors() {
+    return this.majors != null;
   }
 
-  public void setMajorIsSet(boolean value) {
+  public void setMajorsIsSet(boolean value) {
     if (!value) {
-      this.major = null;
+      this.majors = null;
     }
   }
 
-  public ActionStats getMinor() {
-    return this.minor;
+  public ActionStats getMinors() {
+    return this.minors;
   }
 
-  public TabletStats setMinor(ActionStats minor) {
-    this.minor = minor;
+  public TabletStats setMinors(ActionStats minors) {
+    this.minors = minors;
     return this;
   }
 
-  public void unsetMinor() {
-    this.minor = null;
+  public void unsetMinors() {
+    this.minors = null;
   }
 
-  /** Returns true if field minor is set (has been assigned a value) and false otherwise */
-  public boolean isSetMinor() {
-    return this.minor != null;
+  /** Returns true if field minors is set (has been assigned a value) and false otherwise */
+  public boolean isSetMinors() {
+    return this.minors != null;
   }
 
-  public void setMinorIsSet(boolean value) {
+  public void setMinorsIsSet(boolean value) {
     if (!value) {
-      this.minor = null;
+      this.minors = null;
     }
   }
 
-  public ActionStats getSplit() {
-    return this.split;
+  public ActionStats getSplits() {
+    return this.splits;
   }
 
-  public TabletStats setSplit(ActionStats split) {
-    this.split = split;
+  public TabletStats setSplits(ActionStats splits) {
+    this.splits = splits;
     return this;
   }
 
-  public void unsetSplit() {
-    this.split = null;
+  public void unsetSplits() {
+    this.splits = null;
   }
 
-  /** Returns true if field split is set (has been assigned a value) and false otherwise */
-  public boolean isSetSplit() {
-    return this.split != null;
+  /** Returns true if field splits is set (has been assigned a value) and false otherwise */
+  public boolean isSetSplits() {
+    return this.splits != null;
   }
 
-  public void setSplitIsSet(boolean value) {
+  public void setSplitsIsSet(boolean value) {
     if (!value) {
-      this.split = null;
+      this.splits = null;
     }
   }
 
@@ -434,27 +434,27 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
-    case MAJOR:
+    case MAJORS:
       if (value == null) {
-        unsetMajor();
+        unsetMajors();
       } else {
-        setMajor((ActionStats)value);
+        setMajors((ActionStats)value);
       }
       break;
 
-    case MINOR:
+    case MINORS:
       if (value == null) {
-        unsetMinor();
+        unsetMinors();
       } else {
-        setMinor((ActionStats)value);
+        setMinors((ActionStats)value);
       }
       break;
 
-    case SPLIT:
+    case SPLITS:
       if (value == null) {
-        unsetSplit();
+        unsetSplits();
       } else {
-        setSplit((ActionStats)value);
+        setSplits((ActionStats)value);
       }
       break;
 
@@ -498,14 +498,14 @@ import org.slf4j.LoggerFactory;
     case EXTENT:
       return getExtent();
 
-    case MAJOR:
-      return getMajor();
+    case MAJORS:
+      return getMajors();
 
-    case MINOR:
-      return getMinor();
+    case MINORS:
+      return getMinors();
 
-    case SPLIT:
-      return getSplit();
+    case SPLITS:
+      return getSplits();
 
     case NUM_ENTRIES:
       return Long.valueOf(getNumEntries());
@@ -532,12 +532,12 @@ import org.slf4j.LoggerFactory;
     switch (field) {
     case EXTENT:
       return isSetExtent();
-    case MAJOR:
-      return isSetMajor();
-    case MINOR:
-      return isSetMinor();
-    case SPLIT:
-      return isSetSplit();
+    case MAJORS:
+      return isSetMajors();
+    case MINORS:
+      return isSetMinors();
+    case SPLITS:
+      return isSetSplits();
     case NUM_ENTRIES:
       return isSetNumEntries();
     case INGEST_RATE:
@@ -572,30 +572,30 @@ import org.slf4j.LoggerFactory;
         return false;
     }
 
-    boolean this_present_major = true && this.isSetMajor();
-    boolean that_present_major = true && that.isSetMajor();
-    if (this_present_major || that_present_major) {
-      if (!(this_present_major && that_present_major))
+    boolean this_present_majors = true && this.isSetMajors();
+    boolean that_present_majors = true && that.isSetMajors();
+    if (this_present_majors || that_present_majors) {
+      if (!(this_present_majors && that_present_majors))
         return false;
-      if (!this.major.equals(that.major))
-        return false;
-    }
-
-    boolean this_present_minor = true && this.isSetMinor();
-    boolean that_present_minor = true && that.isSetMinor();
-    if (this_present_minor || that_present_minor) {
-      if (!(this_present_minor && that_present_minor))
-        return false;
-      if (!this.minor.equals(that.minor))
+      if (!this.majors.equals(that.majors))
         return false;
     }
 
-    boolean this_present_split = true && this.isSetSplit();
-    boolean that_present_split = true && that.isSetSplit();
-    if (this_present_split || that_present_split) {
-      if (!(this_present_split && that_present_split))
+    boolean this_present_minors = true && this.isSetMinors();
+    boolean that_present_minors = true && that.isSetMinors();
+    if (this_present_minors || that_present_minors) {
+      if (!(this_present_minors && that_present_minors))
         return false;
-      if (!this.split.equals(that.split))
+      if (!this.minors.equals(that.minors))
+        return false;
+    }
+
+    boolean this_present_splits = true && this.isSetSplits();
+    boolean that_present_splits = true && that.isSetSplits();
+    if (this_present_splits || that_present_splits) {
+      if (!(this_present_splits && that_present_splits))
+        return false;
+      if (!this.splits.equals(that.splits))
         return false;
     }
 
@@ -661,32 +661,32 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetMajor()).compareTo(typedOther.isSetMajor());
+    lastComparison = Boolean.valueOf(isSetMajors()).compareTo(typedOther.isSetMajors());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetMajor()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.major, typedOther.major);
+    if (isSetMajors()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.majors, typedOther.majors);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetMinor()).compareTo(typedOther.isSetMinor());
+    lastComparison = Boolean.valueOf(isSetMinors()).compareTo(typedOther.isSetMinors());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetMinor()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.minor, typedOther.minor);
+    if (isSetMinors()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.minors, typedOther.minors);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetSplit()).compareTo(typedOther.isSetSplit());
+    lastComparison = Boolean.valueOf(isSetSplits()).compareTo(typedOther.isSetSplits());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetSplit()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.split, typedOther.split);
+    if (isSetSplits()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.splits, typedOther.splits);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -759,27 +759,27 @@ import org.slf4j.LoggerFactory;
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("major:");
-    if (this.major == null) {
+    sb.append("majors:");
+    if (this.majors == null) {
       sb.append("null");
     } else {
-      sb.append(this.major);
+      sb.append(this.majors);
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("minor:");
-    if (this.minor == null) {
+    sb.append("minors:");
+    if (this.minors == null) {
       sb.append("null");
     } else {
-      sb.append(this.minor);
+      sb.append(this.minors);
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("split:");
-    if (this.split == null) {
+    sb.append("splits:");
+    if (this.splits == null) {
       sb.append("null");
     } else {
-      sb.append(this.split);
+      sb.append(this.splits);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -808,14 +808,14 @@ import org.slf4j.LoggerFactory;
     if (extent != null) {
       extent.validate();
     }
-    if (major != null) {
-      major.validate();
+    if (majors != null) {
+      majors.validate();
     }
-    if (minor != null) {
-      minor.validate();
+    if (minors != null) {
+      minors.validate();
     }
-    if (split != null) {
-      split.validate();
+    if (splits != null) {
+      splits.validate();
     }
   }
 
@@ -864,29 +864,29 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // MAJOR
+          case 2: // MAJORS
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.major = new ActionStats();
-              struct.major.read(iprot);
-              struct.setMajorIsSet(true);
+              struct.majors = new ActionStats();
+              struct.majors.read(iprot);
+              struct.setMajorsIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 3: // MINOR
+          case 3: // MINORS
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.minor = new ActionStats();
-              struct.minor.read(iprot);
-              struct.setMinorIsSet(true);
+              struct.minors = new ActionStats();
+              struct.minors.read(iprot);
+              struct.setMinorsIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 4: // SPLIT
+          case 4: // SPLITS
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.split = new ActionStats();
-              struct.split.read(iprot);
-              struct.setSplitIsSet(true);
+              struct.splits = new ActionStats();
+              struct.splits.read(iprot);
+              struct.setSplitsIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -943,19 +943,19 @@ import org.slf4j.LoggerFactory;
         struct.extent.write(oprot);
         oprot.writeFieldEnd();
       }
-      if (struct.major != null) {
-        oprot.writeFieldBegin(MAJOR_FIELD_DESC);
-        struct.major.write(oprot);
+      if (struct.majors != null) {
+        oprot.writeFieldBegin(MAJORS_FIELD_DESC);
+        struct.majors.write(oprot);
         oprot.writeFieldEnd();
       }
-      if (struct.minor != null) {
-        oprot.writeFieldBegin(MINOR_FIELD_DESC);
-        struct.minor.write(oprot);
+      if (struct.minors != null) {
+        oprot.writeFieldBegin(MINORS_FIELD_DESC);
+        struct.minors.write(oprot);
         oprot.writeFieldEnd();
       }
-      if (struct.split != null) {
-        oprot.writeFieldBegin(SPLIT_FIELD_DESC);
-        struct.split.write(oprot);
+      if (struct.splits != null) {
+        oprot.writeFieldBegin(SPLITS_FIELD_DESC);
+        struct.splits.write(oprot);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldBegin(NUM_ENTRIES_FIELD_DESC);
@@ -991,13 +991,13 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetExtent()) {
         optionals.set(0);
       }
-      if (struct.isSetMajor()) {
+      if (struct.isSetMajors()) {
         optionals.set(1);
       }
-      if (struct.isSetMinor()) {
+      if (struct.isSetMinors()) {
         optionals.set(2);
       }
-      if (struct.isSetSplit()) {
+      if (struct.isSetSplits()) {
         optionals.set(3);
       }
       if (struct.isSetNumEntries()) {
@@ -1016,14 +1016,14 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetExtent()) {
         struct.extent.write(oprot);
       }
-      if (struct.isSetMajor()) {
-        struct.major.write(oprot);
+      if (struct.isSetMajors()) {
+        struct.majors.write(oprot);
       }
-      if (struct.isSetMinor()) {
-        struct.minor.write(oprot);
+      if (struct.isSetMinors()) {
+        struct.minors.write(oprot);
       }
-      if (struct.isSetSplit()) {
-        struct.split.write(oprot);
+      if (struct.isSetSplits()) {
+        struct.splits.write(oprot);
       }
       if (struct.isSetNumEntries()) {
         oprot.writeI64(struct.numEntries);
@@ -1049,19 +1049,19 @@ import org.slf4j.LoggerFactory;
         struct.setExtentIsSet(true);
       }
       if (incoming.get(1)) {
-        struct.major = new ActionStats();
-        struct.major.read(iprot);
-        struct.setMajorIsSet(true);
+        struct.majors = new ActionStats();
+        struct.majors.read(iprot);
+        struct.setMajorsIsSet(true);
       }
       if (incoming.get(2)) {
-        struct.minor = new ActionStats();
-        struct.minor.read(iprot);
-        struct.setMinorIsSet(true);
+        struct.minors = new ActionStats();
+        struct.minors.read(iprot);
+        struct.setMinorsIsSet(true);
       }
       if (incoming.get(3)) {
-        struct.split = new ActionStats();
-        struct.split.read(iprot);
-        struct.setSplitIsSet(true);
+        struct.splits = new ActionStats();
+        struct.splits.read(iprot);
+        struct.setSplitsIsSet(true);
       }
       if (incoming.get(4)) {
         struct.numEntries = iprot.readI64();

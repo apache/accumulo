@@ -20,7 +20,8 @@
 
 # Generates the cloudtrace thrift code. We're explicitly using thrift0.6 because other versions
 # are not compatible
-thrift -o target -gen java src/main/thrift/cloudtrace.thrift
+thrift -o target --gen java src/main/thrift/cloudtrace.thrift
+thrift -o target --gen cpp src/main/thrift/cloudtrace.thrift
 
 # For all generated thrift code, suppress all warnings
 find target/gen-java -name '*.java' -print | xargs sed -i.orig -e 's/public class /@SuppressWarnings("all") public class /'

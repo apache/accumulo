@@ -167,19 +167,19 @@ public class Monitor {
   }
   
   public static void add(TableInfo total, TableInfo more) {
-    if (total.minor == null)
-      total.minor = new Compacting();
-    if (total.major == null)
-      total.major = new Compacting();
+    if (total.minors == null)
+      total.minors = new Compacting();
+    if (total.majors == null)
+      total.majors = new Compacting();
     if (total.scans == null)
       total.scans = new Compacting();
-    if (more.minor != null) {
-      total.minor.running += more.minor.running;
-      total.minor.queued += more.minor.queued;
+    if (more.minors != null) {
+      total.minors.running += more.minors.running;
+      total.minors.queued += more.minors.queued;
     }
-    if (more.major != null) {
-      total.major.running += more.major.running;
-      total.major.queued += more.major.queued;
+    if (more.majors != null) {
+      total.majors.running += more.majors.running;
+      total.majors.queued += more.majors.queued;
     }
     if (more.scans != null) {
       total.scans.running += more.scans.running;
@@ -198,8 +198,8 @@ public class Monitor {
   
   public static TableInfo summarizeTableStats(TabletServerStatus status) {
     TableInfo summary = new TableInfo();
-    summary.major = new Compacting();
-    summary.minor = new Compacting();
+    summary.majors = new Compacting();
+    summary.minors = new Compacting();
     summary.scans = new Compacting();
     for (TableInfo rates : status.tableMap.values()) {
       add(summary, rates);
@@ -319,7 +319,7 @@ public class Monitor {
         indexCacheRequestTracker.startingUpdates();
         dataCacheHitTracker.startingUpdates();
         dataCacheRequestTracker.startingUpdates();
-
+        
         for (TabletServerStatus server : mmi.tServerInfo) {
           TableInfo summary = Monitor.summarizeTableStats(server);
           totalIngestRate += summary.ingestRate;
@@ -330,8 +330,8 @@ public class Monitor {
           totalEntries += summary.recs;
           totalHoldTime += server.holdTime;
           totalLookups += server.lookups;
-          majorCompactions += summary.major.running;
-          minorCompactions += summary.minor.running;
+          majorCompactions += summary.majors.running;
+          minorCompactions += summary.minors.running;
           lookupRateTracker.updateTabletServer(server.name, server.lastContact, server.lookups);
           indexCacheHitTracker.updateTabletServer(server.name, server.lastContact, server.indexCacheHits);
           indexCacheRequestTracker.updateTabletServer(server.name, server.lastContact, server.indexCacheRequest);

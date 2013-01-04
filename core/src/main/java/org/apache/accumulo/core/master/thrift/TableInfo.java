@@ -41,8 +41,8 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField INGEST_BYTE_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("ingestByteRate", org.apache.thrift.protocol.TType.DOUBLE, (short)6);
   private static final org.apache.thrift.protocol.TField QUERY_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("queryRate", org.apache.thrift.protocol.TType.DOUBLE, (short)7);
   private static final org.apache.thrift.protocol.TField QUERY_BYTE_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("queryByteRate", org.apache.thrift.protocol.TType.DOUBLE, (short)8);
-  private static final org.apache.thrift.protocol.TField MINOR_FIELD_DESC = new org.apache.thrift.protocol.TField("minor", org.apache.thrift.protocol.TType.STRUCT, (short)9);
-  private static final org.apache.thrift.protocol.TField MAJOR_FIELD_DESC = new org.apache.thrift.protocol.TField("major", org.apache.thrift.protocol.TType.STRUCT, (short)10);
+  private static final org.apache.thrift.protocol.TField MINORS_FIELD_DESC = new org.apache.thrift.protocol.TField("minors", org.apache.thrift.protocol.TType.STRUCT, (short)9);
+  private static final org.apache.thrift.protocol.TField MAJORS_FIELD_DESC = new org.apache.thrift.protocol.TField("majors", org.apache.thrift.protocol.TType.STRUCT, (short)10);
   private static final org.apache.thrift.protocol.TField SCANS_FIELD_DESC = new org.apache.thrift.protocol.TField("scans", org.apache.thrift.protocol.TType.STRUCT, (short)11);
   private static final org.apache.thrift.protocol.TField SCAN_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("scanRate", org.apache.thrift.protocol.TType.DOUBLE, (short)12);
 
@@ -60,8 +60,8 @@ import org.slf4j.LoggerFactory;
   public double ingestByteRate; // required
   public double queryRate; // required
   public double queryByteRate; // required
-  public Compacting minor; // required
-  public Compacting major; // required
+  public Compacting minors; // required
+  public Compacting majors; // required
   public Compacting scans; // required
   public double scanRate; // required
 
@@ -75,8 +75,8 @@ import org.slf4j.LoggerFactory;
     INGEST_BYTE_RATE((short)6, "ingestByteRate"),
     QUERY_RATE((short)7, "queryRate"),
     QUERY_BYTE_RATE((short)8, "queryByteRate"),
-    MINOR((short)9, "minor"),
-    MAJOR((short)10, "major"),
+    MINORS((short)9, "minors"),
+    MAJORS((short)10, "majors"),
     SCANS((short)11, "scans"),
     SCAN_RATE((short)12, "scanRate");
 
@@ -109,10 +109,10 @@ import org.slf4j.LoggerFactory;
           return QUERY_RATE;
         case 8: // QUERY_BYTE_RATE
           return QUERY_BYTE_RATE;
-        case 9: // MINOR
-          return MINOR;
-        case 10: // MAJOR
-          return MAJOR;
+        case 9: // MINORS
+          return MINORS;
+        case 10: // MAJORS
+          return MAJORS;
         case 11: // SCANS
           return SCANS;
         case 12: // SCAN_RATE
@@ -186,9 +186,9 @@ import org.slf4j.LoggerFactory;
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     tmpMap.put(_Fields.QUERY_BYTE_RATE, new org.apache.thrift.meta_data.FieldMetaData("queryByteRate", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
-    tmpMap.put(_Fields.MINOR, new org.apache.thrift.meta_data.FieldMetaData("minor", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.MINORS, new org.apache.thrift.meta_data.FieldMetaData("minors", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Compacting.class)));
-    tmpMap.put(_Fields.MAJOR, new org.apache.thrift.meta_data.FieldMetaData("major", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.MAJORS, new org.apache.thrift.meta_data.FieldMetaData("majors", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Compacting.class)));
     tmpMap.put(_Fields.SCANS, new org.apache.thrift.meta_data.FieldMetaData("scans", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Compacting.class)));
@@ -210,8 +210,8 @@ import org.slf4j.LoggerFactory;
     double ingestByteRate,
     double queryRate,
     double queryByteRate,
-    Compacting minor,
-    Compacting major,
+    Compacting minors,
+    Compacting majors,
     Compacting scans,
     double scanRate)
   {
@@ -232,8 +232,8 @@ import org.slf4j.LoggerFactory;
     setQueryRateIsSet(true);
     this.queryByteRate = queryByteRate;
     setQueryByteRateIsSet(true);
-    this.minor = minor;
-    this.major = major;
+    this.minors = minors;
+    this.majors = majors;
     this.scans = scans;
     this.scanRate = scanRate;
     setScanRateIsSet(true);
@@ -252,11 +252,11 @@ import org.slf4j.LoggerFactory;
     this.ingestByteRate = other.ingestByteRate;
     this.queryRate = other.queryRate;
     this.queryByteRate = other.queryByteRate;
-    if (other.isSetMinor()) {
-      this.minor = new Compacting(other.minor);
+    if (other.isSetMinors()) {
+      this.minors = new Compacting(other.minors);
     }
-    if (other.isSetMajor()) {
-      this.major = new Compacting(other.major);
+    if (other.isSetMajors()) {
+      this.majors = new Compacting(other.majors);
     }
     if (other.isSetScans()) {
       this.scans = new Compacting(other.scans);
@@ -286,8 +286,8 @@ import org.slf4j.LoggerFactory;
     this.queryRate = 0.0;
     setQueryByteRateIsSet(false);
     this.queryByteRate = 0.0;
-    this.minor = null;
-    this.major = null;
+    this.minors = null;
+    this.majors = null;
     this.scans = null;
     setScanRateIsSet(false);
     this.scanRate = 0.0;
@@ -477,51 +477,51 @@ import org.slf4j.LoggerFactory;
     __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __QUERYBYTERATE_ISSET_ID, value);
   }
 
-  public Compacting getMinor() {
-    return this.minor;
+  public Compacting getMinors() {
+    return this.minors;
   }
 
-  public TableInfo setMinor(Compacting minor) {
-    this.minor = minor;
+  public TableInfo setMinors(Compacting minors) {
+    this.minors = minors;
     return this;
   }
 
-  public void unsetMinor() {
-    this.minor = null;
+  public void unsetMinors() {
+    this.minors = null;
   }
 
-  /** Returns true if field minor is set (has been assigned a value) and false otherwise */
-  public boolean isSetMinor() {
-    return this.minor != null;
+  /** Returns true if field minors is set (has been assigned a value) and false otherwise */
+  public boolean isSetMinors() {
+    return this.minors != null;
   }
 
-  public void setMinorIsSet(boolean value) {
+  public void setMinorsIsSet(boolean value) {
     if (!value) {
-      this.minor = null;
+      this.minors = null;
     }
   }
 
-  public Compacting getMajor() {
-    return this.major;
+  public Compacting getMajors() {
+    return this.majors;
   }
 
-  public TableInfo setMajor(Compacting major) {
-    this.major = major;
+  public TableInfo setMajors(Compacting majors) {
+    this.majors = majors;
     return this;
   }
 
-  public void unsetMajor() {
-    this.major = null;
+  public void unsetMajors() {
+    this.majors = null;
   }
 
-  /** Returns true if field major is set (has been assigned a value) and false otherwise */
-  public boolean isSetMajor() {
-    return this.major != null;
+  /** Returns true if field majors is set (has been assigned a value) and false otherwise */
+  public boolean isSetMajors() {
+    return this.majors != null;
   }
 
-  public void setMajorIsSet(boolean value) {
+  public void setMajorsIsSet(boolean value) {
     if (!value) {
-      this.major = null;
+      this.majors = null;
     }
   }
 
@@ -638,19 +638,19 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
-    case MINOR:
+    case MINORS:
       if (value == null) {
-        unsetMinor();
+        unsetMinors();
       } else {
-        setMinor((Compacting)value);
+        setMinors((Compacting)value);
       }
       break;
 
-    case MAJOR:
+    case MAJORS:
       if (value == null) {
-        unsetMajor();
+        unsetMajors();
       } else {
-        setMajor((Compacting)value);
+        setMajors((Compacting)value);
       }
       break;
 
@@ -699,11 +699,11 @@ import org.slf4j.LoggerFactory;
     case QUERY_BYTE_RATE:
       return Double.valueOf(getQueryByteRate());
 
-    case MINOR:
-      return getMinor();
+    case MINORS:
+      return getMinors();
 
-    case MAJOR:
-      return getMajor();
+    case MAJORS:
+      return getMajors();
 
     case SCANS:
       return getScans();
@@ -738,10 +738,10 @@ import org.slf4j.LoggerFactory;
       return isSetQueryRate();
     case QUERY_BYTE_RATE:
       return isSetQueryByteRate();
-    case MINOR:
-      return isSetMinor();
-    case MAJOR:
-      return isSetMajor();
+    case MINORS:
+      return isSetMinors();
+    case MAJORS:
+      return isSetMajors();
     case SCANS:
       return isSetScans();
     case SCAN_RATE:
@@ -835,21 +835,21 @@ import org.slf4j.LoggerFactory;
         return false;
     }
 
-    boolean this_present_minor = true && this.isSetMinor();
-    boolean that_present_minor = true && that.isSetMinor();
-    if (this_present_minor || that_present_minor) {
-      if (!(this_present_minor && that_present_minor))
+    boolean this_present_minors = true && this.isSetMinors();
+    boolean that_present_minors = true && that.isSetMinors();
+    if (this_present_minors || that_present_minors) {
+      if (!(this_present_minors && that_present_minors))
         return false;
-      if (!this.minor.equals(that.minor))
+      if (!this.minors.equals(that.minors))
         return false;
     }
 
-    boolean this_present_major = true && this.isSetMajor();
-    boolean that_present_major = true && that.isSetMajor();
-    if (this_present_major || that_present_major) {
-      if (!(this_present_major && that_present_major))
+    boolean this_present_majors = true && this.isSetMajors();
+    boolean that_present_majors = true && that.isSetMajors();
+    if (this_present_majors || that_present_majors) {
+      if (!(this_present_majors && that_present_majors))
         return false;
-      if (!this.major.equals(that.major))
+      if (!this.majors.equals(that.majors))
         return false;
     }
 
@@ -967,22 +967,22 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetMinor()).compareTo(typedOther.isSetMinor());
+    lastComparison = Boolean.valueOf(isSetMinors()).compareTo(typedOther.isSetMinors());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetMinor()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.minor, typedOther.minor);
+    if (isSetMinors()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.minors, typedOther.minors);
       if (lastComparison != 0) {
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetMajor()).compareTo(typedOther.isSetMajor());
+    lastComparison = Boolean.valueOf(isSetMajors()).compareTo(typedOther.isSetMajors());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetMajor()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.major, typedOther.major);
+    if (isSetMajors()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.majors, typedOther.majors);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -1059,19 +1059,19 @@ import org.slf4j.LoggerFactory;
     sb.append(this.queryByteRate);
     first = false;
     if (!first) sb.append(", ");
-    sb.append("minor:");
-    if (this.minor == null) {
+    sb.append("minors:");
+    if (this.minors == null) {
       sb.append("null");
     } else {
-      sb.append(this.minor);
+      sb.append(this.minors);
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("major:");
-    if (this.major == null) {
+    sb.append("majors:");
+    if (this.majors == null) {
       sb.append("null");
     } else {
-      sb.append(this.major);
+      sb.append(this.majors);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -1093,11 +1093,11 @@ import org.slf4j.LoggerFactory;
   public void validate() throws org.apache.thrift.TException {
     // check for required fields
     // check for sub-struct validity
-    if (minor != null) {
-      minor.validate();
+    if (minors != null) {
+      minors.validate();
     }
-    if (major != null) {
-      major.validate();
+    if (majors != null) {
+      majors.validate();
     }
     if (scans != null) {
       scans.validate();
@@ -1204,20 +1204,20 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 9: // MINOR
+          case 9: // MINORS
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.minor = new Compacting();
-              struct.minor.read(iprot);
-              struct.setMinorIsSet(true);
+              struct.minors = new Compacting();
+              struct.minors.read(iprot);
+              struct.setMinorsIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 10: // MAJOR
+          case 10: // MAJORS
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.major = new Compacting();
-              struct.major.read(iprot);
-              struct.setMajorIsSet(true);
+              struct.majors = new Compacting();
+              struct.majors.read(iprot);
+              struct.setMajorsIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -1278,14 +1278,14 @@ import org.slf4j.LoggerFactory;
       oprot.writeFieldBegin(QUERY_BYTE_RATE_FIELD_DESC);
       oprot.writeDouble(struct.queryByteRate);
       oprot.writeFieldEnd();
-      if (struct.minor != null) {
-        oprot.writeFieldBegin(MINOR_FIELD_DESC);
-        struct.minor.write(oprot);
+      if (struct.minors != null) {
+        oprot.writeFieldBegin(MINORS_FIELD_DESC);
+        struct.minors.write(oprot);
         oprot.writeFieldEnd();
       }
-      if (struct.major != null) {
-        oprot.writeFieldBegin(MAJOR_FIELD_DESC);
-        struct.major.write(oprot);
+      if (struct.majors != null) {
+        oprot.writeFieldBegin(MAJORS_FIELD_DESC);
+        struct.majors.write(oprot);
         oprot.writeFieldEnd();
       }
       if (struct.scans != null) {
@@ -1338,10 +1338,10 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetQueryByteRate()) {
         optionals.set(7);
       }
-      if (struct.isSetMinor()) {
+      if (struct.isSetMinors()) {
         optionals.set(8);
       }
-      if (struct.isSetMajor()) {
+      if (struct.isSetMajors()) {
         optionals.set(9);
       }
       if (struct.isSetScans()) {
@@ -1375,11 +1375,11 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetQueryByteRate()) {
         oprot.writeDouble(struct.queryByteRate);
       }
-      if (struct.isSetMinor()) {
-        struct.minor.write(oprot);
+      if (struct.isSetMinors()) {
+        struct.minors.write(oprot);
       }
-      if (struct.isSetMajor()) {
-        struct.major.write(oprot);
+      if (struct.isSetMajors()) {
+        struct.majors.write(oprot);
       }
       if (struct.isSetScans()) {
         struct.scans.write(oprot);
@@ -1426,14 +1426,14 @@ import org.slf4j.LoggerFactory;
         struct.setQueryByteRateIsSet(true);
       }
       if (incoming.get(8)) {
-        struct.minor = new Compacting();
-        struct.minor.read(iprot);
-        struct.setMinorIsSet(true);
+        struct.minors = new Compacting();
+        struct.minors.read(iprot);
+        struct.setMinorsIsSet(true);
       }
       if (incoming.get(9)) {
-        struct.major = new Compacting();
-        struct.major.read(iprot);
-        struct.setMajorIsSet(true);
+        struct.majors = new Compacting();
+        struct.majors.read(iprot);
+        struct.setMajorsIsSet(true);
       }
       if (incoming.get(10)) {
         struct.scans = new Compacting();
