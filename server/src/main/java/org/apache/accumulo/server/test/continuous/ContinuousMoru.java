@@ -21,6 +21,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Key;
@@ -124,7 +125,8 @@ public class ContinuousMoru extends Configured implements Tool {
   @Override
   public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
     Opts opts = new Opts();
-    opts.parseArgs(ContinuousMoru.class.getName(), args);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(ContinuousMoru.class.getName(), args, bwOpts);
     
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
@@ -146,9 +148,9 @@ public class ContinuousMoru extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setMaxLatency(job.getConfiguration(), (int) (opts.batchLatency / 1000.0));
-    AccumuloOutputFormat.setMaxMutationBufferSize(job.getConfiguration(), opts.batchMemory);
-    AccumuloOutputFormat.setMaxWriteThreads(job.getConfiguration(), opts.batchThreads);
+    AccumuloOutputFormat.setMaxLatency(job.getConfiguration(), (int) (bwOpts.batchLatency / 1000.0));
+    AccumuloOutputFormat.setMaxMutationBufferSize(job.getConfiguration(), bwOpts.batchMemory);
+    AccumuloOutputFormat.setMaxWriteThreads(job.getConfiguration(), bwOpts.batchThreads);
     
     Configuration conf = job.getConfiguration();
     conf.setLong(MIN, opts.min);

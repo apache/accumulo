@@ -23,8 +23,12 @@ import com.beust.jcommander.ParameterException;
 public class Help {
   @Parameter(names={"-h", "-?", "--help", "-help"}, help=true)
   public boolean help = false;
-  public void parseArgs(String programName, String[] args) {
-    JCommander commander = new JCommander(this);
+  
+  public void parseArgs(String programName, String[] args, Object ... others) {
+    JCommander commander = new JCommander();
+    commander.addObject(this);
+    for (Object other : others)
+      commander.addObject(other);
     commander.setProgramName(programName);
     try {
       commander.parse(args);

@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.Random;
 
 import org.apache.accumulo.server.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.data.Mutation;
@@ -83,13 +84,14 @@ public class RandomWriter {
   }
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts(table_name);
-    opts.parseArgs(RandomWriter.class.getName(), args);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(RandomWriter.class.getName(), args, bwOpts);
     
     long start = System.currentTimeMillis();
     log.info("starting at " + start + " for user " + opts.user);
     try {
       Connector connector = opts.getConnector();
-      BatchWriter bw = connector.createBatchWriter(opts.getTableName(), opts.getBatchWriterConfig());
+      BatchWriter bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
       log.info("Writing " + opts.count + " mutations...");
       bw.addMutations(new RandomMutationGenerator(opts.count));
       bw.close();

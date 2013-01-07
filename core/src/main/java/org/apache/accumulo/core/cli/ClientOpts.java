@@ -21,13 +21,11 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -94,8 +92,6 @@ public class ClientOpts extends Help {
     }
   }
   
-  private static final BatchWriterConfig BWDEFAULTS = new BatchWriterConfig();
-  
   @Parameter(names={"-u", "--user"}, description = "Connection user")
   public String user = System.getProperty("user.name");
   
@@ -120,24 +116,6 @@ public class ClientOpts extends Help {
   
   @Parameter(names={"-auths", "--auths"}, converter=AuthConverter.class, description="the authorizations to use when reading or writing")
   public Authorizations auths = Constants.NO_AUTHS;
-  
-  @Parameter(names="--batchThreads", description="Number of threads to use when writing large batches")
-  public Integer batchThreads = BWDEFAULTS.getMaxWriteThreads();
-
-  @Parameter(names="--batchLatency", converter=TimeConverter.class, description="The maximum time to wait before flushing data to servers when writing")
-  public Long batchLatency = BWDEFAULTS.getMaxLatency(TimeUnit.MILLISECONDS);
-  
-  @Parameter(names="--batchMemory", converter=MemoryConverter.class, description="memory used to batch data when writing")
-  public Long batchMemory = BWDEFAULTS.getMaxMemory();
-  
-  @Parameter(names="--batchTimeout", converter=TimeConverter.class, description="timeout used to fail a batch write")
-  public Long batchTimeout = BWDEFAULTS.getTimeout(TimeUnit.MILLISECONDS);
-  
-  @Parameter(names="--scanBatchSize", description="the number of key-values to pull during a scan or batch scan")
-  public int scanBatchSize = 1000; 
-
-  @Parameter(names="--scanThreads", description="number of threads to use when batch scanning")
-  public Integer scanThreads = 10;
   
   @Parameter(names="--debug", description="turn on TRACE-level log messages")
   public boolean debug = false;
@@ -166,18 +144,10 @@ public class ClientOpts extends Help {
     Trace.off();
   }
   
-  public void parseArgs(String programName, String[] args) {
-    super.parseArgs(programName, args);
+  public void parseArgs(String programName, String[] args, Object ... others) {
+    super.parseArgs(programName, args, others);
     startDebugLogging();
     startTracing(programName);
-  }
-  
-  public BatchWriterConfig getBatchWriterConfig() {
-    BatchWriterConfig config = new BatchWriterConfig();
-    config.setMaxLatency(this.batchLatency, TimeUnit.MILLISECONDS);
-    config.setMaxMemory(this.batchMemory);
-    config.setTimeout(this.batchTimeout, TimeUnit.MILLISECONDS);
-    return config;
   }
   
   protected Instance cachedInstance = null;

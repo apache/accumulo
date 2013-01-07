@@ -19,7 +19,8 @@ package org.apache.accumulo.server.test;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -29,6 +30,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -46,11 +48,11 @@ public class TestMultiTableIngest {
     int count = 10000;
   }
   
-  private static void readBack(Opts opts, Connector conn) throws Exception {
+  private static void readBack(Opts opts, ScannerOpts scanOpts, Connector conn) throws Exception {
     int i = 0;
     for (String table : tableNames) {
       Scanner scanner = conn.createScanner(table, opts.auths);
-      scanner.setBatchSize(opts.scanBatchSize);
+      scanner.setBatchSize(scanOpts.scanBatchSize);
       int count = i;
       for (Entry<Key,Value> elt : scanner) {
         String expected = String.format("%05d", count);
@@ -64,7 +66,9 @@ public class TestMultiTableIngest {
   
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(TestMultiTableIngest.class.getName(), args);
+    ScannerOpts scanOpts = new ScannerOpts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(TestMultiTableIngest.class.getName(), args, scanOpts, bwOpts);
     // create the test table within accumulo
     Connector connector;
     try {
@@ -84,7 +88,7 @@ public class TestMultiTableIngest {
       
       MultiTableBatchWriter b;
       try {
-        b = connector.createMultiTableBatchWriter(opts.getBatchWriterConfig());
+        b = connector.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -102,7 +106,7 @@ public class TestMultiTableIngest {
       }
     }
     try {
-      readBack(opts, connector);
+      readBack(opts, scanOpts, connector);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

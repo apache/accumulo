@@ -30,6 +30,7 @@ import java.util.zip.Checksum;
 import org.apache.accumulo.cloudtrace.instrument.CountSampler;
 import org.apache.accumulo.cloudtrace.instrument.Trace;
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -137,7 +138,8 @@ public class ContinuousIngest {
   public static void main(String[] args) throws Exception {
     
     Opts opts = new Opts();
-    opts.parseArgs(ContinuousIngest.class.getName(), args);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(ContinuousIngest.class.getName(), args, bwOpts);
     
     initVisibilities(opts);
 
@@ -151,7 +153,7 @@ public class ContinuousIngest {
         conn.tableOperations().create(opts.getTableName());
       } catch (TableExistsException tee) {}
 
-    BatchWriter bw = conn.createBatchWriter(opts.getTableName(), opts.getBatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
     bw = Trace.wrapAll(bw, new CountSampler(1024));
     
     Random r = new Random();

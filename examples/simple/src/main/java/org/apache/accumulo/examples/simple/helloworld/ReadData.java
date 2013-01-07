@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -46,12 +47,13 @@ public class ReadData {
   
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Opts opts = new Opts();
-    opts.parseArgs(ReadData.class.getName(), args);
+    ScannerOpts scanOpts = new ScannerOpts();
+    opts.parseArgs(ReadData.class.getName(), args, scanOpts);
     
     Connector connector = opts.getConnector();
     
     Scanner scan = connector.createScanner(opts.tableName, opts.auths);
-    scan.setBatchSize(opts.scanBatchSize);
+    scan.setBatchSize(scanOpts.scanBatchSize);
     Key start = null;
     if (opts.startKey != null)
       start = new Key(new Text(opts.startKey));

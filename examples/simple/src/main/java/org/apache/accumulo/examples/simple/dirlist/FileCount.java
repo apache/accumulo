@@ -19,7 +19,9 @@ package org.apache.accumulo.examples.simple.dirlist;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -41,6 +43,9 @@ public class FileCount {
   private int inserts;
   
   private Opts opts;
+  private ScannerOpts scanOpts;
+  private BatchWriterOpts bwOpts;
+  
   
   private static class CountValue {
     int dirCount = 0;
@@ -229,8 +234,10 @@ public class FileCount {
     }
   }
   
-  FileCount(Opts opts) throws Exception {
+  FileCount(Opts opts, ScannerOpts scanOpts, BatchWriterOpts bwOpts) throws Exception {
     this.opts = opts;
+    this.scanOpts = scanOpts;
+    this.bwOpts = bwOpts;
   }
   
   public void run() throws Exception {
@@ -240,8 +247,8 @@ public class FileCount {
     
     Connector conn = opts.getConnector();
     Scanner scanner = conn.createScanner(opts.tableName, opts.auths);
-    scanner.setBatchSize(opts.scanBatchSize);
-    BatchWriter bw = conn.createBatchWriter(opts.tableName, opts.getBatchWriterConfig());
+    scanner.setBatchSize(scanOpts.scanBatchSize);
+    BatchWriter bw = conn.createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig());
     
     long t1 = System.currentTimeMillis();
     
@@ -273,10 +280,12 @@ public class FileCount {
   
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
+    ScannerOpts scanOpts = new ScannerOpts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
     String programName = FileCount.class.getName();
-    opts.parseArgs(programName, args);
+    opts.parseArgs(programName, args, scanOpts, bwOpts);
 
-    FileCount fileCount = new FileCount(opts);
+    FileCount fileCount = new FileCount(opts, scanOpts, bwOpts);
     fileCount.run();
   }
 }

@@ -20,12 +20,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 
@@ -57,7 +59,7 @@ public class Admin {
   }
   
   public static void main(String[] args) throws Exception {
-    ClientOpts opts = new ClientOpts();
+    Help opts = new Help();
     JCommander jc = new JCommander(opts);
     jc.setProgramName(Admin.class.getName());
     FailOpts fail = new FailOpts();
@@ -73,7 +75,7 @@ public class Admin {
     
     AdminUtil<Master> admin = new AdminUtil<Master>();
     
-    Instance instance = opts.getInstance();
+    Instance instance = HdfsZooInstance.getInstance();
     String path = ZooUtil.getRoot(instance) + Constants.ZFATE;
     String masterPath = ZooUtil.getRoot(instance) + Constants.ZMASTER_LOCK;
     IZooReaderWriter zk = ZooReaderWriter.getRetryingInstance();

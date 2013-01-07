@@ -18,7 +18,9 @@ package org.apache.accumulo.examples.simple.shard;
 
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -47,13 +49,15 @@ public class Reverse {
   
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(Reverse.class.getName(), args);
+    ScannerOpts scanOpts = new ScannerOpts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(Reverse.class.getName(), args, scanOpts, bwOpts);
     
     Connector conn = opts.getConnector();
     
     Scanner scanner = conn.createScanner(opts.shardTable, opts.auths);
-    scanner.setBatchSize(opts.scanBatchSize);
-    BatchWriter bw = conn.createBatchWriter(opts.doc2TermTable, opts.getBatchWriterConfig());
+    scanner.setBatchSize(scanOpts.scanBatchSize);
+    BatchWriter bw = conn.createBatchWriter(opts.doc2TermTable, bwOpts.getBatchWriterConfig());
     
     for (Entry<Key,Value> entry : scanner) {
       Key key = entry.getKey();

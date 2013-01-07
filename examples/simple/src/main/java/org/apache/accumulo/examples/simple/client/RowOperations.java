@@ -20,7 +20,9 @@ import java.io.IOException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -51,7 +53,9 @@ public class RowOperations {
       MutationsRejectedException {
     
     ClientOpts opts = new ClientOpts();
-    opts.parseArgs(RowOperations.class.getName(), args);
+    ScannerOpts scanOpts = new ScannerOpts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(RowOperations.class.getName(), args, scanOpts, bwOpts);
     
     // First the setup work
     connector = opts.getConnector();
@@ -92,7 +96,7 @@ public class RowOperations {
     mut3.put(new Text("column"), col4, System.currentTimeMillis(), new Value("This is the value for this key".getBytes()));
     
     // Now we'll make a Batch Writer
-    bw = connector.createBatchWriter(table, opts.getBatchWriterConfig());
+    bw = connector.createBatchWriter(table, bwOpts.getBatchWriterConfig());
     
     // And add the mutations
     bw.addMutation(mut1);
@@ -103,9 +107,9 @@ public class RowOperations {
     bw.flush();
     
     // Now lets look at the rows
-    Scanner rowThree = getRow(opts, new Text("row3"));
-    Scanner rowTwo = getRow(opts, new Text("row2"));
-    Scanner rowOne = getRow(opts, new Text("row1"));
+    Scanner rowThree = getRow(opts, scanOpts, new Text("row3"));
+    Scanner rowTwo = getRow(opts, scanOpts, new Text("row2"));
+    Scanner rowOne = getRow(opts, scanOpts, new Text("row1"));
     
     // And print them
     log.info("This is everything");
@@ -115,13 +119,13 @@ public class RowOperations {
     System.out.flush();
     
     // Now lets delete rowTwo with the iterator
-    rowTwo = getRow(opts, new Text("row2"));
+    rowTwo = getRow(opts, scanOpts, new Text("row2"));
     deleteRow(rowTwo);
     
     // Now lets look at the rows again
-    rowThree = getRow(opts, new Text("row3"));
-    rowTwo = getRow(opts, new Text("row2"));
-    rowOne = getRow(opts, new Text("row1"));
+    rowThree = getRow(opts, scanOpts, new Text("row3"));
+    rowTwo = getRow(opts, scanOpts, new Text("row2"));
+    rowOne = getRow(opts, scanOpts, new Text("row1"));
     
     // And print them
     log.info("This is row1 and row3");
@@ -133,12 +137,12 @@ public class RowOperations {
     // Should only see the two rows
     // Now lets delete rowOne without passing in the iterator
     
-    deleteRow(opts, row1);
+    deleteRow(opts, scanOpts, row1);
     
     // Now lets look at the rows one last time
-    rowThree = getRow(opts, new Text("row3"));
-    rowTwo = getRow(opts, new Text("row2"));
-    rowOne = getRow(opts, new Text("row1"));
+    rowThree = getRow(opts, scanOpts, new Text("row3"));
+    rowTwo = getRow(opts, scanOpts, new Text("row2"));
+    rowOne = getRow(opts, scanOpts, new Text("row1"));
     
     // And print them
     log.info("This is just row3");
@@ -169,8 +173,8 @@ public class RowOperations {
    * @throws AccumuloSecurityException
    * @throws AccumuloException
    */
-  private static void deleteRow(ClientOpts opts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    deleteRow(getRow(opts, row));
+  private static void deleteRow(ClientOpts opts, ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    deleteRow(getRow(opts, scanOpts, row));
   }
   
   /**
@@ -214,10 +218,10 @@ public class RowOperations {
    * @throws AccumuloException
    * @throws IOException
    */
-  private static Scanner getRow(ClientOpts opts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  private static Scanner getRow(ClientOpts opts, ScannerOpts scanOpts, Text row) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // Create a scanner
     Scanner scanner = connector.createScanner(table, Constants.NO_AUTHS);
-    scanner.setBatchSize(opts.scanBatchSize);
+    scanner.setBatchSize(scanOpts.scanBatchSize);
     // Say start key is the one with key of row
     // and end key is the one that immediately follows the row
     scanner.setRange(new Range(row));

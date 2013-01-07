@@ -20,6 +20,8 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -49,18 +51,20 @@ public class RemoveEntriesForMissingFiles {
   
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args);
+    ScannerOpts scanOpts = new ScannerOpts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args, scanOpts, bwOpts);
     FileSystem fs = FileSystem.get(CachedConfiguration.getInstance());
     Connector connector = opts.getConnector();
     Scanner metadata = connector.createScanner(Constants.METADATA_TABLE_NAME, opts.auths);
-    metadata.setBatchSize(opts.scanBatchSize);
+    metadata.setBatchSize(scanOpts.scanBatchSize);
     metadata.setRange(Constants.METADATA_KEYSPACE);
     metadata.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
     int count = 0;
     int missing = 0;
     BatchWriter writer = null; 
     if (opts.fix)
-      writer = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, opts.getBatchWriterConfig());
+      writer = connector.createBatchWriter(Constants.METADATA_TABLE_NAME, bwOpts.getBatchWriterConfig());
     for (Entry<Key,Value> entry : metadata) {
       count++;
       Key key = entry.getKey();

@@ -19,6 +19,7 @@ package org.apache.accumulo.server.test.continuous;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -38,11 +39,12 @@ public class ContinuousQuery {
   
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(ContinuousQuery.class.getName(), args);
+    ScannerOpts scanOpts = new ScannerOpts();
+    opts.parseArgs(ContinuousQuery.class.getName(), args, scanOpts);
     
     Connector conn = opts.getConnector();
     Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
-    scanner.setBatchSize(opts.scanBatchSize);
+    scanner.setBatchSize(scanOpts.scanBatchSize);
     
     Random r = new Random();
     

@@ -16,7 +16,11 @@
  */
 package org.apache.accumulo.core.cli;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
@@ -35,21 +39,26 @@ public class TestClientOpts {
     
     // document the defaults
     ClientOpts args = new ClientOpts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    BatchScannerOpts bsOpts = new BatchScannerOpts();
     assertEquals(System.getProperty("user.name"), args.user);
     assertNull(args.securePassword);
     assertArrayEquals("secret".getBytes(), args.getPassword());
-    assertEquals(new Long(cfg.getMaxLatency(TimeUnit.MILLISECONDS)), args.batchLatency);
-    assertEquals(new Long(cfg.getTimeout(TimeUnit.MILLISECONDS)), args.batchTimeout);
-    assertEquals(new Long(cfg.getMaxMemory()), args.batchMemory);
+    assertEquals(new Long(cfg.getMaxLatency(TimeUnit.MILLISECONDS)), bwOpts.batchLatency);
+    assertEquals(new Long(cfg.getTimeout(TimeUnit.MILLISECONDS)), bwOpts.batchTimeout);
+    assertEquals(new Long(cfg.getMaxMemory()), bwOpts.batchMemory);
     assertFalse(args.debug);
     assertFalse(args.trace);
-    assertEquals(10, args.scanThreads.intValue());
+    assertEquals(10, bsOpts.scanThreads.intValue());
     assertEquals(null, args.instance);
     assertEquals(Constants.NO_AUTHS, args.auths);
     assertEquals("localhost:2181", args.zookeepers);
     assertFalse(args.help);
 
-    args = evaluate(
+    JCommander jc = new JCommander();
+    jc.addObject(args);
+    jc.addObject(bwOpts);
+    jc.parse(
         "-u", "bar",
         "-p", "foo",
         "--batchLatency", "3s", 
@@ -61,17 +70,16 @@ public class TestClientOpts {
         "-i", "instance",
         "--auths", "G1,G2,G3",
         "-z", "zoohost1,zoohost2",
-        "--help"
-        );
+        "--help");
     assertEquals("bar", args.user);
     assertNull(args.securePassword);
     assertArrayEquals("foo".getBytes(), args.getPassword());
-    assertEquals(new Long(3000), args.batchLatency);
-    assertEquals(new Long(2000), args.batchTimeout);
-    assertEquals(new Long(1024*1024), args.batchMemory);
+    assertEquals(new Long(3000), bwOpts.batchLatency);
+    assertEquals(new Long(2000), bwOpts.batchTimeout);
+    assertEquals(new Long(1024*1024), bwOpts.batchMemory);
     assertTrue(args.debug);
     assertTrue(args.trace);
-    assertEquals(7, args.scanThreads.intValue());
+    assertEquals(7, bsOpts.scanThreads.intValue());
     assertEquals("instance", args.instance);
     assertEquals(new Authorizations("G1", "G2", "G3"), args.auths);
     assertEquals("zoohost1,zoohost2", args.zookeepers);
@@ -79,10 +87,4 @@ public class TestClientOpts {
     
   }
 
-  private ClientOpts evaluate(String ... args) {
-    ClientOpts ca = new ClientOpts();
-    new JCommander(ca, args);
-    return ca;
-  }
-  
 }

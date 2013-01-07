@@ -38,7 +38,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.server.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.Scanner;
@@ -70,6 +70,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerConstants;
+import org.apache.accumulo.server.cli.ClientOnRequiredTable;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.conf.Configuration;
@@ -99,7 +100,8 @@ public class CollectTabletStats {
   public static void main(String[] args) throws Exception {
     
     final CollectOptions opts = new CollectOptions();
-    opts.parseArgs(CollectTabletStats.class.getName(), args);
+    final ScannerOpts scanOpts = new ScannerOpts();
+    opts.parseArgs(CollectTabletStats.class.getName(), args, scanOpts);
     
     String columnsTmp[] = new String[] {};
     if (opts.columns != null)
@@ -214,7 +216,7 @@ public class CollectTabletStats {
       for (final KeyExtent ke : tabletsToTest) {
         Test test = new Test(ke) {
           public int runTest() throws Exception {
-            return scanTablet(conn, opts.tableName, opts.auths, opts.scanBatchSize, ke.getPrevEndRow(), ke.getEndRow(), columns);
+            return scanTablet(conn, opts.tableName, opts.auths, scanOpts.scanBatchSize, ke.getPrevEndRow(), ke.getEndRow(), columns);
           }
         };
         
@@ -230,7 +232,7 @@ public class CollectTabletStats {
       threadPool.submit(new Runnable() {
         public void run() {
           try {
-            calcTabletStats(conn, opts.tableName, opts.auths, opts.scanBatchSize, ke, columns);
+            calcTabletStats(conn, opts.tableName, opts.auths, scanOpts.scanBatchSize, ke, columns);
           } catch (Exception e) {
             e.printStackTrace();
           }

@@ -22,6 +22,8 @@ import java.util.Random;
 import java.util.TreeSet;
 
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -79,13 +81,15 @@ public class TestBinaryRows {
   
   public static void main(String[] args) {
     Opts opts = new Opts();
-    opts.parseArgs(TestBinaryRows.class.getName(), args);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    ScannerOpts scanOpts = new ScannerOpts();
+    opts.parseArgs(TestBinaryRows.class.getName(), args, scanOpts, bwOpts);
     
     try {
       Connector connector = opts.getConnector();
       
       if (opts.mode.equals("ingest") || opts.mode.equals("delete")) {
-        BatchWriter bw = connector.createBatchWriter(opts.tableName, opts.getBatchWriterConfig());
+        BatchWriter bw = connector.createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig());
         boolean delete = opts.mode.equals("delete");
         
         for (long i = 0; i < opts.num; i++) {
@@ -104,7 +108,7 @@ public class TestBinaryRows {
         bw.close();
       } else if (opts.mode.equals("verifyDeleted")) {
         Scanner s = connector.createScanner(opts.tableName, opts.auths);
-        s.setBatchSize(opts.scanBatchSize);
+        s.setBatchSize(scanOpts.scanBatchSize);
         Key startKey = new Key(encodeLong(opts.start), "cf".getBytes(), "cq".getBytes(), new byte[0], Long.MAX_VALUE);
         Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), "cf".getBytes(), "cq".getBytes(), new byte[0], 0);
         s.setBatchSize(50000);
@@ -122,7 +126,7 @@ public class TestBinaryRows {
         Scanner s = connector.createScanner(opts.tableName, opts.auths);
         Key startKey = new Key(encodeLong(opts.start), "cf".getBytes(), "cq".getBytes(), new byte[0], Long.MAX_VALUE);
         Key stopKey = new Key(encodeLong(opts.start + opts.num - 1), "cf".getBytes(), "cq".getBytes(), new byte[0], 0);
-        s.setBatchSize(opts.scanBatchSize);
+        s.setBatchSize(scanOpts.scanBatchSize);
         s.setRange(new Range(startKey, stopKey));
         
         long i = opts.start;
@@ -161,7 +165,7 @@ public class TestBinaryRows {
           long row = (Math.abs(r.nextLong()) % opts.num) + opts.start;
           
           Scanner s = connector.createScanner(opts.tableName, opts.auths);
-          s.setBatchSize(opts.scanBatchSize);
+          s.setBatchSize(scanOpts.scanBatchSize);
           Key startKey = new Key(encodeLong(row), "cf".getBytes(), "cq".getBytes(), new byte[0], Long.MAX_VALUE);
           Key stopKey = new Key(encodeLong(row), "cf".getBytes(), "cq".getBytes(), new byte[0], 0);
           s.setRange(new Range(startKey, stopKey));

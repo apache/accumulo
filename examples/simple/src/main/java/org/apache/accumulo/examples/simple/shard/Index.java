@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.data.Mutation;
@@ -100,11 +101,12 @@ public class Index {
   
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(Index.class.getName(), args);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(Index.class.getName(), args, bwOpts);
     
     String splitRegex = "\\W+";
     
-    BatchWriter bw = opts.getConnector().createBatchWriter(opts.tableName, opts.getBatchWriterConfig());    
+    BatchWriter bw = opts.getConnector().createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig());    
     for (String filename : opts.files) {
       index(opts.partitions, new File(filename), splitRegex, bw);
     }

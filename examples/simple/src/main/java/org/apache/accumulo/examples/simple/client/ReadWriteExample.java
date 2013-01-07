@@ -21,8 +21,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -32,7 +31,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -44,7 +42,7 @@ public class ReadWriteExample {
   
   private Connector conn;
   
-  class Opts extends ClientOnDefaultTable {
+  static class Opts extends ClientOnDefaultTable {
     @Parameter(names={"-C", "--createtable"}, description="create table before doing anything")
     boolean createtable = false;
     @Parameter(names={"-D", "--deletetable"}, description="delete table when finished")
@@ -65,16 +63,8 @@ public class ReadWriteExample {
   // hidden constructor
   private ReadWriteExample() {}
   
-  // setup
-  private Opts configure(String[] args) throws ParseException, AccumuloException, AccumuloSecurityException {
-    Opts opts = new Opts();
-    opts.parseArgs(ReadWriteExample.class.getName(), args);
-    
+  private void execute(Opts opts, ScannerOpts scanOpts) throws Exception {
     conn = opts.getConnector();
-    return opts;
-  }
-  
-  private void execute(Opts opts) throws Exception {
     // create table
     if (opts.createtable) {
       SortedSet<Text> partitionKeys = new TreeSet<Text>();
@@ -92,7 +82,7 @@ public class ReadWriteExample {
       // Note that the user needs to have the authorizations for the specified scan authorizations
       // by an administrator first
       Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
-      scanner.setBatchSize(opts.scanBatchSize);
+      scanner.setBatchSize(scanOpts.scanBatchSize);
       for (Entry<Key,Value> entry : scanner)
         System.out.println(entry.getKey().toString() + " -> " + entry.getValue().toString());
     }
@@ -130,8 +120,9 @@ public class ReadWriteExample {
   
   public static void main(String[] args) throws Exception {
     ReadWriteExample rwe = new ReadWriteExample();
-    
-    Opts opts = rwe.configure(args);
-    rwe.execute(opts);
+    Opts opts = new Opts();
+    ScannerOpts scanOpts = new ScannerOpts();
+    opts.parseArgs(ReadWriteExample.class.getName(), args, scanOpts);
+    rwe.execute(opts, scanOpts);
   }
 }

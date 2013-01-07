@@ -35,6 +35,7 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.server.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.BatchScannerOpts;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -248,7 +249,8 @@ public class UndefinedAnalyzer {
    */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(UndefinedAnalyzer.class.getName(), args);
+    BatchScannerOpts bsOpts = new BatchScannerOpts();
+    opts.parseArgs(UndefinedAnalyzer.class.getName(), args, opts);
     
     List<UndefinedNode> undefs = new ArrayList<UndefinedNode>();
     
@@ -263,8 +265,8 @@ public class UndefinedAnalyzer {
     }
     
     Connector conn = opts.getConnector();
-    BatchScanner bscanner = conn.createBatchScanner(opts.getTableName(), opts.auths, opts.batchThreads);
-    bscanner.setTimeout(opts.batchTimeout, TimeUnit.MILLISECONDS);
+    BatchScanner bscanner = conn.createBatchScanner(opts.getTableName(), opts.auths, bsOpts.scanThreads);
+    bscanner.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
     List<Range> refs = new ArrayList<Range>();
     
     for (UndefinedNode undefinedNode : undefs)

@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 
 import org.apache.accumulo.cloudtrace.instrument.Trace;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
@@ -59,7 +60,8 @@ public class VerifyIngest {
   
   public static void main(String[] args) {
     Opts opts = new Opts();
-    opts.parseArgs(VerifyIngest.class.getName(), args);
+    ScannerOpts scanOpts = new ScannerOpts();
+    opts.parseArgs(VerifyIngest.class.getName(), args, scanOpts);
     Instance instance = opts.getInstance();
     try {
       if (opts.trace) {
@@ -149,7 +151,7 @@ public class VerifyIngest {
           Key startKey = new Key(new Text("row_" + String.format("%010d", expectedRow)));
           
           Scanner scanner = connector.createScanner("test_ingest", labelAuths);
-          scanner.setBatchSize(opts.scanBatchSize);
+          scanner.setBatchSize(scanOpts.scanBatchSize);
           scanner.setRange(new Range(startKey, endKey));
           for (int j = 0; j < opts.cols; j++) {
             scanner.fetchColumn(new Text(opts.columnFamily), new Text("col_" + String.format("%05d", j)));

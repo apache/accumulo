@@ -20,8 +20,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.Random;
 
+import org.apache.accumulo.core.cli.BatchScannerOpts;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -190,10 +192,12 @@ public class RandomBatchScanner {
    */
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Opts opts = new Opts();
-    opts.parseArgs(RandomBatchScanner.class.getName(), args);
+    BatchScannerOpts bsOpts = new BatchScannerOpts();
+    opts.parseArgs(RandomBatchScanner.class.getName(), args, bsOpts);
     
     Connector connector = opts.getConnector();
-    BatchScanner tsbr = connector.createBatchScanner(opts.tableName, opts.auths, opts.scanThreads);
+    BatchScanner batchReader = connector.createBatchScanner(opts.tableName, opts.auths, bsOpts.scanThreads);
+    batchReader.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
     
     Random r;
     if (opts.seed == null)
@@ -202,7 +206,7 @@ public class RandomBatchScanner {
       r = new Random(opts.seed);
     
     // do one cold
-    doRandomQueries(opts.num, opts.min, opts.max, opts.size, r, tsbr);
+    doRandomQueries(opts.num, opts.min, opts.max, opts.size, r, batchReader);
     
     System.gc();
     System.gc();
@@ -214,8 +218,8 @@ public class RandomBatchScanner {
       r = new Random(opts.seed);
     
     // do one hot (connections already established, metadata table cached)
-    doRandomQueries(opts.num, opts.min, opts.max, opts.size, r, tsbr);
+    doRandomQueries(opts.num, opts.min, opts.max, opts.size, r, batchReader);
     
-    tsbr.close();
+    batchReader.close();
   }
 }

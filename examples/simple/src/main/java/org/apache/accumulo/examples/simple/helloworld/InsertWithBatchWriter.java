@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.examples.simple.helloworld;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -37,10 +38,11 @@ public class InsertWithBatchWriter {
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, MutationsRejectedException, TableExistsException,
       TableNotFoundException {
     ClientOnRequiredTable opts = new ClientOnRequiredTable();
-    opts.parseArgs(InsertWithBatchWriter.class.getName(), args);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(InsertWithBatchWriter.class.getName(), args, bwOpts);
     
     Connector connector = opts.getConnector();
-    MultiTableBatchWriter mtbw = connector.createMultiTableBatchWriter(opts.getBatchWriterConfig());
+    MultiTableBatchWriter mtbw = connector.createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
     
     if (!connector.tableOperations().exists(opts.tableName))
       connector.tableOperations().create(opts.tableName);

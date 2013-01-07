@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.examples.simple.client;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -55,9 +56,10 @@ public class SequentialBatchWriter {
    */
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
     Opts opts = new Opts();
-    opts.parseArgs(SequentialBatchWriter.class.getName(), args);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(SequentialBatchWriter.class.getName(), args, bwOpts);
     Connector connector = opts.getConnector();
-    BatchWriter bw = connector.createBatchWriter(opts.tableName, opts.getBatchWriterConfig());
+    BatchWriter bw = connector.createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig());
     
     long end = opts.start + opts.num;
     

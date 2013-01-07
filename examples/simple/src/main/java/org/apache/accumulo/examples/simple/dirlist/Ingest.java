@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -137,7 +138,8 @@ public class Ingest {
   
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(Ingest.class.getName(), args);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(Ingest.class.getName(), args, bwOpts);
     
     Connector conn = opts.getConnector();
     if (!conn.tableOperations().exists(opts.nameTable))
@@ -149,9 +151,9 @@ public class Ingest {
       conn.tableOperations().attachIterator(opts.dataTable, new IteratorSetting(1, ChunkCombiner.class));
     }
     
-    BatchWriter dirBW = conn.createBatchWriter(opts.nameTable, opts.getBatchWriterConfig());
-    BatchWriter indexBW = conn.createBatchWriter(opts.indexTable, opts.getBatchWriterConfig());
-    BatchWriter dataBW = conn.createBatchWriter(opts.dataTable, opts.getBatchWriterConfig());
+    BatchWriter dirBW = conn.createBatchWriter(opts.nameTable, bwOpts.getBatchWriterConfig());
+    BatchWriter indexBW = conn.createBatchWriter(opts.indexTable, bwOpts.getBatchWriterConfig());
+    BatchWriter dataBW = conn.createBatchWriter(opts.dataTable, bwOpts.getBatchWriterConfig());
     FileDataIngest fdi = new FileDataIngest(opts.chunkSize, opts.visibility);
     for (String dir : opts.directories) {
       recurse(new File(dir), opts.visibility, dirBW, indexBW, fdi, dataBW);

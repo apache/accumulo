@@ -20,6 +20,8 @@ import java.util.Map.Entry;
 import java.util.TreeSet;
 
 import org.apache.accumulo.server.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -40,9 +42,9 @@ public class CreateTestTable {
     Opts() { super("mrtest1"); }
   }
   
-  private static void readBack(Connector conn, Opts opts) throws Exception {
+  private static void readBack(Connector conn, Opts opts, ScannerOpts scanOpts) throws Exception {
     Scanner scanner = conn.createScanner("mrtest1", opts.auths);
-    scanner.setBatchSize(opts.scanBatchSize);
+    scanner.setBatchSize(scanOpts.scanBatchSize);
     int count = 0;
     for (Entry<Key,Value> elt : scanner) {
       String expected = String.format("%05d", count);
@@ -55,7 +57,9 @@ public class CreateTestTable {
   public static void main(String[] args) throws Exception {
     String program = CreateTestTable.class.getName();
     Opts opts = new Opts();
-    opts.parseArgs(program, args);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    ScannerOpts scanOpts = new ScannerOpts();
+    opts.parseArgs(program, args, bwOpts, scanOpts);
     
     // create the test table within accumulo
     Connector connector = opts.getConnector();
@@ -69,7 +73,7 @@ public class CreateTestTable {
       // presplit
       connector.tableOperations().create(opts.getTableName());
       connector.tableOperations().addSplits(opts.getTableName(), keys);
-      BatchWriter b = connector.createBatchWriter(opts.getTableName(), opts.getBatchWriterConfig());
+      BatchWriter b = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
       
       // populate
       for (int i = 0; i < opts.count; i++) {
@@ -80,7 +84,7 @@ public class CreateTestTable {
       b.close();
     }
     
-    readBack(connector, opts);
+    readBack(connector, opts, scanOpts);
     opts.stopTracing();
   }
 }

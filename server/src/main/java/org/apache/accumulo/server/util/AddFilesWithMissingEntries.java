@@ -22,6 +22,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -59,7 +60,8 @@ public class AddFilesWithMissingEntries {
    */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(AddFilesWithMissingEntries.class.getName(), args);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(AddFilesWithMissingEntries.class.getName(), args, bwOpts);
     
     final Key rootTableEnd = new Key(Constants.ROOT_TABLET_EXTENT.getEndRow());
     final Range range = new Range(rootTableEnd.followingKey(PartialKey.ROW), true, Constants.METADATA_RESERVED_KEYSPACE_START_KEY, false);
@@ -73,7 +75,7 @@ public class AddFilesWithMissingEntries {
     Set<String> knownFiles = new HashSet<String>();
     
     int count = 0;
-    final MultiTableBatchWriter writer = opts.getConnector().createMultiTableBatchWriter(opts.getBatchWriterConfig());
+    final MultiTableBatchWriter writer = opts.getConnector().createMultiTableBatchWriter(bwOpts.getBatchWriterConfig());
     
     // collect the list of known files and the directory for each extent
     for (Entry<Key,Value> entry : scanner) {

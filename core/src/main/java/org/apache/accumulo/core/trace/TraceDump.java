@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.apache.accumulo.cloudtrace.thrift.RemoteSpan;
 import org.apache.accumulo.core.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -61,13 +62,14 @@ public class TraceDump {
   
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(TraceDump.class.getName(), args);
+    ScannerOpts scanOpts = new ScannerOpts();
+    opts.parseArgs(TraceDump.class.getName(), args, scanOpts);
     int code = 0;
     if (opts.list) {
-      code = listSpans(opts);
+      code = listSpans(opts, scanOpts);
     }
     if (code == 0 && opts.dump) {
-      code = dumpTrace(opts);
+      code = dumpTrace(opts, scanOpts);
     }
     System.exit(code);
   }
@@ -83,13 +85,13 @@ public class TraceDump {
     return spanList;
   }
   
-  private static int listSpans(Opts opts) throws Exception {
+  private static int listSpans(Opts opts, ScannerOpts scanOpts) throws Exception {
     PrintStream out = System.out;
     long endTime = System.currentTimeMillis();
     long startTime = endTime - DEFAULT_TIME_IN_MILLIS;
     Connector conn = opts.getConnector();
     Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
-    scanner.setBatchSize(opts.scanBatchSize);
+    scanner.setBatchSize(scanOpts.scanBatchSize);
     Range range = new Range(new Text("start:" + Long.toHexString(startTime)), new Text("start:" + Long.toHexString(endTime)));
     scanner.setRange(range);
     out.println("Trace            Day/Time                 (ms)  Start");
@@ -104,14 +106,14 @@ public class TraceDump {
     void print(String line);
   }
   
-  private static int dumpTrace(Opts opts) throws Exception {
+  private static int dumpTrace(Opts opts, ScannerOpts scanOpts) throws Exception {
     final PrintStream out = System.out;
     Connector conn = opts.getConnector();
     
     int count = 0;
     for (String traceId : opts.traceIds) {
       Scanner scanner = conn.createScanner(opts.getTableName(), opts.auths);
-      scanner.setBatchSize(opts.scanBatchSize);
+      scanner.setBatchSize(scanOpts.scanBatchSize);
       Range range = new Range(new Text(traceId.toString()));
       scanner.setRange(range);
       count = printTrace(scanner, new Printer() {

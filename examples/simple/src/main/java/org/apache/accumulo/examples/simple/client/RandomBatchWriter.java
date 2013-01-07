@@ -19,6 +19,7 @@ package org.apache.accumulo.examples.simple.client;
 import java.util.HashSet;
 import java.util.Random;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -114,7 +115,8 @@ public class RandomBatchWriter {
    */
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     Opts opts = new Opts();
-    opts.parseArgs(RandomBatchWriter.class.getName(), args);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(RandomBatchWriter.class.getName(), args, bwOpts);
     
     Random r;
     if (opts.seed == null)
@@ -124,7 +126,7 @@ public class RandomBatchWriter {
     }
     
     Connector connector = opts.getConnector();
-    BatchWriter bw = connector.createBatchWriter(opts.tableName, opts.getBatchWriterConfig());
+    BatchWriter bw = connector.createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig());
     
     // reuse the ColumnVisibility object to improve performance
     ColumnVisibility cv = opts.visiblity;

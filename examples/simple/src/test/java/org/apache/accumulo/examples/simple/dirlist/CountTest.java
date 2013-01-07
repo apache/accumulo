@@ -21,6 +21,8 @@ import java.util.Map.Entry;
 
 import junit.framework.TestCase;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -63,10 +65,12 @@ public class CountTest extends TestCase {
     assertFalse(scanner.iterator().hasNext());
     
     Opts opts = new Opts();
+    ScannerOpts scanOpts = new ScannerOpts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
     opts.instance = "counttest";
     opts.tableName = "dirlisttable";
     opts.mock = true;
-    FileCount fc = new FileCount(opts);
+    FileCount fc = new FileCount(opts, scanOpts, bwOpts);
     fc.run();
     
     ArrayList<Pair<String,String>> expected = new ArrayList<Pair<String,String>>();

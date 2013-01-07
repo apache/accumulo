@@ -20,8 +20,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.Random;
 
+import org.apache.accumulo.core.cli.BatchScannerOpts;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
@@ -57,7 +59,8 @@ public class ContinuousQuery {
   
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(ContinuousQuery.class.getName(), args);
+    BatchScannerOpts bsOpts = new BatchScannerOpts();
+    opts.parseArgs(ContinuousQuery.class.getName(), args, bsOpts);
     
     Connector conn = opts.getConnector();
     
@@ -65,7 +68,8 @@ public class ContinuousQuery {
     
     Random rand = new Random();
     
-    BatchScanner bs = conn.createBatchScanner(opts.table, opts.auths, opts.scanThreads);
+    BatchScanner bs = conn.createBatchScanner(opts.table, opts.auths, bsOpts.scanThreads);
+    bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
     
     for (long i = 0; i < opts.iterations; i += 1) {
       Text[] columns = randTerms.get(rand.nextInt(randTerms.size()));

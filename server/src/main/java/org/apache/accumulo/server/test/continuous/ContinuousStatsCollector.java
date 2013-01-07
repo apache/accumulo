@@ -25,6 +25,7 @@ import java.util.TimerTask;
 import org.apache.accumulo.cloudtrace.instrument.Tracer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.server.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -56,10 +57,12 @@ public class ContinuousStatsCollector {
   static class StatsCollectionTask extends TimerTask {
     
     private final String tableId;
-    private Opts opts;
+    private final Opts opts;
+    private final int scanBatchSize;
     
-    public StatsCollectionTask(Opts opts) {
+    public StatsCollectionTask(Opts opts, int scanBatchSize) {
       this.opts = opts;
+      this.scanBatchSize = scanBatchSize;
       this.tableId = Tables.getNameToIdMap(opts.getInstance()).get(opts.tableName);
       System.out
           .println("TIME TABLET_SERVERS TOTAL_ENTRIES TOTAL_INGEST TOTAL_QUERY TABLE_RECS TABLE_RECS_IN_MEM TABLE_INGEST TABLE_QUERY TABLE_TABLETS TABLE_TABLETS_ONLINE"
@@ -86,7 +89,7 @@ public class ContinuousStatsCollector {
       
       Connector conn = opts.getConnector();
       Scanner scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, opts.auths);
-      scanner.setBatchSize(opts.scanBatchSize);
+      scanner.setBatchSize(scanBatchSize);
       scanner.fetchColumnFamily(Constants.METADATA_DATAFILE_COLUMN_FAMILY);
       scanner.addScanIterator(new IteratorSetting(1000, "cfc", ColumnFamilyCounter.class.getName()));
       scanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
@@ -171,10 +174,11 @@ public class ContinuousStatsCollector {
   
   public static void main(String[] args) {
     Opts opts = new Opts();
-    opts.parseArgs(ContinuousStatsCollector.class.getName(), args);
+    ScannerOpts scanOpts = new ScannerOpts();
+    opts.parseArgs(ContinuousStatsCollector.class.getName(), args, scanOpts);
     Timer jtimer = new Timer();
     
-    jtimer.schedule(new StatsCollectionTask(opts), 0, 30000);
+    jtimer.schedule(new StatsCollectionTask(opts, scanOpts.scanBatchSize), 0, 30000);
   }
   
 }

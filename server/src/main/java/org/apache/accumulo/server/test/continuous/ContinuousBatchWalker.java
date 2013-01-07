@@ -23,7 +23,10 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.cli.BatchScannerOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -47,26 +50,29 @@ public class ContinuousBatchWalker {
   public static void main(String[] args) throws Exception {
     
     Opts opts = new Opts();
-    opts.parseArgs(ContinuousBatchWalker.class.getName(), args);
+    ScannerOpts scanOpts = new ScannerOpts();
+    BatchScannerOpts bsOpts = new BatchScannerOpts();
+    opts.parseArgs(ContinuousBatchWalker.class.getName(), args, scanOpts, bsOpts);
     
     Random r = new Random();
     Authorizations auths = opts.randomAuths.getAuths(r);
 
     Connector conn = opts.getConnector();
     Scanner scanner = conn.createScanner(opts.getTableName(), auths);
-    scanner.setBatchSize(opts.scanBatchSize);
+    scanner.setBatchSize(scanOpts.scanBatchSize);
     
-    BatchScanner bs = conn.createBatchScanner(opts.getTableName(), auths, opts.scanThreads);
+    BatchScanner bs = conn.createBatchScanner(opts.getTableName(), auths, bsOpts.scanThreads);
+    bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
 
     while (true) {
-      Set<Text> batch = getBatch(scanner, opts.min, opts.max, opts.scanBatchSize, r);
+      Set<Text> batch = getBatch(scanner, opts.min, opts.max, scanOpts.scanBatchSize, r);
       List<Range> ranges = new ArrayList<Range>(batch.size());
       
       for (Text row : batch) {
         ranges.add(new Range(row));
       }
       
-      runBatchScan(opts.scanBatchSize, bs, batch, ranges);
+      runBatchScan(scanOpts.scanBatchSize, bs, batch, ranges);
       
       UtilWaitThread.sleep(opts.sleepTime);
     }

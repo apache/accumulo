@@ -22,6 +22,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -62,11 +64,11 @@ public class TestRandomDeletes {
     }
   }
   
-  private static TreeSet<RowColumn> scanAll(ClientOpts opts, Text t) throws Exception {
+  private static TreeSet<RowColumn> scanAll(ClientOpts opts, ScannerOpts scanOpts, Text t) throws Exception {
     TreeSet<RowColumn> result = new TreeSet<RowColumn>();
     Connector conn = opts.getConnector();
     Scanner scanner = conn.createScanner(t.toString(), auths);
-    scanner.setBatchSize(opts.scanBatchSize);
+    scanner.setBatchSize(scanOpts.scanBatchSize);
     for (Entry<Key,Value> entry : scanner) {
       Key key = entry.getKey();
       Column column = new Column(TextUtil.getBytes(key.getColumnFamily()), TextUtil.getBytes(key.getColumnQualifier()), TextUtil.getBytes(key
@@ -76,13 +78,13 @@ public class TestRandomDeletes {
     return result;
   }
   
-  private static long scrambleDeleteHalfAndCheck(ClientOpts opts, Text t, Set<RowColumn> rows) throws Exception {
+  private static long scrambleDeleteHalfAndCheck(ClientOpts opts, ScannerOpts scanOpts, BatchWriterOpts bwOpts, Text t, Set<RowColumn> rows) throws Exception {
     int result = 0;
     ArrayList<RowColumn> entries = new ArrayList<RowColumn>(rows);
     java.util.Collections.shuffle(entries);
     
     Connector connector = opts.getConnector();
-    BatchWriter mutations = connector.createBatchWriter(t.toString(), opts.getBatchWriterConfig());
+    BatchWriter mutations = connector.createBatchWriter(t.toString(), bwOpts.getBatchWriterConfig());
     
     for (int i = 0; i < (entries.size() + 1) / 2; i++) {
       RowColumn rc = entries.get(i);
@@ -95,7 +97,7 @@ public class TestRandomDeletes {
     
     mutations.close();
     
-    Set<RowColumn> current = scanAll(opts, t);
+    Set<RowColumn> current = scanAll(opts, scanOpts, t);
     current.removeAll(rows);
     if (current.size() > 0) {
       throw new RuntimeException(current.size() + " records not deleted");
@@ -106,19 +108,21 @@ public class TestRandomDeletes {
   static public void main(String[] args) {
     
     ClientOpts opts = new ClientOpts();
-    opts.parseArgs(TestRandomDeletes.class.getName(), args);
+    ScannerOpts scanOpts = new ScannerOpts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(TestRandomDeletes.class.getName(), args, scanOpts, bwOpts);
     
     try {
       long deleted = 0;
       
       Text t = new Text("test_ingest");
       
-      TreeSet<RowColumn> doomed = scanAll(opts, t);
+      TreeSet<RowColumn> doomed = scanAll(opts, scanOpts, t);
       log.info("Got " + doomed.size() + " rows");
       
       long startTime = System.currentTimeMillis();
       while (true) {
-        long half = scrambleDeleteHalfAndCheck(opts, t, doomed);
+        long half = scrambleDeleteHalfAndCheck(opts, scanOpts, bwOpts, t, doomed);
         deleted += half;
         if (half == 0)
           break;

@@ -19,6 +19,7 @@ package org.apache.accumulo.examples.simple.isolation;
 import java.util.HashSet;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
@@ -152,7 +153,8 @@ public class InterferenceTest {
   
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(InterferenceTest.class.getName(), args);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(InterferenceTest.class.getName(), args, bwOpts);
     
     if (opts.iterations < 1)
       opts.iterations = Long.MAX_VALUE;
@@ -161,7 +163,7 @@ public class InterferenceTest {
     if (!conn.tableOperations().exists(opts.tableName))
       conn.tableOperations().create(opts.tableName);
     
-    Thread writer = new Thread(new Writer(conn.createBatchWriter(opts.tableName, opts.getBatchWriterConfig()), opts.iterations));
+    Thread writer = new Thread(new Writer(conn.createBatchWriter(opts.tableName, bwOpts.getBatchWriterConfig()), opts.iterations));
     writer.start();
     Reader r;
     if (opts.isolated)

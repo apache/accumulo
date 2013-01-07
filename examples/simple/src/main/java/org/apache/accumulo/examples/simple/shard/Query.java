@@ -20,7 +20,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.cli.BatchScannerOpts;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
@@ -51,10 +53,12 @@ public class Query {
    */
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(Query.class.getName(), args);
+    BatchScannerOpts bsOpts = new BatchScannerOpts();
+    opts.parseArgs(Query.class.getName(), args, bsOpts);
     
     Connector conn = opts.getConnector();
-    BatchScanner bs = conn.createBatchScanner(opts.tableName, opts.auths, opts.batchThreads);
+    BatchScanner bs = conn.createBatchScanner(opts.tableName, opts.auths, bsOpts.scanThreads);
+    bs.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
     
     Text columns[] = new Text[opts.terms.size()];
     int i = 0;
