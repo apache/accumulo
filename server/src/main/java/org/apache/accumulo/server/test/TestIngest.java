@@ -20,6 +20,7 @@ import java.util.Random;
 import java.util.TreeSet;
 
 import org.apache.accumulo.cloudtrace.instrument.Trace;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -171,7 +172,8 @@ public class TestIngest {
   public static void main(String[] args) throws Exception {
     
     Opts opts = new Opts();
-    opts.parseArgs(TestIngest.class.getName(), args);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(TestIngest.class.getName(), args, bwOpts);
     opts.getInstance().setConfiguration(ServerConfiguration.getSiteConfiguration());
 
     createTable(opts);
@@ -208,7 +210,7 @@ public class TestIngest {
             AccumuloConfiguration.getDefaultConfiguration());
         writer.startDefaultLocalityGroup();
       } else {
-        bw = connector.createBatchWriter(opts.getTableName(), new BatchWriterConfig());
+        bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
       }
       connector.securityOperations().changeUserAuthorizations(opts.user, AUTHS);
       Text labBA = new Text(opts.columnVisibility.getExpression());
