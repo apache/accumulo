@@ -19,6 +19,8 @@ package org.apache.accumulo.core.client.mapreduce;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -37,6 +39,7 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -137,7 +140,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * see {@link BatchWriterConfig#setMaxMemory(long)}
    */
-
+  
   public static void setMaxMutationBufferSize(Configuration conf, long numberOfBytes) {
     conf.setLong(MAX_MUTATION_BUFFER_SIZE, numberOfBytes);
   }
@@ -145,7 +148,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * see {@link BatchWriterConfig#setMaxLatency(long, TimeUnit)}
    */
-
+  
   public static void setMaxLatency(Configuration conf, int numberOfMilliseconds) {
     conf.setInt(MAX_LATENCY, numberOfMilliseconds);
   }
@@ -153,7 +156,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   /**
    * see {@link BatchWriterConfig#setMaxWriteThreads(int)}
    */
-
+  
   public static void setMaxWriteThreads(Configuration conf, int numberOfThreads) {
     conf.setInt(NUM_WRITE_THREADS, numberOfThreads);
   }
@@ -165,7 +168,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   public static void setTimeout(Configuration conf, long time, TimeUnit timeUnit) {
     conf.setLong(TIMEOUT, timeUnit.toMillis(time));
   }
-
+  
   public static void setLogLevel(Configuration conf, Level level) {
     ArgumentChecker.notNull(level);
     conf.setInt(LOGLEVEL, level.toInt());
@@ -216,7 +219,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   protected static long getTimeout(Configuration conf) {
     return conf.getLong(TIMEOUT, Long.MAX_VALUE);
   }
-
+  
   protected static Level getLogLevel(Configuration conf) {
     if (conf.get(LOGLEVEL) != null)
       return Level.toLevel(conf.getInt(LOGLEVEL, Level.INFO.toInt()));
@@ -366,9 +369,14 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
         mtbw.close();
       } catch (MutationsRejectedException e) {
         if (e.getAuthorizationFailures().size() >= 0) {
-          HashSet<String> tables = new HashSet<String>();
-          for (KeyExtent ke : e.getAuthorizationFailures()) {
-            tables.add(ke.getTableId().toString());
+          HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<String,Set<SecurityErrorCode>>();
+          for (Entry<KeyExtent,Set<SecurityErrorCode>> ke : e.getAuthorizationFailures().entrySet()) {
+            Set<SecurityErrorCode> secCodes = tables.get(ke.getKey().getTableId().toString());
+            if (secCodes == null) {
+              secCodes = new HashSet<SecurityErrorCode>();
+              tables.put(ke.getKey().getTableId().toString(), secCodes);
+            }
+            secCodes.addAll(ke.getValue());
           }
           
           log.error("Not authorized to write to tables : " + tables);

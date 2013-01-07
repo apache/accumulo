@@ -715,7 +715,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     public Tablet currentTablet;
     public MapCounter<Tablet> successfulCommits = new MapCounter<Tablet>();
     Map<KeyExtent,Long> failures = new HashMap<KeyExtent,Long>();
-    HashSet<KeyExtent> authFailures = new HashSet<KeyExtent>();
+    HashMap<KeyExtent, SecurityErrorCode> authFailures = new HashMap<KeyExtent, SecurityErrorCode>();
     public Violations violations;
     public AuthInfo credentials;
     public long totalUpdates = 0;
@@ -1406,8 +1406,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       long t1 = System.currentTimeMillis();
       if (us.currentTablet != null && us.currentTablet.getExtent().equals(keyExtent))
         return;
-      
-      if (us.currentTablet == null && (us.failures.containsKey(keyExtent) || us.authFailures.contains(keyExtent))) {
+      if (us.currentTablet == null && (us.failures.containsKey(keyExtent) || us.authFailures.containsKey(keyExtent))) {
         // if there were previous failures, then do not accept additional writes
         return;
       }
@@ -1416,9 +1415,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         // if user has no permission to write to this table, add it to
         // the failures list
         boolean sameTable = us.currentTablet != null && (us.currentTablet.getExtent().getTableId().equals(keyExtent.getTableId()));
-        if (sameTable
-            || authenticator.hasTablePermission(SecurityConstants.getSystemCredentials(), us.credentials.user, keyExtent.getTableId().toString(),
-                TablePermission.WRITE)) {
+        if (sameTable || authenticator.hasTablePermission(SecurityConstants.getSystemCredentials(), us.credentials.user, keyExtent.getTableId().toString(), TablePermission.WRITE)) {
           long t2 = System.currentTimeMillis();
           us.authTimes.addStat(t2 - t1);
           us.currentTablet = onlineTablets.get(keyExtent);
@@ -1436,7 +1433,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
           long t2 = System.currentTimeMillis();
           us.authTimes.addStat(t2 - t1);
           us.currentTablet = null;
-          us.authFailures.add(keyExtent);
+          us.authFailures.put(keyExtent, SecurityErrorCode.PERMISSION_DENIED);
           if (updateMetrics.isEnabled())
             updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
           return;
@@ -1446,7 +1443,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         long t2 = System.currentTimeMillis();
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = null;
-        us.authFailures.add(keyExtent);
+        us.authFailures.put(keyExtent, e.getErrorCode());
         if (updateMetrics.isEnabled())
           updateMetrics.add(TabletServerUpdateMetrics.permissionErrors, 0);
         return;
@@ -1652,12 +1649,11 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
         log.debug(String.format("Violations: %d, first %s occurs %d", violations.size(), first.violationDescription, first.numberOfViolatingMutations));
       }
       if (us.authFailures.size() > 0) {
-        KeyExtent first = us.authFailures.iterator().next();
+        KeyExtent first = us.authFailures.keySet().iterator().next();
         log.debug(String.format("Authentication Failures: %d, first %s", us.authFailures.size(), first.toString()));
       }
       
-      return new UpdateErrors(Translator.translate(us.failures, Translator.KET), Translator.translate(violations, Translator.CVST), Translator.translate(
-          us.authFailures, Translator.KET));
+      return new UpdateErrors(Translator.translate(us.failures, Translator.KET), Translator.translate(violations, Translator.CVST), Translator.translate(us.authFailures, Translator.KET));
     }
     
     @Override

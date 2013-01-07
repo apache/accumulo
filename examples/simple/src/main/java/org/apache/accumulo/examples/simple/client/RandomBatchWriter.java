@@ -16,8 +16,11 @@
  */
 package org.apache.accumulo.examples.simple.client;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
@@ -31,6 +34,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -145,9 +149,14 @@ public class RandomBatchWriter {
       bw.close();
     } catch (MutationsRejectedException e) {
       if (e.getAuthorizationFailures().size() > 0) {
-        HashSet<String> tables = new HashSet<String>();
-        for (KeyExtent ke : e.getAuthorizationFailures()) {
-          tables.add(ke.getTableId().toString());
+        HashMap<String,Set<SecurityErrorCode>> tables = new HashMap<String,Set<SecurityErrorCode>>();
+        for (Entry<KeyExtent,Set<SecurityErrorCode>> ke : e.getAuthorizationFailures().entrySet()) {
+          Set<SecurityErrorCode> secCodes = tables.get(ke.getKey().getTableId().toString());
+          if (secCodes == null) {
+            secCodes = new HashSet<SecurityErrorCode>();
+            tables.put(ke.getKey().getTableId().toString(), secCodes);
+          }
+          secCodes.addAll(ke.getValue());
         }
         System.err.println("ERROR : Not authorized to write to tables : " + tables);
       }

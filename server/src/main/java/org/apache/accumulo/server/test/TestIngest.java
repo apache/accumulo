@@ -16,7 +16,9 @@
  */
 package org.apache.accumulo.server.test;
 
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.accumulo.cloudtrace.instrument.Trace;
@@ -39,6 +41,7 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.trace.DistributedTrace;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.fate.zookeeper.ZooReader;
@@ -301,8 +304,8 @@ public class TestIngest {
           bw.close();
         } catch (MutationsRejectedException e) {
           if (e.getAuthorizationFailures().size() > 0) {
-            for (KeyExtent ke : e.getAuthorizationFailures()) {
-              System.err.println("ERROR : Not authorized to write to : " + ke);
+            for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : e.getAuthorizationFailures().entrySet()) {
+              System.err.println("ERROR : Not authorized to write to : " + entry.getKey() + " due to " + entry.getValue());
             }
           }
           
