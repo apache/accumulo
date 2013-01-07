@@ -58,6 +58,7 @@ public class TestClientOpts {
     JCommander jc = new JCommander();
     jc.addObject(args);
     jc.addObject(bwOpts);
+    jc.addObject(bsOpts);
     jc.parse(
         "-u", "bar",
         "-p", "foo",
