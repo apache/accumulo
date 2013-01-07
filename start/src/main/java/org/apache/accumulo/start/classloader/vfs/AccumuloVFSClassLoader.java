@@ -175,7 +175,7 @@ public class AccumuloVFSClassLoader {
       return wrapper;
 
     // TODO monitor time for lib/ext was 1 sec... should this be configurable?
-    return new AccumuloReloadingVFSClassLoader(dynamicCPath, vfs, wrapper, 1000);
+    return new AccumuloReloadingVFSClassLoader(dynamicCPath, vfs, wrapper, 1000, true);
   }
 
   public static ClassLoader getClassLoader() throws IOException {

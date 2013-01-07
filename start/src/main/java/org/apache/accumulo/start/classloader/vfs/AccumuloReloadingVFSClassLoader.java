@@ -46,13 +46,19 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
   private ReloadingClassLoader parent = null;
   private DefaultFileMonitor monitor = null;
   private VFSClassLoader cl = null;
+  private boolean preDelegate;
 
   @Override
   public synchronized ClassLoader getClassLoader() {
     if (cl == null || cl.getParent() != parent.getClassLoader()) {
       try {
         files = AccumuloVFSClassLoader.resolve(vfs, uris);
-        setClassloader(new VFSClassLoader(files, vfs, parent.getClassLoader()));
+        
+        if (preDelegate)
+          cl = new VFSClassLoader(files, vfs, parent.getClassLoader());
+        else
+          cl = new PostDelegatingVFSClassLoader(files, vfs, parent.getClassLoader());
+
       } catch (FileSystemException fse) {
         throw new RuntimeException(fse);
       }
@@ -66,16 +72,21 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     
   }
 
-  public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs, ReloadingClassLoader parent, long monitorDelay) throws FileSystemException {
+  public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs, ReloadingClassLoader parent, long monitorDelay, boolean preDelegate)
+      throws FileSystemException {
 
     this.uris = uris;
     this.vfs = vfs;
     this.parent = parent;
+    this.preDelegate = preDelegate;
     
     ArrayList<FileObject> pathsToMonitor = new ArrayList<FileObject>();
     files = AccumuloVFSClassLoader.resolve(vfs, uris, pathsToMonitor);
 
-    cl = new VFSClassLoader(files, vfs, parent.getClassLoader());
+    if (preDelegate)
+      cl = new VFSClassLoader(files, vfs, parent.getClassLoader());
+    else
+      cl = new PostDelegatingVFSClassLoader(files, vfs, parent.getClassLoader());
     
     monitor = new DefaultFileMonitor(this);
     monitor.setDelay(monitorDelay);
@@ -87,8 +98,9 @@ public class AccumuloReloadingVFSClassLoader implements FileListener, ReloadingC
     monitor.start();
   }
   
-  public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs, final ReloadingClassLoader parent) throws FileSystemException {
-    this(uris, vfs, parent, DEFAULT_TIMEOUT);
+  public AccumuloReloadingVFSClassLoader(String uris, FileSystemManager vfs, final ReloadingClassLoader parent, boolean preDelegate)
+      throws FileSystemException {
+    this(uris, vfs, parent, DEFAULT_TIMEOUT, preDelegate);
   }
 
   public FileObject[] getFiles() {

@@ -29,22 +29,22 @@ public class ContextManager {
   // there is a lock per context so that one context can initialize w/o blocking another context
   private class Context {
     AccumuloReloadingVFSClassLoader loader;
-    String uris;
+    ContextConfig cconfig;
     boolean closed = false;
     
-    Context(String uris) {
-      this.uris = uris;
+    Context(ContextConfig cconfig) {
+      this.cconfig = cconfig;
     }
     
-    synchronized AccumuloReloadingVFSClassLoader getClassLoader() throws FileSystemException {
+    synchronized ClassLoader getClassLoader() throws FileSystemException {
       if (closed)
         return null;
       
       if (loader == null) {
-        loader = new AccumuloReloadingVFSClassLoader(uris, vfs, parent);
+        loader = new AccumuloReloadingVFSClassLoader(cconfig.uris, vfs, parent, cconfig.preDelegation);
       }
       
-      return loader;
+      return loader.getClassLoader();
     }
     
     synchronized void close() {
@@ -56,7 +56,7 @@ public class ContextManager {
 
   private Map<String,Context> contexts = new HashMap<String,Context>();
 
-  private volatile ContextConfig config;
+  private volatile ContextsConfig config;
   private FileSystemManager vfs;
   private ReloadingClassLoader parent;
   
@@ -65,10 +65,28 @@ public class ContextManager {
     this.parent = parent;
   }
   
-  public interface ContextConfig {
-    String getContextURIs(String context);
+  public static class ContextConfig {
+    String uris;
+    boolean preDelegation;
     
-    boolean isIsolated(String context);
+    public ContextConfig(String uris, boolean preDelegation) {
+      this.uris = uris;
+      this.preDelegation = preDelegation;
+    }
+    
+    public boolean equals(Object o) {
+      if (o instanceof ContextConfig) {
+        ContextConfig oc = (ContextConfig) o;
+        
+        return uris.equals(oc.uris) && preDelegation == oc.preDelegation;
+      }
+      
+      return false;
+    }
+  }
+  
+  public interface ContextsConfig {
+    ContextConfig getContextConfig(String context);
   }
   
   /**
@@ -76,7 +94,7 @@ public class ContextManager {
    * 
    * @param config
    */
-  public synchronized void setContextConfig(ContextConfig config) {
+  public synchronized void setContextConfig(ContextsConfig config) {
     if (this.config != null)
       throw new IllegalStateException("Context manager config already set");
     this.config = config;
@@ -84,9 +102,9 @@ public class ContextManager {
   
   public ClassLoader getClassLoader(String contextName) throws FileSystemException {
 
-    String uris = config.getContextURIs(contextName);
+    ContextConfig cconfig = config.getContextConfig(contextName);
     
-    if (uris == null)
+    if (cconfig == null)
       throw new IllegalArgumentException("Unknown context " + contextName);
     
     Context context = null;
@@ -98,11 +116,11 @@ public class ContextManager {
       context = contexts.get(context);
       
       if (context == null) {
-        context = new Context(uris);
+        context = new Context(cconfig);
         contexts.put(contextName, context);
-      } else if (!context.uris.equals(uris)) {
+      } else if (!context.cconfig.equals(cconfig)) {
         contextToClose = context;
-        context = new Context(uris);
+        context = new Context(cconfig);
         contexts.put(contextName, context);
       }
     }
@@ -110,13 +128,13 @@ public class ContextManager {
     if (contextToClose != null)
       contextToClose.close();
 
-    AccumuloReloadingVFSClassLoader loader = context.getClassLoader();
+    ClassLoader loader = context.getClassLoader();
     if (loader == null) {
       // ooppss, context was closed by another thread, try again
       return getClassLoader(contextName);
     }
     
-    return loader.getClassLoader();
+    return loader;
 
   }
   

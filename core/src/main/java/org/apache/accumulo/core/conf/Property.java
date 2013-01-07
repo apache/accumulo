@@ -299,7 +299,12 @@ public enum Property {
   //VFS ClassLoader properties
   VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CLASSLOADER_SYSTEM_CLASSPATH_PROPERTY, "", PropertyType.STRING,
       "Configuration for a system level vfs classloader.  Accumulo jar can be configured here and loaded out of HDFS."),
-  VFS_CONTEXT_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY, null, PropertyType.PREFIX, "Classpath for this context");
+  VFS_CONTEXT_CLASSPATH_PROPERTY(AccumuloVFSClassLoader.VFS_CONTEXT_CLASSPATH_PROPERTY, null, PropertyType.PREFIX,
+      "Properties in this category are define a classpath. These properties start  with the category prefix, followed by a context name.  "
+          + "The value is a comma seperated list of URIs. Supports full regex on filename alone. For example general.vfs.context.classpath.cx1=hdfs://nn1:9902/mylibdir/*.jar.  "
+          + "You can enable post delegation for a context, which will load classes from the context first instead of the parent first.  "
+          + "Do this by setting general.vfs.context.classpath.<name>.delegation=post, where <name> is your context name.  "
+          + "If delegation is not specified, it defaults to loading from parent classloader first.");
       
   
 

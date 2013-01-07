@@ -20,6 +20,7 @@ import java.net.URL;
 import java.util.HashSet;
 
 import org.apache.accumulo.start.classloader.vfs.ContextManager.ContextConfig;
+import org.apache.accumulo.start.classloader.vfs.ContextManager.ContextsConfig;
 import org.apache.accumulo.test.AccumuloDFSBase;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
@@ -77,21 +78,15 @@ public class ContextManagerTest extends AccumuloDFSBase {
       }
     });
 
-    cm.setContextConfig(new ContextConfig() {
+    cm.setContextConfig(new ContextsConfig() {
       @Override
-      public String getContextURIs(String context) {
+      public ContextConfig getContextConfig(String context) {
         if (context.equals("CX1")) {
-          return new Path(TEST_DIR, "HelloWorld.jar").toUri().toString();
+          return new ContextConfig(new Path(TEST_DIR, "HelloWorld.jar").toUri().toString(), true);
         } else if (context.equals("CX2")) {
-          return new Path(TEST_DIR2, "HelloWorld.jar").toUri().toString();
+          return new ContextConfig(new Path(TEST_DIR2, "HelloWorld.jar").toUri().toString(), true);
         }
         return null;
-      }
-      
-      @Override
-      public boolean isIsolated(String context) {
-        // TODO Auto-generated method stub
-        return false;
       }
     });
 
@@ -120,6 +115,35 @@ public class ContextManagerTest extends AccumuloDFSBase {
     cm.removeUnusedContexts(new HashSet<String>());
   }
   
+  @Test
+  public void testPostDelegation() throws Exception {
+    final VFSClassLoader parent = new VFSClassLoader(new FileObject[] {vfs.resolveFile(new Path(TEST_DIR, "HelloWorld.jar").toUri().toString())}, vfs);
+    
+    Class<?> pclass = parent.loadClass("test.HelloWorld");
+    
+    ContextManager cm = new ContextManager(vfs, new ReloadingClassLoader() {
+      @Override
+      public ClassLoader getClassLoader() {
+        return parent;
+      }
+    });
+    
+    cm.setContextConfig(new ContextsConfig() {
+      @Override
+      public ContextConfig getContextConfig(String context) {
+        if (context.equals("CX1")) {
+          return new ContextConfig(new Path(TEST_DIR2, "HelloWorld.jar").toUri().toString(), true);
+        } else if (context.equals("CX2")) {
+          return new ContextConfig(new Path(TEST_DIR2, "HelloWorld.jar").toUri().toString(), false);
+        }
+        return null;
+      }
+    });
+    
+    Assert.assertTrue(cm.getClassLoader("CX1").loadClass("test.HelloWorld") == pclass);
+    Assert.assertFalse(cm.getClassLoader("CX2").loadClass("test.HelloWorld") == pclass);
+  }
+
   @After
   public void tearDown() throws Exception {
     this.hdfs.delete(TEST_DIR, true);

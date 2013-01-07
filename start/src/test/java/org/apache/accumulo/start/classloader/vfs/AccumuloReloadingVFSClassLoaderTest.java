@@ -74,7 +74,7 @@ public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
       public ClassLoader getClassLoader() {
         return ClassLoader.getSystemClassLoader();
       }
-    });
+    }, true);
     
     VFSClassLoader cl = (VFSClassLoader) arvcl.getClassLoader();
     
@@ -94,7 +94,7 @@ public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
       public ClassLoader getClassLoader() {
         return ClassLoader.getSystemClassLoader();
       }
-    }, 1000);
+    }, 1000, true);
     
     FileObject[] files = ((VFSClassLoader) arvcl.getClassLoader()).getFileObjects();
     Assert.assertArrayEquals(createFileSystems(dirContents), files);
