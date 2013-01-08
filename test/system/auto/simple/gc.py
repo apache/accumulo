@@ -86,8 +86,8 @@ class GCLotsOfCandidatesTest(TestUtilsMixin, unittest.TestCase):
     order = GCTest.order + 1
     settings = SunnyDayTest.settings.copy()
     settings.update({
-        'gc.cycle.start': 5,
-        'gc.cycle.delay': 15
+        'gc.cycle.start': 1,
+        'gc.cycle.delay': 1
         })
 
     def runTest(self):
@@ -102,8 +102,8 @@ class GCLotsOfCandidatesTest(TestUtilsMixin, unittest.TestCase):
 
         log.info("Running GC with low memory allotment")
         gc = self.runOn('localhost',
-                        ['bash', '-c', 'ACCUMULO_GC_OPTS="-Xmx7m " ' + self.accumulo_sh() + ' gc'])
-        self.sleep(20)
+                        ['bash', '-c', 'ACCUMULO_GC_OPTS="-Xmx15m " ' + self.accumulo_sh() + ' gc'])
+        self.sleep(10)
         self.pkill('localhost', 'app=gc', signal.SIGHUP)
         self.wait(gc)
 
