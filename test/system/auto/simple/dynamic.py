@@ -72,7 +72,12 @@ public class SummingCombiner%s extends LongCombiner {
 
         handle = self.runOn(self.masterHost(), [self.accumulo_sh(), 'classpath'])
         out, err = handle.communicate()
-        path = ':'.join(out.split('\n')[1:])
+	parts = []
+        for line in out.split('\n'):
+           line = line.strip()
+	   if line.startswith("file:"):
+              parts.append(line[5:])
+        path = ':'.join(parts)
 
         self.runWait("javac -cp %s:%s %s" % (
             path,
