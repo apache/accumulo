@@ -26,7 +26,6 @@ import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.AdminUtil;
 import org.apache.accumulo.fate.ZooStore;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
-import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
@@ -62,10 +61,8 @@ public class Admin {
     Help opts = new Help();
     JCommander jc = new JCommander(opts);
     jc.setProgramName(Admin.class.getName());
-    FailOpts fail = new FailOpts();
-    jc.addCommand("fail", fail);
-    DeleteOpts deleteOpts = new DeleteOpts();
-    jc.addCommand("delete", deleteOpts);
+    jc.addCommand("fail", new FailOpts());
+    jc.addCommand("delete", new DeleteOpts());
     jc.addCommand("print", new PrintOpts());
     jc.parse(args);
     if (opts.help || jc.getParsedCommand() == null) {
