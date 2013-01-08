@@ -110,6 +110,8 @@ public class SimpleGarbageCollector implements Iface {
     boolean offline = false;
     @Parameter(names={"-a", "--address"}, description="specify our local address")
     String address = null;
+    @Parameter(names={"--no-trash"}, description="do not use the Trash, even if it is configured")
+    boolean noTrash = false;
   }
 
   // how much of the JVM's available memory should it use gathering candidates
@@ -122,7 +124,7 @@ public class SimpleGarbageCollector implements Iface {
   private long gcStartDelay;
   private boolean checkForBulkProcessingFiles;
   private FileSystem fs;
-  private Trash trash;
+  private Trash trash = null;
   private boolean safemode = false, offline = false, verbose = false;
   private String address = "localhost";
   private ZooLock lock;
@@ -155,7 +157,7 @@ public class SimpleGarbageCollector implements Iface {
     if (opts.address != null)
       gc.useAddress(address);
     
-    gc.init(fs, instance, SecurityConstants.getSystemCredentials());
+    gc.init(fs, instance, SecurityConstants.getSystemCredentials(), opts.noTrash);
     Accumulo.enableTracing(address, "gc");
     gc.run();
   }
@@ -178,9 +180,8 @@ public class SimpleGarbageCollector implements Iface {
     this.address = address;
   }
 
-  public void init(FileSystem fs, Instance instance, AuthInfo credentials) throws IOException {
+  public void init(FileSystem fs, Instance instance, AuthInfo credentials, boolean noTrash) throws IOException {
     this.fs = TraceFileSystem.wrap(fs);
-    this.trash = new Trash(fs, fs.getConf());
     this.credentials = credentials;
     this.instance = instance;
     
@@ -194,8 +195,11 @@ public class SimpleGarbageCollector implements Iface {
     log.info("verbose: " + verbose);
     log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of " + Runtime.getRuntime().maxMemory() + " bytes");
     log.info("delete threads: " + numDeleteThreads);
-    log.info("Starting trash emptier");
-    new Daemon(new LoggingRunnable(log, trash.getEmptier()), "Trash Emptier").start();
+    if (!noTrash) {
+      this.trash = new Trash(fs, fs.getConf());
+      log.info("Starting trash emptier");
+      new Daemon(new LoggingRunnable(log, trash.getEmptier()), "Trash Emptier").start();
+    }
   }
   
   private void run() {
@@ -597,7 +601,7 @@ public class SimpleGarbageCollector implements Iface {
             
             Path p = new Path(ServerConstants.getTablesDir() + delete);
             
-            if (trash.moveToTrash(p) || fs.delete(p, true)) {
+            if ((trash != null && trash.moveToTrash(p)) || fs.delete(p, true)) {
               // delete succeeded, still want to delete
               removeFlag = true;
               synchronized (SimpleGarbageCollector.this) {

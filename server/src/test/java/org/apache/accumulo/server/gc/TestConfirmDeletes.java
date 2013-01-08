@@ -99,7 +99,7 @@ public class TestConfirmDeletes {
     load(instance, metadata, deletes);
 
     SimpleGarbageCollector gc = new SimpleGarbageCollector();
-    gc.init(fs, instance, auth);
+    gc.init(fs, instance, auth, false);
     SortedSet<String> candidates = gc.getCandidates();
     Assert.assertEquals(expectedInitial, candidates.size());
     gc.confirmDeletes(candidates);
