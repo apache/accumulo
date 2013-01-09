@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 
-import org.apache.accumulo.start.classloader.vfs.providers.ReadOnlyHdfsFileProvider;
+import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileProvider;
 import org.apache.commons.vfs2.CacheStrategy;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.cache.DefaultFilesCache;
@@ -122,7 +122,7 @@ public class AccumuloDFSBase {
       vfs.addProvider("tbz2", new org.apache.commons.vfs2.provider.tar.TarFileProvider());
       vfs.addProvider("tgz", new org.apache.commons.vfs2.provider.tar.TarFileProvider());
       vfs.addProvider("bz2", new org.apache.commons.vfs2.provider.bzip2.Bzip2FileProvider());
-      vfs.addProvider("hdfs", new ReadOnlyHdfsFileProvider());
+      vfs.addProvider("hdfs", new HdfsFileProvider());
       vfs.addExtensionMap("jar", "jar");
       vfs.addExtensionMap("zip", "zip");
       vfs.addExtensionMap("gz", "gz");

@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,19 +16,45 @@
  */
 package org.apache.accumulo.start.classloader.vfs.providers;
 
-import org.apache.commons.vfs2.FileContent;
-import org.apache.commons.vfs2.FileContentInfo;
-import org.apache.commons.vfs2.FileContentInfoFactory;
-import org.apache.commons.vfs2.FileSystemException;
-import org.apache.commons.vfs2.impl.DefaultFileContentInfo;
+/**
+ * HDFS file content attributes.
+ * 
+ * @since 2.1
+ */
+public enum HdfsFileAttributes
+{
+    /**
+     * Last access time.
+     */
+    LAST_ACCESS_TIME,
 
-public class HdfsReadOnlyFileContentInfoFactory implements FileContentInfoFactory {
+    /**
+     * Block size.
+     */
+    BLOCK_SIZE,
 
-  public FileContentInfo create(FileContent fileContent) throws FileSystemException {
-    //TODO: Need to figure out a way to get this information from the file.
-    String content = "text/plain";
-    String encoding = "UTF-8";
-    return new DefaultFileContentInfo(content, encoding);
-  }
-  
+    /**
+     * Group.
+     */
+    GROUP,
+
+    /**
+     * Owner.
+     */
+    OWNER,
+
+    /**
+     * Permissions.
+     */
+    PERMISSIONS,
+
+    /**
+     * Length.
+     */
+    LENGTH,
+
+    /**
+     * Modification time.
+     */
+    MODIFICATION_TIME;
 }

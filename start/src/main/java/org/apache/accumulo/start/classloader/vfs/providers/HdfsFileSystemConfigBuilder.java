@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,27 +19,30 @@ package org.apache.accumulo.start.classloader.vfs.providers;
 import org.apache.commons.vfs2.FileSystem;
 import org.apache.commons.vfs2.FileSystemConfigBuilder;
 
-public class HdfsFileSystemConfigBuilder extends FileSystemConfigBuilder {
+/**
+ * Configuration settings for the HdfsFileSystem.
+ * 
+ * @since 2.1
+ */
+public class HdfsFileSystemConfigBuilder extends FileSystemConfigBuilder
+{
+    private static final HdfsFileSystemConfigBuilder BUILDER = new HdfsFileSystemConfigBuilder();
 
-  private final static HdfsFileSystemConfigBuilder BUILDER = new HdfsFileSystemConfigBuilder(); 
-  
-  private String hdfsUri = null;
-  
-  public String getHdfsUri() {
-    return hdfsUri;
-  }
+    /**
+     * @return HdfsFileSystemConfigBuilder instance
+     */
+    public static HdfsFileSystemConfigBuilder getInstance()
+    {
+        return BUILDER;
+    }
 
-  public void setHdfsUri(String hdfsUri) {
-    this.hdfsUri = hdfsUri;
-  }
+    /**
+     * @return HDFSFileSystem
+     */
+    @Override
+    protected Class<? extends FileSystem> getConfigClass()
+    {
+        return HdfsFileSystem.class;
+    }
 
-  @Override
-  protected Class<? extends FileSystem> getConfigClass() {
-    return ReadOnlyHdfsFileSystem.class;
-  }
-  
-  public static HdfsFileSystemConfigBuilder getInstance() {
-    return BUILDER;
-  }
-  
 }

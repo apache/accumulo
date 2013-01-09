@@ -19,8 +19,6 @@ package org.apache.accumulo.start.classloader.vfs.providers;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.start.classloader.vfs.providers.HdfsFileObject;
-import org.apache.accumulo.start.classloader.vfs.providers.ReadOnlyHdfsFileProvider;
 import org.apache.accumulo.test.AccumuloDFSBase;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
@@ -47,7 +45,7 @@ public class ReadOnlyHdfsFileProviderTest extends AccumuloDFSBase {
   @Before
   public void setup() throws Exception {
     manager = new DefaultFileSystemManager();
-    manager.addProvider("hdfs", new ReadOnlyHdfsFileProvider());
+    manager.addProvider("hdfs", new HdfsFileProvider());
     manager.init();
     this.hdfs = cluster.getFileSystem();
   }
@@ -192,13 +190,13 @@ public class ReadOnlyHdfsFileProviderTest extends AccumuloDFSBase {
     //Create the test file
     FileObject file = createTestFile(hdfs);
     Map<String,Object> attributes = file.getContent().getAttributes();
-    Assert.assertTrue(attributes.containsKey(HdfsFileObject.BLOCK_SIZE));
-    Assert.assertTrue(attributes.containsKey(HdfsFileObject.GROUP));
-    Assert.assertTrue(attributes.containsKey(HdfsFileObject.LAST_ACCESS_TIME));
-    Assert.assertTrue(attributes.containsKey(HdfsFileObject.LENGTH));
-    Assert.assertTrue(attributes.containsKey(HdfsFileObject.MODIFICATION_TIME));
-    Assert.assertTrue(attributes.containsKey(HdfsFileObject.OWNER));
-    Assert.assertTrue(attributes.containsKey(HdfsFileObject.PERMISSIONS));
+    Assert.assertTrue(attributes.containsKey(HdfsFileAttributes.BLOCK_SIZE.toString()));
+    Assert.assertTrue(attributes.containsKey(HdfsFileAttributes.GROUP.toString()));
+    Assert.assertTrue(attributes.containsKey(HdfsFileAttributes.LAST_ACCESS_TIME.toString()));
+    Assert.assertTrue(attributes.containsKey(HdfsFileAttributes.LENGTH.toString()));
+    Assert.assertTrue(attributes.containsKey(HdfsFileAttributes.MODIFICATION_TIME.toString()));
+    Assert.assertTrue(attributes.containsKey(HdfsFileAttributes.OWNER.toString()));
+    Assert.assertTrue(attributes.containsKey(HdfsFileAttributes.PERMISSIONS.toString()));
   }
   
   @Test(expected=FileSystemException.class)
