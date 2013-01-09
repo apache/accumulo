@@ -72,23 +72,23 @@ if [ -z ${ACCUMULO_VERSION} ]; then
         ACCUMULO_VERSION=1.4.5-SNAPSHOT
 fi
 
-if [ -z "$HADOOP_HOME" ]
+if [ -z "$HADOOP_PREFIX" ]
 then
    HADOOP_HOME="`which hadoop`"
-   if [ -z "$HADOOP_HOME" ]
+   if [ -z "$HADOOP_PREFIX" ]
    then
-      echo "You must set HADOOP_HOME"
+      echo "You must set HADOOP_PREFIX"
       exit 1
    fi
-   HADOOP_HOME=`dirname $HADOOP_HOME`
-   HADOOP_HOME=`dirname $HADOOP_HOME`
+   HADOOP_HOME=`dirname $HADOOP_PREFIX`
+   HADOOP_HOME=`dirname $HADOOP_PREFIX`
 fi
-if [ ! -d "$HADOOP_HOME" ]
+if [ ! -d "$HADOOP_PREFIX" ]
 then
-    echo "$HADOOP_HOME is not a directory"
+    echo "$HADOOP_PREFIX is not a directory"
     exit 1
 fi
-export HADOOP_HOME
+export HADOOP_PREFIX
 
 if [ ! -f "$ACCUMULO_CONF_DIR/masters" -o ! -f "$ACCUMULO_CONF_DIR/slaves" ]
 then
