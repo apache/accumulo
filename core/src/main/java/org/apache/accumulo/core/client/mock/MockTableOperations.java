@@ -262,15 +262,15 @@ public class MockTableOperations extends TableOperationsHelper {
   }
   
   @Override
-  public void offline(String tableName) throws AccumuloSecurityException, AccumuloException {
+  public void offline(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     if (!exists(tableName))
-      throw new AccumuloException(tableName + " does not exists");
+      throw new TableNotFoundException(tableName, tableName, "");
   }
   
   @Override
-  public void online(String tableName) throws AccumuloSecurityException, AccumuloException {
+  public void online(String tableName) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     if (!exists(tableName))
-      throw new AccumuloException(tableName + " does not exists");
+      new TableNotFoundException(tableName, tableName, "");
   }
   
   @Override
