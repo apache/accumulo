@@ -20,9 +20,11 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 
@@ -86,6 +88,7 @@ public class MockTable {
   Map<String,EnumSet<TablePermission>> userPermissions = new HashMap<String,EnumSet<TablePermission>>();
   private TimeType timeType;
   SortedSet<Text> splits = new TreeSet<Text>();
+  Map<String,Set<Text>> localityGroups = new TreeMap<String, Set<Text>>();
   
   MockTable(boolean limitVersion, TimeType timeType) {
     this.timeType = timeType;
@@ -121,5 +124,12 @@ public class MockTable {
   
   public Collection<Text> getSplits() {
     return splits;
+  }
+  
+  public void setLocalityGroups(Map<String,Set<Text>> groups) {
+    localityGroups = groups;
+  }
+  public Map<String,Set<Text>> getLocalityGroups() {
+    return localityGroups;
   }
 }

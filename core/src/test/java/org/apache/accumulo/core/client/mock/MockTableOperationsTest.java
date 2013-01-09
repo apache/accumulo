@@ -58,6 +58,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -249,7 +250,7 @@ public class MockTableOperationsTest {
         testFiles.importPath.toString(), testFiles.failurePath.toString(),
         false);
   }
-
+  
   @Test(expected = IOException.class)
   public void testFailsWithNonEmptyFailureDirectory() throws Throwable {
     Instance instance = new MockInstance("foo");
@@ -262,6 +263,28 @@ public class MockTableOperationsTest {
     tableOperations.importDirectory("doesnt_exist_table",
         testFiles.importPath.toString(), testFiles.failurePath.toString(),
         false);
+  }
+  
+  @Test
+  public void testDeleteRows() throws Exception {
+    Instance instance = new MockInstance("rows");
+    Connector connector = instance.getConnector("user", "foo");
+    TableOperations to = connector.tableOperations();
+    to.create("test");
+    BatchWriter bw = connector.createBatchWriter("test", new BatchWriterConfig());
+    for (int r = 0; r < 20; r++) {
+      Mutation m = new Mutation("" + r);
+      for (int c = 0; c < 5; c++) {
+        m.put(new Text("cf"), new Text("" + c), new Value(("" + c).getBytes()));
+      }
+      bw.addMutation(m);
+    }
+    bw.flush();
+    to.deleteRows("test", new Text("1"), new Text("2"));
+    Scanner s = connector.createScanner("test", Constants.NO_AUTHS);
+    for (Entry<Key, Value> entry : s) {
+      Assert.assertTrue(entry.getKey().getRow().toString().charAt(0) != '1');
+    }
   }
   
 }
