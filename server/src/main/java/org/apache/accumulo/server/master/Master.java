@@ -2129,6 +2129,26 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     
     tserverSet.startListeningForTabletServerChanges();
 
+    // TODO: add shutdown for fate object
+    try {
+      final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
+          ZooReaderWriter.getRetryingInstance()), 1000 * 60 * 60 * 8);
+      
+      fate = new Fate<Master>(this, store, 4);
+      
+      SimpleTimer.getInstance().schedule(new TimerTask() {
+        
+        @Override
+        public void run() {
+          store.ageOff();
+        }
+      }, 63000, 63000);
+    } catch (KeeperException e) {
+      throw new IOException(e);
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    }
+    
     ZooReaderWriter.getInstance().getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
       @Override
       public void process(WatchedEvent event) {
@@ -2150,26 +2170,6 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     watchers.add(new TabletGroupWatcher(stores[0], watchers.get(1)));
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
-    }
-    
-    // TODO: add shutdown for fate object
-    try {
-      final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
-          ZooReaderWriter.getRetryingInstance()), 1000 * 60 * 60 * 8);
-      
-      fate = new Fate<Master>(this, store, 4);
-      
-      SimpleTimer.getInstance().schedule(new TimerTask() {
-        
-        @Override
-        public void run() {
-          store.ageOff();
-        }
-      }, 63000, 63000);
-    } catch (KeeperException e) {
-      throw new IOException(e);
-    } catch (InterruptedException e) {
-      throw new IOException(e);
     }
     
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(new MasterClientServiceHandler()));
