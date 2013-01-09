@@ -65,8 +65,6 @@ import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.CachedConfiguration;
-import org.apache.accumulo.core.util.Daemon;
-import org.apache.accumulo.core.util.LoggingRunnable;
 import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
@@ -197,8 +195,6 @@ public class SimpleGarbageCollector implements Iface {
     log.info("delete threads: " + numDeleteThreads);
     if (!noTrash) {
       this.trash = new Trash(fs, fs.getConf());
-      log.info("Starting trash emptier");
-      new Daemon(new LoggingRunnable(log, trash.getEmptier()), "Trash Emptier").start();
     }
   }
   
