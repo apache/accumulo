@@ -27,9 +27,9 @@ import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 /**
- * This store removes Repos, in the store it wraps, that are in a finished or new state for more than a configurable time period.    
+ * This store removes Repos, in the store it wraps, that are in a finished or new state for more than a configurable time period.
  * 
- * No external time source is used.  It starts tracking idle time when its created.
+ * No external time source is used. It starts tracking idle time when its created.
  * 
  */
 public class AgeOffStore<T> implements TStore<T> {
@@ -37,9 +37,9 @@ public class AgeOffStore<T> implements TStore<T> {
   public static interface TimeSource {
     long currentTimeMillis();
   }
-
+  
   final private static Logger log = Logger.getLogger(AgeOffStore.class);
-
+  
   private TStore<T> store;
   private Map<Long,Long> candidates;
   private long ageOffTime;
@@ -70,7 +70,7 @@ public class AgeOffStore<T> implements TStore<T> {
   
   public void ageOff() {
     HashSet<Long> oldTxs = new HashSet<Long>();
-
+    
     synchronized (this) {
       long time = timeSource.currentTimeMillis();
       if (minTime < time && time - minTime >= ageOffTime) {
@@ -96,6 +96,8 @@ public class AgeOffStore<T> implements TStore<T> {
               store.delete(txid);
               log.debug("Aged off FATE tx " + String.format("%016x", txid));
               break;
+            default:
+              break;
           }
           
         } finally {
@@ -114,7 +116,7 @@ public class AgeOffStore<T> implements TStore<T> {
     candidates = new HashMap<Long,Long>();
     
     minTime = Long.MAX_VALUE;
-
+    
     List<Long> txids = store.list();
     for (Long txid : txids) {
       store.reserve(txid);
@@ -124,6 +126,8 @@ public class AgeOffStore<T> implements TStore<T> {
           case FAILED:
           case SUCCESSFUL:
             addCandidate(txid);
+          default:
+            break;
         }
       } finally {
         store.unreserve(txid, 0);
@@ -139,7 +143,7 @@ public class AgeOffStore<T> implements TStore<T> {
       }
     });
   }
-
+  
   @Override
   public long create() {
     long txid = store.create();
@@ -185,7 +189,7 @@ public class AgeOffStore<T> implements TStore<T> {
   @Override
   public void setStatus(long tid, org.apache.accumulo.fate.TStore.TStatus status) {
     store.setStatus(tid, status);
-
+    
     switch (status) {
       case IN_PROGRESS:
       case FAILED_IN_PROGRESS:
@@ -194,6 +198,8 @@ public class AgeOffStore<T> implements TStore<T> {
       case FAILED:
       case SUCCESSFUL:
         addCandidate(tid);
+        break;
+      default:
         break;
     }
   }

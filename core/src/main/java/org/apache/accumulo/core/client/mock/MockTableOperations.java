@@ -40,7 +40,6 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
@@ -182,12 +181,11 @@ public class MockTableOperations extends TableOperationsHelper {
     long time = System.currentTimeMillis();
     MockTable table = acu.tables.get(tableName);
     if (table == null) {
-      throw new TableNotFoundException(null, tableName,
-          "The table was not found");
+      throw new TableNotFoundException(null, tableName, "The table was not found");
     }
     Path importPath = new Path(dir);
     Path failurePath = new Path(failureDir);
-
+    
     FileSystem fs = acu.getFileSystem();
     /*
      * check preconditions
@@ -222,9 +220,8 @@ public class MockTableOperations extends TableOperationsHelper {
      */
     for (FileStatus importStatus : fs.listStatus(importPath)) {
       try {
-        FileSKVIterator importIterator = FileOperations.getInstance()
-            .openReader(importStatus.getPath().toString(), true, fs,
-                fs.getConf(), AccumuloConfiguration.getDefaultConfiguration());
+        FileSKVIterator importIterator = FileOperations.getInstance().openReader(importStatus.getPath().toString(), true, fs, fs.getConf(),
+            AccumuloConfiguration.getDefaultConfiguration());
         while (importIterator.hasTop()) {
           Key key = importIterator.getTopKey();
           Value value = importIterator.getTopValue();
@@ -233,12 +230,10 @@ public class MockTableOperations extends TableOperationsHelper {
           }
           Mutation mutation = new Mutation(key.getRow());
           if (!key.isDeleted()) {
-            mutation.put(key.getColumnFamily(), key.getColumnQualifier(),
-                new ColumnVisibility(key.getColumnVisibilityData().toArray()),
-                key.getTimestamp(), value);
+            mutation.put(key.getColumnFamily(), key.getColumnQualifier(), new ColumnVisibility(key.getColumnVisibilityData().toArray()), key.getTimestamp(),
+                value);
           } else {
-            mutation.putDelete(key.getColumnFamily(), key.getColumnQualifier(),
-                new ColumnVisibility(key.getColumnVisibilityData().toArray()),
+            mutation.putDelete(key.getColumnFamily(), key.getColumnQualifier(), new ColumnVisibility(key.getColumnVisibilityData().toArray()),
                 key.getTimestamp());
           }
           table.addMutation(mutation);
@@ -248,8 +243,7 @@ public class MockTableOperations extends TableOperationsHelper {
         FSDataOutputStream failureWriter = null;
         DataInputStream failureReader = null;
         try {
-          failureWriter = fs.create(failurePath.suffix("/"
-              + importStatus.getPath().getName()));
+          failureWriter = fs.create(failurePath.suffix("/" + importStatus.getPath().getName()));
           failureReader = fs.open(importStatus.getPath());
           int read = 0;
           byte[] buffer = new byte[1024];
@@ -298,7 +292,7 @@ public class MockTableOperations extends TableOperationsHelper {
   public void merge(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
-}
+  }
   
   @Override
   public void deleteRows(String tableName, Text start, Text end) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
@@ -333,7 +327,7 @@ public class MockTableOperations extends TableOperationsHelper {
   public void flush(String tableName, Text start, Text end, boolean wait) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     if (!exists(tableName))
       throw new TableNotFoundException(tableName, tableName, "");
- }
+  }
   
   @Override
   public Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive, Text endRow, boolean endInclusive)

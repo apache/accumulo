@@ -39,7 +39,9 @@ public interface TStore<T> {
     /** Transaction has failed and has been fully rolled back */
     FAILED,
     /** Transaction has succeeded */
-    SUCCESSFUL, UNKNOWN
+    SUCCESSFUL,
+    /** Unrecognized or unknown transaction state */
+    UNKNOWN
   }
   
   /**
@@ -135,7 +137,7 @@ public interface TStore<T> {
    * 
    * @return
    */
-
+  
   public List<Long> list();
-
+  
 }
