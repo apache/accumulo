@@ -20,6 +20,14 @@ import org.apache.accumulo.core.data.Mutation;
 
 /**
  * Send Mutations to a single Table in Accumulo.
+ * 
+ * When the user uses a Connector to create a BatchWriter,
+ * they specify how much memory and how many threads it should use. 
+ * As the user adds mutations to the batch writer, it buffers them. 
+ * Once the buffered mutations have used half of the user specified buffer, 
+ * the mutations are dumped into the background to be written by a thread pool.
+ * If the user specified memory completely fills up, then writes are held.
+ * When a user calls flush, it does not return until all buffered mutations are written.
  */
 public interface BatchWriter {
   
