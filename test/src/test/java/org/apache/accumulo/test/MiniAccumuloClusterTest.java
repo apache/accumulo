@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.test;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map.Entry;
@@ -27,6 +28,7 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -35,6 +37,7 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.commons.io.FileUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -129,6 +132,52 @@ public class MiniAccumuloClusterTest {
     conn.tableOperations().delete("table1");
   }
   
+  @Test(timeout = 30000)
+  public void testPerTableClasspath() throws Exception {
+    
+    Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZookeepers()).getConnector("root", "superSecret");
+    
+    conn.tableOperations().create("table2");
+    
+    File jarFile = File.createTempFile("iterator", ".jar");
+    FileUtils.copyURLToFile(this.getClass().getResource("/FooFilter.jar"), jarFile);
+    jarFile.deleteOnExit();
+
+    conn.instanceOperations().setProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1", jarFile.toURI().toString());
+    conn.tableOperations().setProperty("table2", Property.TABLE_CLASSPATH.getKey(), "cx1");
+    conn.tableOperations().attachIterator("table2", new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
+
+    BatchWriter bw = conn.createBatchWriter("table2", new BatchWriterConfig());
+    
+    Mutation m1 = new Mutation("foo");
+    m1.put("cf1", "cq1", "v2");
+    m1.put("cf1", "cq2", "v3");
+    
+    bw.addMutation(m1);
+    
+    Mutation m2 = new Mutation("bar");
+    m2.put("cf1", "cq1", "v6");
+    m2.put("cf1", "cq2", "v7");
+    
+    bw.addMutation(m2);
+    
+    bw.close();
+    
+    Scanner scanner = conn.createScanner("table2", new Authorizations());
+    
+    int count = 0;
+    for (Entry<Key,Value> entry : scanner) {
+      Assert.assertFalse(entry.getKey().getRowData().toString().toLowerCase().contains("foo"));
+      count++;
+    }
+    
+    Assert.assertEquals(2, count);
+    
+    conn.instanceOperations().removeProperty(Property.VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1");
+    conn.tableOperations().delete("table2");
+
+  }
+
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();

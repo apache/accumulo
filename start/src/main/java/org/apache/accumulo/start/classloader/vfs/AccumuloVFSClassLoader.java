@@ -297,6 +297,7 @@ public class AccumuloVFSClassLoader {
   
   public static synchronized ContextManager getContextManager() throws IOException {
     if (contextManager == null) {
+      getClassLoader();
       contextManager = new ContextManager(vfs, new ReloadingClassLoader() {
         @Override
         public ClassLoader getClassLoader() {
