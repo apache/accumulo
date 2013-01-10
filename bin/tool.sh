@@ -20,8 +20,8 @@ bin=`dirname "$0"`
 bin=`cd "$bin"; pwd`
 . "$bin"/config.sh
 
-if [ -z $HADOOP_HOME ] ; then
-    echo "HADOOP_HOME is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
+if [ -z $HADOOP_PREFIX ] ; then
+    echo "HADOOP_PREFIX is not set.  Please make sure it's set globally or in conf/accumulo-env.sh"
     exit 1
 fi
 if [ -z $ZOOKEEPER_HOME ] ; then
@@ -98,5 +98,5 @@ fi
 #echo USERJARS=$USERJARS
 #echo CLASSNAME=$CLASSNAME
 #echo HADOOP_CLASSPATH=$HADOOP_CLASSPATH
-#echo exec "$HADOOP_HOME/bin/hadoop" jar "$TOOLJAR" $CLASSNAME -libjars \"$LIB_JARS\" $ARGS
-exec "$HADOOP_HOME/bin/hadoop" jar "$TOOLJAR" $CLASSNAME -libjars \"$LIB_JARS\" "$@"
+#echo exec "$HADOOP_PREFIX/bin/hadoop" jar "$TOOLJAR" $CLASSNAME -libjars \"$LIB_JARS\" $ARGS
+exec "$HADOOP_PREFIX/bin/hadoop" jar "$TOOLJAR" $CLASSNAME -libjars \"$LIB_JARS\" "$@"
