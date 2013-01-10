@@ -1092,9 +1092,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     @Override
     public void finishTableOperation(TInfo tinfo, AuthInfo credentials, long opid) throws ThriftSecurityException, TException {
       authenticate(credentials);
-      
       fate.delete(opid);
-      
     }
     
   }
@@ -1635,8 +1633,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           }
         }
         MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
-        BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME,
- new BatchWriterConfig());
+        BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
         try {
           deleteTablets(deleteRange, bw, conn);
         } finally {
@@ -1773,7 +1770,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       Mutation m;
       // Delete everything in the other tablets
       // group all deletes into tablet into one mutation, this makes tablets
-      // either dissapear entirely or not all.. this is important for the case
+      // either disappear entirely or not all.. this is important for the case
       // where the process terminates in the loop below...
       scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
       log.debug("Deleting range " + scanRange);
@@ -2163,8 +2160,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     });
     
     AuthInfo systemAuths = SecurityConstants.getSystemCredentials();
-    final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(instance, systemAuths, this),
-        new MetaDataStateStore(instance, systemAuths, this)};
+    final TabletStateStore stores[] = {
+        new ZooTabletStateStore(new ZooStore(zroot)), 
+        new RootTabletStateStore(instance, systemAuths, this),
+        new MetaDataStateStore(instance, systemAuths, this)
+        };
     watchers.add(new TabletGroupWatcher(stores[2], null));
     watchers.add(new TabletGroupWatcher(stores[1], watchers.get(0)));
     watchers.add(new TabletGroupWatcher(stores[0], watchers.get(1)));
