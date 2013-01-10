@@ -16,40 +16,34 @@
  */
 package org.apache.accumulo.start.classloader.vfs;
 
-import java.net.URL;
+import java.io.File;
 
-import org.apache.accumulo.test.AccumuloDFSBase;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
+import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
-public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
+public class AccumuloReloadingVFSClassLoaderTest {
 
-  private static final Path TEST_DIR = new Path(HDFS_URI + "/test-dir");
-
-  private FileSystem hdfs = null;
+  private TemporaryFolder folder1 = new TemporaryFolder();
+  private DefaultFileSystemManager vfs;
 
   @Before
   public void setup() throws Exception {
     Logger.getRootLogger().setLevel(Level.ERROR);
 
-    this.hdfs = cluster.getFileSystem();
-    this.hdfs.mkdirs(TEST_DIR);
+    vfs = ContextManagerTest.getVFS();
     
-    //Copy jar file to TEST_DIR
-    URL jarPath = this.getClass().getResource("/HelloWorld.jar");
-    Path src = new Path(jarPath.toURI().toString());
-    Path dst = new Path(TEST_DIR, src.getName());
-    this.hdfs.copyFromLocalFile(src, dst);
-    
+    folder1.create();
+    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
   }
   
   FileObject[] createFileSystems(FileObject[] fos) throws FileSystemException {
@@ -66,10 +60,10 @@ public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
 
   @Test
   public void testConstructor() throws Exception {
-    FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
+    FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
     
-    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(TEST_DIR.toUri().toString(), vfs, new ReloadingClassLoader() {
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folder1.getRoot().toURI().toString(), vfs, new ReloadingClassLoader() {
       @Override
       public ClassLoader getClassLoader() {
         return ClassLoader.getSystemClassLoader();
@@ -86,10 +80,10 @@ public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
   
   @Test
   public void testReloading() throws Exception {
-    FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
+    FileObject testDir = vfs.resolveFile(folder1.getRoot().toURI().toString());
     FileObject[] dirContents = testDir.getChildren();
     
-    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(TEST_DIR.toUri().toString(), vfs, new ReloadingClassLoader() {
+    AccumuloReloadingVFSClassLoader arvcl = new AccumuloReloadingVFSClassLoader(folder1.getRoot().toURI().toString(), vfs, new ReloadingClassLoader() {
       @Override
       public ClassLoader getClassLoader() {
         return ClassLoader.getSystemClassLoader();
@@ -107,11 +101,10 @@ public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
     Class<?> clazz1_5 = arvcl.getClassLoader().loadClass("test.HelloWorld");
     Assert.assertEquals(clazz1, clazz1_5);
     
-    //Update the class
-    URL jarPath = this.getClass().getResource("/HelloWorld.jar");
-    Path src = new Path(jarPath.toURI().toString());
-    Path dst = new Path(TEST_DIR, "HelloWorld.jar");
-    this.hdfs.copyFromLocalFile(src, dst);
+    new File(folder1.getRoot(), "HelloWorld.jar").delete();
+
+    // Update the class
+    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld2.jar"));
 
     //Wait for the monitor to notice
     Thread.sleep(2000);
@@ -129,7 +122,7 @@ public class AccumuloReloadingVFSClassLoaderTest extends AccumuloDFSBase {
   
   @After
   public void tearDown() throws Exception {
-    this.hdfs.delete(TEST_DIR, true);
+    folder1.delete();
   }
 
 }

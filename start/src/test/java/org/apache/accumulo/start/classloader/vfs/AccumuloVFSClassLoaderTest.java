@@ -17,16 +17,18 @@
 package org.apache.accumulo.start.classloader.vfs;
 
 import java.io.File;
-import java.net.URL;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.URLClassLoader;
 
 import org.apache.accumulo.start.classloader.AccumuloClassLoader;
-import org.apache.accumulo.test.AccumuloDFSBase;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.impl.VFSClassLoader;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -39,9 +41,20 @@ import org.powermock.reflect.Whitebox;
 @SuppressStaticInitializationFor({"org.apache.accumulo.start.classloader.AccumuloVFSClassLoader", "org.apache.log4j.LogManager"})
 @PowerMockIgnore({"org.apache.log4j.*", "org.apache.hadoop.log.metrics", "org.apache.commons.logging.*", "org.xml.*", "javax.xml.*", "org.w3c.dom.*",
     "org.apache.hadoop.*"})
-public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
+public class AccumuloVFSClassLoaderTest {
   
+  private TemporaryFolder folder1 = new TemporaryFolder();
+
+  @Before
+  public void setup() throws IOException {
+    folder1.create();
+  }
   
+  @After
+  public void tearDown() {
+    folder1.delete();
+  }
+
   /*
    * Test that if enabled, but not configured, that the code creates the 2nd level classloader
    */
@@ -50,17 +63,26 @@ public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
 
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
 
-    URL defaultDir = this.getClass().getResource("/disabled");
-    
-    Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", new File(defaultDir.getPath() + "/conf/accumulo-site.xml").toURI().toURL().toString());
+    File conf = folder1.newFile("accumulo-site.xml");
+    FileWriter out = new FileWriter(conf);
+    out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    out.append("<configuration>\n");
+    out.append("<property>\n");
+    out.append("<name>general.classpaths</name>\n");
+    out.append("<value></value>\n");
+    out.append("</property>\n");
+    out.append("<property>\n");
+    out.append("<name>general.vfs.classpaths</name>\n");
+    out.append("<value></value>\n");
+    out.append("</property>\n");
+    out.append("</configuration>\n");
+    out.close();
+
+    Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", conf.toURI().toURL().toString());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
     ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
     Assert.assertTrue((acl instanceof VFSClassLoader));
     Assert.assertTrue((acl.getParent() instanceof URLClassLoader));
-
-    // URLClassLoader ucl = (URLClassLoader) acl;
-    // URL[] classpath = ucl.getURLs();
-    // System.out.println(Arrays.toString(classpath));
   }
   
   /*
@@ -71,21 +93,26 @@ public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
     
 
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
-
-    // Create default context directory
-    FileSystem hdfs = cluster.getFileSystem();
-    Path DEFAULT = new Path("/accumulo/classpath");
-    hdfs.mkdirs(DEFAULT);
     
     // Copy jar file to TEST_DIR
-    URL jarPath = this.getClass().getResource("/HelloWorld.jar");
-    Path src = new Path(jarPath.toURI().toString());
-    Path dst = new Path(DEFAULT, src.getName());
-    hdfs.copyFromLocalFile(src, dst);
+    FileUtils.copyURLToFile(this.getClass().getResource("/HelloWorld.jar"), folder1.newFile("HelloWorld.jar"));
     
-    URL defaultDir = this.getClass().getResource("/default");
-    
-    Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", new File(defaultDir.getPath() + "/conf/accumulo-site.xml").toURI().toURL().toString());
+    File conf = folder1.newFile("accumulo-site.xml");
+    FileWriter out = new FileWriter(conf);
+    out.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    out.append("<configuration>\n");
+    out.append("<property>\n");
+    out.append("<name>general.classpaths</name>\n");
+    out.append("<value></value>\n");
+    out.append("</property>\n");
+    out.append("<property>\n");
+    out.append("<name>general.vfs.classpaths</name>\n");
+    out.append("<value>" + new File(folder1.getRoot(), "HelloWorld.jar").toURI() + "</value>\n");
+    out.append("</property>\n");
+    out.append("</configuration>\n");
+    out.close();
+
+    Whitebox.setInternalState(AccumuloClassLoader.class, "SITE_CONF", conf.toURI().toURL().toString());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "lock", new Object());
     ClassLoader acl = AccumuloVFSClassLoader.getClassLoader();
     Assert.assertTrue((acl instanceof VFSClassLoader));
@@ -93,14 +120,11 @@ public class AccumuloVFSClassLoaderTest extends AccumuloDFSBase {
     VFSClassLoader arvcl = (VFSClassLoader) acl.getParent();
     Assert.assertEquals(1, arvcl.getFileObjects().length);
     // We can't be sure what the authority/host will be due to FQDN mappings, so just check the path
-    Assert.assertTrue(arvcl.getFileObjects()[0].getURL().toString().contains("/accumulo/classpath/HelloWorld.jar"));
+    Assert.assertTrue(arvcl.getFileObjects()[0].getURL().toString().contains("HelloWorld.jar"));
     Class<?> clazz1 = arvcl.loadClass("test.HelloWorld");
     Object o1 = clazz1.newInstance();
     Assert.assertEquals("Hello World!", o1.toString());
     Whitebox.setInternalState(AccumuloVFSClassLoader.class, "loader", (AccumuloReloadingVFSClassLoader) null);
-    
-    hdfs.delete(DEFAULT, true);
-    
   }
   
 }
