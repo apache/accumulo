@@ -31,12 +31,12 @@ public class TableStateType extends CellType<TableState> {
     String style = null;
     switch (state) {
       case ONLINE:
+      case OFFLINE:
         break;
       case NEW:
       case DELETING:
         style = "warning";
         break;
-      case OFFLINE:
       case UNKNOWN:
       default:
         style = "error";
