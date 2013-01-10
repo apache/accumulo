@@ -501,7 +501,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       throw new ThriftTableOperationException(tableId, null, TableOperation.MERGE, TableOperationExceptionType.OFFLINE, "table is not online");
   }
   
-  Connector getConnector() throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     return instance.getConnector(SecurityConstants.getSystemCredentials());
   }
   

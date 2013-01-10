@@ -20,11 +20,9 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.impl.thrift.TableOperation;
 import org.apache.accumulo.core.client.impl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.client.impl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.fate.Repo;
@@ -32,7 +30,6 @@ import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.MergeInfo;
 import org.apache.accumulo.server.master.state.MergeInfo.Operation;
 import org.apache.accumulo.server.master.state.MergeState;
-import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.MetadataTable;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -59,11 +56,9 @@ class MakeDeleteEntries extends MasterRepo {
   @Override
   public Repo<Master> call(long tid, Master master) throws Exception {
     log.info("creating delete entries for merged metadata tablets");
-    Instance instance = master.getInstance();
-    Connector conn = instance.getConnector(SecurityConstants.getSystemCredentials());
+    Connector conn = master.getConnector();
     BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
-    AccumuloConfiguration conf = instance.getConfiguration();
-    String tableDir = Constants.getMetadataTableDir(conf);
+    String tableDir = Constants.getMetadataTableDir(master.getConfiguration().getConfiguration());
     for (FileStatus fs : master.getFileSystem().listStatus(new Path(tableDir))) {
       // TODO: add the entries only if there are no !METADATA table references
       if (fs.isDir() && fs.getPath().getName().matches("^" + Constants.GENERATED_TABLET_DIRECTORY_PREFIX + ".*")) {
@@ -94,11 +89,11 @@ class TableRangeOpWait extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
     Text tableIdText = new Text(tableId);
-    MergeInfo mergeInfo = env.getMergeInfo(tableIdText);
+    MergeInfo mergeInfo = master.getMergeInfo(tableIdText);
     log.warn("removing merge information " + mergeInfo);
-    env.clearMergeState(tableIdText);
+    master.clearMergeState(tableIdText);
     Utils.unreserveTable(tableId, tid, true);
     // We can't add entries to the metadata table if it is offline for this merge.
     // If the delete entries for the metadata table were in the root tablet, it would work just fine

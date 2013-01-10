@@ -51,29 +51,29 @@ public class ShutdownTServer extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master m) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
     // suppress assignment of tablets to the server
     if (force) {
       String tserver = AddressUtil.toString(server.getLocation());
-      String path = ZooUtil.getRoot(m.getInstance()) + Constants.ZTSERVERS + "/" + tserver;
+      String path = ZooUtil.getRoot(master.getInstance()) + Constants.ZTSERVERS + "/" + tserver;
       ZooLock.deleteLock(path);
-      path = ZooUtil.getRoot(m.getInstance()) + Constants.ZDEADTSERVERS + "/" + tserver;
+      path = ZooUtil.getRoot(master.getInstance()) + Constants.ZDEADTSERVERS + "/" + tserver;
       IZooReaderWriter zoo = ZooReaderWriter.getInstance();
       zoo.putPersistentData(path, "forced down".getBytes(), NodeExistsPolicy.OVERWRITE);
       return null;
     }
     
     // TODO move this to isReady() and drop while loop?
-    Listener listener = m.getEventCoordinator().getListener();
-    m.shutdownTServer(server);
-    while (m.onlineTabletServers().contains(server)) {
-      TServerConnection connection = m.getConnection(server);
+    Listener listener = master.getEventCoordinator().getListener();
+    master.shutdownTServer(server);
+    while (master.onlineTabletServers().contains(server)) {
+      TServerConnection connection = master.getConnection(server);
       if (connection != null) {
         try {
           TabletServerStatus status = connection.getTableMap();
           if (status.tableMap != null && status.tableMap.isEmpty()) {
             log.info("tablet server hosts no tablets " + server);
-            connection.halt(m.getMasterLock());
+            connection.halt(master.getMasterLock());
             log.info("tablet server asked to halt " + server);
             break;
           }

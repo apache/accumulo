@@ -51,7 +51,6 @@ import org.apache.accumulo.server.ServerConstants;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.master.Master;
-import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -86,13 +85,13 @@ class WriteExportFiles extends MasterRepo {
   }
   
   @Override
-  public long isReady(long tid, Master env) throws Exception {
+  public long isReady(long tid, Master master) throws Exception {
     
     long reserved = Utils.reserveTable(tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
     if (reserved > 0)
       return reserved;
 
-    Connector conn = env.getInstance().getConnector(SecurityConstants.getSystemCredentials());
+    Connector conn = master.getConnector();
     
     checkOffline(conn);
     
@@ -121,11 +120,11 @@ class WriteExportFiles extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
-    Connector conn = env.getInstance().getConnector(SecurityConstants.getSystemCredentials());
+  public Repo<Master> call(long tid, Master master) throws Exception {
+    Connector conn = master.getConnector();
 
     try {
-      exportTable(env.getFileSystem(), conn, tableInfo.tableName, tableInfo.tableID, tableInfo.exportDir);
+      exportTable(master.getFileSystem(), conn, tableInfo.tableName, tableInfo.tableID, tableInfo.exportDir);
     } catch (IOException ioe) {
       throw new ThriftTableOperationException(tableInfo.tableID, tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Failed to create export files " + ioe.getMessage());

@@ -56,7 +56,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -291,8 +290,7 @@ class CleanUpBulkImport extends MasterRepo {
     MetadataTable.removeBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
     MetadataTable.addDeleteEntry(tableId, "/" + bulkDir.getName());
     log.debug("removing the metadata table markers for loaded files");
-    AuthInfo creds = SecurityConstants.getSystemCredentials();
-    Connector conn = HdfsZooInstance.getInstance().getConnector(creds.user, creds.password);
+    Connector conn = master.getConnector();
     MetadataTable.removeBulkLoadEntries(conn, tableId, tid);
     log.debug("releasing HDFS reservations for " + source + " and " + error);
     Utils.unreserveHdfsDirectory(source, tid);
@@ -360,10 +358,10 @@ class CopyFailed extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
 	//This needs to execute after the arbiter is stopped  
 	  
-    FileSystem fs = environment.getFileSystem();
+    FileSystem fs = master.getFileSystem();
 	  
     if (!fs.exists(new Path(error, "failures.txt")))
       return new CleanUpBulkImport(tableId, source, bulk, error);
@@ -390,8 +388,7 @@ class CopyFailed extends MasterRepo {
      */
 
     // determine which failed files were loaded
-    AuthInfo creds = SecurityConstants.getSystemCredentials();
-    Connector conn = HdfsZooInstance.getInstance().getConnector(creds.user, creds.password);
+    Connector conn = master.getConnector();
     Scanner mscanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
     mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
     mscanner.fetchColumnFamily(Constants.METADATA_BULKFILE_COLUMN_FAMILY);

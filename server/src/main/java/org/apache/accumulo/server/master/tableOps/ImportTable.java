@@ -134,9 +134,9 @@ class MoveExportedFiles extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
     try {
-      FileSystem fs = environment.getFileSystem();
+      FileSystem fs = master.getFileSystem();
       
       Map<String,String> fileNameMappings = PopulateMetadataTable.readMappingFile(fs, tableInfo);
       
@@ -195,7 +195,7 @@ class PopulateMetadataTable extends MasterRepo {
   }
 
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
     
     Path path = new Path(tableInfo.exportDir, Constants.EXPORT_FILE);
     
@@ -203,10 +203,9 @@ class PopulateMetadataTable extends MasterRepo {
     ZipInputStream zis = null;
 
     try {
-      FileSystem fs = environment.getFileSystem();
+      FileSystem fs = master.getFileSystem();
       
-      mbw = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemCredentials())
-          .createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+      mbw = master.getConnector().createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
 
       zis = new ZipInputStream(fs.open(path));
       
