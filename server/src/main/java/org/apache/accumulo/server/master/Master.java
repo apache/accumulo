@@ -2131,7 +2131,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
           ZooReaderWriter.getRetryingInstance()), 1000 * 60 * 60 * 8);
       
-      fate = new Fate<Master>(this, store, 4);
+      int threads = this.getConfiguration().getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
+      
+      fate = new Fate<Master>(this, store, threads);
       
       SimpleTimer.getInstance().schedule(new TimerTask() {
         
