@@ -84,8 +84,6 @@ elif [ "$1" = "tserver" ] ; then
 	export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_TSERVER_OPTS}"
 elif [ "$1" = "monitor" ] ; then
 	export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_MONITOR_OPTS}"
-elif [ "$1" = "logger" ] ; then
-	export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_LOGGER_OPTS}"
 else
 	export ACCUMULO_OPTS="${ACCUMULO_GENERAL_OPTS} ${ACCUMULO_OTHER_OPTS}"
 fi
