@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.gc;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -346,8 +347,15 @@ public class SimpleGarbageCollector implements Iface {
       if (tabletDirs == null)
         continue;
       
-      if (tabletDirs.length == 0)
-        fs.delete(new Path(ServerConstants.getTablesDir() + "/" + delTableId), false);
+      if (tabletDirs.length == 0) {
+        Path p = new Path(ServerConstants.getTablesDir() + "/" + delTableId);
+        try {
+          trash.moveToTrash(p);
+        } catch (FileNotFoundException ex) {
+          log.debug("Ignoring error moving a directory " + p + " to the trash", ex);
+          fs.delete(p, false);
+        }
+      }
     }
   }
   
@@ -596,8 +604,15 @@ public class SimpleGarbageCollector implements Iface {
           try {
             
             Path p = new Path(ServerConstants.getTablesDir() + delete);
+            boolean moved = false;
+            if (trash != null)
+              try {
+                moved = trash.moveToTrash(p);
+              } catch (FileNotFoundException ex) {
+                log.debug("Ignoring exception moving " + p + " to trash");
+              }
             
-            if ((trash != null && trash.moveToTrash(p)) || fs.delete(p, true)) {
+            if (moved || fs.delete(p, true)) {
               // delete succeeded, still want to delete
               removeFlag = true;
               synchronized (SimpleGarbageCollector.this) {
