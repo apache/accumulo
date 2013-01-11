@@ -37,6 +37,17 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
+/**
+ * Mock Accumulo provides an in memory inmplementation of the Accumulo client API. Its possible that the behavior of this implementation may differ from the
+ * behavior of Accumulo. This could result in unit test that pass on Mock Accumulo and fail on Accumulo or visa-vera. Documenting the differences would be
+ * difficult and is not done.
+ * 
+ * <p>
+ * An alternative to Mock Accumulo called MiniAccumuloCluster was introduced in Accumulo 1.5. MiniAccumuloCluster spins up actual Accumulo server processes, can
+ * be used for unit testing, and its behavior should match Accumulo. The drawback of MiniAccumuloCluster is that its much slower than Mock Accumulo.
+ * 
+ */
+
 public class MockInstance implements Instance {
   
   static final String genericAddress = "localhost:1234";
