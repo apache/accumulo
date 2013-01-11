@@ -35,13 +35,10 @@ import java.util.TimerTask;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.tabletserver.TabletServer;
 import org.apache.accumulo.server.util.Initialize;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 
 /**
@@ -185,21 +182,6 @@ public class MiniAccumuloCluster {
     return process;
   }
 
-  private void init() {
-
-    Level prevLevel = Logger.getLogger("org.apache").getLevel();
-    Logger.getLogger("org.apache").setLevel(Level.ERROR);
-
-    ServerConfiguration.getSiteConfiguration().set(Property.INSTANCE_DFS_URI, "file:///");
-    ServerConfiguration.getSiteConfiguration().set(Property.INSTANCE_DFS_DIR, accumuloDir.getAbsolutePath());
-    ServerConfiguration.getSiteConfiguration().set(Property.INSTANCE_ZK_HOST, "localhost:" + zooKeeperPort);
-    ServerConfiguration.getSiteConfiguration().set(Property.INSTANCE_SECRET, INSTANCE_SECRET);
-    
-    Initialize.main(new String[] {"--instance-name", INSTANCE_NAME, "--password", rootPassword});
-    
-    Logger.getLogger("org.apache").setLevel(prevLevel);
-  }
-
   private void appendProp(FileWriter fileWriter, Property key, String value, Map<String,String> siteConfig) throws IOException {
     appendProp(fileWriter, key.getKey(), value, siteConfig);
   }
@@ -323,7 +305,11 @@ public class MiniAccumuloCluster {
     // sleep a little bit to let zookeeper come up before calling init, seems to work better
     UtilWaitThread.sleep(250);
 
-    init();
+    Process initProcess = exec(Initialize.class, "--instance-name", INSTANCE_NAME, "--password", rootPassword);
+    int ret = initProcess.waitFor();
+    if (ret != 0) {
+      throw new RuntimeException("Initialize process returned " + ret);
+    }
    
     tabletServerProcess = exec(TabletServer.class);
     masterProcess = exec(Master.class);
