@@ -26,6 +26,7 @@ import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -102,7 +103,6 @@ public class MiniAccumuloCluster {
     }
   }
 
-  private File baseDir;
   private File libDir;
   private File confDir;
   private File zooKeeperDir;
@@ -113,15 +113,13 @@ public class MiniAccumuloCluster {
   
   private Process zooKeeperProcess;
   private Process masterProcess;
-  private Process tabletServerProcess;
-  private Process loggerProcess;
 
   private int zooKeeperPort;
   
   private List<LogWriter> logWriters = new ArrayList<MiniAccumuloCluster.LogWriter>();
-  private String rootPassword;
 
-
+  private MacConfig config;
+  private Process[] tabletServerProcesses;
 
   private int getRandomFreePort() {
     Random r = new Random();
@@ -166,7 +164,7 @@ public class MiniAccumuloCluster {
     
     ProcessBuilder builder = new ProcessBuilder(argList);
     
-    builder.environment().put("ACCUMULO_HOME", baseDir.getAbsolutePath());
+    builder.environment().put("ACCUMULO_HOME", config.getDir().getAbsolutePath());
     builder.environment().put("ACCUMULO_LOG_DIR", logDir.getAbsolutePath());
 
     Process process = builder.start();
@@ -204,23 +202,22 @@ public class MiniAccumuloCluster {
    * @throws IOException
    */
 
-  public MiniAccumuloCluster(File dir, String rootPassword, Map<String,String> siteConfig) throws IOException {
+  public MiniAccumuloCluster(MacConfig config) throws IOException {
 
-    if (dir.exists() && !dir.isDirectory())
-      throw new IllegalArgumentException("Must pass in directory, " + dir + " is a file");
+    if (config.getDir().exists() && !config.getDir().isDirectory())
+      throw new IllegalArgumentException("Must pass in directory, " + config.getDir() + " is a file");
     
-    if (dir.exists() && dir.list().length != 0)
-      throw new IllegalArgumentException("Directory " + dir + " is not empty");
+    if (config.getDir().exists() && config.getDir().list().length != 0)
+      throw new IllegalArgumentException("Directory " + config.getDir() + " is not empty");
     
-    this.rootPassword = rootPassword;
+    this.config = config;
 
-    baseDir = dir;
-    libDir = new File(dir, "lib");
-    confDir = new File(dir, "conf");
-    accumuloDir = new File(dir, "accumulo");
-    zooKeeperDir = new File(dir, "zookeeper");
-    logDir = new File(dir, "logs");
-    walogDir = new File(dir, "walogs");
+    libDir = new File(config.getDir(), "lib");
+    confDir = new File(config.getDir(), "conf");
+    accumuloDir = new File(config.getDir(), "accumulo");
+    zooKeeperDir = new File(config.getDir(), "zookeeper");
+    logDir = new File(config.getDir(), "logs");
+    walogDir = new File(config.getDir(), "walogs");
     
     confDir.mkdirs();
     accumuloDir.mkdirs();
@@ -236,12 +233,15 @@ public class MiniAccumuloCluster {
     FileWriter fileWriter = new FileWriter(siteFile);
     fileWriter.append("<configuration>\n");
     
+    HashMap<String,String> siteConfig = new HashMap<String,String>(config.getSiteConfig());
+
     appendProp(fileWriter, Property.INSTANCE_DFS_URI, "file:///", siteConfig);
     appendProp(fileWriter, Property.INSTANCE_DFS_DIR, accumuloDir.getAbsolutePath(), siteConfig);
     appendProp(fileWriter, Property.INSTANCE_ZK_HOST, "localhost:" + zooKeeperPort, siteConfig);
     appendProp(fileWriter, Property.INSTANCE_SECRET, INSTANCE_SECRET, siteConfig);
     appendProp(fileWriter, Property.MASTER_CLIENTPORT, "" + getRandomFreePort(), siteConfig);
     appendProp(fileWriter, Property.TSERV_CLIENTPORT, "" + getRandomFreePort(), siteConfig);
+    appendProp(fileWriter, Property.TSERV_PORTSEARCH, "true", siteConfig);
     appendProp(fileWriter, Property.LOGGER_DIR, walogDir.getAbsolutePath(), siteConfig);
     appendProp(fileWriter, Property.TSERV_DATACACHE_SIZE, "10M", siteConfig);
     appendProp(fileWriter, Property.TSERV_INDEXCACHE_SIZE, "10M", siteConfig);
@@ -305,13 +305,17 @@ public class MiniAccumuloCluster {
     // sleep a little bit to let zookeeper come up before calling init, seems to work better
     UtilWaitThread.sleep(250);
 
-    Process initProcess = exec(Initialize.class, "--instance-name", INSTANCE_NAME, "--password", rootPassword);
+    Process initProcess = exec(Initialize.class, "--instance-name", INSTANCE_NAME, "--password", config.getRootPassword());
     int ret = initProcess.waitFor();
     if (ret != 0) {
       throw new RuntimeException("Initialize process returned " + ret);
     }
-   
-    tabletServerProcess = exec(TabletServer.class);
+    
+    tabletServerProcesses = new Process[config.getNumTservers()];
+    for (int i = 0; i < config.getNumTservers(); i++) {
+      tabletServerProcesses[i] = exec(TabletServer.class);
+    }
+
     masterProcess = exec(Master.class);
   }
 
@@ -344,10 +348,11 @@ public class MiniAccumuloCluster {
       zooKeeperProcess.destroy();
     if (masterProcess != null)
       masterProcess.destroy();
-    if (tabletServerProcess != null)
-      tabletServerProcess.destroy();
-    if (loggerProcess != null)
-      loggerProcess.destroy();
+    if (tabletServerProcesses != null) {
+      for (Process tserver : tabletServerProcesses) {
+        tserver.destroy();
+      }
+    }
     
     for (LogWriter lw : logWriters)
       lw.flush();

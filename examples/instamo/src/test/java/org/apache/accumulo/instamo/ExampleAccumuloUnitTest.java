@@ -17,9 +17,7 @@ package org.apache.accumulo.instamo;
  */
 
 
-import java.util.HashMap;
-
-import org.apache.accumulo.instamo.AccumuloApp;
+import org.apache.accumulo.test.MacConfig;
 import org.apache.accumulo.test.MiniAccumuloCluster;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -41,7 +39,7 @@ public class ExampleAccumuloUnitTest {
 
     folder.create();
     
-    accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret", new HashMap<String,String>());
+    accumulo = new MiniAccumuloCluster(new MacConfig(folder.getRoot(), "superSecret"));
     
     accumulo.start();
     
