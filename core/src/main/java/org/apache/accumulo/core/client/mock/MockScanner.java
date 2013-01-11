@@ -39,6 +39,7 @@ public class MockScanner extends MockScannerBase implements Scanner {
     super(table, auths);
   }
   
+  @Deprecated
   @Override
   public void setTimeOut(int timeOut) {
     if (timeOut == Integer.MAX_VALUE)
@@ -47,6 +48,7 @@ public class MockScanner extends MockScannerBase implements Scanner {
       setTimeout(timeOut, TimeUnit.SECONDS);
   }
   
+  @Deprecated
   @Override
   public int getTimeOut() {
     long timeout = getTimeout(TimeUnit.SECONDS);

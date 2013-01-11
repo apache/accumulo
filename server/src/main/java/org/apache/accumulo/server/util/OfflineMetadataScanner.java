@@ -180,6 +180,7 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     return range;
   }
   
+  @Deprecated
   @Override
   public int getTimeOut() {
     throw new UnsupportedOperationException();
@@ -237,6 +238,7 @@ public class OfflineMetadataScanner extends ScannerOptions implements Scanner {
     this.range = range;
   }
   
+  @Deprecated
   @Override
   public void setTimeOut(int timeOut) {
     throw new UnsupportedOperationException();

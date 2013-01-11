@@ -52,18 +52,19 @@ public class ConnectorImpl extends Connector {
   private TableOperations tableops = null;
   private InstanceOperations instanceops = null;
   
-/**
-     * 
-     * Use {@link Instance#getConnector(String, byte[])}
-     * 
-     * @param instance
-     * @param user
-     * @param password
-     * @throws AccumuloException
-     * @throws AccumuloSecurityException
-     * @see Instance#getConnector(String user, byte[] password)
-     * @deprecated Not for client use
-     */
+  /**
+   * 
+   * Use {@link Instance#getConnector(String, byte[])}
+   * 
+   * @param instance
+   * @param user
+   * @param password
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   * @see Instance#getConnector(String user, byte[] password)
+   * @deprecated Not for client use
+   */
+  @Deprecated
   public ConnectorImpl(Instance instance, String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(instance, user, password);
     this.instance = instance;
@@ -104,6 +105,7 @@ public class ConnectorImpl extends Connector {
     return new TabletServerBatchReader(instance, credentials, getTableId(tableName), authorizations, numQueryThreads);
   }
   
+  @Deprecated
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency,
       int maxWriteThreads) throws TableNotFoundException {
@@ -119,6 +121,7 @@ public class ConnectorImpl extends Connector {
     return new TabletServerBatchDeleter(instance, credentials, getTableId(tableName), authorizations, numQueryThreads, config);
   }
   
+  @Deprecated
   @Override
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
     ArgumentChecker.notNull(tableName);
@@ -132,6 +135,7 @@ public class ConnectorImpl extends Connector {
     return new BatchWriterImpl(instance, credentials, getTableId(tableName), config);
   }
   
+  @Deprecated
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
     return new MultiTableBatchWriterImpl(instance, credentials, new BatchWriterConfig().setMaxMemory(maxMemory)

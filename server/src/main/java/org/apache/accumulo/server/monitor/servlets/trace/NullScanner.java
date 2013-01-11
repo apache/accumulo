@@ -31,7 +31,7 @@ public class NullScanner implements Scanner {
   
   @Override
   public void addScanIterator(IteratorSetting cfg) {}
-    
+  
   @Override
   public void updateScanIteratorOption(String iteratorName, String key, String value) {}
   
@@ -47,9 +47,11 @@ public class NullScanner implements Scanner {
   @Override
   public void clearScanIterators() {}
   
+  @Deprecated
   @Override
   public void setTimeOut(int timeOut) {}
   
+  @Deprecated
   @Override
   public int getTimeOut() {
     return 0;

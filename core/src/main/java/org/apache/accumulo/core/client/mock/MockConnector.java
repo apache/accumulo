@@ -57,6 +57,7 @@ public class MockConnector extends Connector {
     return acu.createBatchScanner(tableName, authorizations);
   }
   
+  @Deprecated
   @Override
   public BatchDeleter createBatchDeleter(String tableName, Authorizations authorizations, int numQueryThreads, long maxMemory, long maxLatency,
       int maxWriteThreads) throws TableNotFoundException {
@@ -72,6 +73,7 @@ public class MockConnector extends Connector {
         config.getMaxWriteThreads());
   }
   
+  @Deprecated
   @Override
   public BatchWriter createBatchWriter(String tableName, long maxMemory, long maxLatency, int maxWriteThreads) throws TableNotFoundException {
     if (acu.tables.get(tableName) == null)
@@ -84,6 +86,7 @@ public class MockConnector extends Connector {
     return createBatchWriter(tableName, config.getMaxMemory(), config.getMaxLatency(TimeUnit.MILLISECONDS), config.getMaxWriteThreads());
   }
   
+  @Deprecated
   @Override
   public MultiTableBatchWriter createMultiTableBatchWriter(long maxMemory, long maxLatency, int maxWriteThreads) {
     return new MockMultiTableBatchWriter(acu);

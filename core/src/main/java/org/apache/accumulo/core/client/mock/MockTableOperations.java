@@ -133,6 +133,7 @@ public class MockTableOperations extends TableOperationsHelper {
     acu.tables.put(newTableName, t);
   }
   
+  @Deprecated
   @Override
   public void flush(String tableName) throws AccumuloException, AccumuloSecurityException {}
   
