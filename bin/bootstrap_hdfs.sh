@@ -24,9 +24,9 @@ bin=`cd "$bin"; pwd`
 #
 # Find the system context directory in HDFS
 #
-SYSTEM_CONTEXT_HDFS_DIR=`grep -A1 "general.vfs.classpaths" $ACCUMULO_HOME/conf/accumulo-site.xml | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; print $ARGV[1]'`
+SYSTEM_CONTEXT_HDFS_DIR=`grep -A1 "general.vfs.classpaths" "$ACCUMULO_HOME/conf/accumulo-site.xml" | tail -1 | perl -pe 's/\s+<value>//; s/<\/value>//; print $ARGV[1]'`
 
-if [ -z $SYSTEM_CONTEXT_HDFS_DIR ]; then
+if [ -z "$SYSTEM_CONTEXT_HDFS_DIR" ]; then
 
   echo "Your accumulo-site.xml file is not set up for the HDFS Classloader. Please add the following to your accumulo-site.xml file:"
   echo ""
@@ -41,9 +41,9 @@ fi
 #
 # Create the system context directy in HDFS if it does not exist
 #
-$HADOOP_HOME/bin/hadoop fs -ls $SYSTEM_CONTEXT_HDFS_DIR  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -ls "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 if [ $? -ne 0 ]; then
-  $HADOOP_HOME/bin/hadoop fs -mkdir $SYSTEM_CONTEXT_HDFS_DIR  > /dev/null
+  "$HADOOP_PREFIX/bin/hadoop" fs -mkdir "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 fi
 
 #
@@ -61,16 +61,16 @@ fi
 #
 # Copy all jars in lib to the system context directory
 #
-hadoop fs -moveFromLocal $ACCUMULO_HOME/lib/*.jar $SYSTEM_CONTEXT_HDFS_DIR  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -moveFromLocal "$ACCUMULO_HOME/lib/*.jar" "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 
-$HADOOP_HOME/bin/hadoop fs -setrep -R $REP $SYSTEM_CONTEXT_HDFS_DIR  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -setrep -R $REP "$SYSTEM_CONTEXT_HDFS_DIR"  > /dev/null
 
 #
 # We need two of the jars in lib, copy them back out and remove them from the system context dir
 #
-hadoop fs -copyToLocal $SYSTEM_CONTEXT_HDFS_DIR/log4j-1.2.16.jar $ACCUMULO_HOME/lib/.  > /dev/null
-hadoop fs -rmr $SYSTEM_CONTEXT_HDFS_DIR/log4j-1.2.16.jar  > /dev/null
-hadoop fs -copyToLocal $SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2-2.0.jar $ACCUMULO_HOME/lib/.  > /dev/null
-hadoop fs -rmr $SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2-2.0.jar  > /dev/null
-hadoop fs -copyToLocal $SYSTEM_CONTEXT_HDFS_DIR/accumulo-start-${ACCUMULO_VERSION}.jar $ACCUMULO_HOME/lib/.  > /dev/null
-hadoop fs -rmr $SYSTEM_CONTEXT_HDFS_DIR/accumulo-start-${ACCUMULO_VERSION}.jar  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/log4j-1.2.16.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/log4j-1.2.16.jar"  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2-2.0.jar $ACCUMULO_HOME/lib/."  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/commons-vfs2-2.0.jar"  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -copyToLocal "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start-${ACCUMULO_VERSION}.jar" "$ACCUMULO_HOME/lib/."  > /dev/null
+"$HADOOP_PREFIX/bin/hadoop" fs -rmr "$SYSTEM_CONTEXT_HDFS_DIR/accumulo-start-${ACCUMULO_VERSION}.jar"  > /dev/null

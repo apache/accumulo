@@ -57,9 +57,9 @@ $ACCUMULO_HOME/server/target/classes/,
     $ACCUMULO_HOME/examples/simple/target/classes,
         $ACCUMULO_HOME/lib/[^.].*.jar,
         $ZOOKEEPER_HOME/zookeeper[^.].*.jar,
-        $HADOOP_HOME/conf,
-        $HADOOP_HOME/[^.].*.jar,
-        $HADOOP_HOME/lib/[^.].*.jar,
+        $HADOOP_CONF_DIR,
+        $HADOOP_PREFIX/[^.].*.jar,
+        $HADOOP_PREFIX/lib/[^.].*.jar,
 """
 
 log = logging.getLogger('test.auto')

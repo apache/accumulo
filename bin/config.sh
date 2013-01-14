@@ -51,14 +51,14 @@ fi
 
 if [ -z "$HADOOP_PREFIX" ]
 then
-   HADOOP_HOME="`which hadoop`"
+   HADOOP_PREFIX="`which hadoop`"
    if [ -z "$HADOOP_PREFIX" ]
    then
       echo "You must set HADOOP_PREFIX"
       exit 1
    fi
-   HADOOP_HOME=`dirname $HADOOP_PREFIX`
-   HADOOP_HOME=`dirname $HADOOP_PREFIX`
+   HADOOP_PREFIX=`dirname $HADOOP_PREFIX`
+   HADOOP_PREFIX=`dirname $HADOOP_PREFIX`
 fi
 if [ ! -d "$HADOOP_PREFIX" ]
 then
