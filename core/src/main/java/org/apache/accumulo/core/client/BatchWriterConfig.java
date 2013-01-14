@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class BatchWriterConfig {
   private long maxMemory = 50 * 1024 * 1024;
-  private long maxLatency = Long.MAX_VALUE;
+  private long maxLatency = 120000;
   private long timeout = Long.MAX_VALUE;
   private int maxWriteThreads = 3;
   
@@ -42,7 +42,7 @@ public class BatchWriterConfig {
   /**
    * @param maxLatency
    *          The maximum amount of time to hold data in memory before flushing it to servers. For no max set to zero or Long.MAX_VALUE with TimeUnit.MILLIS.
-   *          Defaults to no max.
+   *          Defaults to 120 seconds.
    * @param timeUnit
    *          Determines how maxLatency will be interpreted.
    * @return this to allow chaining of set methods
@@ -52,7 +52,10 @@ public class BatchWriterConfig {
     if (maxLatency < 0)
       throw new IllegalArgumentException("Negative max latency not allowed " + maxLatency);
 
-    this.maxLatency = timeUnit.toMillis(maxLatency);
+    if (maxLatency == 0)
+      this.maxLatency = Long.MAX_VALUE;
+    else
+      this.maxLatency = timeUnit.toMillis(maxLatency);
     return this;
   }
   

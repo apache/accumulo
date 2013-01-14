@@ -15,6 +15,7 @@
 * limitations under the License.
 */
 namespace java org.apache.accumulo.core.master.thrift
+namespace cpp org.apache.accumulo.core.master.thrift
 
 include "data.thrift"
 include "security.thrift"
@@ -35,8 +36,8 @@ struct TableInfo {
     6:double ingestByteRate
     7:double queryRate
     8:double queryByteRate
-    9:Compacting minor;
-    10:Compacting major;
+    9:Compacting minors;
+    10:Compacting majors;
     11:Compacting scans;
     12:double scanRate;
 }

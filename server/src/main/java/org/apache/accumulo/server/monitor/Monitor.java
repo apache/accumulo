@@ -121,18 +121,18 @@ public class Monitor {
   }
   
   private static final int MAX_TIME_PERIOD = 60 * 60 * 1000;
-  private static List<Pair<Long,Double>> loadOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static List<Pair<Long,Double>> ingestRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static List<Pair<Long,Double>> ingestByteRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static List<Pair<Long,Integer>> recoveriesOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static List<Pair<Long,Integer>> minorCompactionsOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static List<Pair<Long,Integer>> majorCompactionsOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static List<Pair<Long,Double>> lookupsOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static List<Pair<Long,Integer>> queryRateOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static List<Pair<Long,Integer>> scanRateOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
-  private static List<Pair<Long,Double>> queryByteRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static List<Pair<Long,Double>> indexCacheHitRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
-  private static List<Pair<Long,Double>> dataCacheHitRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> loadOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> ingestRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> ingestByteRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Integer>> recoveriesOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Integer>> minorCompactionsOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Integer>> majorCompactionsOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> lookupsOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Integer>> queryRateOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Integer>> scanRateOverTime = Collections.synchronizedList(new MaxList<Integer>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> queryByteRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> indexCacheHitRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
+  private static final List<Pair<Long,Double>> dataCacheHitRateOverTime = Collections.synchronizedList(new MaxList<Double>(MAX_TIME_PERIOD));
   private static EventCounter lookupRateTracker = new EventCounter();
   private static EventCounter indexCacheHitTracker = new EventCounter();
   private static EventCounter indexCacheRequestTracker = new EventCounter();
@@ -167,19 +167,19 @@ public class Monitor {
   }
   
   public static void add(TableInfo total, TableInfo more) {
-    if (total.minor == null)
-      total.minor = new Compacting();
-    if (total.major == null)
-      total.major = new Compacting();
+    if (total.minors == null)
+      total.minors = new Compacting();
+    if (total.majors == null)
+      total.majors = new Compacting();
     if (total.scans == null)
       total.scans = new Compacting();
-    if (more.minor != null) {
-      total.minor.running += more.minor.running;
-      total.minor.queued += more.minor.queued;
+    if (more.minors != null) {
+      total.minors.running += more.minors.running;
+      total.minors.queued += more.minors.queued;
     }
-    if (more.major != null) {
-      total.major.running += more.major.running;
-      total.major.queued += more.major.queued;
+    if (more.majors != null) {
+      total.majors.running += more.majors.running;
+      total.majors.queued += more.majors.queued;
     }
     if (more.scans != null) {
       total.scans.running += more.scans.running;
@@ -198,8 +198,8 @@ public class Monitor {
   
   public static TableInfo summarizeTableStats(TabletServerStatus status) {
     TableInfo summary = new TableInfo();
-    summary.major = new Compacting();
-    summary.minor = new Compacting();
+    summary.majors = new Compacting();
+    summary.minors = new Compacting();
     summary.scans = new Compacting();
     for (TableInfo rates : status.tableMap.values()) {
       add(summary, rates);
@@ -294,11 +294,11 @@ public class Monitor {
           client = MasterClient.getConnection(HdfsZooInstance.getInstance());
           if (client != null) {
             mmi = client.getMasterStats(Tracer.traceInfo(), SecurityConstants.getSystemCredentials());
+            retry = false;
           } else {
             mmi = null;
           }
           Monitor.gcStatus = fetchGcStatus();
-          retry = false;
         } catch (Exception e) {
           mmi = null;
           log.info("Error fetching stats: " + e);
@@ -319,7 +319,7 @@ public class Monitor {
         indexCacheRequestTracker.startingUpdates();
         dataCacheHitTracker.startingUpdates();
         dataCacheRequestTracker.startingUpdates();
-
+        
         for (TabletServerStatus server : mmi.tServerInfo) {
           TableInfo summary = Monitor.summarizeTableStats(server);
           totalIngestRate += summary.ingestRate;
@@ -330,8 +330,8 @@ public class Monitor {
           totalEntries += summary.recs;
           totalHoldTime += server.holdTime;
           totalLookups += server.lookups;
-          majorCompactions += summary.major.running;
-          minorCompactions += summary.minor.running;
+          majorCompactions += summary.majors.running;
+          minorCompactions += summary.minors.running;
           lookupRateTracker.updateTabletServer(server.name, server.lastContact, server.lookups);
           indexCacheHitTracker.updateTabletServer(server.name, server.lastContact, server.indexCacheHits);
           indexCacheRequestTracker.updateTabletServer(server.name, server.lastContact, server.indexCacheRequest);
@@ -466,7 +466,7 @@ public class Monitor {
     int port = config.getConfiguration().getPort(Property.MONITOR_PORT);
     try {
       log.debug("Creating monitor on port " + port);
-      server = EmbeddedWebServer.create(port);
+      server = new EmbeddedWebServer(hostname, port);
     } catch (Throwable ex) {
       log.error("Unable to start embedded web server", ex);
       throw new RuntimeException(ex);

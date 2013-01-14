@@ -22,7 +22,7 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -46,7 +46,7 @@ import org.junit.Test;
  */
 public class TestConfirmDeletes {
   
-  AuthInfo auth = new AuthInfo("root", ByteBuffer.wrap("secret".getBytes()), "instance");
+  AuthInfo auth = new AuthInfo("root", ByteBuffer.wrap("".getBytes()), "instance");
 
   SortedSet<String> newSet(String... s) {
     SortedSet<String> result = new TreeSet<String>(Arrays.asList(s));
@@ -99,7 +99,7 @@ public class TestConfirmDeletes {
     load(instance, metadata, deletes);
 
     SimpleGarbageCollector gc = new SimpleGarbageCollector();
-    gc.init(fs, instance, auth);
+    gc.init(fs, instance, auth, false);
     SortedSet<String> candidates = gc.getCandidates();
     Assert.assertEquals(expectedInitial, candidates.size());
     gc.confirmDeletes(candidates);

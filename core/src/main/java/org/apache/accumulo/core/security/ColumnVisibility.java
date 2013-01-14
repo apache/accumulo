@@ -17,12 +17,12 @@
 package org.apache.accumulo.core.security;
 
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -39,8 +39,6 @@ public class ColumnVisibility {
   
   Node node = null;
   private byte[] expression;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   /**
    * Accessor for the underlying byte string.
@@ -140,31 +138,77 @@ public class ColumnVisibility {
       return 0;
     }
   }
-  
-  static private void flatten(Node root, byte[] expression, StringBuilder out) {
-    if (root.type == NodeType.TERM)
+
+  /* Convience method that delegates to normalize with a new
+   * NodeComparator constructed using the supplied expression.
+   */
+  private static Node normalize(Node root, byte[] expression) {
+    return normalize(root, expression, new NodeComparator(expression));
+  } 
+
+  /* Walks an expression's AST in order to:
+   *  1) roll up expressions with the same operant (`a&(b&c) becomes a&b&c`)
+   *  2) sorts labels lexicographically (permutations of `a&b&c` are re-ordered to appear as `a&b&c`)
+   *  3) dedupes labels (`a&b&a` becomes `a&b`)
+   */
+  private static Node normalize(Node root, byte[] expression, NodeComparator comparator) {
+    if(root.type != NodeType.TERM) {
+      TreeSet<Node> rolledUp = new TreeSet<Node>(comparator);
+      java.util.Iterator<Node> itr = root.children.iterator();
+      while(itr.hasNext()) { 
+        Node c = normalize(itr.next(), expression, comparator);
+        if(c.type == root.type) {
+          rolledUp.addAll(c.children);
+          itr.remove();
+        }
+      }
+      rolledUp.addAll(root.children);
+      root.children.clear();
+      root.children.addAll(rolledUp);
+      
+      //need to promote a child if it's an only child
+      if(root.children.size() == 1) {
+        return root.children.get(0);
+      }
+    }
+
+    return root;
+  }
+
+  /* Walks an expression's AST and appends a string representation to a supplied
+   * StringBuilder. This method adds parens where necessary.
+   */
+  private static void stringify(Node root, byte[] expression, StringBuilder out) {
+    if (root.type == NodeType.TERM) {
       out.append(new String(expression, root.start, root.end - root.start));
+    }
     else {
       String sep = "";
-      Collections.sort(root.children, new NodeComparator(expression));
       for (Node c : root.children) {
         out.append(sep);
         boolean parens = (c.type != NodeType.TERM && root.type != c.type);
         if (parens)
           out.append("(");
-        flatten(c, expression, out);
+        stringify(c, expression, out);
         if (parens)
           out.append(")");
         sep = root.type == NodeType.AND ? "&" : "|";
       }
     }
   }
-  
+
+  /**
+   * Generates a byte[] that represents a normalized, but logically equivalent,
+   * form of the supplied expression.
+   *
+   * @return normalized expression in byte[] form
+   */
   public byte[] flatten() {
-    StringBuilder builder = new StringBuilder();
-    flatten(node, expression, builder);
-    return builder.toString().getBytes(utf8);
-  }
+    Node normRoot = normalize(node, expression);
+    StringBuilder builder = new StringBuilder(expression.length);
+    stringify(normRoot, expression, builder);
+    return builder.toString().getBytes();
+  } 
   
   private static class ColumnVisibilityParser {
     private int index = 0;
@@ -325,7 +369,7 @@ public class ColumnVisibility {
    * @param expression
    */
   public ColumnVisibility(String expression) {
-    this(expression.getBytes(utf8));
+    this(expression.getBytes());
   }
   
   /**

@@ -21,7 +21,7 @@ import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 
-import junit.framework.Assert;
+import static org.junit.Assert.*;
 
 import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock.QueueLock;
 import org.junit.Test;
@@ -32,7 +32,7 @@ public class DistributedReadWriteLockTest {
   public static class MockQueueLock implements QueueLock {
     
     long next = 0L;
-    SortedMap<Long,byte[]> locks = new TreeMap<Long,byte[]>();
+    final SortedMap<Long,byte[]> locks = new TreeMap<Long,byte[]>();
     
     @Override
     synchronized public SortedMap<Long,byte[]> getEarlierEntries(long entry) {
@@ -67,7 +67,7 @@ public class DistributedReadWriteLockTest {
     
     void read() {
       for (int i = 0; i < data.length; i++)
-        Assert.assertEquals(counter, data[i]);
+        assertEquals(counter, data[i]);
     }
     
     void write() {
@@ -85,8 +85,8 @@ public class DistributedReadWriteLockTest {
     QueueLock qlock = new MockQueueLock();
     
     final ReadWriteLock locker = new DistributedReadWriteLock(qlock, "locker1".getBytes());
-    Lock readLock = locker.readLock();
-    Lock writeLock = locker.writeLock();
+    final Lock readLock = locker.readLock();
+    final Lock writeLock = locker.writeLock();
     readLock.lock();
     readLock.unlock();
     writeLock.lock();
@@ -101,7 +101,7 @@ public class DistributedReadWriteLockTest {
       threads[i] = new Thread() {
         public void run() {
           if (which % 2 == 0) {
-            Lock wl = locker.writeLock();
+            final Lock wl = locker.writeLock();
             wl.lock();
             try {
               data.write();
@@ -109,7 +109,7 @@ public class DistributedReadWriteLockTest {
               wl.unlock();
             }
           } else {
-            Lock rl = locker.readLock();
+            final Lock rl = locker.readLock();
             rl.lock();
             data.read();
             try {

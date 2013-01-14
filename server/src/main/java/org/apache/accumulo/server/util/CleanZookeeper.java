@@ -17,9 +17,9 @@
 package org.apache.accumulo.server.util;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.client.HdfsZooInstance;
@@ -27,9 +27,18 @@ import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
+import com.beust.jcommander.Parameter;
+
 public class CleanZookeeper {
   
   private static final Logger log = Logger.getLogger(CleanZookeeper.class);
+  
+  static class Opts extends Help {
+    @Parameter(names={"-z", "--keepers"}, description="comma separated list of zookeeper hosts")
+    String keepers = "localhost:2181";
+    @Parameter(names={"--password"}, description="the system secret", password=true)
+    String auth;
+  }
   
   /**
    * @param args
@@ -38,17 +47,13 @@ public class CleanZookeeper {
    *           error connecting to accumulo or zookeeper
    */
   public static void main(String[] args) throws IOException {
-
-    final Charset utf8 = Charset.forName("UTF8");
-	  
-    if (args.length < 1) {
-      System.err.println("Usage: " + CleanZookeeper.class.getName() + " hostname[:port] [auth]");
-      System.exit(1);
-    }
+    Opts opts = new Opts();
+    opts.parseArgs(CleanZookeeper.class.getName(), args);
+    
     String root = Constants.ZROOT;
     IZooReaderWriter zk = ZooReaderWriter.getInstance();
-    if (args.length == 2) {
-      zk.getZooKeeper().addAuthInfo("digest", args[1].getBytes(utf8));
+    if (opts.auth != null) {
+      zk.getZooKeeper().addAuthInfo("digest", opts.auth.getBytes());
     }
     
     try {

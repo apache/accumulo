@@ -70,7 +70,7 @@ public class TabletServerLogger {
   private AtomicInteger logSetId = new AtomicInteger();
   
   // Use a ReadWriteLock to allow multiple threads to use the log set, but obtain a write lock to change them
-  private ReentrantReadWriteLock logSetLock = new ReentrantReadWriteLock();
+  private final ReentrantReadWriteLock logSetLock = new ReentrantReadWriteLock();
   
   private final AtomicInteger seqGen = new AtomicInteger();
   
@@ -97,7 +97,7 @@ public class TabletServerLogger {
    *          a test/work pair
    * @throws IOException
    */
-  private static void testLockAndRun(ReadWriteLock rwlock, TestCallWithWriteLock code) throws IOException {
+  private static void testLockAndRun(final ReadWriteLock rwlock, TestCallWithWriteLock code) throws IOException {
     // Get a read lock
     rwlock.readLock().lock();
     try {

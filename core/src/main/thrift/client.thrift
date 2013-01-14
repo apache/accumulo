@@ -15,6 +15,7 @@
 * limitations under the License.
 */
 namespace java org.apache.accumulo.core.client.impl.thrift
+namespace cpp org.apache.accumulo.core.client.impl.thrift
 
 include "security.thrift"
 include "cloudtrace.thrift"

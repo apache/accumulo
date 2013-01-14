@@ -48,7 +48,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     private ByteSequence lastRow = null;
     private long timeout;
     
-    private Scanner scanner;
+    private final Scanner scanner;
     private ScannerOptions opts;
     private Range range;
     private int batchSize;
@@ -173,6 +173,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   public static interface RowBuffer extends Iterable<Entry<Key,Value>> {
     void add(Entry<Key,Value> entry);
     
+    @Override
     Iterator<Entry<Key,Value>> iterator();
     
     void clear();
@@ -229,6 +230,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
     return new RowBufferingIterator(scanner, this, range, timeOut, batchSize, bufferFactory);
   }
   
+  @Deprecated
   @Override
   public void setTimeOut(int timeOut) {
     if (timeOut == Integer.MAX_VALUE)
@@ -237,6 +239,7 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
       setTimeout(timeOut, TimeUnit.SECONDS);
   }
   
+  @Deprecated
   @Override
   public int getTimeOut() {
     long timeout = getTimeout(TimeUnit.SECONDS);

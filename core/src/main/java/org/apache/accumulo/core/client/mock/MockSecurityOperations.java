@@ -36,9 +36,17 @@ public class MockSecurityOperations implements SecurityOperations {
     this.acu = acu;
   }
   
+  /**
+   * @deprecated Use {@link #createUser(String,byte[])} instead
+   */
   @Override
   public void createUser(String user, byte[] password, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     this.acu.users.put(user, new MockUser(user, password, authorizations));
+  }
+
+  @Override
+  public void createUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException {
+    createUser(user, password, new Authorizations());
   }
   
   @Override

@@ -16,8 +16,6 @@
  */
 package org.apache.accumulo.core.iterators.aggregation;
 
-import java.nio.charset.Charset;
-
 import org.apache.accumulo.core.data.Value;
 
 /**
@@ -28,10 +26,8 @@ public class StringMax implements Aggregator {
   
   long max = Long.MIN_VALUE;
   
-  private static final Charset utf8 = Charset.forName("UTF8");
-  
   public Value aggregate() {
-    return new Value(Long.toString(max).getBytes(utf8));
+    return new Value(Long.toString(max).getBytes());
   }
   
   public void collect(Value value) {

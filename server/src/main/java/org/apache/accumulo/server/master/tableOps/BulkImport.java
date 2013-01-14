@@ -22,7 +22,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,7 +56,6 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.master.state.tables.TableState;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.SimpleThreadPool;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -292,8 +290,7 @@ class CleanUpBulkImport extends MasterRepo {
     MetadataTable.removeBulkLoadInProgressFlag("/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
     MetadataTable.addDeleteEntry(tableId, "/" + bulkDir.getName());
     log.debug("removing the metadata table markers for loaded files");
-    AuthInfo creds = SecurityConstants.getSystemCredentials();
-    Connector conn = HdfsZooInstance.getInstance().getConnector(creds.user, creds.password);
+    Connector conn = master.getConnector();
     MetadataTable.removeBulkLoadEntries(conn, tableId, tid);
     log.debug("releasing HDFS reservations for " + source + " and " + error);
     Utils.unreserveHdfsDirectory(source, tid);
@@ -334,8 +331,6 @@ class CopyFailed extends MasterRepo {
   private String source;
   private String bulk;
   private String error;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public CopyFailed(String tableId, String source, String bulk, String error) {
     this.tableId = tableId;
@@ -363,10 +358,10 @@ class CopyFailed extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
 	//This needs to execute after the arbiter is stopped  
 	  
-    FileSystem fs = environment.getFileSystem();
+    FileSystem fs = master.getFileSystem();
 	  
     if (!fs.exists(new Path(error, "failures.txt")))
       return new CleanUpBulkImport(tableId, source, bulk, error);
@@ -393,8 +388,7 @@ class CopyFailed extends MasterRepo {
      */
 
     // determine which failed files were loaded
-    AuthInfo creds = SecurityConstants.getSystemCredentials();
-    Connector conn = HdfsZooInstance.getInstance().getConnector(creds.user, creds.password);
+    Connector conn = master.getConnector();
     Scanner mscanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
     mscanner.setRange(new KeyExtent(new Text(tableId), null, null).toMetadataRange());
     mscanner.fetchColumnFamily(Constants.METADATA_BULKFILE_COLUMN_FAMILY);
@@ -430,7 +424,7 @@ class CopyFailed extends MasterRepo {
         if (fs.exists(dest))
           continue;
         
-        bifCopyQueue.addWork(orig.getName(), (failure + "," + dest).getBytes(utf8));
+        bifCopyQueue.addWork(orig.getName(), (failure + "," + dest).getBytes());
         workIds.add(orig.getName());
         log.debug("tid " + tid + " added to copyq: " + orig + " to " + dest + ": failed");
       }
@@ -532,7 +526,8 @@ class LoadFiles extends MasterRepo {
               // get a connection to a random tablet server, do not prefer cached connections because
               // this is running on the master and there are lots of connections to tablet servers
               // serving the !METADATA tablets
-              Pair<String,Client> pair = ServerClient.getConnection(master.getInstance(), false);
+              long timeInMillis = master.getConfiguration().getConfiguration().getTimeInMillis(Property.MASTER_BULK_TIMEOUT);
+              Pair<String,Client> pair = ServerClient.getConnection(master.getInstance(), false, timeInMillis);
               client = pair.getSecond();
               server = pair.getFirst();
               List<String> attempt = Collections.singletonList(file);

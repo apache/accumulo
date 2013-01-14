@@ -110,6 +110,8 @@ public class MilliSpan implements Span {
   
   @Override
   public long traceId() {
+    if (parent == this)
+      throw new RuntimeException("loop found in trace!");
     return parent.traceId();
   }
   

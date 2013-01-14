@@ -431,7 +431,7 @@ public class BulkImporter {
   }
   
   private class AssignmentTask implements Runnable {
-    Map<Path,List<KeyExtent>> assignmentFailures;
+    final Map<Path,List<KeyExtent>> assignmentFailures;
     String location;
     AuthInfo credentials;
     private Map<KeyExtent,List<PathSize>> assignmentsPerTablet;
@@ -578,7 +578,8 @@ public class BulkImporter {
   private List<KeyExtent> assignMapFiles(AuthInfo credentials, String location, Map<KeyExtent,List<PathSize>> assignmentsPerTablet) throws AccumuloException,
       AccumuloSecurityException {
     try {
-      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, instance.getConfiguration());
+      long timeInMillis = instance.getConfiguration().getTimeInMillis(Property.TSERV_BULK_TIMEOUT);
+      TabletClientService.Iface client = ThriftUtil.getTServerClient(location, instance.getConfiguration(), timeInMillis);
       try {
         HashMap<KeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>> files = new HashMap<KeyExtent,Map<String,org.apache.accumulo.core.data.thrift.MapFileInfo>>();
         for (Entry<KeyExtent,List<PathSize>> entry : assignmentsPerTablet.entrySet()) {

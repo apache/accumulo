@@ -22,7 +22,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecurityPermission;
@@ -40,8 +39,6 @@ import org.apache.commons.codec.binary.Base64;
 public class SecurityConstants {
   private static SecurityPermission SYSTEM_CREDENTIALS_PERMISSION = new SecurityPermission("systemCredentialsPermission");
   
-  private static final Charset utf8 = Charset.forName("UTF8");
-  
   public static final String SYSTEM_USERNAME = "!SYSTEM";
   private static final byte[] SYSTEM_PASSWORD = makeSystemPassword();
   private static final AuthInfo systemCredentials = new AuthInfo(SYSTEM_USERNAME, ByteBuffer.wrap(SYSTEM_PASSWORD), HdfsZooInstance.getInstance()
@@ -57,8 +54,8 @@ public class SecurityConstants {
   }
   
   private static byte[] makeSystemPassword() {
-    byte[] version = Constants.VERSION.getBytes(utf8);
-    byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes(utf8);
+    byte[] version = Constants.VERSION.getBytes();
+    byte[] inst = HdfsZooInstance.getInstance().getInstanceID().getBytes();
     try {
       confChecksum = getSystemConfigChecksum();
     } catch (NoSuchAlgorithmException e) {
@@ -100,10 +97,10 @@ public class SecurityConstants {
     try {
       byte[] buff = new byte[in.readInt()];
       in.readFully(buff);
-      versionFails = !Arrays.equals(buff, Constants.VERSION.getBytes(utf8));
+      versionFails = !Arrays.equals(buff, Constants.VERSION.getBytes());
       buff = new byte[in.readInt()];
       in.readFully(buff);
-      instanceFails = !Arrays.equals(buff, HdfsZooInstance.getInstance().getInstanceID().getBytes(utf8));
+      instanceFails = !Arrays.equals(buff, HdfsZooInstance.getInstance().getInstanceID().getBytes());
       buff = new byte[in.readInt()];
       in.readFully(buff);
       confFails = !Arrays.equals(buff, getSystemConfigChecksum());
@@ -134,14 +131,14 @@ public class SecurityConstants {
       
       // seed the config with the version and instance id, so at least
       // it's not empty
-      md.update(Constants.VERSION.getBytes(utf8));
-      md.update(HdfsZooInstance.getInstance().getInstanceID().getBytes(utf8));
+      md.update(Constants.VERSION.getBytes());
+      md.update(HdfsZooInstance.getInstance().getInstanceID().getBytes());
       
       for (Entry<String,String> entry : ServerConfiguration.getSiteConfiguration()) {
         // only include instance properties
         if (entry.getKey().startsWith(Property.INSTANCE_PREFIX.toString())) {
-          md.update(entry.getKey().getBytes(utf8));
-          md.update(entry.getValue().getBytes(utf8));
+          md.update(entry.getKey().getBytes());
+          md.update(entry.getValue().getBytes());
         }
       }
       

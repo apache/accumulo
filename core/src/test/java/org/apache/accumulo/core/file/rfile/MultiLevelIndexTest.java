@@ -75,7 +75,7 @@ public class MultiLevelIndexTest extends TestCase {
     FSDataInputStream in = new FSDataInputStream(bais);
     CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(in, data.length, CachedConfiguration.getInstance());
     
-    Reader reader = new Reader(_cbr, RFile.RINDEX_VER_6);
+    Reader reader = new Reader(_cbr, RFile.RINDEX_VER_7);
     BlockRead rootIn = _cbr.getMetaBlock("root");
     reader.readFields(rootIn);
     rootIn.close();

@@ -52,7 +52,11 @@ public class TraceWrap {
       @Override
       public Object invoke(Object obj, Method method, Object[] args) throws Throwable {
         if (args == null || args.length < 1 || args[0] == null || !(args[0] instanceof TInfo)) {
-          return method.invoke(instance, args);
+          try {
+            return method.invoke(instance, args);
+          } catch (InvocationTargetException ex) {
+            throw ex.getCause();
+          }
         }
         Span span = Trace.trace((TInfo) args[0], method.getName());
         try {

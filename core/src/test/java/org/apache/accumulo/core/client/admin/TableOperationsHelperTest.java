@@ -112,6 +112,7 @@ public class TableOperationsHelperTest {
     public void rename(String oldTableName, String newTableName) throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
         TableExistsException {}
     
+    @Deprecated
     @Override
     public void flush(String tableName) throws AccumuloException, AccumuloSecurityException {}
     

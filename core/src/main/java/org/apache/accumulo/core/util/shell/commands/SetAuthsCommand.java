@@ -38,7 +38,7 @@ public class SetAuthsCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException {
     final String user = cl.getOptionValue(userOpt.getOpt(), shellState.getConnector().whoami());
     final String scanOpts = cl.hasOption(clearOptAuths.getOpt()) ? null : cl.getOptionValue(scanOptAuths.getOpt());
-    shellState.getConnector().securityOperations().changeUserAuthorizations(user, CreateUserCommand.parseAuthorizations(scanOpts));
+    shellState.getConnector().securityOperations().changeUserAuthorizations(user, ScanCommand.parseAuthorizations(scanOpts));
     Shell.log.debug("Changed record-level authorizations for user " + user);
     return 0;
   }

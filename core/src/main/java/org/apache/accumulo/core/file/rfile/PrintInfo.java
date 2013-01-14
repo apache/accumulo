@@ -17,7 +17,9 @@
 package org.apache.accumulo.core.file.rfile;
 
 import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -26,51 +28,40 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import com.beust.jcommander.Parameter;
+
 public class PrintInfo {
+  
+  static class Opts extends Help {
+    @Parameter(names={"-d", "--dump"}, description="dump the key/value pairs")
+    boolean dump = false;
+    @Parameter(names={"--historgram"}, description="print a histogram of the key-value sizes")
+    boolean histogram = false;
+    @Parameter(description=" <file> { <file> ... }")
+    List<String> files = new ArrayList<String>();
+  }
+  
   public static void main(String[] args) throws Exception {
     Configuration conf = new Configuration();
     @SuppressWarnings("deprecation")
     //Not for client use
     FileSystem fs = FileUtil.getFileSystem(conf, AccumuloConfiguration.getSiteConfiguration());
-    
-    Options opts = new Options();
-    Option dumpKeys = new Option("d", "dump", false, "dump the key/value pairs");
-    opts.addOption(dumpKeys);
-    Option histogramOption = new Option("h", "histogram", false, "print a histogram of the key-value sizes");
-    opts.addOption(histogramOption);
-    
-    CommandLine commandLine = null;
-    try {
-      commandLine = new BasicParser().parse(opts, args);
-      if (commandLine.getArgs().length == 0) {
-        throw new ParseException("No files were given");
-      }
-      
-    } catch (ParseException e) {
-      System.err.println("Failed to parse command line : " + e.getMessage());
-      System.err.println();
-      HelpFormatter formatter = new HelpFormatter();
-      formatter.printHelp("rfile-info <rfile> {<rfile>}", opts);
+    Opts opts = new Opts();
+    opts.parseArgs(PrintInfo.class.getName(), args);
+    if (opts.files.isEmpty()) {
+      System.err.println("No files were given");
       System.exit(-1);
     }
     
-    boolean dump = commandLine.hasOption(dumpKeys.getOpt());
-    boolean doHistogram = commandLine.hasOption(histogramOption.getOpt());
     long countBuckets[] = new long[11];
     long sizeBuckets[] = new long[countBuckets.length];
     long totalSize = 0;
 
-    for (String arg : commandLine.getArgs()) {
+    for (String arg : opts.files) {
       
       Path path = new Path(arg);
       CachableBlockFile.Reader _rdr = new CachableBlockFile.Reader(fs, path, conf, null, null);
@@ -80,14 +71,14 @@ public class PrintInfo {
       System.out.println();
       org.apache.accumulo.core.file.rfile.bcfile.PrintInfo.main(new String[] {arg});
       
-      if (doHistogram || dump) {
+      if (opts.histogram || opts.dump) {
         iter.seek(new Range((Key) null, (Key) null), new ArrayList<ByteSequence>(), false);
         while (iter.hasTop()) {
           Key key = iter.getTopKey();
           Value value = iter.getTopValue();
-          if (dump)
+          if (opts.dump)
             System.out.println(key + " -> " + value);
-          if (doHistogram) {
+          if (opts.histogram) {
             long size = key.getSize() + value.getSize();
             int bucket = (int) Math.log10(size);
             countBuckets[bucket]++;
@@ -98,7 +89,7 @@ public class PrintInfo {
         }
       }
       iter.close();
-      if (doHistogram) {
+      if (opts.histogram) {
         System.out.println("Up to size      count      %-age");
         for (int i = 1; i < countBuckets.length; i++) {
           System.out.println(String.format("%11.0f : %10d %6.2f%%", Math.pow(10, i), countBuckets[i], sizeBuckets[i] * 100. / totalSize));

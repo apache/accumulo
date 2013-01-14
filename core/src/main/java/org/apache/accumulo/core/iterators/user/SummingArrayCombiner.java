@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -48,8 +47,6 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   
   private static final String TYPE = "type";
   private static final String CLASS_PREFIX = "class:";
-  
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public static enum Type {
     /**
@@ -205,7 +202,7 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
         sb.append(",");
         sb.append(Long.toString(la.get(i)));
       }
-      return sb.toString().getBytes(utf8);
+      return sb.toString().getBytes();
     }
     
     @Override

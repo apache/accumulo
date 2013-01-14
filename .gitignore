@@ -14,6 +14,7 @@
 # limitations under the License.
 
 # /
+*.pyc
 /logs
 /walogs
 /target
@@ -82,10 +83,18 @@
 /core/.classpath
 
 # /examples/
+/examples/lib
 /examples/target
 /examples/.settings
 /examples/.classpath
 /examples/.project
+
+# /examples/instamo/
+/examples/instamo/target
+/examples/instamo/.classpath
+/examples/instamo/.project
+/examples/instamo/.settings/
+
 
 # /examples/simple/
 /examples/simple/target
@@ -124,6 +133,12 @@
 /trace/.project
 /trace/.settings
 
+# /test/
+/test/target
+/test/.classpath
+/test/.project
+/test/.settings
+
 # /test/system/auto/
 /test/system/auto/*.pyc
 /test/system/auto/fake_disk_failure.so
@@ -138,3 +153,7 @@
 /test/system/continuous/continuous-env.sh
 /test/system/continuous/walkers.txt
 /test/system/continuous/ingesters.txt
+
+# JetBrains IDE
+.idea
+*.iml

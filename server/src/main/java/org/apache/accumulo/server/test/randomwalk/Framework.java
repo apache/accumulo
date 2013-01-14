@@ -20,8 +20,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.HashMap;
 import java.util.Properties;
+
 import org.apache.log4j.Logger;
 import org.apache.log4j.xml.DOMConfigurator;
+
+import com.beust.jcommander.Parameter;
 
 public class Framework {
   
@@ -92,28 +95,33 @@ public class Framework {
     return node;
   }
   
+  static class Opts extends org.apache.accumulo.core.cli.Help {
+    @Parameter(names="--configDir", required=true, description="directory containing the test configuration")
+    String configDir;
+    @Parameter(names="--logDir", required=true, description="location of the local logging directory")
+    String localLogPath;
+    @Parameter(names="--logId", required=true, description="a unique log identifier (like a hostname, or pid)")
+    String logId;
+    @Parameter(names="--module", required=true, description="the name of the module to run")
+    String module;
+  }
+  
   public static void main(String[] args) throws Exception {
-    
-    if (args.length != 4) {
-      throw new IllegalArgumentException("usage : Framework <configDir> <localLogPath> <logId> <module>");
-    }
-    String configDir = args[0];
-    String localLogPath = args[1];
-    String logId = args[2];
-    String module = args[3];
-    
+    Opts opts = new Opts();
+    opts.parseArgs(Framework.class.getName(), args);
+
     Properties props = new Properties();
-    FileInputStream fis = new FileInputStream(configDir + "/randomwalk.conf");
+    FileInputStream fis = new FileInputStream(opts.configDir + "/randomwalk.conf");
     props.load(fis);
     fis.close();
     
-    System.setProperty("localLog", localLogPath + "/" + logId);
-    System.setProperty("nfsLog", props.getProperty("NFS_LOGPATH") + "/" + logId);
+    System.setProperty("localLog", opts.localLogPath + "/" + opts.logId);
+    System.setProperty("nfsLog", props.getProperty("NFS_LOGPATH") + "/" + opts.logId);
     
-    DOMConfigurator.configure(configDir + "logger.xml");
+    DOMConfigurator.configure(opts.configDir + "logger.xml");
     
     State state = new State(props);
-    int retval = getInstance().run(module, state, configDir);
+    int retval = getInstance().run(opts.module, state, configDir);
     
     System.exit(retval);
   }

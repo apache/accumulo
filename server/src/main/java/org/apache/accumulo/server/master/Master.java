@@ -21,7 +21,6 @@ import static java.lang.Math.min;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -89,6 +88,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
+import org.apache.accumulo.fate.AgeOffStore;
 import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.fate.TStore.TStatus;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -156,7 +156,7 @@ import org.apache.accumulo.server.util.TabletIterator.TabletDeletedException;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -215,13 +215,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   private MasterState state = MasterState.INITIAL;
   
   private Fate<Master> fate;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   volatile private SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections
       .unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
   
-  private Set<String> recoveriesInProgress = Collections.synchronizedSet(new HashSet<String>());
+  private final Set<String> recoveriesInProgress = Collections.synchronizedSet(new HashSet<String>());
 
   synchronized private MasterState getMasterState() {
     return state;
@@ -261,6 +259,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         public void run() {
           // This frees the main thread and will cause the master to exit
           clientService.stop();
+          Master.this.nextEvent.event("stopped event loop");
         }
         
       }, 100l, 1000l);
@@ -293,8 +292,8 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         String[] tablePropsToDelete = new String[] {"table.scan.cache.size", "table.scan.cache.enable"};
 
         for (String id : Tables.getIdToNameMap(instance).keySet()) {
-          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_FLUSH_ID, "0".getBytes(utf8), NodeExistsPolicy.SKIP);
-          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_ID, "0".getBytes(utf8), NodeExistsPolicy.SKIP);
+          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_FLUSH_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
+          zoo.putPersistentData(ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_COMPACT_ID, "0".getBytes(), NodeExistsPolicy.SKIP);
           
           for (String prop : tablePropsToDelete) {
             String propPath = ZooUtil.getRoot(instance) + Constants.ZTABLES + "/" + id + Constants.ZTABLE_CONF + "/" + prop;
@@ -471,7 +470,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       throw new ThriftTableOperationException(tableId, null, TableOperation.MERGE, TableOperationExceptionType.OFFLINE, "table is not online");
   }
   
-  Connector getConnector() throws AccumuloException, AccumuloSecurityException {
+  public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
     return instance.getConnector(SecurityConstants.getSystemCredentials());
   }
   
@@ -485,7 +484,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     T instance = null;
     
     try {
-      Class<? extends T> clazz = AccumuloClassLoader.loadClass(clazzName, base);
+      Class<? extends T> clazz = AccumuloVFSClassLoader.loadClass(clazzName, base);
       instance = clazz.newInstance();
       log.info("Loaded class : " + clazzName);
     } catch (Exception e) {
@@ -547,7 +546,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           public byte[] mutate(byte[] currentValue) throws Exception {
             long flushID = Long.parseLong(new String(currentValue));
             flushID++;
-            return ("" + flushID).getBytes(utf8);
+            return ("" + flushID).getBytes();
           }
         });
       } catch (NoNodeException nne) {
@@ -1078,9 +1077,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     @Override
     public void finishTableOperation(TInfo tinfo, AuthInfo credentials, long opid) throws ThriftSecurityException, TException {
       authenticate(credentials);
-      
       fate.delete(opid);
-      
     }
     
   }
@@ -1139,7 +1136,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
   
   private void setMasterGoalState(MasterGoalState state) {
     try {
-      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMASTER_GOAL_STATE, state.name().getBytes(utf8),
+      ZooReaderWriter.getInstance().putPersistentData(ZooUtil.getRoot(instance) + Constants.ZMASTER_GOAL_STATE, state.name().getBytes(),
           NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
       log.error("Unable to set master goal state in zookeeper");
@@ -1621,8 +1618,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
           }
         }
         MetadataTable.addDeleteEntries(range, datafiles, SecurityConstants.getSystemCredentials());
-        BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME,
- new BatchWriterConfig());
+        BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
         try {
           deleteTablets(deleteRange, bw, conn);
         } finally {
@@ -1713,7 +1709,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         }
         
         if (maxLogicalTime != null)
-          Constants.METADATA_TIME_COLUMN.put(m, new Value(maxLogicalTime.getBytes(utf8)));
+          Constants.METADATA_TIME_COLUMN.put(m, new Value(maxLogicalTime.getBytes()));
         
         if (!m.getUpdates().isEmpty()) {
           bw.addMutation(m);
@@ -1759,7 +1755,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       Mutation m;
       // Delete everything in the other tablets
       // group all deletes into tablet into one mutation, this makes tablets
-      // either dissapear entirely or not all.. this is important for the case
+      // either disappear entirely or not all.. this is important for the case
       // where the process terminates in the loop below...
       scanner = conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
       log.debug("Deleting range " + scanRange);
@@ -2036,9 +2032,16 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
     for (TServerInstance server : currentServers) {
       try {
-        TabletServerStatus status = tserverSet.getConnection(server).getTableMap();
-        result.put(server, status);
-        // TODO maybe remove from bad servers
+        Thread t = Thread.currentThread();
+        String oldName = t.getName();
+        try {
+          t.setName("Getting status from " + server);
+          TabletServerStatus status = tserverSet.getConnection(server).getTableMap();
+          // TODO maybe remove from bad servers
+          result.put(server, status);
+        } finally {
+          t.setName(oldName);
+        }
       } catch (Exception ex) {
         log.error("unable to get tablet server status " + server + " " + ex.toString());
         log.debug("unable to get tablet server status " + server, ex);
@@ -2080,8 +2083,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
         synchronized (recoveriesInProgress) {
           if (!recoveriesInProgress.contains(filename)) {
             Master.log.info("Starting recovery of " + filename + " created for " + host + ", tablet " + extent + " holds a reference");
+            AccumuloConfiguration aconf = getConfiguration().getConfiguration();
+            RecoverLease impl = createInstanceFromPropertyName(aconf, Property.MASTER_LEASE_RECOVERY_IMPLEMETATION, RecoverLease.class, new RecoverLease());
+            impl.init(host, filename);
             long tid = fate.startTransaction();
-            fate.seedTransaction(tid, new RecoverLease(host, filename), true);
+            fate.seedTransaction(tid, impl, true);
             recoveriesInProgress.add(filename);
           }
         }
@@ -2105,6 +2111,28 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     
     tserverSet.startListeningForTabletServerChanges();
 
+    // TODO: add shutdown for fate object
+    try {
+      final AgeOffStore<Master> store = new AgeOffStore<Master>(new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
+          ZooReaderWriter.getRetryingInstance()), 1000 * 60 * 60 * 8);
+      
+      int threads = this.getConfiguration().getConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
+      
+      fate = new Fate<Master>(this, store, threads);
+      
+      SimpleTimer.getInstance().schedule(new TimerTask() {
+        
+        @Override
+        public void run() {
+          store.ageOff();
+        }
+      }, 63000, 63000);
+    } catch (KeeperException e) {
+      throw new IOException(e);
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    }
+    
     ZooReaderWriter.getInstance().getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
       @Override
       public void process(WatchedEvent event) {
@@ -2119,8 +2147,11 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     });
     
     AuthInfo systemAuths = SecurityConstants.getSystemCredentials();
-    final TabletStateStore stores[] = {new ZooTabletStateStore(new ZooStore(zroot)), new RootTabletStateStore(instance, systemAuths, this),
-        new MetaDataStateStore(instance, systemAuths, this)};
+    final TabletStateStore stores[] = {
+        new ZooTabletStateStore(new ZooStore(zroot)), 
+        new RootTabletStateStore(instance, systemAuths, this),
+        new MetaDataStateStore(instance, systemAuths, this)
+        };
     watchers.add(new TabletGroupWatcher(stores[2], null));
     watchers.add(new TabletGroupWatcher(stores[1], watchers.get(0)));
     watchers.add(new TabletGroupWatcher(stores[0], watchers.get(1)));
@@ -2128,19 +2159,9 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       watcher.start();
     }
     
-    // TODO: add shutdown for fate object
-    try {
-      fate = new Fate<Master>(this, new org.apache.accumulo.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
-          ZooReaderWriter.getRetryingInstance()), 4);
-    } catch (KeeperException e) {
-      throw new IOException(e);
-    } catch (InterruptedException e) {
-      throw new IOException(e);
-    }
-    
     Processor<Iface> processor = new Processor<Iface>(TraceWrap.service(new MasterClientServiceHandler()));
     clientService = TServerUtils.startServer(getSystemConfiguration(), Property.MASTER_CLIENTPORT, processor, "Master", "Master Client Service Handler", null,
-        Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK).server;
+        Property.MASTER_MINTHREADS, Property.MASTER_THREADCHECK, Property.GENERAL_MAX_MESSAGE_SIZE).server;
     
     while (!clientService.isServing()) {
       UtilWaitThread.sleep(100);
@@ -2183,7 +2204,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     boolean locked = false;
     while (System.currentTimeMillis() - current < waitTime) {
       masterLock = new ZooLock(zMasterLoc);
-      if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes(utf8))) {
+      if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes())) {
         locked = true;
         break;
       }
@@ -2193,7 +2214,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       log.info("Failed to get master lock, even after waiting for session timeout, becoming back-up server");
       while (true) {
         masterLock = new ZooLock(zMasterLoc);
-        if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes(utf8))) {
+        if (masterLock.tryLock(masterLockWatcher, masterClientAddress.getBytes())) {
           break;
         }
         UtilWaitThread.sleep(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS);

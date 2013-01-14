@@ -16,22 +16,19 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.nio.charset.Charset;
 import java.util.Iterator;
 import java.util.Random;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.server.cli.ClientOnDefaultTable;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+
+import com.beust.jcommander.Parameter;
 
 public class RandomWriter {
   
@@ -79,32 +76,26 @@ public class RandomWriter {
       return this;
     }
   }
-  
-  public static void main(String[] args) throws MutationsRejectedException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
+  static class Opts extends ClientOnDefaultTable {
+    @Parameter(names="--count", description="number of mutations to write", required=true)
+    long count;
+    
+    Opts(String table) { super(table); }
+  }
+  public static void main(String[] args) throws Exception {
+    Opts opts = new Opts(table_name);
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(RandomWriter.class.getName(), args, bwOpts);
+    
     long start = System.currentTimeMillis();
-    final Charset utf8 = Charset.forName("UTF8");
-    if (args.length != 3) {
-      log.error("Usage: bin/accumulo " + RandomWriter.class.getName() + " <username> <password> <num_mutations_to_write>");
-      return;
-    }
-    log.info("starting at " + start + " for user " + args[0]);
+    log.info("starting at " + start + " for user " + opts.user);
     try {
-      Connector connector = HdfsZooInstance.getInstance().getConnector(args[0], args[1].getBytes(utf8));
-      BatchWriter bw = connector.createBatchWriter(table_name, new BatchWriterConfig());
-      long num_mutations = Long.parseLong(args[2]);
-      log.info("Writing " + num_mutations + " mutations...");
-      bw.addMutations(new RandomMutationGenerator(num_mutations));
+      Connector connector = opts.getConnector();
+      BatchWriter bw = connector.createBatchWriter(opts.getTableName(), bwOpts.getBatchWriterConfig());
+      log.info("Writing " + opts.count + " mutations...");
+      bw.addMutations(new RandomMutationGenerator(opts.count));
       bw.close();
-    } catch (MutationsRejectedException e) {
-      log.error(e);
-      throw e;
-    } catch (AccumuloException e) {
-      log.error(e);
-      throw e;
-    } catch (AccumuloSecurityException e) {
-      log.error(e);
-      throw e;
-    } catch (TableNotFoundException e) {
+    } catch (Exception e) {
       log.error(e);
       throw e;
     }

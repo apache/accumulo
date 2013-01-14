@@ -75,8 +75,8 @@ class TabletShouldSplit(SunnyDayTest):
 
         h = self.runOn(self.masterHost(), [self.accumulo_sh(),
                                            'org.apache.accumulo.server.util.CheckForMetadataProblems',
-                                           'root',
-                                           'secret'])
+                                           '-u', 'root',
+                                           '-p', 'secret'])
         out, err = h.communicate()
         self.assert_(h.returncode == 0)
         

@@ -34,7 +34,6 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.tables.TableManager;
@@ -180,13 +179,13 @@ class PopulateZookeeper extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
     // reserve the table name in zookeeper or fail
     
     Utils.tableNameLock.lock();
     try {
       // write tableName & tableId to zookeeper
-      Instance instance = HdfsZooInstance.getInstance();
+      Instance instance = master.getInstance();
       
       Utils.checkTableDoesNotExist(instance, tableInfo.tableName, tableInfo.tableId, TableOperation.CREATE);
       
@@ -204,8 +203,8 @@ class PopulateZookeeper extends MasterRepo {
   }
   
   @Override
-  public void undo(long tid, Master env) throws Exception {
-    Instance instance = HdfsZooInstance.getInstance();
+  public void undo(long tid, Master master) throws Exception {
+    Instance instance = master.getInstance();
     TableManager.getInstance().removeTable(tableInfo.tableId);
     Utils.unreserveTable(tableInfo.tableId, tid, true);
     Tables.clearCache(instance);
@@ -273,7 +272,7 @@ public class CreateTable extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master env) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
     // or skipped
@@ -282,8 +281,7 @@ public class CreateTable extends MasterRepo {
     
     Utils.idLock.lock();
     try {
-      Instance instance = HdfsZooInstance.getInstance();
-      tableInfo.tableId = Utils.getNextTableId(tableInfo.tableName, instance);
+      tableInfo.tableId = Utils.getNextTableId(tableInfo.tableName, master.getInstance());
       return new SetupPermissions(tableInfo);
     } finally {
       Utils.idLock.unlock();

@@ -18,6 +18,8 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -32,6 +34,7 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
@@ -84,8 +87,8 @@ public class InsertCommand extends Command {
       if (e.getAuthorizationFailures().isEmpty() == false) {
         lines.add("	Authorization Failures:");
       }
-      for (KeyExtent extent : e.getAuthorizationFailures()) {
-        lines.add("		" + extent);
+      for (Entry<KeyExtent,Set<SecurityErrorCode>> entry : e.getAuthorizationFailures().entrySet()) {
+        lines.add("		" + entry);
       }
       if (e.getConstraintViolationSummaries().isEmpty() == false) {
         lines.add("	Constraint Failures:");

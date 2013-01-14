@@ -98,6 +98,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
    * Returns an iterator over an accumulo table. This iterator uses the options that are currently set on the scanner for its lifetime. So setting options on a
    * Scanner object will have no effect on existing iterators.
    */
+  @Override
   public synchronized Iterator<Entry<Key,Value>> iterator() {
     return new ScannerIterator(instance, credentials, table, authorizations, range, size, getTimeOut(), this, isolated);
   }
@@ -112,6 +113,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     this.isolated = false;
   }
   
+  @Deprecated
   @Override
   public void setTimeOut(int timeOut) {
     if (timeOut == Integer.MAX_VALUE)
@@ -120,6 +122,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
       setTimeout(timeOut, TimeUnit.SECONDS);
   }
   
+  @Deprecated
   @Override
   public int getTimeOut() {
     long timeout = getTimeout(TimeUnit.SECONDS);

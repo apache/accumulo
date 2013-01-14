@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.monitor.servlets.trace;
 
-import java.nio.charset.Charset;
 import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
@@ -28,7 +27,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.trace.TraceDump;
 import org.apache.accumulo.core.trace.TraceFormatter;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.monitor.Monitor;
@@ -37,8 +35,6 @@ import org.apache.accumulo.server.monitor.servlets.BasicServlet;
 abstract class Basic extends BasicServlet {
   
   private static final long serialVersionUID = 1L;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public static String getStringParameter(HttpServletRequest req, String name, String defaultValue) {
     String result = req.getParameter(name);
@@ -68,11 +64,11 @@ abstract class Basic extends BasicServlet {
   protected Scanner getScanner(StringBuilder sb) throws AccumuloException {
     AccumuloConfiguration conf = Monitor.getSystemConfiguration();
     String user = conf.get(Property.TRACE_USER);
-    byte[] passwd = conf.get(Property.TRACE_PASSWORD).getBytes(utf8);
+    byte[] passwd = conf.get(Property.TRACE_PASSWORD).getBytes();
     String table = conf.get(Property.TRACE_TABLE);
     try {
       Connector conn = HdfsZooInstance.getInstance().getConnector(user, passwd);
-      if (!conn.tableOperations().exists(TraceDump.TRACE_TABLE)) {
+      if (!conn.tableOperations().exists(table)) {
         return new NullScanner();
       }
       Scanner scanner = conn.createScanner(table, conn.securityOperations().getUserAuthorizations(user));

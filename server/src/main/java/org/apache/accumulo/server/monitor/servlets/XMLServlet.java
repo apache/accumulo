@@ -72,9 +72,9 @@ public class XMLServlet extends BasicServlet {
       
       TableInfo summary = Monitor.summarizeTableStats(status);
       sb.append("<compactions>\n");
-      sb.append("<major>").append("<running>").append(summary.major.running).append("</running>").append("<queued>").append(summary.major.queued)
+      sb.append("<major>").append("<running>").append(summary.majors.running).append("</running>").append("<queued>").append(summary.majors.queued)
           .append("</queued>").append("</major>\n");
-      sb.append("<minor>").append("<running>").append(summary.minor.running).append("</running>").append("<queued>").append(summary.minor.queued)
+      sb.append("<minor>").append("<running>").append(summary.minors.running).append("</running>").append("<queued>").append(summary.minors.queued)
           .append("</queued>").append("</minor>\n");
       sb.append("</compactions>\n");
       
@@ -151,7 +151,7 @@ public class XMLServlet extends BasicServlet {
       sb.append("<queryByteRate>").append(tableInfo.queryRate).append("</queryByteRate>\n");
       int running = 0;
       int queued = 0;
-      Compacting compacting = entry.getValue().major;
+      Compacting compacting = entry.getValue().majors;
       if (compacting != null) {
         running = compacting.running;
         queued = compacting.queued;

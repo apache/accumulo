@@ -57,7 +57,7 @@ public class SourceSwitchingIterator implements SortedKeyValueIterator<Key,Value
   private boolean onlySwitchAfterRow;
   private AtomicBoolean iflag;
   
-  private List<SourceSwitchingIterator> copies;
+  private final List<SourceSwitchingIterator> copies;
   
   private SourceSwitchingIterator(DataSource source, boolean onlySwitchAfterRow, List<SourceSwitchingIterator> copies, AtomicBoolean iflag) {
     this.source = source;

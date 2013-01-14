@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.zookeeper;
 
-import java.nio.charset.Charset;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
@@ -24,8 +23,6 @@ import org.apache.accumulo.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.zookeeper.KeeperException;
 
 public class ZooQueueLock extends org.apache.accumulo.fate.zookeeper.ZooQueueLock {
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public ZooQueueLock(String path, boolean ephemeral) throws KeeperException, InterruptedException {
     super(ZooReaderWriter.getRetryingInstance(), path, ephemeral);
@@ -33,13 +30,13 @@ public class ZooQueueLock extends org.apache.accumulo.fate.zookeeper.ZooQueueLoc
   
   public static void main(String args[]) throws InterruptedException, KeeperException {
     ZooQueueLock lock = new ZooQueueLock("/lock", true);
-    DistributedReadWriteLock rlocker = new DistributedReadWriteLock(lock, "reader".getBytes(utf8));
-    DistributedReadWriteLock wlocker = new DistributedReadWriteLock(lock, "wlocker".getBytes(utf8));
-    Lock readLock = rlocker.readLock();
+    DistributedReadWriteLock rlocker = new DistributedReadWriteLock(lock, "reader".getBytes());
+    DistributedReadWriteLock wlocker = new DistributedReadWriteLock(lock, "wlocker".getBytes());
+    final Lock readLock = rlocker.readLock();
     readLock.lock();
-    Lock readLock2 = rlocker.readLock();
+    final Lock readLock2 = rlocker.readLock();
     readLock2.lock();
-    Lock writeLock = wlocker.writeLock();
+    final Lock writeLock = wlocker.writeLock();
     if (writeLock.tryLock(100, TimeUnit.MILLISECONDS))
       throw new RuntimeException("Write lock achieved during read lock!");
     readLock.unlock();
@@ -47,7 +44,7 @@ public class ZooQueueLock extends org.apache.accumulo.fate.zookeeper.ZooQueueLoc
     writeLock.lock();
     if (readLock.tryLock(100, TimeUnit.MILLISECONDS))
       throw new RuntimeException("Read lock achieved during write lock!");
-    Lock writeLock2 = DistributedReadWriteLock.recoverLock(lock, "wlocker".getBytes(utf8));
+    final Lock writeLock2 = DistributedReadWriteLock.recoverLock(lock, "wlocker".getBytes());
     writeLock2.unlock();
     readLock.lock();
     System.out.println("success");

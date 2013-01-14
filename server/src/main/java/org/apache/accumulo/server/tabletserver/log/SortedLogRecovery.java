@@ -46,6 +46,12 @@ import org.apache.log4j.Logger;
 public class SortedLogRecovery {
   private static final Logger log = Logger.getLogger(SortedLogRecovery.class);
   
+  static class EmptyMapFileException extends Exception {
+    private static final long serialVersionUID = 1L;
+
+    public EmptyMapFileException() { super(); }
+  }
+  
   public SortedLogRecovery() {}
   
   private enum Status {
@@ -87,7 +93,12 @@ public class SortedLogRecovery {
       log.info("Looking at mutations from " + logfile + " for " + extent);
       MultiReader reader = new MultiReader(fs, conf, logfile);
       try {
-        tids[i] = findLastStartToFinish(reader, i, extent, tabletFiles, lastStartToFinish);
+        try {
+          tids[i] = findLastStartToFinish(reader, i, extent, tabletFiles, lastStartToFinish);
+        } catch (EmptyMapFileException ex) {
+          log.info("Ignoring empty map file " + logfile);
+          tids[i] = -1;
+        }
       } finally {
         try {
           reader.close();
@@ -117,13 +128,13 @@ public class SortedLogRecovery {
     }
   }
   
-  int findLastStartToFinish(MultiReader reader, int fileno, KeyExtent extent, Set<String> tabletFiles, LastStartToFinish lastStartToFinish) throws IOException {
+  int findLastStartToFinish(MultiReader reader, int fileno, KeyExtent extent, Set<String> tabletFiles, LastStartToFinish lastStartToFinish) throws IOException, EmptyMapFileException {
     // Scan for tableId for this extent (should always be in the log)
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
     int tid = -1;
     if (!reader.next(key, value))
-      throw new RuntimeException("Unable to read log entries");
+      throw new EmptyMapFileException();
     if (key.event != OPEN)
       throw new RuntimeException("First log entry value is not OPEN");
     

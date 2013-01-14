@@ -42,16 +42,16 @@ class TeraSortBenchmark(Benchmark):
 
 
     def setUp(self): 
-        random.jumpahead(int(time.time()))
-        num = random.randint(1, 100000)   
-        #self.tablename = self.tablename + "-" + str(num)  
-        # Find which hadoop version
-        # code, out, err = cloudshell.run(self.username, self.password, 'table %s\n' % self.tablename)
-        #if out.find('no such table') == -1:
-        #    log.debug('Deleting table %s' % self.tablename)
-        #    code, out, err = cloudshell.run(self.username, self.password, 'deletetable %s\n' % self.tablename)
-        #    self.sleep(10)
+        code, out, err = cloudshell.run(self.username, self.password, 'table %s\n' % self.tablename)
+        if out.find('does not exist') == -1:
+            log.debug('Deleting table %s' % self.tablename)
+            code, out, err = cloudshell.run(self.username, self.password, 'deletetable -f %s\n' % self.tablename)
         Benchmark.setUp(self)
+
+    def tearDown(self):
+        code, out, err = cloudshell.run(self.username, self.password, "deletetable -f %s\n" % self.tablename)
+        self.assertEqual(code, 0, 'Could not delete %s, %s' % (self.tablename, out))
+        Benchmark.tearDown(self)
         
     def keysizemin(self):
         return self.keymin
@@ -88,6 +88,7 @@ class TeraSortBenchmark(Benchmark):
         log.debug("Running: %r", command)
         out, err = handle.communicate("")
         log.debug("Process finished: %d (%s)", handle.returncode, ' '.join(handle.command))
+        self.assertEqual(handle.returncode, 0, "Job did not complete successfully")
         return handle.returncode, out, err
         
     def needsAuthentication(self):

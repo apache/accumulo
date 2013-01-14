@@ -45,14 +45,14 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.LruBlockCache;
 import org.apache.accumulo.core.util.Daemon;
 import org.apache.accumulo.core.util.LoggingRunnable;
-import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
+import org.apache.accumulo.core.util.NamingThreadFactory;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
 import org.apache.accumulo.server.tabletserver.Tablet.MajorCompactionReason;
 import org.apache.accumulo.server.util.time.SimpleTimer;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.log4j.Logger;
 
@@ -199,7 +199,7 @@ public class TabletServerResourceManager {
     fileManager = new FileManager(conf, fs, maxOpenFiles, _dCache, _iCache);
     
     try {
-      Class<? extends MemoryManager> clazz = AccumuloClassLoader.loadClass(acuConf.get(Property.TSERV_MEM_MGMT), MemoryManager.class);
+      Class<? extends MemoryManager> clazz = AccumuloVFSClassLoader.loadClass(acuConf.get(Property.TSERV_MEM_MGMT), MemoryManager.class);
       memoryManager = clazz.newInstance();
       memoryManager.init(conf);
       log.debug("Loaded memory manager : " + memoryManager.getClass().getName());
@@ -250,7 +250,7 @@ public class TabletServerResourceManager {
   }
   
   private class MemoryManagementFramework {
-    private Map<KeyExtent,TabletStateImpl> tabletReports;
+    private final Map<KeyExtent,TabletStateImpl> tabletReports;
     private LinkedBlockingQueue<TabletStateImpl> memUsageReports;
     private long lastMemCheckTime = System.currentTimeMillis();
     private long maxMem;
@@ -378,7 +378,7 @@ public class TabletServerResourceManager {
     }
   }
   
-  private Object commitHold = new String("");
+  private final Object commitHold = new Object();
   private volatile boolean holdCommits = false;
   private long holdStartTime;
   

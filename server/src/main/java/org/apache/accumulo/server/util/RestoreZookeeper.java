@@ -18,12 +18,12 @@ package org.apache.accumulo.server.util;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.util.Stack;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.commons.codec.binary.Base64;
@@ -37,9 +37,9 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-public class RestoreZookeeper {
+import com.beust.jcommander.Parameter;
 
-  private static final Charset utf8 = Charset.forName("UTF8");
+public class RestoreZookeeper {
   
   private static class Restore extends DefaultHandler {
     ZooKeeper zk = null;
@@ -77,9 +77,9 @@ public class RestoreZookeeper {
     }
     
     private void create(String path, String value, String encoding) {
-      byte[] data = value.getBytes(utf8);
+      byte[] data = value.getBytes();
       if ("base64".equals(encoding))
-        data = Base64.decodeBase64(value.getBytes(utf8));
+        data = Base64.decodeBase64(value.getBytes());
       try {
         try {
           ZooUtil.putPersistentData(zk, path, data, overwrite ? NodeExistsPolicy.OVERWRITE : NodeExistsPolicy.FAIL);
@@ -94,32 +94,37 @@ public class RestoreZookeeper {
     }
   }
   
+  static class Opts extends Help {
+    @Parameter(names={"-z", "--keepers"})
+    String keepers = "localhost:2181";
+    @Parameter(names="--overwrite")
+    boolean overwrite = false;
+    @Parameter(names="--file")
+    String file;
+  }
+  
   /**
    * @param args
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
     Logger.getRootLogger().setLevel(Level.WARN);
+    Opts opts = new Opts();
+    opts.parseArgs(RestoreZookeeper.class.getName(), args);
     
-    String server = args[0];
     int timeout = 30 * 1000;
     InputStream in = System.in;
-    boolean overwrite = false;
-    if (args.length > 1) {
-      in = new FileInputStream(args[1]);
+    if (opts.file != null) {
+      in = new FileInputStream(opts.file);
     }
-    for (String arg : args)
-      if (arg.equals("--overwrite"))
-        overwrite = true;
-    
-    ZooKeeper zk = new ZooKeeper(server, timeout, new Watcher() {
+    ZooKeeper zk = new ZooKeeper(opts.keepers, timeout, new Watcher() {
       @Override
       public void process(WatchedEvent event) {}
     });
     
     SAXParserFactory factory = SAXParserFactory.newInstance();
     SAXParser parser = factory.newSAXParser();
-    parser.parse(in, new Restore(zk, overwrite));
+    parser.parse(in, new Restore(zk, opts.overwrite));
     in.close();
   }
 }

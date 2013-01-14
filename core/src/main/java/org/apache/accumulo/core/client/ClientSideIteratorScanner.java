@@ -188,7 +188,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
         
         @Override
         public void registerSideChannel(final SortedKeyValueIterator<Key,Value> iter) {}
-      }, false);
+      }, false, null);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -207,6 +207,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     return new IteratorAdapter(skvi);
   }
   
+  @Deprecated
   @Override
   public void setTimeOut(int timeOut) {
     if (timeOut == Integer.MAX_VALUE)
@@ -215,6 +216,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       setTimeout(timeOut, TimeUnit.SECONDS);
   }
   
+  @Deprecated
   @Override
   public int getTimeOut() {
     long timeout = getTimeout(TimeUnit.SECONDS);

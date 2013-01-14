@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.master.recovery;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
@@ -39,8 +38,6 @@ public class SubmitFileForRecovery extends MasterRepo implements Repo<Master> {
   private static final long serialVersionUID = 1L;
   String server;
   String file;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   SubmitFileForRecovery(String server, String file) {
     this.server = server;
@@ -51,7 +48,7 @@ public class SubmitFileForRecovery extends MasterRepo implements Repo<Master> {
   public Repo<Master> call(long tid, final Master master) throws Exception {
     master.updateRecoveryInProgress(file);
     String source = RecoverLease.getSource(master, server, file).toString();
-    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY).addWork(file, source.getBytes(utf8));
+    new DistributedWorkQueue(ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY).addWork(file, source.getBytes());
     
     ZooReaderWriter zoo = ZooReaderWriter.getInstance();
     final String path = ZooUtil.getRoot(master.getInstance()) + Constants.ZRECOVERY + "/" + file;

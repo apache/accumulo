@@ -57,26 +57,24 @@ public class BlockIndex {
 
   public static class BlockIndexEntry implements Comparable<BlockIndexEntry> {
     
-    private Key key;
+    private Key prevKey;
     private int entriesLeft;
     private int pos;
     
-    public BlockIndexEntry(int pos, int entriesLeft, Key key) {
+    public BlockIndexEntry(int pos, int entriesLeft, Key prevKey) {
       this.pos = pos;
       this.entriesLeft = entriesLeft;
-      this.key = key;
+      this.prevKey = prevKey;
     }
 
     /**
      * @param key
      */
     public BlockIndexEntry(Key key) {
-      this.key = key;
+      this.prevKey = key;
     }
 
-    public Key getKey() {
-      return key;
-    }
+
     
     public int getEntriesLeft() {
       return entriesLeft;
@@ -84,17 +82,21 @@ public class BlockIndex {
 
     @Override
     public int compareTo(BlockIndexEntry o) {
-      return key.compareTo(o.key);
+      return prevKey.compareTo(o.prevKey);
     }
     
+    @Override
     public String toString() {
-      return key + " " + entriesLeft + " " + pos;
+      return prevKey + " " + entriesLeft + " " + pos;
+    }
+    
+    public Key getPrevKey() {
+      return prevKey;
     }
   }
   
   public BlockIndexEntry seekBlock(Key startKey, ABlockReader cacheBlock) {
 
-    
     // get a local ref to the index, another thread could change it
     BlockIndexEntry[] blockIndex = this.blockIndex;
     
@@ -110,18 +112,24 @@ public class BlockIndex {
     } else {
       // found exact key in index
       index = pos;
+      while (index > 0) {
+        if (blockIndex[index].getPrevKey().equals(startKey))
+          index--;
+        else
+          break;
+      }
     }
     
     // handle case where multiple keys in block are exactly the same, want to find the earliest key in the index
     while (index - 1 > 0) {
-      if (blockIndex[index].getKey().equals(blockIndex[index - 1].getKey()))
+      if (blockIndex[index].getPrevKey().equals(blockIndex[index - 1].getPrevKey()))
         index--;
       else
         break;
 
     }
     
-    if (index == 0 && blockIndex[index].getKey().equals(startKey))
+    if (index == 0 && blockIndex[index].getPrevKey().equals(startKey))
       return null;
 
     BlockIndexEntry bie = blockIndex[index];
@@ -150,12 +158,13 @@ public class BlockIndex {
 
     while (count < (indexEntry.getNumEntries() - interval + 1)) {
 
+      Key myPrevKey = rk.getKey();
       int pos = cacheBlock.getPosition();
       rk.readFields(cacheBlock);
       val.readFields(cacheBlock);
 
       if (count > 0 && count % interval == 0) {
-        index.add(new BlockIndexEntry(pos, indexEntry.getNumEntries() - count, rk.getKey()));
+        index.add(new BlockIndexEntry(pos, indexEntry.getNumEntries() - count, myPrevKey));
       }
       
       count++;
@@ -164,5 +173,9 @@ public class BlockIndex {
     this.blockIndex = index.toArray(new BlockIndexEntry[index.size()]);
 
     cacheBlock.seek(0);
+  }
+  
+  BlockIndexEntry[] getIndexEntries() {
+    return blockIndex;
   }
 }

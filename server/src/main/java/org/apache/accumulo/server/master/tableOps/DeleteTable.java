@@ -23,7 +23,6 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.impl.Tables;
@@ -38,7 +37,6 @@ import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.fate.Repo;
 import org.apache.accumulo.server.ServerConstants;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
 import org.apache.accumulo.server.master.state.TabletLocationState;
@@ -83,16 +81,15 @@ class CleanUp extends MasterRepo {
   }
   
   @Override
-  public long isReady(long tid, Master environment) throws Exception {
-    if (!environment.hasCycled(creationTime)) {
+  public long isReady(long tid, Master master) throws Exception {
+    if (!master.hasCycled(creationTime)) {
       return 50;
     }
     
     boolean done = true;
     Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
-    Scanner scanner = environment.getInstance().getConnector(SecurityConstants.getSystemCredentials())
-        .createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
-    MetaDataTableScanner.configureScanner(scanner, environment);
+    Scanner scanner = master.getConnector().createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS);
+    MetaDataTableScanner.configureScanner(scanner, master);
     scanner.setRange(tableRange);
     
     KeyExtent prevExtent = null;
@@ -105,7 +102,7 @@ class CleanUp extends MasterRepo {
       }
       prevExtent = locationState.extent;
       
-      TabletState state = locationState.getState(environment.onlineTabletServers());
+      TabletState state = locationState.getState(master.onlineTabletServers());
       if (state.equals(TabletState.ASSIGNED) || state.equals(TabletState.HOSTED)) {
         log.debug("Still waiting for table to be deleted: " + tableId + " locationState: " + locationState);
         done = false;
@@ -120,17 +117,15 @@ class CleanUp extends MasterRepo {
   }
   
   @Override
-  public Repo<Master> call(long tid, Master environment) throws Exception {
+  public Repo<Master> call(long tid, Master master) throws Exception {
     
-    Instance instance = HdfsZooInstance.getInstance();
-    
-    environment.clearMigrations(tableId);
+    master.clearMigrations(tableId);
     
     int refCount = 0;
     
     try {
       // look for other tables that references this tables files
-      Connector conn = instance.getConnector(SecurityConstants.getSystemCredentials());
+      Connector conn = master.getConnector();
       BatchScanner bs = conn.createBatchScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS, 8);
       try {
         bs.setRanges(Collections.singleton(Constants.NON_ROOT_METADATA_KEYSPACE));
@@ -183,7 +178,7 @@ class CleanUp extends MasterRepo {
     // remove table from zookeeper
     try {
       TableManager.getInstance().removeTable(tableId);
-      Tables.clearCache(instance);
+      Tables.clearCache(master.getInstance());
     } catch (Exception e) {
       log.error("Failed to find table id in zookeeper", e);
     }

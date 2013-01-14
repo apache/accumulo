@@ -78,11 +78,11 @@ class KilledTabletServerTest(RestartTest):
         self.waitForStop(handle, timeout)
 
     def readRows(self):
-        self.stopRead(self.startRead(), 300)
+        self.stopRead(self.startRead(), 400)
 
     def runTest(self):
 
-        self.waitForStop(self.ingester, 60)
+        self.waitForStop(self.ingester, 120)
         log.info("Ingester stopped")
         log.info("starting scan")
         self.readRows()
@@ -138,7 +138,7 @@ class KilledTabletDuringScan(KilledTabletServerTest):
 
     def runTest(self):
 
-        self.waitForStop(self.ingester, 30)
+        self.waitForStop(self.ingester, 90)
         log.info("Ingester stopped")
         handle = self.startRead()
 
@@ -148,14 +148,14 @@ class KilledTabletDuringScan(KilledTabletServerTest):
             self.start_tserver(host)
             log.info("Tablet server on %s started", host)
             log.info("starting scan")
-            self.stopRead(handle, 400)
+            self.stopRead(handle, 500)
             if host != self.hosts[-1]:
                 handle = self.startRead()
 
 class KilledTabletDuringShutdown(KilledTabletServerTest):
 
     def runTest(self):
-        self.waitForStop(self.ingester, 30)
+        self.waitForStop(self.ingester, 90)
         log.info("Ingester stopped")
         self.stop_tserver(self.hosts[0], signal.SIGKILL)
         log.info("This can take a couple minutes")

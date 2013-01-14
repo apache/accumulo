@@ -20,20 +20,23 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.Random;
 
+import org.apache.accumulo.core.cli.BatchScannerOpts;
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Internal class used to verify validity of data read.
@@ -165,6 +168,19 @@ public class RandomBatchScanner {
     printRowsNotFound(expectedRows);
   }
   
+  public static class Opts  extends ClientOnRequiredTable {
+    @Parameter(names="--min", description="miniumum row that will be generated")
+    long min = 0;
+    @Parameter(names="--max", description="maximum ow that will be generated")
+    long max = 0;
+    @Parameter(names="--num", required=true, description="number of ranges to generate")
+    int num = 0;
+    @Parameter(names="--size", required=true, description="size of the value to write")
+    int size = 0;
+    @Parameter(names="--seed", description="seed for pseudo-random number generator")
+    Long seed = null;
+  }
+  
   /**
    * Scans over a specified number of entries to Accumulo using a {@link BatchScanner}. Completes scans twice to compare times for a fresh query with those for
    * a repeated query which has cached metadata and connections already established.
@@ -175,65 +191,35 @@ public class RandomBatchScanner {
    * @throws TableNotFoundException
    */
   public static void main(String[] args) throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    String seed = null;
+    Opts opts = new Opts();
+    BatchScannerOpts bsOpts = new BatchScannerOpts();
+    opts.parseArgs(RandomBatchScanner.class.getName(), args, bsOpts);
     
-    int index = 0;
-    String processedArgs[] = new String[11];
-    for (int i = 0; i < args.length; i++) {
-      if (args[i].equals("-s")) {
-        seed = args[++i];
-      } else {
-        processedArgs[index++] = args[i];
-      }
-    }
-    
-    if (index != 11) {
-      System.out
-          .println("Usage : RandomBatchScanner [-s <seed>] <instance name> <zoo keepers> <username> <password> <table> <num> <min> <max> <expected value size> <num threads> <auths>");
-      return;
-    }
-    
-    String instanceName = processedArgs[0];
-    String zooKeepers = processedArgs[1];
-    String user = processedArgs[2];
-    byte[] pass = processedArgs[3].getBytes();
-    String table = processedArgs[4];
-    int num = Integer.parseInt(processedArgs[5]);
-    long min = Long.parseLong(processedArgs[6]);
-    long max = Long.parseLong(processedArgs[7]);
-    int expectedValueSize = Integer.parseInt(processedArgs[8]);
-    int numThreads = Integer.parseInt(processedArgs[9]);
-    String auths = processedArgs[10];
-    
-    // Uncomment the following lines for detailed debugging info
-    // Logger logger = Logger.getLogger(Constants.CORE_PACKAGE_NAME);
-    // logger.setLevel(Level.TRACE);
-    
-    ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
-    Connector connector = instance.getConnector(user, pass);
-    BatchScanner tsbr = connector.createBatchScanner(table, new Authorizations(auths.split(",")), numThreads);
+    Connector connector = opts.getConnector();
+    BatchScanner batchReader = connector.createBatchScanner(opts.tableName, opts.auths, bsOpts.scanThreads);
+    batchReader.setTimeout(bsOpts.scanTimeout, TimeUnit.MILLISECONDS);
     
     Random r;
-    if (seed == null)
+    if (opts.seed == null)
       r = new Random();
     else
-      r = new Random(Long.parseLong(seed));
+      r = new Random(opts.seed);
     
     // do one cold
-    doRandomQueries(num, min, max, expectedValueSize, r, tsbr);
+    doRandomQueries(opts.num, opts.min, opts.max, opts.size, r, batchReader);
     
     System.gc();
     System.gc();
     System.gc();
     
-    if (seed == null)
+    if (opts.seed == null)
       r = new Random();
     else
-      r = new Random(Long.parseLong(seed));
+      r = new Random(opts.seed);
     
     // do one hot (connections already established, metadata table cached)
-    doRandomQueries(num, min, max, expectedValueSize, r, tsbr);
+    doRandomQueries(opts.num, opts.min, opts.max, opts.size, r, batchReader);
     
-    tsbr.close();
+    batchReader.close();
   }
 }

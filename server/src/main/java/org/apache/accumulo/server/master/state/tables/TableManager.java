@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.master.state.tables;
 
-import java.nio.charset.Charset;
 import java.security.SecurityPermission;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,8 +53,6 @@ public class TableManager {
   
   private final Instance instance;
   private ZooCache zooStateCache;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public static void prepareNewTableState(String instanceId, String tableId, String tableName, TableState state, NodeExistsPolicy existsPolicy)
       throws KeeperException, InterruptedException {
@@ -64,10 +61,10 @@ public class TableManager {
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_CONF, new byte[0], existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAME, tableName.getBytes(utf8), existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(utf8), existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_FLUSH_ID, "0".getBytes(utf8), existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_ID, "0".getBytes(utf8), existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAME, tableName.getBytes(), existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(), existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_FLUSH_ID, "0".getBytes(), existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_ID, "0".getBytes(), existsPolicy);
   }
   
   public synchronized static TableManager getInstance() {
@@ -115,7 +112,7 @@ public class TableManager {
     String statePath = ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
     
     try {
-      ZooReaderWriter.getRetryingInstance().mutate(statePath, (byte[]) newState.name().getBytes(utf8), ZooUtil.PUBLIC, new Mutator() {
+      ZooReaderWriter.getRetryingInstance().mutate(statePath, (byte[]) newState.name().getBytes(), ZooUtil.PUBLIC, new Mutator() {
         @Override
         public byte[] mutate(byte[] oldData) throws Exception {
           TableState oldState = TableState.UNKNOWN;
@@ -142,7 +139,7 @@ public class TableManager {
           if (!transition)
             throw new IllegalTableTransitionException(oldState, newState);
           log.debug("Transitioning state for table " + tableId + " from " + oldState + " to " + newState);
-          return newState.name().getBytes(utf8);
+          return newState.name().getBytes();
         }
       });
     } catch (Exception e) {

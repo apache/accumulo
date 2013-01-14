@@ -46,20 +46,4 @@ public class LoggingRunnable implements Runnable {
       }
     }
   }
-  
-  public static void main(String[] args) {
-    Runnable r = new Runnable() {
-      @Override
-      public void run() {
-        int x[] = new int[0];
-        
-        x[0]++;
-      }
-    };
-    
-    LoggingRunnable lr = new LoggingRunnable(null, r);
-    lr.run();
-    
-  }
-  
 }

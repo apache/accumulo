@@ -20,26 +20,45 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.cli.Help;
+
+import com.beust.jcommander.Parameter;
+
 public class CreateRFiles {
   
+  static class Opts extends Help {
+    
+    @Parameter(names="--output", description="the destiation directory")
+    String outputDirectory;
+    
+    @Parameter(names="--numThreads", description="number of threads to use when generating files")
+    int numThreads = 4;
+    
+    @Parameter(names="--start", description="the start number for test data")
+    long start = 0;
+    
+    @Parameter(names="--end", description="the maximum number for test data")
+    long end = 10*1000*1000;
+    
+    @Parameter(names="--splits", description="the number of splits in the data")
+    long numsplits = 4;
+  }
+  
   public static void main(String[] args) {
-    String dir = args[0];
-    int numThreads = Integer.parseInt(args[1]);
-    long start = Long.parseLong(args[2]);
-    long end = Long.parseLong(args[3]);
-    long numsplits = Long.parseLong(args[4]);
+    Opts opts = new Opts();
+    opts.parseArgs(CreateRFiles.class.getName(), args);
     
-    long splitSize = Math.round((end - start) / (double) numsplits);
+    long splitSize = Math.round((opts.end - opts.start) / (double) opts.numsplits);
     
-    long currStart = start;
-    long currEnd = start + splitSize;
+    long currStart = opts.start;
+    long currEnd = opts.start + splitSize;
     
-    ExecutorService threadPool = Executors.newFixedThreadPool(numThreads);
+    ExecutorService threadPool = Executors.newFixedThreadPool(opts.numThreads);
     
     int count = 0;
-    while (currEnd <= end && currStart < currEnd) {
+    while (currEnd <= opts.end && currStart < currEnd) {
       
-      final String tia = String.format("-rFile /%s/mf%05d -timestamp 1 -size 50 -random 56 %d %d 1", dir, count, currEnd - currStart, currStart);
+      final String tia = String.format("--rfile /%s/mf%05d --timestamp 1 --size 50 --random 56 --rows %d --start %d --user root", opts.outputDirectory, count, currEnd - currStart, currStart);
       
       Runnable r = new Runnable() {
         
@@ -58,7 +77,7 @@ public class CreateRFiles {
       
       count++;
       currStart = currEnd;
-      currEnd = Math.min(end, currStart + splitSize);
+      currEnd = Math.min(opts.end, currStart + splitSize);
     }
     
     threadPool.shutdown();

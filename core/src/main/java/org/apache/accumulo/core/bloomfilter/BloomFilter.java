@@ -217,7 +217,6 @@ public class BloomFilter extends Filter {
       try {
         bits = (BitSet) ois.readObject();
       } catch (ClassNotFoundException e) {
-        // TODO Auto-generated catch block
         e.printStackTrace();
         throw new IOException("BloomFilter tried to deserialize as bitset: " + e);
       }

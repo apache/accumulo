@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -46,6 +47,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import com.beust.jcommander.Parameter;
+
 /**
  * Generate the *almost* official terasort input data set. (See below) The user specifies the number of rows and the output directory and this class runs a
  * map/reduce program to generate the data. The format of the data is:
@@ -60,10 +63,7 @@ import org.apache.hadoop.util.ToolRunner;
  * the same way TeraSort does use 10000000000 rows and 10/10 byte key length and 78/78 byte value length. Along with the 10 byte row id and \r\n this gives you
  * 100 byte row * 10000000000 rows = 1tb. Min/Max ranges for key and value parameters are inclusive/inclusive respectively.
  * 
- * Params <numrows> <minkeylength> <maxkeylength> <minvaluelength> <maxvaluelength> <tablename> <instance> <zoohosts> <username> <password> [numsplits]
- * numsplits allows you specify how many splits, and therefore mappers, to use
- * 
- * 
+ *  
  */
 public class TeraSortIngest extends Configured implements Tool {
   /**
@@ -343,10 +343,27 @@ public class TeraSortIngest extends Configured implements Tool {
     System.exit(res);
   }
   
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names="--count", description="number of rows to ingest", required=true)
+    long numRows;
+    @Parameter(names={"-nk", "--minKeySize"}, description="miniumum key size", required=true)
+    int minKeyLength;
+    @Parameter(names={"-xk", "--maxKeySize"}, description="maximum key size", required=true)
+    int maxKeyLength;
+    @Parameter(names={"-nv", "--minValueSize"}, description="minimum key size", required=true)
+    int minValueLength;
+    @Parameter(names={"-xv", "--maxValueSize"}, description="maximum key size", required=true)
+    int maxValueLength;
+    @Parameter(names="--splits", description="number of splits to create in the table")
+    int splits = 0;
+  }
+  
   @Override
   public int run(String[] args) throws Exception {
     Job job = new Job(getConf(), "TeraSortCloud");
     job.setJarByClass(this.getClass());
+    Opts opts = new Opts();
+    opts.parseArgs(TeraSortIngest.class.getName(), args);
     
     job.setInputFormatClass(RangeInputFormat.class);
     job.setMapperClass(SortGenMapper.class);
@@ -356,20 +373,19 @@ public class TeraSortIngest extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[6], args[7]);
-    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), args[8], args[9].getBytes(), true, null);
+    opts.setAccumuloConfigs(job);
     AccumuloOutputFormat.setMaxMutationBufferSize(job.getConfiguration(), 10L * 1000 * 1000);
     
     Configuration conf = job.getConfiguration();
-    conf.setLong(NUMROWS, Long.parseLong(args[0]));
-    conf.setInt("cloudgen.minkeylength", Integer.parseInt(args[1]));
-    conf.setInt("cloudgen.maxkeylength", Integer.parseInt(args[2]));
-    conf.setInt("cloudgen.minvaluelength", Integer.parseInt(args[3]));
-    conf.setInt("cloudgen.maxvaluelength", Integer.parseInt(args[4]));
-    conf.set("cloudgen.tablename", args[5]);
+    conf.setLong(NUMROWS, opts.numRows);
+    conf.setInt("cloudgen.minkeylength", opts.minKeyLength);
+    conf.setInt("cloudgen.maxkeylength", opts.maxKeyLength);
+    conf.setInt("cloudgen.minvaluelength", opts.minValueLength);
+    conf.setInt("cloudgen.maxvaluelength", opts.maxValueLength);
+    conf.set("cloudgen.tablename", opts.tableName);
     
     if (args.length > 10)
-      conf.setInt(NUMSPLITS, Integer.parseInt(args[10]));
+      conf.setInt(NUMSPLITS, opts.splits);
     
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

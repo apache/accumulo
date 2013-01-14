@@ -20,33 +20,39 @@ import java.io.FileInputStream;
 import java.util.Properties;
 import java.net.InetAddress;
 
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.test.scalability.ScaleTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import com.beust.jcommander.Parameter;
+
 public class Run {
+  
+  static class Opts extends Help {
+    @Parameter(names="--testId", required=true)
+    String testId;
+    @Parameter(names="--action", required=true, description="one of 'setup', 'teardown' or 'client'")
+    String action;
+    @Parameter(names="--count", description="number of tablet servers", required=true)
+    int numTabletServers; 
+  }
   
   public static void main(String[] args) throws Exception {
     
     final String sitePath = "/tmp/scale-site.conf";
     final String testPath = "/tmp/scale-test.conf";
-    
-    // parse command line
-    if (args.length != 3) {
-      throw new IllegalArgumentException("usage : Run <testId> <action> <numTabletServers>");
-    }
-    String testId = args[0];
-    String action = args[1];
-    int numTabletServers = Integer.parseInt(args[2]);
+    Opts opts = new Opts();
+    opts.parseArgs(Run.class.getName(), args);
     
     Configuration conf = CachedConfiguration.getInstance();
     FileSystem fs;
     fs = FileSystem.get(conf);
     
     fs.copyToLocalFile(new Path("/accumulo-scale/conf/site.conf"), new Path(sitePath));
-    fs.copyToLocalFile(new Path(String.format("/accumulo-scale/conf/%s.conf", testId)), new Path(testPath));
+    fs.copyToLocalFile(new Path(String.format("/accumulo-scale/conf/%s.conf", opts.testId)), new Path(testPath));
     
     // load configuration file properties
     Properties scaleProps = new Properties();
@@ -62,19 +68,19 @@ public class Run {
       e.printStackTrace();
     }
     
-    ScaleTest test = (ScaleTest) Class.forName(String.format("accumulo.server.test.scalability.%s", testId)).newInstance();
+    ScaleTest test = (ScaleTest) Class.forName(String.format("accumulo.server.test.scalability.%s", opts.testId)).newInstance();
     
-    test.init(scaleProps, testProps, numTabletServers);
+    test.init(scaleProps, testProps, opts.numTabletServers);
     
-    if (action.equalsIgnoreCase("setup")) {
+    if (opts.action.equalsIgnoreCase("setup")) {
       test.setup();
-    } else if (action.equalsIgnoreCase("client")) {
+    } else if (opts.action.equalsIgnoreCase("client")) {
       InetAddress addr = InetAddress.getLocalHost();
       String host = addr.getHostName();
       fs.createNewFile(new Path("/accumulo-scale/clients/" + host));
       test.client();
       fs.copyFromLocalFile(new Path("/tmp/scale.out"), new Path("/accumulo-scale/results/" + host));
-    } else if (action.equalsIgnoreCase("teardown")) {
+    } else if (opts.action.equalsIgnoreCase("teardown")) {
       test.teardown();
     }
   }

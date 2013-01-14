@@ -41,8 +41,8 @@ public class ServerServices implements Comparable<ServerServices> {
     }
   }
   
-  public static String SERVICE_SEPARATOR = ";";
-  public static String SEPARATOR_CHAR = "=";
+  public static final String SERVICE_SEPARATOR = ";";
+  public static final String SEPARATOR_CHAR = "=";
   
   private EnumMap<Service,String> services;
   private String stringForm = null;

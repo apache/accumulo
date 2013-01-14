@@ -22,7 +22,6 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,7 +32,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,21 +50,16 @@ import org.apache.accumulo.core.file.blockfile.ABlockReader;
 import org.apache.accumulo.core.file.blockfile.ABlockWriter;
 import org.apache.accumulo.core.file.blockfile.BlockFileReader;
 import org.apache.accumulo.core.file.blockfile.BlockFileWriter;
-import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.rfile.BlockIndex.BlockIndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.Reader.IndexIterator;
 import org.apache.accumulo.core.file.rfile.RelativeKey.MByteSequence;
+import org.apache.accumulo.core.file.rfile.RelativeKey.SkippR;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
 import org.apache.accumulo.core.iterators.IterationInterruptedException;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.system.HeapIterator;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.log4j.Logger;
 
@@ -79,7 +72,9 @@ public class RFile {
   private RFile() {}
   
   private static final int RINDEX_MAGIC = 0x20637474;
+  static final int RINDEX_VER_7 = 7;
   static final int RINDEX_VER_6 = 6;
+  // static final int RINDEX_VER_5 = 5; // unreleased
   static final int RINDEX_VER_4 = 4;
   static final int RINDEX_VER_3 = 3;
   
@@ -328,6 +323,7 @@ public class RFile {
       previousColumnFamilies = new HashSet<ByteSequence>();
     }
     
+    @Override
     public synchronized void close() throws IOException {
       
       if (closed) {
@@ -339,7 +335,7 @@ public class RFile {
       ABlockWriter mba = fileWriter.prepareMetaBlock("RFile.index");
       
       mba.writeInt(RINDEX_MAGIC);
-      mba.writeInt(RINDEX_VER_6);
+      mba.writeInt(RINDEX_VER_7);
       
       if (currentLocalityGroup != null)
         localityGroups.add(currentLocalityGroup);
@@ -370,6 +366,7 @@ public class RFile {
       }
     }
     
+    @Override
     public void append(Key key, Value value) throws IOException {
       
       if (dataClosed) {
@@ -686,14 +683,12 @@ public class RFile {
           // and speed up others.
 
           MByteSequence valbs = new MByteSequence(new byte[64], 0, 0);
-          RelativeKey tmpRk = new RelativeKey();
-          Key pKey = new Key(getTopKey());
-          int fastSkipped = tmpRk.fastSkip(currBlock, startKey, valbs, pKey, getTopKey());
-          if (fastSkipped > 0) {
-            entriesLeft -= fastSkipped;
+          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey());
+          if (skippr.skipped > 0) {
+            entriesLeft -= skippr.skipped;
             val = new Value(valbs.toArray());
-            prevKey = pKey;
-            rk = tmpRk;
+            prevKey = skippr.prevKey;
+            rk = skippr.rk;
           }
           
           reseek = false;
@@ -705,8 +700,6 @@ public class RFile {
           reseek = false;
         }
       }
-      
-      int fastSkipped = -1;
       
       if (reseek) {
         iiter = index.lookup(startKey);
@@ -736,7 +729,6 @@ public class RFile {
           if (!checkRange)
             hasTop = true;
 
-          RelativeKey tmpRk = new RelativeKey();
           MByteSequence valbs = new MByteSequence(new byte[64], 0, 0);
 
           Key currKey = null;
@@ -748,7 +740,8 @@ public class RFile {
               if (bie != null) {
                 // we are seeked to the current position of the key in the index
                 // need to prime the read process and read this key from the block
-                tmpRk.setPrevKey(bie.getKey());
+                RelativeKey tmpRk = new RelativeKey();
+                tmpRk.setPrevKey(bie.getPrevKey());
                 tmpRk.readFields(currBlock);
                 val = new Value();
 
@@ -757,18 +750,19 @@ public class RFile {
                 
                 // just consumed one key from the input stream, so subtract one from entries left
                 entriesLeft = bie.getEntriesLeft() - 1;
-                prevKey = new Key(bie.getKey());
-                currKey = bie.getKey();
+                prevKey = new Key(bie.getPrevKey());
+                currKey = tmpRk.getKey();
               }
             }
           }
 
-          fastSkipped = tmpRk.fastSkip(currBlock, startKey, valbs, prevKey, currKey);
-          entriesLeft -= fastSkipped;
+          SkippR skippr = RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, currKey);
+          prevKey = skippr.prevKey;
+          entriesLeft -= skippr.skipped;
           val = new Value(valbs.toArray());
           // set rk when everything above is successful, if exception
           // occurs rk will not be set
-          rk = tmpRk;
+          rk = skippr.rk;
         }
       }
       
@@ -843,7 +837,7 @@ public class RFile {
       
       if (magic != RINDEX_MAGIC)
         throw new IOException("Did not see expected magic number, saw " + magic);
-      if (ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
+      if (ver != RINDEX_VER_7 && ver != RINDEX_VER_6 && ver != RINDEX_VER_4 && ver != RINDEX_VER_3)
         throw new IOException("Did not see expected version, saw " + ver);
       
       int size = mb.readInt();
@@ -1091,104 +1085,5 @@ public class RFile {
         lgr.setInterruptFlag(interruptFlag);
       }
     }
-  }
-  
-  public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
-    FileSystem fs = FileSystem.get(conf);
-    
-    int max_row = 10000;
-    int max_cf = 10;
-    int max_cq = 10;
-
-    Charset utf8 = Charset.forName("UTF8");
-    
-    // FSDataOutputStream fsout = fs.create(new Path("/tmp/test.rf"));
-    
-    // RFile.Writer w = new RFile.Writer(fsout, 1000, "gz", conf);
-    CachableBlockFile.Writer _cbw = new CachableBlockFile.Writer(fs, new Path("/tmp/test.rf"), "gz", conf);
-    RFile.Writer w = new RFile.Writer(_cbw, 100000);
-    
-    w.startDefaultLocalityGroup();
-    
-    int c = 0;
-    
-    for (int i = 0; i < max_row; i++) {
-      Text row = new Text(String.format("R%06d", i));
-      for (int j = 0; j < max_cf; j++) {
-        Text cf = new Text(String.format("CF%06d", j));
-        for (int k = 0; k < max_cq; k++) {
-          Text cq = new Text(String.format("CQ%06d", k));
-          w.append(new Key(row, cf, cq), new Value((c++ + "").getBytes(utf8)));
-        }
-      }
-    }
-    
-    w.close();
-    // fsout.close();
-    
-    // Logger.getLogger("accumulo.core.file.rfile").setLevel(Level.DEBUG);
-    long t1 = System.currentTimeMillis();
-    FSDataInputStream fsin = fs.open(new Path("/tmp/test.rf"));
-    long t2 = System.currentTimeMillis();
-    CachableBlockFile.Reader _cbr = new CachableBlockFile.Reader(fs, new Path("/tmp/test.rf"), conf, null, null);
-    RFile.Reader r = new RFile.Reader(_cbr);
-    long t3 = System.currentTimeMillis();
-    
-    System.out.println("Open time " + (t2 - t1) + " " + (t3 - t2));
-    
-    SortedKeyValueIterator<Key,Value> rd = r.deepCopy(null);
-    SortedKeyValueIterator<Key,Value> rd2 = r.deepCopy(null);
-    
-    Random rand = new Random(10);
-    
-    seekRandomly(100, max_row, max_cf, max_cq, r, rand);
-    
-    rand = new Random(10);
-    seekRandomly(100, max_row, max_cf, max_cq, rd, rand);
-    
-    rand = new Random(10);
-    seekRandomly(100, max_row, max_cf, max_cq, rd2, rand);
-    
-    r.closeDeepCopies();
-    
-    seekRandomly(100, max_row, max_cf, max_cq, r, rand);
-    
-    rd = r.deepCopy(null);
-    
-    seekRandomly(100, max_row, max_cf, max_cq, rd, rand);
-    
-    r.close();
-    fsin.close();
-    
-    seekRandomly(100, max_row, max_cf, max_cq, r, rand);
-  }
-  
-  private static void seekRandomly(int num, int max_row, int max_cf, int max_cq, SortedKeyValueIterator<Key,Value> rd, Random rand) throws Exception {
-    long t1 = System.currentTimeMillis();
-    
-    for (int i = 0; i < num; i++) {
-      Text row = new Text(String.format("R%06d", rand.nextInt(max_row)));
-      Text cf = new Text(String.format("CF%06d", rand.nextInt(max_cf)));
-      Text cq = new Text(String.format("CQ%06d", rand.nextInt(max_cq)));
-      
-      Key sk = new Key(row, cf, cq);
-      rd.seek(new Range(sk, null), new ArrayList<ByteSequence>(), false);
-      if (!rd.hasTop() || !rd.getTopKey().equals(sk)) {
-        System.err.println(sk + " != " + rd.getTopKey());
-      }
-      
-    }
-    
-    long t2 = System.currentTimeMillis();
-    
-    double delta = ((t2 - t1) / 1000.0);
-    System.out.println("" + delta + " " + num / delta);
-    
-    System.gc();
-    System.gc();
-    System.gc();
-    
-    Thread.sleep(3000);
   }
 }

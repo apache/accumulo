@@ -49,7 +49,7 @@ import org.apache.hadoop.io.WritableComparable;
 
 public class KeyExtent implements WritableComparable<KeyExtent> {
   
-  private static WeakHashMap<Text,WeakReference<Text>> tableIds = new WeakHashMap<Text,WeakReference<Text>>();
+  private static final WeakHashMap<Text,WeakReference<Text>> tableIds = new WeakHashMap<Text,WeakReference<Text>>();
   
   private static Text dedupeTableId(Text tableId) {
     synchronized (tableIds) {

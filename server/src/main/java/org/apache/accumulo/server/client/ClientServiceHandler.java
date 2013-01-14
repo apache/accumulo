@@ -47,7 +47,7 @@ import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
@@ -55,7 +55,7 @@ import org.apache.thrift.TException;
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = Logger.getLogger(ClientServiceHandler.class);
   private static SecurityOperation security = AuditedSecurityOperation.getInstance();
-  private final TransactionWatcher transactionWatcher;
+  protected final TransactionWatcher transactionWatcher;
   private final Instance instance;
   
   public ClientServiceHandler(Instance instance, TransactionWatcher transactionWatcher) {
@@ -227,7 +227,7 @@ public class ClientServiceHandler implements ClientService.Iface {
     Class shouldMatch;
     try {
       shouldMatch = loader.loadClass(interfaceMatch);
-      Class test = AccumuloClassLoader.loadClass(className, shouldMatch);
+      Class test = AccumuloVFSClassLoader.loadClass(className, shouldMatch);
       test.newInstance();
       return true;
     } catch (ClassCastException e) {

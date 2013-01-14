@@ -21,6 +21,8 @@ import java.util.Map.Entry;
 
 import junit.framework.TestCase;
 
+import org.apache.accumulo.core.cli.BatchWriterOpts;
+import org.apache.accumulo.core.cli.ScannerOpts;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Scanner;
@@ -30,9 +32,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.examples.simple.dirlist.FileCount;
-import org.apache.accumulo.examples.simple.dirlist.Ingest;
-import org.apache.accumulo.examples.simple.dirlist.QueryUtil;
+import org.apache.accumulo.examples.simple.dirlist.FileCount.Opts;
 import org.apache.hadoop.io.Text;
 
 public class CountTest extends TestCase {
@@ -63,7 +63,13 @@ public class CountTest extends TestCase {
     scanner.fetchColumn(new Text("dir"), new Text("counts"));
     assertFalse(scanner.iterator().hasNext());
     
-    FileCount fc = new FileCount("counttest", null, "root", "", "dirlisttable", "", "", true);
+    Opts opts = new Opts();
+    ScannerOpts scanOpts = new ScannerOpts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.instance = "counttest";
+    opts.tableName = "dirlisttable";
+    opts.mock = true;
+    FileCount fc = new FileCount(opts, scanOpts, bwOpts);
     fc.run();
     
     ArrayList<Pair<String,String>> expected = new ArrayList<Pair<String,String>>();

@@ -17,7 +17,6 @@
 package org.apache.accumulo.server.master.tableOps;
 
 import java.math.BigInteger;
-import java.nio.charset.Charset;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -40,8 +39,6 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 
 public class Utils {
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   static void checkTableDoesNotExist(Instance instance, String tableName, String tableId, TableOperation operation) throws ThriftTableOperationException {
     
@@ -57,12 +54,12 @@ public class Utils {
     try {
       IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
       final String ntp = ZooUtil.getRoot(instance) + Constants.ZTABLES;
-      byte[] nid = zoo.mutate(ntp, "0".getBytes(utf8), ZooUtil.PUBLIC, new Mutator() {
+      byte[] nid = zoo.mutate(ntp, "0".getBytes(), ZooUtil.PUBLIC, new Mutator() {
         @Override
         public byte[] mutate(byte[] currentValue) throws Exception {
           BigInteger nextId = new BigInteger(new String(currentValue), Character.MAX_RADIX);
           nextId = nextId.add(BigInteger.ONE);
-          return nextId.toString(Character.MAX_RADIX).getBytes(utf8);
+          return nextId.toString(Character.MAX_RADIX).getBytes();
         }
       });
       return new String(nid);
@@ -98,7 +95,7 @@ public class Utils {
   public static long reserveHdfsDirectory(String directory, long tid) throws KeeperException, InterruptedException {
     Instance instance = HdfsZooInstance.getInstance();
     
-    String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/" + new String(Base64.encodeBase64(directory.getBytes(utf8)));
+    String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/" + new String(Base64.encodeBase64(directory.getBytes()));
     
     IZooReaderWriter zk = ZooReaderWriter.getRetryingInstance();
     
@@ -110,12 +107,12 @@ public class Utils {
   
   public static void unreserveHdfsDirectory(String directory, long tid) throws KeeperException, InterruptedException {
     Instance instance = HdfsZooInstance.getInstance();
-    String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/" + new String(Base64.encodeBase64(directory.getBytes(utf8)));
+    String resvPath = ZooUtil.getRoot(instance) + Constants.ZHDFS_RESERVATIONS + "/" + new String(Base64.encodeBase64(directory.getBytes()));
     ZooReservation.release(ZooReaderWriter.getRetryingInstance(), resvPath, String.format("%016x", tid));
   }
   
   private static Lock getLock(String tableId, long tid, boolean writeLock) throws Exception {
-    byte[] lockData = String.format("%016x", tid).getBytes(utf8);
+    byte[] lockData = String.format("%016x", tid).getBytes();
     ZooQueueLock qlock = new ZooQueueLock(ZooUtil.getRoot(HdfsZooInstance.getInstance()) + Constants.ZTABLE_LOCKS + "/" + tableId, false);
     Lock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
     if (lock == null) {

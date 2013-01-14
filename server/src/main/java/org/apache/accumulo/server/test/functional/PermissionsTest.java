@@ -76,7 +76,7 @@ public class PermissionsTest {
       verifyHasOnlyTheseSystemPermissions(getConnector(), getConnector().whoami(), SystemPermission.values());
       
       // create the test user
-      getConnector().securityOperations().createUser(TEST_USER, TEST_PASS.getBytes(), Constants.NO_AUTHS);
+      getConnector().securityOperations().createUser(TEST_USER, TEST_PASS.getBytes());
       Connector test_user_conn = getInstance().getConnector(TEST_USER, TEST_PASS.getBytes());
       verifyHasNoSystemPermissions(getConnector(), TEST_USER, SystemPermission.values());
       
@@ -168,7 +168,7 @@ public class PermissionsTest {
         case CREATE_USER:
           user = "__CREATE_USER_WITHOUT_PERM_TEST__";
           try {
-            test_user_conn.securityOperations().createUser(user, password.getBytes(), Constants.NO_AUTHS);
+            test_user_conn.securityOperations().createUser(user, password.getBytes());
             throw new IllegalStateException("Should NOT be able to create a user");
           } catch (AccumuloSecurityException e) {
             if (e.getErrorCode() != SecurityErrorCode.PERMISSION_DENIED || root_conn.securityOperations().authenticateUser(user, password.getBytes()))
@@ -177,7 +177,7 @@ public class PermissionsTest {
           break;
         case DROP_USER:
           user = "__DROP_USER_WITHOUT_PERM_TEST__";
-          root_conn.securityOperations().createUser(user, password.getBytes(), Constants.NO_AUTHS);
+          root_conn.securityOperations().createUser(user, password.getBytes());
           try {
             test_user_conn.securityOperations().dropUser(user);
             throw new IllegalStateException("Should NOT be able to delete a user");
@@ -188,7 +188,7 @@ public class PermissionsTest {
           break;
         case ALTER_USER:
           user = "__ALTER_USER_WITHOUT_PERM_TEST__";
-          root_conn.securityOperations().createUser(user, password.getBytes(), Constants.NO_AUTHS);
+          root_conn.securityOperations().createUser(user, password.getBytes());
           try {
             test_user_conn.securityOperations().changeUserAuthorizations(user, new Authorizations("A", "B"));
             throw new IllegalStateException("Should NOT be able to alter a user");
@@ -250,20 +250,20 @@ public class PermissionsTest {
           break;
         case CREATE_USER:
           user = "__CREATE_USER_WITH_PERM_TEST__";
-          test_user_conn.securityOperations().createUser(user, password.getBytes(), Constants.NO_AUTHS);
+          test_user_conn.securityOperations().createUser(user, password.getBytes());
           if (!root_conn.securityOperations().authenticateUser(user, password.getBytes()))
             throw new IllegalStateException("Should be able to create a user");
           break;
         case DROP_USER:
           user = "__DROP_USER_WITH_PERM_TEST__";
-          root_conn.securityOperations().createUser(user, password.getBytes(), Constants.NO_AUTHS);
+          root_conn.securityOperations().createUser(user, password.getBytes());
           test_user_conn.securityOperations().dropUser(user);
           if (root_conn.securityOperations().authenticateUser(user, password.getBytes()))
             throw new IllegalStateException("Should be able to delete a user");
           break;
         case ALTER_USER:
           user = "__ALTER_USER_WITH_PERM_TEST__";
-          root_conn.securityOperations().createUser(user, password.getBytes(), Constants.NO_AUTHS);
+          root_conn.securityOperations().createUser(user, password.getBytes());
           test_user_conn.securityOperations().changeUserAuthorizations(user, new Authorizations("A", "B"));
           if (root_conn.securityOperations().getUserAuthorizations(user).isEmpty())
             throw new IllegalStateException("Should be able to alter a user");
@@ -326,7 +326,7 @@ public class PermissionsTest {
     @Override
     public void run() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, MutationsRejectedException {
       // create the test user
-      getConnector().securityOperations().createUser(TEST_USER, TEST_PASS.getBytes(), Constants.NO_AUTHS);
+      getConnector().securityOperations().createUser(TEST_USER, TEST_PASS.getBytes());
       Connector test_user_conn = getInstance().getConnector(TEST_USER, TEST_PASS.getBytes());
       
       // check for read-only access to metadata table

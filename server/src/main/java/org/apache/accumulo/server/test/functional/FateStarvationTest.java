@@ -48,13 +48,13 @@ public class FateStarvationTest extends FunctionalTest {
   public void run() throws Exception {
     getConnector().tableOperations().create("test_ingest");
     
-    getConnector().tableOperations().addSplits("test_ingest", TestIngest.CreateTable.getSplitPoints(0, 100000, 50));
+    getConnector().tableOperations().addSplits("test_ingest", TestIngest.getSplitPoints(0, 100000, 50));
     
     TestIngest.main(new String[] {"-random", "89", "-timestamp", "7", "-size", "" + 50, "100000", "0", "1"});
     
     getConnector().tableOperations().flush("test_ingest", null, null, true);
     
-    List<Text> splits = new ArrayList<Text>(TestIngest.CreateTable.getSplitPoints(0, 100000, 67));
+    List<Text> splits = new ArrayList<Text>(TestIngest.getSplitPoints(0, 100000, 67));
     Random rand = new Random();
     
     for (int i = 0; i < 100; i++) {

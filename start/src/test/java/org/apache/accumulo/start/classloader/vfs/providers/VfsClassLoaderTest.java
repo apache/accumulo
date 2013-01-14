@@ -1,0 +1,145 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.accumulo.start.classloader.vfs.providers;
+
+import java.net.URL;
+
+import org.apache.accumulo.test.AccumuloDFSBase;
+import org.apache.commons.vfs2.FileChangeEvent;
+import org.apache.commons.vfs2.FileListener;
+import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.impl.DefaultFileMonitor;
+import org.apache.commons.vfs2.impl.VFSClassLoader;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+public class VfsClassLoaderTest extends AccumuloDFSBase {
+  
+  private static final Path TEST_DIR = new Path(HDFS_URI + "/test-dir");
+
+  private FileSystem hdfs = null;
+  private VFSClassLoader cl = null;
+  
+  @Before
+  public void setup() throws Exception {
+    
+    this.hdfs = cluster.getFileSystem();
+    this.hdfs.mkdirs(TEST_DIR);
+    
+    //Copy jar file to TEST_DIR
+    URL jarPath = this.getClass().getResource("/HelloWorld.jar");
+    Path src = new Path(jarPath.toURI().toString());
+    Path dst = new Path(TEST_DIR, src.getName());
+    this.hdfs.copyFromLocalFile(src, dst);
+    
+    
+    FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
+    FileObject[] dirContents = testDir.getChildren();
+
+    //Point the VFSClassLoader to all of the objects in TEST_DIR
+    this.cl = new VFSClassLoader(dirContents, vfs);
+  }
+
+  @Test
+  public void testGetClass() throws Exception {
+    Class<?> helloWorldClass = this.cl.loadClass("test.HelloWorld");
+    Object o = helloWorldClass.newInstance();
+    Assert.assertEquals("Hello World!", o.toString());
+  }
+  
+  @Test
+  public void testFileMonitor() throws Exception {
+    MyFileMonitor listener = new MyFileMonitor();
+    DefaultFileMonitor monitor = new DefaultFileMonitor(listener);
+    monitor.setRecursive(true);
+    FileObject testDir = vfs.resolveFile(TEST_DIR.toUri().toString());
+    monitor.addFile(testDir);
+    monitor.start();
+    
+    //Copy jar file to a new file name
+    URL jarPath = this.getClass().getResource("/HelloWorld.jar");
+    Path src = new Path(jarPath.toURI().toString());
+    Path dst = new Path(TEST_DIR, "HelloWorld2.jar");
+    this.hdfs.copyFromLocalFile(src, dst);
+
+    Thread.sleep(2000);
+    Assert.assertTrue(listener.isFileCreated());
+
+    //Update the jar
+    jarPath = this.getClass().getResource("/HelloWorld.jar");
+    src = new Path(jarPath.toURI().toString());
+    dst = new Path(TEST_DIR, "HelloWorld2.jar");
+    this.hdfs.copyFromLocalFile(src, dst);
+
+    Thread.sleep(2000);
+    Assert.assertTrue(listener.isFileChanged());
+    
+    this.hdfs.delete(dst, false);
+    Thread.sleep(2000);
+    Assert.assertTrue(listener.isFileDeleted());
+    
+    monitor.stop();
+    
+  }
+  
+  
+  @After
+  public void tearDown() throws Exception {
+    this.hdfs.delete(TEST_DIR, true);
+  }
+  
+  
+  public static class MyFileMonitor implements FileListener {
+
+    private boolean fileChanged = false;
+    private boolean fileDeleted = false;
+    private boolean fileCreated = false;
+    
+    public void fileCreated(FileChangeEvent event) throws Exception {
+      //System.out.println(event.getFile() + " created");
+      this.fileCreated = true;
+    }
+
+    public void fileDeleted(FileChangeEvent event) throws Exception {
+      //System.out.println(event.getFile() + " deleted");
+      this.fileDeleted = true;
+    }
+
+    public void fileChanged(FileChangeEvent event) throws Exception {
+      //System.out.println(event.getFile() + " changed");
+      this.fileChanged = true;
+    }
+
+    public boolean isFileChanged() {
+      return fileChanged;
+    }
+
+    public boolean isFileDeleted() {
+      return fileDeleted;
+    }
+
+    public boolean isFileCreated() {
+      return fileCreated;
+    }
+    
+    
+  }
+}

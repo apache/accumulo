@@ -18,7 +18,6 @@ package org.apache.accumulo.server.master.state;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -34,8 +33,6 @@ public class ZooTabletStateStore extends TabletStateStore {
   
   private static final Logger log = Logger.getLogger(ZooTabletStateStore.class);
   final private DistributedStore store;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public ZooTabletStateStore(DistributedStore store) {
     this.store = store;
@@ -126,7 +123,7 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (assignment.tablet.compareTo(Constants.ROOT_TABLET_EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
     String value = AddressUtil.toString(assignment.server.getLocation()) + "|" + assignment.server.getSession();
-    store.put(Constants.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes(utf8));
+    store.put(Constants.ZROOT_TABLET_FUTURE_LOCATION, value.getBytes());
   }
   
   @Override
@@ -137,8 +134,8 @@ public class ZooTabletStateStore extends TabletStateStore {
     if (assignment.tablet.compareTo(Constants.ROOT_TABLET_EXTENT) != 0)
       throw new IllegalArgumentException("You can only store the root tablet location");
     String value = AddressUtil.toString(assignment.server.getLocation()) + "|" + assignment.server.getSession();
-    store.put(Constants.ZROOT_TABLET_LOCATION, value.getBytes(utf8));
-    store.put(Constants.ZROOT_TABLET_LAST_LOCATION, value.getBytes(utf8));
+    store.put(Constants.ZROOT_TABLET_LOCATION, value.getBytes());
+    store.put(Constants.ZROOT_TABLET_LAST_LOCATION, value.getBytes());
     store.remove(Constants.ZROOT_TABLET_FUTURE_LOCATION);
     log.debug("Put down root tablet location");
   }

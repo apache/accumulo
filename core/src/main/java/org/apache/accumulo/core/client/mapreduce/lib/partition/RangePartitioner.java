@@ -21,7 +21,6 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.TreeSet;
@@ -33,7 +32,7 @@ import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Partitioner;
 
 /**
@@ -45,9 +44,8 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
   private static final String NUM_SUBBINS = PREFIX + ".subBins";
   
   private Configuration conf;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
+  @Override
   public int getPartition(Text key, Writable value, int numPartitions) {
     try {
       return findPartition(key, getCutPoints(), getNumSubBins());
@@ -92,7 +90,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
             Scanner in = new Scanner(new BufferedReader(new FileReader(path.toString())));
             try {
               while (in.hasNextLine())
-                cutPoints.add(new Text(Base64.decodeBase64(in.nextLine().getBytes(utf8))));
+                cutPoints.add(new Text(Base64.decodeBase64(in.nextLine().getBytes())));
             } finally {
               in.close();
             }
@@ -120,7 +118,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
   /**
    * Sets the hdfs file name to use, containing a newline separated list of Base64 encoded split points that represent ranges for partitioning
    */
-  public static void setSplitFile(JobContext job, String file) {
+  public static void setSplitFile(Job job, String file) {
     URI uri = new Path(file).toUri();
     DistributedCache.addCacheFile(uri, job.getConfiguration());
     job.getConfiguration().set(CUTFILE_KEY, uri.getPath());
@@ -129,7 +127,7 @@ public class RangePartitioner extends Partitioner<Text,Writable> implements Conf
   /**
    * Sets the number of random sub-bins per range
    */
-  public static void setNumSubBins(JobContext job, int num) {
+  public static void setNumSubBins(Job job, int num) {
     job.getConfiguration().setInt(NUM_SUBBINS, num);
   }
 }

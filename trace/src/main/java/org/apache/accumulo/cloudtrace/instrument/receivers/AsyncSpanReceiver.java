@@ -51,7 +51,7 @@ public abstract class AsyncSpanReceiver<SpanKey,Destination> implements SpanRece
   protected abstract SpanKey getSpanKey(Map<String,String> data);
   
   Timer timer = new Timer("SpanSender", true);
-  AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
+  final AbstractQueue<RemoteSpan> sendQueue = new ConcurrentLinkedQueue<RemoteSpan>();
   
   public AsyncSpanReceiver(String host, String service, long millis) {
     this.host = host;

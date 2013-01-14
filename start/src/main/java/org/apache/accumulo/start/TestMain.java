@@ -16,7 +16,7 @@
  */
 package org.apache.accumulo.start;
 
-/** This program tests that the proper exit code is propogated to the shell.
+/** This program tests that the proper exit code is propagated to the shell.
  *
  * $ ./bin/accumulo org.apache.accumulo.start.TestMain
  * $ ./bin/accumulo org.apache.accumulo.start.TestMain badExit

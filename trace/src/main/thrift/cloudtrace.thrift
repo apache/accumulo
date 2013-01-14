@@ -15,6 +15,7 @@
 * limitations under the License.
 */
 namespace java org.apache.accumulo.cloudtrace.thrift
+namespace cpp org.apache.accumulo.cloudtrace.thrift
 
 struct RemoteSpan {
    1:string sender,

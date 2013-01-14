@@ -56,7 +56,7 @@ public class TabletStatsKeeper {
         data.count += count;
         data.num++;
         data.elapsed += t;
-        data.queueTime += t;
+        data.queueTime += q;
         data.sumDev += t * t;
         data.queueSumDev += q * q;
         if (data.elapsed < 0 || data.sumDev < 0 || data.queueSumDev < 0 || data.queueTime < 0)

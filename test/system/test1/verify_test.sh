@@ -15,8 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-../../../bin/accumulo  org.apache.accumulo.server.test.VerifyIngest -size 50 -timestamp 1 -random 56 1000000 0 1 &
-../../../bin/accumulo  org.apache.accumulo.server.test.VerifyIngest -size 50 -timestamp 1 -random 56 1000000 1000000 1 &
-../../../bin/accumulo  org.apache.accumulo.server.test.VerifyIngest -size 50 -timestamp 1 -random 56 1000000 2000000 1 &
-../../../bin/accumulo  org.apache.accumulo.server.test.VerifyIngest -size 50 -timestamp 1 -random 56 1000000 3000000 1 &
-../../../bin/accumulo  org.apache.accumulo.server.test.VerifyIngest -size 50 -timestamp 1 -random 56 1000000 4000000 1 &
+../../../bin/accumulo  org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 0 --cols 1 &
+../../../bin/accumulo  org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 1000000 --cols 1 &
+../../../bin/accumulo  org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 2000000 --cols 1 &
+../../../bin/accumulo  org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 3000000 --cols 1 &
+../../../bin/accumulo  org.apache.accumulo.server.test.VerifyIngest --size 50 --timestamp 1 --random 56 --rows 1000000 --start 4000000 --cols 1 &

@@ -35,7 +35,7 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.security.SecurityConstants;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
 public class TableLoadBalancer extends TabletBalancer {
@@ -45,7 +45,7 @@ public class TableLoadBalancer extends TabletBalancer {
   Map<String,TabletBalancer> perTableBalancers = new HashMap<String,TabletBalancer>();
   
   private TabletBalancer constructNewBalancerForTable(String clazzName, String table) throws Exception {
-    Class<? extends TabletBalancer> clazz = AccumuloClassLoader.loadClass(clazzName, TabletBalancer.class);
+    Class<? extends TabletBalancer> clazz = AccumuloVFSClassLoader.loadClass(clazzName, TabletBalancer.class);
     Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(String.class);
     return constructor.newInstance(table);
   }

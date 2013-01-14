@@ -387,7 +387,7 @@ public class InMemoryMap {
     return map.size();
   }
   
-  private Set<MemoryIterator> activeIters = Collections.synchronizedSet(new HashSet<MemoryIterator>());
+  private final Set<MemoryIterator> activeIters = Collections.synchronizedSet(new HashSet<MemoryIterator>());
   
   class MemoryDataSource implements DataSource {
     

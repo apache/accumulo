@@ -96,6 +96,7 @@ class MergeTest(JavaTest):
 
     order = 92
     testClass="org.apache.accumulo.server.test.functional.MergeTest"
+    maxRuntime = 200
 
 
 def suite():

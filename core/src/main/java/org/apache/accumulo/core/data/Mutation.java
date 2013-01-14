@@ -27,7 +27,6 @@ import java.util.List;
 import org.apache.accumulo.core.data.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.io.WritableUtils;
@@ -85,12 +84,6 @@ public class Mutation implements Writable {
         data = newData;
       }
       
-    }
-    
-    void add(byte[] b) {
-      reserve(b.length);
-      System.arraycopy(b, 0, data, offset, b.length);
-      offset += b.length;
     }
     
     public void add(byte[] bytes, int off, int length) {
@@ -199,10 +192,18 @@ public class Mutation implements Writable {
     }
   }
   
-  public Mutation(Text row) {
-    this.row = new byte[row.getLength()];
-    System.arraycopy(row.getBytes(), 0, this.row, 0, row.getLength());
+  public Mutation(byte[] byteBuffer) {
+    this(byteBuffer, 0, byteBuffer.length);
+  }
+  
+  public Mutation(byte[] byteBuffer, int start, int length) {
+    this.row = new byte[length];
+    System.arraycopy(byteBuffer, start, this.row, 0, length);
     buffer = new ByteBuffer();
+  }
+  
+  public Mutation(Text row) {
+    this(row.getBytes(), 0, row.getLength());
   }
   
   public Mutation(CharSequence row) {
@@ -230,14 +231,20 @@ public class Mutation implements Writable {
     return row;
   }
   
+  public static String toHexString(byte[] ba) {
+    StringBuilder str = new StringBuilder();
+    for (int i = 0; i < ba.length; i++)
+      str.append(String.format("%x", ba[i]));
+    return str.toString();
+  }
+
   private void put(byte b[]) {
-    buffer.writeVLong(b.length);
-    buffer.add(b);
+    put(b, b.length);
   }
   
-  private void put(Text t) {
-    buffer.writeVLong(t.getLength());
-    buffer.add(t.getBytes(), 0, t.getLength());
+  private void put(byte b[], int length) {
+    buffer.writeVLong(length);
+    buffer.add(b, 0, length);
   }
   
   private void put(boolean b) {
@@ -252,26 +259,38 @@ public class Mutation implements Writable {
     buffer.writeVLong(l);
   }
   
+  private void put(byte[] cf, byte[] cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
+    put(cf, cf.length, cq, cq.length, cv, hasts, ts, deleted, val, val.length);
+  }
+
+  /*
+   * When dealing with Text object the length must be gotten from the object, not from the byte array.
+   */
   private void put(Text cf, Text cq, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val) {
-    
-    if (buffer == null)
+    put(cf.getBytes(), cf.getLength(), cq.getBytes(), cq.getLength(), cv, hasts, ts, deleted, val, val.length);
+  }
+  
+  private void put(byte[] cf, int cfLength, byte[] cq, int cqLength, byte[] cv, boolean hasts, long ts, boolean deleted, byte[] val, int valLength) {
+    if (buffer == null) {
       throw new IllegalStateException("Can not add to mutation after serializing it");
-    
-    put(cf);
-    put(cq);
+    }
+    put(cf, cfLength);
+    put(cq, cqLength);
     put(cv);
     put(hasts);
-    if (hasts)
+    if (hasts) {
       put(ts);
+    }
     put(deleted);
     
-    if (val.length < VALUE_SIZE_COPY_CUTOFF) {
-      put(val);
+    if (valLength < VALUE_SIZE_COPY_CUTOFF) {
+      put(val, valLength);
     } else {
-      if (values == null)
+      if (values == null) {
         values = new ArrayList<byte[]>();
-      byte copy[] = new byte[val.length];
-      System.arraycopy(val, 0, copy, 0, val.length);
+      }
+      byte copy[] = new byte[valLength];
+      System.arraycopy(val, 0, copy, 0, valLength);
       values.add(copy);
       put(-1 * values.size());
     }
@@ -283,10 +302,14 @@ public class Mutation implements Writable {
     put(new Text(cf.toString()), new Text(cq.toString()), cv, hasts, ts, deleted, val);
   }
   
-  private void put(CharSequence cf, CharSequence cq, byte[] cv, boolean hasts, long ts, boolean deleted, CharSequence val) {
-    put(cf, cq, cv, hasts, ts, deleted, TextUtil.getBytes(new Text(val.toString())));
+  private void put(Text cf, Text cq, byte[] cv, boolean hasts, long ts, boolean deleted, Text val) {
+    put(cf.getBytes(), cf.getLength(), cq.getBytes(), cq.getLength(), cv, hasts, ts, deleted, val.getBytes(), val.getLength());
   }
-  
+
+  private void put(CharSequence cf, CharSequence cq, byte[] cv, boolean hasts, long ts, boolean deleted, CharSequence val) {
+    put(new Text(cf.toString()), new Text(cq.toString()), cv, hasts, ts, deleted, new Text(val.toString()));
+  }
+
   public void put(Text columnFamily, Text columnQualifier, Value value) {
     put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value.get());
   }
@@ -367,6 +390,38 @@ public class Mutation implements Writable {
     put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value);
   }
   
+  public void put(byte[] columnFamily, byte[] columnQualifier, byte[] value) {
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, false, value);
+  }
+  
+  public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, byte[] value) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, false, value);
+  }
+  
+  public void put(byte[] columnFamily, byte[] columnQualifier, long timestamp, byte[] value) {
+    put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, false, value);
+  }
+  
+  public void put(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, long timestamp, byte[] value) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, false, value);
+  }
+  
+  public void putDelete(byte[] columnFamily, byte[] columnQualifier) {
+    put(columnFamily, columnQualifier, EMPTY_BYTES, false, 0l, true, EMPTY_BYTES);
+  }
+  
+  public void putDelete(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), false, 0l, true, EMPTY_BYTES);
+  }
+  
+  public void putDelete(byte[] columnFamily, byte[] columnQualifier, long timestamp) {
+    put(columnFamily, columnQualifier, EMPTY_BYTES, true, timestamp, true, EMPTY_BYTES);
+  }
+  
+  public void putDelete(byte[] columnFamily, byte[] columnQualifier, ColumnVisibility columnVisibility, long timestamp) {
+    put(columnFamily, columnQualifier, columnVisibility.getExpression(), true, timestamp, true, EMPTY_BYTES);
+  }
+
   private byte[] oldReadBytes(SimpleReader in) {
     int len = in.readInt();
     if (len == 0)

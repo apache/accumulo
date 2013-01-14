@@ -23,14 +23,12 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ClientOnDefaultTable;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.test.continuous.ContinuousWalk.BadChecksumException;
 import org.apache.hadoop.conf.Configured;
@@ -44,6 +42,9 @@ import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
+
+import com.beust.jcommander.Parameter;
+import com.beust.jcommander.validators.PositiveInteger;
 
 /**
  * A map reduce job that verifies a table created by continuous ingest. It verifies that all referenced nodes are defined.
@@ -134,66 +135,48 @@ public class ContinuousVerify extends Configured implements Tool {
     }
   }
   
+  static class Opts extends ClientOnDefaultTable {
+    @Parameter(names="--output", description="location in HDFS to store the results; must not exist", required=true)
+    String outputDir = "/tmp/continuousVerify";
+    
+    @Parameter(names="--maxMappers", description="the maximum number of mappers to use", required=true, validateWith=PositiveInteger.class)
+    int maxMaps = 0;
+    
+    @Parameter(names="--reducers", description="the number of reducers to use", required=true, validateWith=PositiveInteger.class)
+    int reducers = 0;
+    
+    @Parameter(names="--offline", description="perform the verification directly on the files while the table is offline")
+    boolean scanOffline = false;
+    
+    public Opts() { super("ci"); }
+  }
+  
   @Override
   public int run(String[] args) throws Exception {
-    
-    String auths = "";
-    ArrayList<String> argsList = new ArrayList<String>();
-    
-    for (int i = 0; i < args.length; i++) {
-      if (args[i].equals("--auths")) {
-        auths = args[++i];
-      } else {
-        argsList.add(args[i]);
-      }
-    }
-    
-    args = argsList.toArray(new String[0]);
-
-    if (args.length != 9) {
-      throw new IllegalArgumentException("Usage : " + ContinuousVerify.class.getName()
-          + " <instance name> <zookeepers> <user> <pass> <table> <output dir> <max mappers> <num reducers> <scan offline>");
-    }
-    
-    String instance = args[0];
-    String zookeepers = args[1];
-    String user = args[2];
-    String pass = args[3];
-    String table = args[4];
-    String outputdir = args[5];
-    String maxMaps = args[6];
-    String reducers = args[7];
-    boolean scanOffline = Boolean.parseBoolean(args[8]);
+    Opts opts = new Opts();
+    opts.parseArgs(this.getClass().getName(), args);
     
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
     
-    String clone = table;
+    String clone = opts.getTableName();
     Connector conn = null;
-    if (scanOffline) {
+    if (opts.scanOffline) {
       Random random = new Random();
-      clone = table + "_" + String.format("%016x", Math.abs(random.nextLong()));
-      ZooKeeperInstance zki = new ZooKeeperInstance(instance, zookeepers);
-      conn = zki.getConnector(user, pass.getBytes());
-      conn.tableOperations().clone(table, clone, true, new HashMap<String,String>(), new HashSet<String>());
+      clone = opts.getTableName() + "_" + String.format("%016x", Math.abs(random.nextLong()));
+      conn = opts.getConnector();
+      conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(), new HashSet<String>());
       conn.tableOperations().offline(clone);
     }
 
     job.setInputFormatClass(AccumuloInputFormat.class);
-    Authorizations authorizations;
-    if (auths == null || auths.trim().equals(""))
-      authorizations = Constants.NO_AUTHS;
-    else
-      authorizations = new Authorizations(auths.split(","));
 
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), user, pass.getBytes(), clone, authorizations);
-    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), instance, zookeepers);
-    AccumuloInputFormat.setScanOffline(job.getConfiguration(), scanOffline);
+    opts.setAccumuloConfigs(job);
+    AccumuloInputFormat.setScanOffline(job.getConfiguration(), opts.scanOffline);
 
     // set up ranges
     try {
-      Set<Range> ranges = new ZooKeeperInstance(instance, zookeepers).getConnector(user, pass.getBytes()).tableOperations()
-          .splitRangeByTablets(table, new Range(), Integer.parseInt(maxMaps));
+      Set<Range> ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
       AccumuloInputFormat.setRanges(job.getConfiguration(), ranges);
       AccumuloInputFormat.disableAutoAdjustRanges(job.getConfiguration());
     } catch (Exception e) {
@@ -205,20 +188,20 @@ public class ContinuousVerify extends Configured implements Tool {
     job.setMapOutputValueClass(VLongWritable.class);
     
     job.setReducerClass(CReducer.class);
-    job.setNumReduceTasks(Integer.parseInt(reducers));
+    job.setNumReduceTasks(opts.reducers);
     
     job.setOutputFormatClass(TextOutputFormat.class);
     
-    job.getConfiguration().setBoolean("mapred.map.tasks.speculative.execution", scanOffline);
+    job.getConfiguration().setBoolean("mapred.map.tasks.speculative.execution", opts.scanOffline);
 
-    TextOutputFormat.setOutputPath(job, new Path(outputdir));
+    TextOutputFormat.setOutputPath(job, new Path(opts.outputDir));
     
     job.waitForCompletion(true);
     
-    if (scanOffline) {
+    if (opts.scanOffline) {
       conn.tableOperations().delete(clone);
     }
-
+    opts.stopTracing();
     return job.isSuccessful() ? 0 : 1;
   }
   

@@ -17,11 +17,9 @@
 package org.apache.accumulo.server.monitor;
 
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.TTimeoutTransport;
@@ -36,10 +34,8 @@ public class ZooKeeperStatus implements Runnable {
   private static final Logger log = Logger.getLogger(ZooKeeperStatus.class);
   
   private volatile boolean stop = false;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
-  public static class ZooKeeperState {
+  public static class ZooKeeperState implements Comparable<ZooKeeperState> {
     public final String keeper;
     public final String mode;
     public final int clients;
@@ -49,9 +45,28 @@ public class ZooKeeperStatus implements Runnable {
       this.mode = mode;
       this.clients = clients;
     }
+    
+    @Override
+    public int compareTo(ZooKeeperState other) {
+      if (this == other) {
+        return 0;
+      } else if (other == null) {
+        return 1;
+      } else {
+        if (this.keeper == other.keeper) {
+          return 0;
+        } else if (null == this.keeper) {
+          return -1;
+        } else if (null == other.keeper) {
+          return 1;
+        } else {
+          return this.keeper.compareTo(other.keeper);
+        }
+      }
+    }
   }
   
-  private static Collection<ZooKeeperState> status = Collections.emptyList();
+  private static SortedSet<ZooKeeperState> status = new TreeSet<ZooKeeperState>();
   
   public static Collection<ZooKeeperState> getZooKeeperStatus() {
     return status;
@@ -66,7 +81,7 @@ public class ZooKeeperStatus implements Runnable {
     
     while (!stop) {
       
-      List<ZooKeeperState> update = new ArrayList<ZooKeeperState>();
+      TreeSet<ZooKeeperState> update = new TreeSet<ZooKeeperState>();
       
       String zookeepers[] = ServerConfiguration.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST).split(",");
       for (String keeper : zookeepers) {
@@ -83,7 +98,7 @@ public class ZooKeeperStatus implements Runnable {
             addr = new InetSocketAddress(parts[0], 2181);
           
           transport = TTimeoutTransport.create(addr, 10 * 1000l);
-          transport.write("stat\n".getBytes(utf8), 0, 5);
+          transport.write("stat\n".getBytes(), 0, 5);
           StringBuilder response = new StringBuilder();
           try {
             transport.flush();

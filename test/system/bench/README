@@ -8,8 +8,8 @@ Syntax for running run.py:
 Specifying a specific benchmark or set of benchmarks runs only those, while 
 not specifying any runs all benchmarks.
 -l Lists the benchmarks that will be run
--v <run_speed> can either be slow, medium or fast
--s <log_level> is a number representing the verbosity of the debugging output: 10 is debug, 20 is info, 30 is warning, etc.
+-s <run_speed> can either be slow, medium or fast
+-v <log_level> is a number representing the verbosity of the debugging output: 10 is debug, 20 is info, 30 is warning, etc.
 -u <user> user to use when connecting with accumulo.  If not set you will be prompted to input it.
 -p <password> password to use when connecting with accumulo.  If not set you will be prompted to input it.
 -i <instance> instance to use when connecting with accumulo.  If not set you will be prompted to input it.
@@ -38,5 +38,6 @@ The 4th Benchmark is Terasort.  Run the benchmarks with speed 'slow' to do a ful
 
 4. Misc
 
-These benchmarks create tables in accumulo named 'test_ingest' and 'CloudIngestTest'.  These tables are *NOT* deleted
-at the end of the benchmarks.
+These benchmarks create tables in accumulo named 'test_ingest' and 'CloudIngestTest'.  These tables are deleted
+at the end of the benchmarks. The benchmarks will also alter user auths while it runs. It is recommended that
+a benchmark user is created.

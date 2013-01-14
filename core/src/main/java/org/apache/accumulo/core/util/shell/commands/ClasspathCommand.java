@@ -18,13 +18,13 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.commons.cli.CommandLine;
 
 public class ClasspathCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) {
-    AccumuloClassLoader.printClassPath();
+    AccumuloVFSClassLoader.printClassPath();
     return 0;
   }
   

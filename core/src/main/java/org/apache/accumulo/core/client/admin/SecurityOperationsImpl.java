@@ -105,6 +105,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
+   * @deprecated Use {@link #createUser(String,byte[])} instead
    */
   public void createUser(final String user, final byte[] password, final Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, password, authorizations);
@@ -114,6 +115,22 @@ public class SecurityOperationsImpl implements SecurityOperations {
         client.createUser(Tracer.traceInfo(), credentials, user, ByteBuffer.wrap(password), ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()));
       }
     });
+  }
+
+  /**
+   * Create a user
+   * 
+   * @param user
+   *          the name of the user to create
+   * @param password
+   *          the plaintext password for the user
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission to create a user
+   */
+  public void createUser(final String user, final byte[] password) throws AccumuloException, AccumuloSecurityException {
+    createUser(user, password, new Authorizations());
   }
   
   /**

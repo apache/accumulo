@@ -19,11 +19,14 @@ package org.apache.accumulo.server.util;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.zookeeper.ZooLock;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
+
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
 
 public class ZooZap {
   
@@ -37,49 +40,44 @@ public class ZooZap {
       System.out.println(msg);
   }
   
-  public static void main(String[] args) {
-    
+  static class Opts extends ClientOpts {
+    @Parameter(names="-master", description="remove master locks")
     boolean zapMaster = false;
+    @Parameter(names="-tservers", description="remove tablet server locks")
     boolean zapTservers = false;
+    @Parameter(names="-tracers", description="remove tracer locks")
     boolean zapTracers = false;
+    @Parameter(names="-verbose", description="print out messages about progress")
+    boolean verbose = false;
+  }
+  
+  public static void main(String[] args) {
+    Opts opts = new Opts();
+    opts.parseArgs(ZooZap.class.getName(), args);
     
-    if (args.length == 0) {
-      printUsage();
-      return;
-    }
-    
-    for (int i = 0; i < args.length; i++) {
-      if (args[i].equals("-tservers")) {
-        zapTservers = true;
-      } else if (args[i].equals("-master")) {
-        zapMaster = true;
-      } else if (args[i].equals("-tracers")) {
-        zapTracers = true;
-      } else if (args[i].equals("-verbose")) {
-        verbose = true;
-      } else {
-        printUsage();
+    if (!opts.zapMaster && !opts.zapTservers && !opts.zapTracers)
+    {
+        new JCommander(opts).usage();
         return;
-      }
     }
     
+    String iid = opts.getInstance().getInstanceID();
     IZooReaderWriter zoo = ZooReaderWriter.getInstance();
-    String iid = HdfsZooInstance.getInstance().getInstanceID();
     
-    if (zapMaster) {
+    if (opts.zapMaster) {
       String masterLockPath = Constants.ZROOT + "/" + iid + Constants.ZMASTER_LOCK;
       
       zapDirectory(zoo, masterLockPath);
     }
     
-    if (zapTservers) {
+    if (opts.zapTservers) {
       String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
       try {
         List<String> children = zoo.getChildren(tserversPath);
         for (String child : children) {
           message("Deleting " + tserversPath + "/" + child + " from zookeeper");
           
-          if (zapMaster)
+          if (opts.zapMaster)
             ZooReaderWriter.getInstance().recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
           else {
             String path = tserversPath + "/" + child;
@@ -95,7 +93,7 @@ public class ZooZap {
       }
     }
     
-    if (zapTracers) {
+    if (opts.zapTracers) {
       String path = Constants.ZROOT + "/" + iid + Constants.ZTRACERS;
       zapDirectory(zoo, path);
     }
@@ -113,9 +111,4 @@ public class ZooZap {
       e.printStackTrace();
     }
   }
-  
-  private static void printUsage() {
-    System.err.println("Usage : " + ZooZap.class.getName() + " [-verbose] [-tservers] [-master] [-tracers]");
-  }
-  
 }

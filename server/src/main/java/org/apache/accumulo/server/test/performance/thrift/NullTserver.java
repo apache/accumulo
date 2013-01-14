@@ -25,9 +25,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.cloudtrace.thrift.TInfo;
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.Tables;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.thrift.InitialMultiScan;
@@ -44,6 +47,7 @@ import org.apache.accumulo.core.data.thrift.TRange;
 import org.apache.accumulo.core.data.thrift.UpdateErrors;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
@@ -63,6 +67,8 @@ import org.apache.accumulo.server.util.TServerUtils;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+
+import com.beust.jcommander.Parameter;
 
 
 /**
@@ -91,7 +97,7 @@ public class NullTserver {
     
     @Override
     public UpdateErrors closeUpdate(TInfo tinfo, long updateID) {
-      return new UpdateErrors(new HashMap<TKeyExtent,Long>(), new ArrayList<TConstraintViolationSummary>(), new ArrayList<TKeyExtent>());
+      return new UpdateErrors(new HashMap<TKeyExtent,Long>(), new ArrayList<TConstraintViolationSummary>(), new HashMap<TKeyExtent, SecurityErrorCode>());
     }
     
     @Override
@@ -198,28 +204,36 @@ public class NullTserver {
     }
   }
   
+  static class Opts extends Help {
+    @Parameter(names={"-i", "--instance"}, description="instance name", required=true)
+    String iname = null;
+    @Parameter(names={"-z", "--keepers"}, description="comma-separated list of zookeeper host:ports", required=true)
+    String keepers = null;
+    @Parameter(names="--table", description="table to adopt", required=true)
+    String tableName = null;
+    @Parameter(names="--port", description="port number to use")
+    int port = DefaultConfiguration.getInstance().getPort(Property.TSERV_CLIENTPORT);
+  }
+  
   public static void main(String[] args) throws Exception {
-    
-    String iname = args[0];
-    String keepers = args[1];
-    String tableName = args[2];
-    int port = Integer.parseInt(args[3]);
+    Opts opts = new Opts();
+    opts.parseArgs(NullTserver.class.getName(), args);
     
     TransactionWatcher watcher = new TransactionWatcher();
     ThriftClientHandler tch = new ThriftClientHandler(HdfsZooInstance.getInstance(), watcher);
     Processor<Iface> processor = new Processor<Iface>(tch);
-    TServerUtils.startTServer(port, processor, "NullTServer", "null tserver", 2, 1000);
+    TServerUtils.startTServer(opts.port, processor, "NullTServer", "null tserver", 2, 1000, 10*1024*1024);
     
-    InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), port);
+    InetSocketAddress addr = new InetSocketAddress(InetAddress.getLocalHost(), opts.port);
     
     // modify !METADATA
-    ZooKeeperInstance zki = new ZooKeeperInstance(iname, keepers);
-    String tableId = Tables.getTableId(zki, tableName);
+    ZooKeeperInstance zki = new ZooKeeperInstance(opts.iname, opts.keepers);
+    String tableId = Tables.getTableId(zki, opts.tableName);
     
     // read the locations for the table
     Range tableRange = new KeyExtent(new Text(tableId), null, null).toMetadataRange();
     MetaDataTableScanner s = new MetaDataTableScanner(zki, SecurityConstants.getSystemCredentials(), tableRange);
-    long randomSessionID = port;
+    long randomSessionID = opts.port;
     TServerInstance instance = new TServerInstance(addr, randomSessionID);
     List<Assignment> assignments = new ArrayList<Assignment>();
     while (s.hasNext()) {

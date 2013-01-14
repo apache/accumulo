@@ -18,7 +18,6 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -32,8 +31,6 @@ import org.apache.commons.cli.Options;
 
 public class PasswdCommand extends Command {
   private Option userOpt;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
@@ -50,7 +47,7 @@ public class PasswdCommand extends Command {
       return 0;
     } // user canceled
     
-    if (!shellState.getConnector().securityOperations().authenticateUser(currentUser, oldPassword.getBytes(utf8)))
+    if (!shellState.getConnector().securityOperations().authenticateUser(currentUser, oldPassword.getBytes()))
       throw new AccumuloSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
     
     password = shellState.readMaskedLine("Enter new password for '" + user + "': ", '*');
@@ -67,7 +64,7 @@ public class PasswdCommand extends Command {
     if (!password.equals(passwordConfirm)) {
       throw new IllegalArgumentException("Passwords do not match");
     }
-    byte[] pass = password.getBytes(utf8);
+    byte[] pass = password.getBytes();
     shellState.getConnector().securityOperations().changeUserPassword(user, pass);
     // update the current credentials if the password changed was for
     // the current user

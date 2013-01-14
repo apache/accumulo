@@ -20,10 +20,10 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Map;
 
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
@@ -37,11 +37,21 @@ import org.apache.hadoop.mapreduce.lib.output.TextOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 
+import com.beust.jcommander.Parameter;
+
 /**
  * Takes a table and outputs the specified column to a set of part files on hdfs accumulo accumulo.examples.mapreduce.TableToFile <username> <password>
  * <tablename> <column> <hdfs-output-path>
  */
 public class TableToFile extends Configured implements Tool {
+  
+  static class Opts extends ClientOnRequiredTable {
+    @Parameter(names="--output", description="output directory", required=true)
+    String output;
+    @Parameter(names="--columns", description="columns to extract, in cf:cq{,cf:cq,...} form")
+    String columns;
+  }
+  
   /**
    * The Mapper class that given a row number, will generate the appropriate output line.
    */
@@ -74,13 +84,14 @@ public class TableToFile extends Configured implements Tool {
   public int run(String[] args) throws IOException, InterruptedException, ClassNotFoundException {
     Job job = new Job(getConf(), this.getClass().getSimpleName() + "_" + System.currentTimeMillis());
     job.setJarByClass(this.getClass());
+    Opts opts = new Opts();
+    opts.parseArgs(getClass().getName(), args);
     
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), args[0], args[1]);
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), args[2], args[3].getBytes(), args[4], new Authorizations());
+    opts.setAccumuloConfigs(job);
     
     HashSet<Pair<Text,Text>> columnsToFetch = new HashSet<Pair<Text,Text>>();
-    for (String col : args[5].split(",")) {
+    for (String col : opts.columns.split(",")) {
       int idx = col.indexOf(":");
       Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
       Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
@@ -97,7 +108,7 @@ public class TableToFile extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(TextOutputFormat.class);
-    TextOutputFormat.setOutputPath(job, new Path(args[6]));
+    TextOutputFormat.setOutputPath(job, new Path(opts.output));
     
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

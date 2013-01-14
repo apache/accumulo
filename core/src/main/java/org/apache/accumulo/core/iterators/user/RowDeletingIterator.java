@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
@@ -49,9 +48,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
   
-  private static final Charset utf8 = Charset.forName("UTF8");
-	  
-  public static final Value DELETE_ROW_VALUE = new Value("DEL_ROW".getBytes(utf8));
+  public static final Value DELETE_ROW_VALUE = new Value("DEL_ROW".getBytes());
   private SortedKeyValueIterator<Key,Value> source;
   private boolean propogateDeletes;
   private ByteSequence currentRow;
@@ -61,7 +58,7 @@ public class RowDeletingIterator implements SortedKeyValueIterator<Key,Value> {
   private boolean dropEmptyColFams;
   
   private static final ByteSequence EMPTY = new ArrayByteSequence(new byte[] {});
-
+  
   private RowDeletingIterator(SortedKeyValueIterator<Key,Value> source, boolean propogateDeletes2) {
     this.source = source;
     this.propogateDeletes = propogateDeletes2;

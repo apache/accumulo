@@ -18,6 +18,8 @@ package org.apache.accumulo.core.conf;
 
 import java.util.regex.Pattern;
 
+import org.apache.hadoop.fs.Path;
+
 public enum PropertyType {
   PREFIX(null, null, null),
   
@@ -49,9 +51,13 @@ public enum PropertyType {
   
   PATH("path", ".*",
       "A string that represents a filesystem path, which can be either relative or absolute to some directory. The filesystem depends on the property."),
-  ABSOLUTEPATH("absolute path", "[/].*",
-      "An absolute filesystem path. The filesystem depends on the property. This is the same as path, but enforces that its root is explicitly specified."),
-  
+  ABSOLUTEPATH("absolute path", null,
+      "An absolute filesystem path. The filesystem depends on the property. This is the same as path, but enforces that its root is explicitly specified.") {
+    public boolean isValidFormat(String value) {
+      return new Path(value).isAbsolute();
+    }
+  },
+
   CLASSNAME("java class", "[\\w$.]*", "A fully qualified java class name representing a class on the classpath.<br />"
       + "An example is 'java.lang.String', rather than 'String'"),
   

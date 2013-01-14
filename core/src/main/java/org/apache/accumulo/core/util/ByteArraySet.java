@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -26,8 +25,6 @@ import java.util.TreeSet;
 public class ByteArraySet extends TreeSet<byte[]> {
   
   private static final long serialVersionUID = 1L;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public ByteArraySet() {
     super(new ByteArrayComparator());
@@ -41,7 +38,7 @@ public class ByteArraySet extends TreeSet<byte[]> {
   public static ByteArraySet fromStrings(Collection<String> c) {
     List<byte[]> lst = new ArrayList<byte[]>();
     for (String s : c)
-      lst.add(s.getBytes(utf8));
+      lst.add(s.getBytes());
     return new ByteArraySet(lst);
   }
   

@@ -30,6 +30,7 @@ class CloudStone1(Benchmark):
 
     def runTest(self):
         code, out, err = cloudshell.run(self.username, self.password, 'table !METADATA\nscan\n')
+        self.assertEqual(code, 0, "Could not scan the !METADATA table. %s %s" % (out, err))
         results = runAll('echo help | %s shell' %
                          accumulo('bin', 'accumulo'))
                          

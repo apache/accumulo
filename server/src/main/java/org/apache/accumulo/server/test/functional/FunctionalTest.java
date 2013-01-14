@@ -28,6 +28,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.server.cli.ClientOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
@@ -42,38 +43,16 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.server.conf.ServerConfiguration;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
-import org.apache.commons.cli.BasicParser;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+
 public abstract class FunctionalTest {
-  private static Options opts;
-  private static Option masterOpt;
-  private static Option passwordOpt;
-  private static Option usernameOpt;
-  private static Option instanceNameOpt;
-  
-  static {
-    usernameOpt = new Option("u", "username", true, "username");
-    passwordOpt = new Option("p", "password", true, "password");
-    masterOpt = new Option("m", "master", true, "master");
-    instanceNameOpt = new Option("i", "instanceName", true, "instance name");
-    
-    opts = new Options();
-    
-    opts.addOption(usernameOpt);
-    opts.addOption(passwordOpt);
-    opts.addOption(masterOpt);
-    opts.addOption(instanceNameOpt);
-  }
-  
+
   public static Map<String,String> parseConfig(String... perTableConfigs) {
     
     TreeMap<String,String> config = new TreeMap<String,String>();
@@ -126,18 +105,9 @@ public abstract class FunctionalTest {
     
   }
   
-  private String master = "";
   private String username = "";
   private String password = "";
   private String instanceName = "";
-  
-  protected void setMaster(String master) {
-    this.master = master;
-  }
-  
-  protected String getMaster() {
-    return master;
-  }
   
   protected void setUsername(String username) {
     this.username = username;
@@ -270,57 +240,49 @@ public abstract class FunctionalTest {
     
   }
   
+  static class Opts extends ClientOpts {
+    @Parameter(names="--classname", required=true, description="name of the class under test")
+    String classname = null;
+    
+    @Parameter(names="--opt", required=true, description="the options for test")
+    String opt = null;
+  }
+  
+  
   public static void main(String[] args) throws Exception {
-    CommandLine cl = null;
-    try {
-      cl = new BasicParser().parse(opts, args);
-    } catch (ParseException e) {
-      printHelpAndExit(e.toString());
-    }
+    Opts opts = new Opts();
+    opts.parseArgs(FunctionalTest.class.getName(), args);
     
-    String master = cl.getOptionValue(masterOpt.getOpt(), "localhost");
-    String username = cl.getOptionValue(usernameOpt.getOpt(), "root");
-    String password = cl.getOptionValue(passwordOpt.getOpt(), "secret");
-    String instanceName = cl.getOptionValue(instanceNameOpt.getOpt(), "FuncTest");
-    
-    String remainingArgs[] = cl.getArgs();
-    if (remainingArgs.length < 2) {
-      printHelpAndExit("Missing java classname to test and/or options.");
-    }
-    String clazz = remainingArgs[0];
-    String opt = remainingArgs[1];
-    
-    Class<? extends FunctionalTest> testClass = AccumuloClassLoader.loadClass(clazz, FunctionalTest.class);
+    Class<? extends FunctionalTest> testClass = AccumuloVFSClassLoader.loadClass(opts.classname, FunctionalTest.class);
     FunctionalTest fTest = testClass.newInstance();
     
-    fTest.setMaster(master);
-    fTest.setUsername(username);
-    fTest.setPassword(password);
-    fTest.setInstanceName(instanceName);
+    //fTest.setMaster(master);
+    fTest.setUsername(opts.user);
+    fTest.setPassword(new String(opts.getPassword()));
+    fTest.setInstanceName(opts.instance);
     
-    if (opt.equals("getConfig")) {
+    if (opts.opt.equals("getConfig")) {
       Map<String,String> iconfig = fTest.getInitialConfig();
       System.out.println("{");
       for (Entry<String,String> entry : iconfig.entrySet()) {
         System.out.println("'" + entry.getKey() + "':'" + entry.getValue() + "',");
       }
       System.out.println("}");
-    } else if (opt.equals("setup")) {
+    } else if (opts.opt.equals("setup")) {
       fTest.setup();
-    } else if (opt.equals("run")) {
+    } else if (opts.opt.equals("run")) {
       fTest.run();
-    } else if (opt.equals("cleanup")) {
+    } else if (opts.opt.equals("cleanup")) {
       fTest.cleanup();
     } else {
-    	printHelpAndExit("Unknown option: " + opt);
+    	printHelpAndExit("Unknown option: " + opts.opt);
     }
     
   }
 
   static void printHelpAndExit(String message) {
       System.out.println(message);
-      HelpFormatter formatter = new HelpFormatter();
-      formatter.printHelp( "FunctionalTest {options} java_class [getconfig|setup|run|cleanup]", opts );
+      new JCommander(new Opts()).usage();
       System.exit(1);
   }
   

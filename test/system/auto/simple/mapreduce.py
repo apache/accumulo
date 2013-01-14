@@ -48,8 +48,7 @@ class MapReduceTest(TestUtilsMixin,unittest.TestCase):
     """
     order = 21
 
-    input_tablename = "mapredf"
-    output_tablename = "mapredf"
+    tablename = "mapredf"
     input_cfcq = "cf-HASHTYPE:cq-NOTHASHED"
     output_cfcq = "cf-HASHTYPE:cq-MD5BASE64"
     example_class_to_run ="org.apache.accumulo.examples.simple.mapreduce.RowHash"
@@ -70,21 +69,21 @@ class MapReduceTest(TestUtilsMixin,unittest.TestCase):
         core = globa(os.path.join('lib','accumulo-core*[!javadoc|sources].jar'))
         fate = globa(os.path.join('lib','accumulo-fate*[!javadoc|sources].jar'))
         start = globa(os.path.join('lib','accumulo-start*[!javadoc|sources].jar'))
+        jcommander = globa(os.path.join('lib','jcommander*[!javadoc|sources].jar'))
         trace = globa(os.path.join('lib','cloudtrace*[!javadoc|sources].jar'))
         zkjar = globbase(os.getenv("ZOOKEEPER_HOME"),"zookeeper*[!javadoc|src|bin].jar")
         self.createInputTableInAccumulo();
         #Arguments for the Example Class
-        arg_list = [TestUtils.INSTANCE_NAME,
-                    TestUtils.ZOOKEEPERS,
-                    TestUtils.ROOT,
-                    TestUtils.ROOT_PASSWORD,
-                    self.input_tablename,
-                    self.input_cfcq,
-                    self.output_tablename]
+        arg_list = ['-i', TestUtils.INSTANCE_NAME,
+                    '-z', TestUtils.ZOOKEEPERS,
+                    '-u', TestUtils.ROOT,
+                    '-p', TestUtils.ROOT_PASSWORD,
+                    '-t', self.tablename,
+                    '--column', self.input_cfcq]
         #MapReduce class to run
         mapred_class= [self.accumulo_sh(),self.example_class_to_run]
         #classes needed to run the mapreduce
-        libjars = ["-libjars",",".join([zkjar,thriftjar,examples,core,fate,trace])]
+        libjars = ["-libjars",",".join([zkjar,thriftjar,examples,core,fate,trace,jcommander])]
         cmd = mapred_class+libjars+arg_list
         if(self.isAccumuloRunning()):
             log.debug("COMMAND:"+str(cmd))
@@ -118,22 +117,22 @@ class MapReduceTest(TestUtilsMixin,unittest.TestCase):
     
     def checkResults(self):
         control_values = [base64.b64encode(hashlib.md5("row%s"%(i)).digest()) for i in range(10)]
-        experiment_values = self.retrieveValues(self.output_tablename, self.output_cfcq)
+        experiment_values = self.retrieveValues(self.tablename, self.output_cfcq)
         self.failIf(len(control_values) != len(experiment_values), "List aren't the same length")
         diff=[ev for ev in experiment_values if ev not in control_values]
         self.failIf(len(diff)>0, "Start and MapReduced Values aren't not the same")
     
     def fakeMRResults(self):
-        vals = self.retrieveValues(self.input_tablename, self.input_cfcq)
+        vals = self.retrieveValues(self.tablename, self.input_cfcq)
         values = ["insert %s %s %s\n" % (i,self.output_cfcq.replace(":"," "),base64.b64encode(hashlib.md5("row%s" % i).digest())) for i in range(10,20)]
-        input = "table %s\n" % (self.input_tablename,)+"".join(values)
+        input = "table %s\n" % (self.tablename,)+"".join(values)
         out,err,code = self.rootShell(self.masterHost(),input)
         #print "FAKE",out
     
     def createInputTableInAccumulo(self):
         #my leet python list comprehensions skills in action
         values = ["insert %s %s row%s\n" % (i,self.input_cfcq.replace(":"," "),i) for i in range(10)]
-        input = "createtable %s\ntable %s\n" % (self.input_tablename,self.input_tablename) + \
+        input = "createtable %s\ntable %s\n" % (self.tablename,self.tablename) + \
                 "".join(values)
         out,err,code = self.rootShell(self.masterHost(),input)
         #print "CREATE",out

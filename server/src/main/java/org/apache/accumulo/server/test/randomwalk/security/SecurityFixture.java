@@ -48,7 +48,7 @@ public class SecurityFixture extends Fixture {
       conn.securityOperations().dropUser(systemUserName);
     
     byte[] sysUserPass = "sysUser".getBytes();
-    conn.securityOperations().createUser(systemUserName, sysUserPass, new Authorizations());
+    conn.securityOperations().createUser(systemUserName, sysUserPass);
     
     WalkingSecurity.get(state).setTableName(secTableName);
     state.set("rootUserPass", state.getAuthInfo().password.array());

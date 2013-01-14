@@ -25,7 +25,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.Shell.Command;
-import org.apache.accumulo.start.classloader.AccumuloClassLoader;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -102,7 +102,7 @@ public abstract class ShellPluginConfigurationCommand extends Command {
       if (ent.getKey().equals(pluginProp.toString())) {
         Class<? extends T> pluginClazz;
         try {
-          pluginClazz = AccumuloClassLoader.loadClass(ent.getValue(), clazz);
+          pluginClazz = AccumuloVFSClassLoader.loadClass(ent.getValue(), clazz);
         } catch (ClassNotFoundException e) {
           Logger.getLogger(ShellPluginConfigurationCommand.class).warn("Class not found" + e.getMessage());
           return null;

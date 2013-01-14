@@ -35,6 +35,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.test.TestIngest;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 public class LargeRowTest extends FunctionalTest {
   
@@ -51,7 +52,7 @@ public class LargeRowTest extends FunctionalTest {
   
   @Override
   public Map<String,String> getInitialConfig() {
-    return parseConfig(Property.TSERV_MAJC_DELAY + "=1");
+    return parseConfig(Property.TSERV_MAJC_DELAY + "=10ms");
   }
   
   @Override
@@ -94,8 +95,8 @@ public class LargeRowTest extends FunctionalTest {
     
     getConnector().tableOperations().setProperty(REG_TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(), "" + SPLIT_THRESH);
     
-    UtilWaitThread.sleep(5000);
-    
+    UtilWaitThread.sleep(12000);
+    Logger.getLogger(LargeRowTest.class).warn("checking splits");
     checkSplits(REG_TABLE_NAME, 1, 9);
     
     verify(REG_TABLE_NAME);
@@ -136,8 +137,8 @@ public class LargeRowTest extends FunctionalTest {
     // verify while table flush is running
     verify(table);
     
-    // give flush time to complete
-    UtilWaitThread.sleep(4000);
+    // give split time to complete
+    getConnector().tableOperations().flush(table, null, null, true);
     
     checkSplits(table, expectedSplits, expectedSplits);
     

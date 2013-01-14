@@ -49,23 +49,23 @@ if [ -z ${ACCUMULO_VERSION} ]; then
         ACCUMULO_VERSION=1.5.0-SNAPSHOT
 fi
 
-if [ -z "$HADOOP_HOME" ]
+if [ -z "$HADOOP_PREFIX" ]
 then
-   HADOOP_HOME="`which hadoop`"
-   if [ -z "$HADOOP_HOME" ]
+   HADOOP_PREFIX="`which hadoop`"
+   if [ -z "$HADOOP_PREFIX" ]
    then
-      echo "You must set HADOOP_HOME"
+      echo "You must set HADOOP_PREFIX"
       exit 1
    fi
-   HADOOP_HOME=`dirname $HADOOP_HOME`
-   HADOOP_HOME=`dirname $HADOOP_HOME`
+   HADOOP_PREFIX=`dirname $HADOOP_PREFIX`
+   HADOOP_PREFIX=`dirname $HADOOP_PREFIX`
 fi
-if [ ! -d "$HADOOP_HOME" ]
+if [ ! -d "$HADOOP_PREFIX" ]
 then
-    echo "$HADOOP_HOME is not a directory"
+    echo "$HADOOP_PREFIX is not a directory"
     exit 1
 fi
-export HADOOP_HOME
+export HADOOP_PREFIX
 
 if [ ! -f "$ACCUMULO_HOME/conf/masters" -o ! -f "$ACCUMULO_HOME/conf/slaves" ]
 then
@@ -109,3 +109,6 @@ if [ ! -f "$ACCUMULO_HOME/conf/tracers" ]; then
     echo "$MASTER1" > "$ACCUMULO_HOME/conf/tracers"
 fi
 SSH='ssh -qnf -o ConnectTimeout=2'
+
+# See HADOOP-7154 and ACCUMULO-847
+export MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-1}

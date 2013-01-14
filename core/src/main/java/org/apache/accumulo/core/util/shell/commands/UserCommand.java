@@ -18,7 +18,6 @@ package org.apache.accumulo.core.util.shell.commands;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,9 +30,6 @@ import org.apache.accumulo.core.util.shell.Token;
 import org.apache.commons.cli.CommandLine;
 
 public class UserCommand extends Command {
-
-  private static final Charset utf8 = Charset.forName("UTF8");
-
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, IOException {
     // save old credentials and connection in case of failure
     String user = cl.getArgs()[0];
@@ -47,7 +43,7 @@ public class UserCommand extends Command {
       shellState.getReader().printNewline();
       return 0;
     } // user canceled
-    pass = p.getBytes(utf8);
+    pass = p.getBytes();
     shellState.updateUser(new AuthInfo(user, ByteBuffer.wrap(pass), shellState.getConnector().getInstance().getInstanceID()));
     return 0;
   }

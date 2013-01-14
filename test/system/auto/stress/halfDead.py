@@ -40,8 +40,7 @@ class TabletServerHangs(SunnyDayTest):
          os.environ['LD_PRELOAD'] = libpath
          os.environ['DYLD_INSERT_LIBRARIES'] = libpath
          os.environ['DYLD_FORCE_FLAT_NAMESPACE'] = 'true'
-         self.stop = self.runOn(self.masterHost(),
-                                [self.accumulo_sh(), 'tserver'])
+         self.stop = self.runOn(self.masterHost(), [self.accumulo_sh(), 'tserver'])
          del os.environ['LD_PRELOAD']
          del os.environ['DYLD_FORCE_FLAT_NAMESPACE']
          del os.environ['DYLD_INSERT_LIBRARIES']
@@ -60,8 +59,10 @@ class TabletServerHangs(SunnyDayTest):
                                      MANY_ROWS,
                                      size=self.options.size)
          # wait for the ingester to get going
-         self.ingester.stdout.readline()
-         self.ingester.stdout.readline()
+         for i in range(100):
+	     line = self.ingester.stdout.readline()
+	     if line == '' or line.find(' sent ') > 0:
+                break
 
          log.info("Starting faking disk failure for tserver")
          fp = open(self.flagFile, "w+")

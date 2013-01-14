@@ -17,14 +17,14 @@
 package org.apache.accumulo.server.test;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.server.cli.ClientOpts;
+import org.apache.accumulo.core.cli.BatchWriterOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.TablePermission;
@@ -32,17 +32,13 @@ import org.apache.hadoop.io.Text;
 
 public class GCLotsOfCandidatesTest {
   public static void main(String args[]) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, MutationsRejectedException {
-    if (args.length != 4)
-      throw new IllegalArgumentException("Expected arguments: <instance name> <zookeeper server> <username> <password>");
+    ClientOpts opts = new ClientOpts();
+    BatchWriterOpts bwOpts = new BatchWriterOpts();
+    opts.parseArgs(GCLotsOfCandidatesTest.class.getName(), args, bwOpts);
     
-    Connector conn = new ZooKeeperInstance(args[0], args[1]).getConnector(args[2], args[3].getBytes());
-    generateCandidates(conn);
-  }
-  
-  private static void generateCandidates(Connector conn) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      MutationsRejectedException {
+    Connector conn = opts.getConnector();
     conn.securityOperations().grantTablePermission(conn.whoami(), Constants.METADATA_TABLE_NAME, TablePermission.WRITE);
-    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, new BatchWriterConfig());
+    BatchWriter bw = conn.createBatchWriter(Constants.METADATA_TABLE_NAME, bwOpts.getBatchWriterConfig());
     
     for (int i = 0; i < 10000; ++i) {
       final Text emptyText = new Text("");

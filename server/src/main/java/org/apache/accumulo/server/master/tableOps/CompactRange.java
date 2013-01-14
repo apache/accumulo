@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.server.master.tableOps;
 
-import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -48,7 +47,6 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.master.Master;
 import org.apache.accumulo.server.master.state.TServerInstance;
-import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.util.MapCounter;
 import org.apache.accumulo.server.zookeeper.ZooReaderWriter;
 import org.apache.commons.codec.binary.Hex;
@@ -78,8 +76,7 @@ class CompactionDriver extends MasterRepo {
   public long isReady(long tid, Master master) throws Exception {
     
     MapCounter<TServerInstance> serversToFlush = new MapCounter<TServerInstance>();
-    Instance instance = HdfsZooInstance.getInstance();
-    Connector conn = instance.getConnector(SecurityConstants.getSystemCredentials());
+    Connector conn = master.getConnector();
     Scanner scanner = new IsolatedScanner(conn.createScanner(Constants.METADATA_TABLE_NAME, Constants.NO_AUTHS));
     
     Range range = new KeyExtent(new Text(tableId), null, startRow == null ? null : new Text(startRow)).toMetadataRange();
@@ -132,6 +129,7 @@ class CompactionDriver extends MasterRepo {
     
     long scanTime = System.currentTimeMillis() - t1;
     
+    Instance instance = master.getInstance();
     Tables.clearCache(instance);
     if (tabletCount == 0 && !Tables.exists(instance, tableId))
       throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
@@ -186,8 +184,6 @@ public class CompactRange extends MasterRepo {
   private byte[] startRow;
   private byte[] endRow;
   private IteratorConfig iterators;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public CompactRange(String tableId, byte[] startRow, byte[] endRow, List<IteratorSetting> iterators) throws ThriftTableOperationException {
     this.tableId = tableId;
@@ -242,7 +238,7 @@ public class CompactRange extends MasterRepo {
             encodedIterators.append(new String(hex.encode(IteratorUtil.encodeIteratorSettings(iterators))));
           }
           
-          return ("" + flushID + encodedIterators).getBytes(utf8);
+          return ("" + flushID + encodedIterators).getBytes();
         }
       });
       
@@ -275,7 +271,7 @@ public class CompactRange extends MasterRepo {
           encodedIterators.append(tokens[i]);
         }
         
-        return ("" + flushID + encodedIterators).getBytes(utf8);
+        return ("" + flushID + encodedIterators).getBytes();
       }
     });
 

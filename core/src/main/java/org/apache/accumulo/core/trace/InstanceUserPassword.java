@@ -16,20 +16,16 @@
  */
 package org.apache.accumulo.core.trace;
 
-import java.nio.charset.Charset;
-
 import org.apache.accumulo.core.client.Instance;
 
 public class InstanceUserPassword {
   public Instance instance;
   public String username;
   public byte[] password;
-
-  private static final Charset utf8 = Charset.forName("UTF8");
   
   public InstanceUserPassword(Instance instance, String username, String password) {
     this.instance = instance;
     this.username = username;
-    this.password = password.getBytes(utf8);
+    this.password = password.getBytes();
   }
 }

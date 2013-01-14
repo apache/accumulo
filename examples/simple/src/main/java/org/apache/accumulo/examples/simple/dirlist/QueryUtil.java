@@ -20,19 +20,21 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.cli.ClientOnRequiredTable;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+
+import com.beust.jcommander.Parameter;
 
 /**
  * Provides utility methods for getting the info for a file, listing the contents of a directory, and performing single wild card searches on file or directory
@@ -48,12 +50,11 @@ public class QueryUtil {
   public static final Text INDEX_COLF = new Text("i");
   public static final Text COUNTS_COLQ = new Text("counts");
   
-  public QueryUtil(String instanceName, String zooKeepers, String user, String password, String tableName, Authorizations auths) throws AccumuloException,
+  public QueryUtil(Opts opts) throws AccumuloException,
       AccumuloSecurityException {
-    ZooKeeperInstance instance = new ZooKeeperInstance(instanceName, zooKeepers);
-    conn = instance.getConnector(user, password.getBytes());
-    this.tableName = tableName;
-    this.auths = auths;
+    conn = opts.getConnector();
+    this.tableName = opts.tableName;
+    this.auths = opts.auths;
   }
   
   /**
@@ -252,6 +253,13 @@ public class QueryUtil {
     return scanner;
   }
   
+  public static class Opts extends ClientOnRequiredTable {
+    @Parameter(names="--path", description="the directory to list")
+    String path = "/";
+    @Parameter(names="--search", description="find a file or directorys with the given name")
+    boolean search = false;
+  }
+  
   /**
    * Lists the contents of a directory using the directory table, or searches for file or directory names (if the -search flag is included).
    * 
@@ -259,18 +267,17 @@ public class QueryUtil {
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
-    if (args.length != 7 && (args.length != 8 || !args[7].equals("-search"))) {
-      System.out.println("usage: " + QueryUtil.class.getSimpleName() + " <instance> <zookeepers> <user> <pass> <table> <auths> <path> [-search]");
-      System.exit(1);
-    }
-    QueryUtil q = new QueryUtil(args[0], args[1], args[2], args[3], args[4], new Authorizations(args[5].split(",")));
-    if (args.length == 8) {
-      for (Entry<Key,Value> e : q.singleWildCardSearch(args[6])) {
+    Opts opts = new Opts();
+    opts.parseArgs(QueryUtil.class.getName(), args);
+    QueryUtil q = new QueryUtil(opts);
+    if (opts.search) {
+      for (Entry<Key,Value> e : q.singleWildCardSearch(opts.path)) {
         System.out.println(e.getKey().getColumnQualifier());
       }
-    }
-    for (Entry<String,Map<String,String>> e : q.getDirList(args[6]).entrySet()) {
-      System.out.println(e);
+    } else {
+      for (Entry<String,Map<String,String>> e : q.getDirList(opts.path).entrySet()) {
+        System.out.println(e);
+      }
     }
   }
 }
