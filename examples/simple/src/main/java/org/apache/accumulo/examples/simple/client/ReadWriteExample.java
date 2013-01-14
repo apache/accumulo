@@ -16,7 +16,13 @@
  */
 package org.apache.accumulo.examples.simple.client;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -31,6 +37,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.util.ByteArraySet;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -65,6 +72,14 @@ public class ReadWriteExample {
   
   private void execute(Opts opts, ScannerOpts scanOpts) throws Exception {
     conn = opts.getConnector();
+
+    // add the authorizations to the user
+    Authorizations userAuthorizations = conn.securityOperations().getUserAuthorizations(opts.user);
+    ByteArraySet auths = new ByteArraySet(userAuthorizations.getAuthorizations());
+    auths.addAll(opts.auths.getAuthorizations());
+    if (!auths.isEmpty())
+      conn.securityOperations().changeUserAuthorizations(opts.user, new Authorizations(auths));
+    
     // create table
     if (opts.createtable) {
       SortedSet<Text> partitionKeys = new TreeSet<Text>();
