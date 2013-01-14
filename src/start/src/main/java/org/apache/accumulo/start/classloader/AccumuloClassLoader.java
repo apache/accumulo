@@ -111,7 +111,7 @@ public class AccumuloClassLoader {
       + "$ACCUMULO_HOME/lib/[^.].*.jar,\n" 
       + "$ZOOKEEPER_HOME/zookeeper[^.].*.jar,\n" 
       + "$HADOOP_PREFIX/[^.].*.jar,\n" + "$HADOOP_CONF_DIR,\n"
-      + "$HADOOP_HOME/lib/[^.].*.jar,\n";
+      + "$HADOOP_PREFIX/lib/[^.].*.jar,\n";
   
   /**
    * Dynamic classpath. These locations will be monitored for changes.
