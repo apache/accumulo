@@ -97,9 +97,9 @@
 	$ACCUMULO_HOME/lib/[^.].$ACCUMULO_VERSION.jar,
 	$ACCUMULO_HOME/lib/[^.].*.jar,
 	$ZOOKEEPER_HOME/zookeeper[^.].*.jar,
-	$HADOOP_HOME/conf,
-	$HADOOP_HOME/[^.].*.jar,
-	$HADOOP_HOME/lib/[^.].*.jar,
+	$HADOOP_CONF_DIR,
+	$HADOOP_PREFIX/[^.].*.jar,
+	$HADOOP_PREFIX/lib/[^.].*.jar,
       </value>
       <description>Classpaths that accumulo checks for updates and class files.
       When using the Security Manager, please remove the ".../target/classes/" values.
