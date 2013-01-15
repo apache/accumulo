@@ -37,24 +37,26 @@ import com.beust.jcommander.Parameter;
 
 public class RegexExample extends Configured implements Tool {
   public static class RegexMapper extends Mapper<Key,Value,Key,Value> {
+    @Override
     public void map(Key row, Value data, Context context) throws IOException, InterruptedException {
       context.write(row, data);
     }
   }
   
   static class Opts extends ClientOnRequiredTable {
-    @Parameter(names="--rowRegex")
+    @Parameter(names = "--rowRegex")
     String rowRegex;
-    @Parameter(names="--columnFamilyRegex")
+    @Parameter(names = "--columnFamilyRegex")
     String columnFamilyRegex;
-    @Parameter(names="--columnQualifierRegex")
+    @Parameter(names = "--columnQualifierRegex")
     String columnQualifierRegex;
-    @Parameter(names="--valueRegex")
+    @Parameter(names = "--valueRegex")
     String valueRegex;
-    @Parameter(names="--output", required=true)
+    @Parameter(names = "--output", required = true)
     String destination;
   }
   
+  @Override
   public int run(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(getClass().getName(), args);
@@ -67,7 +69,7 @@ public class RegexExample extends Configured implements Tool {
     
     IteratorSetting regex = new IteratorSetting(50, "regex", RegExFilter.class);
     RegExFilter.setRegexs(regex, opts.rowRegex, opts.columnFamilyRegex, opts.columnQualifierRegex, opts.valueRegex, false);
-    AccumuloInputFormat.addIterator(job.getConfiguration(), regex);
+    AccumuloInputFormat.addIterator(job, regex);
     
     job.setMapperClass(RegexMapper.class);
     job.setMapOutputKeyClass(Key.class);

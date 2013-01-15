@@ -41,17 +41,19 @@ import com.beust.jcommander.Parameter;
  */
 
 /**
- * A simple map reduce job that computes the unique column families and column qualifiers in a table.  This example shows one way to run against an offline table.
+ * A simple map reduce job that computes the unique column families and column qualifiers in a table. This example shows one way to run against an offline
+ * table.
  */
 public class UniqueColumns extends Configured implements Tool {
   
   private static final Text EMPTY = new Text();
   
-  public static class UMapper extends Mapper<Key,Value,Text,Text> {    
+  public static class UMapper extends Mapper<Key,Value,Text,Text> {
     private Text temp = new Text();
     private static final Text CF = new Text("cf:");
     private static final Text CQ = new Text("cq:");
     
+    @Override
     public void map(Key key, Value value, Context context) throws IOException, InterruptedException {
       temp.set(CF);
       ByteSequence cf = key.getColumnFamilyData();
@@ -66,20 +68,20 @@ public class UniqueColumns extends Configured implements Tool {
   }
   
   public static class UReducer extends Reducer<Text,Text,Text,Text> {
+    @Override
     public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
       context.write(key, EMPTY);
     }
   }
   
   static class Opts extends ClientOnRequiredTable {
-    @Parameter(names="--output", description="output directory")
+    @Parameter(names = "--output", description = "output directory")
     String output;
-    @Parameter(names="--reducers", description="number of reducers to use", required=true)
+    @Parameter(names = "--reducers", description = "number of reducers to use", required = true)
     int reducers;
-    @Parameter(names="--offline", description="run against an offline table")
+    @Parameter(names = "--offline", description = "run against an offline table")
     boolean offline = false;
   }
-  
   
   @Override
   public int run(String[] args) throws Exception {
@@ -90,7 +92,7 @@ public class UniqueColumns extends Configured implements Tool {
     
     Job job = new Job(getConf(), jobName);
     job.setJarByClass(this.getClass());
-
+    
     String clone = opts.tableName;
     Connector conn = null;
     if (opts.offline) {
@@ -104,10 +106,8 @@ public class UniqueColumns extends Configured implements Tool {
       conn.tableOperations().clone(opts.tableName, clone, true, new HashMap<String,String>(), new HashSet<String>());
       conn.tableOperations().offline(clone);
       
-      AccumuloInputFormat.setScanOffline(job.getConfiguration(), true);
+      AccumuloInputFormat.setOfflineTableScan(job, true);
     }
-    
-
     
     job.setInputFormatClass(AccumuloInputFormat.class);
     opts.setAccumuloConfigs(job);
@@ -118,9 +118,9 @@ public class UniqueColumns extends Configured implements Tool {
     
     job.setCombinerClass(UReducer.class);
     job.setReducerClass(UReducer.class);
-
+    
     job.setNumReduceTasks(opts.reducers);
-
+    
     job.setOutputFormatClass(TextOutputFormat.class);
     TextOutputFormat.setOutputPath(job, new Path(opts.output));
     
@@ -129,10 +129,9 @@ public class UniqueColumns extends Configured implements Tool {
     if (opts.offline) {
       conn.tableOperations().delete(clone);
     }
-
+    
     return job.isSuccessful() ? 0 : 1;
   }
-  
   
   public static void main(String[] args) throws Exception {
     int res = ToolRunner.run(CachedConfiguration.getInstance(), new UniqueColumns(), args);

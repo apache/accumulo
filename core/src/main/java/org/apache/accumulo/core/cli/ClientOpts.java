@@ -48,7 +48,7 @@ import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 
 public class ClientOpts extends Help {
-
+  
   public static class TimeConverter implements IStringConverter<Long> {
     @Override
     public Long convert(String value) {
@@ -72,7 +72,12 @@ public class ClientOpts extends Help {
   
   public static class Password {
     public byte[] value;
-    public Password(String dfault) { value = dfault.getBytes(); }
+    
+    public Password(String dfault) {
+      value = dfault.getBytes();
+    }
+    
+    @Override
     public String toString() {
       return new String(value);
     }
@@ -92,13 +97,13 @@ public class ClientOpts extends Help {
     }
   }
   
-  @Parameter(names={"-u", "--user"}, description = "Connection user")
+  @Parameter(names = {"-u", "--user"}, description = "Connection user")
   public String user = System.getProperty("user.name");
   
-  @Parameter(names="-p", converter=PasswordConverter.class, description = "Connection password")
+  @Parameter(names = "-p", converter = PasswordConverter.class, description = "Connection password")
   public Password password = new Password("secret");
   
-  @Parameter(names="--password", converter=PasswordConverter.class, description = "Enter the connection password", password=true)
+  @Parameter(names = "--password", converter = PasswordConverter.class, description = "Enter the connection password", password = true)
   public Password securePassword = null;
   
   public byte[] getPassword() {
@@ -108,22 +113,22 @@ public class ClientOpts extends Help {
     return securePassword.value;
   }
   
-  @Parameter(names={"-z", "--keepers"}, description="Comma separated list of zookeeper hosts (host:port,host:port)")
+  @Parameter(names = {"-z", "--keepers"}, description = "Comma separated list of zookeeper hosts (host:port,host:port)")
   public String zookeepers = "localhost:2181";
   
-  @Parameter(names={"-i", "--instance"}, description="The name of the accumulo instance")
+  @Parameter(names = {"-i", "--instance"}, description = "The name of the accumulo instance")
   public String instance = null;
   
-  @Parameter(names={"-auths", "--auths"}, converter=AuthConverter.class, description="the authorizations to use when reading or writing")
+  @Parameter(names = {"-auths", "--auths"}, converter = AuthConverter.class, description = "the authorizations to use when reading or writing")
   public Authorizations auths = Constants.NO_AUTHS;
   
-  @Parameter(names="--debug", description="turn on TRACE-level log messages")
+  @Parameter(names = "--debug", description = "turn on TRACE-level log messages")
   public boolean debug = false;
   
-  @Parameter(names={"-fake", "--mock"}, description="Use a mock Instance")
-  public boolean mock=false;
+  @Parameter(names = {"-fake", "--mock"}, description = "Use a mock Instance")
+  public boolean mock = false;
   
-  @Parameter(names="--site-file", description="Read the given accumulo site file to find the accumulo instance")
+  @Parameter(names = "--site-file", description = "Read the given accumulo site file to find the accumulo instance")
   public String siteFile = null;
   
   public void startDebugLogging() {
@@ -131,7 +136,7 @@ public class ClientOpts extends Help {
       Logger.getLogger(Constants.CORE_PACKAGE_NAME).setLevel(Level.TRACE);
   }
   
-  @Parameter(names="--trace", description="turn on distributed tracing")
+  @Parameter(names = "--trace", description = "turn on distributed tracing")
   public boolean trace = false;
   
   public void startTracing(String applicationName) {
@@ -144,7 +149,8 @@ public class ClientOpts extends Help {
     Trace.off();
   }
   
-  public void parseArgs(String programName, String[] args, Object ... others) {
+  @Override
+  public void parseArgs(String programName, String[] args, Object... others) {
     super.parseArgs(programName, args, others);
     startDebugLogging();
     startTracing(programName);
@@ -167,10 +173,10 @@ public class ClientOpts extends Help {
         
         @Override
         public Iterator<Entry<String,String>> iterator() {
-          TreeMap<String, String> map = new TreeMap<String, String>();
-          for (Entry<String, String> props : DefaultConfiguration.getInstance())
+          TreeMap<String,String> map = new TreeMap<String,String>();
+          for (Entry<String,String> props : DefaultConfiguration.getInstance())
             map.put(props.getKey(), props.getValue());
-          for (Entry<String, String> props : xml)
+          for (Entry<String,String> props : xml)
             map.put(props.getKey(), props.getValue());
           return map.entrySet().iterator();
         }
@@ -199,8 +205,8 @@ public class ClientOpts extends Help {
   }
   
   public void setAccumuloConfigs(Job job) {
-    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), instance, zookeepers);
-    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), instance, zookeepers);
+    AccumuloInputFormat.setZooKeeperInstance(job, instance, zookeepers);
+    AccumuloOutputFormat.setZooKeeperInstance(job, instance, zookeepers);
   }
   
 }

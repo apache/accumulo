@@ -44,6 +44,7 @@ import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
@@ -54,182 +55,396 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 /**
- * This class allows MapReduce jobs to use Accumulo as the sink of data. This output format accepts keys and values of type Text (for a table name) and Mutation
- * from the Map() and Reduce() functions.
+ * This class allows MapReduce jobs to use Accumulo as the sink for data. This {@link OutputFormat} accepts keys and values of type {@link Text} (for a table
+ * name) and {@link Mutation} from the Map and Reduce functions.
  * 
- * The user must specify the following via static methods:
+ * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>AccumuloOutputFormat.setOutputInfo(job, username, password, createTables, defaultTableName)
- * <li>AccumuloOutputFormat.setZooKeeperInstance(job, instanceName, hosts)
+ * <li>{@link AccumuloOutputFormat#setOutputInfo(Job, String, byte[], boolean, String)}
+ * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(Job, String, String)}
  * </ul>
  * 
- * Other static methods are optional
+ * Other static methods are optional.
  */
 public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   private static final Logger log = Logger.getLogger(AccumuloOutputFormat.class);
   
+  /**
+   * Prefix shared by all job configuration property names for this class
+   */
   private static final String PREFIX = AccumuloOutputFormat.class.getSimpleName();
+  
+  /**
+   * Used to limit the times a job can be configured with output information to 1
+   * 
+   * @see #setOutputInfo(Job, String, byte[], boolean, String)
+   * @see #getUsername(JobContext)
+   * @see #getPassword(JobContext)
+   * @see #canCreateTables(JobContext)
+   * @see #getDefaultTableName(JobContext)
+   */
   private static final String OUTPUT_INFO_HAS_BEEN_SET = PREFIX + ".configured";
+  
+  /**
+   * Used to limit the times a job can be configured with instance information to 1
+   * 
+   * @see #setZooKeeperInstance(Job, String, String)
+   * @see #setMockInstance(Job, String)
+   * @see #getInstance(JobContext)
+   */
   private static final String INSTANCE_HAS_BEEN_SET = PREFIX + ".instanceConfigured";
+  
+  /**
+   * Key for storing the Accumulo user's name
+   * 
+   * @see #setOutputInfo(Job, String, byte[], boolean, String)
+   * @see #getUsername(JobContext)
+   */
   private static final String USERNAME = PREFIX + ".username";
+  
+  /**
+   * Key for storing the Accumulo user's password
+   * 
+   * @see #setOutputInfo(Job, String, byte[], boolean, String)
+   * @see #getPassword(JobContext)
+   */
   private static final String PASSWORD = PREFIX + ".password";
+  
+  /**
+   * Key for storing the default table to use when the output key is null
+   * 
+   * @see #getDefaultTableName(JobContext)
+   */
   private static final String DEFAULT_TABLE_NAME = PREFIX + ".defaulttable";
   
+  /**
+   * Key for storing the Accumulo instance name to connect to
+   * 
+   * @see #setZooKeeperInstance(Job, String, String)
+   * @see #setMockInstance(Job, String)
+   * @see #getInstance(JobContext)
+   */
   private static final String INSTANCE_NAME = PREFIX + ".instanceName";
+  
+  /**
+   * Key for storing the set of Accumulo zookeeper servers to communicate with
+   * 
+   * @see #setZooKeeperInstance(Job, String, String)
+   * @see #getInstance(JobContext)
+   */
   private static final String ZOOKEEPERS = PREFIX + ".zooKeepers";
+  
+  /**
+   * Key for storing the directive to use the mock instance type
+   * 
+   * @see #setMockInstance(Job, String)
+   * @see #getInstance(JobContext)
+   */
   private static final String MOCK = ".useMockInstance";
   
+  /**
+   * Key for storing the directive to create tables that don't exist
+   * 
+   * @see #setOutputInfo(Job, String, byte[], boolean, String)
+   * @see #canCreateTables(JobContext)
+   */
   private static final String CREATETABLES = PREFIX + ".createtables";
+  
+  /**
+   * Key for storing the desired logging level
+   * 
+   * @see #setLogLevel(Job, Level)
+   * @see #getLogLevel(JobContext)
+   */
   private static final String LOGLEVEL = PREFIX + ".loglevel";
+  
+  /**
+   * Key for storing the directive to simulate output instead of actually writing to a file
+   * 
+   * @see #setSimulationMode(Job, boolean)
+   * @see #getSimulationMode(JobContext)
+   */
   private static final String SIMULATE = PREFIX + ".simulate";
   
-  // BatchWriter options
-  private static final String MAX_MUTATION_BUFFER_SIZE = PREFIX + ".maxmemory";
-  private static final String MAX_LATENCY = PREFIX + ".maxlatency";
-  private static final String NUM_WRITE_THREADS = PREFIX + ".writethreads";
-  private static final String TIMEOUT = PREFIX + ".timeout";
-  
-  private static final long DEFAULT_MAX_MUTATION_BUFFER_SIZE = 50 * 1024 * 1024; // 50MB
-  private static final int DEFAULT_MAX_LATENCY = 60 * 1000; // 1 minute
-  private static final int DEFAULT_NUM_WRITE_THREADS = 2;
-  
   /**
-   * Configure the output format.
+   * Sets the minimum information needed to write to Accumulo in this job.
    * 
-   * @param conf
-   *          the Map/Reduce job object
+   * @param job
+   *          the Hadoop job instance to be configured
    * @param user
-   *          the username, which must have the Table.CREATE permission to create tables
+   *          a valid Accumulo user name (user must have Table.CREATE permission)
    * @param passwd
-   *          the passwd for the username
+   *          the user's password
    * @param createTables
-   *          the output format will create new tables as necessary. Table names can only be alpha-numeric and underscores.
+   *          if true, the output format will create new tables as necessary. Table names can only be alpha-numeric and underscores.
    * @param defaultTable
    *          the table to use when the tablename is null in the write call
+   * @since 1.5.0
    */
-  public static void setOutputInfo(Configuration conf, String user, byte[] passwd, boolean createTables, String defaultTable) {
-    if (conf.getBoolean(OUTPUT_INFO_HAS_BEEN_SET, false))
+  public static void setOutputInfo(Job job, String user, byte[] passwd, boolean createTables, String defaultTable) {
+    if (job.getConfiguration().getBoolean(OUTPUT_INFO_HAS_BEEN_SET, false))
       throw new IllegalStateException("Output info can only be set once per job");
-    conf.setBoolean(OUTPUT_INFO_HAS_BEEN_SET, true);
+    job.getConfiguration().setBoolean(OUTPUT_INFO_HAS_BEEN_SET, true);
     
     ArgumentChecker.notNull(user, passwd);
-    conf.set(USERNAME, user);
-    conf.set(PASSWORD, new String(Base64.encodeBase64(passwd)));
-    conf.setBoolean(CREATETABLES, createTables);
+    job.getConfiguration().set(USERNAME, user);
+    job.getConfiguration().set(PASSWORD, new String(Base64.encodeBase64(passwd)));
+    job.getConfiguration().setBoolean(CREATETABLES, createTables);
     if (defaultTable != null)
-      conf.set(DEFAULT_TABLE_NAME, defaultTable);
+      job.getConfiguration().set(DEFAULT_TABLE_NAME, defaultTable);
   }
   
-  public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
-    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
+  /**
+   * Configures a {@link ZooKeeperInstance} for this job.
+   * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param instanceName
+   *          the Accumulo instance name
+   * @param zooKeepers
+   *          a comma-separated list of zookeeper servers
+   * @since 1.5.0
+   */
+  public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
+    if (job.getConfiguration().getBoolean(INSTANCE_HAS_BEEN_SET, false))
       throw new IllegalStateException("Instance info can only be set once per job");
-    conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
+    job.getConfiguration().setBoolean(INSTANCE_HAS_BEEN_SET, true);
     ArgumentChecker.notNull(instanceName, zooKeepers);
-    conf.set(INSTANCE_NAME, instanceName);
-    conf.set(ZOOKEEPERS, zooKeepers);
-    System.out.println("instance set: " + conf.get(INSTANCE_HAS_BEEN_SET));
-  }
-  
-  public static void setMockInstance(Configuration conf, String instanceName) {
-    conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
-    conf.setBoolean(MOCK, true);
-    conf.set(INSTANCE_NAME, instanceName);
+    job.getConfiguration().set(INSTANCE_NAME, instanceName);
+    job.getConfiguration().set(ZOOKEEPERS, zooKeepers);
+    System.out.println("instance set: " + job.getConfiguration().get(INSTANCE_HAS_BEEN_SET));
   }
   
   /**
-   * see {@link BatchWriterConfig#setMaxMemory(long)}
+   * Configures a {@link MockInstance} for this job.
+   * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param instanceName
+   *          the Accumulo instance name
+   * @since 1.5.0
    */
-  
-  public static void setMaxMutationBufferSize(Configuration conf, long numberOfBytes) {
-    conf.setLong(MAX_MUTATION_BUFFER_SIZE, numberOfBytes);
+  public static void setMockInstance(Job job, String instanceName) {
+    job.getConfiguration().setBoolean(INSTANCE_HAS_BEEN_SET, true);
+    job.getConfiguration().setBoolean(MOCK, true);
+    job.getConfiguration().set(INSTANCE_NAME, instanceName);
   }
   
   /**
-   * see {@link BatchWriterConfig#setMaxLatency(long, TimeUnit)}
+   * @since 1.5.0
+   * @see BatchWriterConfig#setMaxMemory(long)
    */
-  
-  public static void setMaxLatency(Configuration conf, int numberOfMilliseconds) {
-    conf.setInt(MAX_LATENCY, numberOfMilliseconds);
+  public static void setMaxMutationBufferSize(Job job, long numberOfBytes) {
+    job.getConfiguration().setLong(MAX_MUTATION_BUFFER_SIZE, numberOfBytes);
   }
   
   /**
-   * see {@link BatchWriterConfig#setMaxWriteThreads(int)}
+   * @since 1.5.0
+   * @see BatchWriterConfig#setMaxLatency(long, TimeUnit)
    */
-  
-  public static void setMaxWriteThreads(Configuration conf, int numberOfThreads) {
-    conf.setInt(NUM_WRITE_THREADS, numberOfThreads);
+  public static void setMaxLatency(Job job, int numberOfMilliseconds) {
+    job.getConfiguration().setInt(MAX_LATENCY, numberOfMilliseconds);
   }
   
   /**
-   * see {@link BatchWriterConfig#setTimeout(long, TimeUnit)}
+   * @since 1.5.0
+   * @see BatchWriterConfig#setMaxWriteThreads(int)
    */
-  
-  public static void setTimeout(Configuration conf, long time, TimeUnit timeUnit) {
-    conf.setLong(TIMEOUT, timeUnit.toMillis(time));
+  public static void setMaxWriteThreads(Job job, int numberOfThreads) {
+    job.getConfiguration().setInt(NUM_WRITE_THREADS, numberOfThreads);
   }
   
-  public static void setLogLevel(Configuration conf, Level level) {
+  /**
+   * @since 1.5.0
+   * @see BatchWriterConfig#setTimeout(long, TimeUnit)
+   */
+  public static void setTimeout(Job job, long time, TimeUnit timeUnit) {
+    job.getConfiguration().setLong(TIMEOUT, timeUnit.toMillis(time));
+  }
+  
+  /**
+   * Sets the log level for this job.
+   * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param level
+   *          the logging level
+   * @since 1.5.0
+   */
+  public static void setLogLevel(Job job, Level level) {
     ArgumentChecker.notNull(level);
-    conf.setInt(LOGLEVEL, level.toInt());
-  }
-  
-  public static void setSimulationMode(Configuration conf) {
-    conf.setBoolean(SIMULATE, true);
-  }
-  
-  protected static String getUsername(Configuration conf) {
-    return conf.get(USERNAME);
+    job.getConfiguration().setInt(LOGLEVEL, level.toInt());
   }
   
   /**
-   * WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to provide a charset safe conversion to a
-   * string, and is not intended to be secure.
+   * Sets the directive to use simulation mode for this job. In simulation mode, no output is produced. This is useful for testing.
+   * 
+   * <p>
+   * By default, this feature is <b>disabled</b>.
+   * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param enableFeature
+   *          the feature is enabled if true, disabled otherwise
+   * @since 1.5.0
    */
-  protected static byte[] getPassword(Configuration conf) {
-    return Base64.decodeBase64(conf.get(PASSWORD, "").getBytes());
+  public static void setSimulationMode(Job job, boolean enableFeature) {
+    job.getConfiguration().setBoolean(SIMULATE, enableFeature);
   }
   
-  protected static boolean canCreateTables(Configuration conf) {
-    return conf.getBoolean(CREATETABLES, false);
+  /**
+   * Gets the user name from the configuration.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return the user name
+   * @since 1.5.0
+   * @see #setOutputInfo(Job, String, byte[], boolean, String)
+   */
+  protected static String getUsername(JobContext context) {
+    return context.getConfiguration().get(USERNAME);
   }
   
-  protected static String getDefaultTableName(Configuration conf) {
-    return conf.get(DEFAULT_TABLE_NAME);
+  /**
+   * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
+   * provide a charset safe conversion to a string, and is not intended to be secure.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return the decoded user password
+   * @since 1.5.0
+   * @see #setOutputInfo(Job, String, byte[], boolean, String)
+   */
+  protected static byte[] getPassword(JobContext context) {
+    return Base64.decodeBase64(context.getConfiguration().get(PASSWORD, "").getBytes());
   }
   
-  protected static Instance getInstance(Configuration conf) {
-    if (conf.getBoolean(MOCK, false))
-      return new MockInstance(conf.get(INSTANCE_NAME));
-    return new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS));
+  /**
+   * Determines whether tables are permitted to be created as needed.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return true if the feature is disabled, false otherwise
+   * @since 1.5.0
+   * @see #setOutputInfo(Job, String, byte[], boolean, String)
+   */
+  protected static boolean canCreateTables(JobContext context) {
+    return context.getConfiguration().getBoolean(CREATETABLES, false);
   }
   
-  protected static long getMaxMutationBufferSize(Configuration conf) {
-    return conf.getLong(MAX_MUTATION_BUFFER_SIZE, DEFAULT_MAX_MUTATION_BUFFER_SIZE);
+  /**
+   * Gets the default table name from the configuration.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return the default table name
+   * @since 1.5.0
+   * @see #setOutputInfo(Job, String, byte[], boolean, String)
+   */
+  protected static String getDefaultTableName(JobContext context) {
+    return context.getConfiguration().get(DEFAULT_TABLE_NAME);
   }
   
-  protected static int getMaxLatency(Configuration conf) {
-    return conf.getInt(MAX_LATENCY, DEFAULT_MAX_LATENCY);
+  /**
+   * Initializes an Accumulo {@link Instance} based on the configuration.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return an Accumulo instance
+   * @since 1.5.0
+   * @see #setZooKeeperInstance(Job, String, String)
+   * @see #setMockInstance(Job, String)
+   */
+  protected static Instance getInstance(JobContext context) {
+    if (context.getConfiguration().getBoolean(MOCK, false))
+      return new MockInstance(context.getConfiguration().get(INSTANCE_NAME));
+    return new ZooKeeperInstance(context.getConfiguration().get(INSTANCE_NAME), context.getConfiguration().get(ZOOKEEPERS));
   }
   
-  protected static int getMaxWriteThreads(Configuration conf) {
-    return conf.getInt(NUM_WRITE_THREADS, DEFAULT_NUM_WRITE_THREADS);
+  /**
+   * Gets the corresponding {@link BatchWriterConfig} setting.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return the max memory to use (in bytes)
+   * @since 1.5.0
+   * @see #setMaxMutationBufferSize(Job, long)
+   */
+  protected static long getMaxMutationBufferSize(JobContext context) {
+    return context.getConfiguration().getLong(MAX_MUTATION_BUFFER_SIZE, new BatchWriterConfig().getMaxMemory());
   }
   
-  protected static long getTimeout(Configuration conf) {
-    return conf.getLong(TIMEOUT, Long.MAX_VALUE);
+  /**
+   * Gets the corresponding {@link BatchWriterConfig} setting.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return the max latency to use (in millis)
+   * @since 1.5.0
+   * @see #setMaxLatency(Job, int)
+   */
+  protected static long getMaxLatency(JobContext context) {
+    return context.getConfiguration().getLong(MAX_LATENCY, new BatchWriterConfig().getMaxLatency(TimeUnit.MILLISECONDS));
   }
   
-  protected static Level getLogLevel(Configuration conf) {
-    if (conf.get(LOGLEVEL) != null)
-      return Level.toLevel(conf.getInt(LOGLEVEL, Level.INFO.toInt()));
+  /**
+   * Gets the corresponding {@link BatchWriterConfig} setting.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return the max write threads to use
+   * @since 1.5.0
+   * @see #setMaxWriteThreads(Job, int)
+   */
+  protected static int getMaxWriteThreads(JobContext context) {
+    return context.getConfiguration().getInt(NUM_WRITE_THREADS, new BatchWriterConfig().getMaxWriteThreads());
+  }
+  
+  /**
+   * Gets the corresponding {@link BatchWriterConfig} setting.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return the timeout for write operations
+   * @since 1.5.0
+   * @see #setTimeout(Job, long, TimeUnit)
+   */
+  protected static long getTimeout(JobContext context) {
+    return context.getConfiguration().getLong(TIMEOUT, Long.MAX_VALUE);
+  }
+  
+  /**
+   * Gets the log level from this configuration.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return the log level
+   * @since 1.5.0
+   * @see #setLogLevel(Job, Level)
+   */
+  protected static Level getLogLevel(JobContext context) {
+    if (context.getConfiguration().get(LOGLEVEL) != null)
+      return Level.toLevel(context.getConfiguration().getInt(LOGLEVEL, Level.INFO.toInt()));
     return null;
   }
   
-  protected static boolean getSimulationMode(Configuration conf) {
-    return conf.getBoolean(SIMULATE, false);
+  /**
+   * Determines whether this feature is enabled.
+   * 
+   * @param context
+   *          the Hadoop context for the configured job
+   * @return true if the feature is enabled, false otherwise
+   * @since 1.5.0
+   * @see #setSimulationMode(Job, boolean)
+   */
+  protected static boolean getSimulationMode(JobContext context) {
+    return context.getConfiguration().getBoolean(SIMULATE, false);
   }
   
+  /**
+   * A base class to be used to create {@link RecordWriter} instances that write to Accumulo.
+   */
   protected static class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
     private MultiTableBatchWriter mtbw = null;
     private HashMap<Text,BatchWriter> bws = null;
@@ -243,26 +458,26 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     
     private Connector conn;
     
-    protected AccumuloRecordWriter(Configuration conf) throws AccumuloException, AccumuloSecurityException, IOException {
-      Level l = getLogLevel(conf);
+    protected AccumuloRecordWriter(TaskAttemptContext context) throws AccumuloException, AccumuloSecurityException, IOException {
+      Level l = getLogLevel(context);
       if (l != null)
-        log.setLevel(getLogLevel(conf));
-      this.simulate = getSimulationMode(conf);
-      this.createTables = canCreateTables(conf);
+        log.setLevel(getLogLevel(context));
+      this.simulate = getSimulationMode(context);
+      this.createTables = canCreateTables(context);
       
       if (simulate)
         log.info("Simulating output only. No writes to tables will occur");
       
       this.bws = new HashMap<Text,BatchWriter>();
       
-      String tname = getDefaultTableName(conf);
+      String tname = getDefaultTableName(context);
       this.defaultTableName = (tname == null) ? null : new Text(tname);
       
       if (!simulate) {
-        this.conn = getInstance(conf).getConnector(getUsername(conf), getPassword(conf));
-        mtbw = conn.createMultiTableBatchWriter(new BatchWriterConfig().setMaxMemory(getMaxMutationBufferSize(conf))
-            .setMaxLatency(getMaxLatency(conf), TimeUnit.MILLISECONDS).setMaxWriteThreads(getMaxWriteThreads(conf))
-            .setTimeout(getTimeout(conf), TimeUnit.MILLISECONDS));
+        this.conn = getInstance(context).getConnector(getUsername(context), getPassword(context));
+        mtbw = conn.createMultiTableBatchWriter(new BatchWriterConfig().setMaxMemory(getMaxMutationBufferSize(context))
+            .setMaxLatency(getMaxLatency(context), TimeUnit.MILLISECONDS).setMaxWriteThreads(getMaxWriteThreads(context))
+            .setTimeout(getTimeout(context), TimeUnit.MILLISECONDS));
       }
     }
     
@@ -391,17 +606,13 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   
   @Override
   public void checkOutputSpecs(JobContext job) throws IOException {
-    checkOutputSpecs(job.getConfiguration());
-  }
-  
-  public void checkOutputSpecs(Configuration conf) throws IOException {
-    if (!conf.getBoolean(OUTPUT_INFO_HAS_BEEN_SET, false))
+    if (!job.getConfiguration().getBoolean(OUTPUT_INFO_HAS_BEEN_SET, false))
       throw new IOException("Output info has not been set.");
-    if (!conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
+    if (!job.getConfiguration().getBoolean(INSTANCE_HAS_BEEN_SET, false))
       throw new IOException("Instance info has not been set.");
     try {
-      Connector c = getInstance(conf).getConnector(getUsername(conf), getPassword(conf));
-      if (!c.securityOperations().authenticateUser(getUsername(conf), getPassword(conf)))
+      Connector c = getInstance(job).getConnector(getUsername(job), getPassword(job));
+      if (!c.securityOperations().authenticateUser(getUsername(job), getPassword(job)))
         throw new IOException("Unable to authenticate user");
     } catch (AccumuloException e) {
       throw new IOException(e);
@@ -418,9 +629,206 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   @Override
   public RecordWriter<Text,Mutation> getRecordWriter(TaskAttemptContext attempt) throws IOException {
     try {
-      return new AccumuloRecordWriter(attempt.getConfiguration());
+      return new AccumuloRecordWriter(attempt);
     } catch (Exception e) {
       throw new IOException(e);
     }
   }
+  
+  // ----------------------------------------------------------------------------------------------------
+  // Everything below this line is deprecated and should go away in future versions
+  // ----------------------------------------------------------------------------------------------------
+  
+  /**
+   * @deprecated since 1.5.0;
+   */
+  @Deprecated
+  private static final String MAX_MUTATION_BUFFER_SIZE = PREFIX + ".maxmemory";
+  
+  /**
+   * @deprecated since 1.5.0;
+   */
+  @Deprecated
+  private static final String MAX_LATENCY = PREFIX + ".maxlatency";
+  
+  /**
+   * @deprecated since 1.5.0;
+   */
+  @Deprecated
+  private static final String NUM_WRITE_THREADS = PREFIX + ".writethreads";
+  
+  /**
+   * @deprecated since 1.5.0;
+   */
+  @Deprecated
+  private static final String TIMEOUT = PREFIX + ".timeout";
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #setOutputInfo(Job, String, byte[], boolean, String)} instead.
+   */
+  @Deprecated
+  public static void setOutputInfo(Configuration conf, String user, byte[] passwd, boolean createTables, String defaultTable) {
+    if (conf.getBoolean(OUTPUT_INFO_HAS_BEEN_SET, false))
+      throw new IllegalStateException("Output info can only be set once per job");
+    conf.setBoolean(OUTPUT_INFO_HAS_BEEN_SET, true);
+    
+    ArgumentChecker.notNull(user, passwd);
+    conf.set(USERNAME, user);
+    conf.set(PASSWORD, new String(Base64.encodeBase64(passwd)));
+    conf.setBoolean(CREATETABLES, createTables);
+    if (defaultTable != null)
+      conf.set(DEFAULT_TABLE_NAME, defaultTable);
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #setZooKeeperInstance(Job, String, String)} instead.
+   */
+  @Deprecated
+  public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
+    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
+      throw new IllegalStateException("Instance info can only be set once per job");
+    conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
+    
+    ArgumentChecker.notNull(instanceName, zooKeepers);
+    conf.set(INSTANCE_NAME, instanceName);
+    conf.set(ZOOKEEPERS, zooKeepers);
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #setMockInstance(Job, String)} instead.
+   */
+  @Deprecated
+  public static void setMockInstance(Configuration conf, String instanceName) {
+    conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
+    conf.setBoolean(MOCK, true);
+    conf.set(INSTANCE_NAME, instanceName);
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #setMaxMutationBufferSize(Job, long)} instead.
+   */
+  @Deprecated
+  public static void setMaxMutationBufferSize(Configuration conf, long numberOfBytes) {
+    conf.setLong(MAX_MUTATION_BUFFER_SIZE, numberOfBytes);
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #setMaxLatency(Job, int)} instead.
+   */
+  @Deprecated
+  public static void setMaxLatency(Configuration conf, int numberOfMilliseconds) {
+    conf.setInt(MAX_LATENCY, numberOfMilliseconds);
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #setMaxWriteThreads(Job, int)} instead.
+   */
+  @Deprecated
+  public static void setMaxWriteThreads(Configuration conf, int numberOfThreads) {
+    conf.setInt(NUM_WRITE_THREADS, numberOfThreads);
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #setLogLevel(Job, Level)} instead.
+   */
+  @Deprecated
+  public static void setLogLevel(Configuration conf, Level level) {
+    ArgumentChecker.notNull(level);
+    conf.setInt(LOGLEVEL, level.toInt());
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #setSimulationMode(Job, boolean)} instead.
+   */
+  @Deprecated
+  public static void setSimulationMode(Configuration conf) {
+    conf.setBoolean(SIMULATE, true);
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #getUsername(JobContext)} instead.
+   */
+  @Deprecated
+  protected static String getUsername(Configuration conf) {
+    return conf.get(USERNAME);
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #getPassword(JobContext)} instead.
+   */
+  @Deprecated
+  protected static byte[] getPassword(Configuration conf) {
+    return Base64.decodeBase64(conf.get(PASSWORD, "").getBytes());
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #canCreateTables(JobContext)} instead.
+   */
+  @Deprecated
+  protected static boolean canCreateTables(Configuration conf) {
+    return conf.getBoolean(CREATETABLES, false);
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #getDefaultTableName(JobContext)} instead.
+   */
+  @Deprecated
+  protected static String getDefaultTableName(Configuration conf) {
+    return conf.get(DEFAULT_TABLE_NAME);
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #getInstance(JobContext)} instead.
+   */
+  @Deprecated
+  protected static Instance getInstance(Configuration conf) {
+    if (conf.getBoolean(MOCK, false))
+      return new MockInstance(conf.get(INSTANCE_NAME));
+    return new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS));
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #getMaxMutationBufferSize(JobContext)} instead.
+   */
+  @Deprecated
+  protected static long getMaxMutationBufferSize(Configuration conf) {
+    return conf.getLong(MAX_MUTATION_BUFFER_SIZE, new BatchWriterConfig().getMaxMemory());
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #getMaxLatency(JobContext)} instead.
+   */
+  @Deprecated
+  protected static int getMaxLatency(Configuration conf) {
+    Long maxLatency = new BatchWriterConfig().getMaxLatency(TimeUnit.MILLISECONDS);
+    Integer max = maxLatency >= Integer.MAX_VALUE ? Integer.MAX_VALUE : Integer.parseInt(Long.toString(maxLatency));
+    return conf.getInt(MAX_LATENCY, max);
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #getMaxWriteThreads(JobContext)} instead.
+   */
+  @Deprecated
+  protected static int getMaxWriteThreads(Configuration conf) {
+    return conf.getInt(NUM_WRITE_THREADS, new BatchWriterConfig().getMaxWriteThreads());
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #getLogLevel(JobContext)} instead.
+   */
+  @Deprecated
+  protected static Level getLogLevel(Configuration conf) {
+    if (conf.get(LOGLEVEL) != null)
+      return Level.toLevel(conf.getInt(LOGLEVEL, Level.INFO.toInt()));
+    return null;
+  }
+  
+  /**
+   * @deprecated since 1.5.0; Use {@link #getSimulationMode(JobContext)} instead.
+   */
+  @Deprecated
+  protected static boolean getSimulationMode(Configuration conf) {
+    return conf.getBoolean(SIMULATE, false);
+  }
+  
 }

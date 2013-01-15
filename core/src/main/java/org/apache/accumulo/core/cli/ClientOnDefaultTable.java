@@ -29,7 +29,7 @@ public class ClientOnDefaultTable extends ClientOpts {
     this.defaultTable = table;
   }
   
-  @Parameter(names="--table", description="table to use")
+  @Parameter(names = "--table", description = "table to use")
   String tableName;
   
   public String getTableName() {
@@ -38,10 +38,11 @@ public class ClientOnDefaultTable extends ClientOpts {
     return tableName;
   }
   
+  @Override
   public void setAccumuloConfigs(Job job) {
     super.setAccumuloConfigs(job);
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), user, getPassword(), getTableName(), auths);
-    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), user, getPassword(), true, getTableName());
+    AccumuloInputFormat.setInputInfo(job, user, getPassword(), getTableName(), auths);
+    AccumuloOutputFormat.setOutputInfo(job, user, getPassword(), true, getTableName());
   }
-
+  
 }

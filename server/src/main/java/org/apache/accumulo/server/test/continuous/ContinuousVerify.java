@@ -62,6 +62,7 @@ public class ContinuousVerify extends Configured implements Tool {
     
     private long corrupt = 0;
     
+    @Override
     public void map(Key key, Value data, Context context) throws IOException, InterruptedException {
       long r = Long.parseLong(key.getRow().toString(), 16);
       if (r < 0)
@@ -101,6 +102,7 @@ public class ContinuousVerify extends Configured implements Tool {
   public static class CReducer extends Reducer<LongWritable,VLongWritable,Text,Text> {
     private ArrayList<Long> refs = new ArrayList<Long>();
     
+    @Override
     public void reduce(LongWritable key, Iterable<VLongWritable> values, Context context) throws IOException, InterruptedException {
       
       int defCount = 0;
@@ -136,19 +138,21 @@ public class ContinuousVerify extends Configured implements Tool {
   }
   
   static class Opts extends ClientOnDefaultTable {
-    @Parameter(names="--output", description="location in HDFS to store the results; must not exist", required=true)
+    @Parameter(names = "--output", description = "location in HDFS to store the results; must not exist", required = true)
     String outputDir = "/tmp/continuousVerify";
     
-    @Parameter(names="--maxMappers", description="the maximum number of mappers to use", required=true, validateWith=PositiveInteger.class)
+    @Parameter(names = "--maxMappers", description = "the maximum number of mappers to use", required = true, validateWith = PositiveInteger.class)
     int maxMaps = 0;
     
-    @Parameter(names="--reducers", description="the number of reducers to use", required=true, validateWith=PositiveInteger.class)
+    @Parameter(names = "--reducers", description = "the number of reducers to use", required = true, validateWith = PositiveInteger.class)
     int reducers = 0;
     
-    @Parameter(names="--offline", description="perform the verification directly on the files while the table is offline")
+    @Parameter(names = "--offline", description = "perform the verification directly on the files while the table is offline")
     boolean scanOffline = false;
     
-    public Opts() { super("ci"); }
+    public Opts() {
+      super("ci");
+    }
   }
   
   @Override
@@ -168,17 +172,17 @@ public class ContinuousVerify extends Configured implements Tool {
       conn.tableOperations().clone(opts.getTableName(), clone, true, new HashMap<String,String>(), new HashSet<String>());
       conn.tableOperations().offline(clone);
     }
-
+    
     job.setInputFormatClass(AccumuloInputFormat.class);
-
+    
     opts.setAccumuloConfigs(job);
-    AccumuloInputFormat.setScanOffline(job.getConfiguration(), opts.scanOffline);
-
+    AccumuloInputFormat.setOfflineTableScan(job, opts.scanOffline);
+    
     // set up ranges
     try {
       Set<Range> ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
-      AccumuloInputFormat.setRanges(job.getConfiguration(), ranges);
-      AccumuloInputFormat.disableAutoAdjustRanges(job.getConfiguration());
+      AccumuloInputFormat.setRanges(job, ranges);
+      AccumuloInputFormat.setAutoAdjustRanges(job, false);
     } catch (Exception e) {
       throw new IOException(e);
     }
@@ -193,7 +197,7 @@ public class ContinuousVerify extends Configured implements Tool {
     job.setOutputFormatClass(TextOutputFormat.class);
     
     job.getConfiguration().setBoolean("mapred.map.tasks.speculative.execution", opts.scanOffline);
-
+    
     TextOutputFormat.setOutputPath(job, new Path(opts.outputDir));
     
     job.waitForCompletion(true);

@@ -37,6 +37,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
@@ -57,9 +58,10 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   
   /**
    * This helper method provides an AccumuloConfiguration object constructed from the Accumulo defaults, and overridden with Accumulo properties that have been
-   * stored in the Job's configuration
+   * stored in the Job's configuration.
    * 
    * @since 1.5.0
+   * @see #setAccumuloProperty(Job, Property, Object)
    */
   protected static AccumuloConfiguration getAccumuloConfiguration(JobContext context) {
     ConfigurationCopy acuConf = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
@@ -105,12 +107,15 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
   
   /**
+   * Sets the compression type to use for data blocks. Specifying a compression may require additional libraries to be available to your Job.
+   * 
    * @param compressionType
-   *          The type of compression to use. One of "none", "gz", "lzo", or "snappy". Specifying a compression may require additional libraries to be available
-   *          to your Job.
+   *          one of "none", "gz", "lzo", or "snappy"
    * @since 1.5.0
    */
   public static void setCompressionType(Job job, String compressionType) {
+    if (compressionType == null || !Arrays.asList("none", "gz", "lzo", "snappy").contains(compressionType))
+      throw new IllegalArgumentException("Compression type must be one of: none, gz, lzo, snappy");
     setAccumuloProperty(job, Property.TABLE_FILE_COMPRESSION_TYPE, compressionType);
   }
   
@@ -128,7 +133,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
   
   /**
-   * Sets the size for file blocks in the file system; file blocks are managed, and replicated, by the underlying file system
+   * Sets the size for file blocks in the file system; file blocks are managed, and replicated, by the underlying file system.
    * 
    * @since 1.5.0
    */
@@ -165,7 +170,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
     final Path file = this.getDefaultWorkFile(context, "." + extension);
     
     final LRUMap validVisibilities = new LRUMap(1000);
-
+    
     return new RecordWriter<Key,Value>() {
       FileSKVWriter out = null;
       
@@ -184,7 +189,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
           new ColumnVisibility(cv);
           validVisibilities.put(new ArrayByteSequence(Arrays.copyOf(cv, cv.length)), Boolean.TRUE);
         }
-
+        
         if (out == null) {
           out = FileOperations.getInstance().openWriter(file.toString(), file.getFileSystem(conf), conf, acuConf);
           out.startDefaultLocalityGroup();
@@ -200,32 +205,23 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   
   /**
    * @deprecated since 1.5.0;
-   */
-  @SuppressWarnings("unused")
-  @Deprecated
-  private static final String FILE_TYPE = PREFIX + "file_type";
-  
-  /**
-   * @deprecated since 1.5.0;
-   */
-  @SuppressWarnings("unused")
-  @Deprecated
-  private static final String BLOCK_SIZE = PREFIX + "block_size";
-  
-  /**
-   * @deprecated since 1.5.0;
+   * @see #setZooKeeperInstance(Configuration, String, String)
    */
   @Deprecated
   private static final String INSTANCE_HAS_BEEN_SET = PREFIX + "instanceConfigured";
   
   /**
    * @deprecated since 1.5.0;
+   * @see #setZooKeeperInstance(Configuration, String, String)
+   * @see #getInstance(Configuration)
    */
   @Deprecated
   private static final String INSTANCE_NAME = PREFIX + "instanceName";
   
   /**
    * @deprecated since 1.5.0;
+   * @see #setZooKeeperInstance(Configuration, String, String)
+   * @see #getInstance(Configuration)
    */
   @Deprecated
   private static final String ZOOKEEPERS = PREFIX + "zooKeepers";
@@ -254,7 +250,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
   
   /**
-   * @deprecated since 1.5.0; This OutputFormat does not communicate with Accumulo. If this is needed, subclasses must implement their own configuration.
+   * @deprecated since 1.5.0; This {@link OutputFormat} does not communicate with Accumulo. If this is needed, subclasses must implement their own
+   *             configuration.
    */
   @Deprecated
   public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
@@ -268,7 +265,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   }
   
   /**
-   * @deprecated since 1.5.0; This OutputFormat does not communicate with Accumulo. If this is needed, subclasses must implement their own configuration.
+   * @deprecated since 1.5.0; This {@link OutputFormat} does not communicate with Accumulo. If this is needed, subclasses must implement their own
+   *             configuration.
    */
   @Deprecated
   protected static Instance getInstance(Configuration conf) {

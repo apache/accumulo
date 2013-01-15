@@ -22,28 +22,28 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
+import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
 /**
- * This class allows MapReduce jobs to use Accumulo as the source of data. This input format provides keys and values of type Key and Value to the Map() and
- * Reduce() functions.
+ * This class allows MapReduce jobs to use Accumulo as the source of data. This {@link InputFormat} provides keys and values of type {@link Key} and
+ * {@link Value} to the Map function.
  * 
- * The user must specify the following via static methods:
+ * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>AccumuloInputFormat.setInputTableInfo(job, username, password, table, auths)
- * <li>AccumuloInputFormat.setZooKeeperInstance(job, instanceName, hosts)
+ * <li>{@link AccumuloInputFormat#setInputInfo(org.apache.hadoop.mapreduce.Job, String, byte[], String, org.apache.accumulo.core.security.Authorizations)}
+ * <li>{@link AccumuloInputFormat#setZooKeeperInstance(org.apache.hadoop.mapreduce.Job, String, String)}
  * </ul>
  * 
- * Other static methods are optional
+ * Other static methods are optional.
  */
-
 public class AccumuloInputFormat extends InputFormatBase<Key,Value> {
   @Override
   public RecordReader<Key,Value> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
-    log.setLevel(getLogLevel(context.getConfiguration()));
+    log.setLevel(getLogLevel(context));
     return new RecordReaderBase<Key,Value>() {
       @Override
       public boolean nextKeyValue() throws IOException, InterruptedException {

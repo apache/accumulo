@@ -35,6 +35,7 @@ public class CopyTool extends Configured implements Tool {
   protected final Logger log = Logger.getLogger(this.getClass());
   
   public static class SeqMapClass extends Mapper<Key,Value,Text,Mutation> {
+    @Override
     public void map(Key key, Value val, Context output) throws IOException, InterruptedException {
       Mutation m = new Mutation(key.getRow());
       m.put(key.getColumnFamily(), key.getColumnQualifier(), val);
@@ -42,6 +43,7 @@ public class CopyTool extends Configured implements Tool {
     }
   }
   
+  @Override
   public int run(String[] args) throws Exception {
     Job job = new Job(getConf(), this.getClass().getSimpleName());
     job.setJarByClass(this.getClass());
@@ -52,8 +54,8 @@ public class CopyTool extends Configured implements Tool {
     }
     
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), args[0], args[1].getBytes(), args[2], new Authorizations());
-    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), args[3], args[4]);
+    AccumuloInputFormat.setInputInfo(job, args[0], args[1].getBytes(), args[2], new Authorizations());
+    AccumuloInputFormat.setZooKeeperInstance(job, args[3], args[4]);
     
     job.setMapperClass(SeqMapClass.class);
     job.setMapOutputKeyClass(Text.class);
@@ -62,8 +64,8 @@ public class CopyTool extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), args[0], args[1].getBytes(), true, args[5]);
-    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[3], args[4]);
+    AccumuloOutputFormat.setOutputInfo(job, args[0], args[1].getBytes(), true, args[5]);
+    AccumuloOutputFormat.setZooKeeperInstance(job, args[3], args[4]);
     
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

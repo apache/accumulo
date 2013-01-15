@@ -39,6 +39,7 @@ public class MapRedVerifyTool extends Configured implements Tool {
   protected final Logger log = Logger.getLogger(this.getClass());
   
   public static class SeqMapClass extends Mapper<Key,Value,NullWritable,IntWritable> {
+    @Override
     public void map(Key row, Value data, Context output) throws IOException, InterruptedException {
       Integer num = Integer.valueOf(row.getRow().toString());
       output.write(NullWritable.get(), new IntWritable(num.intValue()));
@@ -74,6 +75,7 @@ public class MapRedVerifyTool extends Configured implements Tool {
     }
   }
   
+  @Override
   public int run(String[] args) throws Exception {
     Job job = new Job(getConf(), this.getClass().getSimpleName());
     job.setJarByClass(this.getClass());
@@ -84,8 +86,8 @@ public class MapRedVerifyTool extends Configured implements Tool {
     }
     
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), args[0], args[1].getBytes(), args[2], new Authorizations());
-    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), args[3], args[4]);
+    AccumuloInputFormat.setInputInfo(job, args[0], args[1].getBytes(), args[2], new Authorizations());
+    AccumuloInputFormat.setZooKeeperInstance(job, args[3], args[4]);
     
     job.setMapperClass(SeqMapClass.class);
     job.setMapOutputKeyClass(NullWritable.class);
@@ -95,8 +97,8 @@ public class MapRedVerifyTool extends Configured implements Tool {
     job.setNumReduceTasks(1);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), args[0], args[1].getBytes(), true, args[5]);
-    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[3], args[4]);
+    AccumuloOutputFormat.setOutputInfo(job, args[0], args[1].getBytes(), true, args[5]);
+    AccumuloOutputFormat.setZooKeeperInstance(job, args[3], args[4]);
     
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

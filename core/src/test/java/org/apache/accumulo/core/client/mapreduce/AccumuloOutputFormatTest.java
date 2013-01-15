@@ -94,8 +94,8 @@ public class AccumuloOutputFormatTest {
       
       job.setInputFormatClass(AccumuloInputFormat.class);
       
-      AccumuloInputFormat.setInputInfo(job.getConfiguration(), user, pass.getBytes(), table1, Constants.NO_AUTHS);
-      AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testmrinstance");
+      AccumuloInputFormat.setInputInfo(job, user, pass.getBytes(), table1, Constants.NO_AUTHS);
+      AccumuloInputFormat.setMockInstance(job, "testmrinstance");
       
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);
@@ -104,8 +104,8 @@ public class AccumuloOutputFormatTest {
       job.setOutputKeyClass(Text.class);
       job.setOutputValueClass(Mutation.class);
       
-      AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), user, pass.getBytes(), false, table2);
-      AccumuloOutputFormat.setMockInstance(job.getConfiguration(), "testmrinstance");
+      AccumuloOutputFormat.setOutputInfo(job, user, pass.getBytes(), false, table2);
+      AccumuloOutputFormat.setMockInstance(job, "testmrinstance");
       
       job.setNumReduceTasks(0);
       

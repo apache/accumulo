@@ -138,8 +138,8 @@ public class AccumuloFileOutputFormatTest {
       Authorizations authorizations;
       authorizations = Constants.NO_AUTHS;
       
-      AccumuloInputFormat.setInputInfo(job.getConfiguration(), user, pass.getBytes(), table, authorizations);
-      AccumuloInputFormat.setMockInstance(job.getConfiguration(), "testinstance");
+      AccumuloInputFormat.setInputInfo(job, user, pass.getBytes(), table, authorizations);
+      AccumuloInputFormat.setMockInstance(job, "testinstance");
       AccumuloFileOutputFormat.setOutputPath(job, new Path(args[3]));
       
       job.setMapperClass("badtable".equals(table) ? BadKeyMapper.class : Mapper.class);
@@ -195,7 +195,7 @@ public class AccumuloFileOutputFormatTest {
     long b = 300l;
     long c = 50l;
     long d = 10l;
-    String e = "type";
+    String e = "snappy";
     
     Job job = new Job();
     AccumuloFileOutputFormat.setReplication(job, a);
@@ -206,10 +206,32 @@ public class AccumuloFileOutputFormatTest {
     
     AccumuloConfiguration acuconf = AccumuloFileOutputFormat.getAccumuloConfiguration(job);
     
-    assertEquals(a, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
-    assertEquals(b, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));
-    assertEquals(c, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
-    assertEquals(d, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
-    assertEquals(e, acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
+    assertEquals(7, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
+    assertEquals(300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));
+    assertEquals(50l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
+    assertEquals(10l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
+    assertEquals("snappy", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
+    
+    a = 17;
+    b = 1300l;
+    c = 150l;
+    d = 110l;
+    e = "lzo";
+    
+    job = new Job();
+    AccumuloFileOutputFormat.setReplication(job, a);
+    AccumuloFileOutputFormat.setFileBlockSize(job, b);
+    AccumuloFileOutputFormat.setDataBlockSize(job, c);
+    AccumuloFileOutputFormat.setIndexBlockSize(job, d);
+    AccumuloFileOutputFormat.setCompressionType(job, e);
+    
+    acuconf = AccumuloFileOutputFormat.getAccumuloConfiguration(job);
+    
+    assertEquals(17, acuconf.getCount(Property.TABLE_FILE_REPLICATION));
+    assertEquals(1300l, acuconf.getMemoryInBytes(Property.TABLE_FILE_BLOCK_SIZE));
+    assertEquals(150l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
+    assertEquals(110l, acuconf.getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX));
+    assertEquals("lzo", acuconf.get(Property.TABLE_FILE_COMPRESSION_TYPE));
+    
   }
 }

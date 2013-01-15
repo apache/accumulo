@@ -153,8 +153,8 @@ public class AccumuloRowInputFormatTest {
       
       job.setInputFormatClass(AccumuloRowInputFormat.class);
       
-      AccumuloRowInputFormat.setInputInfo(job.getConfiguration(), user, pass.getBytes(), table, Constants.NO_AUTHS);
-      AccumuloRowInputFormat.setMockInstance(job.getConfiguration(), "instance1");
+      AccumuloRowInputFormat.setInputInfo(job, user, pass.getBytes(), table, Constants.NO_AUTHS);
+      AccumuloRowInputFormat.setMockInstance(job, "instance1");
       
       job.setMapperClass(TestMapper.class);
       job.setMapOutputKeyClass(Key.class);

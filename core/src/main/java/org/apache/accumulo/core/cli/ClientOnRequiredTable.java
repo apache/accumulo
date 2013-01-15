@@ -24,13 +24,13 @@ import com.beust.jcommander.Parameter;
 
 public class ClientOnRequiredTable extends ClientOpts {
   
-  @Parameter(names={"-t", "--table"}, required=true, description="table to use")
+  @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
   public String tableName = null;
-
+  
   @Override
   public void setAccumuloConfigs(Job job) {
     super.setAccumuloConfigs(job);
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), user, getPassword(), tableName, auths);
-    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), user, getPassword(), true, tableName);
+    AccumuloInputFormat.setInputInfo(job, user, getPassword(), tableName, auths);
+    AccumuloOutputFormat.setOutputInfo(job, user, getPassword(), true, tableName);
   }
 }

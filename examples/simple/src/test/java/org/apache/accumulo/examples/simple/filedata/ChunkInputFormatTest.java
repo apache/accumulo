@@ -197,10 +197,12 @@ public class ChunkInputFormatTest extends TestCase {
       
       job.setInputFormatClass(ChunkInputFormat.class);
       
-      ChunkInputFormat.setInputInfo(job.getConfiguration(), user, pass.getBytes(), table, AUTHS);
-      ChunkInputFormat.setMockInstance(job.getConfiguration(), instance);
+      ChunkInputFormat.setInputInfo(job, user, pass.getBytes(), table, AUTHS);
+      ChunkInputFormat.setMockInstance(job, instance);
       
-      job.setMapperClass((Class<? extends Mapper>) Class.forName(args[4]));
+      @SuppressWarnings("unchecked")
+      Class<? extends Mapper<?,?,?,?>> forName = (Class<? extends Mapper<?,?,?,?>>) Class.forName(args[4]);
+      job.setMapperClass(forName);
       job.setMapOutputKeyClass(Key.class);
       job.setMapOutputValueClass(Value.class);
       job.setOutputFormatClass(NullOutputFormat.class);
