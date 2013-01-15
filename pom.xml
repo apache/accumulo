@@ -208,6 +208,7 @@
           <configuration>
             <formats>
               <format>xml</format>
+              <format>html</format>
             </formats>
           </configuration>
         </plugin>
@@ -531,6 +532,7 @@
         <slf4j.version>1.6.1</slf4j.version>
         <hadoop.version>2.0.2-alpha</hadoop.version>
         <avro.version>1.5.3</avro.version>
+        <httpclient.version>3.1</httpclient.version>
       </properties>
       <dependencyManagement>
         <dependencies>
@@ -544,6 +546,12 @@
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
             <version>${avro.version}</version>
+            <scope>provided</scope>
+          </dependency>
+          <dependency>
+            <groupId>commons-httpclient</groupId>
+            <artifactId>commons-httpclient</artifactId>
+            <version>${httpclient.version}</version>
             <scope>provided</scope>
           </dependency>
         </dependencies>
