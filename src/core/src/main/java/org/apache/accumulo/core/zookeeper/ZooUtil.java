@@ -16,6 +16,8 @@
  */
 package org.apache.accumulo.core.zookeeper;
 
+import java.math.BigInteger;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -61,7 +63,7 @@ public class ZooUtil {
       else
         path = root + "/" + sa[0].substring(0, lastSlash);
       node = sa[0].substring(lastSlash + 1);
-      eid = Long.parseLong(sa[1], 16);
+      eid = new BigInteger(sa[1], 16).longValue();
     }
     
     public LockID(String path, String node, long eid) {
