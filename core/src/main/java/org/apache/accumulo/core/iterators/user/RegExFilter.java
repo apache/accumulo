@@ -168,7 +168,7 @@ public class RegExFilter extends Filter {
     io.addNamedOption(RegExFilter.COLF_REGEX, "regular expression on column family");
     io.addNamedOption(RegExFilter.COLQ_REGEX, "regular expression on column qualifier");
     io.addNamedOption(RegExFilter.VALUE_REGEX, "regular expression on value");
-    io.addNamedOption(RegExFilter.OR_FIELDS, "use OR instread of AND when multiple regexes given");
+    io.addNamedOption(RegExFilter.OR_FIELDS, "use OR instead of AND when multiple regexes given");
     io.addNamedOption(RegExFilter.MATCH_SUBSTRING, "match on substrings");
     io.addNamedOption(RegExFilter.ENCODING, "character encoding of byte array value (default is " + ENCODING_DEFAULT + ")");
     return io;
@@ -192,6 +192,8 @@ public class RegExFilter extends Filter {
     if (options.containsKey(ENCODING)) {
       try {
         this.encoding = options.get(ENCODING);
+        if ("".equals(this.encoding))
+          encoding = ENCODING_DEFAULT;
         @SuppressWarnings("unused")
         String test = new String("test".getBytes(), encoding);
       } catch (UnsupportedEncodingException e) {
