@@ -118,7 +118,7 @@ public class MiniAccumuloCluster {
   
   private List<LogWriter> logWriters = new ArrayList<MiniAccumuloCluster.LogWriter>();
 
-  private MacConfig config;
+  private MiniAccumuloConfig config;
   private Process[] tabletServerProcesses;
 
   private int getRandomFreePort() {
@@ -188,7 +188,7 @@ public class MiniAccumuloCluster {
     if (!siteConfig.containsKey(key))
       fileWriter.append("<property><name>" + key + "</name><value>" + value + "</value></property>\n");
   }
-
+  
   /**
    * 
    * @param dir
@@ -196,13 +196,19 @@ public class MiniAccumuloCluster {
    *          and Junit provide methods for creating temporary directories.
    * @param rootPassword
    *          Initial root password for instance.
-   * @param siteConfig
-   *          Any system properties that needs to be set before Accumulo processes are started. These are properties that would normally be placed in
-   *          accumulo-site.xml
+   * @throws IOException
+   */
+  public MiniAccumuloCluster(File dir, String rootPassword) throws IOException {
+    this(new MiniAccumuloConfig(dir, rootPassword));
+  }
+
+  /**
+   * @param config
+   *          initial configuration
    * @throws IOException
    */
 
-  public MiniAccumuloCluster(MacConfig config) throws IOException {
+  public MiniAccumuloCluster(MiniAccumuloConfig config) throws IOException {
 
     if (config.getDir().exists() && !config.getDir().isDirectory())
       throw new IllegalArgumentException("Must pass in directory, " + config.getDir() + " is a file");

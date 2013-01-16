@@ -21,7 +21,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.server.test.continuous.ContinuousIngest;
 import org.apache.accumulo.server.test.continuous.ContinuousVerify;
-import org.apache.accumulo.test.MacConfig;
 import org.apache.accumulo.test.MiniAccumuloCluster;
 import org.apache.commons.io.FileUtils;
 
@@ -52,7 +51,7 @@ public class MapReduceExample {
     File tmpDir = new File(FileUtils.getTempDirectory(), "macc-" + UUID.randomUUID().toString());
     
     try {
-      MiniAccumuloCluster la = new MiniAccumuloCluster(new MacConfig(tmpDir, "pass1234"));
+      MiniAccumuloCluster la = new MiniAccumuloCluster(tmpDir, "pass1234");
       la.start();
       
       System.out.println("\n   ---- Running Mapred Against Accumulo\n");
