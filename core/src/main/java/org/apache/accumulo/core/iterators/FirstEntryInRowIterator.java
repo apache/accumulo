@@ -92,8 +92,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
         Key nextKey = getSource().getTopKey().followingKey(PartialKey.ROW);
         if (!latestRange.afterEndKey(nextKey))
           getSource().seek(new Range(nextKey, true, latestRange.getEndKey(), latestRange.isEndKeyInclusive()), latestColumnFamilies, latestInclusive);
-        else
-        {
+        else {
           finished = true;
           break;
         }
@@ -103,13 +102,12 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   }
   
   private boolean finished = true;
-
+  
   @Override
-  public boolean hasTop()
-  {
+  public boolean hasTop() {
     return !finished && getSource().hasTop();
   }
-
+  
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive) throws IOException {
     // save parameters for future internal seeks
@@ -122,7 +120,7 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
     Range seekRange = new Range(startKey == null ? null : new Key(startKey.getRow()), true, range.getEndKey(), range.isEndKeyInclusive());
     super.seek(seekRange, columnFamilies, inclusive);
     finished = false;
-
+    
     if (getSource().hasTop()) {
       lastRowFound = getSource().getTopKey().getRow();
       if (range.beforeStartKey(getSource().getTopKey()))
@@ -143,11 +141,12 @@ public class FirstEntryInRowIterator extends SkippingIterator implements OptionD
   public boolean validateOptions(Map<String,String> options) {
     try {
       String o = options.get(NUM_SCANS_STRING_NAME);
-      Integer i = o == null ? 10 : Integer.parseInt(o);
-      return i != null;
+      if (o != null)
+        Integer.parseInt(o);
     } catch (Exception e) {
-      return false;
+      throw new IllegalArgumentException("bad integer " + NUM_SCANS_STRING_NAME + ":" + options.get(NUM_SCANS_STRING_NAME), e);
     }
+    return true;
   }
   
 }

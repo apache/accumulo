@@ -257,20 +257,15 @@ public class LargeRowFilter implements SortedKeyValueIterator<Key,Value>, Option
   @Override
   public boolean validateOptions(Map<String,String> options) {
     if (options == null || options.size() < 1) {
-      System.out.println("Bad # of options, must supply: " + MAX_COLUMNS + " as value");
-      return false;
+      throw new IllegalArgumentException("Bad # of options, must supply: " + MAX_COLUMNS + " as value");
     }
     
-    if (options.containsKey(MAX_COLUMNS)) {
-      try {
-        maxColumns = Integer.parseInt(options.get(MAX_COLUMNS));
-      } catch (NumberFormatException e) {
-        e.printStackTrace();
-        return false;
-      }
-    } else {
-      System.out.println("Need to have " + MAX_COLUMNS);
-      return false;
+    if (!options.containsKey(MAX_COLUMNS))
+      throw new IllegalArgumentException("Bad # of options, must supply: " + MAX_COLUMNS + " as value");
+    try {
+      maxColumns = Integer.parseInt(options.get(MAX_COLUMNS));
+    } catch (Exception e) {
+      throw new IllegalArgumentException("bad integer " + MAX_COLUMNS + ":" + options.get(MAX_COLUMNS));
     }
     
     return true;

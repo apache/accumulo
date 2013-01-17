@@ -127,8 +127,13 @@ public class SummingArrayCombiner extends TypedValueCombiner<List<Long>> {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    super.validateOptions(options);
-    setEncoder(options);
+    if (super.validateOptions(options) == false)
+      return false;
+    try {
+      setEncoder(options);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("bad encoder option", e);
+    }
     return true;
   }
   

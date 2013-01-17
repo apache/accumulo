@@ -101,7 +101,11 @@ public abstract class Filter extends WrappingIterator implements OptionDescriber
   @Override
   public boolean validateOptions(Map<String,String> options) {
     if (options.get(NEGATE) != null) {
-      Boolean.parseBoolean(options.get(NEGATE));
+      try {
+        Boolean.parseBoolean(options.get(NEGATE));
+      } catch (Exception e) {
+        throw new IllegalArgumentException("bad boolean " + NEGATE + ":" + options.get(NEGATE));
+      }
     }
     return true;
   }
