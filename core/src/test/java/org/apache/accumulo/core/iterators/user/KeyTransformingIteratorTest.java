@@ -91,10 +91,10 @@ public class KeyTransformingIteratorTest {
   
   @Test
   public void testIdentityScan() throws Exception {
-    setUpTransformIterator(IdentityKeyTransformingIterator.class); 
+    setUpTransformIterator(IdentityKeyTransformingIterator.class);
     
     // This is just an identity scan, but with the "reuse" iterator that reuses
-    // the same key/value pair for every getTopKey/getTopValue call.  The code
+    // the same key/value pair for every getTopKey/getTopValue call. The code
     // will always return the final key/value if we didn't copy the original key
     // in the iterator.
     TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
@@ -114,7 +114,8 @@ public class KeyTransformingIteratorTest {
   @Test
   public void testNoRangeScan() throws Exception {
     @SuppressWarnings("unchecked")
-    List<Class<? extends ReversingKeyTransformingIterator>> classes = Arrays.asList(ColFamReversingKeyTransformingIterator.class, ColQualReversingKeyTransformingIterator.class, ColVisReversingKeyTransformingIterator.class);
+    List<Class<? extends ReversingKeyTransformingIterator>> classes = Arrays.asList(ColFamReversingKeyTransformingIterator.class,
+        ColQualReversingKeyTransformingIterator.class, ColVisReversingKeyTransformingIterator.class);
     
     // Test transforming col fam, col qual, col vis
     for (Class<? extends ReversingKeyTransformingIterator> clazz : classes) {
@@ -134,14 +135,14 @@ public class KeyTransformingIteratorTest {
         }
       }
       
-      checkExpected(expected);    
+      checkExpected(expected);
     }
   }
   
   @Test
   public void testVisbilityFiltering() throws Exception {
     // Should return nothing since we produced visibilities that can't be seen
-    setUpTransformIterator(BadVisKeyTransformingIterator.class);     
+    setUpTransformIterator(BadVisKeyTransformingIterator.class);
     checkExpected(new TreeMap<Key,Value>());
     
     // Do a "reverse" on the visibility (vis1 -> vis2, vis2 -> vis3, vis3 -> vis0)
@@ -159,13 +160,13 @@ public class KeyTransformingIteratorTest {
           }
         }
       }
-    }    
+    }
     checkExpected(expected);
   }
   
   @Test
   public void testRangeStart() throws Exception {
-    setUpTransformIterator(ColVisReversingKeyTransformingIterator.class); 
+    setUpTransformIterator(ColVisReversingKeyTransformingIterator.class);
     scanner.setRange(new Range(new Key("row1", "cf2", "cq2", "vis1"), true, new Key("row1", "cf2", "cq3"), false));
     
     TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
@@ -177,11 +178,11 @@ public class KeyTransformingIteratorTest {
   
   @Test
   public void testRangeEnd() throws Exception {
-    setUpTransformIterator(ColVisReversingKeyTransformingIterator.class); 
+    setUpTransformIterator(ColVisReversingKeyTransformingIterator.class);
     scanner.setRange(new Range(new Key("row1", "cf2", "cq2"), true, new Key("row1", "cf2", "cq2", "vis2"), false));
     
     TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
-    //putExpected(expected, 1, 2, 2, 1, part); // transforms vis outside range end
+    // putExpected(expected, 1, 2, 2, 1, part); // transforms vis outside range end
     putExpected(expected, 1, 2, 2, 2, PartialKey.ROW_COLFAM_COLQUAL);
     putExpected(expected, 1, 2, 2, 3, PartialKey.ROW_COLFAM_COLQUAL);
     
@@ -191,7 +192,7 @@ public class KeyTransformingIteratorTest {
   @Test
   public void testPrefixRange() throws Exception {
     setUpTransformIterator(ColFamReversingKeyTransformingIterator.class);
-    // Set a range that is before all of the untransformed data.  However,
+    // Set a range that is before all of the untransformed data. However,
     // the data with untransformed col fam cf3 will transform to cf0 and
     // be inside the range.
     scanner.setRange(new Range(new Key("row1", "cf0"), true, new Key("row1", "cf1"), false));
@@ -219,25 +220,25 @@ public class KeyTransformingIteratorTest {
     originalKey.setDeleted(true);
     
     Key newKey = it.replaceColumnFamily(originalKey, new Text("test"));
-    assertEquals(createDeleteKey("r","test","cq","cv",42), newKey);
+    assertEquals(createDeleteKey("r", "test", "cq", "cv", 42), newKey);
     
     newKey = it.replaceColumnQualifier(originalKey, new Text("test"));
-    assertEquals(createDeleteKey("r","cf","test","cv",42), newKey);
+    assertEquals(createDeleteKey("r", "cf", "test", "cv", 42), newKey);
     
     newKey = it.replaceColumnVisibility(originalKey, new Text("test"));
-    assertEquals(createDeleteKey("r","cf","cq","test",42), newKey);
+    assertEquals(createDeleteKey("r", "cf", "cq", "test", 42), newKey);
     
     newKey = it.replaceKeyParts(originalKey, new Text("testCQ"), new Text("testCV"));
-    assertEquals(createDeleteKey("r","cf","testCQ","testCV",42), newKey);
+    assertEquals(createDeleteKey("r", "cf", "testCQ", "testCV", 42), newKey);
     
     newKey = it.replaceKeyParts(originalKey, new Text("testCF"), new Text("testCQ"), new Text("testCV"));
-    assertEquals(createDeleteKey("r","testCF","testCQ","testCV",42), newKey);
+    assertEquals(createDeleteKey("r", "testCF", "testCQ", "testCV", 42), newKey);
   }
   
   @Test
   public void testFetchColumnFamilites() throws Exception {
     // In this test, we are fetching column family cf2, which is in
-    // the transformed space.  The source column family that will
+    // the transformed space. The source column family that will
     // transform into cf2 is cf1, so that is the column family we
     // put in the expectations.
     int expectedCF = 1;
@@ -260,7 +261,7 @@ public class KeyTransformingIteratorTest {
   @Test
   public void testCompactionScanFetchingColumnFamilies() throws Exception {
     // In this test, we are fetching column family cf2, which is in
-    // the transformed space.  The source column family that will
+    // the transformed space. The source column family that will
     // transform into cf2 is cf1, so that is the column family we
     // put in the expectations.
     int expectedCF = 1;
@@ -273,15 +274,15 @@ public class KeyTransformingIteratorTest {
         for (int cv = 1; cv <= 3; ++cv)
           putExpected(expected, row, expectedCF, cq, cv, PartialKey.ROW);
     checkExpected(expected);
-  }  
+  }
   
   @Test
   public void testCompactionDoesntFilterVisibilities() throws Exception {
     // In scan mode, this should return nothing since it produces visibilites
-    // the user can't see.  In compaction mode, however, the visibilites
+    // the user can't see. In compaction mode, however, the visibilites
     // should still show up.
-    setUpTransformIterator(BadVisCompactionKeyTransformingIterator.class);     
-
+    setUpTransformIterator(BadVisCompactionKeyTransformingIterator.class);
+    
     TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
     for (int rowID = 1; rowID <= 3; ++rowID) {
       for (int cfID = 1; cfID <= 3; ++cfID) {
@@ -291,7 +292,7 @@ public class KeyTransformingIteratorTest {
             String cf = "cf" + cfID;
             String cq = "cq" + cqID;
             String cv = "badvis";
-            long ts = 100*cfID + 10*cqID + cvID;
+            long ts = 100 * cfID + 10 * cqID + cvID;
             String val = "val" + ts;
             expected.put(new Key(row, cf, cq, cv, ts), new Value(val.getBytes()));
           }
@@ -299,7 +300,7 @@ public class KeyTransformingIteratorTest {
       }
     }
     
-    checkExpected(expected);    
+    checkExpected(expected);
   }
   
   private Key createDeleteKey(String row, String colFam, String colQual, String colVis, long timestamp) {
@@ -327,17 +328,20 @@ public class KeyTransformingIteratorTest {
     String cf = "cf" + cfID;
     String cq = "cq" + cqID;
     String cv = "vis" + cvID;
-    long ts = 100*cfID + 10*cqID + cvID;
+    long ts = 100 * cfID + 10 * cqID + cvID;
     String val = "val" + ts;
     
     if (part != null) {
       switch (part) {
         case ROW:
-          cf = transform(new Text(cf)).toString(); break;
+          cf = transform(new Text(cf)).toString();
+          break;
         case ROW_COLFAM:
-          cq = transform(new Text(cq)).toString(); break;
+          cq = transform(new Text(cq)).toString();
+          break;
         case ROW_COLFAM_COLQUAL:
-          cv = transform(new Text(cv)).toString(); break;
+          cv = transform(new Text(cv)).toString();
+          break;
         default:
           break;
       }
@@ -349,7 +353,7 @@ public class KeyTransformingIteratorTest {
   private static Text transform(Text val) {
     String s = val.toString();
     // Reverse the order of the number at the end, and subtract one
-    int i = 3 - Integer.parseInt(s.substring(s.length()-1));
+    int i = 3 - Integer.parseInt(s.substring(s.length() - 1));
     StringBuilder sb = new StringBuilder();
     sb.append(s.substring(0, s.length() - 1));
     sb.append(i);
@@ -364,7 +368,7 @@ public class KeyTransformingIteratorTest {
           String cf = "cf" + cfID;
           String cq = "cq" + cqID;
           String cv = "vis" + cvID;
-          long ts = 100*cfID + 10*cqID + cvID;
+          long ts = 100 * cfID + 10 * cqID + cvID;
           String val = "val" + ts;
           
           m.put(cf, cq, new ColumnVisibility(cv), ts, val);
@@ -382,11 +386,14 @@ public class KeyTransformingIteratorTest {
     long ts = originalKey.getTimestamp();
     switch (part) {
       case ROW:
-        cf = transform(cf); break;
+        cf = transform(cf);
+        break;
       case ROW_COLFAM:
-        cq = transform(cq); break;
+        cq = transform(cq);
+        break;
       case ROW_COLFAM_COLQUAL:
-        cv = transform(cv); break;
+        cv = transform(cv);
+        break;
       default:
         break;
     }
@@ -421,7 +428,7 @@ public class KeyTransformingIteratorTest {
     @Override
     protected Collection<ByteSequence> untransformColumnFamilies(Collection<ByteSequence> columnFamilies) {
       HashSet<ByteSequence> untransformed = new HashSet<ByteSequence>();
-      for (ByteSequence cf : columnFamilies) 
+      for (ByteSequence cf : columnFamilies)
         untransformed.add(untransformColumnFamily(cf));
       return untransformed;
     }
@@ -515,23 +522,23 @@ public class KeyTransformingIteratorTest {
     public MajCIteratorEnvironmentAdapter(IteratorEnvironment delegate) {
       this.delegate = delegate;
     }
-
+    
     public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException {
       return delegate.reserveMapFileReader(mapFileName);
     }
-
+    
     public AccumuloConfiguration getConfig() {
       return delegate.getConfig();
     }
-
+    
     public IteratorScope getIteratorScope() {
       return IteratorScope.majc;
     }
-
+    
     public boolean isFullMajorCompaction() {
       return delegate.isFullMajorCompaction();
     }
-
+    
     public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
       delegate.registerSideChannel(iter);
     }

@@ -45,49 +45,30 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 /**
- * The KeyTransformingIterator allows portions of a key (except for the row)
- * to be transformed.  This iterator handles the details that come with modifying
- * keys (i.e., that the sort order could change).  In order to do so, however,
- * the iterator must put all keys sharing the same prefix in memory.  Prefix
- * is defined as the parts of the key that are not modified by this iterator.
- * That is, if the iterator modifies column qualifier and timestamp, then the
- * prefix is row and column family.  In that case, the iterator must load all
- * column qualifiers for each row/column family pair into memory.  Given this
- * constraint, care must be taken by users of this iterator to ensure it is
- * not run in such a way that will overrun memory in a tablet server.
+ * The KeyTransformingIterator allows portions of a key (except for the row) to be transformed. This iterator handles the details that come with modifying keys
+ * (i.e., that the sort order could change). In order to do so, however, the iterator must put all keys sharing the same prefix in memory. Prefix is defined as
+ * the parts of the key that are not modified by this iterator. That is, if the iterator modifies column qualifier and timestamp, then the prefix is row and
+ * column family. In that case, the iterator must load all column qualifiers for each row/column family pair into memory. Given this constraint, care must be
+ * taken by users of this iterator to ensure it is not run in such a way that will overrun memory in a tablet server.
  * <p>
- * If the implementing iterator is transforming column families, then it
- * must also override {@link #untransformColumnFamilies(Collection)} to handle
- * the case when column families are fetched at scan time.  The fetched column
- * families will/must be in the transformed space, and the untransformed column
- * families need to be passed to this iterator's source.  If it is not possible
- * to write a reverse transformation (e.g., the column family transformation
- * depends on the row value or something like that), then the iterator must
- * not fetch specific column families (or only fetch column families that are
- * known to not transform at all).
+ * If the implementing iterator is transforming column families, then it must also override {@link #untransformColumnFamilies(Collection)} to handle the case
+ * when column families are fetched at scan time. The fetched column families will/must be in the transformed space, and the untransformed column families need
+ * to be passed to this iterator's source. If it is not possible to write a reverse transformation (e.g., the column family transformation depends on the row
+ * value or something like that), then the iterator must not fetch specific column families (or only fetch column families that are known to not transform at
+ * all).
  * <p>
- * If the implementing iterator is transforming column visibilities, then
- * users must be careful NOT to fetch column qualifiers from the scanner.
- * The reason for this is due to ACCUMULO-??? (insert issue number).
+ * If the implementing iterator is transforming column visibilities, then users must be careful NOT to fetch column qualifiers from the scanner. The reason for
+ * this is due to ACCUMULO-??? (insert issue number).
  * <p>
- * If the implementing iterator is transforming column visibilities, then the
- * user should be sure to supply authorizations via the {@link #AUTH_OPT}
- * iterator option (note that this is only necessary for scan scope iterators).
- * The supplied authorizations should be in the transformed space, but the
- * authorizations supplied to the scanner should be in the untransformed
- * space.  That is, if the iterator transforms A to 1, B to 2, C to 3, etc,
- * then the auths supplied when the scanner is constructed should be A,B,C,...
- * and the auths supplied to the iterator should be 1,2,3,...  The reason
- * for this is that the scanner performs security filtering before this
- * iterator is called, so the authorizations need to be in the original
- * untransformed space.  Since the iterator can transform visibilities, it is
- * possible that it could produce visibilities that the user cannot see,
- * so the transformed keys must be tested to ensure the user is allowed to view 
- * them.  Note that this test is not necessary when the iterator is not used
- * in the scan scope since no security filtering is performed during major and
- * minor compactions.  It should also be noted that this iterator implements the
- * security filtering rather than relying on a follow-on iterator to do it so
- * that we ensure the test is performed.
+ * If the implementing iterator is transforming column visibilities, then the user should be sure to supply authorizations via the {@link #AUTH_OPT} iterator
+ * option (note that this is only necessary for scan scope iterators). The supplied authorizations should be in the transformed space, but the authorizations
+ * supplied to the scanner should be in the untransformed space. That is, if the iterator transforms A to 1, B to 2, C to 3, etc, then the auths supplied when
+ * the scanner is constructed should be A,B,C,... and the auths supplied to the iterator should be 1,2,3,... The reason for this is that the scanner performs
+ * security filtering before this iterator is called, so the authorizations need to be in the original untransformed space. Since the iterator can transform
+ * visibilities, it is possible that it could produce visibilities that the user cannot see, so the transformed keys must be tested to ensure the user is
+ * allowed to view them. Note that this test is not necessary when the iterator is not used in the scan scope since no security filtering is performed during
+ * major and minor compactions. It should also be noted that this iterator implements the security filtering rather than relying on a follow-on iterator to do
+ * it so that we ensure the test is performed.
  */
 abstract public class KeyTransformingIterator extends WrappingIterator implements OptionDescriber {
   public static final String AUTH_OPT = "authorizations";
@@ -104,15 +85,14 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
   private LRUMap visibleCache = null;
   private LRUMap parsedVisibilitiesCache = null;
   
-  private static Comparator<Pair<Key,Value>> keyComparator = new Comparator<Pair<Key,Value>>() {    
+  private static Comparator<Pair<Key,Value>> keyComparator = new Comparator<Pair<Key,Value>>() {
     @Override
     public int compare(Pair<Key,Value> o1, Pair<Key,Value> o2) {
       return o1.getFirst().compareTo(o2.getFirst());
     }
   };
   
-  public KeyTransformingIterator() {
-  }
+  public KeyTransformingIterator() {}
   
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
@@ -132,8 +112,8 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
   @Override
   public IteratorOptions describeOptions() {
     String desc = "This iterator allows keys to be transformed.";
-    String authDesc = "Comma-separated list of user's scan authorizations.  " +
-    		"If excluded or empty, then no visibility check is performed on transformed keys.";
+    String authDesc = "Comma-separated list of user's scan authorizations.  "
+        + "If excluded or empty, then no visibility check is performed on transformed keys.";
     return new IteratorOptions(getClass().getSimpleName(), desc, Collections.singletonMap(AUTH_OPT, authDesc), null);
   }
   
@@ -195,14 +175,14 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     // Move on to the next entry since we returned the entry at keyPos before
     if (keyPos >= 0)
       keyPos++;
-
-    // If we emptied out the transformed key map then transform the next key 
-    // set from the source.  It’s possible that transformation could produce keys
+    
+    // If we emptied out the transformed key map then transform the next key
+    // set from the source. It’s possible that transformation could produce keys
     // that are outside of our range or are not visible to the end user, so after the
-    // call below we might not have added any keys to the map.  Keep going until
+    // call below we might not have added any keys to the map. Keep going until
     // we either get some keys in the map or exhaust the source iterator.
     while (!hasTop() && super.hasTop())
-      transformKeys();  
+      transformKeys();
   }
   
   @Override
@@ -212,7 +192,7 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     seekColumnFamiliesInclusive = inclusive;
 
     // Seek the source iterator, but use a recalculated range that ensures
-    // we see all keys with the same "prefix."  We need to do this since
+    // we see all keys with the same "prefix." We need to do this since
     // transforming could change the sort order and transformed keys that
     // are before the range start could be inside the range after transformation.
     super.seek(computeReseekRange(range), untransformColumnFamilies(columnFamilies), inclusive);
@@ -220,9 +200,9 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     // Range clipping could cause us to trim out all the keys we transformed.
     // Keep looping until we either have some keys in the output range, or have
     // exhausted the source iterator.
-    keyPos = -1;  // “Clear” list so hasTop returns false to get us into the loop (transformKeys actually clears)
+    keyPos = -1; // “Clear” list so hasTop returns false to get us into the loop (transformKeys actually clears)
     while (!hasTop() && super.hasTop()) {
-      // Build up a sorted list of all keys for the same prefix.  When
+      // Build up a sorted list of all keys for the same prefix. When
       // people ask for keys, return from this list first until it is empty
       // before incrementing the source iterator.
       transformKeys();
@@ -230,10 +210,8 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
   }
   
   /**
-   * Reads all keys matching the first key's prefix from the source
-   * iterator, transforms them, and sorts the resulting keys.  Transformed
-   * keys that fall outside of our seek range or can't be seen by the
-   * user are excluded.
+   * Reads all keys matching the first key's prefix from the source iterator, transforms them, and sorts the resulting keys. Transformed keys that fall outside
+   * of our seek range or can't be seen by the user are excluded.
    */
   protected void transformKeys() throws IOException {
     keyPos = -1;
@@ -244,7 +222,7 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
       Key sourceTopKey = super.getTopKey();
 
       // If the source key equals our prefix key (up to the prefix), then
-      // we have a key that needs transformed.  Otherwise, we're done.
+      // we have a key that needs transformed. Otherwise, we're done.
       if (sourceTopKey.equals(prefixKey, getKeyPrefix())) {
         Key transformedKey = transformKey(sourceTopKey);
         
@@ -256,7 +234,7 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
         // in the key prefix here...
 
         // Transformation could have produced a key that falls outside
-        // of the seek range, or one that the user cannot see.  Check
+        // of the seek range, or one that the user cannot see. Check
         // these before adding it to the output list.
         if (includeTransformedKey(transformedKey))
           keys.add(new Pair<Key,Value>(transformedKey, new Value(super.getTopValue())));
@@ -274,17 +252,13 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
   }
   
   /**
-   * Determines whether or not to include {@code transformedKey} in the
-   * output.  It is possible that transformation could have produced a key
-   * that falls outside of the seek range, a key with a visibility the user
-   * can't see, a key with a visibility that doesn't parse, or a key with a
-   * column family that wasn't fetched.  We only do some checks (outside the
-   * range, user can see) if we're scanning.  The range check is not done for
-   * major/minor compaction since seek ranges won't be in our transformed key
-   * space and we will never change the row so we can't produce keys that
-   * would fall outside the tablet anyway.  
+   * Determines whether or not to include {@code transformedKey} in the output. It is possible that transformation could have produced a key that falls outside
+   * of the seek range, a key with a visibility the user can't see, a key with a visibility that doesn't parse, or a key with a column family that wasn't
+   * fetched. We only do some checks (outside the range, user can see) if we're scanning. The range check is not done for major/minor compaction since seek
+   * ranges won't be in our transformed key space and we will never change the row so we can't produce keys that would fall outside the tablet anyway.
    * 
-   * @param transformedKey the key to check
+   * @param transformedKey
+   *          the key to check
    * @return {@code true} if the key should be included and {@code false} if not
    */
   protected boolean includeTransformedKey(Key transformedKey) {
@@ -296,17 +270,13 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
   }
   
   /**
-   * Indicates whether or not the user is able to see {@code key}.  If the
-   * user has not supplied authorizations, or the iterator is not in the
-   * scan scope, then this method simply returns {@code true}.  Otherwise,
-   * {@code key}'s column visibility is tested against the user-supplied
-   * authorizations, and the test result is returned.  For performance,
-   * the test results are cached so that the same visibility is not tested
-   * multiple times.
+   * Indicates whether or not the user is able to see {@code key}. If the user has not supplied authorizations, or the iterator is not in the scan scope, then
+   * this method simply returns {@code true}. Otherwise, {@code key}'s column visibility is tested against the user-supplied authorizations, and the test result
+   * is returned. For performance, the test results are cached so that the same visibility is not tested multiple times.
    * 
-   * @param key the key to test 
-   * @return {@code true} if the key is visible or iterator is not scanning,
-   *         and {@code false} if not
+   * @param key
+   *          the key to test
+   * @return {@code true} if the key is visible or iterator is not scanning, and {@code false} if not
    */
   protected boolean canSee(Key key) {
     // Ensure that the visibility (which could have been transformed) parses.
@@ -344,12 +314,11 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
   }
   
   /**
-   * Indicates whether or not {@code key} can be seen, according to the
-   * fetched column families for this iterator.
+   * Indicates whether or not {@code key} can be seen, according to the fetched column families for this iterator.
    * 
-   * @param key the key whose column family is to be tested
-   * @return {@code true} if {@code key}'s column family is one of those fetched
-   *         in the set passed to our {@link #seek(Range, Collection, boolean)} method
+   * @param key
+   *          the key whose column family is to be tested
+   * @return {@code true} if {@code key}'s column family is one of those fetched in the set passed to our {@link #seek(Range, Collection, boolean)} method
    */
   protected boolean canSeeColumnFamily(Key key) {
     boolean visible = true;
@@ -364,12 +333,11 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
   }
 
   /**
-   * Possibly expand {@code range} to include everything for the key prefix
-   * we are working with.  That is, if our prefix is ROW_COLFAM, then we
-   * need to expand the range so we're sure to include all entries having
-   * the same row and column family as the start/end of the range.
+   * Possibly expand {@code range} to include everything for the key prefix we are working with. That is, if our prefix is ROW_COLFAM, then we need to expand
+   * the range so we're sure to include all entries having the same row and column family as the start/end of the range.
    * 
-   * @param range the range to expand
+   * @param range
+   *          the range to expand
    * @return the modified range
    */
   protected Range computeReseekRange(Range range) {
@@ -391,18 +359,18 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
   }
   
   /**
-   * Indicates whether or not any part of {@code key} excluding
-   * {@code part} is set.  For example, if part is ROW_COLFAM_COLQUAL,
-   * then this method determines whether or not the column visibility,
-   * timestamp, or delete flag is set on {@code key}.
+   * Indicates whether or not any part of {@code key} excluding {@code part} is set. For example, if part is ROW_COLFAM_COLQUAL, then this method determines
+   * whether or not the column visibility, timestamp, or delete flag is set on {@code key}.
    * 
-   * @param key the key to check
-   * @param part the part of the key that doesn't need to be checked (everything after does)
+   * @param key
+   *          the key to check
+   * @param part
+   *          the part of the key that doesn't need to be checked (everything after does)
    * @return {@code true} if anything after {@code part} is set on {@code key}, and {@code false} if not
    */
   protected boolean isSetAfterPart(Key key, PartialKey part) {
     boolean isSet = false;
-    if (key != null) {        
+    if (key != null) {
       // Breaks excluded on purpose.
       switch (part) {
         case ROW:
@@ -423,13 +391,13 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
   }
   
   /**
-   * Creates a copy of {@code key}, copying only the parts of the key specified
-   * in {@code part}.  For example, if {@code part} is ROW_COLFAM_COLQUAL, then
-   * this method would copy the row, column family, and column qualifier from
-   * {@code key} into a new key.
+   * Creates a copy of {@code key}, copying only the parts of the key specified in {@code part}. For example, if {@code part} is ROW_COLFAM_COLQUAL, then this
+   * method would copy the row, column family, and column qualifier from {@code key} into a new key.
    * 
-   * @param key the key to copy
-   * @param part the parts of {@code key} to copy
+   * @param key
+   *          the key to copy
+   * @param part
+   *          the parts of {@code key} to copy
    * @return the new key containing {@code part} of {@code key}
    */
   protected Key copyPartialKey(Key key, PartialKey part) {
@@ -448,8 +416,7 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
         keyCopy = new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier(), key.getColumnVisibility());
         break;
       case ROW_COLFAM_COLQUAL_COLVIS_TIME:
-        keyCopy = new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier(),
-          key.getColumnVisibility(), key.getTimestamp());
+        keyCopy = new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier(), key.getColumnVisibility(), key.getTimestamp());
         break;
       default:
         throw new IllegalArgumentException("Unsupported key part: " + part);
@@ -458,8 +425,7 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
   }
   
   /**
-   * Make a new key with all parts (including delete flag) coming from {@code originalKey} but
-   * use {@code newColFam} as the column family.
+   * Make a new key with all parts (including delete flag) coming from {@code originalKey} but use {@code newColFam} as the column family.
    */
   protected Key replaceColumnFamily(Key originalKey, Text newColFam) {
     byte[] row = originalKey.getRowData().toArray();
@@ -467,18 +433,13 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     byte[] cq = originalKey.getColumnQualifierData().toArray();
     byte[] cv = originalKey.getColumnVisibilityData().toArray();
     long timestamp = originalKey.getTimestamp();
-    Key newKey = new Key(row, 0, row.length,
-        cf, 0, newColFam.getLength(), 
-        cq, 0, cq.length, 
-        cv, 0, cv.length,
-        timestamp);
+    Key newKey = new Key(row, 0, row.length, cf, 0, newColFam.getLength(), cq, 0, cq.length, cv, 0, cv.length, timestamp);
     newKey.setDeleted(originalKey.isDeleted());
     return newKey;
   }
   
   /**
-   * Make a new key with all parts (including delete flag) coming from {@code originalKey} but
-   * use {@code newColQual} as the column qualifier.
+   * Make a new key with all parts (including delete flag) coming from {@code originalKey} but use {@code newColQual} as the column qualifier.
    */
   protected Key replaceColumnQualifier(Key originalKey, Text newColQual) {
     byte[] row = originalKey.getRowData().toArray();
@@ -486,18 +447,13 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     byte[] cq = newColQual.getBytes();
     byte[] cv = originalKey.getColumnVisibilityData().toArray();
     long timestamp = originalKey.getTimestamp();
-    Key newKey = new Key(row, 0, row.length,
-        cf, 0, cf.length, 
-        cq, 0, newColQual.getLength(), 
-        cv, 0, cv.length,
-        timestamp);
+    Key newKey = new Key(row, 0, row.length, cf, 0, cf.length, cq, 0, newColQual.getLength(), cv, 0, cv.length, timestamp);
     newKey.setDeleted(originalKey.isDeleted());
     return newKey;
   }
   
   /**
-   * Make a new key with all parts (including delete flag) coming from {@code originalKey} but
-   * use {@code newColVis} as the column visibility.
+   * Make a new key with all parts (including delete flag) coming from {@code originalKey} but use {@code newColVis} as the column visibility.
    */
   protected Key replaceColumnVisibility(Key originalKey, Text newColVis) {
     byte[] row = originalKey.getRowData().toArray();
@@ -505,18 +461,14 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     byte[] cq = originalKey.getColumnQualifierData().toArray();
     byte[] cv = newColVis.getBytes();
     long timestamp = originalKey.getTimestamp();
-    Key newKey = new Key(row, 0, row.length,
-        cf, 0, cf.length, 
-        cq, 0, cq.length, 
-        cv, 0, newColVis.getLength(),
-        timestamp);
+    Key newKey = new Key(row, 0, row.length, cf, 0, cf.length, cq, 0, cq.length, cv, 0, newColVis.getLength(), timestamp);
     newKey.setDeleted(originalKey.isDeleted());
     return newKey;
   }
   
   /**
-   * Make a new key with a column family, column qualifier, and column visibility.  
-   * Copy the rest of the parts of the key (including delete flag) from {@code originalKey}.
+   * Make a new key with a column family, column qualifier, and column visibility. Copy the rest of the parts of the key (including delete flag) from
+   * {@code originalKey}.
    */
   protected Key replaceKeyParts(Key originalKey, Text newColFam, Text newColQual, Text newColVis) {
     byte[] row = originalKey.getRowData().toArray();
@@ -524,18 +476,13 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     byte[] cq = newColQual.getBytes();
     byte[] cv = newColVis.getBytes();
     long timestamp = originalKey.getTimestamp();
-    Key newKey = new Key(row, 0, row.length,
-        cf, 0, newColFam.getLength(), 
-        cq, 0, newColQual.getLength(), 
-        cv, 0, newColVis.getLength(),
-        timestamp);
+    Key newKey = new Key(row, 0, row.length, cf, 0, newColFam.getLength(), cq, 0, newColQual.getLength(), cv, 0, newColVis.getLength(), timestamp);
     newKey.setDeleted(originalKey.isDeleted());
     return newKey;
   }
   
   /**
-   * Make a new key with a column qualifier, and column visibility.  Copy the rest
-   * of the parts of the key (including delete flag) from {@code originalKey}.
+   * Make a new key with a column qualifier, and column visibility. Copy the rest of the parts of the key (including delete flag) from {@code originalKey}.
    */
   protected Key replaceKeyParts(Key originalKey, Text newColQual, Text newColVis) {
     byte[] row = originalKey.getRowData().toArray();
@@ -543,24 +490,18 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     byte[] cq = newColQual.getBytes();
     byte[] cv = newColVis.getBytes();
     long timestamp = originalKey.getTimestamp();
-    Key newKey = new Key(row, 0, row.length,
-        cf, 0, cf.length, 
-        cq, 0, newColQual.getLength(), 
-        cv, 0, newColVis.getLength(),
-        timestamp);
+    Key newKey = new Key(row, 0, row.length, cf, 0, cf.length, cq, 0, newColQual.getLength(), cv, 0, newColVis.getLength(), timestamp);
     newKey.setDeleted(originalKey.isDeleted());
     return newKey;
   }
   
   /**
-   * Reverses the transformation applied to column families that are fetched at seek
-   * time.  If this iterator is transforming column families, then this method
-   * should be overridden to reverse the transformation on the supplied collection
-   * of column families.  This is necessary since the fetch/seek will be performed
-   * in the transformed space, but when passing the column family set on to the source,
-   * the column families need to be in the untransformed space. 
+   * Reverses the transformation applied to column families that are fetched at seek time. If this iterator is transforming column families, then this method
+   * should be overridden to reverse the transformation on the supplied collection of column families. This is necessary since the fetch/seek will be performed
+   * in the transformed space, but when passing the column family set on to the source, the column families need to be in the untransformed space.
    * 
-   * @param columnFamilies the column families that have been fetched at seek time
+   * @param columnFamilies
+   *          the column families that have been fetched at seek time
    * @return the untransformed column families that would transform info {@code columnFamilies}
    */
   protected Collection<ByteSequence> untransformColumnFamilies(Collection<ByteSequence> columnFamilies) {
@@ -568,26 +509,21 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
   }
   
   /**
-   * Indicates the prefix of keys that will be transformed by this iterator.
-   * In other words, this is the part of the key that will <i>not</i> be
-   * transformed by this iterator.  For example, if this method returns
-   * ROW_COLFAM, then {@link #transformKey(Key)} may be changing the
-   * column qualifier, column visibility, or timestamp, but it won't be
-   * changing the row or column family.
-   *  
+   * Indicates the prefix of keys that will be transformed by this iterator. In other words, this is the part of the key that will <i>not</i> be transformed by
+   * this iterator. For example, if this method returns ROW_COLFAM, then {@link #transformKey(Key)} may be changing the column qualifier, column visibility, or
+   * timestamp, but it won't be changing the row or column family.
+   * 
    * @return the part of the key this iterator is not transforming
    */
   abstract protected PartialKey getKeyPrefix();
   
   /**
-   * Transforms {@code originalKey}.  This method must not change the row
-   * part of the key, and must only change the parts of the key after the
-   * return value of {@link #getKeyPrefix()}. Implementors must also remember
-   * to copy the delete flag from {@code originalKey} onto the new key.  Or,
-   * implementors should use one of the helper methods to produce the new
-   * key.  See any of the replaceKeyParts methods.
+   * Transforms {@code originalKey}. This method must not change the row part of the key, and must only change the parts of the key after the return value of
+   * {@link #getKeyPrefix()}. Implementors must also remember to copy the delete flag from {@code originalKey} onto the new key. Or, implementors should use one
+   * of the helper methods to produce the new key. See any of the replaceKeyParts methods.
    * 
-   * @param originalKey the key to be transformed
+   * @param originalKey
+   *          the key to be transformed
    * @return the modified key
    * @see #replaceColumnFamily(Key, Text)
    * @see #replaceColumnQualifier(Key, Text)
