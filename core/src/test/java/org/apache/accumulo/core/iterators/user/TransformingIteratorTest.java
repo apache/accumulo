@@ -58,7 +58,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.Before;
 import org.junit.Test;
 
-public class KeyTransformingIteratorTest {
+public class TransformingIteratorTest {
   private static final String TABLE_NAME = "test_table";
   private static Authorizations authorizations = new Authorizations("vis0", "vis1", "vis2", "vis3", "vis4");
   private Connector connector;
@@ -88,10 +88,10 @@ public class KeyTransformingIteratorTest {
     scanner.addScanIterator(new IteratorSetting(20, ReuseIterator.class));
   }
   
-  private void setUpTransformIterator(Class<? extends KeyTransformingIterator> clazz) {
+  private void setUpTransformIterator(Class<? extends TransformingIterator> clazz) {
     IteratorSetting cfg = new IteratorSetting(21, clazz);
     cfg.setName("keyTransformIter");
-    cfg.addOption(KeyTransformingIterator.AUTH_OPT, "vis0, vis1, vis2, vis3");
+    TransformingIterator.setAutorizations(cfg, new Authorizations("vis0", "vis1", "vis2", "vis3"));
     scanner.addScanIterator(cfg);
   }
   
@@ -129,7 +129,7 @@ public class KeyTransformingIteratorTest {
       setUpTransformIterator(clazz);
       
       // All rows with visibilities reversed
-      KeyTransformingIterator iter = clazz.newInstance();
+      TransformingIterator iter = clazz.newInstance();
       TreeMap<Key,Value> expected = new TreeMap<Key,Value>();
       for (int row = 1; row <= 3; ++row) {
         for (int cf = 1; cf <= 3; ++cf) {
@@ -235,7 +235,7 @@ public class KeyTransformingIteratorTest {
   
   @Test
   public void testReplaceKeyParts() throws Exception {
-    KeyTransformingIterator it = new IdentityKeyTransformingIterator();
+    TransformingIterator it = new IdentityKeyTransformingIterator();
     Key originalKey = new Key("r", "cf", "cq", "cv", 42);
     originalKey.setDeleted(true);
     
@@ -485,25 +485,32 @@ public class KeyTransformingIteratorTest {
     return new Key(row, cf, cq, cv, ts);
   }
   
-  public static class IdentityKeyTransformingIterator extends KeyTransformingIterator {
+  public static class IdentityKeyTransformingIterator extends TransformingIterator {
     @Override
     protected PartialKey getKeyPrefix() {
       return PartialKey.ROW;
     }
     
     @Override
-    protected Key transformKey(Key originalKey) {
-      return originalKey;
-    };
+    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output) throws IOException {
+      while (input.hasTop()) {
+        output.append(input.getTopKey(), input.getTopValue());
+        input.next();
+      }
+    }
   }
   
-  public static class DupeTransformingIterator extends KeyTransformingIterator {
+  public static class DupeTransformingIterator extends TransformingIterator {
     @Override
-    protected Key transformKey(Key originalKey) {
-      Key ret = replaceKeyParts(originalKey, new Text("cf1"), new Text("cq1"), new Text(""));
-      ret.setTimestamp(5);
-      return ret;
-    };
+    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output) throws IOException {
+      while (input.hasTop()) {
+        Key originalKey = input.getTopKey();
+        Key ret = replaceKeyParts(originalKey, new Text("cf1"), new Text("cq1"), new Text(""));
+        ret.setTimestamp(5);
+        output.append(ret, input.getTopValue());
+        input.next();
+      }
+    }
     
     @Override
     protected PartialKey getKeyPrefix() {
@@ -512,11 +519,16 @@ public class KeyTransformingIteratorTest {
     
   }
 
-  public static abstract class ReversingKeyTransformingIterator extends KeyTransformingIterator {
+  public static abstract class ReversingKeyTransformingIterator extends TransformingIterator {
+    
     @Override
-    protected Key transformKey(Key originalKey) {
-      return reverseKeyPart(originalKey, getKeyPrefix());
-    };
+    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output) throws IOException {
+      while (input.hasTop()) {
+        Key originalKey = input.getTopKey();
+        output.append(reverseKeyPart(originalKey, getKeyPrefix()), input.getTopValue());
+        input.next();
+      }
+    }
   }
   
   public static class ColFamReversingKeyTransformingIterator extends ReversingKeyTransformingIterator {
@@ -562,15 +574,21 @@ public class KeyTransformingIteratorTest {
     }
   }
   
-  public static class IllegalVisKeyTransformingIterator extends KeyTransformingIterator {
+  public static class IllegalVisKeyTransformingIterator extends TransformingIterator {
     @Override
     protected PartialKey getKeyPrefix() {
       return PartialKey.ROW_COLFAM_COLQUAL;
     }
-    
+
     @Override
-    protected Key transformKey(Key originalKey) {
-      return new Key(originalKey.getRow(), originalKey.getColumnFamily(), originalKey.getColumnQualifier(), new Text("A&|||"), originalKey.getTimestamp());
+    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output) throws IOException {
+      while (input.hasTop()) {
+        Key originalKey = input.getTopKey();
+        output.append(
+            new Key(originalKey.getRow(), originalKey.getColumnFamily(), originalKey.getColumnQualifier(), new Text("A&|||"), originalKey.getTimestamp()),
+            input.getTopValue());
+        input.next();
+      }
     }
   }
 
@@ -582,15 +600,21 @@ public class KeyTransformingIteratorTest {
     }
   }
 
-  public static class BadVisKeyTransformingIterator extends KeyTransformingIterator {
+  public static class BadVisKeyTransformingIterator extends TransformingIterator {
     @Override
     protected PartialKey getKeyPrefix() {
       return PartialKey.ROW_COLFAM_COLQUAL;
     }
     
     @Override
-    protected Key transformKey(Key originalKey) {
-      return new Key(originalKey.getRow(), originalKey.getColumnFamily(), originalKey.getColumnQualifier(), new Text("badvis"), originalKey.getTimestamp());
+    protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output) throws IOException {
+      while (input.hasTop()) {
+        Key originalKey = input.getTopKey();
+        output.append(
+            new Key(originalKey.getRow(), originalKey.getColumnFamily(), originalKey.getColumnQualifier(), new Text("badvis"), originalKey.getTimestamp()),
+            input.getTopValue());
+        input.next();
+      }
     }
   }
   
