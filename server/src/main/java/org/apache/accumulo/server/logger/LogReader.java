@@ -33,7 +33,6 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.tabletserver.log.MultiReader;
 import org.apache.accumulo.server.trace.TraceFileSystem;
-import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -46,15 +45,15 @@ import com.beust.jcommander.Parameter;
 public class LogReader {
   
   static class Opts extends Help {
-    @Parameter(names="-r", description="print only mutations associated with the given row")
+    @Parameter(names = "-r", description = "print only mutations associated with the given row")
     String row;
-    @Parameter(names="-m", description="limit the number of mutations printed per row")
+    @Parameter(names = "-m", description = "limit the number of mutations printed per row")
     int maxMutations = 5;
-    @Parameter(names="-t", description="print only mutations that fall within the given key extent")
+    @Parameter(names = "-t", description = "print only mutations that fall within the given key extent")
     String extent;
-    @Parameter(names="-p", description="search for a row that matches the given regex")
+    @Parameter(names = "-p", description = "search for a row that matches the given regex")
     String regexp;
-    @Parameter(description="<logfile> { <logfile> ... }")
+    @Parameter(description = "<logfile> { <logfile> ... }")
     List<String> files = new ArrayList<String>();
   }
   
@@ -64,7 +63,6 @@ public class LogReader {
    * @param args
    *          - first argument is the file to print
    * @throws IOException
-   * @throws ParseException
    */
   public static void main(String[] args) throws IOException {
     Opts opts = new Opts();
@@ -92,7 +90,7 @@ public class LogReader {
     }
     
     Set<Integer> tabletIds = new HashSet<Integer>();
-
+    
     for (String file : opts.files) {
       
       Path path = new Path(file);
@@ -146,7 +144,7 @@ public class LogReader {
         return;
       }
     }
-
+    
     if (row != null || rowMatcher != null) {
       if (key.event == LogEvents.MUTATION || key.event == LogEvents.MANY_MUTATIONS) {
         boolean found = false;

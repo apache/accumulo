@@ -44,19 +44,19 @@ public class ReadWriteExample {
   private Connector conn;
   
   static class Opts extends ClientOnDefaultTable {
-    @Parameter(names={"-C", "--createtable"}, description="create table before doing anything")
+    @Parameter(names = {"-C", "--createtable"}, description = "create table before doing anything")
     boolean createtable = false;
-    @Parameter(names={"-D", "--deletetable"}, description="delete table when finished")
+    @Parameter(names = {"-D", "--deletetable"}, description = "delete table when finished")
     boolean deletetable = false;
-    @Parameter(names={"-c", "--create"}, description="create entries before any deletes")
+    @Parameter(names = {"-c", "--create"}, description = "create entries before any deletes")
     boolean createEntries = false;
-    @Parameter(names={"-r", "--read"}, description="read entries after any creates/deletes")
+    @Parameter(names = {"-r", "--read"}, description = "read entries after any creates/deletes")
     boolean readEntries = false;
-    @Parameter(names={"-d", "--delete"}, description="delete entries after any creates")
+    @Parameter(names = {"-d", "--delete"}, description = "delete entries after any creates")
     boolean deleteEntries = false;
     
-    public Opts() { 
-      super(DEFAULT_TABLE_NAME); 
+    public Opts() {
+      super(DEFAULT_TABLE_NAME);
       auths = new Authorizations(DEFAULT_AUTHS.split(","));
     }
   }
@@ -66,7 +66,7 @@ public class ReadWriteExample {
   
   private void execute(Opts opts, ScannerOpts scanOpts) throws Exception {
     conn = opts.getConnector();
-
+    
     // add the authorizations to the user
     Authorizations userAuthorizations = conn.securityOperations().getUserAuthorizations(opts.user);
     ByteArraySet auths = new ByteArraySet(userAuthorizations.getAuthorizations());
@@ -82,7 +82,7 @@ public class ReadWriteExample {
       conn.tableOperations().create(opts.getTableName());
       conn.tableOperations().addSplits(opts.getTableName(), partitionKeys);
     }
-
+    
     // send mutations
     createEntries(opts);
     

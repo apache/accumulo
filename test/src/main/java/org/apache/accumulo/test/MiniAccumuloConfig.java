@@ -38,7 +38,7 @@ public class MiniAccumuloConfig {
    * @param rootPassword
    *          The initial password for the Accumulo root user
    */
-
+  
   public MiniAccumuloConfig(File dir, String rootPassword) {
     this.dir = dir;
     this.rootPassword = rootPassword;
@@ -55,13 +55,12 @@ public class MiniAccumuloConfig {
   public int getNumTservers() {
     return numTservers;
   }
-
+  
   /**
    * Calling this method is optional. If not set, it defaults to two.
    * 
    * @param numTservers
    *          the number of tablet servers that mini accumulo cluster should start
-   * @return
    */
   
   public MiniAccumuloConfig setNumTservers(int numTservers) {
@@ -70,18 +69,16 @@ public class MiniAccumuloConfig {
     this.numTservers = numTservers;
     return this;
   }
-
+  
   public Map<String,String> getSiteConfig() {
     return siteConfig;
   }
-
   
   /**
    * Calling this method is optional. If not set, it defautls to an empty map.
    * 
    * @param siteConfig
    *          key/values that you normally put in accumulo-site.xml can be put here
-   * @return
    */
   
   public MiniAccumuloConfig setSiteConfig(Map<String,String> siteConfig) {

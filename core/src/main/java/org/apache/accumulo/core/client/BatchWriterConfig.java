@@ -31,9 +31,8 @@ public class BatchWriterConfig {
    * 
    * @param maxMemory
    *          size in bytes of the maximum memory to batch before writing. Defaults to 50M.
-   * @return
    */
-
+  
   public BatchWriterConfig setMaxMemory(long maxMemory) {
     this.maxMemory = maxMemory;
     return this;
@@ -47,11 +46,11 @@ public class BatchWriterConfig {
    *          Determines how maxLatency will be interpreted.
    * @return this to allow chaining of set methods
    */
-
+  
   public BatchWriterConfig setMaxLatency(long maxLatency, TimeUnit timeUnit) {
     if (maxLatency < 0)
       throw new IllegalArgumentException("Negative max latency not allowed " + maxLatency);
-
+    
     if (maxLatency == 0)
       this.maxLatency = Long.MAX_VALUE;
     else
@@ -67,7 +66,7 @@ public class BatchWriterConfig {
    * @param timeUnit
    * @return this to allow chaining of set methods
    */
-
+  
   public BatchWriterConfig setTimeout(long timeout, TimeUnit timeUnit) {
     if (timeout < 0)
       throw new IllegalArgumentException("Negative timeout not allowed " + timeout);
@@ -84,15 +83,15 @@ public class BatchWriterConfig {
    *          the maximum number of threads to use for writing data to the tablet servers. Defaults to 3.
    * @return this to allow chaining of set methods
    */
-
+  
   public BatchWriterConfig setMaxWriteThreads(int maxWriteThreads) {
     if (maxWriteThreads <= 0)
       throw new IllegalArgumentException("Max threads must be positive " + maxWriteThreads);
-
+    
     this.maxWriteThreads = maxWriteThreads;
     return this;
   }
-
+  
   public long getMaxMemory() {
     return maxMemory;
   }

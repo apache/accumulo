@@ -51,7 +51,7 @@ import org.apache.log4j.Logger;
  * column family. In that case, the iterator must load all column qualifiers for each row/column family pair into memory. Given this constraint, care must be
  * taken by users of this iterator to ensure it is not run in such a way that will overrun memory in a tablet server.
  * <p>
- * If the implementing iterator is transforming column families, then it must also override {@link #untransformColumnFamilies(Collection)} to handle the case
+ * If the implementing iterator is transforming column families, then it must also override {@code untransformColumnFamilies(Collection)} to handle the case
  * when column families are fetched at scan time. The fetched column families will/must be in the transformed space, and the untransformed column families need
  * to be passed to this iterator's source. If it is not possible to write a reverse transformation (e.g., the column family transformation depends on the row
  * value or something like that), then the iterator must not fetch specific column families (or only fetch column families that are known to not transform at
@@ -80,7 +80,7 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
   protected Range seekRange;
   protected Collection<ByteSequence> seekColumnFamilies;
   protected boolean seekColumnFamiliesInclusive;
-
+  
   private VisibilityEvaluator ve = null;
   private LRUMap visibleCache = null;
   private LRUMap parsedVisibilitiesCache = null;
@@ -131,7 +131,7 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-
+    
     copy.setSource(getSource().deepCopy(env));
     
     copy.scanning = scanning;
@@ -140,7 +140,7 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     copy.seekRange = (seekRange == null) ? null : new Range(seekRange);
     copy.seekColumnFamilies = (seekColumnFamilies == null) ? null : new HashSet<ByteSequence>(seekColumnFamilies);
     copy.seekColumnFamiliesInclusive = seekColumnFamiliesInclusive;
-
+    
     copy.ve = ve;
     if (visibleCache != null) {
       copy.visibleCache = new LRUMap(visibleCache.maxSize());
@@ -190,13 +190,13 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     seekRange = (range != null) ? new Range(range) : null;
     seekColumnFamilies = columnFamilies;
     seekColumnFamiliesInclusive = inclusive;
-
+    
     // Seek the source iterator, but use a recalculated range that ensures
     // we see all keys with the same "prefix." We need to do this since
     // transforming could change the sort order and transformed keys that
     // are before the range start could be inside the range after transformation.
     super.seek(computeReseekRange(range), untransformColumnFamilies(columnFamilies), inclusive);
-
+    
     // Range clipping could cause us to trim out all the keys we transformed.
     // Keep looping until we either have some keys in the output range, or have
     // exhausted the source iterator.
@@ -217,10 +217,10 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     keyPos = -1;
     keys.clear();
     Key prefixKey = super.hasTop() ? new Key(super.getTopKey()) : null;
-
+    
     while (super.hasTop()) {
       Key sourceTopKey = super.getTopKey();
-
+      
       // If the source key equals our prefix key (up to the prefix), then
       // we have a key that needs transformed. Otherwise, we're done.
       if (sourceTopKey.equals(prefixKey, getKeyPrefix())) {
@@ -232,7 +232,7 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
           transformedKey = new Key(sourceTopKey);
         // We could check that the transformed key didn't transform anything
         // in the key prefix here...
-
+        
         // Transformation could have produced a key that falls outside
         // of the seek range, or one that the user cannot see. Check
         // these before adding it to the output list.
@@ -241,10 +241,10 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
       } else {
         break;
       }
-
+      
       super.next();
     }
-
+    
     if (!keys.isEmpty()) {
       Collections.sort(keys, keyComparator);
       keyPos = 0;
@@ -307,7 +307,7 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     
     if (!scanning || !visible || ve == null || visibleCache == null || visibility.length() == 0)
       return visible;
-
+    
     visible = (Boolean) visibleCache.get(visibility);
     if (visible == null) {
       try {
@@ -323,7 +323,7 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
         visible = Boolean.FALSE;
       }
     }
-
+    
     return visible;
   }
   
@@ -345,7 +345,7 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
     }
     return visible;
   }
-
+  
   /**
    * Possibly expand {@code range} to include everything for the key prefix we are working with. That is, if our prefix is ROW_COLFAM, then we need to expand
    * the range so we're sure to include all entries having the same row and column family as the start/end of the range.

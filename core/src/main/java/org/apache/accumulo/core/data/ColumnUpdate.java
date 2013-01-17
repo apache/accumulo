@@ -47,6 +47,7 @@ public class ColumnUpdate {
    * @deprecated use setTimestamp(long);
    * @param timestamp
    */
+  @Deprecated
   public void setSystemTimestamp(long timestamp) {
     if (hasTimestamp)
       throw new IllegalStateException("Cannot set system timestamp when user set a timestamp");
@@ -84,23 +85,26 @@ public class ColumnUpdate {
     return this.val;
   }
   
+  @Override
   public String toString() {
     return new String(Arrays.toString(columnFamily)) + ":" + new String(Arrays.toString(columnQualifier)) + " ["
         + new String(Arrays.toString(columnVisibility)) + "] " + (hasTimestamp ? timestamp : "NO_TIME_STAMP") + " " + Arrays.toString(val) + " " + deleted;
   }
-
+  
   @Override
   public boolean equals(Object obj) {
     if (!(obj instanceof ColumnUpdate))
       return false;
-    ColumnUpdate upd = (ColumnUpdate)obj;
-    return Arrays.equals(getColumnFamily(), upd.getColumnFamily()) &&
-        Arrays.equals(getColumnQualifier(), upd.getColumnQualifier()) &&
-        Arrays.equals(getColumnVisibility(), upd.getColumnVisibility()) &&
-        isDeleted() == upd.isDeleted() &&
-        Arrays.equals(getValue(), upd.getValue()) &&
-        hasTimestamp() == upd.hasTimestamp() &&
-        getTimestamp() == upd.getTimestamp();
+    ColumnUpdate upd = (ColumnUpdate) obj;
+    return Arrays.equals(getColumnFamily(), upd.getColumnFamily()) && Arrays.equals(getColumnQualifier(), upd.getColumnQualifier())
+        && Arrays.equals(getColumnVisibility(), upd.getColumnVisibility()) && isDeleted() == upd.isDeleted() && Arrays.equals(getValue(), upd.getValue())
+        && hasTimestamp() == upd.hasTimestamp() && getTimestamp() == upd.getTimestamp();
   }
   
+  @Override
+  public int hashCode() {
+    return Arrays.hashCode(columnFamily) + Arrays.hashCode(columnQualifier) + Arrays.hashCode(columnVisibility)
+        + (hasTimestamp ? (Boolean.TRUE.hashCode() + new Long(timestamp).hashCode()) : Boolean.FALSE.hashCode())
+        + (deleted ? Boolean.TRUE.hashCode() : (Boolean.FALSE.hashCode() + Arrays.hashCode(val)));
+  }
 }

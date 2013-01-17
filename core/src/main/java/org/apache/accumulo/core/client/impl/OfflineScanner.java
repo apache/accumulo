@@ -116,7 +116,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   private ArrayList<SortedKeyValueIterator<Key,Value>> readers;
   
   /**
-   * @param offlineScanner
    * @param instance
    * @param credentials
    * @param authorizations
