@@ -53,6 +53,7 @@
     <module>start</module>
     <module>examples</module>
     <module>assemble</module>
+    <module>proxy</module>
     <module>test</module>
   </modules>
 
@@ -144,7 +145,7 @@
             <configuration>
               <outputDirectory>../lib</outputDirectory>
               <!-- just grab the non-provided runtime dependencies -->
-              <includeArtifactIds>commons-collections,commons-configuration,commons-io,commons-lang,jline,log4j,libthrift,commons-logging,commons-logging-api,commons-vfs2,gson,jcommander</includeArtifactIds>
+              <includeArtifactIds>commons-collections,commons-configuration,commons-io,commons-lang,jline,log4j,libthrift,commons-logging,commons-logging-api,commons-vfs2,gson,jcommander,guava</includeArtifactIds>
               <excludeTransitive>true</excludeTransitive>
             </configuration>
           </execution>
