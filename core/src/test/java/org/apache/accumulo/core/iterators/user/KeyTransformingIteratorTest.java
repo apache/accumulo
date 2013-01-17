@@ -16,18 +16,24 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -43,9 +49,9 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
@@ -165,6 +171,20 @@ public class KeyTransformingIteratorTest {
   }
   
   @Test
+  public void testCreatingIllegalVisbility() throws Exception {
+    // illegal visibility created by transform should be filtered on scan, even if evaluation is done
+    IteratorSetting cfg = new IteratorSetting(21, IllegalVisKeyTransformingIterator.class);
+    cfg.setName("keyTransformIter");
+    scanner.addScanIterator(cfg);
+    checkExpected(new TreeMap<Key,Value>());
+    
+    // ensure illegal vis is supressed when evaluations is done
+    scanner.removeScanIterator("keyTransformIter");
+    setUpTransformIterator(IllegalVisKeyTransformingIterator.class);
+    checkExpected(new TreeMap<Key,Value>());
+  }
+
+  @Test
   public void testRangeStart() throws Exception {
     setUpTransformIterator(ColVisReversingKeyTransformingIterator.class);
     scanner.setRange(new Range(new Key("row1", "cf2", "cq2", "vis1"), true, new Key("row1", "cf2", "cq3"), false));
@@ -255,7 +275,44 @@ public class KeyTransformingIteratorTest {
   
   @Test
   public void testDeepCopy() throws Exception {
+    MockInstance instance = new MockInstance("test");
+    Connector connector = instance.getConnector("user", "password");
     
+    connector.tableOperations().create("shard_table");
+    
+    BatchWriter bw = connector.createBatchWriter("shard_table", new BatchWriterConfig());
+    
+    ColumnVisibility vis1 = new ColumnVisibility("vis1");
+    ColumnVisibility vis3 = new ColumnVisibility("vis3");
+    
+    Mutation m1 = new Mutation("shard001");
+    m1.put("foo", "doc02", vis1, "");
+    m1.put("dog", "doc02", vis3, "");
+    m1.put("cat", "doc02", vis3, "");
+    
+    m1.put("bar", "doc03", vis1, "");
+    m1.put("dog", "doc03", vis3, "");
+    m1.put("cat", "doc03", vis3, "");
+    
+    bw.addMutation(m1);
+    bw.close();
+
+    BatchScanner bs = connector.createBatchScanner("shard_table", authorizations, 1);
+    
+    bs.addScanIterator(new IteratorSetting(21, ColVisReversingKeyTransformingIterator.class));
+    IteratorSetting iicfg = new IteratorSetting(22, IntersectingIterator.class);
+    IntersectingIterator.setColumnFamilies(iicfg, new Text[] {new Text("foo"), new Text("dog"), new Text("cat")});
+    bs.addScanIterator(iicfg);
+    bs.setRanges(Collections.singleton(new Range()));
+    
+    Iterator<Entry<Key,Value>> iter = bs.iterator();
+    assertTrue(iter.hasNext());
+    Key docKey = iter.next().getKey();
+    assertEquals("shard001", docKey.getRowData().toString());
+    assertEquals("doc02", docKey.getColumnQualifierData().toString());
+    assertFalse(iter.hasNext());
+
+    bs.close();
   }
   
   @Test
@@ -303,6 +360,34 @@ public class KeyTransformingIteratorTest {
     checkExpected(expected);
   }
   
+  @Test
+  public void testCompactionAndIllegalVisibility() throws Exception {
+    setUpTransformIterator(IllegalVisCompactionKeyTransformingIterator.class);
+    try {
+      checkExpected(new TreeMap<Key,Value>());
+      assertTrue(false);
+    } catch (Exception e) {
+      
+    }
+  }
+
+  @Test
+  public void testDupes() throws Exception {
+    setUpTransformIterator(DupeTransformingIterator.class);
+    
+    int count = 0;
+    for (Entry<Key,Value> entry : scanner) {
+      Key key = entry.getKey();
+      assertEquals("cf1", key.getColumnFamily().toString());
+      assertEquals("cq1", key.getColumnQualifier().toString());
+      assertEquals("", key.getColumnVisibility().toString());
+      assertEquals(5l, key.getTimestamp());
+      count++;
+    }
+    
+    assertEquals(81, count);
+  }
+
   private Key createDeleteKey(String row, String colFam, String colQual, String colVis, long timestamp) {
     Key key = new Key(row, colFam, colQual, colVis, timestamp);
     key.setDeleted(true);
@@ -412,6 +497,21 @@ public class KeyTransformingIteratorTest {
     };
   }
   
+  public static class DupeTransformingIterator extends KeyTransformingIterator {
+    @Override
+    protected Key transformKey(Key originalKey) {
+      Key ret = replaceKeyParts(originalKey, new Text("cf1"), new Text("cq1"), new Text(""));
+      ret.setTimestamp(5);
+      return ret;
+    };
+    
+    @Override
+    protected PartialKey getKeyPrefix() {
+      return PartialKey.ROW;
+    }
+    
+  }
+
   public static abstract class ReversingKeyTransformingIterator extends KeyTransformingIterator {
     @Override
     protected Key transformKey(Key originalKey) {
@@ -462,6 +562,26 @@ public class KeyTransformingIteratorTest {
     }
   }
   
+  public static class IllegalVisKeyTransformingIterator extends KeyTransformingIterator {
+    @Override
+    protected PartialKey getKeyPrefix() {
+      return PartialKey.ROW_COLFAM_COLQUAL;
+    }
+    
+    @Override
+    protected Key transformKey(Key originalKey) {
+      return new Key(originalKey.getRow(), originalKey.getColumnFamily(), originalKey.getColumnQualifier(), new Text("A&|||"), originalKey.getTimestamp());
+    }
+  }
+
+  public static class IllegalVisCompactionKeyTransformingIterator extends IllegalVisKeyTransformingIterator {
+    @Override
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+      env = new MajCIteratorEnvironmentAdapter(env);
+      super.init(source, options, env);
+    }
+  }
+
   public static class BadVisKeyTransformingIterator extends KeyTransformingIterator {
     @Override
     protected PartialKey getKeyPrefix() {

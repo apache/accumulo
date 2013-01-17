@@ -279,26 +279,40 @@ abstract public class KeyTransformingIterator extends WrappingIterator implement
    * @return {@code true} if the key is visible or iterator is not scanning, and {@code false} if not
    */
   protected boolean canSee(Key key) {
-    // Ensure that the visibility (which could have been transformed) parses.
+    // Ensure that the visibility (which could have been transformed) parses. Must always do this check, even if visibility is not evaluated.
     ByteSequence visibility = key.getColumnVisibilityData();
-    ColumnVisibility colVis = (ColumnVisibility) parsedVisibilitiesCache.get(visibility);
-    if (colVis == null) {
+    ColumnVisibility colVis = null;
+    Boolean parsed = (Boolean) parsedVisibilitiesCache.get(visibility);
+    if (parsed == null) {
       try {
         colVis = new ColumnVisibility(visibility.toArray());
+        parsedVisibilitiesCache.put(visibility, Boolean.TRUE);
       } catch (BadArgumentException e) {
-        log.error("Transformation produced an invalid visibility: " + visibility);
-        throw e;
+        log.error("Parse error after transformation : " + visibility);
+        parsedVisibilitiesCache.put(visibility, Boolean.FALSE);
+        if (scanning) {
+          return false;
+        } else {
+          throw e;
+        }
       }
+    } else if (!parsed) {
+      if (scanning)
+        return false;
+      else
+        throw new IllegalStateException();
     }
     
     Boolean visible = canSeeColumnFamily(key);
     
-    if (!scanning || !visible || ve == null || visibleCache == null)
+    if (!scanning || !visible || ve == null || visibleCache == null || visibility.length() == 0)
       return visible;
 
     visible = (Boolean) visibleCache.get(visibility);
     if (visible == null) {
       try {
+        if (colVis == null)
+          colVis = new ColumnVisibility(visibility.toArray());
         visible = ve.evaluate(colVis);
         visibleCache.put(visibility, visible);
       } catch (VisibilityParseException e) {
