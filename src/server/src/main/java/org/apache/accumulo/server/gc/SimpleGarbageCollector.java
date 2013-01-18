@@ -16,6 +16,7 @@
  */
 package org.apache.accumulo.server.gc;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -92,6 +93,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.Trash;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -111,8 +113,9 @@ public class SimpleGarbageCollector implements Iface {
   private long gcStartDelay;
   private boolean checkForBulkProcessingFiles;
   private FileSystem fs;
-  private Option optSafeMode, optOffline, optVerboseMode, optAddress;
-  private boolean safemode, offline, verbose;
+  private Option optSafeMode, optOffline, optVerboseMode, optAddress, optNoTrash;
+  private Trash trash = null;
+  private boolean safemode, offline, verbose, noTrash;
   private String address;
   private CommandLine commandLine;
   private ZooLock lock;
@@ -148,10 +151,12 @@ public class SimpleGarbageCollector implements Iface {
     optOffline = new Option("o", "offline", false,
         "offline mode will run once and check data files directly; this is dangerous if accumulo is running or not shut down properly");
     optAddress = new Option("a", "address", true, "specify our local address");
+    optNoTrash = new Option("t", "no-trash", false, "do not use hdfs trash if it is enabled");
     opts.addOption(optVerboseMode);
     opts.addOption(optSafeMode);
     opts.addOption(optOffline);
     opts.addOption(optAddress);
+    opts.addOption(optNoTrash);
     
     try {
       commandLine = new BasicParser().parse(opts, args);
@@ -162,6 +167,7 @@ public class SimpleGarbageCollector implements Iface {
       offline = commandLine.hasOption(optOffline.getOpt());
       verbose = commandLine.hasOption(optVerboseMode.getOpt());
       address = commandLine.getOptionValue(optAddress.getOpt());
+      noTrash = commandLine.hasOption(optNoTrash.getOpt());
     } catch (ParseException e) {
       String str = "Can't parse the command line options";
       log.fatal(str, e);
@@ -169,7 +175,7 @@ public class SimpleGarbageCollector implements Iface {
     }
   }
   
-  public void init(FileSystem fs, Instance instance, AuthInfo credentials, AccumuloConfiguration conf) {
+  public void init(FileSystem fs, Instance instance, AuthInfo credentials, AccumuloConfiguration conf) throws IOException {
     this.fs = fs;
     this.instance = instance;
     this.credentials = credentials;
@@ -182,8 +188,12 @@ public class SimpleGarbageCollector implements Iface {
     log.info("safemode: " + safemode);
     log.info("offline: " + offline);
     log.info("verbose: " + verbose);
+    log.info("trash enabled: " + !noTrash);
     log.info("memory threshold: " + CANDIDATE_MEMORY_PERCENTAGE + " of " + Runtime.getRuntime().maxMemory() + " bytes");
     log.info("delete threads: " + numDeleteThreads);
+    if (!noTrash) {
+      this.trash = new Trash(fs, fs.getConf());
+    }
   }
   
   private void run() {
@@ -303,6 +313,16 @@ public class SimpleGarbageCollector implements Iface {
     }
   }
   
+  private boolean moveToTrash(Path path) throws IOException {
+    if (trash == null)
+      return false;
+    try {
+      return trash.moveToTrash(path);
+    } catch (FileNotFoundException ex) {
+      return false;
+    }
+  }
+  
   /*
    * this method removes deleted table dirs that are empty
    */
@@ -333,8 +353,11 @@ public class SimpleGarbageCollector implements Iface {
       if (tabletDirs == null)
         continue;
       
-      if (tabletDirs.length == 0)
-        fs.delete(new Path(ServerConstants.getTablesDir() + "/" + delTableId), false);
+      if (tabletDirs.length == 0) {
+        Path p = new Path(ServerConstants.getTablesDir() + "/" + delTableId);
+        if (!moveToTrash(p)) 
+          fs.delete(p, false);
+      }
     }
   }
   
@@ -583,7 +606,7 @@ public class SimpleGarbageCollector implements Iface {
             
             Path p = new Path(ServerConstants.getTablesDir() + delete);
             
-            if (fs.delete(p, true)) {
+            if (moveToTrash(p) || fs.delete(p, true)) {
               // delete succeeded, still want to delete
               removeFlag = true;
               synchronized (SimpleGarbageCollector.this) {
