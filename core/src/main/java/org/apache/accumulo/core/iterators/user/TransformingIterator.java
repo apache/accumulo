@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -125,10 +126,16 @@ abstract public class TransformingIterator extends WrappingIterator implements O
   
   @Override
   public IteratorOptions describeOptions() {
-    String desc = "This iterator allows keys to be transformed.";
+    String desc = "This iterator allows ranges of key to be transformed (with the exception of row transformations).";
     String authDesc = "Comma-separated list of user's scan authorizations.  "
         + "If excluded or empty, then no visibility check is performed on transformed keys.";
-    return new IteratorOptions(getClass().getSimpleName(), desc, Collections.singletonMap(AUTH_OPT, authDesc), null);
+    String bufferDesc = "Maximum buffer size (in accumulo memory spec) to use for buffering keys before throwing a BufferOverflowException.  " +
+    		"Users should keep this limit in mind when deciding what to transform.  That is, if transforming the column family for example, then all " +
+    		"keys sharing the same row and column family must fit within this limit (along with their associated values)";
+    HashMap<String,String> namedOptions = new HashMap<String,String>();
+    namedOptions.put(AUTH_OPT, authDesc);
+    namedOptions.put(MAX_BUFFER_SIZE_OPT, bufferDesc);
+    return new IteratorOptions(getClass().getSimpleName(), desc, namedOptions, null);
   }
   
   @Override
@@ -165,6 +172,8 @@ abstract public class TransformingIterator extends WrappingIterator implements O
       copy.parsedVisibilitiesCache = new LRUMap(parsedVisibilitiesCache.maxSize());
       copy.parsedVisibilitiesCache.putAll(parsedVisibilitiesCache);
     }
+    
+    copy.maxBufferSize = maxBufferSize;
     
     return copy;
   }
@@ -223,15 +232,17 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     }
   }
 
-  private class RangeIterator implements SortedKeyValueIterator<Key,Value> {
+  private static class RangeIterator implements SortedKeyValueIterator<Key,Value> {
     
     private SortedKeyValueIterator<Key,Value> source;
     private Key prefixKey;
+    private PartialKey keyPrefix;
     private boolean hasTop = false;
     
-    RangeIterator(SortedKeyValueIterator<Key,Value> source, Key prefixKey) {
+    RangeIterator(SortedKeyValueIterator<Key,Value> source, Key prefixKey, PartialKey keyPrefix) {
       this.source = source;
       this.prefixKey = prefixKey;
+      this.keyPrefix = keyPrefix;
     }
 
     @Override
@@ -242,7 +253,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     @Override
     public boolean hasTop() {
       // only have a top if the prefix matches
-      return hasTop = source.hasTop() && source.getTopKey().equals(prefixKey, getKeyPrefix());
+      return hasTop = source.hasTop() && source.getTopKey().equals(prefixKey, keyPrefix);
     }
     
     @Override
@@ -285,7 +296,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
     keys.clear();
     final Key prefixKey = super.hasTop() ? new Key(super.getTopKey()) : null;
     
-    transformRange(new RangeIterator(getSource(), prefixKey), new KVBuffer() {
+    transformRange(new RangeIterator(getSource(), prefixKey, getKeyPrefix()), new KVBuffer() {
       
       long appened = 0;
 
@@ -608,7 +619,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
   }
   
   /**
-   * Transforms {@code originalKey}. This method must not change the row part of the key, and must only change the parts of the key after the return value of
+   * Transforms {@code input}. This method must not change the row part of the key, and must only change the parts of the key after the return value of
    * {@link #getKeyPrefix()}. Implementors must also remember to copy the delete flag from {@code originalKey} onto the new key. Or, implementors should use one
    * of the helper methods to produce the new key. See any of the replaceKeyParts methods.
    * 
@@ -624,7 +635,6 @@ abstract public class TransformingIterator extends WrappingIterator implements O
    * @see #replaceKeyParts(Key, Text, Text)
    * @see #replaceKeyParts(Key, Text, Text, Text)
    */
-  
   abstract protected void transformRange(SortedKeyValueIterator<Key,Value> input, KVBuffer output) throws IOException;
   
   /**
