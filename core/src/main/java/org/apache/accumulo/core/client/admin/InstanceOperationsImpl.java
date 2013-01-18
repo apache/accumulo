@@ -35,11 +35,15 @@ import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ThriftUtil;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.ZooCache;
+import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
 
 /**
  * Provides a class for administering the accumulo instance
@@ -193,5 +197,29 @@ public class InstanceOperationsImpl implements InstanceOperations {
       as.add(new ActiveCompaction(instance, activeCompaction));
     }
     return as;
+  }
+  
+  /*
+   * (non-Javadoc)
+   * 
+   * @see org.apache.accumulo.core.client.admin.InstanceOperations#ping(java.lang.String)
+   */
+  @Override
+  public void ping(String tserver) throws AccumuloException {
+    Client client = null;
+    try {
+      client = ThriftUtil.getTServerClient(tserver, instance.getConfiguration());
+      client.getTabletServerStatus(Tracer.traceInfo(), credentials);
+    } catch (TTransportException e) {
+      throw new AccumuloException(e);
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloException(e);
+    } catch (TException e) {
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null) {
+        ThriftUtil.returnClient(client);
+      }
+    }
   }
 }

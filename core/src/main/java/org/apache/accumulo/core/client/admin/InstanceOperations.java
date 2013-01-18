@@ -90,6 +90,15 @@ public interface InstanceOperations {
   public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException;
 
   /**
+   * Throws an exception if a tablet server can not be contacted.
+   * 
+   * @param tserver
+   *          The tablet server address should be of the form <ip address>:<port>
+   * @throws AccumuloException
+   */
+  public void ping(String tserver) throws AccumuloException;
+  
+  /**
    * Test to see if the instance can load the given class as the given type.
    * 
    * @param className
