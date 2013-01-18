@@ -49,6 +49,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Iface;
@@ -201,6 +202,11 @@ public class NullTserver {
      */
     @Override
     public void removeLogs(TInfo tinfo, AuthInfo credentials, List<String> filenames) throws TException {
+    }
+    
+    @Override
+    public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException, TException {
+      return new ArrayList<ActiveCompaction>();
     }
   }
   

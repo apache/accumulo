@@ -111,6 +111,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
@@ -160,10 +161,12 @@ import org.apache.accumulo.server.security.Authenticator;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.security.ZKAuthenticator;
+import org.apache.accumulo.server.tabletserver.Compactor.CompactionInfo;
 import org.apache.accumulo.server.tabletserver.Tablet.CommitSession;
 import org.apache.accumulo.server.tabletserver.Tablet.KVEntry;
 import org.apache.accumulo.server.tabletserver.Tablet.LookupResult;
 import org.apache.accumulo.server.tabletserver.Tablet.MajorCompactionReason;
+import org.apache.accumulo.server.tabletserver.Tablet.MinorCompactionReason;
 import org.apache.accumulo.server.tabletserver.Tablet.ScanBatch;
 import org.apache.accumulo.server.tabletserver.Tablet.Scanner;
 import org.apache.accumulo.server.tabletserver.Tablet.SplitInfo;
@@ -2121,6 +2124,24 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       }
     }
     
+    @Override
+    public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, AuthInfo credentials) throws ThriftSecurityException, TException {
+      try {
+        if (!authenticator.hasSystemPermission(credentials, credentials.user, SystemPermission.SYSTEM))
+          throw new ThriftSecurityException(credentials.user, SecurityErrorCode.PERMISSION_DENIED);
+      } catch (AccumuloSecurityException e) {
+        throw e.asThriftException();
+      }
+      
+      List<CompactionInfo> compactions = Compactor.getRunningCompactions();
+      List<ActiveCompaction> ret = new ArrayList<ActiveCompaction>(compactions.size());
+      
+      for (CompactionInfo compactionInfo : compactions) {
+        ret.add(compactionInfo.toThrift());
+      }
+      
+      return ret;
+    }
   }
   
   private class SplitRunner implements Runnable {
@@ -2192,7 +2213,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
             
             if (tablet.getLogCount() >= maxLogEntriesPerTablet) {
               log.debug("Initiating minor compaction for " + tablet.getExtent() + " because it has " + tablet.getLogCount() + " write ahead logs");
-              tablet.initiateMinorCompaction();
+              tablet.initiateMinorCompaction(MinorCompactionReason.SYSTEM);
             }
             
             synchronized (tablet) {
@@ -2518,7 +2539,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
            * it to the logs (the file will be in !METADATA, preventing replay of compacted data)... but do not want a majc to wipe the file out from !METADATA
            * and then have another process failure... this could cause duplicate data to replay
            */
-          if (tablet.getNumEntriesInMemory() > 0 && !tablet.minorCompactNow()) {
+          if (tablet.getNumEntriesInMemory() > 0 && !tablet.minorCompactNow(MinorCompactionReason.SYSTEM)) {
             throw new RuntimeException("Minor compaction after recovery fails for " + extentToOpen);
           }
           

@@ -78,6 +78,18 @@ public interface InstanceOperations {
   public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException;
   
   /**
+   * List the active compaction running on a tablet server
+   * 
+   * @param tserver
+   *          The tablet server address should be of the form <ip address>:<port>
+   * @return
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+
+  public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException;
+
+  /**
    * Test to see if the instance can load the given class as the given type.
    * 
    * @param className

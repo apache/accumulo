@@ -149,12 +149,16 @@ public class Tablet {
   enum MajorCompactionReason {
     // do not change the order, the order of this enum determines the order
     // in which queued major compactions are executed
-    ALL,
+    USER,
     CHOP,
     NORMAL,
     IDLE
   }
   
+  enum MinorCompactionReason {
+    USER, SYSTEM, CLOSE
+  }
+
   public class CommitSession {
     
     private int seq;
@@ -2123,7 +2127,7 @@ public class Tablet {
   }
   
   private DataFileValue minorCompact(Configuration conf, FileSystem fs, InMemoryMap memTable, String tmpDatafile, String newDatafile, String mergeFile,
-      boolean hasQueueTime, long queued, CommitSession commitSession, long flushId) {
+      boolean hasQueueTime, long queued, CommitSession commitSession, long flushId, MinorCompactionReason mincReason) {
     boolean failed = false;
     long start = System.currentTimeMillis();
     timer.incrementStatusMinor();
@@ -2138,7 +2142,7 @@ public class Tablet {
       if (mergeFile != null)
         dfv = datafileManager.getDatafileSizes().get(mergeFile);
       
-      MinorCompactor compactor = new MinorCompactor(conf, fs, memTable, mergeFile, dfv, tmpDatafile, acuTableConf, extent);
+      MinorCompactor compactor = new MinorCompactor(conf, fs, memTable, mergeFile, dfv, tmpDatafile, acuTableConf, extent, mincReason);
       CompactionStats stats = compactor.call();
       
       span.stop();
@@ -2182,13 +2186,15 @@ public class Tablet {
     private DataFileValue stats;
     private String mergeFile;
     private long flushId;
+    private MinorCompactionReason mincReason;
     
-    MinorCompactionTask(String mergeFile, CommitSession commitSession, long flushId) {
+    MinorCompactionTask(String mergeFile, CommitSession commitSession, long flushId, MinorCompactionReason mincReason) {
       queued = System.currentTimeMillis();
       minorCompactionWaitingToStart = true;
       this.commitSession = commitSession;
       this.mergeFile = mergeFile;
       this.flushId = flushId;
+      this.mincReason = mincReason;
     }
     
     public void run() {
@@ -2219,7 +2225,7 @@ public class Tablet {
         span.stop();
         span = Trace.start("compact");
         this.stats = minorCompact(conf, fs, tabletMemory.getMinCMemTable(), newMapfileLocation + "_tmp", newMapfileLocation, mergeFile, true, queued,
-            commitSession, flushId);
+            commitSession, flushId, mincReason);
         span.stop();
         
         if (needsSplit()) {
@@ -2240,14 +2246,14 @@ public class Tablet {
     }
   }
   
-  private synchronized MinorCompactionTask prepareForMinC(long flushId) {
+  private synchronized MinorCompactionTask prepareForMinC(long flushId, MinorCompactionReason mincReason) {
     CommitSession oldCommitSession = tabletMemory.prepareForMinC();
     otherLogs = currentLogs;
     currentLogs = new HashSet<DfsLogger>();
     
     String mergeFile = datafileManager.reserveMergingMinorCompactionFile();
     
-    return new MinorCompactionTask(mergeFile, oldCommitSession, flushId);
+    return new MinorCompactionTask(mergeFile, oldCommitSession, flushId, mincReason);
     
   }
   
@@ -2283,7 +2289,7 @@ public class Tablet {
         // a race condition
         MetadataTable.updateTabletFlushID(extent, tableFlushID, creds, tabletServer.getLock());
       } else if (initiateMinor)
-        initiateMinorCompaction(tableFlushID);
+        initiateMinorCompaction(tableFlushID, MinorCompactionReason.USER);
       
     } finally {
       if (updateMetadata) {
@@ -2296,7 +2302,7 @@ public class Tablet {
     
   }
   
-  boolean initiateMinorCompaction() {
+  boolean initiateMinorCompaction(MinorCompactionReason mincReason) {
     if (isClosed()) {
       // don't bother trying to get flush id if closed... could be closed after this check but that is ok... just trying to cut down on uneeded log messages....
       return false;
@@ -2310,10 +2316,10 @@ public class Tablet {
       log.info("Asked to initiate MinC when there was no flush id " + getExtent() + " " + e.getMessage());
       return false;
     }
-    return initiateMinorCompaction(flushId);
+    return initiateMinorCompaction(flushId, mincReason);
   }
   
-  boolean minorCompactNow() {
+  boolean minorCompactNow(MinorCompactionReason mincReason) {
     long flushId;
     try {
       flushId = getFlushID();
@@ -2321,22 +2327,22 @@ public class Tablet {
       log.info("Asked to initiate MinC when there was no flush id " + getExtent() + " " + e.getMessage());
       return false;
     }
-    MinorCompactionTask mct = createMinorCompactionTask(flushId);
+    MinorCompactionTask mct = createMinorCompactionTask(flushId, mincReason);
     if (mct == null)
       return false;
     mct.run();
     return true;
   }
 
-  boolean initiateMinorCompaction(long flushId) {
-    MinorCompactionTask mct = createMinorCompactionTask(flushId);
+  boolean initiateMinorCompaction(long flushId, MinorCompactionReason mincReason) {
+    MinorCompactionTask mct = createMinorCompactionTask(flushId, mincReason);
     if (mct == null)
       return false;
     tabletResources.executeMinorCompaction(mct);
     return true;
   }
   
-  private MinorCompactionTask createMinorCompactionTask(long flushId) {
+  private MinorCompactionTask createMinorCompactionTask(long flushId, MinorCompactionReason mincReason) {
     MinorCompactionTask mct;
     long t1, t2;
     
@@ -2371,7 +2377,7 @@ public class Tablet {
           return null;
         }
         
-        mct = prepareForMinC(flushId);
+        mct = prepareForMinC(flushId, mincReason);
         t2 = System.currentTimeMillis();
       }
     } finally {
@@ -2647,7 +2653,7 @@ public class Tablet {
       tabletMemory.waitForMinC();
       
       try {
-        mct = prepareForMinC(getFlushID());
+        mct = prepareForMinC(getFlushID(), MinorCompactionReason.CLOSE);
       } catch (NoNodeException e) {
         throw new RuntimeException(e);
       }
@@ -2700,7 +2706,7 @@ public class Tablet {
     
     if (saveState && tabletMemory.getMemTable().getNumEntries() > 0) {
       try {
-        prepareForMinC(getFlushID()).run();
+        prepareForMinC(getFlushID(), MinorCompactionReason.CLOSE).run();
       } catch (NoNodeException e) {
         throw new RuntimeException(e);
       }
@@ -2864,7 +2870,7 @@ public class Tablet {
       if (cmp != 0)
         return cmp;
       
-      if (reason == MajorCompactionReason.ALL || reason == MajorCompactionReason.CHOP) {
+      if (reason == MajorCompactionReason.USER || reason == MajorCompactionReason.CHOP) {
         // for these types of compactions want to do the oldest first
         cmp = (int) (queued - o.queued);
         if (cmp != 0)
@@ -2895,7 +2901,7 @@ public class Tablet {
   public boolean needsMajorCompaction(MajorCompactionReason reason) {
     if (majorCompactionInProgress)
       return false;
-    if (reason == MajorCompactionReason.CHOP || reason == MajorCompactionReason.ALL)
+    if (reason == MajorCompactionReason.CHOP || reason == MajorCompactionReason.USER)
       return true;
     return tabletResources.needsMajorCompaction(datafileManager.getDatafileSizes(), reason);
   }
@@ -3246,8 +3252,8 @@ public class Tablet {
               + datafileManager.abs2rel(new Path(compactTmpName)));
 
           // always propagate deletes, unless last batch
-          Compactor compactor = new Compactor(conf, fs, copy, null, compactTmpName, filesToCompact.size() == 0 ? propogateDeletes : true,
-              acuTableConf, extent, cenv, compactionIterators);
+          Compactor compactor = new Compactor(conf, fs, copy, null, compactTmpName, filesToCompact.size() == 0 ? propogateDeletes : true, acuTableConf, extent,
+              cenv, compactionIterators, reason);
           
           CompactionStats mcs = compactor.call();
           
@@ -3816,7 +3822,7 @@ public class Tablet {
         updateMetadata = true;
         lastCompactID = compactionId;
       } else
-        initiateMajorCompaction(MajorCompactionReason.ALL);
+        initiateMajorCompaction(MajorCompactionReason.USER);
     }
     
     if (updateMetadata) {

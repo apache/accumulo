@@ -33,6 +33,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
+import org.apache.accumulo.server.tabletserver.Tablet.MinorCompactionReason;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -52,7 +53,7 @@ public class MinorCompactor extends Compactor {
   }
   
   MinorCompactor(Configuration conf, FileSystem fs, InMemoryMap imm, String mergeFile, DataFileValue dfv, String outputFile, TableConfiguration acuTableConf,
-      KeyExtent extent) {
+      KeyExtent extent, MinorCompactionReason mincReason) {
     super(conf, fs, toFileMap(mergeFile, dfv), imm, outputFile, true, acuTableConf, extent, new CompactionEnv() {
       
       @Override
@@ -65,6 +66,8 @@ public class MinorCompactor extends Compactor {
         return IteratorScope.minc;
       }
     });
+    
+    super.mincReason = mincReason;
   }
   
   private boolean isTableDeleting() {
@@ -86,52 +89,57 @@ public class MinorCompactor extends Compactor {
     int maxSleepTime = 1000 * Constants.DEFAULT_MINOR_COMPACTION_MAX_SLEEP_TIME;
     boolean reportedProblem = false;
     
-    do {
-      try {
-        CompactionStats ret = super.call();
-        
-        // log.debug(String.format("MinC %,d recs in | %,d recs out | %,d recs/sec | %6.3f secs | %,d bytes ",map.size(), entriesCompacted,
-        // (int)(map.size()/((t2 - t1)/1000.0)), (t2 - t1)/1000.0, estimatedSizeInBytes()));
-        
-        if (reportedProblem) {
-          ProblemReports.getInstance().deleteProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile());
+    runningCompactions.add(this);
+    try {
+      do {
+        try {
+          CompactionStats ret = super.call();
+          
+          // log.debug(String.format("MinC %,d recs in | %,d recs out | %,d recs/sec | %6.3f secs | %,d bytes ",map.size(), entriesCompacted,
+          // (int)(map.size()/((t2 - t1)/1000.0)), (t2 - t1)/1000.0, estimatedSizeInBytes()));
+          
+          if (reportedProblem) {
+            ProblemReports.getInstance().deleteProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile());
+          }
+          
+          return ret;
+        } catch (IOException e) {
+          log.warn("MinC failed (" + e.getMessage() + ") to create " + getOutputFile() + " retrying ...");
+          ProblemReports.getInstance().report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
+          reportedProblem = true;
+        } catch (RuntimeException e) {
+          // if this is coming from a user iterator, it is possible that the user could change the iterator config and that the
+          // minor compaction would succeed
+          log.warn("MinC failed (" + e.getMessage() + ") to create " + getOutputFile() + " retrying ...", e);
+          ProblemReports.getInstance().report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
+          reportedProblem = true;
+        } catch (CompactionCanceledException e) {
+          throw new IllegalStateException(e);
         }
         
-        return ret;
-      } catch (IOException e) {
-        log.warn("MinC failed (" + e.getMessage() + ") to create " + getOutputFile() + " retrying ...");
-        ProblemReports.getInstance().report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
-        reportedProblem = true;
-      } catch (RuntimeException e) {
-        // if this is coming from a user iterator, it is possible that the user could change the iterator config and that the
-        // minor compaction would succeed
-        log.warn("MinC failed (" + e.getMessage() + ") to create " + getOutputFile() + " retrying ...", e);
-        ProblemReports.getInstance().report(new ProblemReport(getExtent().getTableId().toString(), ProblemType.FILE_WRITE, getOutputFile(), e));
-        reportedProblem = true;
-      } catch (CompactionCanceledException e) {
-        throw new IllegalStateException(e);
-      }
-      
-      Random random = new Random();
-      
-      int sleep = sleepTime + random.nextInt(sleepTime);
-      log.debug("MinC failed sleeping " + sleep + " ms before retrying");
-      UtilWaitThread.sleep(sleep);
-      sleepTime = (int) Math.round(Math.min(maxSleepTime, sleepTime * growthFactor));
-      
-      // clean up
-      try {
-        if (getFileSystem().exists(new Path(getOutputFile()))) {
-          getFileSystem().delete(new Path(getOutputFile()), true);
+        Random random = new Random();
+        
+        int sleep = sleepTime + random.nextInt(sleepTime);
+        log.debug("MinC failed sleeping " + sleep + " ms before retrying");
+        UtilWaitThread.sleep(sleep);
+        sleepTime = (int) Math.round(Math.min(maxSleepTime, sleepTime * growthFactor));
+        
+        // clean up
+        try {
+          if (getFileSystem().exists(new Path(getOutputFile()))) {
+            getFileSystem().delete(new Path(getOutputFile()), true);
+          }
+        } catch (IOException e) {
+          log.warn("Failed to delete failed MinC file " + getOutputFile() + " " + e.getMessage());
         }
-      } catch (IOException e) {
-        log.warn("Failed to delete failed MinC file " + getOutputFile() + " " + e.getMessage());
-      }
-      
-      if (isTableDeleting())
-        return new CompactionStats(0, 0);
-
-    } while (true);
+        
+        if (isTableDeleting())
+          return new CompactionStats(0, 0);
+        
+      } while (true);
+    } finally {
+      runningCompactions.remove(this);
+    }
   }
   
 }

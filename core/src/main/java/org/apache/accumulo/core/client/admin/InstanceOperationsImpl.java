@@ -173,4 +173,25 @@ public class InstanceOperationsImpl implements InstanceOperations {
       }
     });
   }
+  
+  /*
+   * (non-Javadoc)
+   * 
+   * @see org.apache.accumulo.core.client.admin.InstanceOperations#getActiveCompactions(java.lang.String)
+   */
+  @Override
+  public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException {
+    List<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction> tas = ThriftUtil.execute(tserver, instance.getConfiguration(),
+        new ClientExecReturn<List<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction>,TabletClientService.Client>() {
+          @Override
+          public List<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction> execute(TabletClientService.Client client) throws Exception {
+            return client.getActiveCompactions(Tracer.traceInfo(), credentials);
+          }
+        });
+    List<ActiveCompaction> as = new ArrayList<ActiveCompaction>();
+    for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction activeCompaction : tas) {
+      as.add(new ActiveCompaction(instance, activeCompaction));
+    }
+    return as;
+  }
 }

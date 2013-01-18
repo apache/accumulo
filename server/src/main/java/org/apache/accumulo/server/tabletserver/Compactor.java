@@ -18,6 +18,8 @@ package org.apache.accumulo.server.tabletserver;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +34,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.thrift.IterInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
@@ -43,6 +46,9 @@ import org.apache.accumulo.core.iterators.system.CountingIterator;
 import org.apache.accumulo.core.iterators.system.DeletingIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
 import org.apache.accumulo.core.iterators.system.TimeSettingIterator;
+import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
+import org.apache.accumulo.core.tabletserver.thrift.CompactionReason;
+import org.apache.accumulo.core.tabletserver.thrift.CompactionType;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.MetadataTable.DataFileValue;
@@ -51,6 +57,8 @@ import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
 import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.problems.ProblemType;
+import org.apache.accumulo.server.tabletserver.Tablet.MajorCompactionReason;
+import org.apache.accumulo.server.tabletserver.Tablet.MinorCompactionReason;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -82,8 +90,133 @@ public class Compactor implements Callable<CompactionStats> {
   protected KeyExtent extent;
   private List<IteratorSetting> iterators;
   
+  // things to report
+  private String currentLocalityGroup = "";
+  private long startTime;
+  private long currentEntriesRead = 0;
+  private long currentEntriesWritten = 0;
+  private long totalEntriesRead = 0;
+  private long totalEntriesWritten = 0;
+  private MajorCompactionReason reason;
+  protected MinorCompactionReason mincReason;
+  
+  private synchronized void updateStats(long read, long written) {
+    this.currentEntriesRead = read;
+    this.currentEntriesWritten = written;
+  }
+
+  private synchronized void clearStats() {
+    totalEntriesRead = 0;
+    totalEntriesWritten = 0;
+    currentEntriesRead = 0;
+    currentEntriesWritten = 0;
+    currentLocalityGroup = "";
+  }
+
+  private synchronized void rollStats() {
+    this.totalEntriesRead = currentEntriesRead;
+    this.totalEntriesWritten = currentEntriesWritten;
+    currentEntriesRead = 0;
+    currentEntriesWritten = 0;
+  }
+  
+  private synchronized void setLocalityGroup(String name) {
+    this.currentLocalityGroup = name;
+  }
+
+  protected static Set<Compactor> runningCompactions = Collections.synchronizedSet(new HashSet<Compactor>());
+  
+  public static class CompactionInfo {
+    
+    private Compactor compactor;
+    private String localityGroup;
+    private long entriesRead;
+    private long entriesWritten;
+    
+    CompactionInfo(Compactor compactor) {
+      // get a consistent snapshot of changing stats
+      synchronized (compactor) {
+        this.localityGroup = compactor.currentLocalityGroup;
+        this.entriesRead = compactor.totalEntriesRead + compactor.currentEntriesRead;
+        this.entriesWritten = compactor.totalEntriesWritten + compactor.currentEntriesWritten;
+      }
+      
+      this.compactor = compactor;
+    }
+
+    public ActiveCompaction toThrift() {
+      
+      CompactionType type;
+      
+      if (compactor.imm != null)
+        if (compactor.filesToCompact.size() > 0)
+          type = CompactionType.MERGE;
+        else
+          type = CompactionType.MINOR;
+      else if (!compactor.propogateDeletes)
+        type = CompactionType.FULL;
+      else
+        type = CompactionType.MAJOR;
+      
+      CompactionReason reason;
+      
+      if (compactor.imm != null)
+        switch(compactor.mincReason){
+          case USER:
+            reason = CompactionReason.USER;
+            break;
+          case CLOSE:
+            reason = CompactionReason.CLOSE;
+            break;
+          case SYSTEM:
+          default:
+            reason = CompactionReason.SYSTEM;
+            break;
+        }
+      else
+        switch (compactor.reason) {
+          case USER:
+            reason = CompactionReason.USER;
+            break;
+          case CHOP:
+            reason = CompactionReason.CHOP;
+            break;
+          case IDLE:
+            reason = CompactionReason.IDLE;
+            break;
+          case NORMAL:
+          default:
+            reason = CompactionReason.SYSTEM;
+            break;
+        }
+      
+      List<IterInfo> iiList = new ArrayList<IterInfo>();
+      Map<String,Map<String,String>> iterOptions = new HashMap<String,Map<String,String>>();
+      
+      for (IteratorSetting iterSetting : compactor.iterators) {
+        iiList.add(new IterInfo(iterSetting.getPriority(), iterSetting.getIteratorClass(), iterSetting.getName()));
+        iterOptions.put(iterSetting.getName(), iterSetting.getOptions());
+      }
+      
+      return new ActiveCompaction(compactor.extent.toThrift(), System.currentTimeMillis() - compactor.startTime, compactor.filesToCompact.size(),
+          compactor.outputFile, type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions);
+    }
+  }
+  
+  public static List<CompactionInfo> getRunningCompactions() {
+    ArrayList<CompactionInfo> compactions = new ArrayList<Compactor.CompactionInfo>();
+    
+    synchronized (runningCompactions) {
+      for (Compactor compactor : runningCompactions) {
+        compactions.add(new CompactionInfo(compactor));
+      }
+    }
+    
+    return compactions;
+  }
+
   Compactor(Configuration conf, FileSystem fs, Map<String,DataFileValue> files, InMemoryMap imm, String outputFile, boolean propogateDeletes,
-      TableConfiguration acuTableConf, KeyExtent extent, CompactionEnv env, List<IteratorSetting> iterators) {
+      TableConfiguration acuTableConf, KeyExtent extent, CompactionEnv env, List<IteratorSetting> iterators, MajorCompactionReason reason) {
     this.extent = extent;
     this.conf = conf;
     this.fs = fs;
@@ -94,11 +227,14 @@ public class Compactor implements Callable<CompactionStats> {
     this.acuTableConf = acuTableConf;
     this.env = env;
     this.iterators = iterators;
+    this.reason = reason;
+    
+    startTime = System.currentTimeMillis();
   }
   
   Compactor(Configuration conf, FileSystem fs, Map<String,DataFileValue> files, InMemoryMap imm, String outputFile, boolean propogateDeletes,
       TableConfiguration acuTableConf, KeyExtent extent, CompactionEnv env) {
-    this(conf, fs, files, imm, outputFile, propogateDeletes, acuTableConf, extent, env, new ArrayList<IteratorSetting>());
+    this(conf, fs, files, imm, outputFile, propogateDeletes, acuTableConf, extent, env, new ArrayList<IteratorSetting>(), null);
   }
   
   public FileSystem getFileSystem() {
@@ -119,7 +255,11 @@ public class Compactor implements Callable<CompactionStats> {
     FileSKVWriter mfw = null;
     
     CompactionStats majCStats = new CompactionStats();
+
+    boolean remove = runningCompactions.add(this);
     
+    clearStats();
+
     try {
       FileOperations fileFactory = FileOperations.getInstance();
       mfw = fileFactory.openWriter(outputFile, fs, conf, acuTableConf);
@@ -137,11 +277,13 @@ public class Compactor implements Callable<CompactionStats> {
       
       if (mfw.supportsLocalityGroups()) {
         for (Entry<String,Set<ByteSequence>> entry : lGroups.entrySet()) {
+          setLocalityGroup(entry.getKey());
           compactLocalityGroup(entry.getKey(), entry.getValue(), true, mfw, majCStats);
           allColumnFamilies.addAll(entry.getValue());
         }
       }
       
+      setLocalityGroup("");
       compactLocalityGroup(null, allColumnFamilies, false, mfw, majCStats);
       
       long t2 = System.currentTimeMillis();
@@ -171,6 +313,10 @@ public class Compactor implements Callable<CompactionStats> {
       log.error(e, e);
       throw e;
     } finally {
+      
+      if (remove)
+        runningCompactions.remove(this);
+
       try {
         if (mfw != null) {
           // compaction must not have finished successfully, so close its output file
@@ -281,8 +427,15 @@ public class Compactor implements Callable<CompactionStats> {
           mfw.append(itr.getTopKey(), itr.getTopValue());
           itr.next();
           entriesCompacted++;
+          
+          if (entriesCompacted % 1024 == 0) {
+            // Periodically update stats, do not want to do this too often since its syncronized
+            updateStats(citr.getCount(), entriesCompacted);
+          }
         }
         
+        rollStats();
+
         if (itr.hasTop() && !env.isCompactionEnabled()) {
           // cancel major compaction operation
           try {

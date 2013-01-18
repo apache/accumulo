@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
@@ -113,5 +114,15 @@ public class MockInstanceOperations implements InstanceOperations {
       return false;
     }
     return true;
+  }
+  
+  /*
+   * (non-Javadoc)
+   * 
+   * @see org.apache.accumulo.core.client.admin.InstanceOperations#getActiveCompactions(java.lang.String)
+   */
+  @Override
+  public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException {
+    return new ArrayList<ActiveCompaction>();
   }
 }
