@@ -85,7 +85,6 @@ import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -862,16 +861,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       scannerIterator = scanner.iterator();
     }
     
-    /**
-     * @deprecated since 1.5.0; Use {@link #initialize(InputSplit, TaskAttemptContext)} instead. <br />
-     *             This class is written for the Hadoop MapReduce framework, and is not guaranteed to function in other frameworks. Other frameworks using this
-     *             class are expected to wrap their objects to conform to the supported framework.
-     */
-    @Deprecated
-    public void initialize(InputSplit inSplit, Configuration conf) throws IOException {
-      initialize(inSplit, new TaskAttemptContext(conf, new TaskAttemptID()));
-    }
-    
     @Override
     public void close() {}
     
@@ -1090,14 +1079,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       for (Entry<Range,ArrayList<String>> entry : splitsToAdd.entrySet())
         splits.add(new RangeInputSplit(tableName, entry.getKey(), entry.getValue().toArray(new String[0])));
     return splits;
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getSplits(JobContext)} instead.
-   */
-  @Deprecated
-  public List<InputSplit> getSplits(Configuration conf) throws IOException {
-    return getSplits(new TaskAttemptContext(conf, new TaskAttemptID()));
   }
   
   /**
