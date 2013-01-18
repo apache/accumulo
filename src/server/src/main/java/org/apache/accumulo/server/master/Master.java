@@ -220,6 +220,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
   private MasterState state = MasterState.INITIAL;
   
   private Fate<Master> fate;
+  private int fateThreadCount;
   
   volatile private SortedMap<TServerInstance,TabletServerStatus> tserverStatus = Collections
       .unmodifiableSortedMap(new TreeMap<TServerInstance,TabletServerStatus>());
@@ -537,6 +538,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     log.info("Instance " + instance.getInstanceID());
     
     ThriftTransportPool.getInstance().setIdleTime(ServerConfiguration.getSiteConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+    fateThreadCount = ServerConfiguration.getSiteConfiguration().getCount(Property.MASTER_FATE_THREADPOOL_SIZE);
 
     hostname = Accumulo.getLocalAddress(args).getHostName();
     fs = TraceFileSystem.wrap(FileUtil.getFileSystem(CachedConfiguration.getInstance(), ServerConfiguration.getSiteConfiguration()));
@@ -2096,7 +2098,7 @@ public class Master implements LiveTServerSet.Listener, LoggerWatcher, TableObse
     // TODO: add shutdown for fate object
     try {
       fate = new Fate<Master>(this, new org.apache.accumulo.server.fate.ZooStore<Master>(ZooUtil.getRoot(instance) + Constants.ZFATE,
-          ZooReaderWriter.getRetryingInstance()), 4);
+          ZooReaderWriter.getRetryingInstance()), fateThreadCount);
     } catch (KeeperException e) {
       throw new IOException(e);
     } catch (InterruptedException e) {
