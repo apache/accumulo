@@ -149,9 +149,7 @@ public class ContinuousMoru extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setMaxLatency(job, Integer.parseInt(String.valueOf(bwOpts.batchLatency)));
-    AccumuloOutputFormat.setMaxMutationBufferSize(job, bwOpts.batchMemory);
-    AccumuloOutputFormat.setMaxWriteThreads(job, bwOpts.batchThreads);
+    AccumuloOutputFormat.setBatchWriterOptions(job, bwOpts.getBatchWriterConfig());
     
     Configuration conf = job.getConfiguration();
     conf.setLong(MIN, opts.min);

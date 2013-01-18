@@ -16,7 +16,12 @@
  */
 package org.apache.accumulo.core.client.mapreduce;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -141,7 +146,15 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @see #setMockInstance(Job, String)
    * @see #getInstance(JobContext)
    */
-  private static final String MOCK = ".useMockInstance";
+  private static final String MOCK = PREFIX + ".useMockInstance";
+  
+  /**
+   * Key for storing the {@link BatchWriterConfig}.
+   * 
+   * @see #setBatchWriterOptions(Job, BatchWriterConfig)
+   * @see #getBatchWriterOptions(JobContext)
+   */
+  private static final String BATCH_WRITER_CONFIG = PREFIX + ".bwConfig";
   
   /**
    * Key for storing the directive to create tables that don't exist
@@ -232,35 +245,26 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   /**
+   * Sets the configuration for for the job's {@link BatchWriter} instances. If not set, a new {@link BatchWriterConfig}, with sensible built-in defaults is
+   * used. Setting the configuration multiple times overwrites any previous configuration.
+   * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param bwConfig
+   *          the configuration for the {@link BatchWriter}
    * @since 1.5.0
-   * @see BatchWriterConfig#setMaxMemory(long)
    */
-  public static void setMaxMutationBufferSize(Job job, long numberOfBytes) {
-    job.getConfiguration().setLong(MAX_MUTATION_BUFFER_SIZE, numberOfBytes);
-  }
-  
-  /**
-   * @since 1.5.0
-   * @see BatchWriterConfig#setMaxLatency(long, TimeUnit)
-   */
-  public static void setMaxLatency(Job job, int numberOfMilliseconds) {
-    job.getConfiguration().setInt(MAX_LATENCY, numberOfMilliseconds);
-  }
-  
-  /**
-   * @since 1.5.0
-   * @see BatchWriterConfig#setMaxWriteThreads(int)
-   */
-  public static void setMaxWriteThreads(Job job, int numberOfThreads) {
-    job.getConfiguration().setInt(NUM_WRITE_THREADS, numberOfThreads);
-  }
-  
-  /**
-   * @since 1.5.0
-   * @see BatchWriterConfig#setTimeout(long, TimeUnit)
-   */
-  public static void setTimeout(Job job, long time, TimeUnit timeUnit) {
-    job.getConfiguration().setLong(TIMEOUT, timeUnit.toMillis(time));
+  public static void setBatchWriterOptions(Job job, BatchWriterConfig bwConfig) {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    String serialized;
+    try {
+      bwConfig.write(new DataOutputStream(baos));
+      serialized = new String(baos.toByteArray(), Charset.forName("UTF-8"));
+      baos.close();
+    } catch (IOException e) {
+      throw new IllegalArgumentException("unable to serialize " + BatchWriterConfig.class.getName());
+    }
+    job.getConfiguration().set(BATCH_WRITER_CONFIG, serialized);
   }
   
   /**
@@ -363,55 +367,29 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   /**
-   * Gets the corresponding {@link BatchWriterConfig} setting.
+   * Gets the {@link BatchWriterConfig} settings.
    * 
    * @param context
    *          the Hadoop context for the configured job
-   * @return the max memory to use (in bytes)
+   * @return the configuration object
    * @since 1.5.0
-   * @see #setMaxMutationBufferSize(Job, long)
+   * @see #setBatchWriterOptions(Job, BatchWriterConfig)
    */
-  protected static long getMaxMutationBufferSize(JobContext context) {
-    return context.getConfiguration().getLong(MAX_MUTATION_BUFFER_SIZE, new BatchWriterConfig().getMaxMemory());
-  }
-  
-  /**
-   * Gets the corresponding {@link BatchWriterConfig} setting.
-   * 
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return the max latency to use (in millis)
-   * @since 1.5.0
-   * @see #setMaxLatency(Job, int)
-   */
-  protected static long getMaxLatency(JobContext context) {
-    return context.getConfiguration().getLong(MAX_LATENCY, new BatchWriterConfig().getMaxLatency(TimeUnit.MILLISECONDS));
-  }
-  
-  /**
-   * Gets the corresponding {@link BatchWriterConfig} setting.
-   * 
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return the max write threads to use
-   * @since 1.5.0
-   * @see #setMaxWriteThreads(Job, int)
-   */
-  protected static int getMaxWriteThreads(JobContext context) {
-    return context.getConfiguration().getInt(NUM_WRITE_THREADS, new BatchWriterConfig().getMaxWriteThreads());
-  }
-  
-  /**
-   * Gets the corresponding {@link BatchWriterConfig} setting.
-   * 
-   * @param context
-   *          the Hadoop context for the configured job
-   * @return the timeout for write operations
-   * @since 1.5.0
-   * @see #setTimeout(Job, long, TimeUnit)
-   */
-  protected static long getTimeout(JobContext context) {
-    return context.getConfiguration().getLong(TIMEOUT, Long.MAX_VALUE);
+  protected static BatchWriterConfig getBatchWriterOptions(JobContext context) {
+    String serialized = context.getConfiguration().get(BATCH_WRITER_CONFIG);
+    BatchWriterConfig bwConfig = new BatchWriterConfig();
+    if (serialized == null || serialized.isEmpty()) {
+      return bwConfig;
+    } else {
+      try {
+        ByteArrayInputStream bais = new ByteArrayInputStream(serialized.getBytes(Charset.forName("UTF-8")));
+        bwConfig.readFields(new DataInputStream(bais));
+        bais.close();
+        return bwConfig;
+      } catch (IOException e) {
+        throw new IllegalArgumentException("unable to serialize " + BatchWriterConfig.class.getName());
+      }
+    }
   }
   
   /**
@@ -475,9 +453,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
       
       if (!simulate) {
         this.conn = getInstance(context).getConnector(getUsername(context), getPassword(context));
-        mtbw = conn.createMultiTableBatchWriter(new BatchWriterConfig().setMaxMemory(getMaxMutationBufferSize(context))
-            .setMaxLatency(getMaxLatency(context), TimeUnit.MILLISECONDS).setMaxWriteThreads(getMaxWriteThreads(context))
-            .setTimeout(getTimeout(context), TimeUnit.MILLISECONDS));
+        mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(context));
       }
     }
     
@@ -658,12 +634,6 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   private static final String NUM_WRITE_THREADS = PREFIX + ".writethreads";
   
   /**
-   * @deprecated since 1.5.0;
-   */
-  @Deprecated
-  private static final String TIMEOUT = PREFIX + ".timeout";
-  
-  /**
    * @deprecated since 1.5.0; Use {@link #setOutputInfo(Job, String, byte[], boolean, String)} instead.
    */
   @Deprecated
@@ -705,7 +675,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   /**
-   * @deprecated since 1.5.0; Use {@link #setMaxMutationBufferSize(Job, long)} instead.
+   * @deprecated since 1.5.0; Use {@link #setBatchWriterOptions(Job, BatchWriterConfig)} instead.
    */
   @Deprecated
   public static void setMaxMutationBufferSize(Configuration conf, long numberOfBytes) {
@@ -713,7 +683,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   /**
-   * @deprecated since 1.5.0; Use {@link #setMaxLatency(Job, int)} instead.
+   * @deprecated since 1.5.0; Use {@link #setBatchWriterOptions(Job, BatchWriterConfig)} instead.
    */
   @Deprecated
   public static void setMaxLatency(Configuration conf, int numberOfMilliseconds) {
@@ -721,7 +691,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   /**
-   * @deprecated since 1.5.0; Use {@link #setMaxWriteThreads(Job, int)} instead.
+   * @deprecated since 1.5.0; Use {@link #setBatchWriterOptions(Job, BatchWriterConfig)} instead.
    */
   @Deprecated
   public static void setMaxWriteThreads(Configuration conf, int numberOfThreads) {
@@ -788,7 +758,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   /**
-   * @deprecated since 1.5.0; Use {@link #getMaxMutationBufferSize(JobContext)} instead.
+   * @deprecated since 1.5.0; Use {@link #getBatchWriterOptions(JobContext)} instead.
    */
   @Deprecated
   protected static long getMaxMutationBufferSize(Configuration conf) {
@@ -796,7 +766,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   /**
-   * @deprecated since 1.5.0; Use {@link #getMaxLatency(JobContext)} instead.
+   * @deprecated since 1.5.0; Use {@link #getBatchWriterOptions(JobContext)} instead.
    */
   @Deprecated
   protected static int getMaxLatency(Configuration conf) {
@@ -806,7 +776,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   /**
-   * @deprecated since 1.5.0; Use {@link #getMaxWriteThreads(JobContext)} instead.
+   * @deprecated since 1.5.0; Use {@link #getBatchWriterOptions(JobContext)} instead.
    */
   @Deprecated
   protected static int getMaxWriteThreads(Configuration conf) {

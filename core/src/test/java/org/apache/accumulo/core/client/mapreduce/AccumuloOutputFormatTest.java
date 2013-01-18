@@ -18,12 +18,14 @@ package org.apache.accumulo.core.client.mapreduce;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -39,6 +41,7 @@ import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -117,6 +120,46 @@ public class AccumuloOutputFormatTest {
     public static void main(String[] args) throws Exception {
       assertEquals(0, ToolRunner.run(CachedConfiguration.getInstance(), new MRTester(), args));
     }
+  }
+  
+  @Test
+  public void testBWSettings() throws IOException {
+    Job job = new Job();
+    
+    // make sure we aren't testing defaults
+    final BatchWriterConfig bwDefaults = new BatchWriterConfig();
+    assertNotEquals(7654321l, bwDefaults.getMaxLatency(TimeUnit.MILLISECONDS));
+    assertNotEquals(9898989l, bwDefaults.getTimeout(TimeUnit.MILLISECONDS));
+    assertNotEquals(42, bwDefaults.getMaxWriteThreads());
+    assertNotEquals(1123581321l, bwDefaults.getMaxMemory());
+    
+    final BatchWriterConfig bwConfig = new BatchWriterConfig();
+    bwConfig.setMaxLatency(7654321l, TimeUnit.MILLISECONDS);
+    bwConfig.setTimeout(9898989l, TimeUnit.MILLISECONDS);
+    bwConfig.setMaxWriteThreads(42);
+    bwConfig.setMaxMemory(1123581321l);
+    AccumuloOutputFormat.setBatchWriterOptions(job, bwConfig);
+    
+    AccumuloOutputFormat myAOF = new AccumuloOutputFormat() {
+      @Override
+      public void checkOutputSpecs(JobContext job) throws IOException {
+        BatchWriterConfig bwOpts = getBatchWriterOptions(job);
+        
+        // passive check
+        assertEquals(bwConfig.getMaxLatency(TimeUnit.MILLISECONDS), bwOpts.getMaxLatency(TimeUnit.MILLISECONDS));
+        assertEquals(bwConfig.getTimeout(TimeUnit.MILLISECONDS), bwOpts.getTimeout(TimeUnit.MILLISECONDS));
+        assertEquals(bwConfig.getMaxWriteThreads(), bwOpts.getMaxWriteThreads());
+        assertEquals(bwConfig.getMaxMemory(), bwOpts.getMaxMemory());
+        
+        // explicit check
+        assertEquals(7654321l, bwOpts.getMaxLatency(TimeUnit.MILLISECONDS));
+        assertEquals(9898989l, bwOpts.getTimeout(TimeUnit.MILLISECONDS));
+        assertEquals(42, bwOpts.getMaxWriteThreads());
+        assertEquals(1123581321l, bwOpts.getMaxMemory());
+        
+      }
+    };
+    myAOF.checkOutputSpecs(job);
   }
   
   @Test

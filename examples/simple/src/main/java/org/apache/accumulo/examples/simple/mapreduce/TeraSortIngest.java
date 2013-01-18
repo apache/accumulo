@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.accumulo.core.cli.ClientOnRequiredTable;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -383,7 +384,8 @@ public class TeraSortIngest extends Configured implements Tool {
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
     opts.setAccumuloConfigs(job);
-    AccumuloOutputFormat.setMaxMutationBufferSize(job, 10L * 1000 * 1000);
+    BatchWriterConfig bwConfig = new BatchWriterConfig().setMaxMemory(10L * 1000 * 1000);
+    AccumuloOutputFormat.setBatchWriterOptions(job, bwConfig);
     
     Configuration conf = job.getConfiguration();
     conf.setLong(NUMROWS, opts.numRows);

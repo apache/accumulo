@@ -54,9 +54,10 @@ public class InsertCommand extends Command {
     
     return Long.MAX_VALUE;
   }
-
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      IOException, ConstraintViolationException {
+  
+  @Override
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, IOException, ConstraintViolationException {
     shellState.checkTableState();
     
     final Mutation m = new Mutation(new Text(cl.getArgs()[0].getBytes(Shell.CHARSET)));
@@ -78,7 +79,7 @@ public class InsertCommand extends Command {
       m.put(colf, colq, val);
     
     final BatchWriter bw = shellState.getConnector().createBatchWriter(shellState.getTableName(),
-        new BatchWriterConfig().setMaxMemory(m.estimatedMemoryUsed()).setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
+        new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024)).setMaxWriteThreads(1).setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS));
     bw.addMutation(m);
     try {
       bw.close();
@@ -103,7 +104,7 @@ public class InsertCommand extends Command {
         if (e.getCause() != null)
           lines.add("   Caused by : " + e.getCause().getClass().getName() + " : " + e.getCause().getMessage());
       }
-
+      
       shellState.printLines(lines.iterator(), false);
     }
     return 0;
@@ -134,7 +135,7 @@ public class InsertCommand extends Command {
         "time before insert should fail if no data is written. If no unit is given assumes seconds.  Units d,h,m,s,and ms are supported.  e.g. 30s or 100ms");
     timeoutOption.setArgName("timeout");
     o.addOption(timeoutOption);
-
+    
     return o;
   }
   
