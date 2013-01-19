@@ -46,7 +46,7 @@
         <artifactId>exec-maven-plugin</artifactId>
         <executions>
           <execution>
-            <id>generate-core-thrift</id>
+            <id>generate-thrift</id>
             <phase>generate-sources</phase>
             <goals>
               <goal>exec</goal>
