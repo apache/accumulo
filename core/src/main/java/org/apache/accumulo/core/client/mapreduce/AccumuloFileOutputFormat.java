@@ -18,20 +18,18 @@ package org.apache.accumulo.core.client.mapreduce;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Instance;
-import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.mapreduce.util.FileOutputConfigurator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -41,6 +39,7 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.log4j.Logger;
 
 /**
  * This class allows MapReduce jobs to write output in the Accumulo data file format.<br />
@@ -53,70 +52,33 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
  * supported at this time.
  */
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
-  private static final String PREFIX = AccumuloOutputFormat.class.getSimpleName() + ".";
-  private static final String ACCUMULO_PROPERTY_PREFIX = PREFIX + "accumuloProperties.";
+  
+  private static final Class<?> CLASS = AccumuloFileOutputFormat.class;
+  protected static final Logger log = Logger.getLogger(CLASS);
   
   /**
    * This helper method provides an AccumuloConfiguration object constructed from the Accumulo defaults, and overridden with Accumulo properties that have been
    * stored in the Job's configuration.
    * 
+   * @param context
+   *          the Hadoop context for the configured job
    * @since 1.5.0
-   * @see #setAccumuloProperty(Job, Property, Object)
    */
   protected static AccumuloConfiguration getAccumuloConfiguration(JobContext context) {
-    ConfigurationCopy acuConf = new ConfigurationCopy(AccumuloConfiguration.getDefaultConfiguration());
-    for (Entry<String,String> entry : context.getConfiguration())
-      if (entry.getKey().startsWith(ACCUMULO_PROPERTY_PREFIX))
-        acuConf.set(Property.getPropertyByKey(entry.getKey().substring(ACCUMULO_PROPERTY_PREFIX.length())), entry.getValue());
-    return acuConf;
-  }
-  
-  /**
-   * The supported Accumulo properties we set in this OutputFormat, that change the behavior of the RecordWriter.<br />
-   * These properties correspond to the supported public static setter methods available to this class.
-   * 
-   * @since 1.5.0
-   */
-  protected static boolean isSupportedAccumuloProperty(Property property) {
-    switch (property) {
-      case TABLE_FILE_COMPRESSION_TYPE:
-      case TABLE_FILE_COMPRESSED_BLOCK_SIZE:
-      case TABLE_FILE_BLOCK_SIZE:
-      case TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX:
-      case TABLE_FILE_REPLICATION:
-        return true;
-      default:
-        return false;
-    }
-  }
-  
-  /**
-   * Helper for transforming Accumulo configuration properties into something that can be stored safely inside the Hadoop Job configuration.
-   * 
-   * @since 1.5.0
-   */
-  protected static <T> void setAccumuloProperty(Job job, Property property, T value) {
-    if (isSupportedAccumuloProperty(property)) {
-      String val = String.valueOf(value);
-      if (property.getType().isValidFormat(val))
-        job.getConfiguration().set(ACCUMULO_PROPERTY_PREFIX + property.getKey(), val);
-      else
-        throw new IllegalArgumentException("Value is not appropriate for property type '" + property.getType() + "'");
-    } else
-      throw new IllegalArgumentException("Unsupported configuration property " + property.getKey());
+    return FileOutputConfigurator.getAccumuloConfiguration(CLASS, context.getConfiguration());
   }
   
   /**
    * Sets the compression type to use for data blocks. Specifying a compression may require additional libraries to be available to your Job.
    * 
+   * @param job
+   *          the Hadoop job instance to be configured
    * @param compressionType
    *          one of "none", "gz", "lzo", or "snappy"
    * @since 1.5.0
    */
   public static void setCompressionType(Job job, String compressionType) {
-    if (compressionType == null || !Arrays.asList("none", "gz", "lzo", "snappy").contains(compressionType))
-      throw new IllegalArgumentException("Compression type must be one of: none, gz, lzo, snappy");
-    setAccumuloProperty(job, Property.TABLE_FILE_COMPRESSION_TYPE, compressionType);
+    FileOutputConfigurator.setCompressionType(CLASS, job.getConfiguration(), compressionType);
   }
   
   /**
@@ -126,38 +88,54 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * <p>
    * Making this value smaller may increase seek performance, but at the cost of increasing the size of the indexes (which can also affect seek performance).
    * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param dataBlockSize
+   *          the block size, in bytes
    * @since 1.5.0
    */
   public static void setDataBlockSize(Job job, long dataBlockSize) {
-    setAccumuloProperty(job, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE, dataBlockSize);
+    FileOutputConfigurator.setDataBlockSize(CLASS, job.getConfiguration(), dataBlockSize);
   }
   
   /**
    * Sets the size for file blocks in the file system; file blocks are managed, and replicated, by the underlying file system.
    * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param fileBlockSize
+   *          the block size, in bytes
    * @since 1.5.0
    */
   public static void setFileBlockSize(Job job, long fileBlockSize) {
-    setAccumuloProperty(job, Property.TABLE_FILE_BLOCK_SIZE, fileBlockSize);
+    FileOutputConfigurator.setFileBlockSize(CLASS, job.getConfiguration(), fileBlockSize);
   }
   
   /**
    * Sets the size for index blocks within each file; smaller blocks means a deeper index hierarchy within the file, while larger blocks mean a more shallow
    * index hierarchy within the file. This can affect the performance of queries.
    * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param indexBlockSize
+   *          the block size, in bytes
    * @since 1.5.0
    */
   public static void setIndexBlockSize(Job job, long indexBlockSize) {
-    setAccumuloProperty(job, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, indexBlockSize);
+    FileOutputConfigurator.setIndexBlockSize(CLASS, job.getConfiguration(), indexBlockSize);
   }
   
   /**
    * Sets the file system replication factor for the resulting file, overriding the file system default.
    * 
+   * @param job
+   *          the Hadoop job instance to be configured
+   * @param replication
+   *          the number of replicas for produced files
    * @since 1.5.0
    */
   public static void setReplication(Job job, int replication) {
-    setAccumuloProperty(job, Property.TABLE_FILE_REPLICATION, replication);
+    FileOutputConfigurator.setReplication(CLASS, job.getConfiguration(), replication);
   }
   
   @Override
@@ -204,35 +182,13 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   // ----------------------------------------------------------------------------------------------------
   
   /**
-   * @deprecated since 1.5.0;
-   * @see #setZooKeeperInstance(Configuration, String, String)
-   */
-  @Deprecated
-  private static final String INSTANCE_HAS_BEEN_SET = PREFIX + "instanceConfigured";
-  
-  /**
-   * @deprecated since 1.5.0;
-   * @see #setZooKeeperInstance(Configuration, String, String)
-   * @see #getInstance(Configuration)
-   */
-  @Deprecated
-  private static final String INSTANCE_NAME = PREFIX + "instanceName";
-  
-  /**
-   * @deprecated since 1.5.0;
-   * @see #setZooKeeperInstance(Configuration, String, String)
-   * @see #getInstance(Configuration)
-   */
-  @Deprecated
-  private static final String ZOOKEEPERS = PREFIX + "zooKeepers";
-  
-  /**
-   * @deprecated since 1.5.0; Retrieve the relevant block size from {@link #getAccumuloConfiguration(JobContext)}
+   * @deprecated since 1.5.0; Retrieve the relevant block size from {@link #getAccumuloConfiguration(JobContext)} and configure hadoop's
+   *             io.seqfile.compress.blocksize with the same value. No longer needed, as {@link RFile} does not use this field.
    */
   @Deprecated
   protected static void handleBlockSize(Configuration conf) {
     conf.setInt("io.seqfile.compress.blocksize",
-        (int) AccumuloConfiguration.getDefaultConfiguration().getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
+        (int) FileOutputConfigurator.getAccumuloConfiguration(CLASS, conf).getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
   }
   
   /**
@@ -246,7 +202,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    */
   @Deprecated
   public static void setBlockSize(Configuration conf, int blockSize) {
-    conf.set(ACCUMULO_PROPERTY_PREFIX + Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), String.valueOf(blockSize));
+    FileOutputConfigurator.setDataBlockSize(CLASS, conf, blockSize);
   }
   
   /**
@@ -255,13 +211,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    */
   @Deprecated
   public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
-    if (conf.getBoolean(INSTANCE_HAS_BEEN_SET, false))
-      throw new IllegalStateException("Instance info can only be set once per job");
-    conf.setBoolean(INSTANCE_HAS_BEEN_SET, true);
-    
-    ArgumentChecker.notNull(instanceName, zooKeepers);
-    conf.set(INSTANCE_NAME, instanceName);
-    conf.set(ZOOKEEPERS, zooKeepers);
+    FileOutputConfigurator.setZooKeeperInstance(CLASS, conf, instanceName, zooKeepers);
   }
   
   /**
@@ -270,7 +220,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    */
   @Deprecated
   protected static Instance getInstance(Configuration conf) {
-    return new ZooKeeperInstance(conf.get(INSTANCE_NAME), conf.get(ZOOKEEPERS));
+    return FileOutputConfigurator.getInstance(CLASS, conf);
   }
   
 }

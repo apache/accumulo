@@ -30,7 +30,11 @@ public class ClientOnRequiredTable extends ClientOpts {
   @Override
   public void setAccumuloConfigs(Job job) {
     super.setAccumuloConfigs(job);
-    AccumuloInputFormat.setInputInfo(job, user, getPassword(), tableName, auths);
-    AccumuloOutputFormat.setOutputInfo(job, user, getPassword(), true, tableName);
+    AccumuloInputFormat.setConnectorInfo(job, user, getPassword());
+    AccumuloInputFormat.setInputTableName(job, tableName);
+    AccumuloInputFormat.setScanAuthorizations(job, auths);
+    AccumuloOutputFormat.setConnectorInfo(job, user, getPassword());
+    AccumuloOutputFormat.setCreateTables(job, true);
+    AccumuloOutputFormat.setDefaultTableName(job, tableName);
   }
 }

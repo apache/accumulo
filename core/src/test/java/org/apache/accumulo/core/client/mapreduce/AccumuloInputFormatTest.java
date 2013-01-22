@@ -23,9 +23,9 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -64,7 +64,7 @@ public class AccumuloInputFormatTest {
     Configuration conf = job.getConfiguration();
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     is.write(new DataOutputStream(baos));
-    String iterators = conf.get("AccumuloInputFormat.iterators");
+    String iterators = conf.get("AccumuloInputFormat.ScanOpts.Iterators");
     assertEquals(new String(Base64.encodeBase64(baos.toByteArray())), iterators);
   }
   
@@ -236,7 +236,8 @@ public class AccumuloInputFormatTest {
       
       job.setInputFormatClass(AccumuloInputFormat.class);
       
-      AccumuloInputFormat.setInputInfo(job, user, pass.getBytes(), table, Constants.NO_AUTHS);
+      AccumuloInputFormat.setConnectorInfo(job, user, pass.getBytes(Charset.forName("UTF-8")));
+      AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setMockInstance(job, "testmapinstance");
       
       job.setMapperClass(TestMapper.class);

@@ -21,9 +21,11 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
@@ -34,8 +36,10 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>{@link AccumuloInputFormat#setInputInfo(org.apache.hadoop.mapreduce.Job, String, byte[], String, org.apache.accumulo.core.security.Authorizations)}
- * <li>{@link AccumuloInputFormat#setZooKeeperInstance(org.apache.hadoop.mapreduce.Job, String, String)}
+ * <li>{@link AccumuloInputFormat#setConnectorInfo(Job, String, byte[])}
+ * <li>{@link AccumuloInputFormat#setInputTableName(Job, String)}
+ * <li>{@link AccumuloInputFormat#setScanAuthorizations(Job, Authorizations)}
+ * <li>{@link AccumuloInputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloInputFormat#setMockInstance(Job, String)}
  * </ul>
  * 
  * Other static methods are optional.

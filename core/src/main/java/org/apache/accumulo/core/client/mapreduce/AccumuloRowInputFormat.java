@@ -22,10 +22,12 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputFormat;
 import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
@@ -36,8 +38,10 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>{@link AccumuloRowInputFormat#setInputInfo(org.apache.hadoop.mapreduce.Job, String, byte[], String, org.apache.accumulo.core.security.Authorizations)}
- * <li>{@link AccumuloRowInputFormat#setZooKeeperInstance(org.apache.hadoop.mapreduce.Job, String, String)}
+ * <li>{@link AccumuloRowInputFormat#setConnectorInfo(Job, String, byte[])}
+ * <li>{@link AccumuloRowInputFormat#setInputTableName(Job, String)}
+ * <li>{@link AccumuloRowInputFormat#setScanAuthorizations(Job, Authorizations)}
+ * <li>{@link AccumuloRowInputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloRowInputFormat#setMockInstance(Job, String)}
  * </ul>
  * 
  * Other static methods are optional.

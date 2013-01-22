@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -135,10 +136,9 @@ public class AccumuloFileOutputFormatTest {
       job.setJarByClass(this.getClass());
       
       job.setInputFormatClass(AccumuloInputFormat.class);
-      Authorizations authorizations;
-      authorizations = Constants.NO_AUTHS;
       
-      AccumuloInputFormat.setInputInfo(job, user, pass.getBytes(), table, authorizations);
+      AccumuloInputFormat.setConnectorInfo(job, user, pass.getBytes(Charset.forName("UTF-8")));
+      AccumuloInputFormat.setInputTableName(job, table);
       AccumuloInputFormat.setMockInstance(job, "testinstance");
       AccumuloFileOutputFormat.setOutputPath(job, new Path(args[3]));
       

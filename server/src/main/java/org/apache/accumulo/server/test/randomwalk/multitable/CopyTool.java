@@ -17,13 +17,14 @@
 package org.apache.accumulo.server.test.randomwalk.multitable;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -54,7 +55,9 @@ public class CopyTool extends Configured implements Tool {
     }
     
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setInputInfo(job, args[0], args[1].getBytes(), args[2], new Authorizations());
+    AccumuloInputFormat.setConnectorInfo(job, args[0], args[1].getBytes(Charset.forName("UTF-8")));
+    AccumuloInputFormat.setInputTableName(job, args[2]);
+    AccumuloInputFormat.setScanAuthorizations(job, Constants.NO_AUTHS);
     AccumuloInputFormat.setZooKeeperInstance(job, args[3], args[4]);
     
     job.setMapperClass(SeqMapClass.class);
@@ -64,7 +67,9 @@ public class CopyTool extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setOutputInfo(job, args[0], args[1].getBytes(), true, args[5]);
+    AccumuloOutputFormat.setConnectorInfo(job, args[0], args[1].getBytes(Charset.forName("UTF-8")));
+    AccumuloOutputFormat.setCreateTables(job, true);
+    AccumuloOutputFormat.setDefaultTableName(job, args[5]);
     AccumuloOutputFormat.setZooKeeperInstance(job, args[3], args[4]);
     
     job.waitForCompletion(true);

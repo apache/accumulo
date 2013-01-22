@@ -21,12 +21,12 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -153,7 +153,8 @@ public class AccumuloRowInputFormatTest {
       
       job.setInputFormatClass(AccumuloRowInputFormat.class);
       
-      AccumuloRowInputFormat.setInputInfo(job, user, pass.getBytes(), table, Constants.NO_AUTHS);
+      AccumuloInputFormat.setConnectorInfo(job, user, pass.getBytes(Charset.forName("UTF-8")));
+      AccumuloInputFormat.setInputTableName(job, table);
       AccumuloRowInputFormat.setMockInstance(job, "instance1");
       
       job.setMapperClass(TestMapper.class);
