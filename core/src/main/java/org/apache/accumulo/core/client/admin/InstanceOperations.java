@@ -82,13 +82,13 @@ public interface InstanceOperations {
    * 
    * @param tserver
    *          The tablet server address should be of the form <ip address>:<port>
-   * @return
+   * @return the list of active compactions
    * @throws AccumuloException
    * @throws AccumuloSecurityException
    */
-
+  
   public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException;
-
+  
   /**
    * Throws an exception if a tablet server can not be contacted.
    * 

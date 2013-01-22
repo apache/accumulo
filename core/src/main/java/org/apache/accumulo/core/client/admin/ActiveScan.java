@@ -163,14 +163,13 @@ public class ActiveScan {
   /**
    * @return the authorizations being used for this scan
    */
-    
+  
   public Authorizations getAuthorizations() {
     return authorizations;
   }
   
   /**
    * @return the time this scan has been idle in the tablet server
-   * @return
    */
   public long getIdleTime() {
     return idle;

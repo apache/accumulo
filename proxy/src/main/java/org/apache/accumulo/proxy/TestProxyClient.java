@@ -20,10 +20,8 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
@@ -31,7 +29,6 @@ import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.proxy.thrift.PColumnUpdate;
 import org.apache.accumulo.proxy.thrift.PKey;
 import org.apache.accumulo.proxy.thrift.PScanResult;
-import org.apache.accumulo.proxy.thrift.PTablePermission;
 import org.apache.accumulo.proxy.thrift.PTimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.protocol.TCompactProtocol;
