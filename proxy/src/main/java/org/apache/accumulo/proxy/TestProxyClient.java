@@ -94,15 +94,16 @@ public class TestProxyClient {
     Map<ByteBuffer,List<PColumnUpdate>> mutations = new HashMap<ByteBuffer,List<PColumnUpdate>>();
     for (int i = 0; i < maxInserts; i++) {
       String result = String.format(format, i);
-      PColumnUpdate update = new PColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes()), ByteBuffer.wrap(("cq" + i).getBytes()), Util.randStringBuffer(10));
+      PColumnUpdate update = new PColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes()), ByteBuffer.wrap(("cq" + i).getBytes()));
+      update.setValue(Util.randStringBuffer(10));
       mutations.put(ByteBuffer.wrap(result.getBytes()), Collections.singletonList(update));
       
       if (i % 1000 == 0) {
-        tpc.proxy().updateAndFlush(userpass, testTable, mutations, null);
+        tpc.proxy().updateAndFlush(userpass, testTable, mutations);
         mutations.clear();
       }
     }
-    tpc.proxy().updateAndFlush(userpass, testTable, mutations, null);
+    tpc.proxy().updateAndFlush(userpass, testTable, mutations);
     Date end = new Date();
     System.out.println(" End of writing: " + (end.getTime() - start.getTime()));
     
@@ -120,9 +121,10 @@ public class TestProxyClient {
       String result = String.format(format, i);
       PKey pkey = new PKey();
       pkey.setRow(result.getBytes());
-      PColumnUpdate update = new PColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes()), ByteBuffer.wrap(("cq" + i).getBytes()), Util.randStringBuffer(10));
+      PColumnUpdate update = new PColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes()), ByteBuffer.wrap(("cq" + i).getBytes()));
+      update.setValue(Util.randStringBuffer(10));
       mutations.put(ByteBuffer.wrap(result.getBytes()), Collections.singletonList(update));
-      tpc.proxy().writer_update(writer, mutations, null);
+      tpc.proxy().writer_update(writer, mutations);
       mutations.clear();
     }
     

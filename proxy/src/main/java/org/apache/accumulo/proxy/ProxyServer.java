@@ -57,7 +57,6 @@ import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.proxy.thrift.AccumuloSecurityException;
 import org.apache.accumulo.proxy.thrift.KeyValueAndPeek;
 import org.apache.accumulo.proxy.thrift.NoMoreEntriesException;
-import org.apache.accumulo.proxy.thrift.PColumn;
 import org.apache.accumulo.proxy.thrift.PColumnUpdate;
 import org.apache.accumulo.proxy.thrift.PIteratorSetting;
 import org.apache.accumulo.proxy.thrift.PKeyValue;
@@ -686,11 +685,11 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells)
+  public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells)
       throws TException {
     try {
       BatchWriter writer = getWriter(userpass, tableName);
-      addCellsToWriter(cells, deletedCells, writer);
+      addCellsToWriter(cells, writer);
       writer.flush();
       writer.close();
     } catch (Exception e) {
@@ -700,53 +699,40 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   private static final ColumnVisibility EMPTY_VIS = new ColumnVisibility();
   
-  private void addCellsToWriter(Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells, BatchWriter writer)
+  private void addCellsToWriter(Map<ByteBuffer,List<PColumnUpdate>> cells, BatchWriter writer)
       throws MutationsRejectedException {
     HashMap<Text,ColumnVisibility> vizMap = new HashMap<Text,ColumnVisibility>();
-    if (cells != null) {
-      for (Entry<ByteBuffer,List<PColumnUpdate>> entry : cells.entrySet()) {
-        Mutation m = new Mutation(ByteBufferUtil.toBytes(entry.getKey()));
-        
-        for (PColumnUpdate update : entry.getValue()) {
-          ColumnVisibility viz = EMPTY_VIS;
-          if (update.isSetColVisibility()) {
-            Text vizText = new Text(update.getColVisibility());
-            viz = vizMap.get(vizText);
-            if (viz == null) {
-              vizMap.put(vizText, viz = new ColumnVisibility(vizText));
-            }
-          }
-          byte[] value = new byte[0];
-          if (update.isSetValue())
-            value = update.getValue();
-          if (update.isSetTimestamp())
-            m.put(update.getColFamily(), update.getColQualifier(), viz, update.getTimestamp(), value);
-          else
-            m.put(update.getColFamily(), update.getColQualifier(), viz, value);
-        }
-        writer.addMutation(m);
-      }
-    }
     
-    if (deletedCells != null) {
-      for (Entry<ByteBuffer,List<PColumn>> entry : deletedCells.entrySet()) {
-        Mutation m = new Mutation(ByteBufferUtil.toBytes(entry.getKey()));
-        for (PColumn col : entry.getValue()) {
-          ColumnVisibility viz = EMPTY_VIS;
-          long timestamp = 0;
-          if (col.isSetColVisibility()) {
-            Text vizText = new Text(col.getColVisibility());
-            viz = vizMap.get(vizText);
-            if (viz == null) {
-              vizMap.put(vizText, viz = new ColumnVisibility(vizText));
+    for (Entry<ByteBuffer,List<PColumnUpdate>> entry : cells.entrySet()) {
+      Mutation m = new Mutation(ByteBufferUtil.toBytes(entry.getKey()));
+      
+      for (PColumnUpdate update : entry.getValue()) {
+        ColumnVisibility viz = EMPTY_VIS;
+        if (update.isSetColVisibility()) {
+          Text vizText = new Text(update.getColVisibility());
+          viz = vizMap.get(vizText);
+          if (viz == null) {
+            vizMap.put(vizText, viz = new ColumnVisibility(vizText));
+          }
+        }
+        byte[] value = new byte[0];
+        if (update.isSetValue())
+          value = update.getValue();
+        if (update.isSetTimestamp()) {
+          if (update.isSetDeleteCell()) {
+            m.putDelete(update.getColFamily(), update.getColQualifier(), viz, update.getTimestamp());
+          } else {
+            if (update.isSetDeleteCell()) {
+              m.putDelete(update.getColFamily(), update.getColQualifier(), viz, update.getTimestamp());
+            } else {
+              m.put(update.getColFamily(), update.getColQualifier(), viz, update.getTimestamp(), value);
             }
           }
-          if (col.isSetTimestamp())
-            timestamp = col.getTimestamp();
-          m.putDelete(col.getColFamily(), col.getColQualifier(), viz, timestamp);
+        } else {
+          m.put(update.getColFamily(), update.getColQualifier(), viz, value);
         }
-        writer.addMutation(m);
       }
+      writer.addMutation(m);
     }
   }
   
@@ -763,13 +749,13 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void writer_update(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells) throws TException {
+  public void writer_update(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells) throws TException {
     try {
       BatchWriter batchwriter = writerCache.getIfPresent(UUID.fromString(writer));
       if (batchwriter == null) {
         throw new TException("Writer never existed or no longer exists");
       }
-      addCellsToWriter(cells, deletedCells, batchwriter);
+      addCellsToWriter(cells, batchwriter);
     } catch (Exception e) {
       throw new TException(e);
     }

@@ -150,11 +150,11 @@ import org.slf4j.LoggerFactory;
 
     public void close_scanner(String scanner) throws org.apache.thrift.TException;
 
-    public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells) throws org.apache.thrift.TException;
+    public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells) throws org.apache.thrift.TException;
 
     public String createWriter(UserPass userpass, String tableName) throws org.apache.thrift.TException;
 
-    public void writer_update(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells) throws org.apache.thrift.TException;
+    public void writer_update(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells) throws org.apache.thrift.TException;
 
     public void writer_flush(String writer) throws org.apache.thrift.TException;
 
@@ -264,11 +264,11 @@ import org.slf4j.LoggerFactory;
 
     public void close_scanner(String scanner, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.close_scanner_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.updateAndFlush_call> resultHandler) throws org.apache.thrift.TException;
+    public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.updateAndFlush_call> resultHandler) throws org.apache.thrift.TException;
 
     public void createWriter(UserPass userpass, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createWriter_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void writer_update(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.writer_update_call> resultHandler) throws org.apache.thrift.TException;
+    public void writer_update(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.writer_update_call> resultHandler) throws org.apache.thrift.TException;
 
     public void writer_flush(String writer, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.writer_flush_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -1719,19 +1719,18 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells) throws org.apache.thrift.TException
+    public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells) throws org.apache.thrift.TException
     {
-      send_updateAndFlush(userpass, tableName, cells, deletedCells);
+      send_updateAndFlush(userpass, tableName, cells);
       recv_updateAndFlush();
     }
 
-    public void send_updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells) throws org.apache.thrift.TException
+    public void send_updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells) throws org.apache.thrift.TException
     {
       updateAndFlush_args args = new updateAndFlush_args();
       args.setUserpass(userpass);
       args.setTableName(tableName);
       args.setCells(cells);
-      args.setDeletedCells(deletedCells);
       sendBase("updateAndFlush", args);
     }
 
@@ -1766,17 +1765,16 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "createWriter failed: unknown result");
     }
 
-    public void writer_update(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells) throws org.apache.thrift.TException
+    public void writer_update(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells) throws org.apache.thrift.TException
     {
-      send_writer_update(writer, cells, deletedCells);
+      send_writer_update(writer, cells);
     }
 
-    public void send_writer_update(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells) throws org.apache.thrift.TException
+    public void send_writer_update(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells) throws org.apache.thrift.TException
     {
       writer_update_args args = new writer_update_args();
       args.setWriter(writer);
       args.setCells(cells);
-      args.setDeletedCells(deletedCells);
       sendBase("writer_update", args);
     }
 
@@ -3690,9 +3688,9 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells, org.apache.thrift.async.AsyncMethodCallback<updateAndFlush_call> resultHandler) throws org.apache.thrift.TException {
+    public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<updateAndFlush_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      updateAndFlush_call method_call = new updateAndFlush_call(userpass, tableName, cells, deletedCells, resultHandler, this, ___protocolFactory, ___transport);
+      updateAndFlush_call method_call = new updateAndFlush_call(userpass, tableName, cells, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -3701,13 +3699,11 @@ import org.slf4j.LoggerFactory;
       private UserPass userpass;
       private String tableName;
       private Map<ByteBuffer,List<PColumnUpdate>> cells;
-      private Map<ByteBuffer,List<PColumn>> deletedCells;
-      public updateAndFlush_call(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells, org.apache.thrift.async.AsyncMethodCallback<updateAndFlush_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public updateAndFlush_call(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<updateAndFlush_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.userpass = userpass;
         this.tableName = tableName;
         this.cells = cells;
-        this.deletedCells = deletedCells;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -3716,7 +3712,6 @@ import org.slf4j.LoggerFactory;
         args.setUserpass(userpass);
         args.setTableName(tableName);
         args.setCells(cells);
-        args.setDeletedCells(deletedCells);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -3766,9 +3761,9 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void writer_update(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells, org.apache.thrift.async.AsyncMethodCallback<writer_update_call> resultHandler) throws org.apache.thrift.TException {
+    public void writer_update(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<writer_update_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      writer_update_call method_call = new writer_update_call(writer, cells, deletedCells, resultHandler, this, ___protocolFactory, ___transport);
+      writer_update_call method_call = new writer_update_call(writer, cells, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -3776,12 +3771,10 @@ import org.slf4j.LoggerFactory;
     public static class writer_update_call extends org.apache.thrift.async.TAsyncMethodCall {
       private String writer;
       private Map<ByteBuffer,List<PColumnUpdate>> cells;
-      private Map<ByteBuffer,List<PColumn>> deletedCells;
-      public writer_update_call(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells, Map<ByteBuffer,List<PColumn>> deletedCells, org.apache.thrift.async.AsyncMethodCallback<writer_update_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public writer_update_call(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<writer_update_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, true);
         this.writer = writer;
         this.cells = cells;
-        this.deletedCells = deletedCells;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -3789,7 +3782,6 @@ import org.slf4j.LoggerFactory;
         writer_update_args args = new writer_update_args();
         args.setWriter(writer);
         args.setCells(cells);
-        args.setDeletedCells(deletedCells);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -5217,7 +5209,7 @@ import org.slf4j.LoggerFactory;
 
       public updateAndFlush_result getResult(I iface, updateAndFlush_args args) throws org.apache.thrift.TException {
         updateAndFlush_result result = new updateAndFlush_result();
-        iface.updateAndFlush(args.userpass, args.tableName, args.cells, args.deletedCells);
+        iface.updateAndFlush(args.userpass, args.tableName, args.cells);
         return result;
       }
     }
@@ -5256,7 +5248,7 @@ import org.slf4j.LoggerFactory;
       }
 
       public org.apache.thrift.TBase getResult(I iface, writer_update_args args) throws org.apache.thrift.TException {
-        iface.writer_update(args.writer, args.cells, args.deletedCells);
+        iface.writer_update(args.writer, args.cells);
         return null;
       }
     }
@@ -57084,7 +57076,6 @@ import org.slf4j.LoggerFactory;
     private static final org.apache.thrift.protocol.TField USERPASS_FIELD_DESC = new org.apache.thrift.protocol.TField("userpass", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
     private static final org.apache.thrift.protocol.TField CELLS_FIELD_DESC = new org.apache.thrift.protocol.TField("cells", org.apache.thrift.protocol.TType.MAP, (short)3);
-    private static final org.apache.thrift.protocol.TField DELETED_CELLS_FIELD_DESC = new org.apache.thrift.protocol.TField("deletedCells", org.apache.thrift.protocol.TType.MAP, (short)4);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -57095,14 +57086,12 @@ import org.slf4j.LoggerFactory;
     public UserPass userpass; // required
     public String tableName; // required
     public Map<ByteBuffer,List<PColumnUpdate>> cells; // required
-    public Map<ByteBuffer,List<PColumn>> deletedCells; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       USERPASS((short)1, "userpass"),
       TABLE_NAME((short)2, "tableName"),
-      CELLS((short)3, "cells"),
-      DELETED_CELLS((short)4, "deletedCells");
+      CELLS((short)3, "cells");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -57123,8 +57112,6 @@ import org.slf4j.LoggerFactory;
             return TABLE_NAME;
           case 3: // CELLS
             return CELLS;
-          case 4: // DELETED_CELLS
-            return DELETED_CELLS;
           default:
             return null;
         }
@@ -57177,11 +57164,6 @@ import org.slf4j.LoggerFactory;
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING              , true), 
               new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
                   new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PColumnUpdate.class)))));
-      tmpMap.put(_Fields.DELETED_CELLS, new org.apache.thrift.meta_data.FieldMetaData("deletedCells", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING              , true), 
-              new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-                  new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PColumn.class)))));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(updateAndFlush_args.class, metaDataMap);
     }
@@ -57192,14 +57174,12 @@ import org.slf4j.LoggerFactory;
     public updateAndFlush_args(
       UserPass userpass,
       String tableName,
-      Map<ByteBuffer,List<PColumnUpdate>> cells,
-      Map<ByteBuffer,List<PColumn>> deletedCells)
+      Map<ByteBuffer,List<PColumnUpdate>> cells)
     {
       this();
       this.userpass = userpass;
       this.tableName = tableName;
       this.cells = cells;
-      this.deletedCells = deletedCells;
     }
 
     /**
@@ -57231,25 +57211,6 @@ import org.slf4j.LoggerFactory;
         }
         this.cells = __this__cells;
       }
-      if (other.isSetDeletedCells()) {
-        Map<ByteBuffer,List<PColumn>> __this__deletedCells = new HashMap<ByteBuffer,List<PColumn>>();
-        for (Map.Entry<ByteBuffer, List<PColumn>> other_element : other.deletedCells.entrySet()) {
-
-          ByteBuffer other_element_key = other_element.getKey();
-          List<PColumn> other_element_value = other_element.getValue();
-
-          ByteBuffer __this__deletedCells_copy_key = org.apache.thrift.TBaseHelper.copyBinary(other_element_key);
-;
-
-          List<PColumn> __this__deletedCells_copy_value = new ArrayList<PColumn>();
-          for (PColumn other_element_value_element : other_element_value) {
-            __this__deletedCells_copy_value.add(new PColumn(other_element_value_element));
-          }
-
-          __this__deletedCells.put(__this__deletedCells_copy_key, __this__deletedCells_copy_value);
-        }
-        this.deletedCells = __this__deletedCells;
-      }
     }
 
     public updateAndFlush_args deepCopy() {
@@ -57261,7 +57222,6 @@ import org.slf4j.LoggerFactory;
       this.userpass = null;
       this.tableName = null;
       this.cells = null;
-      this.deletedCells = null;
     }
 
     public UserPass getUserpass() {
@@ -57347,41 +57307,6 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public int getDeletedCellsSize() {
-      return (this.deletedCells == null) ? 0 : this.deletedCells.size();
-    }
-
-    public void putToDeletedCells(ByteBuffer key, List<PColumn> val) {
-      if (this.deletedCells == null) {
-        this.deletedCells = new HashMap<ByteBuffer,List<PColumn>>();
-      }
-      this.deletedCells.put(key, val);
-    }
-
-    public Map<ByteBuffer,List<PColumn>> getDeletedCells() {
-      return this.deletedCells;
-    }
-
-    public updateAndFlush_args setDeletedCells(Map<ByteBuffer,List<PColumn>> deletedCells) {
-      this.deletedCells = deletedCells;
-      return this;
-    }
-
-    public void unsetDeletedCells() {
-      this.deletedCells = null;
-    }
-
-    /** Returns true if field deletedCells is set (has been assigned a value) and false otherwise */
-    public boolean isSetDeletedCells() {
-      return this.deletedCells != null;
-    }
-
-    public void setDeletedCellsIsSet(boolean value) {
-      if (!value) {
-        this.deletedCells = null;
-      }
-    }
-
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case USERPASS:
@@ -57408,14 +57333,6 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case DELETED_CELLS:
-        if (value == null) {
-          unsetDeletedCells();
-        } else {
-          setDeletedCells((Map<ByteBuffer,List<PColumn>>)value);
-        }
-        break;
-
       }
     }
 
@@ -57429,9 +57346,6 @@ import org.slf4j.LoggerFactory;
 
       case CELLS:
         return getCells();
-
-      case DELETED_CELLS:
-        return getDeletedCells();
 
       }
       throw new IllegalStateException();
@@ -57450,8 +57364,6 @@ import org.slf4j.LoggerFactory;
         return isSetTableName();
       case CELLS:
         return isSetCells();
-      case DELETED_CELLS:
-        return isSetDeletedCells();
       }
       throw new IllegalStateException();
     }
@@ -57493,15 +57405,6 @@ import org.slf4j.LoggerFactory;
         if (!(this_present_cells && that_present_cells))
           return false;
         if (!this.cells.equals(that.cells))
-          return false;
-      }
-
-      boolean this_present_deletedCells = true && this.isSetDeletedCells();
-      boolean that_present_deletedCells = true && that.isSetDeletedCells();
-      if (this_present_deletedCells || that_present_deletedCells) {
-        if (!(this_present_deletedCells && that_present_deletedCells))
-          return false;
-        if (!this.deletedCells.equals(that.deletedCells))
           return false;
       }
 
@@ -57551,16 +57454,6 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetDeletedCells()).compareTo(typedOther.isSetDeletedCells());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetDeletedCells()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.deletedCells, typedOther.deletedCells);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
       return 0;
     }
 
@@ -57602,14 +57495,6 @@ import org.slf4j.LoggerFactory;
         sb.append("null");
       } else {
         sb.append(this.cells);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("deletedCells:");
-      if (this.deletedCells == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.deletedCells);
       }
       first = false;
       sb.append(")");
@@ -57706,37 +57591,6 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // DELETED_CELLS
-              if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
-                {
-                  org.apache.thrift.protocol.TMap _map207 = iprot.readMapBegin();
-                  struct.deletedCells = new HashMap<ByteBuffer,List<PColumn>>(2*_map207.size);
-                  for (int _i208 = 0; _i208 < _map207.size; ++_i208)
-                  {
-                    ByteBuffer _key209; // required
-                    List<PColumn> _val210; // required
-                    _key209 = iprot.readBinary();
-                    {
-                      org.apache.thrift.protocol.TList _list211 = iprot.readListBegin();
-                      _val210 = new ArrayList<PColumn>(_list211.size);
-                      for (int _i212 = 0; _i212 < _list211.size; ++_i212)
-                      {
-                        PColumn _elem213; // required
-                        _elem213 = new PColumn();
-                        _elem213.read(iprot);
-                        _val210.add(_elem213);
-                      }
-                      iprot.readListEnd();
-                    }
-                    struct.deletedCells.put(_key209, _val210);
-                  }
-                  iprot.readMapEnd();
-                }
-                struct.setDeletedCellsIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -57766,34 +57620,14 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldBegin(CELLS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, struct.cells.size()));
-            for (Map.Entry<ByteBuffer, List<PColumnUpdate>> _iter214 : struct.cells.entrySet())
+            for (Map.Entry<ByteBuffer, List<PColumnUpdate>> _iter207 : struct.cells.entrySet())
             {
-              oprot.writeBinary(_iter214.getKey());
+              oprot.writeBinary(_iter207.getKey());
               {
-                oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter214.getValue().size()));
-                for (PColumnUpdate _iter215 : _iter214.getValue())
+                oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter207.getValue().size()));
+                for (PColumnUpdate _iter208 : _iter207.getValue())
                 {
-                  _iter215.write(oprot);
-                }
-                oprot.writeListEnd();
-              }
-            }
-            oprot.writeMapEnd();
-          }
-          oprot.writeFieldEnd();
-        }
-        if (struct.deletedCells != null) {
-          oprot.writeFieldBegin(DELETED_CELLS_FIELD_DESC);
-          {
-            oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, struct.deletedCells.size()));
-            for (Map.Entry<ByteBuffer, List<PColumn>> _iter216 : struct.deletedCells.entrySet())
-            {
-              oprot.writeBinary(_iter216.getKey());
-              {
-                oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter216.getValue().size()));
-                for (PColumn _iter217 : _iter216.getValue())
-                {
-                  _iter217.write(oprot);
+                  _iter208.write(oprot);
                 }
                 oprot.writeListEnd();
               }
@@ -57829,10 +57663,7 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetCells()) {
           optionals.set(2);
         }
-        if (struct.isSetDeletedCells()) {
-          optionals.set(3);
-        }
-        oprot.writeBitSet(optionals, 4);
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetUserpass()) {
           struct.userpass.write(oprot);
         }
@@ -57842,30 +57673,14 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetCells()) {
           {
             oprot.writeI32(struct.cells.size());
-            for (Map.Entry<ByteBuffer, List<PColumnUpdate>> _iter218 : struct.cells.entrySet())
+            for (Map.Entry<ByteBuffer, List<PColumnUpdate>> _iter209 : struct.cells.entrySet())
             {
-              oprot.writeBinary(_iter218.getKey());
+              oprot.writeBinary(_iter209.getKey());
               {
-                oprot.writeI32(_iter218.getValue().size());
-                for (PColumnUpdate _iter219 : _iter218.getValue())
+                oprot.writeI32(_iter209.getValue().size());
+                for (PColumnUpdate _iter210 : _iter209.getValue())
                 {
-                  _iter219.write(oprot);
-                }
-              }
-            }
-          }
-        }
-        if (struct.isSetDeletedCells()) {
-          {
-            oprot.writeI32(struct.deletedCells.size());
-            for (Map.Entry<ByteBuffer, List<PColumn>> _iter220 : struct.deletedCells.entrySet())
-            {
-              oprot.writeBinary(_iter220.getKey());
-              {
-                oprot.writeI32(_iter220.getValue().size());
-                for (PColumn _iter221 : _iter220.getValue())
-                {
-                  _iter221.write(oprot);
+                  _iter210.write(oprot);
                 }
               }
             }
@@ -57876,7 +57691,7 @@ import org.slf4j.LoggerFactory;
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, updateAndFlush_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(4);
+        BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.userpass = new UserPass();
           struct.userpass.read(iprot);
@@ -57888,53 +57703,28 @@ import org.slf4j.LoggerFactory;
         }
         if (incoming.get(2)) {
           {
-            org.apache.thrift.protocol.TMap _map222 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, iprot.readI32());
-            struct.cells = new HashMap<ByteBuffer,List<PColumnUpdate>>(2*_map222.size);
-            for (int _i223 = 0; _i223 < _map222.size; ++_i223)
+            org.apache.thrift.protocol.TMap _map211 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, iprot.readI32());
+            struct.cells = new HashMap<ByteBuffer,List<PColumnUpdate>>(2*_map211.size);
+            for (int _i212 = 0; _i212 < _map211.size; ++_i212)
             {
-              ByteBuffer _key224; // required
-              List<PColumnUpdate> _val225; // required
-              _key224 = iprot.readBinary();
+              ByteBuffer _key213; // required
+              List<PColumnUpdate> _val214; // required
+              _key213 = iprot.readBinary();
               {
-                org.apache.thrift.protocol.TList _list226 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-                _val225 = new ArrayList<PColumnUpdate>(_list226.size);
-                for (int _i227 = 0; _i227 < _list226.size; ++_i227)
+                org.apache.thrift.protocol.TList _list215 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+                _val214 = new ArrayList<PColumnUpdate>(_list215.size);
+                for (int _i216 = 0; _i216 < _list215.size; ++_i216)
                 {
-                  PColumnUpdate _elem228; // required
-                  _elem228 = new PColumnUpdate();
-                  _elem228.read(iprot);
-                  _val225.add(_elem228);
+                  PColumnUpdate _elem217; // required
+                  _elem217 = new PColumnUpdate();
+                  _elem217.read(iprot);
+                  _val214.add(_elem217);
                 }
               }
-              struct.cells.put(_key224, _val225);
+              struct.cells.put(_key213, _val214);
             }
           }
           struct.setCellsIsSet(true);
-        }
-        if (incoming.get(3)) {
-          {
-            org.apache.thrift.protocol.TMap _map229 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, iprot.readI32());
-            struct.deletedCells = new HashMap<ByteBuffer,List<PColumn>>(2*_map229.size);
-            for (int _i230 = 0; _i230 < _map229.size; ++_i230)
-            {
-              ByteBuffer _key231; // required
-              List<PColumn> _val232; // required
-              _key231 = iprot.readBinary();
-              {
-                org.apache.thrift.protocol.TList _list233 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-                _val232 = new ArrayList<PColumn>(_list233.size);
-                for (int _i234 = 0; _i234 < _list233.size; ++_i234)
-                {
-                  PColumn _elem235; // required
-                  _elem235 = new PColumn();
-                  _elem235.read(iprot);
-                  _val232.add(_elem235);
-                }
-              }
-              struct.deletedCells.put(_key231, _val232);
-            }
-          }
-          struct.setDeletedCellsIsSet(true);
         }
       }
     }
@@ -59005,7 +58795,6 @@ import org.slf4j.LoggerFactory;
 
     private static final org.apache.thrift.protocol.TField WRITER_FIELD_DESC = new org.apache.thrift.protocol.TField("writer", org.apache.thrift.protocol.TType.STRING, (short)1);
     private static final org.apache.thrift.protocol.TField CELLS_FIELD_DESC = new org.apache.thrift.protocol.TField("cells", org.apache.thrift.protocol.TType.MAP, (short)2);
-    private static final org.apache.thrift.protocol.TField DELETED_CELLS_FIELD_DESC = new org.apache.thrift.protocol.TField("deletedCells", org.apache.thrift.protocol.TType.MAP, (short)3);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -59015,13 +58804,11 @@ import org.slf4j.LoggerFactory;
 
     public String writer; // required
     public Map<ByteBuffer,List<PColumnUpdate>> cells; // required
-    public Map<ByteBuffer,List<PColumn>> deletedCells; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       WRITER((short)1, "writer"),
-      CELLS((short)2, "cells"),
-      DELETED_CELLS((short)3, "deletedCells");
+      CELLS((short)2, "cells");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -59040,8 +58827,6 @@ import org.slf4j.LoggerFactory;
             return WRITER;
           case 2: // CELLS
             return CELLS;
-          case 3: // DELETED_CELLS
-            return DELETED_CELLS;
           default:
             return null;
         }
@@ -59092,11 +58877,6 @@ import org.slf4j.LoggerFactory;
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING              , true), 
               new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
                   new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PColumnUpdate.class)))));
-      tmpMap.put(_Fields.DELETED_CELLS, new org.apache.thrift.meta_data.FieldMetaData("deletedCells", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING              , true), 
-              new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-                  new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PColumn.class)))));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(writer_update_args.class, metaDataMap);
     }
@@ -59106,13 +58886,11 @@ import org.slf4j.LoggerFactory;
 
     public writer_update_args(
       String writer,
-      Map<ByteBuffer,List<PColumnUpdate>> cells,
-      Map<ByteBuffer,List<PColumn>> deletedCells)
+      Map<ByteBuffer,List<PColumnUpdate>> cells)
     {
       this();
       this.writer = writer;
       this.cells = cells;
-      this.deletedCells = deletedCells;
     }
 
     /**
@@ -59141,25 +58919,6 @@ import org.slf4j.LoggerFactory;
         }
         this.cells = __this__cells;
       }
-      if (other.isSetDeletedCells()) {
-        Map<ByteBuffer,List<PColumn>> __this__deletedCells = new HashMap<ByteBuffer,List<PColumn>>();
-        for (Map.Entry<ByteBuffer, List<PColumn>> other_element : other.deletedCells.entrySet()) {
-
-          ByteBuffer other_element_key = other_element.getKey();
-          List<PColumn> other_element_value = other_element.getValue();
-
-          ByteBuffer __this__deletedCells_copy_key = org.apache.thrift.TBaseHelper.copyBinary(other_element_key);
-;
-
-          List<PColumn> __this__deletedCells_copy_value = new ArrayList<PColumn>();
-          for (PColumn other_element_value_element : other_element_value) {
-            __this__deletedCells_copy_value.add(new PColumn(other_element_value_element));
-          }
-
-          __this__deletedCells.put(__this__deletedCells_copy_key, __this__deletedCells_copy_value);
-        }
-        this.deletedCells = __this__deletedCells;
-      }
     }
 
     public writer_update_args deepCopy() {
@@ -59170,7 +58929,6 @@ import org.slf4j.LoggerFactory;
     public void clear() {
       this.writer = null;
       this.cells = null;
-      this.deletedCells = null;
     }
 
     public String getWriter() {
@@ -59232,41 +58990,6 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public int getDeletedCellsSize() {
-      return (this.deletedCells == null) ? 0 : this.deletedCells.size();
-    }
-
-    public void putToDeletedCells(ByteBuffer key, List<PColumn> val) {
-      if (this.deletedCells == null) {
-        this.deletedCells = new HashMap<ByteBuffer,List<PColumn>>();
-      }
-      this.deletedCells.put(key, val);
-    }
-
-    public Map<ByteBuffer,List<PColumn>> getDeletedCells() {
-      return this.deletedCells;
-    }
-
-    public writer_update_args setDeletedCells(Map<ByteBuffer,List<PColumn>> deletedCells) {
-      this.deletedCells = deletedCells;
-      return this;
-    }
-
-    public void unsetDeletedCells() {
-      this.deletedCells = null;
-    }
-
-    /** Returns true if field deletedCells is set (has been assigned a value) and false otherwise */
-    public boolean isSetDeletedCells() {
-      return this.deletedCells != null;
-    }
-
-    public void setDeletedCellsIsSet(boolean value) {
-      if (!value) {
-        this.deletedCells = null;
-      }
-    }
-
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case WRITER:
@@ -59285,14 +59008,6 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
-      case DELETED_CELLS:
-        if (value == null) {
-          unsetDeletedCells();
-        } else {
-          setDeletedCells((Map<ByteBuffer,List<PColumn>>)value);
-        }
-        break;
-
       }
     }
 
@@ -59303,9 +59018,6 @@ import org.slf4j.LoggerFactory;
 
       case CELLS:
         return getCells();
-
-      case DELETED_CELLS:
-        return getDeletedCells();
 
       }
       throw new IllegalStateException();
@@ -59322,8 +59034,6 @@ import org.slf4j.LoggerFactory;
         return isSetWriter();
       case CELLS:
         return isSetCells();
-      case DELETED_CELLS:
-        return isSetDeletedCells();
       }
       throw new IllegalStateException();
     }
@@ -59356,15 +59066,6 @@ import org.slf4j.LoggerFactory;
         if (!(this_present_cells && that_present_cells))
           return false;
         if (!this.cells.equals(that.cells))
-          return false;
-      }
-
-      boolean this_present_deletedCells = true && this.isSetDeletedCells();
-      boolean that_present_deletedCells = true && that.isSetDeletedCells();
-      if (this_present_deletedCells || that_present_deletedCells) {
-        if (!(this_present_deletedCells && that_present_deletedCells))
-          return false;
-        if (!this.deletedCells.equals(that.deletedCells))
           return false;
       }
 
@@ -59404,16 +59105,6 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
-      lastComparison = Boolean.valueOf(isSetDeletedCells()).compareTo(typedOther.isSetDeletedCells());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetDeletedCells()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.deletedCells, typedOther.deletedCells);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
       return 0;
     }
 
@@ -59447,14 +59138,6 @@ import org.slf4j.LoggerFactory;
         sb.append("null");
       } else {
         sb.append(this.cells);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("deletedCells:");
-      if (this.deletedCells == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.deletedCells);
       }
       first = false;
       sb.append(")");
@@ -59511,61 +59194,30 @@ import org.slf4j.LoggerFactory;
             case 2: // CELLS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map236 = iprot.readMapBegin();
-                  struct.cells = new HashMap<ByteBuffer,List<PColumnUpdate>>(2*_map236.size);
-                  for (int _i237 = 0; _i237 < _map236.size; ++_i237)
+                  org.apache.thrift.protocol.TMap _map218 = iprot.readMapBegin();
+                  struct.cells = new HashMap<ByteBuffer,List<PColumnUpdate>>(2*_map218.size);
+                  for (int _i219 = 0; _i219 < _map218.size; ++_i219)
                   {
-                    ByteBuffer _key238; // required
-                    List<PColumnUpdate> _val239; // required
-                    _key238 = iprot.readBinary();
+                    ByteBuffer _key220; // required
+                    List<PColumnUpdate> _val221; // required
+                    _key220 = iprot.readBinary();
                     {
-                      org.apache.thrift.protocol.TList _list240 = iprot.readListBegin();
-                      _val239 = new ArrayList<PColumnUpdate>(_list240.size);
-                      for (int _i241 = 0; _i241 < _list240.size; ++_i241)
+                      org.apache.thrift.protocol.TList _list222 = iprot.readListBegin();
+                      _val221 = new ArrayList<PColumnUpdate>(_list222.size);
+                      for (int _i223 = 0; _i223 < _list222.size; ++_i223)
                       {
-                        PColumnUpdate _elem242; // required
-                        _elem242 = new PColumnUpdate();
-                        _elem242.read(iprot);
-                        _val239.add(_elem242);
+                        PColumnUpdate _elem224; // required
+                        _elem224 = new PColumnUpdate();
+                        _elem224.read(iprot);
+                        _val221.add(_elem224);
                       }
                       iprot.readListEnd();
                     }
-                    struct.cells.put(_key238, _val239);
+                    struct.cells.put(_key220, _val221);
                   }
                   iprot.readMapEnd();
                 }
                 struct.setCellsIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 3: // DELETED_CELLS
-              if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
-                {
-                  org.apache.thrift.protocol.TMap _map243 = iprot.readMapBegin();
-                  struct.deletedCells = new HashMap<ByteBuffer,List<PColumn>>(2*_map243.size);
-                  for (int _i244 = 0; _i244 < _map243.size; ++_i244)
-                  {
-                    ByteBuffer _key245; // required
-                    List<PColumn> _val246; // required
-                    _key245 = iprot.readBinary();
-                    {
-                      org.apache.thrift.protocol.TList _list247 = iprot.readListBegin();
-                      _val246 = new ArrayList<PColumn>(_list247.size);
-                      for (int _i248 = 0; _i248 < _list247.size; ++_i248)
-                      {
-                        PColumn _elem249; // required
-                        _elem249 = new PColumn();
-                        _elem249.read(iprot);
-                        _val246.add(_elem249);
-                      }
-                      iprot.readListEnd();
-                    }
-                    struct.deletedCells.put(_key245, _val246);
-                  }
-                  iprot.readMapEnd();
-                }
-                struct.setDeletedCellsIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -59594,34 +59246,14 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldBegin(CELLS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, struct.cells.size()));
-            for (Map.Entry<ByteBuffer, List<PColumnUpdate>> _iter250 : struct.cells.entrySet())
+            for (Map.Entry<ByteBuffer, List<PColumnUpdate>> _iter225 : struct.cells.entrySet())
             {
-              oprot.writeBinary(_iter250.getKey());
+              oprot.writeBinary(_iter225.getKey());
               {
-                oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter250.getValue().size()));
-                for (PColumnUpdate _iter251 : _iter250.getValue())
+                oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter225.getValue().size()));
+                for (PColumnUpdate _iter226 : _iter225.getValue())
                 {
-                  _iter251.write(oprot);
-                }
-                oprot.writeListEnd();
-              }
-            }
-            oprot.writeMapEnd();
-          }
-          oprot.writeFieldEnd();
-        }
-        if (struct.deletedCells != null) {
-          oprot.writeFieldBegin(DELETED_CELLS_FIELD_DESC);
-          {
-            oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, struct.deletedCells.size()));
-            for (Map.Entry<ByteBuffer, List<PColumn>> _iter252 : struct.deletedCells.entrySet())
-            {
-              oprot.writeBinary(_iter252.getKey());
-              {
-                oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, _iter252.getValue().size()));
-                for (PColumn _iter253 : _iter252.getValue())
-                {
-                  _iter253.write(oprot);
+                  _iter226.write(oprot);
                 }
                 oprot.writeListEnd();
               }
@@ -59654,40 +59286,21 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetCells()) {
           optionals.set(1);
         }
-        if (struct.isSetDeletedCells()) {
-          optionals.set(2);
-        }
-        oprot.writeBitSet(optionals, 3);
+        oprot.writeBitSet(optionals, 2);
         if (struct.isSetWriter()) {
           oprot.writeString(struct.writer);
         }
         if (struct.isSetCells()) {
           {
             oprot.writeI32(struct.cells.size());
-            for (Map.Entry<ByteBuffer, List<PColumnUpdate>> _iter254 : struct.cells.entrySet())
+            for (Map.Entry<ByteBuffer, List<PColumnUpdate>> _iter227 : struct.cells.entrySet())
             {
-              oprot.writeBinary(_iter254.getKey());
+              oprot.writeBinary(_iter227.getKey());
               {
-                oprot.writeI32(_iter254.getValue().size());
-                for (PColumnUpdate _iter255 : _iter254.getValue())
+                oprot.writeI32(_iter227.getValue().size());
+                for (PColumnUpdate _iter228 : _iter227.getValue())
                 {
-                  _iter255.write(oprot);
-                }
-              }
-            }
-          }
-        }
-        if (struct.isSetDeletedCells()) {
-          {
-            oprot.writeI32(struct.deletedCells.size());
-            for (Map.Entry<ByteBuffer, List<PColumn>> _iter256 : struct.deletedCells.entrySet())
-            {
-              oprot.writeBinary(_iter256.getKey());
-              {
-                oprot.writeI32(_iter256.getValue().size());
-                for (PColumn _iter257 : _iter256.getValue())
-                {
-                  _iter257.write(oprot);
+                  _iter228.write(oprot);
                 }
               }
             }
@@ -59698,60 +59311,35 @@ import org.slf4j.LoggerFactory;
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, writer_update_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(3);
+        BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           struct.writer = iprot.readString();
           struct.setWriterIsSet(true);
         }
         if (incoming.get(1)) {
           {
-            org.apache.thrift.protocol.TMap _map258 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, iprot.readI32());
-            struct.cells = new HashMap<ByteBuffer,List<PColumnUpdate>>(2*_map258.size);
-            for (int _i259 = 0; _i259 < _map258.size; ++_i259)
+            org.apache.thrift.protocol.TMap _map229 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, iprot.readI32());
+            struct.cells = new HashMap<ByteBuffer,List<PColumnUpdate>>(2*_map229.size);
+            for (int _i230 = 0; _i230 < _map229.size; ++_i230)
             {
-              ByteBuffer _key260; // required
-              List<PColumnUpdate> _val261; // required
-              _key260 = iprot.readBinary();
+              ByteBuffer _key231; // required
+              List<PColumnUpdate> _val232; // required
+              _key231 = iprot.readBinary();
               {
-                org.apache.thrift.protocol.TList _list262 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-                _val261 = new ArrayList<PColumnUpdate>(_list262.size);
-                for (int _i263 = 0; _i263 < _list262.size; ++_i263)
+                org.apache.thrift.protocol.TList _list233 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
+                _val232 = new ArrayList<PColumnUpdate>(_list233.size);
+                for (int _i234 = 0; _i234 < _list233.size; ++_i234)
                 {
-                  PColumnUpdate _elem264; // required
-                  _elem264 = new PColumnUpdate();
-                  _elem264.read(iprot);
-                  _val261.add(_elem264);
+                  PColumnUpdate _elem235; // required
+                  _elem235 = new PColumnUpdate();
+                  _elem235.read(iprot);
+                  _val232.add(_elem235);
                 }
               }
-              struct.cells.put(_key260, _val261);
+              struct.cells.put(_key231, _val232);
             }
           }
           struct.setCellsIsSet(true);
-        }
-        if (incoming.get(2)) {
-          {
-            org.apache.thrift.protocol.TMap _map265 = new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.LIST, iprot.readI32());
-            struct.deletedCells = new HashMap<ByteBuffer,List<PColumn>>(2*_map265.size);
-            for (int _i266 = 0; _i266 < _map265.size; ++_i266)
-            {
-              ByteBuffer _key267; // required
-              List<PColumn> _val268; // required
-              _key267 = iprot.readBinary();
-              {
-                org.apache.thrift.protocol.TList _list269 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, iprot.readI32());
-                _val268 = new ArrayList<PColumn>(_list269.size);
-                for (int _i270 = 0; _i270 < _list269.size; ++_i270)
-                {
-                  PColumn _elem271; // required
-                  _elem271 = new PColumn();
-                  _elem271.read(iprot);
-                  _val268.add(_elem271);
-                }
-              }
-              struct.deletedCells.put(_key267, _val268);
-            }
-          }
-          struct.setDeletedCellsIsSet(true);
         }
       }
     }

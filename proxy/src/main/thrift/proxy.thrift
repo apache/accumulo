@@ -24,19 +24,13 @@ struct PKey {
 	5:optional i64 timestamp
 }
 
-struct PColumn {
-	1:binary colFamily;
-	2:binary colQualifier;
-	3:optional binary colVisibility;
-	4:optional i64 timestamp;
-}
-
 struct PColumnUpdate {
 	1:binary colFamily;
 	2:binary colQualifier;
 	3:optional binary colVisibility;
 	4:optional i64 timestamp;
-	5:binary value;
+	5:optional binary value;
+	6:optional bool deleteCell;
 }
 
 struct PKeyValue {
@@ -197,14 +191,14 @@ service AccumuloProxy
   //writing
 
   //this method is guaranteed to perform an atomic update on all cells with the same row.
-  void updateAndFlush(1:UserPass userpass, 2:string tableName, 3:map<binary, list<PColumnUpdate>> cells, 4:map<binary, list<PColumn>> deletedCells);
+  void updateAndFlush(1:UserPass userpass, 2:string tableName, 3:map<binary, list<PColumnUpdate>> cells);
 
 
   //this method creates a persistent writer. use writer_update to perform updates with the returned cookie.
   string createWriter(1:UserPass userpass, 2:string tableName);
 
   //this method is guaranteed to perform an atomic update on all cells with the same row.
-  oneway void writer_update(1:string writer, 2:map<binary, list<PColumnUpdate>> cells, 3:map<binary, list<PColumn>> deletedCells);
+  oneway void writer_update(1:string writer, 2:map<binary, list<PColumnUpdate>> cells);
 
   void writer_flush(1:string writer)
 

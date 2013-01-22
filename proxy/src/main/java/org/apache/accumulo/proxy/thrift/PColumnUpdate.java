@@ -54,6 +54,7 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField COL_VISIBILITY_FIELD_DESC = new org.apache.thrift.protocol.TField("colVisibility", org.apache.thrift.protocol.TType.STRING, (short)3);
   private static final org.apache.thrift.protocol.TField TIMESTAMP_FIELD_DESC = new org.apache.thrift.protocol.TField("timestamp", org.apache.thrift.protocol.TType.I64, (short)4);
   private static final org.apache.thrift.protocol.TField VALUE_FIELD_DESC = new org.apache.thrift.protocol.TField("value", org.apache.thrift.protocol.TType.STRING, (short)5);
+  private static final org.apache.thrift.protocol.TField DELETE_CELL_FIELD_DESC = new org.apache.thrift.protocol.TField("deleteCell", org.apache.thrift.protocol.TType.BOOL, (short)6);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -65,7 +66,8 @@ import org.slf4j.LoggerFactory;
   public ByteBuffer colQualifier; // required
   public ByteBuffer colVisibility; // optional
   public long timestamp; // optional
-  public ByteBuffer value; // required
+  public ByteBuffer value; // optional
+  public boolean deleteCell; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -73,7 +75,8 @@ import org.slf4j.LoggerFactory;
     COL_QUALIFIER((short)2, "colQualifier"),
     COL_VISIBILITY((short)3, "colVisibility"),
     TIMESTAMP((short)4, "timestamp"),
-    VALUE((short)5, "value");
+    VALUE((short)5, "value"),
+    DELETE_CELL((short)6, "deleteCell");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -98,6 +101,8 @@ import org.slf4j.LoggerFactory;
           return TIMESTAMP;
         case 5: // VALUE
           return VALUE;
+        case 6: // DELETE_CELL
+          return DELETE_CELL;
         default:
           return null;
       }
@@ -139,8 +144,9 @@ import org.slf4j.LoggerFactory;
 
   // isset id assignments
   private static final int __TIMESTAMP_ISSET_ID = 0;
+  private static final int __DELETECELL_ISSET_ID = 1;
   private byte __isset_bitfield = 0;
-  private _Fields optionals[] = {_Fields.COL_VISIBILITY,_Fields.TIMESTAMP};
+  private _Fields optionals[] = {_Fields.COL_VISIBILITY,_Fields.TIMESTAMP,_Fields.VALUE,_Fields.DELETE_CELL};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -152,8 +158,10 @@ import org.slf4j.LoggerFactory;
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
     tmpMap.put(_Fields.TIMESTAMP, new org.apache.thrift.meta_data.FieldMetaData("timestamp", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-    tmpMap.put(_Fields.VALUE, new org.apache.thrift.meta_data.FieldMetaData("value", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.VALUE, new org.apache.thrift.meta_data.FieldMetaData("value", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
+    tmpMap.put(_Fields.DELETE_CELL, new org.apache.thrift.meta_data.FieldMetaData("deleteCell", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(PColumnUpdate.class, metaDataMap);
   }
@@ -163,13 +171,11 @@ import org.slf4j.LoggerFactory;
 
   public PColumnUpdate(
     ByteBuffer colFamily,
-    ByteBuffer colQualifier,
-    ByteBuffer value)
+    ByteBuffer colQualifier)
   {
     this();
     this.colFamily = colFamily;
     this.colQualifier = colQualifier;
-    this.value = value;
   }
 
   /**
@@ -194,6 +200,7 @@ import org.slf4j.LoggerFactory;
       this.value = org.apache.thrift.TBaseHelper.copyBinary(other.value);
 ;
     }
+    this.deleteCell = other.deleteCell;
   }
 
   public PColumnUpdate deepCopy() {
@@ -208,6 +215,8 @@ import org.slf4j.LoggerFactory;
     setTimestampIsSet(false);
     this.timestamp = 0;
     this.value = null;
+    setDeleteCellIsSet(false);
+    this.deleteCell = false;
   }
 
   public byte[] getColFamily() {
@@ -369,6 +378,29 @@ import org.slf4j.LoggerFactory;
     }
   }
 
+  public boolean isDeleteCell() {
+    return this.deleteCell;
+  }
+
+  public PColumnUpdate setDeleteCell(boolean deleteCell) {
+    this.deleteCell = deleteCell;
+    setDeleteCellIsSet(true);
+    return this;
+  }
+
+  public void unsetDeleteCell() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __DELETECELL_ISSET_ID);
+  }
+
+  /** Returns true if field deleteCell is set (has been assigned a value) and false otherwise */
+  public boolean isSetDeleteCell() {
+    return EncodingUtils.testBit(__isset_bitfield, __DELETECELL_ISSET_ID);
+  }
+
+  public void setDeleteCellIsSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __DELETECELL_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case COL_FAMILY:
@@ -411,6 +443,14 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
+    case DELETE_CELL:
+      if (value == null) {
+        unsetDeleteCell();
+      } else {
+        setDeleteCell((Boolean)value);
+      }
+      break;
+
     }
   }
 
@@ -430,6 +470,9 @@ import org.slf4j.LoggerFactory;
 
     case VALUE:
       return getValue();
+
+    case DELETE_CELL:
+      return Boolean.valueOf(isDeleteCell());
 
     }
     throw new IllegalStateException();
@@ -452,6 +495,8 @@ import org.slf4j.LoggerFactory;
       return isSetTimestamp();
     case VALUE:
       return isSetValue();
+    case DELETE_CELL:
+      return isSetDeleteCell();
     }
     throw new IllegalStateException();
   }
@@ -511,6 +556,15 @@ import org.slf4j.LoggerFactory;
       if (!(this_present_value && that_present_value))
         return false;
       if (!this.value.equals(that.value))
+        return false;
+    }
+
+    boolean this_present_deleteCell = true && this.isSetDeleteCell();
+    boolean that_present_deleteCell = true && that.isSetDeleteCell();
+    if (this_present_deleteCell || that_present_deleteCell) {
+      if (!(this_present_deleteCell && that_present_deleteCell))
+        return false;
+      if (this.deleteCell != that.deleteCell)
         return false;
     }
 
@@ -580,6 +634,16 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetDeleteCell()).compareTo(typedOther.isSetDeleteCell());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetDeleteCell()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.deleteCell, typedOther.deleteCell);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -631,14 +695,22 @@ import org.slf4j.LoggerFactory;
       sb.append(this.timestamp);
       first = false;
     }
-    if (!first) sb.append(", ");
-    sb.append("value:");
-    if (this.value == null) {
-      sb.append("null");
-    } else {
-      org.apache.thrift.TBaseHelper.toString(this.value, sb);
+    if (isSetValue()) {
+      if (!first) sb.append(", ");
+      sb.append("value:");
+      if (this.value == null) {
+        sb.append("null");
+      } else {
+        org.apache.thrift.TBaseHelper.toString(this.value, sb);
+      }
+      first = false;
     }
-    first = false;
+    if (isSetDeleteCell()) {
+      if (!first) sb.append(", ");
+      sb.append("deleteCell:");
+      sb.append(this.deleteCell);
+      first = false;
+    }
     sb.append(")");
     return sb.toString();
   }
@@ -724,6 +796,14 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 6: // DELETE_CELL
+            if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+              struct.deleteCell = iprot.readBool();
+              struct.setDeleteCellIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -762,8 +842,15 @@ import org.slf4j.LoggerFactory;
         oprot.writeFieldEnd();
       }
       if (struct.value != null) {
-        oprot.writeFieldBegin(VALUE_FIELD_DESC);
-        oprot.writeBinary(struct.value);
+        if (struct.isSetValue()) {
+          oprot.writeFieldBegin(VALUE_FIELD_DESC);
+          oprot.writeBinary(struct.value);
+          oprot.writeFieldEnd();
+        }
+      }
+      if (struct.isSetDeleteCell()) {
+        oprot.writeFieldBegin(DELETE_CELL_FIELD_DESC);
+        oprot.writeBool(struct.deleteCell);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -799,7 +886,10 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetValue()) {
         optionals.set(4);
       }
-      oprot.writeBitSet(optionals, 5);
+      if (struct.isSetDeleteCell()) {
+        optionals.set(5);
+      }
+      oprot.writeBitSet(optionals, 6);
       if (struct.isSetColFamily()) {
         oprot.writeBinary(struct.colFamily);
       }
@@ -815,12 +905,15 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetValue()) {
         oprot.writeBinary(struct.value);
       }
+      if (struct.isSetDeleteCell()) {
+        oprot.writeBool(struct.deleteCell);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, PColumnUpdate struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(5);
+      BitSet incoming = iprot.readBitSet(6);
       if (incoming.get(0)) {
         struct.colFamily = iprot.readBinary();
         struct.setColFamilyIsSet(true);
@@ -840,6 +933,10 @@ import org.slf4j.LoggerFactory;
       if (incoming.get(4)) {
         struct.value = iprot.readBinary();
         struct.setValueIsSet(true);
+      }
+      if (incoming.get(5)) {
+        struct.deleteCell = iprot.readBool();
+        struct.setDeleteCellIsSet(true);
       }
     }
   }

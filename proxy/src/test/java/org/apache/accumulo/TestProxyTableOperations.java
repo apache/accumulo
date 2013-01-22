@@ -191,7 +191,8 @@ public class TestProxyTableOperations {
   }
   
   private static void addMutation(Map<ByteBuffer,List<PColumnUpdate>> mutations, String row, String cf, String cq, String value) {
-    PColumnUpdate update = new PColumnUpdate(ByteBuffer.wrap(cf.getBytes()), ByteBuffer.wrap(cq.getBytes()), ByteBuffer.wrap(value.getBytes()));
+    PColumnUpdate update = new PColumnUpdate(ByteBuffer.wrap(cf.getBytes()), ByteBuffer.wrap(cq.getBytes()));
+    update.setValue(value.getBytes());
     mutations.put(ByteBuffer.wrap(row.getBytes()), Collections.singletonList(update));
   }
   
@@ -203,7 +204,7 @@ public class TestProxyTableOperations {
     for (int i = 0; i < 10; i++) {
       addMutation(mutations, "" + i, "cf", "cq", "");
     }
-    tpc.proxy().updateAndFlush(userpass, testtable, mutations, null);
+    tpc.proxy().updateAndFlush(userpass, testtable, mutations);
     
     assertEquals(tpc.proxy().tableOperations_getMaxRow(userpass, testtable, auths, null, true, null, true), "9");
     
