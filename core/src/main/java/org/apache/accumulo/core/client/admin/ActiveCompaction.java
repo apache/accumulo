@@ -110,10 +110,10 @@ public class ActiveCompaction {
   }
   
   /**
-   * @return number of files compaction is reading
+   * @return the files the compaction is reading from
    */
 
-  public int getInputFiles() {
+  public List<String> getInputFiles() {
     return tac.getInputFiles();
   }
   

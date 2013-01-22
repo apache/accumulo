@@ -105,7 +105,7 @@ enum CompactionReason {
 struct ActiveCompaction {
     1:data.TKeyExtent extent
     2:i64 age
-    3:i32 inputFiles
+    3:list<string> inputFiles
     4:string outputFile
     5:CompactionType type
     6:CompactionReason reason

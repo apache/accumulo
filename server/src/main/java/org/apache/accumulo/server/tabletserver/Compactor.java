@@ -198,8 +198,8 @@ public class Compactor implements Callable<CompactionStats> {
         iterOptions.put(iterSetting.getName(), iterSetting.getOptions());
       }
       
-      return new ActiveCompaction(compactor.extent.toThrift(), System.currentTimeMillis() - compactor.startTime, compactor.filesToCompact.size(),
-          compactor.outputFile, type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions);
+      return new ActiveCompaction(compactor.extent.toThrift(), System.currentTimeMillis() - compactor.startTime, new ArrayList<String>(
+          compactor.filesToCompact.keySet()), compactor.outputFile, type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions);
     }
   }
   
