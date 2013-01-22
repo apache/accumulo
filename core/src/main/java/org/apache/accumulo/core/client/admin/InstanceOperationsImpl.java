@@ -36,7 +36,6 @@ import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService.Client;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -147,22 +146,29 @@ public class InstanceOperationsImpl implements InstanceOperations {
   
   @Override
   public List<ActiveScan> getActiveScans(String tserver) throws AccumuloException, AccumuloSecurityException {
-    List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan> tas = ThriftUtil.execute(tserver, instance.getConfiguration(),
-        new ClientExecReturn<List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan>,TabletClientService.Client>() {
-          @Override
-          public List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan> execute(TabletClientService.Client client) throws Exception {
-            return client.getActiveScans(Tracer.traceInfo(), credentials);
-          }
-        });
-    List<ActiveScan> as = new ArrayList<ActiveScan>();
-    for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : tas) {
-      try {
-        as.add(new ActiveScan(instance, activeScan));
-      } catch (TableNotFoundException e) {
-        throw new AccumuloException(e);
+    Client client = null;
+    try {
+      client = ThriftUtil.getTServerClient(tserver, instance.getConfiguration());
+      
+      List<ActiveScan> as = new ArrayList<ActiveScan>();
+      for (org.apache.accumulo.core.tabletserver.thrift.ActiveScan activeScan : client.getActiveScans(Tracer.traceInfo(), credentials)) {
+        try {
+          as.add(new ActiveScan(instance, activeScan));
+        } catch (TableNotFoundException e) {
+          throw new AccumuloException(e);
+        }
       }
+      return as;
+    } catch (TTransportException e) {
+      throw new AccumuloException(e);
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloSecurityException(e.user, e.code, e);
+    } catch (TException e) {
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null)
+        ThriftUtil.returnClient(client);
     }
-    return as;
   }
   
   /* (non-Javadoc)
@@ -185,18 +191,25 @@ public class InstanceOperationsImpl implements InstanceOperations {
    */
   @Override
   public List<ActiveCompaction> getActiveCompactions(String tserver) throws AccumuloException, AccumuloSecurityException {
-    List<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction> tas = ThriftUtil.execute(tserver, instance.getConfiguration(),
-        new ClientExecReturn<List<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction>,TabletClientService.Client>() {
-          @Override
-          public List<org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction> execute(TabletClientService.Client client) throws Exception {
-            return client.getActiveCompactions(Tracer.traceInfo(), credentials);
-          }
-        });
-    List<ActiveCompaction> as = new ArrayList<ActiveCompaction>();
-    for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction activeCompaction : tas) {
-      as.add(new ActiveCompaction(instance, activeCompaction));
+    Client client = null;
+    try {
+      client = ThriftUtil.getTServerClient(tserver, instance.getConfiguration());
+      
+      List<ActiveCompaction> as = new ArrayList<ActiveCompaction>();
+      for (org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction activeCompaction : client.getActiveCompactions(Tracer.traceInfo(), credentials)) {
+        as.add(new ActiveCompaction(instance, activeCompaction));
+      }
+      return as;
+    } catch (TTransportException e) {
+      throw new AccumuloException(e);
+    } catch (ThriftSecurityException e) {
+      throw new AccumuloSecurityException(e.user, e.code, e);
+    } catch (TException e) {
+      throw new AccumuloException(e);
+    } finally {
+      if (client != null)
+        ThriftUtil.returnClient(client);
     }
-    return as;
   }
   
   /*
