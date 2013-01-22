@@ -29,6 +29,7 @@ import org.apache.accumulo.proxy.Proxy;
 import org.apache.accumulo.proxy.TestProxyClient;
 import org.apache.accumulo.proxy.thrift.PSystemPermission;
 import org.apache.accumulo.proxy.thrift.PTablePermission;
+import org.apache.accumulo.proxy.thrift.PTimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
@@ -75,8 +76,8 @@ public class TestProxySecurityOperations {
   
   @Before
   public void makeTestTableAndUser() throws Exception {
-    tpc.proxy().tableOperations_create(userpass, testtable);
-    tpc.proxy().securityOperations_createUser(userpass, testuser, testpw, new HashSet<String>());
+    tpc.proxy().tableOperations_create(userpass, testtable, true, PTimeType.MILLIS);
+    tpc.proxy().securityOperations_createUser(userpass, testuser, testpw);
   }
   
   @After
@@ -87,7 +88,7 @@ public class TestProxySecurityOperations {
   
   @Test
   public void create() throws TException {
-    tpc.proxy().securityOperations_createUser(userpass, testuser + "2", testpw, new HashSet<String>());
+    tpc.proxy().securityOperations_createUser(userpass, testuser + "2", testpw);
     assertTrue(tpc.proxy().securityOperations_listUsers(userpass).contains(testuser + "2"));
     tpc.proxy().securityOperations_dropUser(userpass, testuser + "2");
     assertTrue(!tpc.proxy().securityOperations_listUsers(userpass).contains(testuser + "2"));

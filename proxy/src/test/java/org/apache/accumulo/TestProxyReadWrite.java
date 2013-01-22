@@ -39,6 +39,7 @@ import org.apache.accumulo.proxy.thrift.PKey;
 import org.apache.accumulo.proxy.thrift.PKeyValue;
 import org.apache.accumulo.proxy.thrift.PRange;
 import org.apache.accumulo.proxy.thrift.PScanResult;
+import org.apache.accumulo.proxy.thrift.PTimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.server.TServer;
 import org.junit.After;
@@ -81,7 +82,7 @@ public class TestProxyReadWrite {
   
   @Before
   public void makeTestTable() throws Exception {
-    tpc.proxy().tableOperations_create(userpass, testtable);
+    tpc.proxy().tableOperations_create(userpass, testtable, true, PTimeType.MILLIS);
   }
   
   @After

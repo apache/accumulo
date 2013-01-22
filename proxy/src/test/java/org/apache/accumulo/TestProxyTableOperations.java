@@ -33,6 +33,7 @@ import java.util.Set;
 import org.apache.accumulo.proxy.Proxy;
 import org.apache.accumulo.proxy.TestProxyClient;
 import org.apache.accumulo.proxy.thrift.PColumnUpdate;
+import org.apache.accumulo.proxy.thrift.PTimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
@@ -77,7 +78,7 @@ public class TestProxyTableOperations {
   
   @Before
   public void makeTestTable() throws Exception {
-    tpc.proxy().tableOperations_create(userpass, testtable);
+    tpc.proxy().tableOperations_create(userpass, testtable, true, PTimeType.MILLIS);
   }
   
   @After
@@ -93,7 +94,7 @@ public class TestProxyTableOperations {
   @Test
   public void createExistsDelete() throws TException {
     assertFalse(tpc.proxy().tableOperations_exists(userpass, "testtable2"));
-    tpc.proxy().tableOperations_create(userpass, "testtable2");
+    tpc.proxy().tableOperations_create(userpass, "testtable2", true, PTimeType.MILLIS);
     assertTrue(tpc.proxy().tableOperations_exists(userpass, "testtable2"));
     tpc.proxy().tableOperations_delete(userpass, "testtable2");
     assertFalse(tpc.proxy().tableOperations_exists(userpass, "testtable2"));

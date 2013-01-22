@@ -45,6 +45,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.ActiveScan;
+import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -84,6 +85,7 @@ import org.apache.accumulo.proxy.thrift.PScanState;
 import org.apache.accumulo.proxy.thrift.PScanType;
 import org.apache.accumulo.proxy.thrift.PSystemPermission;
 import org.apache.accumulo.proxy.thrift.PTablePermission;
+import org.apache.accumulo.proxy.thrift.PTimeType;
 import org.apache.accumulo.proxy.thrift.TableExistsException;
 import org.apache.accumulo.proxy.thrift.TableNotFoundException;
 import org.apache.accumulo.proxy.thrift.UserPass;
@@ -162,19 +164,27 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_compact(UserPass userpass, String tableName, ByteBuffer start, ByteBuffer end, boolean flush, boolean wait)
+  public void tableOperations_compact(UserPass userpass, String tableName, ByteBuffer start, ByteBuffer end, List<PIteratorSetting> iterators, boolean flush, boolean wait)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException, TException {
     try {
-      getConnector(userpass).tableOperations().compact(tableName, ByteBufferUtil.toText(start), ByteBufferUtil.toText(end), flush, wait);
+      getConnector(userpass).tableOperations().compact(tableName, ByteBufferUtil.toText(start), ByteBufferUtil.toText(end), getPIteratorSettings(iterators), flush, wait);
     } catch (Exception e) {
       throw new TException(e);
     }
   }
   
+  private List<IteratorSetting> getPIteratorSettings(List<PIteratorSetting> iterators) {
+    List<IteratorSetting> result = new ArrayList<IteratorSetting>();
+    for (PIteratorSetting is : iterators) {
+      result.add(getIteratorSetting(is));
+    }
+    return result;
+  }
+
   @Override
-  public void tableOperations_create(UserPass userpass, String tableName) throws AccumuloException, AccumuloSecurityException, TableExistsException, TException {
+  public void tableOperations_create(UserPass userpass, String tableName, boolean versioningIter, PTimeType timeType) throws AccumuloException, AccumuloSecurityException, TableExistsException, TException {
     try {
-      getConnector(userpass).tableOperations().create(tableName);
+      getConnector(userpass).tableOperations().create(tableName, versioningIter, TimeType.valueOf(timeType.toString()));
     } catch (Exception e) {
       e.printStackTrace();
       throw new TException(e);
@@ -576,11 +586,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void securityOperations_createUser(UserPass userpass, String user, ByteBuffer password, Set<String> authorizations) throws AccumuloException,
+  public void securityOperations_createUser(UserPass userpass, String user, ByteBuffer password) throws AccumuloException,
       AccumuloSecurityException, TException {
     try {
       getConnector(userpass).securityOperations().createUser(user, password.array());
-      getConnector(userpass).securityOperations().changeUserAuthorizations(user, new Authorizations(authorizations.toArray(new String[] {})));
     } catch (Exception e) {
       throw new TException(e);
     }
@@ -1086,6 +1095,15 @@ public class ProxyServer implements AccumuloProxy.Iface {
     PartialKey part_ = PartialKey.valueOf(part.toString());
     Key followingKey = key_.followingKey(part_);
     return getPKey(followingKey);
+  }
+
+  @Override
+  public void instanceOperations_pingTabletServer(UserPass userpass, String tserver) throws AccumuloException, AccumuloSecurityException, TException {
+    try {
+      getConnector(userpass).instanceOperations().ping(tserver);
+    } catch (Exception e) {
+      throw new TException(e);
+    }
   }
   
 }

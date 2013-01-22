@@ -31,6 +31,8 @@ import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.proxy.thrift.PColumnUpdate;
 import org.apache.accumulo.proxy.thrift.PKey;
 import org.apache.accumulo.proxy.thrift.PScanResult;
+import org.apache.accumulo.proxy.thrift.PTablePermission;
+import org.apache.accumulo.proxy.thrift.PTimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -66,8 +68,7 @@ public class TestProxyClient {
     
     System.out.println("Creating user: ");
     if (!tpc.proxy().securityOperations_listUsers(userpass).contains("testuser")) {
-      Set<String> auths = new HashSet<String>();
-      tpc.proxy().securityOperations_createUser(userpass, "testuser", ByteBuffer.wrap("testpass".getBytes()), auths);
+      tpc.proxy().securityOperations_createUser(userpass, "testuser", ByteBuffer.wrap("testpass".getBytes()));
     }
     System.out.println("UserList: " + tpc.proxy().securityOperations_listUsers(userpass));
     
@@ -82,7 +83,7 @@ public class TestProxyClient {
     if (tpc.proxy().tableOperations_exists(userpass, testTable))
       tpc.proxy().tableOperations_delete(userpass, testTable);
     
-    tpc.proxy().tableOperations_create(userpass, testTable);
+    tpc.proxy().tableOperations_create(userpass, testTable, true, PTimeType.MILLIS);
     
     System.out.println("Listing: " + tpc.proxy().tableOperations_list(userpass));
     
@@ -108,7 +109,7 @@ public class TestProxyClient {
     System.out.println(" End of writing: " + (end.getTime() - start.getTime()));
     
     tpc.proxy().tableOperations_delete(userpass, testTable);
-    tpc.proxy().tableOperations_create(userpass, testTable);
+    tpc.proxy().tableOperations_create(userpass, testTable, true, PTimeType.MILLIS);
     
     // Thread.sleep(1000);
     
