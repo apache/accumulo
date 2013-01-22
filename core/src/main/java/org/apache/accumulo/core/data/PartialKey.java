@@ -17,10 +17,9 @@
 package org.apache.accumulo.core.data;
 
 public enum PartialKey {
-  ROW(1), ROW_COLFAM(2), ROW_COLFAM_COLQUAL(3), ROW_COLFAM_COLQUAL_COLVIS(4), ROW_COLFAM_COLQUAL_COLVIS_TIME(5), ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL(6) // everything
-                                                                                                                                                       // with
-                                                                                                                                                       // delete
-                                                                                                                                                       // flag
+  ROW(1), ROW_COLFAM(2), ROW_COLFAM_COLQUAL(3), ROW_COLFAM_COLQUAL_COLVIS(4), ROW_COLFAM_COLQUAL_COLVIS_TIME(5),
+  //everything with delete flag
+  ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL(6) 
   ;
   
   int depth;

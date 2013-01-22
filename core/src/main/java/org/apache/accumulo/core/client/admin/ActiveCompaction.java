@@ -41,7 +41,7 @@ public class ActiveCompaction {
     this.instance = instance;
   }
 
-  static enum CompactionType {
+  public static enum CompactionType {
     /**
      * compaction to flush a tablets memory
      */
@@ -60,7 +60,7 @@ public class ActiveCompaction {
     FULL
   };
   
-  static enum CompactionReason {
+  public static enum CompactionReason {
     /**
      * compaction initiated by user
      */

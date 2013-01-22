@@ -125,7 +125,7 @@ public class TestProxyReadWrite {
     PKey stop = new PKey();
     stop.setRow("5".getBytes());
     List<PRange> pranges = new ArrayList<PRange>();
-    pranges.add(new PRange(null, stop));
+    pranges.add(new PRange(null, false, stop, false));
     String cookie = tpc.proxy().createBatchScanner(userpass, testtable, null, null, pranges);
     
     int i = 0;
@@ -199,7 +199,7 @@ public class TestProxyReadWrite {
     
     PKey stop = new PKey();
     stop.setRow("5".getBytes());
-    String cookie = tpc.proxy().createScanner(userpass, testtable, null, null, new PRange(null, stop));
+    String cookie = tpc.proxy().createScanner(userpass, testtable, null, null, new PRange(null, false, stop, false));
     
     int i = 0;
     boolean hasNext = true;

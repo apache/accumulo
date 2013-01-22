@@ -113,19 +113,19 @@ public class TestProxyTableOperations {
   // TODO: add back in as a test when Mock is improved
   // @Test
   public void merge() throws TException {
-    Set<String> splits = new HashSet<String>();
-    splits.add("a");
-    splits.add("c");
-    splits.add("z");
+    Set<ByteBuffer> splits = new HashSet<ByteBuffer>();
+    splits.add(ByteBuffer.wrap("a".getBytes()));
+    splits.add(ByteBuffer.wrap("c".getBytes()));
+    splits.add(ByteBuffer.wrap("z".getBytes()));
     tpc.proxy().tableOperations_addSplits(userpass, testtable, splits);
     
-    tpc.proxy().tableOperations_merge(userpass, testtable, "b", "d");
+    tpc.proxy().tableOperations_merge(userpass, testtable, ByteBuffer.wrap("b".getBytes()), ByteBuffer.wrap("d".getBytes()));
     
     splits.remove("c");
     
-    List<String> tableSplits = tpc.proxy().tableOperations_getSplits(userpass, testtable, 10);
+    List<ByteBuffer> tableSplits = tpc.proxy().tableOperations_getSplits(userpass, testtable, 10);
     
-    for (String split : tableSplits)
+    for (ByteBuffer split : tableSplits)
       assertTrue(splits.contains(split));
     assertTrue(tableSplits.size() == splits.size());
     
@@ -133,15 +133,15 @@ public class TestProxyTableOperations {
   
   @Test
   public void splits() throws TException {
-    Set<String> splits = new HashSet<String>();
-    splits.add("a");
-    splits.add("b");
-    splits.add("z");
+    Set<ByteBuffer> splits = new HashSet<ByteBuffer>();
+    splits.add(ByteBuffer.wrap("a".getBytes()));
+    splits.add(ByteBuffer.wrap("b".getBytes()));
+    splits.add(ByteBuffer.wrap("z".getBytes()));
     tpc.proxy().tableOperations_addSplits(userpass, testtable, splits);
     
-    List<String> tableSplits = tpc.proxy().tableOperations_getSplits(userpass, testtable, 10);
+    List<ByteBuffer> tableSplits = tpc.proxy().tableOperations_getSplits(userpass, testtable, 10);
     
-    for (String split : tableSplits)
+    for (ByteBuffer split : tableSplits)
       assertTrue(splits.contains(split));
     assertTrue(tableSplits.size() == splits.size());
   }
@@ -206,15 +206,10 @@ public class TestProxyTableOperations {
     }
     tpc.proxy().updateAndFlush(userpass, testtable, mutations);
     
-    assertEquals(tpc.proxy().tableOperations_getMaxRow(userpass, testtable, auths, null, true, null, true), "9");
+    assertEquals(tpc.proxy().tableOperations_getMaxRow(userpass, testtable, auths, null, true, null, true), ByteBuffer.wrap("9".getBytes()));
     
-    // TODO: Uncomment when the Mock isn't broken
-    // tpc.proxy().tableOperations_deleteRows(userpass,testtable,"51","99");
-    // assertEquals(tpc.proxy().tableOperations_getMaxRow(userpass, testtable, auths, null, true, null, true),"5");
-    
+    tpc.proxy().tableOperations_deleteRows(userpass,testtable,ByteBuffer.wrap("51".getBytes()), ByteBuffer.wrap("99".getBytes()));
+    assertEquals(tpc.proxy().tableOperations_getMaxRow(userpass, testtable, auths, null, true, null, true), ByteBuffer.wrap("5".getBytes()));
   }
   
-  /*
-   * @Test(expected = TException.class) public void peekTest() { }
-   */
 }

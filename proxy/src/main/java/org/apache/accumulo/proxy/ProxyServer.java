@@ -19,6 +19,7 @@ package org.apache.accumulo.proxy;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -42,26 +43,45 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.admin.ActiveCompaction;
+import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.proxy.thrift.AccumuloException;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.proxy.thrift.AccumuloSecurityException;
+import org.apache.accumulo.proxy.thrift.IOException;
 import org.apache.accumulo.proxy.thrift.KeyValueAndPeek;
 import org.apache.accumulo.proxy.thrift.NoMoreEntriesException;
+import org.apache.accumulo.proxy.thrift.PActiveCompaction;
+import org.apache.accumulo.proxy.thrift.PActiveScan;
+import org.apache.accumulo.proxy.thrift.PColumn;
 import org.apache.accumulo.proxy.thrift.PColumnUpdate;
+import org.apache.accumulo.proxy.thrift.PCompactionReason;
+import org.apache.accumulo.proxy.thrift.PCompactionType;
+import org.apache.accumulo.proxy.thrift.PIteratorScope;
 import org.apache.accumulo.proxy.thrift.PIteratorSetting;
+import org.apache.accumulo.proxy.thrift.PKey;
+import org.apache.accumulo.proxy.thrift.PKeyExtent;
 import org.apache.accumulo.proxy.thrift.PKeyValue;
+import org.apache.accumulo.proxy.thrift.PPartialKey;
 import org.apache.accumulo.proxy.thrift.PRange;
 import org.apache.accumulo.proxy.thrift.PScanResult;
+import org.apache.accumulo.proxy.thrift.PScanState;
+import org.apache.accumulo.proxy.thrift.PScanType;
 import org.apache.accumulo.proxy.thrift.PSystemPermission;
 import org.apache.accumulo.proxy.thrift.PTablePermission;
 import org.apache.accumulo.proxy.thrift.TableExistsException;
@@ -119,12 +139,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_addSplits(UserPass userpass, String tableName, Set<String> splits) throws TableNotFoundException, AccumuloException,
+  public void tableOperations_addSplits(UserPass userpass, String tableName, Set<ByteBuffer> splits) throws TableNotFoundException, AccumuloException,
       AccumuloSecurityException, TException {
     try {
       SortedSet<Text> sorted = new TreeSet<Text>();
-      for (String split : splits) {
-        sorted.add(new Text(split));
+      for (ByteBuffer split : splits) {
+        sorted.add(ByteBufferUtil.toText(split));
       }
       getConnector(userpass).tableOperations().addSplits(tableName, sorted);
     } catch (Exception e) {
@@ -142,10 +162,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_compact(UserPass userpass, String tableName, String start, String end, boolean flush, boolean wait)
+  public void tableOperations_compact(UserPass userpass, String tableName, ByteBuffer start, ByteBuffer end, boolean flush, boolean wait)
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException, TException {
     try {
-      getConnector(userpass).tableOperations().compact(tableName, new Text(start), new Text(end), flush, wait);
+      getConnector(userpass).tableOperations().compact(tableName, ByteBufferUtil.toText(start), ByteBufferUtil.toText(end), flush, wait);
     } catch (Exception e) {
       throw new TException(e);
     }
@@ -172,10 +192,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_deleteRows(UserPass userpass, String tableName, String start, String end) throws AccumuloException, AccumuloSecurityException,
+  public void tableOperations_deleteRows(UserPass userpass, String tableName, ByteBuffer start, ByteBuffer end) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, TException {
     try {
-      getConnector(userpass).tableOperations().deleteRows(tableName, new Text(start), new Text(end));
+      getConnector(userpass).tableOperations().deleteRows(tableName, ByteBufferUtil.toText(start), ByteBufferUtil.toText(end));
     } catch (Exception e) {
       throw new TException(e);
     }
@@ -191,9 +211,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_flush(UserPass userpass, String tableName) throws AccumuloException, AccumuloSecurityException, TException {
+  public void tableOperations_flush(UserPass userpass, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait) throws AccumuloException, AccumuloSecurityException, TException {
     try {
-      getConnector(userpass).tableOperations().flush(tableName, null, null, true);
+      getConnector(userpass).tableOperations().flush(tableName, ByteBufferUtil.toText(startRow), ByteBufferUtil.toText(endRow), wait);
     } catch (Exception e) {
       throw new TException(e);
     }
@@ -218,14 +238,14 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public String tableOperations_getMaxRow(UserPass userpass, String tableName, List<ByteBuffer> auths, String start, boolean startinclusive, String end,
+  public ByteBuffer tableOperations_getMaxRow(UserPass userpass, String tableName, List<ByteBuffer> auths, ByteBuffer startRow, boolean startinclusive, ByteBuffer endRow,
       boolean endinclusive) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, TException {
     try {
       
-      Text startText = start == null ? null : new Text(start);
-      Text endText = end == null ? null : new Text(end);
-      return getConnector(userpass).tableOperations().getMaxRow(tableName, new Authorizations(auths), startText, startinclusive, endText, endinclusive)
-          .toString();
+      Text startText = ByteBufferUtil.toText(startRow);
+      Text endText = ByteBufferUtil.toText(endRow);
+      Text max = getConnector(userpass).tableOperations().getMaxRow(tableName, new Authorizations(auths), startText, startinclusive, endText, endinclusive);
+      return TextUtil.getByteBuffer(max); 
     } catch (Exception e) {
       throw new TException(e);
     }
@@ -246,12 +266,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public List<String> tableOperations_getSplits(UserPass userpass, String tableName, int maxSplits) throws TableNotFoundException, TException {
+  public List<ByteBuffer> tableOperations_getSplits(UserPass userpass, String tableName, int maxSplits) throws TableNotFoundException, TException {
     try {
       Collection<Text> splits = getConnector(userpass).tableOperations().getSplits(tableName, maxSplits);
-      List<String> ret = new ArrayList<String>();
+      List<ByteBuffer> ret = new ArrayList<ByteBuffer>();
       for (Text split : splits) {
-        ret.add(split.toString());
+        ret.add(TextUtil.getByteBuffer(split));
       }
       return ret;
     } catch (Exception e) {
@@ -278,10 +298,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_merge(UserPass userpass, String tableName, String start, String end) throws AccumuloException, AccumuloSecurityException,
+  public void tableOperations_merge(UserPass userpass, String tableName, ByteBuffer start, ByteBuffer end) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, TException {
     try {
-      getConnector(userpass).tableOperations().merge(tableName, new Text(start), new Text(end));
+      getConnector(userpass).tableOperations().merge(tableName, ByteBufferUtil.toText(start), ByteBufferUtil.toText(end));
     } catch (Exception e) {
       throw new TException(e);
     }
@@ -394,6 +414,104 @@ public class ProxyServer implements AccumuloProxy.Iface {
   public List<String> instanceOperations_getTabletServers(UserPass userpass) throws TException {
     try {
       return getConnector(userpass).instanceOperations().getTabletServers();
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+  
+  @Override
+  public List<PActiveScan> instanceOperations_getActiveScans(UserPass userpass, String tserver) throws AccumuloException, AccumuloSecurityException, TException {
+    List<PActiveScan> result = new ArrayList<PActiveScan>();
+    try {
+      List<ActiveScan> activeScans = getConnector(userpass).instanceOperations().getActiveScans(tserver);
+      for (ActiveScan scan : activeScans) {
+        PActiveScan pscan = new PActiveScan();
+        pscan.client = scan.getClient();
+        pscan.user = scan.getUser();
+        pscan.tableId = scan.getTable();
+        pscan.age = scan.getAge();
+        pscan.idleTime = scan.getIdleTime();
+        pscan.type = PScanType.valueOf(scan.getType().toString());
+        pscan.state = PScanState.valueOf(scan.getState().toString());
+        KeyExtent e = scan.getExtent();
+        pscan.extent = new PKeyExtent(
+            TextUtil.getByteBuffer(e.getTableId()), 
+            TextUtil.getByteBuffer(e.getEndRow()), 
+            TextUtil.getByteBuffer(e.getPrevEndRow()));
+        pscan.columns = new ArrayList<PColumn>();
+        if (scan.getColumns() != null) {
+          for (Column c : scan.getColumns()) {
+            PColumn column = new PColumn();
+            column.setColFamily(c.getColumnFamily());
+            column.setColQualifier(c.getColumnQualifier());
+            column.setColVisibility(c.getColumnVisibility());
+            pscan.columns.add(column);
+          }
+        }
+        pscan.iterators = new ArrayList<PIteratorSetting>();
+        for (String iteratorString : scan.getSsiList()) {
+          String[] parts = iteratorString.split("[=,]");
+          if (parts.length == 3) {
+            String name = parts[0];
+            int priority = Integer.parseInt(parts[1]);
+            String classname = parts[2];
+            PIteratorSetting settings = new PIteratorSetting(priority, name, classname, scan.getSsio().get(name));
+            pscan.iterators.add(settings);
+          }
+        }
+        pscan.authorizations = new ArrayList<ByteBuffer>();
+        if (scan.getAuthorizations() != null) {
+          for (byte[] a : scan.getAuthorizations()) {
+            pscan.authorizations.add(ByteBuffer.wrap(a));
+          }
+        }
+        result.add(pscan);
+      }
+      return result;
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+  
+  @Override
+  public List<PActiveCompaction> instanceOperations_getActiveCompactions(UserPass userpass, String tserver) throws AccumuloException, AccumuloSecurityException, TException {
+    try {
+      List<PActiveCompaction> result = new ArrayList<PActiveCompaction>();
+      List<ActiveCompaction> active = getConnector(userpass).instanceOperations().getActiveCompactions(tserver);
+      for (ActiveCompaction comp : active) {
+        PActiveCompaction pcomp = new PActiveCompaction();
+        pcomp.age = comp.getAge();
+        pcomp.entriesRead = comp.getEntriesRead();
+        pcomp.entriesWritten = comp.getEntriesWritten();
+        KeyExtent e = comp.getExtent();
+        pcomp.extent = new PKeyExtent(
+            TextUtil.getByteBuffer(e.getTableId()),
+            TextUtil.getByteBuffer(e.getEndRow()),
+            TextUtil.getByteBuffer(e.getPrevEndRow())
+            );
+        pcomp.inputFiles = new ArrayList<String>();
+        if (comp.getInputFiles() != null) {
+          pcomp.inputFiles.addAll(comp.getInputFiles());
+        }
+        pcomp.localityGroup = comp.getLocalityGroup();
+        pcomp.outputFile = comp.getOutputFile();
+        pcomp.reason = PCompactionReason.valueOf(comp.getReason().toString());
+        pcomp.type = PCompactionType.valueOf(comp.getType().toString());
+        
+        pcomp.iterators = new ArrayList<PIteratorSetting>();
+        if (comp.getIterators() != null) {
+          for (IteratorSetting setting : comp.getIterators()) {
+            PIteratorSetting psetting = 
+                new PIteratorSetting(
+                    setting.getPriority(),
+                    setting.getName(),
+                    setting.getIteratorClass(),
+                    setting.getOptions());
+            pcomp.iterators.add(psetting);
+          }
+        }
+      }
+      return result;
     } catch (Exception e) {
       throw new TException(e);
     }
@@ -790,6 +908,184 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   private BatchWriter getWriter(UserPass userpass, String tableName) throws Exception {
     return getConnector(userpass).createBatchWriter(tableName, new BatchWriterConfig());
+  }
+  
+  private IteratorSetting getIteratorSetting(PIteratorSetting setting) {
+    return new IteratorSetting(setting.priority, setting.name, setting.iteratorClass, setting.getProperties());
+  }
+  
+  private IteratorScope getIteratorScope(PIteratorScope scope) {
+    return IteratorScope.valueOf(scope.toString().toLowerCase());
+  }
+  
+  private EnumSet<IteratorScope> getIteratorScopes(Set<PIteratorScope> scopes) {
+    EnumSet<IteratorScope> scopes_ = EnumSet.noneOf(IteratorScope.class);
+    for (PIteratorScope scope: scopes) {
+      scopes_.add(getIteratorScope(scope));
+    }
+    return scopes_;
+  }
+
+  private EnumSet<PIteratorScope> getPIteratorScopes(Set<IteratorScope> scopes) {
+    EnumSet<PIteratorScope> scopes_ = EnumSet.noneOf(PIteratorScope.class);
+    for (IteratorScope scope: scopes) {
+      scopes_.add(PIteratorScope.valueOf(scope.toString().toUpperCase()));
+    }
+    return scopes_;
+  }
+
+
+  @Override
+  public void tableOperations_attachIterator(UserPass userpass, String tableName, PIteratorSetting setting, Set<PIteratorScope> scopes)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException, TException {
+    try {
+      getConnector(userpass).tableOperations().attachIterator(tableName, getIteratorSetting(setting), getIteratorScopes(scopes));
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+
+  @Override
+  public void tableOperations_checkIteratorConflicts(UserPass userpass, String tableName, PIteratorSetting setting, Set<PIteratorScope> scopes)
+      throws AccumuloException, TableNotFoundException, TException {
+    try {
+      getConnector(userpass).tableOperations().checkIteratorConflicts(tableName, getIteratorSetting(setting), getIteratorScopes(scopes));
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+
+  @Override
+  public void tableOperations_clone(UserPass userpass, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet,
+      Set<String> propertiesToExclude) throws AccumuloException, AccumuloSecurityException, TableNotFoundException, TableExistsException, TException {
+    try {
+      getConnector(userpass).tableOperations().clone(tableName, newTableName, flush, propertiesToSet, propertiesToExclude);
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+
+  @Override
+  public void tableOperations_exportTable(UserPass userpass, String tableName, String exportDir) throws TableNotFoundException, AccumuloException,
+      AccumuloSecurityException, TException {
+    try {
+      getConnector(userpass).tableOperations().exportTable(tableName, exportDir);
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+
+  @Override
+  public void tableOperations_importTable(UserPass userpass, String tableName, String importDir) throws TableExistsException, AccumuloException,
+      AccumuloSecurityException, TException {
+    try {
+      getConnector(userpass).tableOperations().importTable(tableName, importDir);
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+
+  @Override
+  public PIteratorSetting tableOperations_getIteratorSetting(UserPass userpass, String tableName, String iteratorName, PIteratorScope scope)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException, TException {
+    try {
+      IteratorSetting is = getConnector(userpass).tableOperations().getIteratorSetting(tableName, iteratorName, getIteratorScope(scope));
+      return new PIteratorSetting(is.getPriority(), is.getName(), is.getIteratorClass(), is.getOptions());
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+
+  @Override
+  public Map<String,Set<PIteratorScope>> tableOperations_listIterators(UserPass userpass, String tableName) throws AccumuloSecurityException,
+      AccumuloException, TableNotFoundException, TException {
+    try {
+      Map<String,EnumSet<IteratorScope>> iterMap = getConnector(userpass).tableOperations().listIterators(tableName);
+      Map<String, Set<PIteratorScope>> result = new HashMap<String, Set<PIteratorScope>>();
+      for (Entry<String,EnumSet<IteratorScope>> entry : iterMap.entrySet()) {
+        result.put(entry.getKey(), getPIteratorScopes(entry.getValue()));
+      }
+      return result;
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+
+  @Override
+  public void tableOperations_removeIterator(UserPass userpass, String tableName, String iterName, Set<PIteratorScope> scopes)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException, TException {
+    try {
+      getConnector(userpass).tableOperations().removeIterator(tableName, iterName, getIteratorScopes(scopes));
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+
+  @Override
+  public Set<PRange> tableOperations_splitRangeByTablets(UserPass userpass, String tableName, PRange range, int maxSplits) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, TException {
+    try {
+      Set<Range> ranges = getConnector(userpass).tableOperations().splitRangeByTablets(tableName, getRange(range), maxSplits);
+      Set<PRange> result = new HashSet<PRange>();
+      for (Range r: ranges) {
+        result.add(getPRange(r));
+      }
+      return result;
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+  }
+
+  private PRange getPRange(Range r) {
+    return new PRange(getPKey(r.getStartKey()), r.isStartKeyInclusive(), getPKey(r.getEndKey()), r.isEndKeyInclusive());
+  }
+
+  private PKey getPKey(Key k) {
+    if (k == null)
+      return null;
+    PKey result = new PKey(
+        TextUtil.getByteBuffer(k.getRow()),
+        TextUtil.getByteBuffer(k.getColumnFamily()),
+        TextUtil.getByteBuffer(k.getColumnQualifier()),
+        TextUtil.getByteBuffer(k.getColumnVisibility())
+        );
+    return result;
+  }
+
+  private Range getRange(PRange range) {
+    return new Range(getKey(range.start), getKey(range.stop));
+  }
+
+  private Key getKey(PKey start) {
+    if (start == null)
+      return null;
+    return new Key(start.getRow(), start.getColFamily(), start.getColQualifier(), start.getColVisibility(), 0);
+  }
+
+  @Override
+  public void tableOperations_importDirectory(UserPass userpass, String tableName, String importDir, String failureDir, boolean setTime)
+      throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException, TException {
+    try {
+      getConnector(userpass).tableOperations().importDirectory(tableName, importDir, failureDir, setTime);
+    } catch (Exception e) {
+      throw new TException(e);
+    }
+    
+  }
+  
+  static private final ByteBuffer EMPTY = ByteBuffer.wrap(new byte[]{});
+
+  @Override
+  public PRange getRowRange(ByteBuffer row) throws TException {
+    return new PRange(new PKey(row, EMPTY, EMPTY, EMPTY), true, new PKey(row, EMPTY, EMPTY, EMPTY), true);
+  }
+
+  @Override
+  public PKey getFollowing(PKey key, PPartialKey part) throws TException {
+    Key key_ = getKey(key);
+    PartialKey part_ = PartialKey.valueOf(part.toString());
+    Key followingKey = key_.followingKey(part_);
+    return getPKey(followingKey);
   }
   
 }

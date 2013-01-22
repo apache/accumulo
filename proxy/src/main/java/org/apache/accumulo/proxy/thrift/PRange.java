@@ -50,7 +50,9 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("PRange");
 
   private static final org.apache.thrift.protocol.TField START_FIELD_DESC = new org.apache.thrift.protocol.TField("start", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-  private static final org.apache.thrift.protocol.TField STOP_FIELD_DESC = new org.apache.thrift.protocol.TField("stop", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+  private static final org.apache.thrift.protocol.TField START_INCLUSIVE_FIELD_DESC = new org.apache.thrift.protocol.TField("startInclusive", org.apache.thrift.protocol.TType.BOOL, (short)2);
+  private static final org.apache.thrift.protocol.TField STOP_FIELD_DESC = new org.apache.thrift.protocol.TField("stop", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+  private static final org.apache.thrift.protocol.TField STOP_INCLUSIVE_FIELD_DESC = new org.apache.thrift.protocol.TField("stopInclusive", org.apache.thrift.protocol.TType.BOOL, (short)4);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -59,12 +61,16 @@ import org.slf4j.LoggerFactory;
   }
 
   public PKey start; // required
+  public boolean startInclusive; // required
   public PKey stop; // required
+  public boolean stopInclusive; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     START((short)1, "start"),
-    STOP((short)2, "stop");
+    START_INCLUSIVE((short)2, "startInclusive"),
+    STOP((short)3, "stop"),
+    STOP_INCLUSIVE((short)4, "stopInclusive");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -81,8 +87,12 @@ import org.slf4j.LoggerFactory;
       switch(fieldId) {
         case 1: // START
           return START;
-        case 2: // STOP
+        case 2: // START_INCLUSIVE
+          return START_INCLUSIVE;
+        case 3: // STOP
           return STOP;
+        case 4: // STOP_INCLUSIVE
+          return STOP_INCLUSIVE;
         default:
           return null;
       }
@@ -123,13 +133,20 @@ import org.slf4j.LoggerFactory;
   }
 
   // isset id assignments
+  private static final int __STARTINCLUSIVE_ISSET_ID = 0;
+  private static final int __STOPINCLUSIVE_ISSET_ID = 1;
+  private byte __isset_bitfield = 0;
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.START, new org.apache.thrift.meta_data.FieldMetaData("start", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PKey.class)));
+    tmpMap.put(_Fields.START_INCLUSIVE, new org.apache.thrift.meta_data.FieldMetaData("startInclusive", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
     tmpMap.put(_Fields.STOP, new org.apache.thrift.meta_data.FieldMetaData("stop", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, PKey.class)));
+    tmpMap.put(_Fields.STOP_INCLUSIVE, new org.apache.thrift.meta_data.FieldMetaData("stopInclusive", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(PRange.class, metaDataMap);
   }
@@ -139,23 +156,32 @@ import org.slf4j.LoggerFactory;
 
   public PRange(
     PKey start,
-    PKey stop)
+    boolean startInclusive,
+    PKey stop,
+    boolean stopInclusive)
   {
     this();
     this.start = start;
+    this.startInclusive = startInclusive;
+    setStartInclusiveIsSet(true);
     this.stop = stop;
+    this.stopInclusive = stopInclusive;
+    setStopInclusiveIsSet(true);
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
   public PRange(PRange other) {
+    __isset_bitfield = other.__isset_bitfield;
     if (other.isSetStart()) {
       this.start = new PKey(other.start);
     }
+    this.startInclusive = other.startInclusive;
     if (other.isSetStop()) {
       this.stop = new PKey(other.stop);
     }
+    this.stopInclusive = other.stopInclusive;
   }
 
   public PRange deepCopy() {
@@ -165,7 +191,11 @@ import org.slf4j.LoggerFactory;
   @Override
   public void clear() {
     this.start = null;
+    setStartInclusiveIsSet(false);
+    this.startInclusive = false;
     this.stop = null;
+    setStopInclusiveIsSet(false);
+    this.stopInclusive = false;
   }
 
   public PKey getStart() {
@@ -192,6 +222,29 @@ import org.slf4j.LoggerFactory;
     }
   }
 
+  public boolean isStartInclusive() {
+    return this.startInclusive;
+  }
+
+  public PRange setStartInclusive(boolean startInclusive) {
+    this.startInclusive = startInclusive;
+    setStartInclusiveIsSet(true);
+    return this;
+  }
+
+  public void unsetStartInclusive() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __STARTINCLUSIVE_ISSET_ID);
+  }
+
+  /** Returns true if field startInclusive is set (has been assigned a value) and false otherwise */
+  public boolean isSetStartInclusive() {
+    return EncodingUtils.testBit(__isset_bitfield, __STARTINCLUSIVE_ISSET_ID);
+  }
+
+  public void setStartInclusiveIsSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __STARTINCLUSIVE_ISSET_ID, value);
+  }
+
   public PKey getStop() {
     return this.stop;
   }
@@ -216,6 +269,29 @@ import org.slf4j.LoggerFactory;
     }
   }
 
+  public boolean isStopInclusive() {
+    return this.stopInclusive;
+  }
+
+  public PRange setStopInclusive(boolean stopInclusive) {
+    this.stopInclusive = stopInclusive;
+    setStopInclusiveIsSet(true);
+    return this;
+  }
+
+  public void unsetStopInclusive() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __STOPINCLUSIVE_ISSET_ID);
+  }
+
+  /** Returns true if field stopInclusive is set (has been assigned a value) and false otherwise */
+  public boolean isSetStopInclusive() {
+    return EncodingUtils.testBit(__isset_bitfield, __STOPINCLUSIVE_ISSET_ID);
+  }
+
+  public void setStopInclusiveIsSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __STOPINCLUSIVE_ISSET_ID, value);
+  }
+
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
     case START:
@@ -223,6 +299,14 @@ import org.slf4j.LoggerFactory;
         unsetStart();
       } else {
         setStart((PKey)value);
+      }
+      break;
+
+    case START_INCLUSIVE:
+      if (value == null) {
+        unsetStartInclusive();
+      } else {
+        setStartInclusive((Boolean)value);
       }
       break;
 
@@ -234,6 +318,14 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
+    case STOP_INCLUSIVE:
+      if (value == null) {
+        unsetStopInclusive();
+      } else {
+        setStopInclusive((Boolean)value);
+      }
+      break;
+
     }
   }
 
@@ -242,8 +334,14 @@ import org.slf4j.LoggerFactory;
     case START:
       return getStart();
 
+    case START_INCLUSIVE:
+      return Boolean.valueOf(isStartInclusive());
+
     case STOP:
       return getStop();
+
+    case STOP_INCLUSIVE:
+      return Boolean.valueOf(isStopInclusive());
 
     }
     throw new IllegalStateException();
@@ -258,8 +356,12 @@ import org.slf4j.LoggerFactory;
     switch (field) {
     case START:
       return isSetStart();
+    case START_INCLUSIVE:
+      return isSetStartInclusive();
     case STOP:
       return isSetStop();
+    case STOP_INCLUSIVE:
+      return isSetStopInclusive();
     }
     throw new IllegalStateException();
   }
@@ -286,12 +388,30 @@ import org.slf4j.LoggerFactory;
         return false;
     }
 
+    boolean this_present_startInclusive = true;
+    boolean that_present_startInclusive = true;
+    if (this_present_startInclusive || that_present_startInclusive) {
+      if (!(this_present_startInclusive && that_present_startInclusive))
+        return false;
+      if (this.startInclusive != that.startInclusive)
+        return false;
+    }
+
     boolean this_present_stop = true && this.isSetStop();
     boolean that_present_stop = true && that.isSetStop();
     if (this_present_stop || that_present_stop) {
       if (!(this_present_stop && that_present_stop))
         return false;
       if (!this.stop.equals(that.stop))
+        return false;
+    }
+
+    boolean this_present_stopInclusive = true;
+    boolean that_present_stopInclusive = true;
+    if (this_present_stopInclusive || that_present_stopInclusive) {
+      if (!(this_present_stopInclusive && that_present_stopInclusive))
+        return false;
+      if (this.stopInclusive != that.stopInclusive)
         return false;
     }
 
@@ -321,12 +441,32 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
+    lastComparison = Boolean.valueOf(isSetStartInclusive()).compareTo(typedOther.isSetStartInclusive());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetStartInclusive()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.startInclusive, typedOther.startInclusive);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     lastComparison = Boolean.valueOf(isSetStop()).compareTo(typedOther.isSetStop());
     if (lastComparison != 0) {
       return lastComparison;
     }
     if (isSetStop()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.stop, typedOther.stop);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = Boolean.valueOf(isSetStopInclusive()).compareTo(typedOther.isSetStopInclusive());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetStopInclusive()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.stopInclusive, typedOther.stopInclusive);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -359,12 +499,20 @@ import org.slf4j.LoggerFactory;
     }
     first = false;
     if (!first) sb.append(", ");
+    sb.append("startInclusive:");
+    sb.append(this.startInclusive);
+    first = false;
+    if (!first) sb.append(", ");
     sb.append("stop:");
     if (this.stop == null) {
       sb.append("null");
     } else {
       sb.append(this.stop);
     }
+    first = false;
+    if (!first) sb.append(", ");
+    sb.append("stopInclusive:");
+    sb.append(this.stopInclusive);
     first = false;
     sb.append(")");
     return sb.toString();
@@ -391,6 +539,8 @@ import org.slf4j.LoggerFactory;
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, ClassNotFoundException {
     try {
+      // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+      __isset_bitfield = 0;
       read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
     } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);
@@ -424,11 +574,27 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // STOP
+          case 2: // START_INCLUSIVE
+            if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+              struct.startInclusive = iprot.readBool();
+              struct.setStartInclusiveIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 3: // STOP
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
               struct.stop = new PKey();
               struct.stop.read(iprot);
               struct.setStopIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 4: // STOP_INCLUSIVE
+            if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+              struct.stopInclusive = iprot.readBool();
+              struct.setStopInclusiveIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -453,11 +619,17 @@ import org.slf4j.LoggerFactory;
         struct.start.write(oprot);
         oprot.writeFieldEnd();
       }
+      oprot.writeFieldBegin(START_INCLUSIVE_FIELD_DESC);
+      oprot.writeBool(struct.startInclusive);
+      oprot.writeFieldEnd();
       if (struct.stop != null) {
         oprot.writeFieldBegin(STOP_FIELD_DESC);
         struct.stop.write(oprot);
         oprot.writeFieldEnd();
       }
+      oprot.writeFieldBegin(STOP_INCLUSIVE_FIELD_DESC);
+      oprot.writeBool(struct.stopInclusive);
+      oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -479,31 +651,51 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetStart()) {
         optionals.set(0);
       }
-      if (struct.isSetStop()) {
+      if (struct.isSetStartInclusive()) {
         optionals.set(1);
       }
-      oprot.writeBitSet(optionals, 2);
+      if (struct.isSetStop()) {
+        optionals.set(2);
+      }
+      if (struct.isSetStopInclusive()) {
+        optionals.set(3);
+      }
+      oprot.writeBitSet(optionals, 4);
       if (struct.isSetStart()) {
         struct.start.write(oprot);
       }
+      if (struct.isSetStartInclusive()) {
+        oprot.writeBool(struct.startInclusive);
+      }
       if (struct.isSetStop()) {
         struct.stop.write(oprot);
+      }
+      if (struct.isSetStopInclusive()) {
+        oprot.writeBool(struct.stopInclusive);
       }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, PRange struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
-      BitSet incoming = iprot.readBitSet(2);
+      BitSet incoming = iprot.readBitSet(4);
       if (incoming.get(0)) {
         struct.start = new PKey();
         struct.start.read(iprot);
         struct.setStartIsSet(true);
       }
       if (incoming.get(1)) {
+        struct.startInclusive = iprot.readBool();
+        struct.setStartInclusiveIsSet(true);
+      }
+      if (incoming.get(2)) {
         struct.stop = new PKey();
         struct.stop.read(iprot);
         struct.setStopIsSet(true);
+      }
+      if (incoming.get(3)) {
+        struct.stopInclusive = iprot.readBool();
+        struct.setStopInclusiveIsSet(true);
       }
     }
   }

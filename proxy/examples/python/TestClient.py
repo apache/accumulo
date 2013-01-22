@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
-* this work for additional information regarding copyright ownership.
+# this work for additional information regarding copyright ownership.
 # The ASF licenses this file to You under the Apache License, Version 2.0
 # (the "License"); you may not use this file except in compliance with
 # the License.  You may obtain a copy of the License at
@@ -39,7 +39,7 @@ if not client.tableOperations_exists(userpass,testtable):
     client.tableOperations_create(userpass,testtable)
 
 row1 = {'a':[PColumnUpdate('a','a',value='value1'), PColumnUpdate('b','b',value='value2')]}
-client.updateAndFlush(userpass,testtable,row1,None)
+client.updateAndFlush(userpass,testtable,row1)
 
 cookie = client.createBatchScanner(userpass,testtable,"",None,None)
 print client.scanner_next_k(cookie,10)
