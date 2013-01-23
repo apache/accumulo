@@ -20,6 +20,7 @@ import java.util.Set;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.proxy.Proxy;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy.Client;
 import org.apache.accumulo.proxy.thrift.ActiveCompaction;
 import org.apache.accumulo.proxy.thrift.ActiveScan;

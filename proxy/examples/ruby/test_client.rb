@@ -33,10 +33,10 @@ transport.open()
 puts "Server is up? #{proxy.ping(us)}"
 
 # print out a table list
-puts "List of tables: #{proxy.tableOperations_list(us).inspect}"
+puts "List of tables: #{proxy.listTables(us).inspect}"
 
 testtable = "rubytest"
-proxy.tableOperations_create(us,testtable) unless proxy.tableOperations_exists(us,testtable) 
+proxy.createTable(us,testtable) unless proxy.tableExists(us,testtable) 
 
 key1 = PColumnUpdate.new({'colFamily' => "cf1", 'colQualifier' => "cq1", 'value'=> "a"})
 key2 = PColumnUpdate.new({'colFamily' => "cf2", 'colQualifier' => "cq2", 'value'=> "b"})
