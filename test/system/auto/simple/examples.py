@@ -253,13 +253,6 @@ class Examples(TestUtilsMixin, unittest.TestCase):
                         '-p', ROOT_PASSWORD,
                          '-t', 'itest2',
                          '--iterations', 100000])
-        self.comment("Inserting data using a map/reduce job")
-        self.runExample(['org.apache.accumulo.simple.examples.helloworld.InsertWithOutputFormat',
-                        '-i', INSTANCE_NAME,
-                        '-z', ZOOKEEPERS,
-                        '-t', 'helloOutputFormat',
-                        '-u', ROOT,
-                        '-p', ROOT_PASSWORD ])
         self.comment("Using some example constraints")
         self.ashell('\n'.join([
             'createtable testConstraints',
