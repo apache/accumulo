@@ -50,9 +50,8 @@ import org.apache.log4j.Logger;
  * 
  * This iterator is commonly used with BatchScanner or AccumuloInputFormat, to parallelize the search over all shardIDs.
  * 
- * This iterator will *ignore* any columnFamilies passed to {@link #seek(Range, Collection, boolean)} as it performs intersections
- * over terms. Extending classes should override the {@link TermSource#seekColfams} in their implementation's 
- * {@link #init(SortedKeyValueIterator, Map, IteratorEnvironment)} method.
+ * This iterator will *ignore* any columnFamilies passed to {@link #seek(Range, Collection, boolean)} as it performs intersections over terms. Extending classes
+ * should override the {@link TermSource#seekColfams} in their implementation's {@link #init(SortedKeyValueIterator, Map, IteratorEnvironment)} method.
  * 
  * README.shard in docs/examples shows an example of using the IntersectingIterator.
  */
@@ -86,7 +85,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   
   protected static final Logger log = Logger.getLogger(IntersectingIterator.class);
   
-  protected static class TermSource {
+  public static class TermSource {
     public SortedKeyValueIterator<Key,Value> iter;
     public Text term;
     public Collection<ByteSequence> seekColfams;
@@ -108,7 +107,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
       this.term = term;
       this.notFlag = notFlag;
       // The desired column families for this source is the term itself
-      this.seekColfams = Collections.<ByteSequence>singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
+      this.seekColfams = Collections.<ByteSequence> singletonList(new ArrayByteSequence(term.getBytes(), 0, term.getLength()));
     }
     
     public String getTermString() {
@@ -488,7 +487,6 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     overallRange = new Range(range);
     currentPartition = new Text();
     currentDocID.set(emptyByteArray);
-    
     
     // seek each of the sources to the right column family within the row given by key
     for (int i = 0; i < sourcesCount; i++) {

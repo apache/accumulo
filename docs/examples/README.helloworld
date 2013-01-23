@@ -19,7 +19,6 @@ Notice:    Licensed to the Apache Software Foundation (ASF) under one
 This tutorial uses the following Java classes, which can be found in org.apache.accumulo.examples.simple.helloworld in the simple-examples module: 
 
  * InsertWithBatchWriter.java - Inserts 10K rows (50K entries) into accumulo with each row having 5 entries
- * InsertWithOutputFormat.java - Example of inserting data in MapReduce
  * ReadData.java - Reads all data between two rows
 
 Log into the accumulo shell:
@@ -33,10 +32,6 @@ Create a table called 'hellotable':
 Launch a Java program that inserts data with a BatchWriter:
 
     $ ./bin/accumulo org.apache.accumulo.examples.simple.helloworld.InsertWithBatchWriter -i instance -z zookeepers -u username -p password -t hellotable 
-
-Alternatively, the same data can be inserted using MapReduce writers:
-
-    $ ./bin/accumulo org.apache.accumulo.examples.simple.helloworld.InsertWithOutputFormat -i instance -z zookeepers -u username -p password -t hellotable 
 
 On the accumulo status page at the URL below (where 'master' is replaced with the name or IP of your accumulo master), you should see 50K entries
 	

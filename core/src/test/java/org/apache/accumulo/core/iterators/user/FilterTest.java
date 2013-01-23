@@ -17,7 +17,6 @@
 package org.apache.accumulo.core.iterators.user;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -199,7 +198,10 @@ public class FilterTest {
     AgeOffFilter.setCurrentTime(is, 1001l);
     AgeOffFilter.setNegate(is, true);
     assertTrue(((AgeOffFilter) a).validateOptions(is.getOptions()));
-    assertFalse(((AgeOffFilter) a).validateOptions(EMPTY_OPTS));
+    try {
+      ((AgeOffFilter) a).validateOptions(EMPTY_OPTS);
+      assertTrue(false);
+    } catch (IllegalArgumentException e) {}
     a.init(new SortedMapIterator(tm), is.getOptions(), null);
     a = a.deepCopy(null);
     SortedKeyValueIterator<Key,Value> copy = a.deepCopy(null);
@@ -467,7 +469,10 @@ public class FilterTest {
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(size(a), 32);
     
-    assertFalse(a.validateOptions(EMPTY_OPTS));
+    try {
+      a.validateOptions(EMPTY_OPTS);
+      assertTrue(false);
+    } catch (IllegalArgumentException e) {}
   }
   
   @Test

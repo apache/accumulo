@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Random;
@@ -1442,6 +1443,63 @@ public class RFileTest {
     trf.closeReader();
   }
   
+  @Test
+  public void testReseekUnconsumed() throws Exception {
+    TestRFile trf = new TestRFile();
+    
+    trf.openWriter();
+    
+    for (int i = 0; i < 2500; i++) {
+      trf.writer.append(nk(nf("r_", i), "cf1", "cq1", "L1", 42), nv("foo" + i));
+    }
+    
+    trf.closeWriter();
+    trf.openReader();
+    
+    Set<ByteSequence> cfs = Collections.emptySet();
+
+    Random rand = new Random();
+
+    for (int count = 0; count < 100; count++) {
+      
+      int start = rand.nextInt(2300);
+      Range range = new Range(nk(nf("r_", start), "cf1", "cq1", "L1", 42), nk(nf("r_", start + 100), "cf1", "cq1", "L1", 42));
+
+      trf.reader.seek(range, cfs, false);
+      
+      int numToScan = rand.nextInt(100);
+      
+      for (int j = 0; j < numToScan; j++) {
+        assertTrue(trf.reader.hasTop());
+        assertEquals(nk(nf("r_", start + j), "cf1", "cq1", "L1", 42), trf.reader.getTopKey());
+        trf.reader.next();
+      }
+      
+      assertTrue(trf.reader.hasTop());
+      assertEquals(nk(nf("r_", start + numToScan), "cf1", "cq1", "L1", 42), trf.reader.getTopKey());
+
+      // seek a little forward from the last range and read a few keys within the unconsumed portion of the last range
+
+      int start2 = start + numToScan + rand.nextInt(3);
+      int end2 = start2 + rand.nextInt(3);
+
+      range = new Range(nk(nf("r_", start2), "cf1", "cq1", "L1", 42), nk(nf("r_", end2), "cf1", "cq1", "L1", 42));
+      trf.reader.seek(range, cfs, false);
+      
+      for (int j = start2; j <= end2; j++) {
+        assertTrue(trf.reader.hasTop());
+        assertEquals(nk(nf("r_", j), "cf1", "cq1", "L1", 42), trf.reader.getTopKey());
+        trf.reader.next();
+      }
+      
+      assertFalse(trf.reader.hasTop());
+
+    }
+    
+    trf.closeReader();
+  }
+
+
   @Test(expected = NullPointerException.class)
   public void testMissingUnreleasedVersions() throws Exception {
     runVersionTest(5);

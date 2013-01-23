@@ -92,7 +92,9 @@ public class MergeCommand extends Command {
     verboseOpt = new Option("v", "verbose", false, "verbose output during merge");
     sizeOpt = new Option("s", "size", true, "merge tablets to the given size over the entire table");
     forceOpt = new Option("f", "force", false, "merge small tablets to large tablets, even if it goes over the given size");
-    o.addOption(OptUtil.startRowOpt());
+    Option startRowOpt = OptUtil.startRowOpt();
+    startRowOpt.setDescription("begin row (NOT inclusive)");
+    o.addOption(startRowOpt);
     o.addOption(OptUtil.endRowOpt());
     o.addOption(OptUtil.tableOpt("table to be merged"));
     o.addOption(verboseOpt);

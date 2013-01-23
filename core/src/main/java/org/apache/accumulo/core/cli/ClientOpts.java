@@ -16,7 +16,6 @@
  */
 package org.apache.accumulo.core.cli;
 
-import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -37,7 +36,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.tokens.AccumuloToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.conf.Configuration;
@@ -107,11 +105,11 @@ public class ClientOpts extends Help {
   @Parameter(names = "--password", converter = PasswordConverter.class, description = "Enter the connection password", password = true)
   public Password securePassword = null;
   
-  public byte[] getPassword() {
+  public UserPassToken getAccumuloToken() {
     if (securePassword == null) {
-      return password.value;
+      return new UserPassToken(user, password.value);
     }
-    return securePassword.value;
+    return new UserPassToken(user, securePassword.value);
   }
   
   @Parameter(names = {"-z", "--keepers"}, description = "Comma separated list of zookeeper hosts (host:port,host:port)")
@@ -150,6 +148,7 @@ public class ClientOpts extends Help {
     Trace.off();
   }
   
+  @Override
   public void parseArgs(String programName, String[] args, Object... others) {
     super.parseArgs(programName, args, others);
     startDebugLogging();
@@ -197,11 +196,7 @@ public class ClientOpts extends Help {
   }
   
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    return getInstance().getConnector(this.user, this.getPassword());
-  }
-  
-  public AccumuloToken<?,?> getAccumuloToken() {
-    return new UserPassToken(user, ByteBuffer.wrap(getPassword()));
+    return getInstance().getConnector(this.getAccumuloToken());
   }
   
   public InstanceTokenWrapper getWrappedToken() {
@@ -209,8 +204,8 @@ public class ClientOpts extends Help {
   }
   
   public void setAccumuloConfigs(Job job) {
-    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), instance, zookeepers);
-    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), instance, zookeepers);
+    AccumuloInputFormat.setZooKeeperInstance(job, instance, zookeepers);
+    AccumuloOutputFormat.setZooKeeperInstance(job, instance, zookeepers);
   }
   
 }

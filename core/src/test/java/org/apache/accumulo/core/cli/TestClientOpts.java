@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.junit.Test;
 
 import com.beust.jcommander.JCommander;
@@ -43,7 +44,7 @@ public class TestClientOpts {
     BatchScannerOpts bsOpts = new BatchScannerOpts();
     assertEquals(System.getProperty("user.name"), args.user);
     assertNull(args.securePassword);
-    assertArrayEquals("secret".getBytes(), args.getPassword());
+    assertArrayEquals("secret".getBytes(), ((UserPassToken) args.getAccumuloToken()).getPassword());
     assertEquals(new Long(cfg.getMaxLatency(TimeUnit.MILLISECONDS)), bwOpts.batchLatency);
     assertEquals(new Long(cfg.getTimeout(TimeUnit.MILLISECONDS)), bwOpts.batchTimeout);
     assertEquals(new Long(cfg.getMaxMemory()), bwOpts.batchMemory);
@@ -74,7 +75,7 @@ public class TestClientOpts {
         "--help");
     assertEquals("bar", args.user);
     assertNull(args.securePassword);
-    assertArrayEquals("foo".getBytes(), args.getPassword());
+    assertArrayEquals("foo".getBytes(), ((UserPassToken) args.getAccumuloToken()).getPassword());
     assertEquals(new Long(3000), bwOpts.batchLatency);
     assertEquals(new Long(2000), bwOpts.batchTimeout);
     assertEquals(new Long(1024*1024), bwOpts.batchMemory);

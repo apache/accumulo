@@ -136,7 +136,8 @@ public class TimestampFilter extends Filter {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    super.validateOptions(options);
+    if (super.validateOptions(options) == false)
+      return false;
     boolean hasStart = false;
     boolean hasEnd = false;
     try {
@@ -157,13 +158,13 @@ public class TimestampFilter extends Filter {
           dateParser.parse(s);
       }
       if (!hasStart && !hasEnd)
-        return false;
+        throw new IllegalArgumentException(START + " or " + END + " must be specified");
       if (options.get(START_INCL) != null)
         Boolean.parseBoolean(options.get(START_INCL));
       if (options.get(END_INCL) != null)
         Boolean.parseBoolean(options.get(END_INCL));
     } catch (Exception e) {
-      return false;
+      throw new IllegalArgumentException("invalid options", e);
     }
     return true;
   }

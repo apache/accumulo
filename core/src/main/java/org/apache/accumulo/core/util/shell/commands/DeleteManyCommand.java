@@ -46,6 +46,9 @@ public class DeleteManyCommand extends ScanCommand {
     
     scanner.addScanIterator(new IteratorSetting(Integer.MAX_VALUE, "NOVALUE", SortedKeyIterator.class));
     
+    // handle session-specific scan iterators
+    addScanIterators(shellState, scanner, tableName);
+    
     // handle remaining optional arguments
     scanner.setRange(getRange(cl, interpeter));
     

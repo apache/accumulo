@@ -62,6 +62,7 @@ import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterFactory;
 import org.apache.accumulo.core.util.shell.commands.AboutCommand;
+import org.apache.accumulo.core.util.shell.commands.AddAuthsCommand;
 import org.apache.accumulo.core.util.shell.commands.AddSplitsCommand;
 import org.apache.accumulo.core.util.shell.commands.AuthenticateCommand;
 import org.apache.accumulo.core.util.shell.commands.ByeCommand;
@@ -104,6 +105,7 @@ import org.apache.accumulo.core.util.shell.commands.ImportTableCommand;
 import org.apache.accumulo.core.util.shell.commands.InfoCommand;
 import org.apache.accumulo.core.util.shell.commands.InsertCommand;
 import org.apache.accumulo.core.util.shell.commands.InterpreterCommand;
+import org.apache.accumulo.core.util.shell.commands.ListCompactionsCommand;
 import org.apache.accumulo.core.util.shell.commands.ListIterCommand;
 import org.apache.accumulo.core.util.shell.commands.ListScansCommand;
 import org.apache.accumulo.core.util.shell.commands.MaxRowCommand;
@@ -112,6 +114,7 @@ import org.apache.accumulo.core.util.shell.commands.NoTableCommand;
 import org.apache.accumulo.core.util.shell.commands.OfflineCommand;
 import org.apache.accumulo.core.util.shell.commands.OnlineCommand;
 import org.apache.accumulo.core.util.shell.commands.PasswdCommand;
+import org.apache.accumulo.core.util.shell.commands.PingCommand;
 import org.apache.accumulo.core.util.shell.commands.QuestionCommand;
 import org.apache.accumulo.core.util.shell.commands.QuitCommand;
 import org.apache.accumulo.core.util.shell.commands.QuotedStringTokenizer;
@@ -293,7 +296,8 @@ public class Shell extends ShellOptions {
     
     Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(), new EGrepCommand(), new FormatterCommand(),
         new InterpreterCommand(), new GrepCommand(), new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
-    Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(), new ListScansCommand(), new TraceCommand()};
+    Command[] debuggingCommands = {new ClasspathCommand(), new DebugCommand(), new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(),
+        new PingCommand()};
     Command[] execCommands = {new ExecfileCommand(), new HistoryCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands = {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};
@@ -308,7 +312,7 @@ public class Shell extends ShellOptions {
         new TablesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(),
         new GetSplitsCommand(), new MergeCommand(), new SetGroupsCommand()};
-    Command[] userCommands = {new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(), new PasswdCommand(),
+    Command[] userCommands = {new AddAuthsCommand(), new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(), new PasswdCommand(),
         new SetAuthsCommand(), new UsersCommand()};
     commandGrouping.put("-- Writing, Reading, and Removing Data --", dataCommands);
     commandGrouping.put("-- Debugging Commands -------------------", debuggingCommands);

@@ -211,8 +211,13 @@ public abstract class TypedValueCombiner<V> extends Combiner {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    super.validateOptions(options);
-    setLossyness(options);
+    if (super.validateOptions(options) == false)
+      return false;
+    try {
+      setLossyness(options);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("bad boolean " + LOSSY + ":" + options.get(LOSSY));
+    }
     return true;
   }
   

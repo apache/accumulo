@@ -44,19 +44,16 @@ import org.w3c.dom.NodeList;
 public class AccumuloClassLoader {
   
   public static final String CLASSPATH_PROPERTY_NAME = "general.classpaths";
-
-  public static final String ACCUMULO_CLASSPATH_VALUE = "$ACCUMULO_HOME/conf,\n" 
-      + "$ACCUMULO_HOME/lib/[^.].*.jar,\n" 
-      + "$ZOOKEEPER_HOME/zookeeper[^.].*.jar,\n" 
-      + "$HADOOP_PREFIX/[^.].*.jar,\n" + "$HADOOP_CONF_DIR,\n"
-      + "$HADOOP_PREFIX/lib/[^.].*.jar,\n";
+  
+  public static final String ACCUMULO_CLASSPATH_VALUE = "$ACCUMULO_HOME/conf,\n" + "$ACCUMULO_HOME/lib/[^.].*.jar,\n"
+      + "$ZOOKEEPER_HOME/zookeeper[^.].*.jar,\n" + "$HADOOP_PREFIX/[^.].*.jar,\n" + "$HADOOP_CONF_DIR,\n" + "$HADOOP_PREFIX/lib/[^.].*.jar,\n";
   
   private static String SITE_CONF;
   
   private static URLClassLoader classloader;
-
+  
   private static Logger log = Logger.getLogger(AccumuloClassLoader.class);
-
+  
   static {
     String configFile = System.getProperty("org.apache.accumulo.config.file", "accumulo-site.xml");
     if (System.getenv("ACCUMULO_HOME") != null) {
@@ -65,12 +62,12 @@ public class AccumuloClassLoader {
     } else {
       SITE_CONF = null;
     }
-
-    //Register the shutdown hook
+    
+    // Register the shutdown hook
     // TODO
     // Runtime.getRuntime().addShutdownHook(new Thread(new AccumuloVFSClassLoaderShutdownThread()));
   }
-
+  
   /**
    * Parses and XML Document for a property node for a <name> with the value propertyName if it finds one the function return that property's value for its
    * <value> node. If not found the function will return null
@@ -93,7 +90,7 @@ public class AccumuloClassLoader {
     }
     return null;
   }
-
+  
   /**
    * Looks for the site configuration file for Accumulo and if it has a property for propertyName return it otherwise returns defaultValue Should throw an
    * exception if the default configuration can not be read;
@@ -130,7 +127,6 @@ public class AccumuloClassLoader {
    * 
    * @param classpath
    * @param env
-   * @return
    */
   public static String replaceEnvVars(String classpath, Map<String,String> env) {
     Pattern envPat = Pattern.compile("\\$[A-Za-z][a-zA-Z0-9_]*");
@@ -147,7 +143,7 @@ public class AccumuloClassLoader {
     }
     return classpath;
   }
-
+  
   /**
    * Populate the list of URLs with the items in the classpath string
    * 
@@ -179,6 +175,7 @@ public class AccumuloClassLoader {
       else {
         if (extDir.getParentFile() != null) {
           File[] extJars = extDir.getParentFile().listFiles(new FilenameFilter() {
+            @Override
             public boolean accept(File dir, String name) {
               return name.matches("^" + extDir.getName());
             }
@@ -198,7 +195,7 @@ public class AccumuloClassLoader {
     }
     
   }
-    
+  
   private static ArrayList<URL> findAccumuloURLs() throws IOException {
     String cp = getAccumuloString(AccumuloClassLoader.CLASSPATH_PROPERTY_NAME, AccumuloClassLoader.ACCUMULO_CLASSPATH_VALUE);
     if (cp == null)
@@ -218,11 +215,12 @@ public class AccumuloClassLoader {
       ArrayList<URL> urls = findAccumuloURLs();
       
       ClassLoader parentClassLoader = ClassLoader.getSystemClassLoader();
-
+      
       log.debug("Create 2nd tier ClassLoader using URLs: " + urls.toString());
       URLClassLoader aClassLoader = new URLClassLoader(urls.toArray(new URL[urls.size()]), parentClassLoader) {
+        @Override
         protected synchronized Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-
+          
           if (name.startsWith("org.apache.accumulo.start.classloader.vfs")) {
             Class<?> c = findLoadedClass(name);
             if (c == null) {

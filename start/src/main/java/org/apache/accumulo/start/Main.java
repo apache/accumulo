@@ -60,6 +60,8 @@ public class Main {
         runTMP = cl.loadClass("org.apache.accumulo.server.monitor.Monitor");
       } else if (args[0].equals("tracer")) {
         runTMP = cl.loadClass("org.apache.accumulo.server.trace.TraceServer");
+      } else if (args[0].equals("proxy")) {
+        runTMP = cl.loadClass("org.apache.accumulo.proxy.Proxy");
       } else if (args[0].equals("classpath")) {
         vfsClassLoader.getMethod("printClassPath", new Class[] {}).invoke(vfsClassLoader, new Object[] {});
         return;

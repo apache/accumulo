@@ -53,9 +53,9 @@ public class ContextManager {
       loader = null;
     }
   }
-
+  
   private Map<String,Context> contexts = new HashMap<String,Context>();
-
+  
   private volatile ContextsConfig config;
   private FileSystemManager vfs;
   private ReloadingClassLoader parent;
@@ -74,6 +74,7 @@ public class ContextManager {
       this.preDelegation = preDelegation;
     }
     
+    @Override
     public boolean equals(Object o) {
       if (o instanceof ContextConfig) {
         ContextConfig oc = (ContextConfig) o;
@@ -82,6 +83,11 @@ public class ContextManager {
       }
       
       return false;
+    }
+    
+    @Override
+    public int hashCode() {
+      return uris.hashCode() + (preDelegation ? Boolean.TRUE : Boolean.FALSE).hashCode();
     }
   }
   
@@ -101,7 +107,7 @@ public class ContextManager {
   }
   
   public ClassLoader getClassLoader(String contextName) throws FileSystemException {
-
+    
     ContextConfig cconfig = config.getContextConfig(contextName);
     
     if (cconfig == null)
@@ -127,7 +133,7 @@ public class ContextManager {
     
     if (contextToClose != null)
       contextToClose.close();
-
+    
     ClassLoader loader = context.getClassLoader();
     if (loader == null) {
       // ooppss, context was closed by another thread, try again
@@ -135,12 +141,12 @@ public class ContextManager {
     }
     
     return loader;
-
+    
   }
   
   public <U> Class<? extends U> loadClass(String context, String classname, Class<U> extension) throws ClassNotFoundException {
     try {
-      return (Class<? extends U>) getClassLoader(context).loadClass(classname).asSubclass(extension);
+      return getClassLoader(context).loadClass(classname).asSubclass(extension);
     } catch (IOException e) {
       throw new ClassNotFoundException("IO Error loading class " + classname, e);
     }

@@ -135,7 +135,6 @@ public interface TStore<T> {
   /**
    * list all transaction ids in store
    * 
-   * @return
    */
   
   public List<Long> list();

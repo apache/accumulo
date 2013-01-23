@@ -44,8 +44,8 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.validators.PositiveInteger;
 
 /**
- * A map only job that reads a table created by continuous ingest and creates doubly linked list. This map reduce job tests the ability of a map only job to read and
- * write to accumulo at the same time. This map reduce job mutates the table in such a way that it should not create any undefined nodes.
+ * A map only job that reads a table created by continuous ingest and creates doubly linked list. This map reduce job tests the ability of a map only job to
+ * read and write to accumulo at the same time. This map reduce job mutates the table in such a way that it should not create any undefined nodes.
  * 
  */
 public class ContinuousMoru extends Configured implements Tool {
@@ -70,7 +70,8 @@ public class ContinuousMoru extends Configured implements Tool {
     private long count;
     
     private static final ColumnVisibility EMPTY_VIS = new ColumnVisibility();
-
+    
+    @Override
     public void setup(Context context) throws IOException, InterruptedException {
       int max_cf = context.getConfiguration().getInt(MAX_CF, -1);
       int max_cq = context.getConfiguration().getInt(MAX_CQ, -1);
@@ -88,6 +89,7 @@ public class ContinuousMoru extends Configured implements Tool {
       count = 0;
     }
     
+    @Override
     public void map(Key key, Value data, Context context) throws IOException, InterruptedException {
       
       ContinuousWalk.validate(key, data);
@@ -100,8 +102,7 @@ public class ContinuousMoru extends Configured implements Tool {
         if (offset > 0) {
           long rowLong = Long.parseLong(new String(val, offset, 16), 16);
           Mutation m = ContinuousIngest.genMutation(rowLong, random.nextInt(max_cf), random.nextInt(max_cq), EMPTY_VIS, iiId, count++, key.getRowData()
-              .toArray(), random,
-              true);
+              .toArray(), random, true);
           context.write(null, m);
         }
         
@@ -112,13 +113,13 @@ public class ContinuousMoru extends Configured implements Tool {
   }
   
   static class Opts extends BaseOpts {
-    @Parameter(names="--maxColF", description="maximum column family value to use")
+    @Parameter(names = "--maxColF", description = "maximum column family value to use")
     short maxColF = Short.MAX_VALUE;
     
-    @Parameter(names="--maxColQ", description="maximum column qualifier value to use")
+    @Parameter(names = "--maxColQ", description = "maximum column qualifier value to use")
     short maxColQ = Short.MAX_VALUE;
- 
-    @Parameter(names="--maxMappers", description="the maximum number of mappers to use", required=true, validateWith=PositiveInteger.class)
+    
+    @Parameter(names = "--maxMappers", description = "the maximum number of mappers to use", required = true, validateWith = PositiveInteger.class)
     int maxMaps = 0;
   }
   
@@ -137,8 +138,8 @@ public class ContinuousMoru extends Configured implements Tool {
     // set up ranges
     try {
       Set<Range> ranges = opts.getConnector().tableOperations().splitRangeByTablets(opts.getTableName(), new Range(), opts.maxMaps);
-      AccumuloInputFormat.setRanges(job.getConfiguration(), ranges);
-      AccumuloInputFormat.disableAutoAdjustRanges(job.getConfiguration());
+      AccumuloInputFormat.setRanges(job, ranges);
+      AccumuloInputFormat.setAutoAdjustRanges(job, false);
     } catch (Exception e) {
       throw new IOException(e);
     }
@@ -148,9 +149,7 @@ public class ContinuousMoru extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setMaxLatency(job.getConfiguration(), (int) (bwOpts.batchLatency / 1000.0));
-    AccumuloOutputFormat.setMaxMutationBufferSize(job.getConfiguration(), bwOpts.batchMemory);
-    AccumuloOutputFormat.setMaxWriteThreads(job.getConfiguration(), bwOpts.batchThreads);
+    AccumuloOutputFormat.setBatchWriterOptions(job, bwOpts.getBatchWriterConfig());
     
     Configuration conf = job.getConfiguration();
     conf.setLong(MIN, opts.min);

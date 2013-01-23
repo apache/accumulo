@@ -60,7 +60,7 @@ public class MiniAccumuloClusterTest {
     
     Logger.getLogger("org.apache.zookeeper").setLevel(Level.WARN);
 
-    accumulo = new MiniAccumuloCluster(new MacConfig(folder.getRoot(), "superSecret").setNumTservers(2));
+    accumulo = new MiniAccumuloCluster(folder.getRoot(), "superSecret");
     
     accumulo.start();
     

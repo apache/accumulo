@@ -92,7 +92,7 @@ public class StatsCombiner extends Combiner {
       return false;
     
     if (options.containsKey(RADIX_OPTION) && !options.get(RADIX_OPTION).matches("\\d+"))
-      return false;
+      throw new IllegalArgumentException("invalid option " + RADIX_OPTION + ":" + options.get(RADIX_OPTION));
     
     return true;
   }

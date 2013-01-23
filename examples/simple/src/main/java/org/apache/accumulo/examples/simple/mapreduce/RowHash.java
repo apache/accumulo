@@ -43,6 +43,7 @@ public class RowHash extends Configured implements Tool {
    * The Mapper class that given a row number, will generate the appropriate output line.
    */
   public static class HashDataMapper extends Mapper<Key,Value,Text,Mutation> {
+    @Override
     public void map(Key row, Value data, Context context) throws IOException, InterruptedException {
       Mutation m = new Mutation(row.getRow());
       m.put(new Text("cf-HASHTYPE"), new Text("cq-MD5BASE64"), new Value(Base64.encodeBase64(MD5Hash.digest(data.toString()).getDigest())));
@@ -55,7 +56,7 @@ public class RowHash extends Configured implements Tool {
   }
   
   private static class Opts extends ClientOnRequiredTable {
-    @Parameter(names="--column", required=true)
+    @Parameter(names = "--column", required = true)
     String column = null;
   }
   
@@ -73,7 +74,7 @@ public class RowHash extends Configured implements Tool {
     Text cf = new Text(idx < 0 ? col : col.substring(0, idx));
     Text cq = idx < 0 ? null : new Text(col.substring(idx + 1));
     if (cf.getLength() > 0)
-      AccumuloInputFormat.fetchColumns(job.getConfiguration(), Collections.singleton(new Pair<Text,Text>(cf, cq)));
+      AccumuloInputFormat.fetchColumns(job, Collections.singleton(new Pair<Text,Text>(cf, cq)));
     
     job.setMapperClass(HashDataMapper.class);
     job.setMapOutputKeyClass(Text.class);

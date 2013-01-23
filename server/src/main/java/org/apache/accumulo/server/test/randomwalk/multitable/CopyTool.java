@@ -18,12 +18,13 @@ package org.apache.accumulo.server.test.randomwalk.multitable;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapreduce.AccumuloOutputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
@@ -35,6 +36,7 @@ public class CopyTool extends Configured implements Tool {
   protected final Logger log = Logger.getLogger(this.getClass());
   
   public static class SeqMapClass extends Mapper<Key,Value,Text,Mutation> {
+    @Override
     public void map(Key key, Value val, Context output) throws IOException, InterruptedException {
       Mutation m = new Mutation(key.getRow());
       m.put(key.getColumnFamily(), key.getColumnQualifier(), val);
@@ -42,6 +44,7 @@ public class CopyTool extends Configured implements Tool {
     }
   }
   
+  @Override
   public int run(String[] args) throws Exception {
     Job job = new Job(getConf(), this.getClass().getSimpleName());
     job.setJarByClass(this.getClass());
@@ -52,8 +55,10 @@ public class CopyTool extends Configured implements Tool {
     }
     
     job.setInputFormatClass(AccumuloInputFormat.class);
-    AccumuloInputFormat.setInputInfo(job.getConfiguration(), args[0], args[1].getBytes(), args[2], new Authorizations());
-    AccumuloInputFormat.setZooKeeperInstance(job.getConfiguration(), args[3], args[4]);
+    AccumuloInputFormat.setConnectorInfo(job, new UserPassToken(args[0], args[1]));
+    AccumuloInputFormat.setInputTableName(job, args[2]);
+    AccumuloInputFormat.setScanAuthorizations(job, Constants.NO_AUTHS);
+    AccumuloInputFormat.setZooKeeperInstance(job, args[3], args[4]);
     
     job.setMapperClass(SeqMapClass.class);
     job.setMapOutputKeyClass(Text.class);
@@ -62,8 +67,10 @@ public class CopyTool extends Configured implements Tool {
     job.setNumReduceTasks(0);
     
     job.setOutputFormatClass(AccumuloOutputFormat.class);
-    AccumuloOutputFormat.setOutputInfo(job.getConfiguration(), args[0], args[1].getBytes(), true, args[5]);
-    AccumuloOutputFormat.setZooKeeperInstance(job.getConfiguration(), args[3], args[4]);
+    AccumuloOutputFormat.setConnectorInfo(job, new UserPassToken(args[0], args[1]));
+    AccumuloOutputFormat.setCreateTables(job, true);
+    AccumuloOutputFormat.setDefaultTableName(job, args[5]);
+    AccumuloOutputFormat.setZooKeeperInstance(job, args[3], args[4]);
     
     job.waitForCompletion(true);
     return job.isSuccessful() ? 0 : 1;

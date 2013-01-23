@@ -205,7 +205,7 @@ public class VisibilityTest extends FunctionalTest {
   
   private void queryData(Set<String> allAuths, Set<String> userAuths, Map<Set<String>,Set<String>> expected) throws Exception {
     
-    getConnector().securityOperations().changeUserAuthorizations(getUsername(), new Authorizations(nbas(userAuths)));
+    getConnector().securityOperations().changeUserAuthorizations(getToken().getPrincipal(), new Authorizations(nbas(userAuths)));
     
     ArrayList<Set<String>> combos = new ArrayList<Set<String>>();
     uniqueCombos(combos, nss(), allAuths);
@@ -232,7 +232,7 @@ public class VisibilityTest extends FunctionalTest {
     Scanner scanner;
     
     // should return no records
-    getConnector().securityOperations().changeUserAuthorizations(getUsername(), new Authorizations("BASE", "DEFLABEL"));
+    getConnector().securityOperations().changeUserAuthorizations(getToken().getPrincipal(), new Authorizations("BASE", "DEFLABEL"));
     scanner = getConnector().createScanner("vt2", new Authorizations());
     verifyDefault(scanner, 0);
     

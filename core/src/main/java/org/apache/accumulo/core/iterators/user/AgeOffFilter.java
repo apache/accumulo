@@ -91,11 +91,12 @@ public class AgeOffFilter extends Filter {
   
   @Override
   public boolean validateOptions(Map<String,String> options) {
-    super.validateOptions(options);
+    if (super.validateOptions(options) == false)
+      return false;
     try {
       Long.parseLong(options.get(TTL));
-    } catch (NumberFormatException e) {
-      return false;
+    } catch (Exception e) {
+      throw new IllegalArgumentException("bad long " + TTL + ":" + options.get(TTL));
     }
     return true;
   }

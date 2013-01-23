@@ -188,13 +188,30 @@ public class SecurityOperationsImpl implements SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to ask
+   * @deprecated since 1.5, use {@link #authenticateUser(AccumuloToken)}
    */
   public boolean authenticateUser(final String user, final byte[] password) throws AccumuloException, AccumuloSecurityException {
     ArgumentChecker.notNull(user, password);
+    return authenticateUser(new UserPassToken(user, password));
+  }
+  
+  /**
+   * Verify a username/password combination is valid
+   * 
+   * @param token
+   *          the AccumuloToken of the principal to authenticate
+   * @return true if the user asking is allowed to know and the specified AccumuloToken is valid, false otherwise
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission to ask
+   */
+  public boolean authenticateUser(final AccumuloToken<?,?> token2) throws AccumuloException, AccumuloSecurityException {
+    ArgumentChecker.notNull(token2);
     return execute(new ClientExecReturn<Boolean,ClientService.Client>() {
       @Override
       public Boolean execute(ClientService.Client client) throws Exception {
-        return client.authenticateUser(Tracer.traceInfo(), token.toThrift(), TokenHelper.wrapper(token.getToken()));
+        return client.authenticateUser(Tracer.traceInfo(), token.toThrift(), TokenHelper.wrapper(token2));
       }
     });
   }
@@ -219,7 +236,7 @@ public class SecurityOperationsImpl implements SecurityOperations {
         client.changePassword(Tracer.traceInfo(), token.toThrift(), TokenHelper.wrapper(newToken));
       }
     });
-    if (!(this.token instanceof PasswordUpdatable) || !(newToken instanceof PasswordUpdatable))
+    if (!(this.token.getToken() instanceof PasswordUpdatable) || !(newToken instanceof PasswordUpdatable))
       throw new AccumuloException("The AccumuloToken type cannot be dynamically adjusted. Please create a new token and reconnect");
     if (this.token.getPrincipal().equals(newToken.getPrincipal())) {
       PasswordUpdatable upt = (PasswordUpdatable) this.token.getToken();

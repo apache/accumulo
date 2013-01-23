@@ -82,7 +82,7 @@ public class Admin {
       
     try {
       InstanceTokenWrapper creds;
-      if (opts.getPassword() == null) {
+      if (opts.getAccumuloToken() == null) {
         creds = SecurityConstants.getSystemCredentials();
       } else {
         creds = opts.getWrappedToken();

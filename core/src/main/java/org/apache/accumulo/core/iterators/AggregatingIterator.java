@@ -190,7 +190,7 @@ public class AggregatingIterator implements SortedKeyValueIterator<Key,Value>, O
     for (Entry<String,String> entry : options.entrySet()) {
       String classname = entry.getValue();
       if (classname == null)
-        return false;
+        throw new IllegalArgumentException("classname null");
       Class<? extends Aggregator> clazz;
       try {
         clazz = AccumuloVFSClassLoader.loadClass(classname, Aggregator.class);

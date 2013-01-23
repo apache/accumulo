@@ -51,6 +51,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.tabletserver.FileManager.ScanFileManager;
 import org.apache.accumulo.server.tabletserver.Tablet.MajorCompactionReason;
+import org.apache.accumulo.server.tabletserver.Tablet.MinorCompactionReason;
 import org.apache.accumulo.server.util.time.SimpleTimer;
 import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.hadoop.fs.FileSystem;
@@ -349,7 +350,7 @@ public class TabletServerResourceManager {
                 continue;
               }
               
-              if (!tabletReport.getTablet().initiateMinorCompaction()) {
+              if (!tabletReport.getTablet().initiateMinorCompaction(MinorCompactionReason.SYSTEM)) {
                 if (tabletReport.getTablet().isClosed()) {
                   tabletReports.remove(tabletReport.getExtent());
                   log.debug("Ignoring memory manager recommendation: not minor compacting closed tablet " + keyExtent);
@@ -545,7 +546,7 @@ public class TabletServerResourceManager {
     // when too many files are open, we may want tablets to compact down
     // to one map file
     Map<String,Long> findMapFilesToCompact(SortedMap<String,DataFileValue> tabletFiles, MajorCompactionReason reason) {
-      if (reason == MajorCompactionReason.ALL) {
+      if (reason == MajorCompactionReason.USER) {
         Map<String,Long> files = new HashMap<String,Long>();
         for (Entry<String,DataFileValue> entry : tabletFiles.entrySet()) {
           files.put(entry.getKey(), entry.getValue().getSize());
@@ -634,7 +635,7 @@ public class TabletServerResourceManager {
         
       // int threshold;
       
-      if (reason == MajorCompactionReason.ALL)
+      if (reason == MajorCompactionReason.USER)
         return true;
       
       if (reason == MajorCompactionReason.IDLE) {

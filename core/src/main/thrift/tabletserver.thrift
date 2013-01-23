@@ -87,6 +87,35 @@ struct ActiveScan {
     13:list<binary> authorizations
 }
 
+enum CompactionType {
+   MINOR,
+   MERGE,
+   MAJOR,
+   FULL
+}
+
+enum CompactionReason {
+   USER,
+   SYSTEM,
+   CHOP,
+   IDLE,
+   CLOSE
+}
+
+struct ActiveCompaction {
+    1:data.TKeyExtent extent
+    2:i64 age
+    3:list<string> inputFiles
+    4:string outputFile
+    5:CompactionType type
+    6:CompactionReason reason
+    7:string localityGroup
+    8:i64 entriesRead
+    9:i64 entriesWritten
+    10:list<data.IterInfo> ssiList
+    11:map<string, map<string, string>> ssio 
+}
+
 struct TIteratorSetting {
     1:i32 priority;
     2:string name;
@@ -157,6 +186,7 @@ service TabletClientService extends client.ClientService {
   oneway void fastHalt(3:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:string lock);
   
   list<ActiveScan> getActiveScans(2:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec)
+  list<ActiveCompaction> getActiveCompactions(2:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials) throws (1:security.ThriftSecurityException sec)
   oneway void removeLogs(1:cloudtrace.TInfo tinfo, 2:security.ThriftInstanceTokenWrapper credentials, 3:list<string> filenames)
 }
 

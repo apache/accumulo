@@ -87,8 +87,23 @@ public interface SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to ask
+   * @deprecated @since 1.5, use {@link #authenticateUser(AccumuloToken)}
    */
   public boolean authenticateUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Verify an AccumuloToken is valid
+   * 
+   * @param token
+   *          the AccumuloToken to authenticate
+   * @return true if the user asking is allowed to know and the specified user/password is valid, false otherwise
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission to ask
+   *  @since 1.5
+   */
+  public boolean authenticateUser(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Set the user's password

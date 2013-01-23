@@ -85,7 +85,15 @@ public class MockSecurityOperations implements SecurityOperations {
       return false;
     return Arrays.equals(user.password, password);
   }
-  
+
+  @Override
+  public boolean authenticateUser(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException {
+    MockUser user = acu.users.get(token.getPrincipal());
+    if (user == null)
+      return false;
+    return Arrays.equals(user.password, ((UserPassToken) token).getPassword());
+  }
+
   /**
    * @deprecated @since 1.5, use {@link #changeUserPassword(AccumuloToken)}
    */

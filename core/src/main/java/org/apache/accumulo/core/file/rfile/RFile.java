@@ -642,6 +642,7 @@ public class RFile {
     private void _seek(Range range) throws IOException {
       
       this.range = range;
+      this.checkRange = true;
       
       if (blockCount == 0) {
         // its an empty file
