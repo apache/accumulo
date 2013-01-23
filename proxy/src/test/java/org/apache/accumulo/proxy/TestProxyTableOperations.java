@@ -32,8 +32,8 @@ import java.util.Set;
 
 import org.apache.accumulo.proxy.Proxy;
 import org.apache.accumulo.proxy.TestProxyClient;
-import org.apache.accumulo.proxy.thrift.PColumnUpdate;
-import org.apache.accumulo.proxy.thrift.PTimeType;
+import org.apache.accumulo.proxy.thrift.ColumnUpdate;
+import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
@@ -78,12 +78,12 @@ public class TestProxyTableOperations {
   
   @Before
   public void makeTestTable() throws Exception {
-    tpc.proxy().tableOperations_create(userpass, testtable, true, PTimeType.MILLIS);
+    tpc.proxy().createTable(userpass, testtable, true, TimeType.MILLIS);
   }
   
   @After
   public void deleteTestTable() throws Exception {
-    tpc.proxy().tableOperations_delete(userpass, testtable);
+    tpc.proxy().deleteTable(userpass, testtable);
   }
   
   @Test
@@ -93,20 +93,20 @@ public class TestProxyTableOperations {
   
   @Test
   public void createExistsDelete() throws TException {
-    assertFalse(tpc.proxy().tableOperations_exists(userpass, "testtable2"));
-    tpc.proxy().tableOperations_create(userpass, "testtable2", true, PTimeType.MILLIS);
-    assertTrue(tpc.proxy().tableOperations_exists(userpass, "testtable2"));
-    tpc.proxy().tableOperations_delete(userpass, "testtable2");
-    assertFalse(tpc.proxy().tableOperations_exists(userpass, "testtable2"));
+    assertFalse(tpc.proxy().tableExists(userpass, "testtable2"));
+    tpc.proxy().createTable(userpass, "testtable2", true, TimeType.MILLIS);
+    assertTrue(tpc.proxy().tableExists(userpass, "testtable2"));
+    tpc.proxy().deleteTable(userpass, "testtable2");
+    assertFalse(tpc.proxy().tableExists(userpass, "testtable2"));
   }
   
   @Test
   public void listRename() throws TException {
-    assertFalse(tpc.proxy().tableOperations_exists(userpass, "testtable2"));
-    tpc.proxy().tableOperations_rename(userpass, testtable, "testtable2");
-    assertTrue(tpc.proxy().tableOperations_exists(userpass, "testtable2"));
-    tpc.proxy().tableOperations_rename(userpass, "testtable2", testtable);
-    assertTrue(tpc.proxy().tableOperations_list(userpass).contains("testtable"));
+    assertFalse(tpc.proxy().tableExists(userpass, "testtable2"));
+    tpc.proxy().renameTable(userpass, testtable, "testtable2");
+    assertTrue(tpc.proxy().tableExists(userpass, "testtable2"));
+    tpc.proxy().renameTable(userpass, "testtable2", testtable);
+    assertTrue(tpc.proxy().listTables(userpass).contains("testtable"));
     
   }
   
@@ -118,13 +118,13 @@ public class TestProxyTableOperations {
     splits.add(ByteBuffer.wrap("a".getBytes()));
     splits.add(ByteBuffer.wrap("c".getBytes()));
     splits.add(ByteBuffer.wrap("z".getBytes()));
-    tpc.proxy().tableOperations_addSplits(userpass, testtable, splits);
+    tpc.proxy().addSplits(userpass, testtable, splits);
     
-    tpc.proxy().tableOperations_merge(userpass, testtable, ByteBuffer.wrap("b".getBytes()), ByteBuffer.wrap("d".getBytes()));
+    tpc.proxy().mergeTablets(userpass, testtable, ByteBuffer.wrap("b".getBytes()), ByteBuffer.wrap("d".getBytes()));
     
     splits.remove("c");
     
-    List<ByteBuffer> tableSplits = tpc.proxy().tableOperations_getSplits(userpass, testtable, 10);
+    List<ByteBuffer> tableSplits = tpc.proxy().getSplits(userpass, testtable, 10);
     
     for (ByteBuffer split : tableSplits)
       assertTrue(splits.contains(split));
@@ -138,9 +138,9 @@ public class TestProxyTableOperations {
     splits.add(ByteBuffer.wrap("a".getBytes()));
     splits.add(ByteBuffer.wrap("b".getBytes()));
     splits.add(ByteBuffer.wrap("z".getBytes()));
-    tpc.proxy().tableOperations_addSplits(userpass, testtable, splits);
+    tpc.proxy().addSplits(userpass, testtable, splits);
     
-    List<ByteBuffer> tableSplits = tpc.proxy().tableOperations_getSplits(userpass, testtable, 10);
+    List<ByteBuffer> tableSplits = tpc.proxy().getSplits(userpass, testtable, 10);
     
     for (ByteBuffer split : tableSplits)
       assertTrue(splits.contains(split));
@@ -149,11 +149,11 @@ public class TestProxyTableOperations {
   
   @Test
   public void constraints() throws TException {
-    int cid = tpc.proxy().tableOperations_addConstraint(userpass, testtable, "org.apache.accumulo.TestConstraint");
-    Map<String,Integer> constraints = tpc.proxy().tableOperations_listConstraints(userpass, testtable);
+    int cid = tpc.proxy().addConstraint(userpass, testtable, "org.apache.accumulo.TestConstraint");
+    Map<String,Integer> constraints = tpc.proxy().listConstraints(userpass, testtable);
     assertEquals((int) constraints.get("org.apache.accumulo.TestConstraint"), cid);
-    tpc.proxy().tableOperations_removeConstraint(userpass, testtable, cid);
-    constraints = tpc.proxy().tableOperations_listConstraints(userpass, testtable);
+    tpc.proxy().removeConstraint(userpass, testtable, cid);
+    constraints = tpc.proxy().listConstraints(userpass, testtable);
     assertNull(constraints.get("org.apache.accumulo.TestConstraint"));
   }
   
@@ -169,9 +169,9 @@ public class TestProxyTableOperations {
     group2.add("cf2");
     group2.add("cf3");
     groups.put("group2", group2);
-    tpc.proxy().tableOperations_setLocalityGroups(userpass, testtable, groups);
+    tpc.proxy().setLocalityGroups(userpass, testtable, groups);
     
-    Map<String,Set<String>> actualGroups = tpc.proxy().tableOperations_getLocalityGroups(userpass, testtable);
+    Map<String,Set<String>> actualGroups = tpc.proxy().getLocalityGroups(userpass, testtable);
     
     assertEquals(groups.size(), actualGroups.size());
     for (String groupName : groups.keySet()) {
@@ -185,32 +185,32 @@ public class TestProxyTableOperations {
   
   @Test
   public void tableProperties() throws TException {
-    tpc.proxy().tableOperations_setProperty(userpass, testtable, "test.property1", "wharrrgarbl");
-    assertEquals(tpc.proxy().tableOperations_getProperties(userpass, testtable).get("test.property1"), "wharrrgarbl");
-    tpc.proxy().tableOperations_removeProperty(userpass, testtable, "test.property1");
-    assertNull(tpc.proxy().tableOperations_getProperties(userpass, testtable).get("test.property1"));
+    tpc.proxy().setTableProperty(userpass, testtable, "test.property1", "wharrrgarbl");
+    assertEquals(tpc.proxy().getTableProperties(userpass, testtable).get("test.property1"), "wharrrgarbl");
+    tpc.proxy().removeTableProperty(userpass, testtable, "test.property1");
+    assertNull(tpc.proxy().getTableProperties(userpass, testtable).get("test.property1"));
   }
   
-  private static void addMutation(Map<ByteBuffer,List<PColumnUpdate>> mutations, String row, String cf, String cq, String value) {
-    PColumnUpdate update = new PColumnUpdate(ByteBuffer.wrap(cf.getBytes()), ByteBuffer.wrap(cq.getBytes()));
+  private static void addMutation(Map<ByteBuffer,List<ColumnUpdate>> mutations, String row, String cf, String cq, String value) {
+    ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(cf.getBytes()), ByteBuffer.wrap(cq.getBytes()));
     update.setValue(value.getBytes());
     mutations.put(ByteBuffer.wrap(row.getBytes()), Collections.singletonList(update));
   }
   
   @Test
   public void tableOperationsRowMethods() throws TException {
-    List<ByteBuffer> auths = tpc.proxy().securityOperations_getUserAuthorizations(userpass, "root");
+    List<ByteBuffer> auths = tpc.proxy().getUserAuthorizations(userpass, "root");
     // System.out.println(auths);
-    Map<ByteBuffer,List<PColumnUpdate>> mutations = new HashMap<ByteBuffer,List<PColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
     for (int i = 0; i < 10; i++) {
       addMutation(mutations, "" + i, "cf", "cq", "");
     }
     tpc.proxy().updateAndFlush(userpass, testtable, mutations);
     
-    assertEquals(tpc.proxy().tableOperations_getMaxRow(userpass, testtable, auths, null, true, null, true), ByteBuffer.wrap("9".getBytes()));
+    assertEquals(tpc.proxy().getMaxRow(userpass, testtable, auths, null, true, null, true), ByteBuffer.wrap("9".getBytes()));
     
-    tpc.proxy().tableOperations_deleteRows(userpass,testtable,ByteBuffer.wrap("51".getBytes()), ByteBuffer.wrap("99".getBytes()));
-    assertEquals(tpc.proxy().tableOperations_getMaxRow(userpass, testtable, auths, null, true, null, true), ByteBuffer.wrap("5".getBytes()));
+    tpc.proxy().deleteRows(userpass,testtable,ByteBuffer.wrap("51".getBytes()), ByteBuffer.wrap("99".getBytes()));
+    assertEquals(tpc.proxy().getMaxRow(userpass, testtable, auths, null, true, null, true), ByteBuffer.wrap("5".getBytes()));
   }
   
 }

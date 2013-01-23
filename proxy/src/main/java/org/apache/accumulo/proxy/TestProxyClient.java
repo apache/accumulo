@@ -26,10 +26,10 @@ import java.util.Map;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
-import org.apache.accumulo.proxy.thrift.PColumnUpdate;
-import org.apache.accumulo.proxy.thrift.PKey;
-import org.apache.accumulo.proxy.thrift.PScanResult;
-import org.apache.accumulo.proxy.thrift.PTimeType;
+import org.apache.accumulo.proxy.thrift.ColumnUpdate;
+import org.apache.accumulo.proxy.thrift.Key;
+import org.apache.accumulo.proxy.thrift.ScanResult;
+import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -64,35 +64,35 @@ public class TestProxyClient {
     userpass.setPassword("secret".getBytes());
     
     System.out.println("Creating user: ");
-    if (!tpc.proxy().securityOperations_listUsers(userpass).contains("testuser")) {
-      tpc.proxy().securityOperations_createUser(userpass, "testuser", ByteBuffer.wrap("testpass".getBytes()));
+    if (!tpc.proxy().listUsers(userpass).contains("testuser")) {
+      tpc.proxy().createUser(userpass, "testuser", ByteBuffer.wrap("testpass".getBytes()));
     }
-    System.out.println("UserList: " + tpc.proxy().securityOperations_listUsers(userpass));
+    System.out.println("UserList: " + tpc.proxy().listUsers(userpass));
     
     System.out.println("Pinging: " + tpc.proxy().ping(userpass));
-    System.out.println("Listing: " + tpc.proxy().tableOperations_list(userpass));
+    System.out.println("Listing: " + tpc.proxy().listTables(userpass));
     
     System.out.println("Deleting: ");
     String testTable = "testtableOMGOMGOMG";
     
     System.out.println("Creating: ");
     
-    if (tpc.proxy().tableOperations_exists(userpass, testTable))
-      tpc.proxy().tableOperations_delete(userpass, testTable);
+    if (tpc.proxy().tableExists(userpass, testTable))
+      tpc.proxy().deleteTable(userpass, testTable);
     
-    tpc.proxy().tableOperations_create(userpass, testTable, true, PTimeType.MILLIS);
+    tpc.proxy().createTable(userpass, testTable, true, TimeType.MILLIS);
     
-    System.out.println("Listing: " + tpc.proxy().tableOperations_list(userpass));
+    System.out.println("Listing: " + tpc.proxy().listTables(userpass));
     
     System.out.println("Writing: ");
     Date start = new Date();
     Date then = new Date();
     int maxInserts = 1000000;
     String format = "%1$05d";
-    Map<ByteBuffer,List<PColumnUpdate>> mutations = new HashMap<ByteBuffer,List<PColumnUpdate>>();
+    Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
     for (int i = 0; i < maxInserts; i++) {
       String result = String.format(format, i);
-      PColumnUpdate update = new PColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes()), ByteBuffer.wrap(("cq" + i).getBytes()));
+      ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes()), ByteBuffer.wrap(("cq" + i).getBytes()));
       update.setValue(Util.randStringBuffer(10));
       mutations.put(ByteBuffer.wrap(result.getBytes()), Collections.singletonList(update));
       
@@ -105,8 +105,8 @@ public class TestProxyClient {
     Date end = new Date();
     System.out.println(" End of writing: " + (end.getTime() - start.getTime()));
     
-    tpc.proxy().tableOperations_delete(userpass, testTable);
-    tpc.proxy().tableOperations_create(userpass, testTable, true, PTimeType.MILLIS);
+    tpc.proxy().deleteTable(userpass, testTable);
+    tpc.proxy().createTable(userpass, testTable, true, TimeType.MILLIS);
     
     // Thread.sleep(1000);
     
@@ -117,9 +117,9 @@ public class TestProxyClient {
     String writer = tpc.proxy().createWriter(userpass, testTable);
     for (int i = 0; i < maxInserts; i++) {
       String result = String.format(format, i);
-      PKey pkey = new PKey();
+      Key pkey = new Key();
       pkey.setRow(result.getBytes());
-      PColumnUpdate update = new PColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes()), ByteBuffer.wrap(("cq" + i).getBytes()));
+      ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes()), ByteBuffer.wrap(("cq" + i).getBytes()));
       update.setValue(Util.randStringBuffer(10));
       mutations.put(ByteBuffer.wrap(result.getBytes()), Collections.singletonList(update));
       tpc.proxy().writer_update(writer, mutations);
@@ -141,7 +141,7 @@ public class TestProxyClient {
     IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, null, regex, null, null, false);
     
-    PKey stop = new PKey();
+    Key stop = new Key();
     stop.setRow("5".getBytes());
     String cookie = tpc.proxy().createBatchScanner(userpass, testTable, null, null, null);
     
@@ -152,7 +152,7 @@ public class TestProxyClient {
     
     int k = 1000;
     while (hasNext) {
-      PScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
       
       Date now = new Date();
       System.out.println(i + " " + (now.getTime() - then.getTime()));

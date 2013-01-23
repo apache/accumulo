@@ -16,10 +16,8 @@
  */
 package org.apache.accumulo.proxy;
 
-import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.proxy.thrift.PIteratorSetting;
-import org.apache.accumulo.proxy.thrift.PKey;
+import org.apache.accumulo.proxy.thrift.IteratorSetting;
+import org.apache.accumulo.proxy.thrift.Key;
 
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
@@ -37,19 +35,19 @@ public class Util {
     return ByteBuffer.wrap(new BigInteger(numbytes * 5, random).toString(32).getBytes());
   }
   
-  public static PIteratorSetting iteratorSetting2ProxyIteratorSetting(IteratorSetting is) {
-    return new PIteratorSetting(is.getPriority(), is.getName(), is.getIteratorClass(), is.getOptions());
+  public static IteratorSetting iteratorSetting2ProxyIteratorSetting(org.apache.accumulo.core.client.IteratorSetting is) {
+    return new IteratorSetting(is.getPriority(), is.getName(), is.getIteratorClass(), is.getOptions());
   }
   
-  public static PKey toThrift(Key key) {
-    PKey pkey = new PKey(ByteBuffer.wrap(key.getRow().getBytes()), ByteBuffer.wrap(key.getColumnFamily().getBytes()), ByteBuffer.wrap(key.getColumnQualifier()
+  public static Key toThrift(org.apache.accumulo.core.data.Key key) {
+    Key pkey = new Key(ByteBuffer.wrap(key.getRow().getBytes()), ByteBuffer.wrap(key.getColumnFamily().getBytes()), ByteBuffer.wrap(key.getColumnQualifier()
         .getBytes()), ByteBuffer.wrap(key.getColumnVisibility().getBytes()));
     pkey.setTimestamp(key.getTimestamp());
     return pkey;
   }
   
-  public static Key fromThrift(PKey pkey) {
-    return new Key(deNullify(pkey.getRow()), deNullify(pkey.getColFamily()), deNullify(pkey.getColQualifier()), deNullify(pkey.getColVisibility()),
+  public static org.apache.accumulo.core.data.Key fromThrift(Key pkey) {
+    return new org.apache.accumulo.core.data.Key(deNullify(pkey.getRow()), deNullify(pkey.getColFamily()), deNullify(pkey.getColQualifier()), deNullify(pkey.getColVisibility()),
         pkey.getTimestamp());
   }
   

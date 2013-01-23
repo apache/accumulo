@@ -21,18 +21,18 @@ import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy.Client;
-import org.apache.accumulo.proxy.thrift.PActiveCompaction;
-import org.apache.accumulo.proxy.thrift.PActiveScan;
-import org.apache.accumulo.proxy.thrift.PColumnUpdate;
-import org.apache.accumulo.proxy.thrift.PCompactionReason;
-import org.apache.accumulo.proxy.thrift.PCompactionType;
-import org.apache.accumulo.proxy.thrift.PIteratorScope;
-import org.apache.accumulo.proxy.thrift.PIteratorSetting;
-import org.apache.accumulo.proxy.thrift.PScanState;
-import org.apache.accumulo.proxy.thrift.PScanType;
-import org.apache.accumulo.proxy.thrift.PSystemPermission;
-import org.apache.accumulo.proxy.thrift.PTablePermission;
-import org.apache.accumulo.proxy.thrift.PTimeType;
+import org.apache.accumulo.proxy.thrift.ActiveCompaction;
+import org.apache.accumulo.proxy.thrift.ActiveScan;
+import org.apache.accumulo.proxy.thrift.ColumnUpdate;
+import org.apache.accumulo.proxy.thrift.CompactionReason;
+import org.apache.accumulo.proxy.thrift.CompactionType;
+import org.apache.accumulo.proxy.thrift.IteratorScope;
+import org.apache.accumulo.proxy.thrift.IteratorSetting;
+import org.apache.accumulo.proxy.thrift.ScanState;
+import org.apache.accumulo.proxy.thrift.ScanType;
+import org.apache.accumulo.proxy.thrift.SystemPermission;
+import org.apache.accumulo.proxy.thrift.TablePermission;
+import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.accumulo.server.test.functional.SlowIterator;
 import org.apache.accumulo.test.MiniAccumuloCluster;
@@ -96,36 +96,36 @@ public class SimpleTest {
   //@Test(timeout = 10000)
   public void testInstanceOperations() throws Exception {
     int tservers = 0;
-    for (String tserver : client.instanceOperations_getTabletServers(creds)) {
-      client.instanceOperations_pingTabletServer(creds, tserver);
+    for (String tserver : client.getTabletServers(creds)) {
+      client.pingTabletServer(creds, tserver);
       tservers++;
     }
     assertTrue(tservers > 0);
     
     // get something we know is in the site config
-    Map<String,String> cfg = client.instanceOperations_getSiteConfiguration(creds);
+    Map<String,String> cfg = client.getSiteConfiguration(creds);
     assertTrue(cfg.get("instance.dfs.dir").startsWith("/tmp/junit"));
     
     // set a property in zookeeper
-    client.instanceOperations_setProperty(creds, "table.split.threshold", "500M");
+    client.setProperty(creds, "table.split.threshold", "500M");
     
     // check that we can read it
-    cfg = client.instanceOperations_getSystemConfiguration(creds);
+    cfg = client.getSystemConfiguration(creds);
     assertEquals("500M", cfg.get("table.split.threshold"));
     
     // unset the setting, check that it's not what it was
-    client.instanceOperations_removeProperty(creds, "table.split.threshold");
-    cfg = client.instanceOperations_getSystemConfiguration(creds);
+    client.removeProperty(creds, "table.split.threshold");
+    cfg = client.getSystemConfiguration(creds);
     assertNotEquals("500M", cfg.get("table.split.threshold"));
     
     // try to load some classes via the proxy
-    assertTrue(client.instanceOperations_testClassLoad(creds, DevNull.class.getName(), SortedKeyValueIterator.class.getName()));
-    assertFalse(client.instanceOperations_testClassLoad(creds, "foo.bar", SortedKeyValueIterator.class.getName()));
+    assertTrue(client.testClassLoad(creds, DevNull.class.getName(), SortedKeyValueIterator.class.getName()));
+    assertFalse(client.testClassLoad(creds, "foo.bar", SortedKeyValueIterator.class.getName()));
 
     // create a table that's very slow, so we can look for scans/compactions
-    client.tableOperations_create(creds, "slow", true, PTimeType.MILLIS);
-    PIteratorSetting setting = new PIteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "100"));
-    client.tableOperations_attachIterator(creds, "slow", setting, EnumSet.allOf(PIteratorScope.class));
+    client.createTable(creds, "slow", true, TimeType.MILLIS);
+    IteratorSetting setting = new IteratorSetting(100, "slow", SlowIterator.class.getName(), Collections.singletonMap("sleepTime", "100"));
+    client.attachIterator(creds, "slow", setting, EnumSet.allOf(IteratorScope.class));
     client.updateAndFlush(creds, "slow", mutation("row", "cf", "cq", "value"));
     client.updateAndFlush(creds, "slow", mutation("row2", "cf", "cq", "value"));
     client.updateAndFlush(creds, "slow", mutation("row3", "cf", "cq", "value"));
@@ -148,11 +148,11 @@ public class SimpleTest {
     };
     t.start();
     // look for the scan
-    List<PActiveScan> scans = Collections.emptyList();
+    List<ActiveScan> scans = Collections.emptyList();
     loop:
     for (int i = 0; i < 100; i++) {
-      for (String tserver: client.instanceOperations_getTabletServers(creds)) {
-       scans = client.instanceOperations_getActiveScans(creds, tserver);
+      for (String tserver: client.getTabletServers(creds)) {
+       scans = client.getActiveScans(creds, tserver);
        if (!scans.isEmpty())
          break loop;
        UtilWaitThread.sleep(10);
@@ -160,12 +160,12 @@ public class SimpleTest {
     }
     t.join();
     assertFalse(scans.isEmpty());
-    PActiveScan scan = scans.get(0);
+    ActiveScan scan = scans.get(0);
     assertEquals("root", scan.getUser());
-    assertEquals(PScanState.RUNNING, scan.getState());
-    assertEquals(PScanType.SINGLE, scan.getType());
+    assertEquals(ScanState.RUNNING, scan.getState());
+    assertEquals(ScanType.SINGLE, scan.getType());
     assertEquals("slow", scan.getTable());
-    Map<String,String> map = client.tableOperations_tableIdMap(creds);
+    Map<String,String> map = client.tableIdMap(creds);
     assertEquals(map.get("slow"), scan.getExtent().tableId);
     assertTrue(scan.getExtent().endRow == null);
     assertTrue(scan.getExtent().prevEndRow == null);
@@ -176,7 +176,7 @@ public class SimpleTest {
       public void run() {
         try {
           Client client2 = new TestProxyClient("localhost", proxyPort).proxy();
-          client2.tableOperations_compact(creds, "slow", null, null, null, true, true);
+          client2.compactTable(creds, "slow", null, null, null, true, true);
         } catch (TException e) {
           throw new RuntimeException(e);
         }
@@ -185,11 +185,11 @@ public class SimpleTest {
     t.start();
     
     // try to catch it in the act
-    List<PActiveCompaction> compactions = Collections.emptyList();
+    List<ActiveCompaction> compactions = Collections.emptyList();
     loop2:
     for (int i = 0; i < 100; i++) {
-      for (String tserver: client.instanceOperations_getTabletServers(creds)) {
-        compactions = client.instanceOperations_getActiveCompactions(creds, tserver);
+      for (String tserver: client.getTabletServers(creds)) {
+        compactions = client.getActiveCompactions(creds, tserver);
         if (!compactions.isEmpty())
           break loop2;
       }
@@ -198,11 +198,11 @@ public class SimpleTest {
     t.join();
     // verify the compaction information
     assertFalse(compactions.isEmpty());
-    PActiveCompaction c = compactions.get(0);
+    ActiveCompaction c = compactions.get(0);
     assertEquals(map.get("slow"), c.getExtent().tableId);
     assertTrue(c.inputFiles.isEmpty());
-    assertEquals(PCompactionType.MINOR, c.getType());
-    assertEquals(PCompactionReason.USER, c.getReason());
+    assertEquals(CompactionType.MINOR, c.getType());
+    assertEquals(CompactionReason.USER, c.getReason());
     assertEquals("", c.localityGroup);
     assertTrue(c.outputFile.contains("default_tablet"));
   }
@@ -210,49 +210,49 @@ public class SimpleTest {
   @Test
   public void testSecurityOperations() throws Exception {
     // check password
-    assertTrue(client.securityOperations_authenticateUser(creds, "root", s2bb(secret)));
-    assertFalse(client.securityOperations_authenticateUser(creds, "root", s2bb("")));
+    assertTrue(client.authenticateUser(creds, "root", s2bb(secret)));
+    assertFalse(client.authenticateUser(creds, "root", s2bb("")));
 
     // create a user
-    client.securityOperations_createUser(creds, "stooge", s2bb("password"));
+    client.createUser(creds, "stooge", s2bb("password"));
     // change auths
-    Set<String> users = client.securityOperations_listUsers(creds);
+    Set<String> users = client.listUsers(creds);
     assertEquals(new HashSet<String>(Arrays.asList("root", "stooge")), users);
     HashSet<ByteBuffer> auths = new HashSet<ByteBuffer>(Arrays.asList(s2bb("A"),s2bb("B")));
-    client.securityOperations_changeUserAuthorizations(creds, "stooge", auths);
-    List<ByteBuffer> update = client.securityOperations_getUserAuthorizations(creds, "stooge");
+    client.changeUserAuthorizations(creds, "stooge", auths);
+    List<ByteBuffer> update = client.getUserAuthorizations(creds, "stooge");
     assertEquals(auths, new HashSet<ByteBuffer>(update));
     
     // change password
-    client.securityOperations_changeUserPassword(creds, "stooge", s2bb(""));
-    assertTrue(client.securityOperations_authenticateUser(creds, "stooge", s2bb("")));
+    client.changeUserPassword(creds, "stooge", s2bb(""));
+    assertTrue(client.authenticateUser(creds, "stooge", s2bb("")));
     
     // check permission failure
     UserPass stooge = new UserPass("stooge", s2bb(""));
     try {
-      client.tableOperations_create(stooge, "fail", true, PTimeType.MILLIS);
+      client.createTable(stooge, "fail", true, TimeType.MILLIS);
       fail("should not create the table");
     } catch (TException ex) {
-      assertFalse(client.tableOperations_list(creds).contains("fail"));
+      assertFalse(client.listTables(creds).contains("fail"));
     }
     // grant permissions and test
-    assertFalse(client.securityOperations_hasSystemPermission(creds, "stooge", PSystemPermission.CREATE_TABLE));
-    client.securityOperations_grantSystemPermission(creds, "stooge", PSystemPermission.CREATE_TABLE);
-    assertTrue(client.securityOperations_hasSystemPermission(creds, "stooge", PSystemPermission.CREATE_TABLE));
-    client.tableOperations_create(stooge, "success", true, PTimeType.MILLIS);
-    client.tableOperations_list(creds).contains("succcess");
+    assertFalse(client.hasSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE));
+    client.grantSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE);
+    assertTrue(client.hasSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE));
+    client.createTable(stooge, "success", true, TimeType.MILLIS);
+    client.listTables(creds).contains("succcess");
     
     // revoke permissions
-    client.securityOperations_revokeSystemPermission(creds, "stooge", PSystemPermission.CREATE_TABLE);
-    assertFalse(client.securityOperations_hasSystemPermission(creds, "stooge", PSystemPermission.CREATE_TABLE));
+    client.revokeSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE);
+    assertFalse(client.hasSystemPermission(creds, "stooge", SystemPermission.CREATE_TABLE));
     try {
-      client.tableOperations_create(stooge, "fail", true, PTimeType.MILLIS);
+      client.createTable(stooge, "fail", true, TimeType.MILLIS);
       fail("should not create the table");
     } catch (TException ex) {
-      assertFalse(client.tableOperations_list(creds).contains("fail"));
+      assertFalse(client.listTables(creds).contains("fail"));
     }
     // create a table to test table permissions
-    client.tableOperations_create(creds, "test", true, PTimeType.MILLIS);
+    client.createTable(creds, "test", true, TimeType.MILLIS);
     // denied!
     try {
       String scanner = client.createScanner(stooge, "test", null, null, null);
@@ -261,15 +261,15 @@ public class SimpleTest {
     } catch (TException ex) {
     }
     // grant
-    assertFalse(client.securityOperations_hasTablePermission(creds, "stooge", "test", PTablePermission.READ));
-    client.securityOperations_grantTablePermission(creds, "stooge", "test", PTablePermission.READ);
-    assertTrue(client.securityOperations_hasTablePermission(creds, "stooge", "test", PTablePermission.READ));
+    assertFalse(client.hasTablePermission(creds, "stooge", "test", TablePermission.READ));
+    client.grantTablePermission(creds, "stooge", "test", TablePermission.READ);
+    assertTrue(client.hasTablePermission(creds, "stooge", "test", TablePermission.READ));
     String scanner = client.createScanner(stooge, "test", null, null, null);
     client.scanner_next_k(scanner, 10);
     client.close_scanner(scanner);
     // revoke
-    client.securityOperations_revokeTablePermission(creds, "stooge", "test", PTablePermission.READ);
-    assertFalse(client.securityOperations_hasTablePermission(creds, "stooge", "test", PTablePermission.READ));
+    client.revokeTablePermission(creds, "stooge", "test", TablePermission.READ);
+    assertFalse(client.hasTablePermission(creds, "stooge", "test", TablePermission.READ));
     try {
       scanner = client.createScanner(stooge, "test", null, null, null);
       client.scanner_next_k(scanner, 100);
@@ -278,14 +278,14 @@ public class SimpleTest {
     }
     
     // delete user
-    client.securityOperations_dropUser(creds, "stooge");
-    users = client.securityOperations_listUsers(creds);
+    client.dropUser(creds, "stooge");
+    users = client.listUsers(creds);
     assertEquals(1, users.size());
     
   }
   
-  private Map<ByteBuffer,List<PColumnUpdate>> mutation(String row, String cf, String cq, String value) {
-    PColumnUpdate upd = new PColumnUpdate(s2bb(cf), s2bb(cq));
+  private Map<ByteBuffer,List<ColumnUpdate>> mutation(String row, String cf, String cq, String value) {
+    ColumnUpdate upd = new ColumnUpdate(s2bb(cf), s2bb(cq));
     upd.setValue(value.getBytes());
     return Collections.singletonMap(s2bb(row), Collections.singletonList(upd));
   }

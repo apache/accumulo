@@ -65,17 +65,17 @@ public class TestProxyInstanceOperations {
   
   @Test
   public void properties() throws TException {
-    tpc.proxy().instanceOperations_setProperty(userpass, "test.systemprop", "whistletips");
+    tpc.proxy().setProperty(userpass, "test.systemprop", "whistletips");
     
-    assertEquals(tpc.proxy().instanceOperations_getSystemConfiguration(userpass).get("test.systemprop"), "whistletips");
-    tpc.proxy().instanceOperations_removeProperty(userpass, "test.systemprop");
-    assertNull(tpc.proxy().instanceOperations_getSystemConfiguration(userpass).get("test.systemprop"));
+    assertEquals(tpc.proxy().getSystemConfiguration(userpass).get("test.systemprop"), "whistletips");
+    tpc.proxy().removeProperty(userpass, "test.systemprop");
+    assertNull(tpc.proxy().getSystemConfiguration(userpass).get("test.systemprop"));
     
   }
   
   @Test
   public void testClassLoad() throws TException {
-    assertTrue(tpc.proxy().instanceOperations_testClassLoad(userpass, "org.apache.accumulo.core.iterators.user.RegExFilter",
+    assertTrue(tpc.proxy().testClassLoad(userpass, "org.apache.accumulo.core.iterators.user.RegExFilter",
         "org.apache.accumulo.core.iterators.Filter"));
   }
   

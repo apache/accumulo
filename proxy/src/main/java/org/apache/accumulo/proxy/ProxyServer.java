@@ -67,32 +67,16 @@ import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
 import org.apache.accumulo.proxy.thrift.KeyValueAndPeek;
-import org.apache.accumulo.proxy.thrift.PAccumuloException;
-import org.apache.accumulo.proxy.thrift.PAccumuloSecurityException;
-import org.apache.accumulo.proxy.thrift.PActiveCompaction;
-import org.apache.accumulo.proxy.thrift.PActiveScan;
-import org.apache.accumulo.proxy.thrift.PColumn;
-import org.apache.accumulo.proxy.thrift.PColumnUpdate;
-import org.apache.accumulo.proxy.thrift.PCompactionReason;
-import org.apache.accumulo.proxy.thrift.PCompactionType;
-import org.apache.accumulo.proxy.thrift.PIteratorScope;
-import org.apache.accumulo.proxy.thrift.PIteratorSetting;
-import org.apache.accumulo.proxy.thrift.PKey;
-import org.apache.accumulo.proxy.thrift.PKeyExtent;
-import org.apache.accumulo.proxy.thrift.PKeyValue;
-import org.apache.accumulo.proxy.thrift.PNoMoreEntriesException;
-import org.apache.accumulo.proxy.thrift.PPartialKey;
-import org.apache.accumulo.proxy.thrift.PRange;
-import org.apache.accumulo.proxy.thrift.PScanResult;
-import org.apache.accumulo.proxy.thrift.PScanState;
-import org.apache.accumulo.proxy.thrift.PScanType;
-import org.apache.accumulo.proxy.thrift.PSystemPermission;
-import org.apache.accumulo.proxy.thrift.PTableExistsException;
-import org.apache.accumulo.proxy.thrift.PTableNotFoundException;
-import org.apache.accumulo.proxy.thrift.PTablePermission;
-import org.apache.accumulo.proxy.thrift.PTimeType;
-import org.apache.accumulo.proxy.thrift.PUnknownScanner;
-import org.apache.accumulo.proxy.thrift.PUnknownWriter;
+import org.apache.accumulo.proxy.thrift.ColumnUpdate;
+import org.apache.accumulo.proxy.thrift.CompactionReason;
+import org.apache.accumulo.proxy.thrift.CompactionType;
+import org.apache.accumulo.proxy.thrift.KeyValue;
+import org.apache.accumulo.proxy.thrift.NoMoreEntriesException;
+import org.apache.accumulo.proxy.thrift.ScanResult;
+import org.apache.accumulo.proxy.thrift.ScanState;
+import org.apache.accumulo.proxy.thrift.ScanType;
+import org.apache.accumulo.proxy.thrift.UnknownScanner;
+import org.apache.accumulo.proxy.thrift.UnknownWriter;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -134,13 +118,13 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       throw ex;
     } catch (AccumuloException e) {
-      return new PAccumuloException(e.toString());
+      return new org.apache.accumulo.proxy.thrift.AccumuloException(e.toString());
     } catch (AccumuloSecurityException e) {
-      return new PAccumuloSecurityException(e.toString());
+      return new org.apache.accumulo.proxy.thrift.AccumuloSecurityException(e.toString());
     } catch (TableNotFoundException e) {
-      return new PTableNotFoundException(e.toString());
+      return new org.apache.accumulo.proxy.thrift.TableNotFoundException(e.toString());
     } catch (TableExistsException e) {
-      return new PTableExistsException(e.toString());
+      return new org.apache.accumulo.proxy.thrift.TableExistsException(e.toString());
     } catch (RuntimeException e) {
       if (e.getCause() != null) {
         if (e.getCause() instanceof Exception)
@@ -158,7 +142,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public int tableOperations_addConstraint(UserPass userpass, String tableName, String constraintClassName) throws TException {
+  public int addConstraint(UserPass userpass, String tableName, String constraintClassName) throws TException {
     try {
       return getConnector(userpass).tableOperations().addConstraint(tableName, constraintClassName);
     } catch (Exception e) {
@@ -167,7 +151,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_addSplits(UserPass userpass, String tableName, Set<ByteBuffer> splits) throws TException {
+  public void addSplits(UserPass userpass, String tableName, Set<ByteBuffer> splits) throws TException {
     try {
       SortedSet<Text> sorted = new TreeSet<Text>();
       for (ByteBuffer split : splits) {
@@ -180,7 +164,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_clearLocatorCache(UserPass userpass, String tableName) throws TException {
+  public void clearLocatorCache(UserPass userpass, String tableName) throws TException {
     try {
       getConnector(userpass).tableOperations().clearLocatorCache(tableName);
     } catch (Exception e) {
@@ -189,20 +173,20 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_compact(UserPass userpass, String tableName, ByteBuffer start, ByteBuffer end, List<PIteratorSetting> iterators, boolean flush,
+  public void compactTable(UserPass userpass, String tableName, ByteBuffer start, ByteBuffer end, List<org.apache.accumulo.proxy.thrift.IteratorSetting> iterators, boolean flush,
       boolean wait) throws TException {
     try {
-      getConnector(userpass).tableOperations().compact(tableName, ByteBufferUtil.toText(start), ByteBufferUtil.toText(end), getPIteratorSettings(iterators),
+      getConnector(userpass).tableOperations().compact(tableName, ByteBufferUtil.toText(start), ByteBufferUtil.toText(end), getIteratorSettings(iterators),
           flush, wait);
     } catch (Exception e) {
       throw translateException(e);
     }
   }
   
-  private List<IteratorSetting> getPIteratorSettings(List<PIteratorSetting> iterators) {
+  private List<IteratorSetting> getIteratorSettings(List<org.apache.accumulo.proxy.thrift.IteratorSetting> iterators) {
     List<IteratorSetting> result = new ArrayList<IteratorSetting>();
     if (iterators != null) {
-      for (PIteratorSetting is : iterators) {
+      for (org.apache.accumulo.proxy.thrift.IteratorSetting is : iterators) {
         result.add(getIteratorSetting(is));
       }
     }
@@ -210,7 +194,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_create(UserPass userpass, String tableName, boolean versioningIter, PTimeType timeType) throws TException {
+  public void createTable(UserPass userpass, String tableName, boolean versioningIter, org.apache.accumulo.proxy.thrift.TimeType timeType) throws TException {
     try {
       getConnector(userpass).tableOperations().create(tableName, versioningIter, TimeType.valueOf(timeType.toString()));
     } catch (Exception e) {
@@ -219,7 +203,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_delete(UserPass userpass, String tableName) throws TException {
+  public void deleteTable(UserPass userpass, String tableName) throws TException {
     try {
       getConnector(userpass).tableOperations().delete(tableName);
     } catch (Exception e) {
@@ -228,7 +212,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_deleteRows(UserPass userpass, String tableName, ByteBuffer start, ByteBuffer end) throws TException {
+  public void deleteRows(UserPass userpass, String tableName, ByteBuffer start, ByteBuffer end) throws TException {
     try {
       getConnector(userpass).tableOperations().deleteRows(tableName, ByteBufferUtil.toText(start), ByteBufferUtil.toText(end));
     } catch (Exception e) {
@@ -237,7 +221,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public boolean tableOperations_exists(UserPass userpass, String tableName) throws TException {
+  public boolean tableExists(UserPass userpass, String tableName) throws TException {
     try {
       return getConnector(userpass).tableOperations().exists(tableName);
     } catch (Exception e) {
@@ -246,7 +230,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_flush(UserPass userpass, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait) throws TException {
+  public void flushTable(UserPass userpass, String tableName, ByteBuffer startRow, ByteBuffer endRow, boolean wait) throws TException {
     try {
       getConnector(userpass).tableOperations().flush(tableName, ByteBufferUtil.toText(startRow), ByteBufferUtil.toText(endRow), wait);
     } catch (Exception e) {
@@ -255,7 +239,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public Map<String,Set<String>> tableOperations_getLocalityGroups(UserPass userpass, String tableName) throws TException {
+  public Map<String,Set<String>> getLocalityGroups(UserPass userpass, String tableName) throws TException {
     try {
       Map<String,Set<Text>> groups = getConnector(userpass).tableOperations().getLocalityGroups(tableName);
       Map<String,Set<String>> ret = new HashMap<String,Set<String>>();
@@ -272,7 +256,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public ByteBuffer tableOperations_getMaxRow(UserPass userpass, String tableName, List<ByteBuffer> auths, ByteBuffer startRow, boolean startinclusive,
+  public ByteBuffer getMaxRow(UserPass userpass, String tableName, List<ByteBuffer> auths, ByteBuffer startRow, boolean startinclusive,
       ByteBuffer endRow, boolean endinclusive) throws TException {
     try {
       
@@ -286,7 +270,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public Map<String,String> tableOperations_getProperties(UserPass userpass, String tableName) throws TException {
+  public Map<String,String> getTableProperties(UserPass userpass, String tableName) throws TException {
     try {
       Map<String,String> ret = new HashMap<String,String>();
       
@@ -300,7 +284,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public List<ByteBuffer> tableOperations_getSplits(UserPass userpass, String tableName, int maxSplits) throws TException {
+  public List<ByteBuffer> getSplits(UserPass userpass, String tableName, int maxSplits) throws TException {
     try {
       Collection<Text> splits = getConnector(userpass).tableOperations().getSplits(tableName, maxSplits);
       List<ByteBuffer> ret = new ArrayList<ByteBuffer>();
@@ -314,7 +298,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public Set<String> tableOperations_list(UserPass userpass) throws TException {
+  public Set<String> listTables(UserPass userpass) throws TException {
     try {
       return getConnector(userpass).tableOperations().list();
     } catch (Exception e) {
@@ -323,7 +307,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public Map<String,Integer> tableOperations_listConstraints(UserPass userpass, String arg2) throws TException {
+  public Map<String,Integer> listConstraints(UserPass userpass, String arg2) throws TException {
     try {
       return getConnector(userpass).tableOperations().listConstraints(arg2);
     } catch (Exception e) {
@@ -332,7 +316,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_merge(UserPass userpass, String tableName, ByteBuffer start, ByteBuffer end) throws TException {
+  public void mergeTablets(UserPass userpass, String tableName, ByteBuffer start, ByteBuffer end) throws TException {
     try {
       getConnector(userpass).tableOperations().merge(tableName, ByteBufferUtil.toText(start), ByteBufferUtil.toText(end));
     } catch (Exception e) {
@@ -341,7 +325,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_offline(UserPass userpass, String tableName) throws TException {
+  public void offlineTable(UserPass userpass, String tableName) throws TException {
     try {
       getConnector(userpass).tableOperations().offline(tableName);
     } catch (Exception e) {
@@ -350,7 +334,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_online(UserPass userpass, String tableName) throws TException {
+  public void onlineTable(UserPass userpass, String tableName) throws TException {
     try {
       getConnector(userpass).tableOperations().online(tableName);
     } catch (Exception e) {
@@ -359,7 +343,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_removeConstraint(UserPass userpass, String tableName, int number) throws TException {
+  public void removeConstraint(UserPass userpass, String tableName, int number) throws TException {
     try {
       getConnector(userpass).tableOperations().removeConstraint(tableName, number);
     } catch (Exception e) {
@@ -368,7 +352,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_removeProperty(UserPass userpass, String tableName, String property) throws TException {
+  public void removeTableProperty(UserPass userpass, String tableName, String property) throws TException {
     try {
       getConnector(userpass).tableOperations().removeProperty(tableName, property);
     } catch (Exception e) {
@@ -377,7 +361,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_rename(UserPass userpass, String oldTableName, String newTableName) throws TException {
+  public void renameTable(UserPass userpass, String oldTableName, String newTableName) throws TException {
     try {
       getConnector(userpass).tableOperations().rename(oldTableName, newTableName);
     } catch (Exception e) {
@@ -386,7 +370,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_setLocalityGroups(UserPass userpass, String tableName, Map<String,Set<String>> groupStrings) throws TException {
+  public void setLocalityGroups(UserPass userpass, String tableName, Map<String,Set<String>> groupStrings) throws TException {
     try {
       Map<String,Set<Text>> groups = new HashMap<String,Set<Text>>();
       for (String key : groupStrings.keySet()) {
@@ -402,7 +386,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_setProperty(UserPass userpass, String tableName, String property, String value) throws TException {
+  public void setTableProperty(UserPass userpass, String tableName, String property, String value) throws TException {
     try {
       getConnector(userpass).tableOperations().setProperty(tableName, property, value);
     } catch (Exception e) {
@@ -411,7 +395,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public Map<String,String> tableOperations_tableIdMap(UserPass userpass) throws TException {
+  public Map<String,String> tableIdMap(UserPass userpass) throws TException {
     try {
       return getConnector(userpass).tableOperations().tableIdMap();
     } catch (Exception e) {
@@ -420,7 +404,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public Map<String,String> instanceOperations_getSiteConfiguration(UserPass userpass) throws TException {
+  public Map<String,String> getSiteConfiguration(UserPass userpass) throws TException {
     try {
       return getConnector(userpass).instanceOperations().getSiteConfiguration();
     } catch (Exception e) {
@@ -429,7 +413,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public Map<String,String> instanceOperations_getSystemConfiguration(UserPass userpass) throws TException {
+  public Map<String,String> getSystemConfiguration(UserPass userpass) throws TException {
     try {
       return getConnector(userpass).instanceOperations().getSystemConfiguration();
     } catch (Exception e) {
@@ -438,7 +422,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public List<String> instanceOperations_getTabletServers(UserPass userpass) throws TException {
+  public List<String> getTabletServers(UserPass userpass) throws TException {
     try {
       return getConnector(userpass).instanceOperations().getTabletServers();
     } catch (Exception e) {
@@ -447,39 +431,39 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public List<PActiveScan> instanceOperations_getActiveScans(UserPass userpass, String tserver) throws TException {
-    List<PActiveScan> result = new ArrayList<PActiveScan>();
+  public List<org.apache.accumulo.proxy.thrift.ActiveScan> getActiveScans(UserPass userpass, String tserver) throws TException {
+    List<org.apache.accumulo.proxy.thrift.ActiveScan> result = new ArrayList<org.apache.accumulo.proxy.thrift.ActiveScan>();
     try {
       List<ActiveScan> activeScans = getConnector(userpass).instanceOperations().getActiveScans(tserver);
       for (ActiveScan scan : activeScans) {
-        PActiveScan pscan = new PActiveScan();
+        org.apache.accumulo.proxy.thrift.ActiveScan pscan = new org.apache.accumulo.proxy.thrift.ActiveScan();
         pscan.client = scan.getClient();
         pscan.user = scan.getUser();
         pscan.table = scan.getTable();
         pscan.age = scan.getAge();
         pscan.idleTime = scan.getIdleTime();
-        pscan.type = PScanType.valueOf(scan.getType().toString());
-        pscan.state = PScanState.valueOf(scan.getState().toString());
+        pscan.type = ScanType.valueOf(scan.getType().toString());
+        pscan.state = ScanState.valueOf(scan.getState().toString());
         KeyExtent e = scan.getExtent();
-        pscan.extent = new PKeyExtent(e.getTableId().toString(), TextUtil.getByteBuffer(e.getEndRow()), TextUtil.getByteBuffer(e.getPrevEndRow()));
-        pscan.columns = new ArrayList<PColumn>();
+        pscan.extent = new org.apache.accumulo.proxy.thrift.KeyExtent(e.getTableId().toString(), TextUtil.getByteBuffer(e.getEndRow()), TextUtil.getByteBuffer(e.getPrevEndRow()));
+        pscan.columns = new ArrayList<org.apache.accumulo.proxy.thrift.Column>();
         if (scan.getColumns() != null) {
           for (Column c : scan.getColumns()) {
-            PColumn column = new PColumn();
+            org.apache.accumulo.proxy.thrift.Column column = new org.apache.accumulo.proxy.thrift.Column();
             column.setColFamily(c.getColumnFamily());
             column.setColQualifier(c.getColumnQualifier());
             column.setColVisibility(c.getColumnVisibility());
             pscan.columns.add(column);
           }
         }
-        pscan.iterators = new ArrayList<PIteratorSetting>();
+        pscan.iterators = new ArrayList<org.apache.accumulo.proxy.thrift.IteratorSetting>();
         for (String iteratorString : scan.getSsiList()) {
           String[] parts = iteratorString.split("[=,]");
           if (parts.length == 3) {
             String name = parts[0];
             int priority = Integer.parseInt(parts[1]);
             String classname = parts[2];
-            PIteratorSetting settings = new PIteratorSetting(priority, name, classname, scan.getSsio().get(name));
+            org.apache.accumulo.proxy.thrift.IteratorSetting settings = new org.apache.accumulo.proxy.thrift.IteratorSetting(priority, name, classname, scan.getSsio().get(name));
             pscan.iterators.add(settings);
           }
         }
@@ -498,30 +482,30 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public List<PActiveCompaction> instanceOperations_getActiveCompactions(UserPass userpass, String tserver) throws TException {
+  public List<org.apache.accumulo.proxy.thrift.ActiveCompaction> getActiveCompactions(UserPass userpass, String tserver) throws TException {
     try {
-      List<PActiveCompaction> result = new ArrayList<PActiveCompaction>();
+      List<org.apache.accumulo.proxy.thrift.ActiveCompaction> result = new ArrayList<org.apache.accumulo.proxy.thrift.ActiveCompaction>();
       List<ActiveCompaction> active = getConnector(userpass).instanceOperations().getActiveCompactions(tserver);
       for (ActiveCompaction comp : active) {
-        PActiveCompaction pcomp = new PActiveCompaction();
+        org.apache.accumulo.proxy.thrift.ActiveCompaction pcomp = new org.apache.accumulo.proxy.thrift.ActiveCompaction();
         pcomp.age = comp.getAge();
         pcomp.entriesRead = comp.getEntriesRead();
         pcomp.entriesWritten = comp.getEntriesWritten();
         KeyExtent e = comp.getExtent();
-        pcomp.extent = new PKeyExtent(e.getTableId().toString(), TextUtil.getByteBuffer(e.getEndRow()), TextUtil.getByteBuffer(e.getPrevEndRow()));
+        pcomp.extent = new org.apache.accumulo.proxy.thrift.KeyExtent(e.getTableId().toString(), TextUtil.getByteBuffer(e.getEndRow()), TextUtil.getByteBuffer(e.getPrevEndRow()));
         pcomp.inputFiles = new ArrayList<String>();
         if (comp.getInputFiles() != null) {
           pcomp.inputFiles.addAll(comp.getInputFiles());
         }
         pcomp.localityGroup = comp.getLocalityGroup();
         pcomp.outputFile = comp.getOutputFile();
-        pcomp.reason = PCompactionReason.valueOf(comp.getReason().toString());
-        pcomp.type = PCompactionType.valueOf(comp.getType().toString());
+        pcomp.reason = CompactionReason.valueOf(comp.getReason().toString());
+        pcomp.type = CompactionType.valueOf(comp.getType().toString());
         
-        pcomp.iterators = new ArrayList<PIteratorSetting>();
+        pcomp.iterators = new ArrayList<org.apache.accumulo.proxy.thrift.IteratorSetting>();
         if (comp.getIterators() != null) {
           for (IteratorSetting setting : comp.getIterators()) {
-            PIteratorSetting psetting = new PIteratorSetting(setting.getPriority(), setting.getName(), setting.getIteratorClass(), setting.getOptions());
+            org.apache.accumulo.proxy.thrift.IteratorSetting psetting = new org.apache.accumulo.proxy.thrift.IteratorSetting(setting.getPriority(), setting.getName(), setting.getIteratorClass(), setting.getOptions());
             pcomp.iterators.add(psetting);
           }
         }
@@ -534,7 +518,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void instanceOperations_removeProperty(UserPass userpass, String property) throws TException {
+  public void removeProperty(UserPass userpass, String property) throws TException {
     try {
       getConnector(userpass).instanceOperations().removeProperty(property);
     } catch (Exception e) {
@@ -543,7 +527,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void instanceOperations_setProperty(UserPass userpass, String property, String value) throws TException {
+  public void setProperty(UserPass userpass, String property, String value) throws TException {
     try {
       getConnector(userpass).instanceOperations().setProperty(property, value);
     } catch (Exception e) {
@@ -552,7 +536,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public boolean instanceOperations_testClassLoad(UserPass userpass, String className, String asTypeName) throws TException {
+  public boolean testClassLoad(UserPass userpass, String className, String asTypeName) throws TException {
     try {
       return getConnector(userpass).instanceOperations().testClassLoad(className, asTypeName);
     } catch (Exception e) {
@@ -561,7 +545,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public boolean securityOperations_authenticateUser(UserPass userpass, String user, ByteBuffer password) throws TException {
+  public boolean authenticateUser(UserPass userpass, String user, ByteBuffer password) throws TException {
     try {
       return getConnector(userpass).securityOperations().authenticateUser(user, password.array());
     } catch (Exception e) {
@@ -570,7 +554,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void securityOperations_changeUserAuthorizations(UserPass userpass, String user, Set<ByteBuffer> authorizations) throws TException {
+  public void changeUserAuthorizations(UserPass userpass, String user, Set<ByteBuffer> authorizations) throws TException {
     try {
       Set<String> auths = new HashSet<String>();
       for (ByteBuffer auth : authorizations) {
@@ -583,7 +567,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void securityOperations_changeUserPassword(UserPass userpass, String user, ByteBuffer password) throws TException {
+  public void changeUserPassword(UserPass userpass, String user, ByteBuffer password) throws TException {
     try {
       getConnector(userpass).securityOperations().changeUserPassword(user, password.array());
     } catch (Exception e) {
@@ -592,7 +576,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void securityOperations_createUser(UserPass userpass, String user, ByteBuffer password) throws TException {
+  public void createUser(UserPass userpass, String user, ByteBuffer password) throws TException {
     try {
       getConnector(userpass).securityOperations().createUser(user, password.array());
     } catch (Exception e) {
@@ -601,7 +585,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void securityOperations_dropUser(UserPass userpass, String user) throws TException {
+  public void dropUser(UserPass userpass, String user) throws TException {
     try {
       getConnector(userpass).securityOperations().dropUser(user);
     } catch (Exception e) {
@@ -610,7 +594,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public List<ByteBuffer> securityOperations_getUserAuthorizations(UserPass userpass, String user) throws TException {
+  public List<ByteBuffer> getUserAuthorizations(UserPass userpass, String user) throws TException {
     try {
       return getConnector(userpass).securityOperations().getUserAuthorizations(user).getAuthorizationsBB();
     } catch (Exception e) {
@@ -619,7 +603,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void securityOperations_grantSystemPermission(UserPass userpass, String user, PSystemPermission perm) throws TException {
+  public void grantSystemPermission(UserPass userpass, String user, org.apache.accumulo.proxy.thrift.SystemPermission perm) throws TException {
     try {
       getConnector(userpass).securityOperations().grantSystemPermission(user, SystemPermission.getPermissionById((byte) perm.getValue()));
     } catch (Exception e) {
@@ -628,7 +612,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void securityOperations_grantTablePermission(UserPass userpass, String user, String table, PTablePermission perm) throws TException {
+  public void grantTablePermission(UserPass userpass, String user, String table, org.apache.accumulo.proxy.thrift.TablePermission perm) throws TException {
     try {
       getConnector(userpass).securityOperations().grantTablePermission(user, table, TablePermission.getPermissionById((byte) perm.getValue()));
     } catch (Exception e) {
@@ -637,7 +621,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public boolean securityOperations_hasSystemPermission(UserPass userpass, String user, PSystemPermission perm) throws TException {
+  public boolean hasSystemPermission(UserPass userpass, String user, org.apache.accumulo.proxy.thrift.SystemPermission perm) throws TException {
     try {
       return getConnector(userpass).securityOperations().hasSystemPermission(user, SystemPermission.getPermissionById((byte) perm.getValue()));
     } catch (Exception e) {
@@ -646,7 +630,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public boolean securityOperations_hasTablePermission(UserPass userpass, String user, String table, PTablePermission perm) throws TException {
+  public boolean hasTablePermission(UserPass userpass, String user, String table, org.apache.accumulo.proxy.thrift.TablePermission perm) throws TException {
     try {
       return getConnector(userpass).securityOperations().hasTablePermission(user, table, TablePermission.getPermissionById((byte) perm.getValue()));
     } catch (Exception e) {
@@ -655,7 +639,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public Set<String> securityOperations_listUsers(UserPass userpass) throws TException {
+  public Set<String> listUsers(UserPass userpass) throws TException {
     try {
       return getConnector(userpass).securityOperations().listUsers();
     } catch (Exception e) {
@@ -664,7 +648,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void securityOperations_revokeSystemPermission(UserPass userpass, String user, PSystemPermission perm) throws TException {
+  public void revokeSystemPermission(UserPass userpass, String user, org.apache.accumulo.proxy.thrift.SystemPermission perm) throws TException {
     try {
       getConnector(userpass).securityOperations().revokeSystemPermission(user, SystemPermission.getPermissionById((byte) perm.getValue()));
     } catch (Exception e) {
@@ -673,7 +657,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void securityOperations_revokeTablePermission(UserPass userpass, String user, String table, PTablePermission perm) throws TException {
+  public void revokeTablePermission(UserPass userpass, String user, String table, org.apache.accumulo.proxy.thrift.TablePermission perm) throws TException {
     try {
       getConnector(userpass).securityOperations().revokeTablePermission(user, table, TablePermission.getPermissionById((byte) perm.getValue()));
     } catch (Exception e) {
@@ -690,7 +674,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public String createScanner(UserPass userpass, String tableName, Set<ByteBuffer> authorizations, List<PIteratorSetting> iterators, PRange prange)
+  public String createScanner(UserPass userpass, String tableName, Set<ByteBuffer> authorizations, List<org.apache.accumulo.proxy.thrift.IteratorSetting> iterators, org.apache.accumulo.proxy.thrift.Range prange)
       throws TException {
     try {
       Connector connector = getConnector(userpass);
@@ -705,7 +689,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       Scanner scanner = connector.createScanner(tableName, auth);
       
       if (iterators != null) {
-        for (PIteratorSetting iter : iterators) {
+        for (org.apache.accumulo.proxy.thrift.IteratorSetting iter : iterators) {
           IteratorSetting is = new IteratorSetting(iter.getPriority(), iter.getName(), iter.getIteratorClass(), iter.getProperties());
           scanner.addScanIterator(is);
         }
@@ -728,7 +712,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public String createBatchScanner(UserPass userpass, String tableName, Set<ByteBuffer> authorizations, List<PIteratorSetting> iterators, List<PRange> pranges)
+  public String createBatchScanner(UserPass userpass, String tableName, Set<ByteBuffer> authorizations, List<org.apache.accumulo.proxy.thrift.IteratorSetting> iterators, List<org.apache.accumulo.proxy.thrift.Range> pranges)
       throws TException {
     try {
       Connector connector = getConnector(userpass);
@@ -743,7 +727,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       BatchScanner scanner = connector.createBatchScanner(tableName, auth, 10);
       
       if (iterators != null) {
-        for (PIteratorSetting iter : iterators) {
+        for (org.apache.accumulo.proxy.thrift.IteratorSetting iter : iterators) {
           IteratorSetting is = new IteratorSetting(iter.getPriority(), iter.getName(), iter.getIteratorClass(), iter.getProperties());
           scanner.addScanIterator(is);
         }
@@ -754,7 +738,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
       if (pranges == null) {
         ranges.add(new Range());
       } else {
-        for (PRange range : pranges) {
+        for (org.apache.accumulo.proxy.thrift.Range range : pranges) {
           Range aRange = new Range(range.getStart() == null ? null : Util.fromThrift(range.getStart()), true, range.getStop() == null ? null
               : Util.fromThrift(range.getStop()), false);
           ranges.add(aRange);
@@ -786,33 +770,33 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public KeyValueAndPeek scanner_next(String scanner) throws TException {
     
-    PScanResult scanResult = scanner_next_k(scanner, 1);
+    ScanResult scanResult = scanner_next_k(scanner, 1);
     if (scanResult.results.size() > 0) {
       return new KeyValueAndPeek(scanResult.results.get(0), scanResult.isMore());
     } else {
-      throw new PNoMoreEntriesException();
+      throw new NoMoreEntriesException();
     }
     
   }
   
   @Override
-  public PScanResult scanner_next_k(String scanner, int k) throws TException {
+  public ScanResult scanner_next_k(String scanner, int k) throws TException {
     
     // fetch the scanner
     ScannerPlusIterator spi = scannerCache.getIfPresent(UUID.fromString(scanner));
     if (spi == null) {
-      throw new PUnknownScanner("Scanner never existed or no longer exists");
+      throw new UnknownScanner("Scanner never existed or no longer exists");
     }
     Iterator<Map.Entry<Key,Value>> batchScanner = spi.iterator;
     // synchronized to prevent race conditions
     synchronized (batchScanner) {
-      PScanResult ret = new PScanResult();
-      ret.setResults(new ArrayList<PKeyValue>());
+      ScanResult ret = new ScanResult();
+      ret.setResults(new ArrayList<KeyValue>());
       int numRead = 0;
       try {
         while (batchScanner.hasNext() && numRead < k) {
           Map.Entry<Key,Value> next = batchScanner.next();
-          ret.addToResults(new PKeyValue(Util.toThrift(next.getKey()), ByteBuffer.wrap(next.getValue().get())));
+          ret.addToResults(new KeyValue(Util.toThrift(next.getKey()), ByteBuffer.wrap(next.getValue().get())));
           numRead++;
         }
         ret.setMore(numRead == k);
@@ -830,7 +814,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<PColumnUpdate>> cells) throws TException {
+  public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells) throws TException {
     try {
       BatchWriter writer = getWriter(userpass, tableName);
       addCellsToWriter(cells, writer);
@@ -843,13 +827,13 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   private static final ColumnVisibility EMPTY_VIS = new ColumnVisibility();
   
-  private void addCellsToWriter(Map<ByteBuffer,List<PColumnUpdate>> cells, BatchWriter writer) throws MutationsRejectedException {
+  private void addCellsToWriter(Map<ByteBuffer,List<ColumnUpdate>> cells, BatchWriter writer) throws MutationsRejectedException {
     HashMap<Text,ColumnVisibility> vizMap = new HashMap<Text,ColumnVisibility>();
     
-    for (Entry<ByteBuffer,List<PColumnUpdate>> entry : cells.entrySet()) {
+    for (Entry<ByteBuffer,List<ColumnUpdate>> entry : cells.entrySet()) {
       Mutation m = new Mutation(ByteBufferUtil.toBytes(entry.getKey()));
       
-      for (PColumnUpdate update : entry.getValue()) {
+      for (ColumnUpdate update : entry.getValue()) {
         ColumnVisibility viz = EMPTY_VIS;
         if (update.isSetColVisibility()) {
           Text vizText = new Text(update.getColVisibility());
@@ -892,11 +876,11 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void writer_update(String writer, Map<ByteBuffer,List<PColumnUpdate>> cells) throws TException {
+  public void writer_update(String writer, Map<ByteBuffer,List<ColumnUpdate>> cells) throws TException {
     try {
       BatchWriter batchwriter = writerCache.getIfPresent(UUID.fromString(writer));
       if (batchwriter == null) {
-        throw new PUnknownWriter("Writer never existed or no longer exists");
+        throw new UnknownWriter("Writer never existed or no longer exists");
       }
       addCellsToWriter(cells, batchwriter);
     } catch (Exception e) {
@@ -909,7 +893,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       BatchWriter batchwriter = writerCache.getIfPresent(UUID.fromString(writer));
       if (batchwriter == null) {
-        throw new PUnknownWriter("Writer never existed or no longer exists");
+        throw new UnknownWriter("Writer never existed or no longer exists");
       }
       batchwriter.flush();
     } catch (Exception e) {
@@ -922,7 +906,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       BatchWriter batchwriter = writerCache.getIfPresent(UUID.fromString(writer));
       if (batchwriter == null) {
-        throw new PUnknownWriter("Writer never existed or no longer exists");
+        throw new UnknownWriter("Writer never existed or no longer exists");
       }
       batchwriter.close();
       writerCache.invalidate(UUID.fromString(writer));
@@ -935,32 +919,32 @@ public class ProxyServer implements AccumuloProxy.Iface {
     return getConnector(userpass).createBatchWriter(tableName, new BatchWriterConfig());
   }
   
-  private IteratorSetting getIteratorSetting(PIteratorSetting setting) {
+  private IteratorSetting getIteratorSetting(org.apache.accumulo.proxy.thrift.IteratorSetting setting) {
     return new IteratorSetting(setting.priority, setting.name, setting.iteratorClass, setting.getProperties());
   }
   
-  private IteratorScope getIteratorScope(PIteratorScope scope) {
+  private IteratorScope getIteratorScope(org.apache.accumulo.proxy.thrift.IteratorScope scope) {
     return IteratorScope.valueOf(scope.toString().toLowerCase());
   }
   
-  private EnumSet<IteratorScope> getIteratorScopes(Set<PIteratorScope> scopes) {
+  private EnumSet<IteratorScope> getIteratorScopes(Set<org.apache.accumulo.proxy.thrift.IteratorScope> scopes) {
     EnumSet<IteratorScope> scopes_ = EnumSet.noneOf(IteratorScope.class);
-    for (PIteratorScope scope : scopes) {
+    for (org.apache.accumulo.proxy.thrift.IteratorScope scope : scopes) {
       scopes_.add(getIteratorScope(scope));
     }
     return scopes_;
   }
   
-  private EnumSet<PIteratorScope> getPIteratorScopes(Set<IteratorScope> scopes) {
-    EnumSet<PIteratorScope> scopes_ = EnumSet.noneOf(PIteratorScope.class);
+  private EnumSet<org.apache.accumulo.proxy.thrift.IteratorScope> getProxyIteratorScopes(Set<IteratorScope> scopes) {
+    EnumSet<org.apache.accumulo.proxy.thrift.IteratorScope> scopes_ = EnumSet.noneOf(org.apache.accumulo.proxy.thrift.IteratorScope.class);
     for (IteratorScope scope : scopes) {
-      scopes_.add(PIteratorScope.valueOf(scope.toString().toUpperCase()));
+      scopes_.add(org.apache.accumulo.proxy.thrift.IteratorScope.valueOf(scope.toString().toUpperCase()));
     }
     return scopes_;
   }
   
   @Override
-  public void tableOperations_attachIterator(UserPass userpass, String tableName, PIteratorSetting setting, Set<PIteratorScope> scopes) throws TException {
+  public void attachIterator(UserPass userpass, String tableName, org.apache.accumulo.proxy.thrift.IteratorSetting setting, Set<org.apache.accumulo.proxy.thrift.IteratorScope> scopes) throws TException {
     try {
       getConnector(userpass).tableOperations().attachIterator(tableName, getIteratorSetting(setting), getIteratorScopes(scopes));
     } catch (Exception e) {
@@ -969,7 +953,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_checkIteratorConflicts(UserPass userpass, String tableName, PIteratorSetting setting, Set<PIteratorScope> scopes)
+  public void checkIteratorConflicts(UserPass userpass, String tableName, org.apache.accumulo.proxy.thrift.IteratorSetting setting, Set<org.apache.accumulo.proxy.thrift.IteratorScope> scopes)
       throws TException {
     try {
       getConnector(userpass).tableOperations().checkIteratorConflicts(tableName, getIteratorSetting(setting), getIteratorScopes(scopes));
@@ -979,7 +963,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_clone(UserPass userpass, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet,
+  public void cloneTable(UserPass userpass, String tableName, String newTableName, boolean flush, Map<String,String> propertiesToSet,
       Set<String> propertiesToExclude) throws TException {
     try {
       getConnector(userpass).tableOperations().clone(tableName, newTableName, flush, propertiesToSet, propertiesToExclude);
@@ -989,7 +973,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_exportTable(UserPass userpass, String tableName, String exportDir) throws TException {
+  public void exportTable(UserPass userpass, String tableName, String exportDir) throws TException {
     try {
       getConnector(userpass).tableOperations().exportTable(tableName, exportDir);
     } catch (Exception e) {
@@ -998,7 +982,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_importTable(UserPass userpass, String tableName, String importDir) throws TException {
+  public void importTable(UserPass userpass, String tableName, String importDir) throws TException {
     try {
       getConnector(userpass).tableOperations().importTable(tableName, importDir);
     } catch (Exception e) {
@@ -1007,22 +991,22 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public PIteratorSetting tableOperations_getIteratorSetting(UserPass userpass, String tableName, String iteratorName, PIteratorScope scope) throws TException {
+  public org.apache.accumulo.proxy.thrift.IteratorSetting getIteratorSetting(UserPass userpass, String tableName, String iteratorName, org.apache.accumulo.proxy.thrift.IteratorScope scope) throws TException {
     try {
       IteratorSetting is = getConnector(userpass).tableOperations().getIteratorSetting(tableName, iteratorName, getIteratorScope(scope));
-      return new PIteratorSetting(is.getPriority(), is.getName(), is.getIteratorClass(), is.getOptions());
+      return new org.apache.accumulo.proxy.thrift.IteratorSetting(is.getPriority(), is.getName(), is.getIteratorClass(), is.getOptions());
     } catch (Exception e) {
       throw translateException(e);
     }
   }
   
   @Override
-  public Map<String,Set<PIteratorScope>> tableOperations_listIterators(UserPass userpass, String tableName) throws TException {
+  public Map<String,Set<org.apache.accumulo.proxy.thrift.IteratorScope>> listIterators(UserPass userpass, String tableName) throws TException {
     try {
       Map<String,EnumSet<IteratorScope>> iterMap = getConnector(userpass).tableOperations().listIterators(tableName);
-      Map<String,Set<PIteratorScope>> result = new HashMap<String,Set<PIteratorScope>>();
+      Map<String,Set<org.apache.accumulo.proxy.thrift.IteratorScope>> result = new HashMap<String,Set<org.apache.accumulo.proxy.thrift.IteratorScope>>();
       for (Entry<String,EnumSet<IteratorScope>> entry : iterMap.entrySet()) {
-        result.put(entry.getKey(), getPIteratorScopes(entry.getValue()));
+        result.put(entry.getKey(), getProxyIteratorScopes(entry.getValue()));
       }
       return result;
     } catch (Exception e) {
@@ -1031,7 +1015,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void tableOperations_removeIterator(UserPass userpass, String tableName, String iterName, Set<PIteratorScope> scopes) throws TException {
+  public void removeIterator(UserPass userpass, String tableName, String iterName, Set<org.apache.accumulo.proxy.thrift.IteratorScope> scopes) throws TException {
     try {
       getConnector(userpass).tableOperations().removeIterator(tableName, iterName, getIteratorScopes(scopes));
     } catch (Exception e) {
@@ -1040,12 +1024,12 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public Set<PRange> tableOperations_splitRangeByTablets(UserPass userpass, String tableName, PRange range, int maxSplits) throws TException {
+  public Set<org.apache.accumulo.proxy.thrift.Range> splitRangeByTablets(UserPass userpass, String tableName, org.apache.accumulo.proxy.thrift.Range range, int maxSplits) throws TException {
     try {
       Set<Range> ranges = getConnector(userpass).tableOperations().splitRangeByTablets(tableName, getRange(range), maxSplits);
-      Set<PRange> result = new HashSet<PRange>();
+      Set<org.apache.accumulo.proxy.thrift.Range> result = new HashSet<org.apache.accumulo.proxy.thrift.Range>();
       for (Range r : ranges) {
-        result.add(getPRange(r));
+        result.add(getRange(r));
       }
       return result;
     } catch (Exception e) {
@@ -1053,30 +1037,30 @@ public class ProxyServer implements AccumuloProxy.Iface {
     }
   }
   
-  private PRange getPRange(Range r) {
-    return new PRange(getPKey(r.getStartKey()), r.isStartKeyInclusive(), getPKey(r.getEndKey()), r.isEndKeyInclusive());
+  private org.apache.accumulo.proxy.thrift.Range getRange(Range r) {
+    return new org.apache.accumulo.proxy.thrift.Range(getProxyKey(r.getStartKey()), r.isStartKeyInclusive(), getProxyKey(r.getEndKey()), r.isEndKeyInclusive());
   }
   
-  private PKey getPKey(Key k) {
+  private org.apache.accumulo.proxy.thrift.Key getProxyKey(Key k) {
     if (k == null)
       return null;
-    PKey result = new PKey(TextUtil.getByteBuffer(k.getRow()), TextUtil.getByteBuffer(k.getColumnFamily()), TextUtil.getByteBuffer(k.getColumnQualifier()),
+    org.apache.accumulo.proxy.thrift.Key result = new org.apache.accumulo.proxy.thrift.Key(TextUtil.getByteBuffer(k.getRow()), TextUtil.getByteBuffer(k.getColumnFamily()), TextUtil.getByteBuffer(k.getColumnQualifier()),
         TextUtil.getByteBuffer(k.getColumnVisibility()));
     return result;
   }
   
-  private Range getRange(PRange range) {
+  private Range getRange(org.apache.accumulo.proxy.thrift.Range range) {
     return new Range(getKey(range.start), getKey(range.stop));
   }
   
-  private Key getKey(PKey start) {
+  private Key getKey(org.apache.accumulo.proxy.thrift.Key start) {
     if (start == null)
       return null;
     return new Key(start.getRow(), start.getColFamily(), start.getColQualifier(), start.getColVisibility(), 0);
   }
   
   @Override
-  public void tableOperations_importDirectory(UserPass userpass, String tableName, String importDir, String failureDir, boolean setTime) throws TException {
+  public void importDirectory(UserPass userpass, String tableName, String importDir, String failureDir, boolean setTime) throws TException {
     try {
       getConnector(userpass).tableOperations().importDirectory(tableName, importDir, failureDir, setTime);
     } catch (Exception e) {
@@ -1088,20 +1072,20 @@ public class ProxyServer implements AccumuloProxy.Iface {
   static private final ByteBuffer EMPTY = ByteBuffer.wrap(new byte[] {});
   
   @Override
-  public PRange getRowRange(ByteBuffer row) throws TException {
-    return new PRange(new PKey(row, EMPTY, EMPTY, EMPTY), true, new PKey(row, EMPTY, EMPTY, EMPTY), true);
+  public org.apache.accumulo.proxy.thrift.Range getRowRange(ByteBuffer row) throws TException {
+    return new org.apache.accumulo.proxy.thrift.Range(new org.apache.accumulo.proxy.thrift.Key(row, EMPTY, EMPTY, EMPTY), true, new org.apache.accumulo.proxy.thrift.Key(row, EMPTY, EMPTY, EMPTY), true);
   }
   
   @Override
-  public PKey getFollowing(PKey key, PPartialKey part) throws TException {
+  public org.apache.accumulo.proxy.thrift.Key getFollowing(org.apache.accumulo.proxy.thrift.Key key, org.apache.accumulo.proxy.thrift.PartialKey part) throws TException {
     Key key_ = getKey(key);
     PartialKey part_ = PartialKey.valueOf(part.toString());
     Key followingKey = key_.followingKey(part_);
-    return getPKey(followingKey);
+    return getProxyKey(followingKey);
   }
   
   @Override
-  public void instanceOperations_pingTabletServer(UserPass userpass, String tserver) throws TException {
+  public void pingTabletServer(UserPass userpass, String tserver) throws TException {
     try {
       getConnector(userpass).instanceOperations().ping(tserver);
     } catch (Exception e) {

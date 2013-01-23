@@ -27,9 +27,9 @@ import java.util.Properties;
 
 import org.apache.accumulo.proxy.Proxy;
 import org.apache.accumulo.proxy.TestProxyClient;
-import org.apache.accumulo.proxy.thrift.PSystemPermission;
-import org.apache.accumulo.proxy.thrift.PTablePermission;
-import org.apache.accumulo.proxy.thrift.PTimeType;
+import org.apache.accumulo.proxy.thrift.SystemPermission;
+import org.apache.accumulo.proxy.thrift.TablePermission;
+import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
@@ -76,52 +76,52 @@ public class TestProxySecurityOperations {
   
   @Before
   public void makeTestTableAndUser() throws Exception {
-    tpc.proxy().tableOperations_create(userpass, testtable, true, PTimeType.MILLIS);
-    tpc.proxy().securityOperations_createUser(userpass, testuser, testpw);
+    tpc.proxy().createTable(userpass, testtable, true, TimeType.MILLIS);
+    tpc.proxy().createUser(userpass, testuser, testpw);
   }
   
   @After
   public void deleteTestTable() throws Exception {
-    tpc.proxy().tableOperations_delete(userpass, testtable);
-    tpc.proxy().securityOperations_dropUser(userpass, testuser);
+    tpc.proxy().deleteTable(userpass, testtable);
+    tpc.proxy().dropUser(userpass, testuser);
   }
   
   @Test
   public void create() throws TException {
-    tpc.proxy().securityOperations_createUser(userpass, testuser + "2", testpw);
-    assertTrue(tpc.proxy().securityOperations_listUsers(userpass).contains(testuser + "2"));
-    tpc.proxy().securityOperations_dropUser(userpass, testuser + "2");
-    assertTrue(!tpc.proxy().securityOperations_listUsers(userpass).contains(testuser + "2"));
+    tpc.proxy().createUser(userpass, testuser + "2", testpw);
+    assertTrue(tpc.proxy().listUsers(userpass).contains(testuser + "2"));
+    tpc.proxy().dropUser(userpass, testuser + "2");
+    assertTrue(!tpc.proxy().listUsers(userpass).contains(testuser + "2"));
   }
   
   @Test
   public void authenticate() throws TException {
-    assertTrue(tpc.proxy().securityOperations_authenticateUser(userpass, testuser, testpw));
-    assertFalse(tpc.proxy().securityOperations_authenticateUser(userpass, "EvilUser", testpw));
+    assertTrue(tpc.proxy().authenticateUser(userpass, testuser, testpw));
+    assertFalse(tpc.proxy().authenticateUser(userpass, "EvilUser", testpw));
     
-    tpc.proxy().securityOperations_changeUserPassword(userpass, testuser, ByteBuffer.wrap("newpass".getBytes()));
-    assertFalse(tpc.proxy().securityOperations_authenticateUser(userpass, testuser, testpw));
-    assertTrue(tpc.proxy().securityOperations_authenticateUser(userpass, testuser, ByteBuffer.wrap("newpass".getBytes())));
+    tpc.proxy().changeUserPassword(userpass, testuser, ByteBuffer.wrap("newpass".getBytes()));
+    assertFalse(tpc.proxy().authenticateUser(userpass, testuser, testpw));
+    assertTrue(tpc.proxy().authenticateUser(userpass, testuser, ByteBuffer.wrap("newpass".getBytes())));
     
   }
   
   @Test
   public void tablePermissions() throws TException {
-    tpc.proxy().securityOperations_grantTablePermission(userpass, testuser, testtable, PTablePermission.ALTER_TABLE);
-    assertTrue(tpc.proxy().securityOperations_hasTablePermission(userpass, testuser, testtable, PTablePermission.ALTER_TABLE));
+    tpc.proxy().grantTablePermission(userpass, testuser, testtable, TablePermission.ALTER_TABLE);
+    assertTrue(tpc.proxy().hasTablePermission(userpass, testuser, testtable, TablePermission.ALTER_TABLE));
     
-    tpc.proxy().securityOperations_revokeTablePermission(userpass, testuser, testtable, PTablePermission.ALTER_TABLE);
-    assertFalse(tpc.proxy().securityOperations_hasTablePermission(userpass, testuser, testtable, PTablePermission.ALTER_TABLE));
+    tpc.proxy().revokeTablePermission(userpass, testuser, testtable, TablePermission.ALTER_TABLE);
+    assertFalse(tpc.proxy().hasTablePermission(userpass, testuser, testtable, TablePermission.ALTER_TABLE));
     
   }
   
   @Test
   public void systemPermissions() throws TException {
-    tpc.proxy().securityOperations_grantSystemPermission(userpass, testuser, PSystemPermission.ALTER_USER);
-    assertTrue(tpc.proxy().securityOperations_hasSystemPermission(userpass, testuser, PSystemPermission.ALTER_USER));
+    tpc.proxy().grantSystemPermission(userpass, testuser, SystemPermission.ALTER_USER);
+    assertTrue(tpc.proxy().hasSystemPermission(userpass, testuser, SystemPermission.ALTER_USER));
     
-    tpc.proxy().securityOperations_revokeSystemPermission(userpass, testuser, PSystemPermission.ALTER_USER);
-    assertFalse(tpc.proxy().securityOperations_hasSystemPermission(userpass, testuser, PSystemPermission.ALTER_USER));
+    tpc.proxy().revokeSystemPermission(userpass, testuser, SystemPermission.ALTER_USER);
+    assertFalse(tpc.proxy().hasSystemPermission(userpass, testuser, SystemPermission.ALTER_USER));
     
   }
   
@@ -130,8 +130,8 @@ public class TestProxySecurityOperations {
     HashSet<ByteBuffer> newauths = new HashSet<ByteBuffer>();
     newauths.add(ByteBuffer.wrap("BBR".getBytes()));
     newauths.add(ByteBuffer.wrap("Barney".getBytes()));
-    tpc.proxy().securityOperations_changeUserAuthorizations(userpass, testuser, newauths);
-    List<ByteBuffer> actualauths = tpc.proxy().securityOperations_getUserAuthorizations(userpass, testuser);
+    tpc.proxy().changeUserAuthorizations(userpass, testuser, newauths);
+    List<ByteBuffer> actualauths = tpc.proxy().getUserAuthorizations(userpass, testuser);
     assertEquals(actualauths.size(), newauths.size());
     
     for (ByteBuffer auth : actualauths) {
