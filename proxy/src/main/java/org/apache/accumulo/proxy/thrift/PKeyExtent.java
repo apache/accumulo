@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
     schemes.put(TupleScheme.class, new PKeyExtentTupleSchemeFactory());
   }
 
-  public ByteBuffer tableId; // required
+  public String tableId; // required
   public ByteBuffer endRow; // required
   public ByteBuffer prevEndRow; // required
 
@@ -132,7 +132,7 @@ import org.slf4j.LoggerFactory;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.TABLE_ID, new org.apache.thrift.meta_data.FieldMetaData("tableId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.END_ROW, new org.apache.thrift.meta_data.FieldMetaData("endRow", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
     tmpMap.put(_Fields.PREV_END_ROW, new org.apache.thrift.meta_data.FieldMetaData("prevEndRow", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -145,7 +145,7 @@ import org.slf4j.LoggerFactory;
   }
 
   public PKeyExtent(
-    ByteBuffer tableId,
+    String tableId,
     ByteBuffer endRow,
     ByteBuffer prevEndRow)
   {
@@ -160,8 +160,7 @@ import org.slf4j.LoggerFactory;
    */
   public PKeyExtent(PKeyExtent other) {
     if (other.isSetTableId()) {
-      this.tableId = org.apache.thrift.TBaseHelper.copyBinary(other.tableId);
-;
+      this.tableId = other.tableId;
     }
     if (other.isSetEndRow()) {
       this.endRow = org.apache.thrift.TBaseHelper.copyBinary(other.endRow);
@@ -184,21 +183,11 @@ import org.slf4j.LoggerFactory;
     this.prevEndRow = null;
   }
 
-  public byte[] getTableId() {
-    setTableId(org.apache.thrift.TBaseHelper.rightSize(tableId));
-    return tableId == null ? null : tableId.array();
+  public String getTableId() {
+    return this.tableId;
   }
 
-  public ByteBuffer bufferForTableId() {
-    return tableId;
-  }
-
-  public PKeyExtent setTableId(byte[] tableId) {
-    setTableId(tableId == null ? (ByteBuffer)null : ByteBuffer.wrap(tableId));
-    return this;
-  }
-
-  public PKeyExtent setTableId(ByteBuffer tableId) {
+  public PKeyExtent setTableId(String tableId) {
     this.tableId = tableId;
     return this;
   }
@@ -292,7 +281,7 @@ import org.slf4j.LoggerFactory;
       if (value == null) {
         unsetTableId();
       } else {
-        setTableId((ByteBuffer)value);
+        setTableId((String)value);
       }
       break;
 
@@ -457,7 +446,7 @@ import org.slf4j.LoggerFactory;
     if (this.tableId == null) {
       sb.append("null");
     } else {
-      org.apache.thrift.TBaseHelper.toString(this.tableId, sb);
+      sb.append(this.tableId);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -521,7 +510,7 @@ import org.slf4j.LoggerFactory;
         switch (schemeField.id) {
           case 1: // TABLE_ID
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.tableId = iprot.readBinary();
+              struct.tableId = iprot.readString();
               struct.setTableIdIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -560,7 +549,7 @@ import org.slf4j.LoggerFactory;
       oprot.writeStructBegin(STRUCT_DESC);
       if (struct.tableId != null) {
         oprot.writeFieldBegin(TABLE_ID_FIELD_DESC);
-        oprot.writeBinary(struct.tableId);
+        oprot.writeString(struct.tableId);
         oprot.writeFieldEnd();
       }
       if (struct.endRow != null) {
@@ -602,7 +591,7 @@ import org.slf4j.LoggerFactory;
       }
       oprot.writeBitSet(optionals, 3);
       if (struct.isSetTableId()) {
-        oprot.writeBinary(struct.tableId);
+        oprot.writeString(struct.tableId);
       }
       if (struct.isSetEndRow()) {
         oprot.writeBinary(struct.endRow);
@@ -617,7 +606,7 @@ import org.slf4j.LoggerFactory;
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(3);
       if (incoming.get(0)) {
-        struct.tableId = iprot.readBinary();
+        struct.tableId = iprot.readString();
         struct.setTableIdIsSet(true);
       }
       if (incoming.get(1)) {

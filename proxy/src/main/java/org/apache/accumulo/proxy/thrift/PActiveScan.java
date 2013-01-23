@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
 
   private static final org.apache.thrift.protocol.TField CLIENT_FIELD_DESC = new org.apache.thrift.protocol.TField("client", org.apache.thrift.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift.protocol.TField USER_FIELD_DESC = new org.apache.thrift.protocol.TField("user", org.apache.thrift.protocol.TType.STRING, (short)2);
-  private static final org.apache.thrift.protocol.TField TABLE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("tableId", org.apache.thrift.protocol.TType.STRING, (short)3);
+  private static final org.apache.thrift.protocol.TField TABLE_FIELD_DESC = new org.apache.thrift.protocol.TField("table", org.apache.thrift.protocol.TType.STRING, (short)3);
   private static final org.apache.thrift.protocol.TField AGE_FIELD_DESC = new org.apache.thrift.protocol.TField("age", org.apache.thrift.protocol.TType.I64, (short)4);
   private static final org.apache.thrift.protocol.TField IDLE_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("idleTime", org.apache.thrift.protocol.TType.I64, (short)5);
   private static final org.apache.thrift.protocol.TField TYPE_FIELD_DESC = new org.apache.thrift.protocol.TField("type", org.apache.thrift.protocol.TType.I32, (short)6);
@@ -69,7 +69,7 @@ import org.slf4j.LoggerFactory;
 
   public String client; // required
   public String user; // required
-  public String tableId; // required
+  public String table; // required
   public long age; // required
   public long idleTime; // required
   /**
@@ -91,7 +91,7 @@ import org.slf4j.LoggerFactory;
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     CLIENT((short)1, "client"),
     USER((short)2, "user"),
-    TABLE_ID((short)3, "tableId"),
+    TABLE((short)3, "table"),
     AGE((short)4, "age"),
     IDLE_TIME((short)5, "idleTime"),
     /**
@@ -126,8 +126,8 @@ import org.slf4j.LoggerFactory;
           return CLIENT;
         case 2: // USER
           return USER;
-        case 3: // TABLE_ID
-          return TABLE_ID;
+        case 3: // TABLE
+          return TABLE;
         case 4: // AGE
           return AGE;
         case 5: // IDLE_TIME
@@ -194,7 +194,7 @@ import org.slf4j.LoggerFactory;
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.USER, new org.apache.thrift.meta_data.FieldMetaData("user", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-    tmpMap.put(_Fields.TABLE_ID, new org.apache.thrift.meta_data.FieldMetaData("tableId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.TABLE, new org.apache.thrift.meta_data.FieldMetaData("table", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.AGE, new org.apache.thrift.meta_data.FieldMetaData("age", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
@@ -225,7 +225,7 @@ import org.slf4j.LoggerFactory;
   public PActiveScan(
     String client,
     String user,
-    String tableId,
+    String table,
     long age,
     long idleTime,
     PScanType type,
@@ -238,7 +238,7 @@ import org.slf4j.LoggerFactory;
     this();
     this.client = client;
     this.user = user;
-    this.tableId = tableId;
+    this.table = table;
     this.age = age;
     setAgeIsSet(true);
     this.idleTime = idleTime;
@@ -262,8 +262,8 @@ import org.slf4j.LoggerFactory;
     if (other.isSetUser()) {
       this.user = other.user;
     }
-    if (other.isSetTableId()) {
-      this.tableId = other.tableId;
+    if (other.isSetTable()) {
+      this.table = other.table;
     }
     this.age = other.age;
     this.idleTime = other.idleTime;
@@ -309,7 +309,7 @@ import org.slf4j.LoggerFactory;
   public void clear() {
     this.client = null;
     this.user = null;
-    this.tableId = null;
+    this.table = null;
     setAgeIsSet(false);
     this.age = 0;
     setIdleTimeIsSet(false);
@@ -370,27 +370,27 @@ import org.slf4j.LoggerFactory;
     }
   }
 
-  public String getTableId() {
-    return this.tableId;
+  public String getTable() {
+    return this.table;
   }
 
-  public PActiveScan setTableId(String tableId) {
-    this.tableId = tableId;
+  public PActiveScan setTable(String table) {
+    this.table = table;
     return this;
   }
 
-  public void unsetTableId() {
-    this.tableId = null;
+  public void unsetTable() {
+    this.table = null;
   }
 
-  /** Returns true if field tableId is set (has been assigned a value) and false otherwise */
-  public boolean isSetTableId() {
-    return this.tableId != null;
+  /** Returns true if field table is set (has been assigned a value) and false otherwise */
+  public boolean isSetTable() {
+    return this.table != null;
   }
 
-  public void setTableIdIsSet(boolean value) {
+  public void setTableIsSet(boolean value) {
     if (!value) {
-      this.tableId = null;
+      this.table = null;
     }
   }
 
@@ -663,11 +663,11 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
-    case TABLE_ID:
+    case TABLE:
       if (value == null) {
-        unsetTableId();
+        unsetTable();
       } else {
-        setTableId((String)value);
+        setTable((String)value);
       }
       break;
 
@@ -746,8 +746,8 @@ import org.slf4j.LoggerFactory;
     case USER:
       return getUser();
 
-    case TABLE_ID:
-      return getTableId();
+    case TABLE:
+      return getTable();
 
     case AGE:
       return Long.valueOf(getAge());
@@ -788,8 +788,8 @@ import org.slf4j.LoggerFactory;
       return isSetClient();
     case USER:
       return isSetUser();
-    case TABLE_ID:
-      return isSetTableId();
+    case TABLE:
+      return isSetTable();
     case AGE:
       return isSetAge();
     case IDLE_TIME:
@@ -841,12 +841,12 @@ import org.slf4j.LoggerFactory;
         return false;
     }
 
-    boolean this_present_tableId = true && this.isSetTableId();
-    boolean that_present_tableId = true && that.isSetTableId();
-    if (this_present_tableId || that_present_tableId) {
-      if (!(this_present_tableId && that_present_tableId))
+    boolean this_present_table = true && this.isSetTable();
+    boolean that_present_table = true && that.isSetTable();
+    if (this_present_table || that_present_table) {
+      if (!(this_present_table && that_present_table))
         return false;
-      if (!this.tableId.equals(that.tableId))
+      if (!this.table.equals(that.table))
         return false;
     }
 
@@ -958,12 +958,12 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetTableId()).compareTo(typedOther.isSetTableId());
+    lastComparison = Boolean.valueOf(isSetTable()).compareTo(typedOther.isSetTable());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetTableId()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tableId, typedOther.tableId);
+    if (isSetTable()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.table, typedOther.table);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -1084,11 +1084,11 @@ import org.slf4j.LoggerFactory;
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("tableId:");
-    if (this.tableId == null) {
+    sb.append("table:");
+    if (this.table == null) {
       sb.append("null");
     } else {
-      sb.append(this.tableId);
+      sb.append(this.table);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -1211,10 +1211,10 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 3: // TABLE_ID
+          case 3: // TABLE
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.tableId = iprot.readString();
-              struct.setTableIdIsSet(true);
+              struct.table = iprot.readString();
+              struct.setTableIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -1341,9 +1341,9 @@ import org.slf4j.LoggerFactory;
         oprot.writeString(struct.user);
         oprot.writeFieldEnd();
       }
-      if (struct.tableId != null) {
-        oprot.writeFieldBegin(TABLE_ID_FIELD_DESC);
-        oprot.writeString(struct.tableId);
+      if (struct.table != null) {
+        oprot.writeFieldBegin(TABLE_FIELD_DESC);
+        oprot.writeString(struct.table);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldBegin(AGE_FIELD_DESC);
@@ -1427,7 +1427,7 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetUser()) {
         optionals.set(1);
       }
-      if (struct.isSetTableId()) {
+      if (struct.isSetTable()) {
         optionals.set(2);
       }
       if (struct.isSetAge()) {
@@ -1461,8 +1461,8 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetUser()) {
         oprot.writeString(struct.user);
       }
-      if (struct.isSetTableId()) {
-        oprot.writeString(struct.tableId);
+      if (struct.isSetTable()) {
+        oprot.writeString(struct.table);
       }
       if (struct.isSetAge()) {
         oprot.writeI64(struct.age);
@@ -1521,8 +1521,8 @@ import org.slf4j.LoggerFactory;
         struct.setUserIsSet(true);
       }
       if (incoming.get(2)) {
-        struct.tableId = iprot.readString();
-        struct.setTableIdIsSet(true);
+        struct.table = iprot.readString();
+        struct.setTableIsSet(true);
       }
       if (incoming.get(3)) {
         struct.age = iprot.readI64();

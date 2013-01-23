@@ -109,7 +109,7 @@ enum PScanState {
 }
 
 struct PKeyExtent {
-  1:binary tableId,
+  1:string tableId,
   2:binary endRow,
   3:binary prevEndRow
 }
@@ -123,7 +123,7 @@ struct PColumn {
 struct PActiveScan {
     1:string client
     2:string user
-    3:string tableId
+    3:string table
     4:i64 age
     5:i64 idleTime
     6:PScanType type
@@ -256,7 +256,7 @@ service AccumuloProxy
 
   // security operations
   bool securityOperations_authenticateUser (1:UserPass userpass, 2:string user, 3:binary password) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void securityOperations_changeUserAuthorizations (1:UserPass userpass, 2:string user, 3:set<string> authorizations) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void securityOperations_changeUserAuthorizations (1:UserPass userpass, 2:string user, 3:set<binary> authorizations) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void securityOperations_changeUserPassword (1:UserPass userpass, 2:string user, 3:binary password) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void securityOperations_createUser (1:UserPass userpass, 2:string user, 3:binary password) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
   void securityOperations_dropUser (1:UserPass userpass, 2:string user) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
@@ -272,8 +272,8 @@ service AccumuloProxy
 
   // scanning
 
-  string createBatchScanner(1:UserPass userpass, 2:string tableName, 3:set<string> authorizations, 4:PIteratorSetting iteratorSetting, 5:list<PRange> range);
-  string createScanner(1:UserPass userpass, 2:string tableName, 3:set<string> authorizations, 4:PIteratorSetting iteratorSetting, 5:PRange range);
+  string createBatchScanner(1:UserPass userpass, 2:string tableName, 3:set<binary> authorizations, 4:list<PIteratorSetting> iteratorSetting, 5:list<PRange> range);
+  string createScanner(1:UserPass userpass, 2:string tableName, 3:set<binary> authorizations, 4:list<PIteratorSetting> iteratorSetting, 5:PRange range);
 
   bool scanner_hasnext(1:string scanner);
   KeyValueAndPeek scanner_next(1:string scanner);

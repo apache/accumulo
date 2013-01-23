@@ -175,8 +175,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   private List<IteratorSetting> getPIteratorSettings(List<PIteratorSetting> iterators) {
     List<IteratorSetting> result = new ArrayList<IteratorSetting>();
-    for (PIteratorSetting is : iterators) {
-      result.add(getIteratorSetting(is));
+    if (iterators != null) {
+      for (PIteratorSetting is : iterators) {
+        result.add(getIteratorSetting(is));
+      }
     }
     return result;
   }
@@ -186,7 +188,6 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       getConnector(userpass).tableOperations().create(tableName, versioningIter, TimeType.valueOf(timeType.toString()));
     } catch (Exception e) {
-      e.printStackTrace();
       throw new TException(e);
     }
   }
@@ -438,14 +439,14 @@ public class ProxyServer implements AccumuloProxy.Iface {
         PActiveScan pscan = new PActiveScan();
         pscan.client = scan.getClient();
         pscan.user = scan.getUser();
-        pscan.tableId = scan.getTable();
+        pscan.table = scan.getTable();
         pscan.age = scan.getAge();
         pscan.idleTime = scan.getIdleTime();
         pscan.type = PScanType.valueOf(scan.getType().toString());
         pscan.state = PScanState.valueOf(scan.getState().toString());
         KeyExtent e = scan.getExtent();
         pscan.extent = new PKeyExtent(
-            TextUtil.getByteBuffer(e.getTableId()), 
+            e.getTableId().toString(), 
             TextUtil.getByteBuffer(e.getEndRow()), 
             TextUtil.getByteBuffer(e.getPrevEndRow()));
         pscan.columns = new ArrayList<PColumn>();
@@ -495,7 +496,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
         pcomp.entriesWritten = comp.getEntriesWritten();
         KeyExtent e = comp.getExtent();
         pcomp.extent = new PKeyExtent(
-            TextUtil.getByteBuffer(e.getTableId()),
+            e.getTableId().toString(),
             TextUtil.getByteBuffer(e.getEndRow()),
             TextUtil.getByteBuffer(e.getPrevEndRow())
             );
@@ -520,6 +521,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
             pcomp.iterators.add(psetting);
           }
         }
+        result.add(pcomp);
       }
       return result;
     } catch (Exception e) {
@@ -566,10 +568,14 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void securityOperations_changeUserAuthorizations(UserPass userpass, String user, Set<String> authorizations) throws AccumuloException,
+  public void securityOperations_changeUserAuthorizations(UserPass userpass, String user, Set<ByteBuffer> authorizations) throws AccumuloException,
       AccumuloSecurityException, TException {
     try {
-      getConnector(userpass).securityOperations().changeUserAuthorizations(user, new Authorizations(authorizations.toArray(new String[0])));
+      Set<String> auths = new HashSet<String>();
+      for (ByteBuffer auth : authorizations) {
+        auths.add(ByteBufferUtil.toString(auth));
+      }
+      getConnector(userpass).securityOperations().changeUserAuthorizations(user, new Authorizations(auths.toArray(new String[0])));
     } catch (Exception e) {
       throw new TException(e);
     }
@@ -684,7 +690,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public String createScanner(UserPass userpass, String tableName, Set<String> authorizations, PIteratorSetting in_is, PRange prange) throws TException {
+  public String createScanner(UserPass userpass, String tableName, Set<ByteBuffer> authorizations, List<PIteratorSetting> iterators, PRange prange) throws TException {
     try {
       Connector connector = getConnector(userpass);
       
@@ -696,9 +702,11 @@ public class ProxyServer implements AccumuloProxy.Iface {
       
       Scanner scanner = connector.createScanner(tableName, auth);
       
-      if (in_is != null) {
-        IteratorSetting is = new IteratorSetting(in_is.getPriority(), in_is.getName(), in_is.getIteratorClass(), in_is.getProperties());
-        scanner.addScanIterator(is);
+      if (iterators != null) {
+        for (PIteratorSetting iter : iterators) {
+          IteratorSetting is = new IteratorSetting(iter.getPriority(), iter.getName(), iter.getIteratorClass(), iter.getProperties());
+          scanner.addScanIterator(is);
+        }
       }
       
       Range range = prange == null ? new Range() : (new Range(prange.getStart() == null ? null : Util.fromThrift(prange.getStart()), true,
@@ -718,7 +726,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public String createBatchScanner(UserPass userpass, String tableName, Set<String> authorizations, PIteratorSetting in_is, List<PRange> pranges)
+  public String createBatchScanner(UserPass userpass, String tableName, Set<ByteBuffer> authorizations, List<PIteratorSetting> iterators, List<PRange> pranges)
       throws TException {
     try {
       Connector connector = getConnector(userpass);
@@ -731,9 +739,11 @@ public class ProxyServer implements AccumuloProxy.Iface {
       
       BatchScanner scanner = connector.createBatchScanner(tableName, auth, 10);
       
-      if (in_is != null) {
-        IteratorSetting is = new IteratorSetting(in_is.getPriority(), in_is.getName(), in_is.getIteratorClass(), in_is.getProperties());
-        scanner.addScanIterator(is);
+      if (iterators != null) {
+        for (PIteratorSetting iter: iterators) {
+          IteratorSetting is = new IteratorSetting(iter.getPriority(), iter.getName(), iter.getIteratorClass(), iter.getProperties());
+          scanner.addScanIterator(is);
+        }
       }
       
       ArrayList<Range> ranges = new ArrayList<Range>();
@@ -796,12 +806,17 @@ public class ProxyServer implements AccumuloProxy.Iface {
       PScanResult ret = new PScanResult();
       ret.setResults(new ArrayList<PKeyValue>());
       int numRead = 0;
-      while (batchScanner.hasNext() && numRead < k) {
-        Map.Entry<Key,Value> next = batchScanner.next();
-        ret.addToResults(new PKeyValue(Util.toThrift(next.getKey()), ByteBuffer.wrap(next.getValue().get())));
-        numRead++;
+      try {
+        while (batchScanner.hasNext() && numRead < k) {
+          Map.Entry<Key,Value> next = batchScanner.next();
+          ret.addToResults(new PKeyValue(Util.toThrift(next.getKey()), ByteBuffer.wrap(next.getValue().get())));
+          numRead++;
+        }
+        ret.setMore(numRead == k);
+      } catch (Exception ex) {
+        close_scanner(scanner);
+        throw new TException(ex);
       }
-      ret.setMore(numRead == k);
       return ret;
     }
   }
