@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 
@@ -61,7 +61,7 @@ public class AlterTablePerm extends Test {
     String tableName = WalkingSecurity.get(state).getTableName();
     boolean hasPerm = WalkingSecurity.get(state).hasTablePermission(target, tableName, tabPerm);
     boolean canGive;
-    AuthInfo source;
+    InstanceTokenWrapper source;
     if ("system".equals(sourceUser)) {
       source = WalkingSecurity.get(state).getSysAuthInfo();
     } else if ("table".equals(sourceUser)) {

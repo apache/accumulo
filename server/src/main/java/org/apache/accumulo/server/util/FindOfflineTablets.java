@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.master.state.tables.TableState;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.server.master.LiveTServerSet;
 import org.apache.accumulo.server.master.LiveTServerSet.Listener;
 import org.apache.accumulo.server.master.state.MetaDataTableScanner;
@@ -43,7 +44,7 @@ public class FindOfflineTablets {
     opts.parseArgs(FindOfflineTablets.class.getName(), args);
     
     Instance instance = opts.getInstance();
-    MetaDataTableScanner scanner = new MetaDataTableScanner(instance, opts.getAuthInfo(), new Range());
+    MetaDataTableScanner scanner = new MetaDataTableScanner(instance, new InstanceTokenWrapper(opts.getAccumuloToken(), instance.getInstanceID()), new Range());
     LiveTServerSet tservers = new LiveTServerSet(instance, DefaultConfiguration.getDefaultConfiguration(), new Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted, Set<TServerInstance> added) {

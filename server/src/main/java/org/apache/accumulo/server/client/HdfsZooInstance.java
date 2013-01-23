@@ -31,7 +31,9 @@ import org.apache.accumulo.core.client.impl.ConnectorImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
-import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.StringUtil;
 import org.apache.accumulo.core.util.TextUtil;
@@ -139,20 +141,25 @@ public class HdfsZooInstance implements Instance {
     return (int) ServerConfiguration.getSiteConfiguration().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
   }
   
-  @SuppressWarnings("deprecation")
+  /**
+   * @deprecated since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
-  // Not really deprecated, just not for client use
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, user, pass);
+    return getConnector(new UserPassToken(user, pass));
   }
   
-  @SuppressWarnings("deprecation")
+  /**
+   * @deprecated since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
-  // Not really deprecated, just not for client use
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, user, ByteBufferUtil.toBytes(pass));
+    return getConnector(new UserPassToken(user, pass));
   }
   
+  /**
+   * @deprecated since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
@@ -180,8 +187,21 @@ public class HdfsZooInstance implements Instance {
     System.out.println("Masters: " + StringUtil.join(instance.getMasterLocations(), ", "));
   }
   
+  /**
+   * @deprecated since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
   public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(auth.user, auth.password);
+    return getConnector(UserPassToken.convertAuthInfo(auth));
+  }
+  
+  @SuppressWarnings("deprecation")
+  public Connector getConnector(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException {
+    return new ConnectorImpl(this, token);
+  }
+
+  @Override
+  public Connector getConnector(InstanceTokenWrapper token) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(token.getToken());
   }
 }

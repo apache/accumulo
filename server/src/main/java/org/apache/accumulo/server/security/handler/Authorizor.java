@@ -18,6 +18,8 @@ package org.apache.accumulo.server.security.handler;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 
 /**
  * This interface is used for the system which will be used for getting a users Authorizations. If the implementation does not support configuration through
@@ -45,7 +47,7 @@ public interface Authorizor {
    * @param rootuser
    * @throws AccumuloSecurityException
    */
-  public void initializeSecurity(String rootuser) throws AccumuloSecurityException;
+  public void initializeSecurity(InstanceTokenWrapper credentials, String rootuser) throws AccumuloSecurityException, ThriftSecurityException;
   
   /**
    * Used to change the authorizations for the user

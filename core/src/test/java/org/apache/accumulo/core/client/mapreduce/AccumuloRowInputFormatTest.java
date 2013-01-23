@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.ContextFactory;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.io.Text;
@@ -101,7 +102,7 @@ public class AccumuloRowInputFormatTest {
   @Test
   public void test() throws AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException, IOException, InterruptedException {
     final MockInstance instance = new MockInstance("instance1");
-    final Connector conn = instance.getConnector("root", "".getBytes());
+    final Connector conn = instance.getConnector(new UserPassToken("root", ""));
     conn.tableOperations().create("test");
     BatchWriter writer = null; // NOPMD
     try {

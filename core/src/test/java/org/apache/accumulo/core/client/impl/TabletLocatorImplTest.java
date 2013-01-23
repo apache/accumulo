@@ -48,6 +48,8 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -417,11 +419,22 @@ public class TabletLocatorImplTest extends TestCase {
       this.rtl = rtl;
     }
     
+    /**
+     * @deprecated @since 1.5
+     */
     @Override
     public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
     
+    @Override
+    public Connector getConnector(InstanceTokenWrapper itw) throws AccumuloException, AccumuloSecurityException {
+      throw new UnsupportedOperationException();
+    }
+    
+    /**
+     * @deprecated @since 1.5
+     */
     @Override
     public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
@@ -439,14 +452,24 @@ public class TabletLocatorImplTest extends TestCase {
       this.conf = conf;
     }
     
+    /**
+     * @deprecated @since 1.5
+     */
     @Override
     public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
     
+    /**
+     * @deprecated @since 1.5
+     */
     @Override
     public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
       return getConnector(auth.user, auth.password);
+    }
+    
+    public Connector getConnector(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException {
+      throw new UnsupportedOperationException();
     }
   }
   

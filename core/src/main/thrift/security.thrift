@@ -28,15 +28,25 @@ enum SecurityErrorCode {
     BAD_AUTHORIZATIONS = 7,
     INVALID_INSTANCEID = 8,
     TABLE_DOESNT_EXIST = 9,
-    UNSUPPORTED_OPERATION = 10
+    UNSUPPORTED_OPERATION = 10,
+    INVALID_TOKEN = 11
 }
 
-struct AuthInfo {
+struct ThriftUserPassToken {
     1:string user,
-    2:binary password,
-    3:string instanceId
+    2:binary password
 }
 
+struct ThriftKerberosToken {
+	1:string user,
+	2:binary ticket
+}
+
+struct ThriftInstanceTokenWrapper {
+	1: binary token,
+	2: string tokenClass,
+	3: string instance
+}
 exception ThriftSecurityException {
     1:string user,
     2:SecurityErrorCode code

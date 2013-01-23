@@ -31,6 +31,9 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.TextUtil;
@@ -112,22 +115,42 @@ public class MockInstance implements Instance {
     return 30 * 1000;
   }
   
-  @Override
+  /**
+   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   * @Override
+   */
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    Connector conn = new MockConnector(user, acu, this);
-    if (!acu.users.containsKey(user))
-      conn.securityOperations().createUser(user, pass);
-    else if (!Arrays.equals(acu.users.get(user).password, pass))
-        throw new AccumuloSecurityException(user, SecurityErrorCode.BAD_CREDENTIALS);
+    return getConnector(new UserPassToken(user, ByteBuffer.wrap(pass)));
+  }
+  
+  public Connector getConnector(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException {
+    if (!(token instanceof UserPassToken))
+      throw new AccumuloException("Mock only accepts UserPassTokens");
+    UserPassToken upt = (UserPassToken) token;
+    
+    Connector conn = new MockConnector(token.getPrincipal(), acu, this);
+    if (!acu.users.containsKey(token.getPrincipal()))
+      conn.securityOperations().createUser(upt);
+    else if (!Arrays.equals(acu.users.get(upt.getPrincipal()).password, upt.getPassword()))
+      throw new AccumuloSecurityException(upt.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
     return conn;
   }
   
-  @Override
+  public Connector getConnector(InstanceTokenWrapper token) throws AccumuloException, AccumuloSecurityException {
+    return getConnector(token.getToken());
+  }
+  /**
+   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   * @Override
+   */
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, ByteBufferUtil.toBytes(pass));
   }
   
-  @Override
+  /**
+   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   * @Override
+   */
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
   }
@@ -146,8 +169,11 @@ public class MockInstance implements Instance {
     this.conf = conf;
   }
   
-  @Override
+  /**
+   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   * @Override
+   */
   public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(auth.user, auth.password);
+    return getConnector(UserPassToken.convertAuthInfo(auth));
   }
 }

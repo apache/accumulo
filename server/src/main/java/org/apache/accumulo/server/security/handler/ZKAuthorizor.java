@@ -28,6 +28,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -72,7 +73,7 @@ public class ZKAuthorizor implements Authorizor {
   }
   
   @Override
-  public void initializeSecurity(String rootuser) throws AccumuloSecurityException {
+  public void initializeSecurity(InstanceTokenWrapper itw, String rootuser) throws AccumuloSecurityException {
     IZooReaderWriter zoo = ZooReaderWriter.getRetryingInstance();
 
     // create the root user with all system privileges, no table privileges, and no record-level authorizations

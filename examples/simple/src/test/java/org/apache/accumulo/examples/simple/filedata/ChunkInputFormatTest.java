@@ -21,12 +21,14 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import junit.framework.TestCase;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -37,6 +39,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.ContextFactory;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -73,9 +76,9 @@ public class ChunkInputFormatTest extends TestCase {
   
   public void test() throws IOException, InterruptedException, AccumuloException, AccumuloSecurityException, TableExistsException, TableNotFoundException {
     MockInstance instance = new MockInstance("instance1");
-    Connector conn = instance.getConnector("root", "".getBytes());
+    Connector conn = instance.getConnector(new UserPassToken("root", ""));
     conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", 100000l, 100l, 5);
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig().setMaxMemory(1000000l).setMaxLatency(100l, TimeUnit.SECONDS).setMaxWriteThreads(5));
     
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
@@ -124,9 +127,9 @@ public class ChunkInputFormatTest extends TestCase {
   public void testErrorOnNextWithoutClose() throws IOException, InterruptedException, AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TableExistsException {
     MockInstance instance = new MockInstance("instance2");
-    Connector conn = instance.getConnector("root", "".getBytes());
+    Connector conn = instance.getConnector(new UserPassToken("root", ""));
     conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", 100000l, 100l, 5);
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig().setMaxMemory(1000000l).setMaxLatency(100l, TimeUnit.SECONDS).setMaxWriteThreads(5));
     
     for (Entry<Key,Value> e : data) {
       Key k = e.getKey();
@@ -164,9 +167,9 @@ public class ChunkInputFormatTest extends TestCase {
   public void testInfoWithoutChunks() throws IOException, InterruptedException, AccumuloException, AccumuloSecurityException, TableNotFoundException,
       TableExistsException {
     MockInstance instance = new MockInstance("instance3");
-    Connector conn = instance.getConnector("root", "".getBytes());
+    Connector conn = instance.getConnector(new UserPassToken("root", ""));
     conn.tableOperations().create("test");
-    BatchWriter bw = conn.createBatchWriter("test", 100000l, 100l, 5);
+    BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig().setMaxMemory(1000000l).setMaxLatency(100l, TimeUnit.SECONDS).setMaxWriteThreads(5));
     for (Entry<Key,Value> e : baddata) {
       Key k = e.getKey();
       Mutation m = new Mutation(k.getRow());

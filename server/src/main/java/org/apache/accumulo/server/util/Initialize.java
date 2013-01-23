@@ -40,6 +40,7 @@ import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.MasterGoalState;
 import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooUtil;
 import org.apache.accumulo.fate.zookeeper.IZooReaderWriter;
@@ -421,7 +422,7 @@ public class Initialize {
   }
   
   private static void initSecurity(Opts opts, String iid) throws AccumuloSecurityException, ThriftSecurityException {
-    AuditedSecurityOperation.getInstance(iid).initializeSecurity(SecurityConstants.getSystemCredentials(), ROOT_USER, opts.rootpass);
+    AuditedSecurityOperation.getInstance(iid).initializeSecurity(SecurityConstants.getSystemCredentials(), new UserPassToken(ROOT_USER, opts.rootpass));
   }
   
   protected static void initMetadataConfig() throws IOException {

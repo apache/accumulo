@@ -34,7 +34,7 @@ import org.apache.accumulo.core.client.impl.ServerClient;
 import org.apache.accumulo.core.client.impl.thrift.ClientService;
 import org.apache.accumulo.core.client.impl.thrift.ConfigurationType;
 import org.apache.accumulo.core.master.thrift.MasterClientService;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.ThriftUtil;
@@ -46,7 +46,7 @@ import org.apache.accumulo.fate.zookeeper.ZooCache;
  */
 public class InstanceOperationsImpl implements InstanceOperations {
   private Instance instance;
-  private AuthInfo credentials;
+  private InstanceTokenWrapper credentials;
   
   /**
    * @param instance
@@ -54,7 +54,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
    * @param credentials
    *          the username/password for this connection
    */
-  public InstanceOperationsImpl(Instance instance, AuthInfo credentials) {
+  public InstanceOperationsImpl(Instance instance, InstanceTokenWrapper credentials) {
     ArgumentChecker.notNull(instance, credentials);
     this.instance = instance;
     this.credentials = credentials;
@@ -69,7 +69,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
-        client.setSystemProperty(Tracer.traceInfo(), credentials, property, value);
+        client.setSystemProperty(Tracer.traceInfo(), credentials.toThrift(), property, value);
       }
     });
   }
@@ -83,7 +83,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     MasterClient.execute(instance, new ClientExec<MasterClientService.Client>() {
       @Override
       public void execute(MasterClientService.Client client) throws Exception {
-        client.removeSystemProperty(Tracer.traceInfo(), credentials, property);
+        client.removeSystemProperty(Tracer.traceInfo(), credentials.toThrift(), property);
       }
     });
   }
@@ -147,7 +147,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         new ClientExecReturn<List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan>,TabletClientService.Client>() {
           @Override
           public List<org.apache.accumulo.core.tabletserver.thrift.ActiveScan> execute(TabletClientService.Client client) throws Exception {
-            return client.getActiveScans(Tracer.traceInfo(), credentials);
+            return client.getActiveScans(Tracer.traceInfo(), credentials.toThrift());
           }
         });
     List<ActiveScan> as = new ArrayList<ActiveScan>();

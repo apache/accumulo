@@ -16,11 +16,12 @@
  */
 package org.apache.accumulo.server.security.handler;
 
-import java.nio.ByteBuffer;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 
 /**
  * This interface is used for the system which will be used for authenticating a user. If the implementation does not support configuration through Accumulo, it
@@ -33,17 +34,19 @@ public interface Authenticator {
 
   public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm);
 
-  public void initializeSecurity(AuthInfo credentials, String rootuser, byte[] rootpass) throws AccumuloSecurityException;
+  public void initializeSecurity(InstanceTokenWrapper credentials, AccumuloToken<?,?> at) throws AccumuloSecurityException, ThriftSecurityException;
 
-  public boolean authenticateUser(String user, ByteBuffer password, String instanceId);
+  public boolean authenticateUser(AccumuloToken<?,?> token) throws AccumuloSecurityException;
   
   public Set<String> listUsers() throws AccumuloSecurityException;
   
-  public void createUser(String user, byte[] pass) throws AccumuloSecurityException;
+  public void createUser(AccumuloToken<?,?> user) throws AccumuloSecurityException;
   
   public void dropUser(String user) throws AccumuloSecurityException;
   
-  public void changePassword(String user, byte[] pass) throws AccumuloSecurityException;
+  public void changePassword(AccumuloToken<?,?> user) throws AccumuloSecurityException;
   
   public boolean userExists(String user);
+
+  public String getTokenClassName();
 }

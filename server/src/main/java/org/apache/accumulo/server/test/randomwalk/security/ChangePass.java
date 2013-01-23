@@ -22,7 +22,8 @@ import java.util.Random;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.server.test.randomwalk.State;
 import org.apache.accumulo.server.test.randomwalk.Test;
 
@@ -33,7 +34,7 @@ public class ChangePass extends Test {
     String target = props.getProperty("target");
     String source = props.getProperty("source");
     
-    AuthInfo auth;
+    InstanceTokenWrapper auth;
     if (source.equals("system")) {
       auth = WalkingSecurity.get(state).getSysAuthInfo();
     } else {
@@ -78,7 +79,7 @@ public class ChangePass extends Test {
           throw new AccumuloException("Got unexpected exception", ae);
       }
     }
-    WalkingSecurity.get(state).changePassword(target, newPass);
+    WalkingSecurity.get(state).changePassword(new UserPassToken(target, newPass));
     if (!hasPerm)
       throw new AccumuloException("Password change succeeded when it should have failed for " + source + " changing the password for " + target + ".");
   }

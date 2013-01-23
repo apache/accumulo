@@ -36,6 +36,7 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -67,11 +68,12 @@ public class MiniAccumuloClusterTest {
 
   @Test(timeout = 30000)
   public void test() throws Exception {
-    Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZookeepers()).getConnector("root", "superSecret");
+    Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZookeepers()).getConnector(new UserPassToken("root", "superSecret"));
     
     conn.tableOperations().create("table1");
     
-    conn.securityOperations().createUser("user1", "pass1".getBytes());
+    UserPassToken upt = new UserPassToken("user1", "pass1");
+    conn.securityOperations().createUser(upt);
     conn.securityOperations().changeUserAuthorizations("user1", new Authorizations("A", "B"));
     conn.securityOperations().grantTablePermission("user1", "table1", TablePermission.WRITE);
     conn.securityOperations().grantTablePermission("user1", "table1", TablePermission.READ);
@@ -82,7 +84,7 @@ public class MiniAccumuloClusterTest {
     
     conn.tableOperations().attachIterator("table1", is);
 
-    Connector uconn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZookeepers()).getConnector("user1", "pass1");
+    Connector uconn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZookeepers()).getConnector(upt);
     
     BatchWriter bw = uconn.createBatchWriter("table1", new BatchWriterConfig());
     
@@ -138,7 +140,7 @@ public class MiniAccumuloClusterTest {
   @Test(timeout = 30000)
   public void testPerTableClasspath() throws Exception {
     
-    Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZookeepers()).getConnector("root", "superSecret");
+    Connector conn = new ZooKeeperInstance(accumulo.getInstanceName(), accumulo.getZookeepers()).getConnector(new UserPassToken("root", "superSecret"));
     
     conn.tableOperations().create("table2");
     
@@ -184,7 +186,7 @@ public class MiniAccumuloClusterTest {
   @AfterClass
   public static void tearDownMiniCluster() throws Exception {
     accumulo.stop();
-    folder.delete();
+//    folder.delete();
   }
   
 }

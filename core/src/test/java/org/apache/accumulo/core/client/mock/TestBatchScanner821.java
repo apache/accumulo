@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.junit.Test;
 
 public class TestBatchScanner821 {
@@ -38,7 +39,7 @@ public class TestBatchScanner821 {
   @Test
   public void test() throws Exception {
     MockInstance inst = new MockInstance();
-    Connector conn = inst.getConnector("root", "");
+    Connector conn = inst.getConnector(new UserPassToken("root", ""));
     conn.tableOperations().create("test");
     BatchWriter bw = conn.createBatchWriter("test", new BatchWriterConfig());
     for (String row : "A,B,C,D".split(",")) {

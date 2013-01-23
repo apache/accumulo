@@ -34,6 +34,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.ContextFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -76,7 +77,7 @@ public class AccumuloOutputFormatTest {
   @Test
   public void testMR() throws Exception {
     MockInstance mockInstance = new MockInstance("testmrinstance");
-    Connector c = mockInstance.getConnector("root", new byte[] {});
+    Connector c = mockInstance.getConnector(new UserPassToken("root", ""));
     c.tableOperations().create("testtable1");
     c.tableOperations().create("testtable2");
     BatchWriter bw = c.createBatchWriter("testtable1", new BatchWriterConfig());

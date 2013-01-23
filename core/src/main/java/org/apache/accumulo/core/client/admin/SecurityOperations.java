@@ -23,6 +23,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
 
 /**
  * Provides a class for managing users and permissions
@@ -60,7 +61,7 @@ public interface SecurityOperations {
    * @throws AccumuloSecurityException
    *           if the user does not have permission to create a user
    */
-  public void createUser(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
+  public void createUser(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Delete a user
@@ -100,8 +101,23 @@ public interface SecurityOperations {
    *           if a general error occurs
    * @throws AccumuloSecurityException
    *           if the user does not have permission to modify a user
+   *           @deprecated @since 1.5, use {@link #changeUserPassword(AccumuloToken)}
    */
   public void changeUserPassword(String user, byte[] password) throws AccumuloException, AccumuloSecurityException;
+  
+  /**
+   * Set the user's password
+   * 
+   * @param user
+   *          the name of the user to modify
+   * @param password
+   *          the plaintext password for the user
+   * @throws AccumuloException
+   *           if a general error occurs
+   * @throws AccumuloSecurityException
+   *           if the user does not have permission to modify a user
+   */
+  public void changeUserPassword(AccumuloToken<?,?> newToken) throws AccumuloException, AccumuloSecurityException;
   
   /**
    * Set the user's record-level authorizations
@@ -232,5 +248,14 @@ public interface SecurityOperations {
    *           if the user does not have permission to query users
    */
   public Set<String> listUsers() throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * @deprecated @since 1.5, use {@link #createUser(AccumuloToken)}
+   * @param token
+   * @param authorization
+   * @throws AccumuloException
+   * @throws AccumuloSecurityException
+   */
+  void createUser(AccumuloToken<?,?> token, Authorizations authorization) throws AccumuloException, AccumuloSecurityException;
   
 }

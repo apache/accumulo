@@ -28,8 +28,10 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FileUtil;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
-import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CachedConfiguration;
 import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.TextUtil;
@@ -56,6 +58,7 @@ import org.apache.log4j.Logger;
  * 
  */
 
+@SuppressWarnings("deprecation")
 public class ZooKeeperInstance implements Instance {
   
   private static final Logger log = Logger.getLogger(ZooKeeperInstance.class);
@@ -201,21 +204,29 @@ public class ZooKeeperInstance implements Instance {
     return zooKeepersSessionTimeOut;
   }
   
+  /**
+   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
   public Connector getConnector(String user, CharSequence pass) throws AccumuloException, AccumuloSecurityException {
     return getConnector(user, TextUtil.getBytes(new Text(pass.toString())));
   }
   
+  /**
+   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
   public Connector getConnector(String user, ByteBuffer pass) throws AccumuloException, AccumuloSecurityException {
-    return getConnector(user, ByteBufferUtil.toBytes(pass));
+    return getConnector(new UserPassToken(user, pass));
   }
   
   // Suppress deprecation, ConnectorImpl is deprecated to warn clients against using.
-  @SuppressWarnings("deprecation")
+  /**
+   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
   public Connector getConnector(String user, byte[] pass) throws AccumuloException, AccumuloSecurityException {
-    return new ConnectorImpl(this, user, pass);
+    return getConnector(user, ByteBuffer.wrap(pass));
   }
   
   private AccumuloConfiguration conf = null;
@@ -280,8 +291,23 @@ public class ZooKeeperInstance implements Instance {
     }
   }
   
+  /**
+   * @deprecated @since 1.5, use {@link #getConnector(AccumuloToken)}
+   */
   @Override
   public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
     return getConnector(auth.user, auth.password);
   }
+  
+  // Suppress deprecation, ConnectorImpl is deprecated to warn clients against using.
+  @Override
+  public Connector getConnector(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException {
+    return new ConnectorImpl(this, token);
+  }
+  
+//Suppress deprecation, ConnectorImpl is deprecated to warn clients against using.
+ @Override
+ public Connector getConnector(InstanceTokenWrapper token) throws AccumuloException, AccumuloSecurityException {
+   return getConnector(token.getToken());
+ }
 }

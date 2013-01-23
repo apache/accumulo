@@ -27,7 +27,7 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.security.SecurityConstants;
 import org.apache.hadoop.io.Text;
@@ -41,9 +41,9 @@ public class MetaDataStateStore extends TabletStateStore {
   
   final protected Instance instance;
   final protected CurrentState state;
-  final protected AuthInfo auths;
+  final protected InstanceTokenWrapper auths;
   
-  public MetaDataStateStore(Instance instance, AuthInfo auths, CurrentState state) {
+  public MetaDataStateStore(Instance instance, InstanceTokenWrapper auths, CurrentState state) {
     this.instance = instance;
     this.state = state;
     this.auths = auths;

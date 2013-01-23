@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.ContextFactory;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -242,7 +243,7 @@ public class AccumuloInputFormatTest {
   @Test
   public void testMap() throws Exception {
     MockInstance mockInstance = new MockInstance("testmapinstance");
-    Connector c = mockInstance.getConnector("root", new byte[] {});
+    Connector c = mockInstance.getConnector(new UserPassToken("root", ""));
     c.tableOperations().create("testtable");
     BatchWriter bw = c.createBatchWriter("testtable", new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {
@@ -276,7 +277,7 @@ public class AccumuloInputFormatTest {
   @Test
   public void testSimple() throws Exception {
     MockInstance mockInstance = new MockInstance("testmapinstance");
-    Connector c = mockInstance.getConnector("root", new byte[] {});
+    Connector c = mockInstance.getConnector(new UserPassToken("root", ""));
     c.tableOperations().create("testtable2");
     BatchWriter bw = c.createBatchWriter("testtable2", new BatchWriterConfig());
     for (int i = 0; i < 100; i++) {

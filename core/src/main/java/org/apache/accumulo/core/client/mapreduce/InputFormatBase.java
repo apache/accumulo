@@ -67,7 +67,8 @@ import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.ArgumentChecker;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
@@ -409,7 +410,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     return conf.get(USERNAME);
   }
   
-  
   /**
    * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
    * provide a charset safe conversion to a string, and is not intended to be secure.
@@ -479,8 +479,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
     String username = getUsername(conf);
     byte[] password = getPassword(conf);
     String tableName = getTablename(conf);
-    return TabletLocator.getInstance(instance, new AuthInfo(username, ByteBuffer.wrap(password), instance.getInstanceID()),
-        new Text(Tables.getTableId(instance, tableName)));
+    return TabletLocator.getInstance(instance, new InstanceTokenWrapper(new UserPassToken(username, ByteBuffer.wrap(password)), instance.getInstanceID()), new Text(Tables.getTableId(instance, tableName)));
   }
   
   /**
@@ -695,8 +694,8 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
         log.debug("Creating scanner for table: " + getTablename(conf));
         log.debug("Authorizations are: " + authorizations);
         if (isOfflineScan(conf)) {
-          scanner = new OfflineScanner(instance, new AuthInfo(user, ByteBuffer.wrap(password), instance.getInstanceID()), Tables.getTableId(instance,
-              getTablename(conf)), authorizations);
+          scanner = new OfflineScanner(instance, new UserPassToken(user, ByteBuffer.wrap(password)), Tables.getTableId(instance, getTablename(conf)),
+              authorizations);
         } else {
           scanner = conn.createScanner(getTablename(conf), authorizations);
         }

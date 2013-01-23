@@ -83,7 +83,7 @@ public class CheckForMetadataProblems {
       if (broke && opts.fix) {
         KeyExtent ke = new KeyExtent(tabke);
         ke.setPrevEndRow(lastEndRow);
-        MetadataTable.updateTabletPrevEndRow(ke, opts.getAuthInfo());
+        MetadataTable.updateTabletPrevEndRow(ke, opts.getWrappedToken());
         System.out.println("KE " + tabke + " has been repaired to " + ke);
       }
       
@@ -147,7 +147,7 @@ public class CheckForMetadataProblems {
           System.out.println("Problem at key " + entry.getKey());
           sawProblems = true;
           if (opts.fix) {
-            Writer t = MetadataTable.getMetadataTable(opts.getAuthInfo());
+            Writer t = MetadataTable.getMetadataTable(opts.getWrappedToken());
             Key k = entry.getKey();
             Mutation m = new Mutation(k.getRow());
             m.putDelete(k.getColumnFamily(), k.getColumnQualifier());

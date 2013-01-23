@@ -45,6 +45,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.core.iterators.system.MultiIterator;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -272,7 +273,7 @@ public class IntersectingIteratorTest extends TestCase {
   public void testWithBatchScanner() throws Exception {
     Value empty = new Value(new byte[] {});
     MockInstance inst = new MockInstance("mockabye");
-    Connector connector = inst.getConnector("user", "pass");
+    Connector connector = inst.getConnector(new UserPassToken("user", "pass"));
     connector.tableOperations().create("index");
     BatchWriter bw = connector.createBatchWriter("index", new BatchWriterConfig());
     Mutation m = new Mutation("000012");

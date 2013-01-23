@@ -16,12 +16,13 @@
  */
 package org.apache.accumulo.server.security.handler;
 
-import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 
 /**
  * This is an Authenticator implementation that doesn't actually do any security. Use at your own risk.
@@ -45,10 +46,10 @@ public class InsecureAuthenticator implements Authenticator {
   }
   
   /* (non-Javadoc)
-   * @see org.apache.accumulo.server.security.handler.Authenticator#initializeSecurity(org.apache.accumulo.core.security.thrift.AuthInfo, java.lang.String, byte[])
+   * @see org.apache.accumulo.server.security.handler.Authenticator#initializeSecurity(org.apache.accumulo.core.security.thrift.InstanceTokenWrapper, java.lang.String, byte[])
    */
   @Override
-  public void initializeSecurity(AuthInfo credentials, String rootuser, byte[] rootpass) throws AccumuloSecurityException {
+  public void initializeSecurity(InstanceTokenWrapper credentials, AccumuloToken<?,?> token) throws AccumuloSecurityException {
     return;
   }
   
@@ -56,7 +57,7 @@ public class InsecureAuthenticator implements Authenticator {
    * @see org.apache.accumulo.server.security.handler.Authenticator#authenticateUser(java.lang.String, java.nio.ByteBuffer, java.lang.String)
    */
   @Override
-  public boolean authenticateUser(String user, ByteBuffer password, String instanceId) {
+  public boolean authenticateUser(AccumuloToken<?,?> token) {
     return true;
   }
   
@@ -72,7 +73,7 @@ public class InsecureAuthenticator implements Authenticator {
    * @see org.apache.accumulo.server.security.handler.Authenticator#createUser(java.lang.String, byte[])
    */
   @Override
-  public void createUser(String user, byte[] pass) throws AccumuloSecurityException {
+  public void createUser(AccumuloToken<?,?> token) throws AccumuloSecurityException {
     return;
   }
   
@@ -88,7 +89,7 @@ public class InsecureAuthenticator implements Authenticator {
    * @see org.apache.accumulo.server.security.handler.Authenticator#changePassword(java.lang.String, byte[])
    */
   @Override
-  public void changePassword(String user, byte[] pass) throws AccumuloSecurityException {
+  public void changePassword(AccumuloToken<?,?> token) throws AccumuloSecurityException {
     return;
   }
 
@@ -98,6 +99,11 @@ public class InsecureAuthenticator implements Authenticator {
   @Override
   public boolean userExists(String user) {
     return true;
+  }
+
+  @Override
+  public String getTokenClassName() {
+    return UserPassToken.class.getName();
   }
   
 }

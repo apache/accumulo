@@ -21,7 +21,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecurityPermission;
@@ -30,7 +29,10 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.security.thrift.AuthInfo;
+import org.apache.accumulo.core.security.thrift.ThriftInstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.AccumuloToken;
+import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.master.state.TabletServerState;
@@ -41,16 +43,20 @@ public class SecurityConstants {
   
   public static final String SYSTEM_USERNAME = "!SYSTEM";
   private static final byte[] SYSTEM_PASSWORD = makeSystemPassword();
-  private static final AuthInfo systemCredentials = new AuthInfo(SYSTEM_USERNAME, ByteBuffer.wrap(SYSTEM_PASSWORD), HdfsZooInstance.getInstance()
-      .getInstanceID());
+  private static final AccumuloToken<?,?> systemToken = new UserPassToken(SYSTEM_USERNAME, SYSTEM_PASSWORD);
+  private static final InstanceTokenWrapper systemCredentials = new InstanceTokenWrapper(systemToken, HdfsZooInstance.getInstance().getInstanceID());
   public static byte[] confChecksum = null;
   
-  public static AuthInfo getSystemCredentials() {
+  public static InstanceTokenWrapper getSystemCredentials() {
     SecurityManager sm = System.getSecurityManager();
     if (sm != null) {
       sm.checkPermission(SYSTEM_CREDENTIALS_PERMISSION);
     }
     return systemCredentials;
+  }
+  
+  public static ThriftInstanceTokenWrapper getThriftSystemCredentials() {
+    return systemCredentials.toThrift();
   }
   
   private static byte[] makeSystemPassword() {
