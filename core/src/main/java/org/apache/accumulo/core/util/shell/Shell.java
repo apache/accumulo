@@ -62,6 +62,7 @@ import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterFactory;
 import org.apache.accumulo.core.util.shell.commands.AboutCommand;
+import org.apache.accumulo.core.util.shell.commands.AddAuthsCommand;
 import org.apache.accumulo.core.util.shell.commands.AddSplitsCommand;
 import org.apache.accumulo.core.util.shell.commands.AuthenticateCommand;
 import org.apache.accumulo.core.util.shell.commands.ByeCommand;
@@ -311,7 +312,7 @@ public class Shell extends ShellOptions {
         new TablesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(), new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(),
         new GetSplitsCommand(), new MergeCommand(), new SetGroupsCommand()};
-    Command[] userCommands = {new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(), new PasswdCommand(),
+    Command[] userCommands = {new AddAuthsCommand(), new CreateUserCommand(), new DeleteUserCommand(), new DropUserCommand(), new GetAuthsCommand(), new PasswdCommand(),
         new SetAuthsCommand(), new UsersCommand()};
     commandGrouping.put("-- Writing, Reading, and Removing Data --", dataCommands);
     commandGrouping.put("-- Debugging Commands -------------------", debuggingCommands);
