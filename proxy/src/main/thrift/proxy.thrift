@@ -173,30 +173,35 @@ enum PTimeType {
   MILLIS
 }
 
-exception NoMoreEntriesException
+exception PUnknownScanner
+{
+ 1:string msg;
+}
+
+exception PUnknownWriter
+{
+ 1:string msg;
+}
+
+exception PNoMoreEntriesException
+{
+ 1:string msg;
+}
+
+exception PAccumuloException
+{
+  1:string msg;
+}
+exception PAccumuloSecurityException
+{
+  1:string msg;
+}
+exception PTableNotFoundException
 {
   1:string msg;
 }
 
-exception AccumuloException
-{
-  1:string msg;
-}
-exception AccumuloSecurityException
-{
-  1:string msg;
-}
-exception TableNotFoundException
-{
-  1:string msg;
-}
-
-exception TableExistsException
-{
-  1:string msg;
-}
-
-exception IOException
+exception PTableExistsException
 {
   1:string msg;
 }
@@ -206,68 +211,68 @@ service AccumuloProxy
   bool ping (1:UserPass userpass);
 
   // table operations
-  i32 tableOperations_addConstraint (1:UserPass userpass, 2:string tableName, 3:string constraintClassName) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
-  void tableOperations_addSplits (1:UserPass userpass, 2:string tableName, 3:set<binary> splits) throws (1:TableNotFoundException ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
-  void tableOperations_attachIterator (1:UserPass userpass, 2:string tableName, 3:PIteratorSetting setting, 4:set<PIteratorScope> scopes) throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
-  void tableOperations_checkIteratorConflicts (1:UserPass userpass, 2:string tableName, 3:PIteratorSetting setting, 4:set<PIteratorScope> scopes) throws (1:AccumuloException ouch1, 2:TableNotFoundException ouch2);
-  void tableOperations_clearLocatorCache (1:UserPass userpass, 2:string tableName) throws (1:TableNotFoundException ouch1);
-  void tableOperations_clone (1:UserPass userpass, 2:string tableName, 3:string newTableName, 4:bool flush, 5:map<string,string> propertiesToSet, 6:set<string> propertiesToExclude) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3, 4:TableExistsException ouch4);
-  void tableOperations_compact (1:UserPass userpass, 2:string tableName, 3:binary startRow, 4:binary endRow, 5:list<PIteratorSetting> iterators, 6:bool flush, 7:bool wait) throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3);
-  void tableOperations_create (1:UserPass userpass, 2:string tableName, 3:bool versioningIter, 4:PTimeType type) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableExistsException ouch3);
-  void tableOperations_delete (1:UserPass userpass, 2:string tableName) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
-  void tableOperations_deleteRows (1:UserPass userpass, 2:string tableName, 3:binary startRow, 4:binary endRow) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  i32 tableOperations_addConstraint (1:UserPass userpass, 2:string tableName, 3:string constraintClassName) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2, 3:PTableNotFoundException ouch3);
+  void tableOperations_addSplits (1:UserPass userpass, 2:string tableName, 3:set<binary> splits) throws (1:PTableNotFoundException ouch1, 2:PAccumuloException ouch2, 3:PAccumuloSecurityException ouch3);
+  void tableOperations_attachIterator (1:UserPass userpass, 2:string tableName, 3:PIteratorSetting setting, 4:set<PIteratorScope> scopes) throws (1:PAccumuloSecurityException ouch1, 2:PAccumuloException ouch2, 3:PTableNotFoundException ouch3);
+  void tableOperations_checkIteratorConflicts (1:UserPass userpass, 2:string tableName, 3:PIteratorSetting setting, 4:set<PIteratorScope> scopes) throws (1:PAccumuloException ouch1, 2:PTableNotFoundException ouch2);
+  void tableOperations_clearLocatorCache (1:UserPass userpass, 2:string tableName) throws (1:PTableNotFoundException ouch1);
+  void tableOperations_clone (1:UserPass userpass, 2:string tableName, 3:string newTableName, 4:bool flush, 5:map<string,string> propertiesToSet, 6:set<string> propertiesToExclude) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2, 3:PTableNotFoundException ouch3, 4:PTableExistsException ouch4);
+  void tableOperations_compact (1:UserPass userpass, 2:string tableName, 3:binary startRow, 4:binary endRow, 5:list<PIteratorSetting> iterators, 6:bool flush, 7:bool wait) throws (1:PAccumuloSecurityException ouch1, 2:PTableNotFoundException ouch2, 3:PAccumuloException ouch3);
+  void tableOperations_create (1:UserPass userpass, 2:string tableName, 3:bool versioningIter, 4:PTimeType type) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2, 3:PTableExistsException ouch3);
+  void tableOperations_delete (1:UserPass userpass, 2:string tableName) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2, 3:PTableNotFoundException ouch3);
+  void tableOperations_deleteRows (1:UserPass userpass, 2:string tableName, 3:binary startRow, 4:binary endRow) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2, 3:PTableNotFoundException ouch3);
   bool tableOperations_exists (1:UserPass userpass, 2:string tableName);
-  void tableOperations_exportTable (1:UserPass userpass, 2:string tableName, 3:string exportDir) throws (1:TableNotFoundException ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
-  void tableOperations_flush (1:UserPass userpass, 2:string tableName, 3:binary startRow, 4:binary endRow, 5:bool wait) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  map<string,set<string>> tableOperations_getLocalityGroups (1:UserPass userpass, 2:string tableName) throws (1:AccumuloException ouch1, 2:TableNotFoundException ouch2);
-  PIteratorSetting tableOperations_getIteratorSetting (1:UserPass userpass, 2:string tableName, 3:string iteratorName, 4:PIteratorScope scope) throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
-  binary tableOperations_getMaxRow (1:UserPass userpass, 2:string tableName, 3:list<binary> auths, 4:binary startRow, 5:bool startInclusive, 6:binary endRow, 7:bool endInclusive) throws (1:TableNotFoundException ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
-  map<string,string> tableOperations_getProperties (1:UserPass userpass, 2:string tableName) throws (1:AccumuloException ouch1, 2:TableNotFoundException ouch2);
-  list<binary> tableOperations_getSplits (1:UserPass userpass, 2:string tableName, 3:i32 maxSplits) throws (1:TableNotFoundException ouch1);
-  void tableOperations_importDirectory (1:UserPass userpass, 2:string tableName, 3:string importDir, 4:string failureDir, 5:bool setTime) throws (1:TableNotFoundException ouch1, 2:AccumuloException ouch3, 3:AccumuloSecurityException ouch4);
-  void tableOperations_importTable (1:UserPass userpass, 2:string tableName, 3:string importDir) throws (1:TableExistsException ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
+  void tableOperations_exportTable (1:UserPass userpass, 2:string tableName, 3:string exportDir) throws (1:PTableNotFoundException ouch1, 2:PAccumuloException ouch2, 3:PAccumuloSecurityException ouch3);
+  void tableOperations_flush (1:UserPass userpass, 2:string tableName, 3:binary startRow, 4:binary endRow, 5:bool wait) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  map<string,set<string>> tableOperations_getLocalityGroups (1:UserPass userpass, 2:string tableName) throws (1:PAccumuloException ouch1, 2:PTableNotFoundException ouch2);
+  PIteratorSetting tableOperations_getIteratorSetting (1:UserPass userpass, 2:string tableName, 3:string iteratorName, 4:PIteratorScope scope) throws (1:PAccumuloSecurityException ouch1, 2:PAccumuloException ouch2, 3:PTableNotFoundException ouch3);
+  binary tableOperations_getMaxRow (1:UserPass userpass, 2:string tableName, 3:list<binary> auths, 4:binary startRow, 5:bool startInclusive, 6:binary endRow, 7:bool endInclusive) throws (1:PTableNotFoundException ouch1, 2:PAccumuloException ouch2, 3:PAccumuloSecurityException ouch3);
+  map<string,string> tableOperations_getProperties (1:UserPass userpass, 2:string tableName) throws (1:PAccumuloException ouch1, 2:PTableNotFoundException ouch2);
+  list<binary> tableOperations_getSplits (1:UserPass userpass, 2:string tableName, 3:i32 maxSplits) throws (1:PTableNotFoundException ouch1);
+  void tableOperations_importDirectory (1:UserPass userpass, 2:string tableName, 3:string importDir, 4:string failureDir, 5:bool setTime) throws (1:PTableNotFoundException ouch1, 2:PAccumuloException ouch3, 3:PAccumuloSecurityException ouch4);
+  void tableOperations_importTable (1:UserPass userpass, 2:string tableName, 3:string importDir) throws (1:PTableExistsException ouch1, 2:PAccumuloException ouch2, 3:PAccumuloSecurityException ouch3);
   set<string> tableOperations_list (1:UserPass userpass);
-  map<string,set<PIteratorScope>> tableOperations_listIterators (1:UserPass userpass, 2:string tableName) throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
-  map<string,i32> tableOperations_listConstraints (1:UserPass userpass, 2:string tableName) throws (1:AccumuloException ouch1, 2:TableNotFoundException ouch2);
-  void tableOperations_merge (1:UserPass userpass, 2:string tableName, 3:binary startRow, 4:binary endRow) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
-  void tableOperations_offline (1:UserPass userpass, 2:string tableName) throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
-  void tableOperations_online (1:UserPass userpass, 2:string tableName) throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
-  void tableOperations_removeConstraint (1:UserPass userpass, 2:string tableName, 3:i32 constraint) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void tableOperations_removeIterator (1:UserPass userpass, 2:string tableName, 3:string iterName, 4:set<PIteratorScope> scopes) throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
-  void tableOperations_removeProperty (1:UserPass userpass, 2:string tableName, 3:string property) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void tableOperations_rename (1:UserPass userpass, 2:string oldTableName, 3:string newTableName) throws (1:AccumuloSecurityException ouch1, 2:TableNotFoundException ouch2, 3:AccumuloException ouch3, 4:TableExistsException ouch4);
-  void tableOperations_setLocalityGroups (1:UserPass userpass, 2:string tableName, 3:map<string,set<string>> groups) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
-  void tableOperations_setProperty (1:UserPass userpass, 2:string tableName, 3:string property, 4:string value) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  set<PRange> tableOperations_splitRangeByTablets (1:UserPass userpass, 2:string tableName, 3:PRange range, 4:i32 maxSplits) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2, 3:TableNotFoundException ouch3);
+  map<string,set<PIteratorScope>> tableOperations_listIterators (1:UserPass userpass, 2:string tableName) throws (1:PAccumuloSecurityException ouch1, 2:PAccumuloException ouch2, 3:PTableNotFoundException ouch3);
+  map<string,i32> tableOperations_listConstraints (1:UserPass userpass, 2:string tableName) throws (1:PAccumuloException ouch1, 2:PTableNotFoundException ouch2);
+  void tableOperations_merge (1:UserPass userpass, 2:string tableName, 3:binary startRow, 4:binary endRow) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2, 3:PTableNotFoundException ouch3);
+  void tableOperations_offline (1:UserPass userpass, 2:string tableName) throws (1:PAccumuloSecurityException ouch1, 2:PAccumuloException ouch2, 3:PTableNotFoundException ouch3);
+  void tableOperations_online (1:UserPass userpass, 2:string tableName) throws (1:PAccumuloSecurityException ouch1, 2:PAccumuloException ouch2, 3:PTableNotFoundException ouch3);
+  void tableOperations_removeConstraint (1:UserPass userpass, 2:string tableName, 3:i32 constraint) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  void tableOperations_removeIterator (1:UserPass userpass, 2:string tableName, 3:string iterName, 4:set<PIteratorScope> scopes) throws (1:PAccumuloSecurityException ouch1, 2:PAccumuloException ouch2, 3:PTableNotFoundException ouch3);
+  void tableOperations_removeProperty (1:UserPass userpass, 2:string tableName, 3:string property) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  void tableOperations_rename (1:UserPass userpass, 2:string oldTableName, 3:string newTableName) throws (1:PAccumuloSecurityException ouch1, 2:PTableNotFoundException ouch2, 3:PAccumuloException ouch3, 4:PTableExistsException ouch4);
+  void tableOperations_setLocalityGroups (1:UserPass userpass, 2:string tableName, 3:map<string,set<string>> groups) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2, 3:PTableNotFoundException ouch3);
+  void tableOperations_setProperty (1:UserPass userpass, 2:string tableName, 3:string property, 4:string value) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  set<PRange> tableOperations_splitRangeByTablets (1:UserPass userpass, 2:string tableName, 3:PRange range, 4:i32 maxSplits) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2, 3:PTableNotFoundException ouch3);
   map<string,string> tableOperations_tableIdMap (1:UserPass userpass);
 
 
   // instance operations
-  void instanceOperations_pingTabletServer(1:UserPass userpass, 2:string tserver) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  list<PActiveScan> instanceOperations_getActiveScans (1:UserPass userpass, 2:string tserver) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  list<PActiveCompaction> instanceOperations_getActiveCompactions(1:UserPass userpass, 2:string tserver) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  map<string,string> instanceOperations_getSiteConfiguration (1:UserPass userpass) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  map<string,string> instanceOperations_getSystemConfiguration (1:UserPass userpass) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void instanceOperations_pingTabletServer(1:UserPass userpass, 2:string tserver) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  list<PActiveScan> instanceOperations_getActiveScans (1:UserPass userpass, 2:string tserver) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  list<PActiveCompaction> instanceOperations_getActiveCompactions(1:UserPass userpass, 2:string tserver) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  map<string,string> instanceOperations_getSiteConfiguration (1:UserPass userpass) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  map<string,string> instanceOperations_getSystemConfiguration (1:UserPass userpass) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
   list<string> instanceOperations_getTabletServers (1:UserPass userpass);
-  void instanceOperations_removeProperty (1:UserPass userpass, 2:string property) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void instanceOperations_setProperty (1:UserPass userpass, 2:string property, 3:string value) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  bool instanceOperations_testClassLoad (1:UserPass userpass, 2:string className, 3:string asTypeName) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  void instanceOperations_removeProperty (1:UserPass userpass, 2:string property) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  void instanceOperations_setProperty (1:UserPass userpass, 2:string property, 3:string value) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  bool instanceOperations_testClassLoad (1:UserPass userpass, 2:string className, 3:string asTypeName) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
 
 
   // security operations
-  bool securityOperations_authenticateUser (1:UserPass userpass, 2:string user, 3:binary password) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void securityOperations_changeUserAuthorizations (1:UserPass userpass, 2:string user, 3:set<binary> authorizations) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void securityOperations_changeUserPassword (1:UserPass userpass, 2:string user, 3:binary password) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void securityOperations_createUser (1:UserPass userpass, 2:string user, 3:binary password) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void securityOperations_dropUser (1:UserPass userpass, 2:string user) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  list<binary> securityOperations_getUserAuthorizations (1:UserPass userpass, 2:string user) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void securityOperations_grantSystemPermission (1:UserPass userpass, 2:string user, 3:PSystemPermission perm) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void securityOperations_grantTablePermission (1:UserPass userpass, 2:string user, 3:string table, 4:PTablePermission perm) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  bool securityOperations_hasSystemPermission (1:UserPass userpass, 2:string user, 3:PSystemPermission perm) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  bool securityOperations_hasTablePermission (1:UserPass userpass, 2:string user, 3:string table, 4:PTablePermission perm) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  set<string> securityOperations_listUsers (1:UserPass userpass) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void securityOperations_revokeSystemPermission (1:UserPass userpass, 2:string user, 3:PSystemPermission perm) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  void securityOperations_revokeTablePermission (1:UserPass userpass, 2:string user, 3:string table, 4:PTablePermission perm) throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  bool securityOperations_authenticateUser (1:UserPass userpass, 2:string user, 3:binary password) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  void securityOperations_changeUserAuthorizations (1:UserPass userpass, 2:string user, 3:set<binary> authorizations) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  void securityOperations_changeUserPassword (1:UserPass userpass, 2:string user, 3:binary password) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  void securityOperations_createUser (1:UserPass userpass, 2:string user, 3:binary password) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  void securityOperations_dropUser (1:UserPass userpass, 2:string user) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  list<binary> securityOperations_getUserAuthorizations (1:UserPass userpass, 2:string user) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  void securityOperations_grantSystemPermission (1:UserPass userpass, 2:string user, 3:PSystemPermission perm) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  void securityOperations_grantTablePermission (1:UserPass userpass, 2:string user, 3:string table, 4:PTablePermission perm) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  bool securityOperations_hasSystemPermission (1:UserPass userpass, 2:string user, 3:PSystemPermission perm) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  bool securityOperations_hasTablePermission (1:UserPass userpass, 2:string user, 3:string table, 4:PTablePermission perm) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  set<string> securityOperations_listUsers (1:UserPass userpass) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  void securityOperations_revokeSystemPermission (1:UserPass userpass, 2:string user, 3:PSystemPermission perm) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
+  void securityOperations_revokeTablePermission (1:UserPass userpass, 2:string user, 3:string table, 4:PTablePermission perm) throws (1:PAccumuloException ouch1, 2:PAccumuloSecurityException ouch2);
 
 
   // scanning
@@ -275,10 +280,10 @@ service AccumuloProxy
   string createBatchScanner(1:UserPass userpass, 2:string tableName, 3:set<binary> authorizations, 4:list<PIteratorSetting> iteratorSetting, 5:list<PRange> range);
   string createScanner(1:UserPass userpass, 2:string tableName, 3:set<binary> authorizations, 4:list<PIteratorSetting> iteratorSetting, 5:PRange range);
 
-  bool scanner_hasnext(1:string scanner);
-  KeyValueAndPeek scanner_next(1:string scanner);
-  PScanResult scanner_next_k(1:string scanner, 2:i32 k);
-  void close_scanner(1:string scanner);
+  bool scanner_hasnext(1:string scanner) throws (1:PUnknownScanner ouch1);
+  KeyValueAndPeek scanner_next(1:string scanner) throws(1:PNoMoreEntriesException ouch1, 2:PUnknownScanner ouch2, 3:PAccumuloSecurityException ouch3);
+  PScanResult scanner_next_k(1:string scanner, 2:i32 k) throws(1:PNoMoreEntriesException ouch1, 2:PUnknownScanner ouch2, 3:PAccumuloSecurityException ouch3);
+  void close_scanner(1:string scanner) throws (1:PUnknownScanner ouch1);
 
   // writing
 
@@ -286,8 +291,8 @@ service AccumuloProxy
 
   string createWriter(1:UserPass userpass, 2:string tableName);
   oneway void writer_update(1:string writer, 2:map<binary, list<PColumnUpdate>> cells);
-  void writer_flush(1:string writer)
-  void writer_close(1:string writer)
+  void writer_flush(1:string writer) throws (1:PUnknownWriter ouch1, 2:PAccumuloSecurityException ouch2);
+  void writer_close(1:string writer) throws (1:PUnknownWriter ouch1, 2:PAccumuloSecurityException ouch2);
 
   // utilities
   PRange getRowRange(1:binary row);
