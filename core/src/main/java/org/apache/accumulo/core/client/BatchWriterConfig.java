@@ -45,27 +45,45 @@ public class BatchWriterConfig implements Writable {
   private Integer maxWriteThreads = null;
   
   /**
+   * Sets the maximum memory to batch before writing. The smaller this value, the more frequently the {@link BatchWriter} will write.<br />
+   * If set to a value smaller than a single mutation, then it will {@link BatchWriter#flush()} after each added mutation. Must be non-negative.
+   * 
+   * <p>
+   * <b>Default:</b> 50M
    * 
    * @param maxMemory
-   *          size in bytes of the maximum memory to batch before writing. Minimum 1K. Defaults to 50M.
+   *          max size in bytes
+   * @throws IllegalArgumentException
+   *           if {@code maxMemory} is less than 0
+   * @return {@code this} to allow chaining of set methods
    */
-  
   public BatchWriterConfig setMaxMemory(long maxMemory) {
-    if (maxMemory < 1024)
-      throw new IllegalArgumentException("Max memory is too low at " + maxMemory + ". Minimum 1K.");
+    if (maxMemory < 0)
+      throw new IllegalArgumentException("Max memory must be non-negative.");
     this.maxMemory = maxMemory;
     return this;
   }
   
   /**
+   * Sets the maximum amount of time to hold the data in memory before flushing it to servers.<br />
+   * For no maximum, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
+   * 
+   * <p>
+   * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br />
+   * If this truncation would result in making the value zero when it was specified as non-zero, then a minimum value of one {@link TimeUnit#MILLISECONDS} will
+   * be used.
+   * 
+   * <p>
+   * <b>Default:</b> 120 seconds
+   * 
    * @param maxLatency
-   *          The maximum amount of time to hold data in memory before flushing it to servers. For no max set to zero or Long.MAX_VALUE with TimeUnit.MILLIS.
-   *          Defaults to 120 seconds.
+   *          the maximum latency, in the unit specified by the value of {@code timeUnit}
    * @param timeUnit
-   *          Determines how maxLatency will be interpreted.
-   * @return this to allow chaining of set methods
+   *          determines how {@code maxLatency} will be interpreted
+   * @throws IllegalArgumentException
+   *           if {@code maxLatency} is less than 0
+   * @return {@code this} to allow chaining of set methods
    */
-  
   public BatchWriterConfig setMaxLatency(long maxLatency, TimeUnit timeUnit) {
     if (maxLatency < 0)
       throw new IllegalArgumentException("Negative max latency not allowed " + maxLatency);
@@ -73,19 +91,31 @@ public class BatchWriterConfig implements Writable {
     if (maxLatency == 0)
       this.maxLatency = Long.MAX_VALUE;
     else
-      this.maxLatency = timeUnit.toMillis(maxLatency);
+      // make small, positive values that truncate to 0 when converted use the minimum millis instead
+      this.maxLatency = Math.max(1, timeUnit.toMillis(maxLatency));
     return this;
   }
   
   /**
+   * Sets the maximum amount of time an unresponsive server will be re-tried. When this timeout is exceeded, the {@link BatchWriter} should throw an exception.<br />
+   * For no timeout, set to zero, or {@link Long#MAX_VALUE} with {@link TimeUnit#MILLISECONDS}.
+   * 
+   * <p>
+   * {@link TimeUnit#MICROSECONDS} or {@link TimeUnit#NANOSECONDS} will be truncated to the nearest {@link TimeUnit#MILLISECONDS}.<br />
+   * If this truncation would result in making the value zero when it was specified as non-zero, then a minimum value of one {@link TimeUnit#MILLISECONDS} will
+   * be used.
+   * 
+   * <p>
+   * <b>Default:</b> {@link Long#MAX_VALUE} (no timeout)
    * 
    * @param timeout
-   *          The maximum amount of time an unresponsive server will be retried. When this timeout is exceeded, the BatchWriter should throw an exception. For
-   *          no timeout set to zero or Long.MAX_VALUE with TimeUnit.MILLIS. Defaults to no timeout.
+   *          the timeout, in the unit specified by the value of {@code timeUnit}
    * @param timeUnit
-   * @return this to allow chaining of set methods
+   *          determines how {@code timeout} will be interpreted
+   * @throws IllegalArgumentException
+   *           if {@code timeout} is less than 0
+   * @return {@code this} to allow chaining of set methods
    */
-  
   public BatchWriterConfig setTimeout(long timeout, TimeUnit timeUnit) {
     if (timeout < 0)
       throw new IllegalArgumentException("Negative timeout not allowed " + timeout);
@@ -93,16 +123,23 @@ public class BatchWriterConfig implements Writable {
     if (timeout == 0)
       timeout = Long.MAX_VALUE;
     else
-      this.timeout = timeUnit.toMillis(timeout);
+      // make small, positive values that truncate to 0 when converted use the minimum millis instead
+      this.timeout = Math.max(1, timeUnit.toMillis(timeout));
     return this;
   }
   
   /**
+   * Sets the maximum number of threads to use for writing data to the tablet servers.
+   * 
+   * <p>
+   * <b>Default:</b> 3
+   * 
    * @param maxWriteThreads
-   *          the maximum number of threads to use for writing data to the tablet servers. Defaults to 3.
-   * @return this to allow chaining of set methods
+   *          the maximum threads to use
+   * @throws IllegalArgumentException
+   *           if {@code maxWriteThreads} is non-positive
+   * @return {@code this} to allow chaining of set methods
    */
-  
   public BatchWriterConfig setMaxWriteThreads(int maxWriteThreads) {
     if (maxWriteThreads <= 0)
       throw new IllegalArgumentException("Max threads must be positive " + maxWriteThreads);
