@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce;
+package org.apache.accumulo.core.client.mapred;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -41,15 +40,13 @@ import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.thrift.SecurityErrorCode;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.OutputCommitter;
-import org.apache.hadoop.mapreduce.OutputFormat;
-import org.apache.hadoop.mapreduce.RecordWriter;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.OutputFormat;
+import org.apache.hadoop.mapred.RecordWriter;
+import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -60,13 +57,13 @@ import org.apache.log4j.Logger;
  * The user must specify the following via static configurator methods:
  * 
  * <ul>
- * <li>{@link AccumuloOutputFormat#setConnectorInfo(Job, String, byte[])}
- * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(Job, String, String)} OR {@link AccumuloOutputFormat#setMockInstance(Job, String)}
+ * <li>{@link AccumuloOutputFormat#setConnectorInfo(JobConf, String, byte[])}
+ * <li>{@link AccumuloOutputFormat#setZooKeeperInstance(JobConf, String, String)} OR {@link AccumuloOutputFormat#setMockInstance(JobConf, String)}
  * </ul>
  * 
  * Other static methods are optional.
  */
-public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
+public class AccumuloOutputFormat implements OutputFormat<Text,Mutation> {
   
   private static final Class<?> CLASS = AccumuloOutputFormat.class;
   protected static final Logger log = Logger.getLogger(CLASS);
@@ -77,53 +74,53 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    * @param job
    *          the Hadoop job instance to be configured
    * @param user
-   *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(Job, boolean)} is set to true)
+   *          a valid Accumulo user name (user must have Table.CREATE permission if {@link #setCreateTables(JobConf, boolean)} is set to true)
    * @param passwd
    *          the user's password
    * @since 1.5.0
    */
-  public static void setConnectorInfo(Job job, String user, byte[] passwd) {
-    OutputConfigurator.setConnectorInfo(CLASS, job.getConfiguration(), user, passwd);
+  public static void setConnectorInfo(JobConf job, String user, byte[] passwd) {
+    OutputConfigurator.setConnectorInfo(CLASS, job, user, passwd);
   }
   
   /**
    * Determines if the connector has been configured.
    * 
-   * @param context
+   * @param job
    *          the Hadoop context for the configured job
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, byte[])
+   * @see #setConnectorInfo(JobConf, String, byte[])
    */
-  protected static Boolean isConnectorInfoSet(JobContext context) {
-    return OutputConfigurator.isConnectorInfoSet(CLASS, context.getConfiguration());
+  protected static Boolean isConnectorInfoSet(JobConf job) {
+    return OutputConfigurator.isConnectorInfoSet(CLASS, job);
   }
   
   /**
    * Gets the user name from the configuration.
    * 
-   * @param context
+   * @param job
    *          the Hadoop context for the configured job
    * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, byte[])
+   * @see #setConnectorInfo(JobConf, String, byte[])
    */
-  protected static String getUsername(JobContext context) {
-    return OutputConfigurator.getUsername(CLASS, context.getConfiguration());
+  protected static String getUsername(JobConf job) {
+    return OutputConfigurator.getUsername(CLASS, job);
   }
   
   /**
    * Gets the password from the configuration. WARNING: The password is stored in the Configuration and shared with all MapReduce tasks; It is BASE64 encoded to
    * provide a charset safe conversion to a string, and is not intended to be secure.
    * 
-   * @param context
+   * @param job
    *          the Hadoop context for the configured job
    * @return the decoded user password
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, byte[])
+   * @see #setConnectorInfo(JobConf, String, byte[])
    */
-  protected static byte[] getPassword(JobContext context) {
-    return OutputConfigurator.getPassword(CLASS, context.getConfiguration());
+  protected static byte[] getPassword(JobConf job) {
+    return OutputConfigurator.getPassword(CLASS, job);
   }
   
   /**
@@ -137,8 +134,8 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          a comma-separated list of zookeeper servers
    * @since 1.5.0
    */
-  public static void setZooKeeperInstance(Job job, String instanceName, String zooKeepers) {
-    OutputConfigurator.setZooKeeperInstance(CLASS, job.getConfiguration(), instanceName, zooKeepers);
+  public static void setZooKeeperInstance(JobConf job, String instanceName, String zooKeepers) {
+    OutputConfigurator.setZooKeeperInstance(CLASS, job, instanceName, zooKeepers);
   }
   
   /**
@@ -150,22 +147,22 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the Accumulo instance name
    * @since 1.5.0
    */
-  public static void setMockInstance(Job job, String instanceName) {
-    OutputConfigurator.setMockInstance(CLASS, job.getConfiguration(), instanceName);
+  public static void setMockInstance(JobConf job, String instanceName) {
+    OutputConfigurator.setMockInstance(CLASS, job, instanceName);
   }
   
   /**
    * Initializes an Accumulo {@link Instance} based on the configuration.
    * 
-   * @param context
+   * @param job
    *          the Hadoop context for the configured job
    * @return an Accumulo instance
    * @since 1.5.0
-   * @see #setZooKeeperInstance(Job, String, String)
-   * @see #setMockInstance(Job, String)
+   * @see #setZooKeeperInstance(JobConf, String, String)
+   * @see #setMockInstance(JobConf, String)
    */
-  protected static Instance getInstance(JobContext context) {
-    return OutputConfigurator.getInstance(CLASS, context.getConfiguration());
+  protected static Instance getInstance(JobConf job) {
+    return OutputConfigurator.getInstance(CLASS, job);
   }
   
   /**
@@ -177,21 +174,21 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the logging level
    * @since 1.5.0
    */
-  public static void setLogLevel(Job job, Level level) {
-    OutputConfigurator.setLogLevel(CLASS, job.getConfiguration(), level);
+  public static void setLogLevel(JobConf job, Level level) {
+    OutputConfigurator.setLogLevel(CLASS, job, level);
   }
   
   /**
    * Gets the log level from this configuration.
    * 
-   * @param context
+   * @param job
    *          the Hadoop context for the configured job
    * @return the log level
    * @since 1.5.0
-   * @see #setLogLevel(Job, Level)
+   * @see #setLogLevel(JobConf, Level)
    */
-  protected static Level getLogLevel(JobContext context) {
-    return OutputConfigurator.getLogLevel(CLASS, context.getConfiguration());
+  protected static Level getLogLevel(JobConf job) {
+    return OutputConfigurator.getLogLevel(CLASS, job);
   }
   
   /**
@@ -204,21 +201,21 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the table to use when the tablename is null in the write call
    * @since 1.5.0
    */
-  public static void setDefaultTableName(Job job, String tableName) {
-    OutputConfigurator.setDefaultTableName(CLASS, job.getConfiguration(), tableName);
+  public static void setDefaultTableName(JobConf job, String tableName) {
+    OutputConfigurator.setDefaultTableName(CLASS, job, tableName);
   }
   
   /**
    * Gets the default table name from the configuration.
    * 
-   * @param context
+   * @param job
    *          the Hadoop context for the configured job
    * @return the default table name
    * @since 1.5.0
-   * @see #setDefaultTableName(Job, String)
+   * @see #setDefaultTableName(JobConf, String)
    */
-  protected static String getDefaultTableName(JobContext context) {
-    return OutputConfigurator.getDefaultTableName(CLASS, context.getConfiguration());
+  protected static String getDefaultTableName(JobConf job) {
+    return OutputConfigurator.getDefaultTableName(CLASS, job);
   }
   
   /**
@@ -231,21 +228,21 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the configuration for the {@link BatchWriter}
    * @since 1.5.0
    */
-  public static void setBatchWriterOptions(Job job, BatchWriterConfig bwConfig) {
-    OutputConfigurator.setBatchWriterOptions(CLASS, job.getConfiguration(), bwConfig);
+  public static void setBatchWriterOptions(JobConf job, BatchWriterConfig bwConfig) {
+    OutputConfigurator.setBatchWriterOptions(CLASS, job, bwConfig);
   }
   
   /**
    * Gets the {@link BatchWriterConfig} settings.
    * 
-   * @param context
+   * @param job
    *          the Hadoop context for the configured job
    * @return the configuration object
    * @since 1.5.0
-   * @see #setBatchWriterOptions(Job, BatchWriterConfig)
+   * @see #setBatchWriterOptions(JobConf, BatchWriterConfig)
    */
-  protected static BatchWriterConfig getBatchWriterOptions(JobContext context) {
-    return OutputConfigurator.getBatchWriterOptions(CLASS, context.getConfiguration());
+  protected static BatchWriterConfig getBatchWriterOptions(JobConf job) {
+    return OutputConfigurator.getBatchWriterOptions(CLASS, job);
   }
   
   /**
@@ -260,21 +257,21 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
-  public static void setCreateTables(Job job, boolean enableFeature) {
-    OutputConfigurator.setCreateTables(CLASS, job.getConfiguration(), enableFeature);
+  public static void setCreateTables(JobConf job, boolean enableFeature) {
+    OutputConfigurator.setCreateTables(CLASS, job, enableFeature);
   }
   
   /**
    * Determines whether tables are permitted to be created as needed.
    * 
-   * @param context
+   * @param job
    *          the Hadoop context for the configured job
    * @return true if the feature is disabled, false otherwise
    * @since 1.5.0
-   * @see #setCreateTables(Job, boolean)
+   * @see #setCreateTables(JobConf, boolean)
    */
-  protected static Boolean canCreateTables(JobContext context) {
-    return OutputConfigurator.canCreateTables(CLASS, context.getConfiguration());
+  protected static Boolean canCreateTables(JobConf job) {
+    return OutputConfigurator.canCreateTables(CLASS, job);
   }
   
   /**
@@ -289,27 +286,27 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
    *          the feature is enabled if true, disabled otherwise
    * @since 1.5.0
    */
-  public static void setSimulationMode(Job job, boolean enableFeature) {
-    OutputConfigurator.setSimulationMode(CLASS, job.getConfiguration(), enableFeature);
+  public static void setSimulationMode(JobConf job, boolean enableFeature) {
+    OutputConfigurator.setSimulationMode(CLASS, job, enableFeature);
   }
   
   /**
    * Determines whether this feature is enabled.
    * 
-   * @param context
+   * @param job
    *          the Hadoop context for the configured job
    * @return true if the feature is enabled, false otherwise
    * @since 1.5.0
-   * @see #setSimulationMode(Job, boolean)
+   * @see #setSimulationMode(JobConf, boolean)
    */
-  protected static Boolean getSimulationMode(JobContext context) {
-    return OutputConfigurator.getSimulationMode(CLASS, context.getConfiguration());
+  protected static Boolean getSimulationMode(JobConf job) {
+    return OutputConfigurator.getSimulationMode(CLASS, job);
   }
   
   /**
    * A base class to be used to create {@link RecordWriter} instances that write to Accumulo.
    */
-  protected static class AccumuloRecordWriter extends RecordWriter<Text,Mutation> {
+  protected static class AccumuloRecordWriter implements RecordWriter<Text,Mutation> {
     private MultiTableBatchWriter mtbw = null;
     private HashMap<Text,BatchWriter> bws = null;
     private Text defaultTableName = null;
@@ -322,24 +319,24 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     
     private Connector conn;
     
-    protected AccumuloRecordWriter(TaskAttemptContext context) throws AccumuloException, AccumuloSecurityException, IOException {
-      Level l = getLogLevel(context);
+    protected AccumuloRecordWriter(JobConf job) throws AccumuloException, AccumuloSecurityException, IOException {
+      Level l = getLogLevel(job);
       if (l != null)
-        log.setLevel(getLogLevel(context));
-      this.simulate = getSimulationMode(context);
-      this.createTables = canCreateTables(context);
+        log.setLevel(getLogLevel(job));
+      this.simulate = getSimulationMode(job);
+      this.createTables = canCreateTables(job);
       
       if (simulate)
         log.info("Simulating output only. No writes to tables will occur");
       
       this.bws = new HashMap<Text,BatchWriter>();
       
-      String tname = getDefaultTableName(context);
+      String tname = getDefaultTableName(job);
       this.defaultTableName = (tname == null) ? null : new Text(tname);
       
       if (!simulate) {
-        this.conn = getInstance(context).getConnector(getUsername(context), getPassword(context));
-        mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(context));
+        this.conn = getInstance(job).getConnector(getUsername(job), getPassword(job));
+        mtbw = conn.createMultiTableBatchWriter(getBatchWriterOptions(job));
       }
     }
     
@@ -437,7 +434,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
     }
     
     @Override
-    public void close(TaskAttemptContext attempt) throws IOException, InterruptedException {
+    public void close(Reporter reporter) throws IOException {
       log.debug("mutations written: " + mutCount + ", values written: " + valCount);
       if (simulate)
         return;
@@ -467,7 +464,7 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   @Override
-  public void checkOutputSpecs(JobContext job) throws IOException {
+  public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
     if (!isConnectorInfoSet(job))
       throw new IOException("Connector info has not been set.");
     try {
@@ -483,174 +480,12 @@ public class AccumuloOutputFormat extends OutputFormat<Text,Mutation> {
   }
   
   @Override
-  public OutputCommitter getOutputCommitter(TaskAttemptContext context) {
-    return new NullOutputFormat<Text,Mutation>().getOutputCommitter(context);
-  }
-  
-  @Override
-  public RecordWriter<Text,Mutation> getRecordWriter(TaskAttemptContext attempt) throws IOException {
+  public RecordWriter<Text,Mutation> getRecordWriter(FileSystem ignored, JobConf job, String name, Progressable progress) throws IOException {
     try {
-      return new AccumuloRecordWriter(attempt);
+      return new AccumuloRecordWriter(job);
     } catch (Exception e) {
       throw new IOException(e);
     }
-  }
-  
-  // ----------------------------------------------------------------------------------------------------
-  // Everything below this line is deprecated and should go away in future versions
-  // ----------------------------------------------------------------------------------------------------
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setConnectorInfo(Job, String, byte[])}, {@link #setCreateTables(Job, boolean)}, and
-   *             {@link #setDefaultTableName(Job, String)} instead.
-   */
-  @Deprecated
-  public static void setOutputInfo(Configuration conf, String user, byte[] passwd, boolean createTables, String defaultTable) {
-    OutputConfigurator.setConnectorInfo(CLASS, conf, user, passwd);
-    OutputConfigurator.setCreateTables(CLASS, conf, createTables);
-    OutputConfigurator.setDefaultTableName(CLASS, conf, defaultTable);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setZooKeeperInstance(Job, String, String)} instead.
-   */
-  @Deprecated
-  public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
-    OutputConfigurator.setZooKeeperInstance(CLASS, conf, instanceName, zooKeepers);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setMockInstance(Job, String)} instead.
-   */
-  @Deprecated
-  public static void setMockInstance(Configuration conf, String instanceName) {
-    OutputConfigurator.setMockInstance(CLASS, conf, instanceName);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setBatchWriterOptions(Job, BatchWriterConfig)} instead.
-   */
-  @Deprecated
-  public static void setMaxMutationBufferSize(Configuration conf, long numberOfBytes) {
-    BatchWriterConfig bwConfig = OutputConfigurator.getBatchWriterOptions(CLASS, conf);
-    bwConfig.setMaxMemory(numberOfBytes);
-    OutputConfigurator.setBatchWriterOptions(CLASS, conf, bwConfig);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setBatchWriterOptions(Job, BatchWriterConfig)} instead.
-   */
-  @Deprecated
-  public static void setMaxLatency(Configuration conf, int numberOfMilliseconds) {
-    BatchWriterConfig bwConfig = OutputConfigurator.getBatchWriterOptions(CLASS, conf);
-    bwConfig.setMaxLatency(numberOfMilliseconds, TimeUnit.MILLISECONDS);
-    OutputConfigurator.setBatchWriterOptions(CLASS, conf, bwConfig);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setBatchWriterOptions(Job, BatchWriterConfig)} instead.
-   */
-  @Deprecated
-  public static void setMaxWriteThreads(Configuration conf, int numberOfThreads) {
-    BatchWriterConfig bwConfig = OutputConfigurator.getBatchWriterOptions(CLASS, conf);
-    bwConfig.setMaxWriteThreads(numberOfThreads);
-    OutputConfigurator.setBatchWriterOptions(CLASS, conf, bwConfig);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setLogLevel(Job, Level)} instead.
-   */
-  @Deprecated
-  public static void setLogLevel(Configuration conf, Level level) {
-    OutputConfigurator.setLogLevel(CLASS, conf, level);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setSimulationMode(Job, boolean)} instead.
-   */
-  @Deprecated
-  public static void setSimulationMode(Configuration conf) {
-    OutputConfigurator.setSimulationMode(CLASS, conf, true);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getUsername(JobContext)} instead.
-   */
-  @Deprecated
-  protected static String getUsername(Configuration conf) {
-    return OutputConfigurator.getUsername(CLASS, conf);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getPassword(JobContext)} instead.
-   */
-  @Deprecated
-  protected static byte[] getPassword(Configuration conf) {
-    return OutputConfigurator.getPassword(CLASS, conf);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #canCreateTables(JobContext)} instead.
-   */
-  @Deprecated
-  protected static boolean canCreateTables(Configuration conf) {
-    return OutputConfigurator.canCreateTables(CLASS, conf);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getDefaultTableName(JobContext)} instead.
-   */
-  @Deprecated
-  protected static String getDefaultTableName(Configuration conf) {
-    return OutputConfigurator.getDefaultTableName(CLASS, conf);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getInstance(JobContext)} instead.
-   */
-  @Deprecated
-  protected static Instance getInstance(Configuration conf) {
-    return OutputConfigurator.getInstance(CLASS, conf);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getBatchWriterOptions(JobContext)} instead.
-   */
-  @Deprecated
-  protected static long getMaxMutationBufferSize(Configuration conf) {
-    return OutputConfigurator.getBatchWriterOptions(CLASS, conf).getMaxMemory();
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getBatchWriterOptions(JobContext)} instead.
-   */
-  @Deprecated
-  protected static int getMaxLatency(Configuration conf) {
-    return (int) OutputConfigurator.getBatchWriterOptions(CLASS, conf).getMaxLatency(TimeUnit.MILLISECONDS);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getBatchWriterOptions(JobContext)} instead.
-   */
-  @Deprecated
-  protected static int getMaxWriteThreads(Configuration conf) {
-    return OutputConfigurator.getBatchWriterOptions(CLASS, conf).getMaxWriteThreads();
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getLogLevel(JobContext)} instead.
-   */
-  @Deprecated
-  protected static Level getLogLevel(Configuration conf) {
-    return OutputConfigurator.getLogLevel(CLASS, conf);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #getSimulationMode(JobContext)} instead.
-   */
-  @Deprecated
-  protected static boolean getSimulationMode(Configuration conf) {
-    return OutputConfigurator.getSimulationMode(CLASS, conf);
   }
   
 }

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce.util;
+package org.apache.accumulo.core.client.mapreduce.lib.util;
 
 import java.nio.charset.Charset;
 
