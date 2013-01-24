@@ -80,7 +80,7 @@ import org.slf4j.LoggerFactory;
 
     public IteratorSetting getIteratorSetting(UserPass userpass, String tableName, String iteratorName, IteratorScope scope) throws AccumuloSecurityException, AccumuloException, TableNotFoundException, org.apache.thrift.TException;
 
-    public ByteBuffer getMaxRow(UserPass userpass, String tableName, List<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public ByteBuffer getMaxRow(UserPass userpass, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
     public Map<String,String> getTableProperties(UserPass userpass, String tableName) throws AccumuloException, TableNotFoundException, org.apache.thrift.TException;
 
@@ -224,7 +224,7 @@ import org.slf4j.LoggerFactory;
 
     public void getIteratorSetting(UserPass userpass, String tableName, String iteratorName, IteratorScope scope, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getIteratorSetting_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void getMaxRow(UserPass userpass, String tableName, List<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getMaxRow_call> resultHandler) throws org.apache.thrift.TException;
+    public void getMaxRow(UserPass userpass, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getMaxRow_call> resultHandler) throws org.apache.thrift.TException;
 
     public void getTableProperties(UserPass userpass, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.getTableProperties_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -821,13 +821,13 @@ import org.slf4j.LoggerFactory;
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getIteratorSetting failed: unknown result");
     }
 
-    public ByteBuffer getMaxRow(UserPass userpass, String tableName, List<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public ByteBuffer getMaxRow(UserPass userpass, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive) throws TableNotFoundException, AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
       send_getMaxRow(userpass, tableName, auths, startRow, startInclusive, endRow, endInclusive);
       return recv_getMaxRow();
     }
 
-    public void send_getMaxRow(UserPass userpass, String tableName, List<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive) throws org.apache.thrift.TException
+    public void send_getMaxRow(UserPass userpass, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive) throws org.apache.thrift.TException
     {
       getMaxRow_args args = new getMaxRow_args();
       args.setUserpass(userpass);
@@ -3018,7 +3018,7 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void getMaxRow(UserPass userpass, String tableName, List<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive, org.apache.thrift.async.AsyncMethodCallback<getMaxRow_call> resultHandler) throws org.apache.thrift.TException {
+    public void getMaxRow(UserPass userpass, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive, org.apache.thrift.async.AsyncMethodCallback<getMaxRow_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       getMaxRow_call method_call = new getMaxRow_call(userpass, tableName, auths, startRow, startInclusive, endRow, endInclusive, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
@@ -3028,12 +3028,12 @@ import org.slf4j.LoggerFactory;
     public static class getMaxRow_call extends org.apache.thrift.async.TAsyncMethodCall {
       private UserPass userpass;
       private String tableName;
-      private List<ByteBuffer> auths;
+      private Set<ByteBuffer> auths;
       private ByteBuffer startRow;
       private boolean startInclusive;
       private ByteBuffer endRow;
       private boolean endInclusive;
-      public getMaxRow_call(UserPass userpass, String tableName, List<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive, org.apache.thrift.async.AsyncMethodCallback<getMaxRow_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getMaxRow_call(UserPass userpass, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startInclusive, ByteBuffer endRow, boolean endInclusive, org.apache.thrift.async.AsyncMethodCallback<getMaxRow_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.userpass = userpass;
         this.tableName = tableName;
@@ -24842,7 +24842,7 @@ import org.slf4j.LoggerFactory;
 
     private static final org.apache.thrift.protocol.TField USERPASS_FIELD_DESC = new org.apache.thrift.protocol.TField("userpass", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
-    private static final org.apache.thrift.protocol.TField AUTHS_FIELD_DESC = new org.apache.thrift.protocol.TField("auths", org.apache.thrift.protocol.TType.LIST, (short)3);
+    private static final org.apache.thrift.protocol.TField AUTHS_FIELD_DESC = new org.apache.thrift.protocol.TField("auths", org.apache.thrift.protocol.TType.SET, (short)3);
     private static final org.apache.thrift.protocol.TField START_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("startRow", org.apache.thrift.protocol.TType.STRING, (short)4);
     private static final org.apache.thrift.protocol.TField START_INCLUSIVE_FIELD_DESC = new org.apache.thrift.protocol.TField("startInclusive", org.apache.thrift.protocol.TType.BOOL, (short)5);
     private static final org.apache.thrift.protocol.TField END_ROW_FIELD_DESC = new org.apache.thrift.protocol.TField("endRow", org.apache.thrift.protocol.TType.STRING, (short)6);
@@ -24856,7 +24856,7 @@ import org.slf4j.LoggerFactory;
 
     public UserPass userpass; // required
     public String tableName; // required
-    public List<ByteBuffer> auths; // required
+    public Set<ByteBuffer> auths; // required
     public ByteBuffer startRow; // required
     public boolean startInclusive; // required
     public ByteBuffer endRow; // required
@@ -24950,7 +24950,7 @@ import org.slf4j.LoggerFactory;
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       tmpMap.put(_Fields.AUTHS, new org.apache.thrift.meta_data.FieldMetaData("auths", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
+          new org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET, 
               new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING              , true))));
       tmpMap.put(_Fields.START_ROW, new org.apache.thrift.meta_data.FieldMetaData("startRow", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING          , true)));
@@ -24970,7 +24970,7 @@ import org.slf4j.LoggerFactory;
     public getMaxRow_args(
       UserPass userpass,
       String tableName,
-      List<ByteBuffer> auths,
+      Set<ByteBuffer> auths,
       ByteBuffer startRow,
       boolean startInclusive,
       ByteBuffer endRow,
@@ -25000,7 +25000,7 @@ import org.slf4j.LoggerFactory;
         this.tableName = other.tableName;
       }
       if (other.isSetAuths()) {
-        List<ByteBuffer> __this__auths = new ArrayList<ByteBuffer>();
+        Set<ByteBuffer> __this__auths = new HashSet<ByteBuffer>();
         for (ByteBuffer other_element : other.auths) {
           ByteBuffer temp_binary_element = org.apache.thrift.TBaseHelper.copyBinary(other_element);
 ;
@@ -25095,16 +25095,16 @@ import org.slf4j.LoggerFactory;
 
     public void addToAuths(ByteBuffer elem) {
       if (this.auths == null) {
-        this.auths = new ArrayList<ByteBuffer>();
+        this.auths = new HashSet<ByteBuffer>();
       }
       this.auths.add(elem);
     }
 
-    public List<ByteBuffer> getAuths() {
+    public Set<ByteBuffer> getAuths() {
       return this.auths;
     }
 
-    public getMaxRow_args setAuths(List<ByteBuffer> auths) {
+    public getMaxRow_args setAuths(Set<ByteBuffer> auths) {
       this.auths = auths;
       return this;
     }
@@ -25260,7 +25260,7 @@ import org.slf4j.LoggerFactory;
         if (value == null) {
           unsetAuths();
         } else {
-          setAuths((List<ByteBuffer>)value);
+          setAuths((Set<ByteBuffer>)value);
         }
         break;
 
@@ -25646,17 +25646,17 @@ import org.slf4j.LoggerFactory;
               }
               break;
             case 3: // AUTHS
-              if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
+              if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
                 {
-                  org.apache.thrift.protocol.TList _list174 = iprot.readListBegin();
-                  struct.auths = new ArrayList<ByteBuffer>(_list174.size);
-                  for (int _i175 = 0; _i175 < _list174.size; ++_i175)
+                  org.apache.thrift.protocol.TSet _set174 = iprot.readSetBegin();
+                  struct.auths = new HashSet<ByteBuffer>(2*_set174.size);
+                  for (int _i175 = 0; _i175 < _set174.size; ++_i175)
                   {
                     ByteBuffer _elem176; // required
                     _elem176 = iprot.readBinary();
                     struct.auths.add(_elem176);
                   }
-                  iprot.readListEnd();
+                  iprot.readSetEnd();
                 }
                 struct.setAuthsIsSet(true);
               } else { 
@@ -25723,12 +25723,12 @@ import org.slf4j.LoggerFactory;
         if (struct.auths != null) {
           oprot.writeFieldBegin(AUTHS_FIELD_DESC);
           {
-            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.auths.size()));
+            oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.auths.size()));
             for (ByteBuffer _iter177 : struct.auths)
             {
               oprot.writeBinary(_iter177);
             }
-            oprot.writeListEnd();
+            oprot.writeSetEnd();
           }
           oprot.writeFieldEnd();
         }
@@ -25832,9 +25832,9 @@ import org.slf4j.LoggerFactory;
         }
         if (incoming.get(2)) {
           {
-            org.apache.thrift.protocol.TList _list179 = new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
-            struct.auths = new ArrayList<ByteBuffer>(_list179.size);
-            for (int _i180 = 0; _i180 < _list179.size; ++_i180)
+            org.apache.thrift.protocol.TSet _set179 = new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, iprot.readI32());
+            struct.auths = new HashSet<ByteBuffer>(2*_set179.size);
+            for (int _i180 = 0; _i180 < _set179.size; ++_i180)
             {
               ByteBuffer _elem181; // required
               _elem181 = iprot.readBinary();

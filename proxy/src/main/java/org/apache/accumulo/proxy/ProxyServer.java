@@ -263,13 +263,19 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public ByteBuffer getMaxRow(UserPass userpass, String tableName, List<ByteBuffer> auths, ByteBuffer startRow, boolean startinclusive,
+  public ByteBuffer getMaxRow(UserPass userpass, String tableName, Set<ByteBuffer> auths, ByteBuffer startRow, boolean startinclusive,
       ByteBuffer endRow, boolean endinclusive) throws TException {
     try {
-      
+      Connector connector = getConnector(userpass);
       Text startText = ByteBufferUtil.toText(startRow);
       Text endText = ByteBufferUtil.toText(endRow);
-      Text max = getConnector(userpass).tableOperations().getMaxRow(tableName, new Authorizations(auths), startText, startinclusive, endText, endinclusive);
+      Authorizations auth;
+      if (auths != null) {
+        auth = getAuthorizations(auths);
+      } else {
+        auth = connector.securityOperations().getUserAuthorizations(userpass.getUsername());
+      }
+      Text max = connector.tableOperations().getMaxRow(tableName, auth, startText, startinclusive, endText, endinclusive);
       return TextUtil.getByteBuffer(max);
     } catch (Exception e) {
       throw translateException(e);

@@ -199,18 +199,16 @@ public class TestProxyTableOperations {
   
   @Test
   public void tableOperationsRowMethods() throws TException {
-    List<ByteBuffer> auths = tpc.proxy().getUserAuthorizations(userpass, "root");
-    // System.out.println(auths);
     Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
     for (int i = 0; i < 10; i++) {
       addMutation(mutations, "" + i, "cf", "cq", "");
     }
     tpc.proxy().updateAndFlush(userpass, testtable, mutations);
     
-    assertEquals(tpc.proxy().getMaxRow(userpass, testtable, auths, null, true, null, true), ByteBuffer.wrap("9".getBytes()));
+    assertEquals(tpc.proxy().getMaxRow(userpass, testtable, null, null, true, null, true), ByteBuffer.wrap("9".getBytes()));
     
     tpc.proxy().deleteRows(userpass,testtable,ByteBuffer.wrap("51".getBytes()), ByteBuffer.wrap("99".getBytes()));
-    assertEquals(tpc.proxy().getMaxRow(userpass, testtable, auths, null, true, null, true), ByteBuffer.wrap("5".getBytes()));
+    assertEquals(tpc.proxy().getMaxRow(userpass, testtable, null, null, true, null, true), ByteBuffer.wrap("5".getBytes()));
   }
   
 }

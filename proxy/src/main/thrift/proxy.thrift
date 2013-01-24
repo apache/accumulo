@@ -258,7 +258,7 @@ service AccumuloProxy
   IteratorSetting getIteratorSetting (1:UserPass userpass, 2:string tableName, 
                                       3:string iteratorName, 4:IteratorScope scope) 
                                                                                                             throws (1:AccumuloSecurityException ouch1, 2:AccumuloException ouch2, 3:TableNotFoundException ouch3);
-  binary getMaxRow (1:UserPass userpass, 2:string tableName, 3:list<binary> auths, 4:binary startRow, 
+  binary getMaxRow (1:UserPass userpass, 2:string tableName, 3:set<binary> auths, 4:binary startRow, 
                     5:bool startInclusive, 6:binary endRow, 7:bool endInclusive) 
                                                                                                             throws (1:TableNotFoundException ouch1, 2:AccumuloException ouch2, 3:AccumuloSecurityException ouch3);
   map<string,string> getTableProperties (1:UserPass userpass, 2:string tableName)                           throws (1:AccumuloException ouch1, 2:TableNotFoundException ouch2);

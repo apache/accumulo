@@ -67,9 +67,8 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * An example unit test that shows how to use MiniAccumuloCluster in a unit test
+ * Call every method on the proxy and try to verify that it works.
  */
-
 public class SimpleTest {
   
   public static TemporaryFolder folder = new TemporaryFolder();
@@ -443,7 +442,8 @@ public class SimpleTest {
     more = client.nextK(scanner, 100);
     client.closeScanner(scanner);
     assertEquals(1, more.results.size());
-    
+    ByteBuffer maxRow = client.getMaxRow(creds, "bar", null, null, false, null, false);
+    assertEquals(s2bb("a"), maxRow);
   }
   
   // scan !METADATA table for file entries for the given table
