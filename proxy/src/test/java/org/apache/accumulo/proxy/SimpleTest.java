@@ -6,6 +6,9 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -18,6 +21,11 @@ import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
@@ -32,6 +40,7 @@ import org.apache.accumulo.proxy.thrift.CompactionType;
 import org.apache.accumulo.proxy.thrift.IteratorScope;
 import org.apache.accumulo.proxy.thrift.IteratorSetting;
 import org.apache.accumulo.proxy.thrift.Key;
+import org.apache.accumulo.proxy.thrift.PartialKey;
 import org.apache.accumulo.proxy.thrift.Range;
 import org.apache.accumulo.proxy.thrift.ScanColumn;
 import org.apache.accumulo.proxy.thrift.ScanOptions;
@@ -44,6 +53,12 @@ import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.accumulo.server.test.functional.SlowIterator;
 import org.apache.accumulo.test.MiniAccumuloCluster;
+import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
 import org.junit.AfterClass;
@@ -96,12 +111,12 @@ public class SimpleTest {
     client = new TestProxyClient("localhost", proxyPort).proxy();
   }
 
-  //@Test(timeout = 10000)
+  @Test(timeout = 10000)
   public void testPing() throws Exception {
     client.ping(creds);
   }
   
-  //@Test(timeout = 10000)
+  @Test(timeout = 10000)
   public void testInstanceOperations() throws Exception {
     int tservers = 0;
     for (String tserver : client.getTabletServers(creds)) {
@@ -215,7 +230,7 @@ public class SimpleTest {
     assertTrue(c.outputFile.contains("default_tablet"));
   }
   
-  //@Test
+  @Test
   public void testSecurityOperations() throws Exception {
     // check password
     assertTrue(client.authenticateUser(creds, "root", s2bb(secret)));
@@ -294,6 +309,8 @@ public class SimpleTest {
   
   @Test
   public void testTableOperations() throws Exception {
+    if (client.tableExists(creds, "test"))
+      client.deleteTable(creds, "test");
     client.createTable(creds, "test", true, TimeType.MILLIS);
     // constraints
     client.addConstraint(creds, "test", NumericValueConstraint.class.getName());
@@ -335,6 +352,7 @@ public class SimpleTest {
     }
     scanner = client.createScanner(creds, "test", null);
     more = client.scanner_next_k(scanner, 2);
+    client.close_scanner(scanner);
     assertEquals("10", new String(more.getResults().get(0).getValue()));
     try {
       client.checkIteratorConflicts(creds, "test", setting, EnumSet.allOf(IteratorScope.class));
@@ -344,27 +362,91 @@ public class SimpleTest {
     client.deleteRows(creds, "test", null, null);
     client.removeIterator(creds, "test", "test", EnumSet.allOf(IteratorScope.class));
     for (int i = 0; i < 10; i++) {
-      client.updateAndFlush(creds, "test", mutation("row1", "cf", "cq", "1"));
+      client.updateAndFlush(creds, "test", mutation("row"+i, "cf", "cq", ""+i));
       client.flushTable(creds, "test", null, null, true);
     }
     scanner = client.createScanner(creds, "test", null);
-    more = client.scanner_next_k(scanner, 2);
-    assertEquals("1", new String(more.getResults().get(0).getValue()));
+    more = client.scanner_next_k(scanner, 100);
+    client.close_scanner(scanner);
+    assertEquals(10, more.getResults().size());
     // clone
     client.cloneTable(creds, "test", "test2", true, null, null);
     scanner = client.createScanner(creds, "test2", null);
-    more = client.scanner_next_k(scanner, 2);
-    assertEquals("1", new String(more.getResults().get(0).getValue()));
+    more = client.scanner_next_k(scanner, 100);
+    client.close_scanner(scanner);
+    assertEquals(10, more.getResults().size());
+    client.deleteTable(creds, "test2");
     
-    // don't know how to test this 
+    // don't know how to test this, call it just for fun
     client.clearLocatorCache(creds, "test");
     
     // compact
-    assertEquals(10, countFiles("test"));
+    assertTrue(countFiles("test") > 1);
     client.compactTable(creds, "test", null, null, null, true, true);
     assertEquals(1, countFiles("test"));
+    
+    // export/import
+    String dir = folder.getRoot() + "/test";
+    String destDir = folder.getRoot() + "/test_dest";
+    client.offlineTable(creds, "test");
+    client.exportTable(creds, "test", dir);
+    // copy files to a new location
+    FileSystem fs = FileSystem.get(new Configuration());
+    FSDataInputStream is = fs.open(new Path(dir + "/distcp.txt"));
+    BufferedReader r = new BufferedReader(new InputStreamReader(is));
+    while (true) {
+      String line = r.readLine();
+      if (line == null)
+        break;
+      Path srcPath = new Path(line);
+      FileUtils.copyFile(new File(srcPath.toUri().getPath()), new File(destDir, srcPath.getName()));
+    }
+    client.deleteTable(creds, "test");
+    client.importTable(creds, "testify", destDir);
+    scanner = client.createScanner(creds, "testify", null);
+    more = client.scanner_next_k(scanner, 100);
+    client.close_scanner(scanner);
+    assertEquals(10, more.results.size());
+    
+    // Locality groups
+    client.createTable(creds, "test", true, TimeType.MILLIS);
+    Map<String, Set<String>> groups = new HashMap<String, Set<String>>();
+    groups.put("group1", Collections.singleton("cf1"));
+    groups.put("group2", Collections.singleton("cf2"));
+    client.setLocalityGroups(creds, "test", groups);
+    assertEquals(groups, client.getLocalityGroups(creds, "test"));
+    // table properties
+    Map<String,String> orig = client.getTableProperties(creds, "test");
+    client.setTableProperty(creds, "test", "table.split.threshold", "500M");
+    Map<String,String> update = client.getTableProperties(creds, "test");
+    assertEquals(update.get("table.split.threshold"), "500M");
+    client.removeTableProperty(creds, "test", "table.split.threshold");
+    update = client.getTableProperties(creds, "test");
+    assertEquals(orig, update);
+    // rename table
+    Map<String,String> tables = client.tableIdMap(creds);
+    client.renameTable(creds, "test", "bar");
+    Map<String,String> tables2 = client.tableIdMap(creds);
+    assertEquals(tables.get("test"), tables2.get("bar"));
+    // table exists
+    assertTrue(client.tableExists(creds, "bar"));
+    assertFalse(client.tableExists(creds, "test"));
+    // bulk import
+    String filename = dir + "/bulk/import/rfile.rf";
+    FileSKVWriter writer = FileOperations.getInstance().openWriter(filename, fs, fs.getConf(), DefaultConfiguration.getInstance());
+    writer.startDefaultLocalityGroup();
+    writer.append(new org.apache.accumulo.core.data.Key(new Text("a"), new Text("b"), new Text("c")), new Value("value".getBytes()));
+    writer.close();
+    fs.mkdirs(new Path(dir + "/bulk/fail"));
+    client.importDirectory(creds, "bar", dir + "/bulk/import", dir + "/bulk/fail", true);
+    scanner = client.createScanner(creds, "bar", null);
+    more = client.scanner_next_k(scanner, 100);
+    client.close_scanner(scanner);
+    assertEquals(1, more.results.size());
+    
   }
   
+  // scan !METADATA table for file entries for the given table
   private int countFiles(String table) throws Exception {
     Map<String,String> tableIdMap = client.tableIdMap(creds);
     String tableId = tableIdMap.get(table);
@@ -372,10 +454,11 @@ public class SimpleTest {
     start.row = s2bb(tableId + ";");
     Key end = new Key();
     end.row = s2bb(tableId + "<");
+    end = client.getFollowing(end, PartialKey.ROW);
     ScanOptions opt = new ScanOptions();
-    opt.range = new Range(start, true, end, true);
+    opt.range = new Range(start, true, end, false);
     opt.columns = Collections.singletonList(new ScanColumn(s2bb("file")));
-    String scanner = client.createScanner(creds, table, opt);
+    String scanner = client.createScanner(creds, Constants.METADATA_TABLE_NAME, opt);
     int result = 0;
     while (true) {
       ScanResult more = client.scanner_next_k(scanner, 100);

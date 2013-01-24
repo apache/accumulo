@@ -698,10 +698,13 @@ public class ProxyServer implements AccumuloProxy.Iface {
           }
         }
         org.apache.accumulo.proxy.thrift.Range prange = opts.range;
-        Range range = prange == null ? new Range() : (new Range(prange.getStart() == null ? null : Util.fromThrift(prange.getStart()), true,
-            prange.getStop() == null ? null : Util.fromThrift(prange.getStop()), false));
-        
-        scanner.setRange(range);
+        if (prange != null) {
+          Range range = new Range(
+              Util.fromThrift(prange.getStart()), prange.startInclusive, 
+              Util.fromThrift(prange.getStop()), prange.stopInclusive
+                  );
+          scanner.setRange(range);
+        }
         if (opts.columns != null) {
           for (ScanColumn col : opts.columns) {
             if (col.isSetColQualifier())
@@ -1068,13 +1071,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   private Range getRange(org.apache.accumulo.proxy.thrift.Range range) {
-    return new Range(getKey(range.start), getKey(range.stop));
-  }
-  
-  private Key getKey(org.apache.accumulo.proxy.thrift.Key start) {
-    if (start == null)
-      return null;
-    return new Key(start.getRow(), start.getColFamily(), start.getColQualifier(), start.getColVisibility(), 0);
+    return new Range(Util.fromThrift(range.start), Util.fromThrift(range.stop));
   }
   
   @Override
@@ -1096,7 +1093,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   
   @Override
   public org.apache.accumulo.proxy.thrift.Key getFollowing(org.apache.accumulo.proxy.thrift.Key key, org.apache.accumulo.proxy.thrift.PartialKey part) throws TException {
-    Key key_ = getKey(key);
+    Key key_ = Util.fromThrift(key);
     PartialKey part_ = PartialKey.valueOf(part.toString());
     Key followingKey = key_.followingKey(part_);
     return getProxyKey(followingKey);

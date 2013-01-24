@@ -47,6 +47,8 @@ public class Util {
   }
   
   public static org.apache.accumulo.core.data.Key fromThrift(Key pkey) {
+    if (pkey == null)
+      return null;
     return new org.apache.accumulo.core.data.Key(deNullify(pkey.getRow()), deNullify(pkey.getColFamily()), deNullify(pkey.getColQualifier()), deNullify(pkey.getColVisibility()),
         pkey.getTimestamp());
   }
