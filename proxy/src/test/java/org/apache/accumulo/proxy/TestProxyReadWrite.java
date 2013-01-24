@@ -268,7 +268,7 @@ public class TestProxyReadWrite {
     int maxInserts = 1000000;
     Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
     String format = "%1$06d";
-    String writer = tpc.proxy().createWriter(userpass, testtable);
+    String writer = tpc.proxy().createWriter(userpass, testtable, null);
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
       
@@ -308,7 +308,7 @@ public class TestProxyReadWrite {
     int maxInserts = 10000;
     Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
     String format = "%1$05d";
-    String writer = tpc.proxy().createWriter(userpass, testtable);
+    String writer = tpc.proxy().createWriter(userpass, testtable, null);
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
       
@@ -358,7 +358,7 @@ public class TestProxyReadWrite {
     int maxInserts = 10000;
     Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
     String format = "%1$05d";
-    String writer = tpc.proxy().createWriter(userpass, testtable);
+    String writer = tpc.proxy().createWriter(userpass, testtable, null);
     for (int i = 0; i < maxInserts; i++) {
       if (i % 2 == 0)
         addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, "even", Util.randString(10));

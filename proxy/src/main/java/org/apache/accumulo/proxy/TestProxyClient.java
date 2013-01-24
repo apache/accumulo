@@ -114,7 +114,7 @@ public class TestProxyClient {
     start = new Date();
     then = new Date();
     mutations.clear();
-    String writer = tpc.proxy().createWriter(userpass, testTable);
+    String writer = tpc.proxy().createWriter(userpass, testTable, null);
     for (int i = 0; i < maxInserts; i++) {
       String result = String.format(format, i);
       Key pkey = new Key();

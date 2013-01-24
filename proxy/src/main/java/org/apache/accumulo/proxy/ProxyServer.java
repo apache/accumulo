@@ -81,6 +81,7 @@ import org.apache.accumulo.proxy.thrift.ScanType;
 import org.apache.accumulo.proxy.thrift.UnknownScanner;
 import org.apache.accumulo.proxy.thrift.UnknownWriter;
 import org.apache.accumulo.proxy.thrift.UserPass;
+import org.apache.accumulo.proxy.thrift.WriterOptions;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 
@@ -733,17 +734,17 @@ public class ProxyServer implements AccumuloProxy.Iface {
     try {
       Connector connector = getConnector(userpass);
       
-      int batchSize = 10;
+      int threads = 10;
       Authorizations auth;
       if (opts != null && opts.isSetAuthorizations()) {
         auth = getAuthorizations(opts.authorizations);
       } else {
         auth = connector.securityOperations().getUserAuthorizations(userpass.getUsername());
       }
-      if (opts != null && opts.isSetBufferSize() && opts.bufferSize > 0)
-        batchSize = opts.bufferSize;
+      if (opts != null && opts.threads > 0)
+        threads = opts.threads;
 
-      BatchScanner scanner = connector.createBatchScanner(tableName, auth, batchSize);
+      BatchScanner scanner = connector.createBatchScanner(tableName, auth, threads);
       
       if (opts != null) {
         if (opts.iterators != null) {
@@ -837,7 +838,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells) throws TException {
     try {
-      BatchWriter writer = getWriter(userpass, tableName);
+      BatchWriter writer = getWriter(userpass, tableName, null);
       addCellsToWriter(cells, writer);
       writer.flush();
       writer.close();
@@ -885,9 +886,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public String createWriter(UserPass userpass, String tableName) throws TException {
+  public String createWriter(UserPass userpass, String tableName, WriterOptions opts) throws TException {
     try {
-      BatchWriter writer = getWriter(userpass, tableName);
+      BatchWriter writer = getWriter(userpass, tableName, opts);
       UUID uuid = UUID.randomUUID();
       writerCache.put(uuid, writer);
       return uuid.toString();
@@ -936,8 +937,19 @@ public class ProxyServer implements AccumuloProxy.Iface {
     }
   }
   
-  private BatchWriter getWriter(UserPass userpass, String tableName) throws Exception {
-    return getConnector(userpass).createBatchWriter(tableName, new BatchWriterConfig());
+  private BatchWriter getWriter(UserPass userpass, String tableName, WriterOptions opts) throws Exception {
+    BatchWriterConfig cfg = new BatchWriterConfig();
+    if (opts != null) {
+      if (opts.maxMemory != 0)
+        cfg.setMaxMemory(opts.maxMemory);
+      if (opts.threads != 0)
+        cfg.setMaxWriteThreads(opts.threads);
+      if (opts.timeoutMs != 0)
+        cfg.setTimeout(opts.timeoutMs, TimeUnit.MILLISECONDS);
+      if (opts.latencyMs != 0)
+        cfg.setMaxLatency(opts.latencyMs, TimeUnit.MILLISECONDS);
+    }
+    return getConnector(userpass).createBatchWriter(tableName, cfg);
   }
   
   private IteratorSetting getIteratorSetting(org.apache.accumulo.proxy.thrift.IteratorSetting setting) {

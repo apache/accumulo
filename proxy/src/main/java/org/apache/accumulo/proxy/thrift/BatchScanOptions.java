@@ -53,7 +53,7 @@ import org.slf4j.LoggerFactory;
   private static final org.apache.thrift.protocol.TField RANGES_FIELD_DESC = new org.apache.thrift.protocol.TField("ranges", org.apache.thrift.protocol.TType.LIST, (short)2);
   private static final org.apache.thrift.protocol.TField COLUMNS_FIELD_DESC = new org.apache.thrift.protocol.TField("columns", org.apache.thrift.protocol.TType.LIST, (short)3);
   private static final org.apache.thrift.protocol.TField ITERATORS_FIELD_DESC = new org.apache.thrift.protocol.TField("iterators", org.apache.thrift.protocol.TType.LIST, (short)4);
-  private static final org.apache.thrift.protocol.TField BUFFER_SIZE_FIELD_DESC = new org.apache.thrift.protocol.TField("bufferSize", org.apache.thrift.protocol.TType.I32, (short)5);
+  private static final org.apache.thrift.protocol.TField THREADS_FIELD_DESC = new org.apache.thrift.protocol.TField("threads", org.apache.thrift.protocol.TType.I32, (short)5);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
@@ -65,7 +65,7 @@ import org.slf4j.LoggerFactory;
   public List<Range> ranges; // optional
   public List<ScanColumn> columns; // optional
   public List<IteratorSetting> iterators; // optional
-  public int bufferSize; // optional
+  public int threads; // optional
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -73,7 +73,7 @@ import org.slf4j.LoggerFactory;
     RANGES((short)2, "ranges"),
     COLUMNS((short)3, "columns"),
     ITERATORS((short)4, "iterators"),
-    BUFFER_SIZE((short)5, "bufferSize");
+    THREADS((short)5, "threads");
 
     private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -96,8 +96,8 @@ import org.slf4j.LoggerFactory;
           return COLUMNS;
         case 4: // ITERATORS
           return ITERATORS;
-        case 5: // BUFFER_SIZE
-          return BUFFER_SIZE;
+        case 5: // THREADS
+          return THREADS;
         default:
           return null;
       }
@@ -138,9 +138,9 @@ import org.slf4j.LoggerFactory;
   }
 
   // isset id assignments
-  private static final int __BUFFERSIZE_ISSET_ID = 0;
+  private static final int __THREADS_ISSET_ID = 0;
   private byte __isset_bitfield = 0;
-  private _Fields optionals[] = {_Fields.AUTHORIZATIONS,_Fields.RANGES,_Fields.COLUMNS,_Fields.ITERATORS,_Fields.BUFFER_SIZE};
+  private _Fields optionals[] = {_Fields.AUTHORIZATIONS,_Fields.RANGES,_Fields.COLUMNS,_Fields.ITERATORS,_Fields.THREADS};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -156,7 +156,7 @@ import org.slf4j.LoggerFactory;
     tmpMap.put(_Fields.ITERATORS, new org.apache.thrift.meta_data.FieldMetaData("iterators", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, IteratorSetting.class))));
-    tmpMap.put(_Fields.BUFFER_SIZE, new org.apache.thrift.meta_data.FieldMetaData("bufferSize", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
+    tmpMap.put(_Fields.THREADS, new org.apache.thrift.meta_data.FieldMetaData("threads", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(BatchScanOptions.class, metaDataMap);
@@ -200,7 +200,7 @@ import org.slf4j.LoggerFactory;
       }
       this.iterators = __this__iterators;
     }
-    this.bufferSize = other.bufferSize;
+    this.threads = other.threads;
   }
 
   public BatchScanOptions deepCopy() {
@@ -213,8 +213,8 @@ import org.slf4j.LoggerFactory;
     this.ranges = null;
     this.columns = null;
     this.iterators = null;
-    setBufferSizeIsSet(false);
-    this.bufferSize = 0;
+    setThreadsIsSet(false);
+    this.threads = 0;
   }
 
   public int getAuthorizationsSize() {
@@ -373,27 +373,27 @@ import org.slf4j.LoggerFactory;
     }
   }
 
-  public int getBufferSize() {
-    return this.bufferSize;
+  public int getThreads() {
+    return this.threads;
   }
 
-  public BatchScanOptions setBufferSize(int bufferSize) {
-    this.bufferSize = bufferSize;
-    setBufferSizeIsSet(true);
+  public BatchScanOptions setThreads(int threads) {
+    this.threads = threads;
+    setThreadsIsSet(true);
     return this;
   }
 
-  public void unsetBufferSize() {
-    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __BUFFERSIZE_ISSET_ID);
+  public void unsetThreads() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __THREADS_ISSET_ID);
   }
 
-  /** Returns true if field bufferSize is set (has been assigned a value) and false otherwise */
-  public boolean isSetBufferSize() {
-    return EncodingUtils.testBit(__isset_bitfield, __BUFFERSIZE_ISSET_ID);
+  /** Returns true if field threads is set (has been assigned a value) and false otherwise */
+  public boolean isSetThreads() {
+    return EncodingUtils.testBit(__isset_bitfield, __THREADS_ISSET_ID);
   }
 
-  public void setBufferSizeIsSet(boolean value) {
-    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __BUFFERSIZE_ISSET_ID, value);
+  public void setThreadsIsSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __THREADS_ISSET_ID, value);
   }
 
   public void setFieldValue(_Fields field, Object value) {
@@ -430,11 +430,11 @@ import org.slf4j.LoggerFactory;
       }
       break;
 
-    case BUFFER_SIZE:
+    case THREADS:
       if (value == null) {
-        unsetBufferSize();
+        unsetThreads();
       } else {
-        setBufferSize((Integer)value);
+        setThreads((Integer)value);
       }
       break;
 
@@ -455,8 +455,8 @@ import org.slf4j.LoggerFactory;
     case ITERATORS:
       return getIterators();
 
-    case BUFFER_SIZE:
-      return Integer.valueOf(getBufferSize());
+    case THREADS:
+      return Integer.valueOf(getThreads());
 
     }
     throw new IllegalStateException();
@@ -477,8 +477,8 @@ import org.slf4j.LoggerFactory;
       return isSetColumns();
     case ITERATORS:
       return isSetIterators();
-    case BUFFER_SIZE:
-      return isSetBufferSize();
+    case THREADS:
+      return isSetThreads();
     }
     throw new IllegalStateException();
   }
@@ -532,12 +532,12 @@ import org.slf4j.LoggerFactory;
         return false;
     }
 
-    boolean this_present_bufferSize = true && this.isSetBufferSize();
-    boolean that_present_bufferSize = true && that.isSetBufferSize();
-    if (this_present_bufferSize || that_present_bufferSize) {
-      if (!(this_present_bufferSize && that_present_bufferSize))
+    boolean this_present_threads = true && this.isSetThreads();
+    boolean that_present_threads = true && that.isSetThreads();
+    if (this_present_threads || that_present_threads) {
+      if (!(this_present_threads && that_present_threads))
         return false;
-      if (this.bufferSize != that.bufferSize)
+      if (this.threads != that.threads)
         return false;
     }
 
@@ -597,12 +597,12 @@ import org.slf4j.LoggerFactory;
         return lastComparison;
       }
     }
-    lastComparison = Boolean.valueOf(isSetBufferSize()).compareTo(typedOther.isSetBufferSize());
+    lastComparison = Boolean.valueOf(isSetThreads()).compareTo(typedOther.isSetThreads());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetBufferSize()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.bufferSize, typedOther.bufferSize);
+    if (isSetThreads()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.threads, typedOther.threads);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -666,10 +666,10 @@ import org.slf4j.LoggerFactory;
       }
       first = false;
     }
-    if (isSetBufferSize()) {
+    if (isSetThreads()) {
       if (!first) sb.append(", ");
-      sb.append("bufferSize:");
-      sb.append(this.bufferSize);
+      sb.append("threads:");
+      sb.append(this.threads);
       first = false;
     }
     sb.append(")");
@@ -792,10 +792,10 @@ import org.slf4j.LoggerFactory;
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 5: // BUFFER_SIZE
+          case 5: // THREADS
             if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-              struct.bufferSize = iprot.readI32();
-              struct.setBufferSizeIsSet(true);
+              struct.threads = iprot.readI32();
+              struct.setThreadsIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -871,9 +871,9 @@ import org.slf4j.LoggerFactory;
           oprot.writeFieldEnd();
         }
       }
-      if (struct.isSetBufferSize()) {
-        oprot.writeFieldBegin(BUFFER_SIZE_FIELD_DESC);
-        oprot.writeI32(struct.bufferSize);
+      if (struct.isSetThreads()) {
+        oprot.writeFieldBegin(THREADS_FIELD_DESC);
+        oprot.writeI32(struct.threads);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldStop();
@@ -906,7 +906,7 @@ import org.slf4j.LoggerFactory;
       if (struct.isSetIterators()) {
         optionals.set(3);
       }
-      if (struct.isSetBufferSize()) {
+      if (struct.isSetThreads()) {
         optionals.set(4);
       }
       oprot.writeBitSet(optionals, 5);
@@ -946,8 +946,8 @@ import org.slf4j.LoggerFactory;
           }
         }
       }
-      if (struct.isSetBufferSize()) {
-        oprot.writeI32(struct.bufferSize);
+      if (struct.isSetThreads()) {
+        oprot.writeI32(struct.threads);
       }
     }
 
@@ -1011,8 +1011,8 @@ import org.slf4j.LoggerFactory;
         struct.setIteratorsIsSet(true);
       }
       if (incoming.get(4)) {
-        struct.bufferSize = iprot.readI32();
-        struct.setBufferSizeIsSet(true);
+        struct.threads = iprot.readI32();
+        struct.setThreadsIsSet(true);
       }
     }
   }

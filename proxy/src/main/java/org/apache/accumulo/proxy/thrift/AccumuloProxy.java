@@ -178,7 +178,7 @@ import org.slf4j.LoggerFactory;
 
     public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
-    public String createWriter(UserPass userpass, String tableName) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
+    public String createWriter(UserPass userpass, String tableName, WriterOptions opts) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException;
 
     public void writer_update(String writer, Map<ByteBuffer,List<ColumnUpdate>> cells) throws org.apache.thrift.TException;
 
@@ -322,7 +322,7 @@ import org.slf4j.LoggerFactory;
 
     public void updateAndFlush(UserPass userpass, String tableName, Map<ByteBuffer,List<ColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.updateAndFlush_call> resultHandler) throws org.apache.thrift.TException;
 
-    public void createWriter(UserPass userpass, String tableName, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createWriter_call> resultHandler) throws org.apache.thrift.TException;
+    public void createWriter(UserPass userpass, String tableName, WriterOptions opts, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.createWriter_call> resultHandler) throws org.apache.thrift.TException;
 
     public void writer_update(String writer, Map<ByteBuffer,List<ColumnUpdate>> cells, org.apache.thrift.async.AsyncMethodCallback<AsyncClient.writer_update_call> resultHandler) throws org.apache.thrift.TException;
 
@@ -2259,17 +2259,18 @@ import org.slf4j.LoggerFactory;
       return;
     }
 
-    public String createWriter(UserPass userpass, String tableName) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
+    public String createWriter(UserPass userpass, String tableName, WriterOptions opts) throws AccumuloException, AccumuloSecurityException, org.apache.thrift.TException
     {
-      send_createWriter(userpass, tableName);
+      send_createWriter(userpass, tableName, opts);
       return recv_createWriter();
     }
 
-    public void send_createWriter(UserPass userpass, String tableName) throws org.apache.thrift.TException
+    public void send_createWriter(UserPass userpass, String tableName, WriterOptions opts) throws org.apache.thrift.TException
     {
       createWriter_args args = new createWriter_args();
       args.setUserpass(userpass);
       args.setTableName(tableName);
+      args.setOpts(opts);
       sendBase("createWriter", args);
     }
 
@@ -4824,9 +4825,9 @@ import org.slf4j.LoggerFactory;
       }
     }
 
-    public void createWriter(UserPass userpass, String tableName, org.apache.thrift.async.AsyncMethodCallback<createWriter_call> resultHandler) throws org.apache.thrift.TException {
+    public void createWriter(UserPass userpass, String tableName, WriterOptions opts, org.apache.thrift.async.AsyncMethodCallback<createWriter_call> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      createWriter_call method_call = new createWriter_call(userpass, tableName, resultHandler, this, ___protocolFactory, ___transport);
+      createWriter_call method_call = new createWriter_call(userpass, tableName, opts, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -4834,10 +4835,12 @@ import org.slf4j.LoggerFactory;
     public static class createWriter_call extends org.apache.thrift.async.TAsyncMethodCall {
       private UserPass userpass;
       private String tableName;
-      public createWriter_call(UserPass userpass, String tableName, org.apache.thrift.async.AsyncMethodCallback<createWriter_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private WriterOptions opts;
+      public createWriter_call(UserPass userpass, String tableName, WriterOptions opts, org.apache.thrift.async.AsyncMethodCallback<createWriter_call> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.userpass = userpass;
         this.tableName = tableName;
+        this.opts = opts;
       }
 
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
@@ -4845,6 +4848,7 @@ import org.slf4j.LoggerFactory;
         createWriter_args args = new createWriter_args();
         args.setUserpass(userpass);
         args.setTableName(tableName);
+        args.setOpts(opts);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -6810,7 +6814,7 @@ import org.slf4j.LoggerFactory;
       public createWriter_result getResult(I iface, createWriter_args args) throws org.apache.thrift.TException {
         createWriter_result result = new createWriter_result();
         try {
-          result.success = iface.createWriter(args.userpass, args.tableName);
+          result.success = iface.createWriter(args.userpass, args.tableName, args.opts);
         } catch (AccumuloException outch1) {
           result.outch1 = outch1;
         } catch (AccumuloSecurityException ouch2) {
@@ -77045,6 +77049,7 @@ import org.slf4j.LoggerFactory;
 
     private static final org.apache.thrift.protocol.TField USERPASS_FIELD_DESC = new org.apache.thrift.protocol.TField("userpass", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TABLE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("tableName", org.apache.thrift.protocol.TType.STRING, (short)2);
+    private static final org.apache.thrift.protocol.TField OPTS_FIELD_DESC = new org.apache.thrift.protocol.TField("opts", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
     private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
     static {
@@ -77054,11 +77059,13 @@ import org.slf4j.LoggerFactory;
 
     public UserPass userpass; // required
     public String tableName; // required
+    public WriterOptions opts; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     @SuppressWarnings("all") public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       USERPASS((short)1, "userpass"),
-      TABLE_NAME((short)2, "tableName");
+      TABLE_NAME((short)2, "tableName"),
+      OPTS((short)3, "opts");
 
       private static final Map<String, _Fields> byName = new HashMap<String, _Fields>();
 
@@ -77077,6 +77084,8 @@ import org.slf4j.LoggerFactory;
             return USERPASS;
           case 2: // TABLE_NAME
             return TABLE_NAME;
+          case 3: // OPTS
+            return OPTS;
           default:
             return null;
         }
@@ -77124,6 +77133,8 @@ import org.slf4j.LoggerFactory;
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, UserPass.class)));
       tmpMap.put(_Fields.TABLE_NAME, new org.apache.thrift.meta_data.FieldMetaData("tableName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.OPTS, new org.apache.thrift.meta_data.FieldMetaData("opts", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, WriterOptions.class)));
       metaDataMap = Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(createWriter_args.class, metaDataMap);
     }
@@ -77133,11 +77144,13 @@ import org.slf4j.LoggerFactory;
 
     public createWriter_args(
       UserPass userpass,
-      String tableName)
+      String tableName,
+      WriterOptions opts)
     {
       this();
       this.userpass = userpass;
       this.tableName = tableName;
+      this.opts = opts;
     }
 
     /**
@@ -77150,6 +77163,9 @@ import org.slf4j.LoggerFactory;
       if (other.isSetTableName()) {
         this.tableName = other.tableName;
       }
+      if (other.isSetOpts()) {
+        this.opts = new WriterOptions(other.opts);
+      }
     }
 
     public createWriter_args deepCopy() {
@@ -77160,6 +77176,7 @@ import org.slf4j.LoggerFactory;
     public void clear() {
       this.userpass = null;
       this.tableName = null;
+      this.opts = null;
     }
 
     public UserPass getUserpass() {
@@ -77210,6 +77227,30 @@ import org.slf4j.LoggerFactory;
       }
     }
 
+    public WriterOptions getOpts() {
+      return this.opts;
+    }
+
+    public createWriter_args setOpts(WriterOptions opts) {
+      this.opts = opts;
+      return this;
+    }
+
+    public void unsetOpts() {
+      this.opts = null;
+    }
+
+    /** Returns true if field opts is set (has been assigned a value) and false otherwise */
+    public boolean isSetOpts() {
+      return this.opts != null;
+    }
+
+    public void setOptsIsSet(boolean value) {
+      if (!value) {
+        this.opts = null;
+      }
+    }
+
     public void setFieldValue(_Fields field, Object value) {
       switch (field) {
       case USERPASS:
@@ -77228,6 +77269,14 @@ import org.slf4j.LoggerFactory;
         }
         break;
 
+      case OPTS:
+        if (value == null) {
+          unsetOpts();
+        } else {
+          setOpts((WriterOptions)value);
+        }
+        break;
+
       }
     }
 
@@ -77238,6 +77287,9 @@ import org.slf4j.LoggerFactory;
 
       case TABLE_NAME:
         return getTableName();
+
+      case OPTS:
+        return getOpts();
 
       }
       throw new IllegalStateException();
@@ -77254,6 +77306,8 @@ import org.slf4j.LoggerFactory;
         return isSetUserpass();
       case TABLE_NAME:
         return isSetTableName();
+      case OPTS:
+        return isSetOpts();
       }
       throw new IllegalStateException();
     }
@@ -77286,6 +77340,15 @@ import org.slf4j.LoggerFactory;
         if (!(this_present_tableName && that_present_tableName))
           return false;
         if (!this.tableName.equals(that.tableName))
+          return false;
+      }
+
+      boolean this_present_opts = true && this.isSetOpts();
+      boolean that_present_opts = true && that.isSetOpts();
+      if (this_present_opts || that_present_opts) {
+        if (!(this_present_opts && that_present_opts))
+          return false;
+        if (!this.opts.equals(that.opts))
           return false;
       }
 
@@ -77325,6 +77388,16 @@ import org.slf4j.LoggerFactory;
           return lastComparison;
         }
       }
+      lastComparison = Boolean.valueOf(isSetOpts()).compareTo(typedOther.isSetOpts());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetOpts()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.opts, typedOther.opts);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
       return 0;
     }
 
@@ -77360,6 +77433,14 @@ import org.slf4j.LoggerFactory;
         sb.append(this.tableName);
       }
       first = false;
+      if (!first) sb.append(", ");
+      sb.append("opts:");
+      if (this.opts == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.opts);
+      }
+      first = false;
       sb.append(")");
       return sb.toString();
     }
@@ -77369,6 +77450,9 @@ import org.slf4j.LoggerFactory;
       // check for sub-struct validity
       if (userpass != null) {
         userpass.validate();
+      }
+      if (opts != null) {
+        opts.validate();
       }
     }
 
@@ -77423,6 +77507,15 @@ import org.slf4j.LoggerFactory;
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 3: // OPTS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.opts = new WriterOptions();
+                struct.opts.read(iprot);
+                struct.setOptsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -77446,6 +77539,11 @@ import org.slf4j.LoggerFactory;
         if (struct.tableName != null) {
           oprot.writeFieldBegin(TABLE_NAME_FIELD_DESC);
           oprot.writeString(struct.tableName);
+          oprot.writeFieldEnd();
+        }
+        if (struct.opts != null) {
+          oprot.writeFieldBegin(OPTS_FIELD_DESC);
+          struct.opts.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -77472,19 +77570,25 @@ import org.slf4j.LoggerFactory;
         if (struct.isSetTableName()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetOpts()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetUserpass()) {
           struct.userpass.write(oprot);
         }
         if (struct.isSetTableName()) {
           oprot.writeString(struct.tableName);
         }
+        if (struct.isSetOpts()) {
+          struct.opts.write(oprot);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, createWriter_args struct) throws org.apache.thrift.TException {
         TTupleProtocol iprot = (TTupleProtocol) prot;
-        BitSet incoming = iprot.readBitSet(2);
+        BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.userpass = new UserPass();
           struct.userpass.read(iprot);
@@ -77493,6 +77597,11 @@ import org.slf4j.LoggerFactory;
         if (incoming.get(1)) {
           struct.tableName = iprot.readString();
           struct.setTableNameIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.opts = new WriterOptions();
+          struct.opts.read(iprot);
+          struct.setOptsIsSet(true);
         }
       }
     }

@@ -89,7 +89,7 @@ struct BatchScanOptions {
   2:optional list<Range> ranges,
   3:optional list<ScanColumn> columns;
   4:optional list<IteratorSetting> iterators;
-  5:optional i32 bufferSize;
+  5:optional i32 threads;
 } 
 
 struct KeyValueAndPeek {
@@ -180,6 +180,13 @@ struct ActiveCompaction {
   8:i64 entriesRead
   9:i64 entriesWritten
   10:list<IteratorSetting> iterators;
+}
+
+struct WriterOptions {
+ 1:i64 maxMemory
+ 2:i64 latencyMs
+ 3:i64 timeoutMs
+ 4:i32 threads
 }
 
 enum IteratorScope {
@@ -318,7 +325,7 @@ service AccumuloProxy
 
   // writing
   void updateAndFlush(1:UserPass userpass, 2:string tableName, 3:map<binary, list<ColumnUpdate>> cells) throws(1:AccumuloException outch1, 2:AccumuloSecurityException ouch2);
-  string createWriter(1:UserPass userpass, 2:string tableName)                                          throws(1:AccumuloException outch1, 2:AccumuloSecurityException ouch2);
+  string createWriter(1:UserPass userpass, 2:string tableName, 3:WriterOptions opts)                    throws(1:AccumuloException outch1, 2:AccumuloSecurityException ouch2);
 
   // use the writer
   oneway void writer_update(1:string writer, 2:map<binary, list<ColumnUpdate>> cells);
