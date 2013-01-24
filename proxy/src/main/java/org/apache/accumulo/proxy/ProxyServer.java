@@ -66,12 +66,15 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.proxy.thrift.AccumuloProxy;
+import org.apache.accumulo.proxy.thrift.BatchScanOptions;
 import org.apache.accumulo.proxy.thrift.KeyValueAndPeek;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.CompactionReason;
 import org.apache.accumulo.proxy.thrift.CompactionType;
 import org.apache.accumulo.proxy.thrift.KeyValue;
 import org.apache.accumulo.proxy.thrift.NoMoreEntriesException;
+import org.apache.accumulo.proxy.thrift.ScanColumn;
+import org.apache.accumulo.proxy.thrift.ScanOptions;
 import org.apache.accumulo.proxy.thrift.ScanResult;
 import org.apache.accumulo.proxy.thrift.ScanState;
 import org.apache.accumulo.proxy.thrift.ScanType;
@@ -674,31 +677,41 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public String createScanner(UserPass userpass, String tableName, Set<ByteBuffer> authorizations, List<org.apache.accumulo.proxy.thrift.IteratorSetting> iterators, org.apache.accumulo.proxy.thrift.Range prange)
+  public String createScanner(UserPass userpass, String tableName, ScanOptions opts)
       throws TException {
     try {
       Connector connector = getConnector(userpass);
       
       Authorizations auth;
-      if (authorizations != null) {
-        auth = getAuthorizations(authorizations);
+      if (opts != null && opts.isSetAuthorizations()) {
+        auth = getAuthorizations(opts.authorizations);
       } else {
         auth = connector.securityOperations().getUserAuthorizations(userpass.getUsername());
       }
-      
       Scanner scanner = connector.createScanner(tableName, auth);
       
-      if (iterators != null) {
-        for (org.apache.accumulo.proxy.thrift.IteratorSetting iter : iterators) {
-          IteratorSetting is = new IteratorSetting(iter.getPriority(), iter.getName(), iter.getIteratorClass(), iter.getProperties());
-          scanner.addScanIterator(is);
+      if (opts != null) {
+        if (opts.iterators != null) {
+          for (org.apache.accumulo.proxy.thrift.IteratorSetting iter : opts.iterators) {
+            IteratorSetting is = new IteratorSetting(iter.getPriority(), iter.getName(), iter.getIteratorClass(), iter.getProperties());
+            scanner.addScanIterator(is);
+          }
+        }
+        org.apache.accumulo.proxy.thrift.Range prange = opts.range;
+        Range range = prange == null ? new Range() : (new Range(prange.getStart() == null ? null : Util.fromThrift(prange.getStart()), true,
+            prange.getStop() == null ? null : Util.fromThrift(prange.getStop()), false));
+        
+        scanner.setRange(range);
+        if (opts.columns != null) {
+          for (ScanColumn col : opts.columns) {
+            if (col.isSetColQualifier())
+              scanner.fetchColumn(ByteBufferUtil.toText(col.colFamily), ByteBufferUtil.toText(col.colQualifier));
+            else
+              scanner.fetchColumnFamily(ByteBufferUtil.toText(col.colFamily));
+          }
         }
       }
       
-      Range range = prange == null ? new Range() : (new Range(prange.getStart() == null ? null : Util.fromThrift(prange.getStart()), true,
-          prange.getStop() == null ? null : Util.fromThrift(prange.getStop()), false));
-      
-      scanner.setRange(range);
       UUID uuid = UUID.randomUUID();
       
       ScannerPlusIterator spi = new ScannerPlusIterator();
@@ -712,39 +725,44 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public String createBatchScanner(UserPass userpass, String tableName, Set<ByteBuffer> authorizations, List<org.apache.accumulo.proxy.thrift.IteratorSetting> iterators, List<org.apache.accumulo.proxy.thrift.Range> pranges)
+  public String createBatchScanner(UserPass userpass, String tableName, BatchScanOptions opts)
       throws TException {
     try {
       Connector connector = getConnector(userpass);
       
+      int batchSize = 10;
       Authorizations auth;
-      if (authorizations != null) {
-        auth = getAuthorizations(authorizations);
+      if (opts != null && opts.isSetAuthorizations()) {
+        auth = getAuthorizations(opts.authorizations);
       } else {
         auth = connector.securityOperations().getUserAuthorizations(userpass.getUsername());
       }
+      if (opts != null && opts.isSetBufferSize() && opts.bufferSize > 0)
+        batchSize = opts.bufferSize;
+
+      BatchScanner scanner = connector.createBatchScanner(tableName, auth, batchSize);
       
-      BatchScanner scanner = connector.createBatchScanner(tableName, auth, 10);
-      
-      if (iterators != null) {
-        for (org.apache.accumulo.proxy.thrift.IteratorSetting iter : iterators) {
-          IteratorSetting is = new IteratorSetting(iter.getPriority(), iter.getName(), iter.getIteratorClass(), iter.getProperties());
-          scanner.addScanIterator(is);
+      if (opts != null) {
+        if (opts.iterators != null) {
+          for (org.apache.accumulo.proxy.thrift.IteratorSetting iter : opts.iterators) {
+            IteratorSetting is = new IteratorSetting(iter.getPriority(), iter.getName(), iter.getIteratorClass(), iter.getProperties());
+            scanner.addScanIterator(is);
+          }
         }
-      }
-      
-      ArrayList<Range> ranges = new ArrayList<Range>();
-      
-      if (pranges == null) {
-        ranges.add(new Range());
-      } else {
-        for (org.apache.accumulo.proxy.thrift.Range range : pranges) {
-          Range aRange = new Range(range.getStart() == null ? null : Util.fromThrift(range.getStart()), true, range.getStop() == null ? null
-              : Util.fromThrift(range.getStop()), false);
-          ranges.add(aRange);
+        
+        ArrayList<Range> ranges = new ArrayList<Range>();
+        
+        if (opts.ranges == null) {
+          ranges.add(new Range());
+        } else {
+          for (org.apache.accumulo.proxy.thrift.Range range : opts.ranges) {
+            Range aRange = new Range(range.getStart() == null ? null : Util.fromThrift(range.getStart()), true, range.getStop() == null ? null
+                : Util.fromThrift(range.getStop()), false);
+            ranges.add(aRange);
+          }
         }
+        scanner.setRanges(ranges);
       }
-      scanner.setRanges(ranges);
       UUID uuid = UUID.randomUUID();
       
       ScannerPlusIterator spi = new ScannerPlusIterator();

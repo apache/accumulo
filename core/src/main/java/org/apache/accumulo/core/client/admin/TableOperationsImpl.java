@@ -620,6 +620,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (flush)
       _flush(srcTableId, null, null, true);
     
+    if (propertiesToExclude == null)
+      propertiesToExclude = Collections.emptySet();
+    
+    if (propertiesToSet == null)
+      propertiesToSet = Collections.emptyMap();
+    
     if (!Collections.disjoint(propertiesToExclude, propertiesToSet.keySet()))
       throw new IllegalArgumentException("propertiesToSet and propertiesToExclude not disjoint");
     

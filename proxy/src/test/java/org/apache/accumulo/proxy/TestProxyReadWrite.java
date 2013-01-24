@@ -19,7 +19,6 @@ package org.apache.accumulo.proxy;
 import static org.junit.Assert.assertEquals;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,14 +28,13 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.iterators.user.RegExFilter;
-import org.apache.accumulo.proxy.Proxy;
-import org.apache.accumulo.proxy.TestProxyClient;
-import org.apache.accumulo.proxy.Util;
+import org.apache.accumulo.proxy.thrift.BatchScanOptions;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.IteratorSetting;
 import org.apache.accumulo.proxy.thrift.Key;
 import org.apache.accumulo.proxy.thrift.KeyValue;
 import org.apache.accumulo.proxy.thrift.Range;
+import org.apache.accumulo.proxy.thrift.ScanOptions;
 import org.apache.accumulo.proxy.thrift.ScanResult;
 import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
@@ -124,9 +122,9 @@ public class TestProxyReadWrite {
     
     Key stop = new Key();
     stop.setRow("5".getBytes());
-    List<Range> pranges = new ArrayList<Range>();
-    pranges.add(new Range(null, false, stop, false));
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, null, null, pranges);
+    BatchScanOptions options = new BatchScanOptions();
+    options.ranges = Collections.singletonList(new Range(null, false, stop, false));
+    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, options);
     
     int i = 0;
     boolean hasNext = true;
@@ -166,7 +164,9 @@ public class TestProxyReadWrite {
     RegExFilter.setRegexs(is, regex, null, null, null, false);
     
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, null, Collections.singletonList(pis), null);
+    BatchScanOptions opts = new BatchScanOptions();
+    opts.iterators = Collections.singletonList(pis);
+    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, opts);
     
     int i = 0;
     boolean hasNext = true;
@@ -199,7 +199,9 @@ public class TestProxyReadWrite {
     
     Key stop = new Key();
     stop.setRow("5".getBytes());
-    String cookie = tpc.proxy().createScanner(userpass, testtable, null, null, new Range(null, false, stop, false));
+    ScanOptions opts = new ScanOptions();
+    opts.range = new Range(null, false, stop, false);
+    String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
     
     int i = 0;
     boolean hasNext = true;
@@ -241,7 +243,9 @@ public class TestProxyReadWrite {
     RegExFilter.setRegexs(is, regex, null, null, null, false);
     
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
-    String cookie = tpc.proxy().createScanner(userpass, testtable, null, Collections.singletonList(pis), null);
+    ScanOptions opts = new ScanOptions();
+    opts.iterators = Collections.singletonList(pis);
+    String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
     
     int i = 0;
     boolean hasNext = true;
@@ -280,7 +284,7 @@ public class TestProxyReadWrite {
     tpc.proxy().writer_flush(writer);
     tpc.proxy().writer_close(writer);
     
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, null, null, null);
+    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, null);
     
     int i = 0;
     boolean hasNext = true;
@@ -323,7 +327,9 @@ public class TestProxyReadWrite {
     RegExFilter.setRegexs(is, regex, null, null, null, false);
     
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, null, Collections.singletonList(pis), null);
+    BatchScanOptions opts = new BatchScanOptions();
+    opts.iterators = Collections.singletonList(pis);
+    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, opts);
     
     int i = 0;
     boolean hasNext = true;
@@ -367,7 +373,9 @@ public class TestProxyReadWrite {
     
     tpc.proxy().writer_flush(writer);
     tpc.proxy().writer_close(writer);
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, auths, null, null);
+    BatchScanOptions opts = new BatchScanOptions();
+    opts.authorizations = auths;
+    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, opts);
     
     int i = 0;
     boolean hasNext = true;

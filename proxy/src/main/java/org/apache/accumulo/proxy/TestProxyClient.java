@@ -143,7 +143,7 @@ public class TestProxyClient {
     
     Key stop = new Key();
     stop.setRow("5".getBytes());
-    String cookie = tpc.proxy().createBatchScanner(userpass, testTable, null, null, null);
+    String cookie = tpc.proxy().createBatchScanner(userpass, testTable, null);
     
     int i = 0;
     start = new Date();
