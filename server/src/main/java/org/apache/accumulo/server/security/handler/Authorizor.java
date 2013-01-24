@@ -31,7 +31,7 @@ public interface Authorizor {
    * 
    * @param instanceId
    */
-  public void initialize(String instanceId);
+  public void initialize(String instanceId, boolean initialize);
 
   /**
    * Used to validate that the Authorizor, Authenticator, and permission handler can coexist

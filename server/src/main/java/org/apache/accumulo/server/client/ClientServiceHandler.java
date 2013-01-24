@@ -52,7 +52,6 @@ import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
-
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = Logger.getLogger(ClientServiceHandler.class);
   private static SecurityOperation security = AuditedSecurityOperation.getInstance();
@@ -99,11 +98,17 @@ public class ClientServiceHandler implements ClientService.Iface {
   
   @Override
   public boolean authenticateUser(TInfo tinfo, ThriftInstanceTokenWrapper credentials, ByteBuffer token) throws ThriftSecurityException {
-    return security.authenticateUser(new InstanceTokenWrapper(credentials), TokenHelper.unwrap(token));
+    try {
+      return security.authenticateUser(new InstanceTokenWrapper(credentials), TokenHelper.unwrap(token));
+    } catch (ThriftSecurityException e) {
+      log.error(e);
+      throw e;
+    }
   }
   
   @Override
-  public void changeAuthorizations(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, List<ByteBuffer> authorizations) throws ThriftSecurityException {
+  public void changeAuthorizations(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, List<ByteBuffer> authorizations)
+      throws ThriftSecurityException {
     security.changeAuthorizations(new InstanceTokenWrapper(credentials), user, new Authorizations(authorizations));
   }
   
@@ -133,8 +138,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
   
   @Override
-  public void grantTablePermission(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
-      ThriftTableOperationException {
+  public void grantTablePermission(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission)
+      throws ThriftSecurityException, ThriftTableOperationException {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
     security.grantTablePermission(new InstanceTokenWrapper(credentials), user, tableId, TablePermission.getPermissionById(permission));
   }
@@ -145,8 +150,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
   
   @Override
-  public void revokeTablePermission(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission) throws ThriftSecurityException,
-      ThriftTableOperationException {
+  public void revokeTablePermission(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, String tableName, byte permission)
+      throws ThriftSecurityException, ThriftTableOperationException {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
     security.revokeTablePermission(new InstanceTokenWrapper(credentials), user, tableId, TablePermission.getPermissionById(permission));
   }
@@ -157,8 +162,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
   
   @Override
-  public boolean hasTablePermission(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, String tableName, byte tblPerm) throws ThriftSecurityException,
-      ThriftTableOperationException {
+  public boolean hasTablePermission(TInfo tinfo, ThriftInstanceTokenWrapper credentials, String user, String tableName, byte tblPerm)
+      throws ThriftSecurityException, ThriftTableOperationException {
     String tableId = checkTableId(tableName, TableOperation.PERMISSION);
     return security.hasTablePermission(new InstanceTokenWrapper(credentials), user, tableId, TablePermission.getPermissionById(tblPerm));
   }
@@ -206,8 +211,7 @@ public class ClientServiceHandler implements ClientService.Iface {
         throw new AccumuloSecurityException(credentials.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
       return transactionWatcher.run(Constants.BULK_ARBITRATOR_TYPE, tid, new Callable<List<String>>() {
         public List<String> call() throws Exception {
-          return BulkImporter.bulkLoad(new ServerConfiguration(instance).getConfiguration(), instance, credentials, tid, tableId, files, errorDir,
-              setTime);
+          return BulkImporter.bulkLoad(new ServerConfiguration(instance).getConfiguration(), instance, credentials, tid, tableId, files, errorDir, setTime);
         }
       });
     } catch (AccumuloSecurityException e) {
@@ -246,9 +250,5 @@ public class ClientServiceHandler implements ClientService.Iface {
       return false;
     }
   }
-
-  @Override
-  public String getSecurityTokenClass() throws TException {
-    return security.getTokenClassName();
-  }
+  
 }

@@ -176,4 +176,9 @@ public class MockInstance implements Instance {
   public Connector getConnector(AuthInfo auth) throws AccumuloException, AccumuloSecurityException {
     return getConnector(UserPassToken.convertAuthInfo(auth));
   }
+
+  @Override
+  public String getSecurityTokenClass() throws AccumuloException {
+    return UserPassToken.class.getCanonicalName();
+  }
 }

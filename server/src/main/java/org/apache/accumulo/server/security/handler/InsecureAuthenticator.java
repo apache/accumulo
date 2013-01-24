@@ -33,7 +33,7 @@ public class InsecureAuthenticator implements Authenticator {
    * @see org.apache.accumulo.server.security.handler.Authenticator#initialize(java.lang.String)
    */
   @Override
-  public void initialize(String instanceId) {
+  public void initialize(String instanceId, boolean initialize) {
     return;
   }
   

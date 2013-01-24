@@ -52,7 +52,7 @@ public final class ZKAuthenticator implements Authenticator {
     zooCache = new ZooCache();
   }
   
-  public void initialize(String instanceId) {
+  public void initialize(String instanceId, boolean initialize) {
     ZKUserPath = Constants.ZROOT + "/" + instanceId + "/users";
   }
   

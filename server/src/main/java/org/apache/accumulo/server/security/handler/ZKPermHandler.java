@@ -50,21 +50,21 @@ public class ZKPermHandler implements PermissionHandler {
   private final ZooCache zooCache;
   private final String ZKUserSysPerms = "/System";
   private final String ZKUserTablePerms = "/Tables";
-
+  
   public static synchronized PermissionHandler getInstance() {
     if (zkPermHandlerInstance == null)
       zkPermHandlerInstance = new ZKPermHandler();
     return zkPermHandlerInstance;
   }
-
-  public void initialize(String instanceId) {
+  
+  public void initialize(String instanceId, boolean initialize) {
     ZKUserPath = ZKSecurityTool.getInstancePath(instanceId) + "/users";
   }
-
+  
   public ZKPermHandler() {
     zooCache = new ZooCache();
   }
-
+  
   @Override
   public boolean hasTablePermission(String user, String table, TablePermission permission) {
     byte[] serializedPerms;
@@ -94,7 +94,7 @@ public class ZKPermHandler implements PermissionHandler {
     }
     return false;
   }
-
+  
   @Override
   public void grantSystemPermission(String user, SystemPermission permission) throws AccumuloSecurityException {
     try {
@@ -235,6 +235,10 @@ public class ZKPermHandler implements PermissionHandler {
     tablePerms.put(Constants.METADATA_TABLE_ID, Collections.singleton(TablePermission.ALTER_TABLE));
     
     try {
+      // prep parent node of users with root username
+      if (!zoo.exists(ZKUserPath))
+        zoo.putPersistentData(ZKUserPath, rootuser.getBytes(), NodeExistsPolicy.FAIL);
+      
       initUser(rootuser);
       zoo.putPersistentData(ZKUserPath + "/" + rootuser + ZKUserSysPerms, ZKSecurityTool.convertSystemPermissions(rootPerms), NodeExistsPolicy.FAIL);
       for (Entry<String,Set<TablePermission>> entry : tablePerms.entrySet())
@@ -265,7 +269,7 @@ public class ZKPermHandler implements PermissionHandler {
       throw new RuntimeException(e);
     }
   }
-
+  
   /**
    * Sets up a new table configuration for the provided user/table. No checking for existence is done here, it should be done before calling.
    */
@@ -331,7 +335,7 @@ public class ZKPermHandler implements PermissionHandler {
   public boolean validSecurityHandlers(Authenticator authent, Authorizor author) {
     return true;
   }
-
+  
   @Override
   public void initTable(String table) throws AccumuloSecurityException {
     // All proper housekeeping is done on delete and permission granting, no work needs to be done here

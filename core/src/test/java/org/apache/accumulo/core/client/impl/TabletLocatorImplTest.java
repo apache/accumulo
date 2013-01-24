@@ -50,6 +50,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.thrift.AuthInfo;
 import org.apache.accumulo.core.security.tokens.AccumuloToken;
 import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
+import org.apache.accumulo.core.security.tokens.UserPassToken;
 import org.apache.accumulo.core.util.MetadataTable;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
@@ -471,6 +472,11 @@ public class TabletLocatorImplTest extends TestCase {
     public Connector getConnector(AccumuloToken<?,?> token) throws AccumuloException, AccumuloSecurityException {
       throw new UnsupportedOperationException();
     }
+    
+    @Override
+    public String getSecurityTokenClass() throws AccumuloException {
+      return UserPassToken.class.getCanonicalName();
+    }
   }
   
   static class TServers {
@@ -597,7 +603,7 @@ public class TabletLocatorImplTest extends TestCase {
       throw new RuntimeException("Asked for empty tablet, but non empty tablet exists");
     }
   }
-
+  
   static void setLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke, String location) {
     Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(server);
     if (tablets == null) {

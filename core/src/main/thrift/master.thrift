@@ -156,4 +156,6 @@ service MasterClientService {
    void executeTableOperation(7:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:i64 opid, 3:TableOperation op, 4:list<binary> arguments, 5:map<string, string> options, 6:bool autoClean)throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
    string waitForTableOperation(3:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:i64 opid) throws (1:security.ThriftSecurityException sec, 2:client.ThriftTableOperationException tope)
    void finishTableOperation(3:cloudtrace.TInfo tinfo, 1:security.ThriftInstanceTokenWrapper credentials, 2:i64 opid) throws (1:security.ThriftSecurityException sec)
+   string getSecurityTokenClass();
+
 }

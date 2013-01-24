@@ -30,7 +30,7 @@ import org.apache.accumulo.core.security.tokens.InstanceTokenWrapper;
 
 public interface Authenticator {
   
-  public void initialize(String instanceId);
+  public void initialize(String instanceId, boolean initialize);
 
   public boolean validSecurityHandlers(Authorizor auth, PermissionHandler pm);
 
@@ -46,7 +46,7 @@ public interface Authenticator {
   
   public void changePassword(AccumuloToken<?,?> user) throws AccumuloSecurityException;
   
-  public boolean userExists(String user);
+  public boolean userExists(String user) throws AccumuloSecurityException;
 
   public String getTokenClassName();
 }

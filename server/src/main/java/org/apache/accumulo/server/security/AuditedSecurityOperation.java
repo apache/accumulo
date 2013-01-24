@@ -44,16 +44,17 @@ public class AuditedSecurityOperation extends SecurityOperation {
   public AuditedSecurityOperation(Authorizor author, Authenticator authent, PermissionHandler pm, String instanceId) {
     super(author, authent, pm, instanceId);
   }
-
+  
   public static final Logger log = Logger.getLogger(AuditedSecurityOperation.class);
   
-  public static synchronized SecurityOperation getInstance(String instanceId) {
+  public static synchronized SecurityOperation getInstance(String instanceId, boolean initialize) {
     if (instance == null) {
-      instance = new AuditedSecurityOperation(getAuthorizor(instanceId), getAuthenticator(instanceId), getPermHandler(instanceId), instanceId);
+      instance = new AuditedSecurityOperation(getAuthorizor(instanceId, initialize), getAuthenticator(instanceId, initialize), getPermHandler(instanceId,
+          initialize), instanceId);
     }
     return instance;
   }
-
+  
   private void audit(InstanceTokenWrapper credentials, ThriftSecurityException ex, String template, Object... args) {
     log.log(AuditLevel.AUDIT, "Error: authenticated operation failed: " + credentials.getPrincipal() + ": " + String.format(template, args));
   }
@@ -76,7 +77,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       return result;
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "authenticateUser");
-      throw ex;
+      log.debug(ex);
+   throw ex;
     }
   }
   
@@ -93,9 +95,10 @@ public class AuditedSecurityOperation extends SecurityOperation {
       return result;
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "getting authorizations for %s", user);
+      log.debug(ex);
       throw ex;
     }
-
+    
   }
   
   /**
@@ -104,7 +107,12 @@ public class AuditedSecurityOperation extends SecurityOperation {
    * @throws ThriftSecurityException
    */
   public Authorizations getUserAuthorizations(InstanceTokenWrapper credentials) throws ThriftSecurityException {
-    return getUserAuthorizations(credentials, credentials.getPrincipal());
+    try {
+      return getUserAuthorizations(credentials, credentials.getPrincipal());
+    } catch (ThriftSecurityException ex) {
+      log.debug(ex);
+      throw ex;
+    }
   }
   
   /**
@@ -119,7 +127,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       audit(credentials, "changed authorizations for %s to %s", user, authorizations);
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "changing authorizations for %s", user);
-      throw ex;
+      log.debug(ex);
+    throw ex;
     }
   }
   
@@ -135,7 +144,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       audit(credentials, "changed password for %s", token.getPrincipal());
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "changing password for %s", token.getPrincipal());
-      throw ex;
+      log.debug(ex);
+  throw ex;
     }
   }
   
@@ -152,7 +162,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       audit(credentials, "createUser");
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "createUser %s", token.getPrincipal());
-      throw ex;
+      log.debug(ex);
+  throw ex;
     }
   }
   
@@ -167,7 +178,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
       audit(credentials, "dropUser");
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "dropUser %s", user);
-      throw ex;
+      log.debug(ex);
+  throw ex;
     }
   }
   
@@ -183,6 +195,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       audit(credentials, "granted permission %s for %s", permission, user);
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "granting permission %s for %s", permission, user);
+      log.debug(ex);
       throw ex;
     }
   }
@@ -200,6 +213,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       audit(credentials, "granted permission %s on table %s for %s", permission, table, user);
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "granting permission %s on table for %s", permission, table, user);
+      log.debug(ex);
       throw ex;
     }
   }
@@ -216,6 +230,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       audit(credentials, "revoked permission %s for %s", permission, user);
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "revoking permission %s on %s", permission, user);
+      log.debug(ex);
       throw ex;
     }
   }
@@ -233,6 +248,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       audit(credentials, "revoked permission %s on table %s for %s", permission, table, user);
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "revoking permission %s on table for %s", permission, table, user);
+      log.debug(ex);
       throw ex;
     }
   }
@@ -251,6 +267,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       return result;
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "checking permission %s on %s", permission, user);
+      log.debug(ex);
       throw ex;
     }
   }
@@ -270,6 +287,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       return result;
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "checking permission %s on %s", permission, user);
+      log.debug(ex);
       throw ex;
     }
   }
@@ -286,6 +304,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
       return result;
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "listUsers");
+      log.debug(ex);
       throw ex;
     }
   }
@@ -301,13 +320,14 @@ public class AuditedSecurityOperation extends SecurityOperation {
       audit(credentials, "deleted table %s", table);
     } catch (ThriftSecurityException ex) {
       audit(credentials, ex, "deleting table %s", table);
-      throw ex;
+      log.debug(ex);
+  throw ex;
     }
   }
-
+  
   @Override
   public void initializeSecurity(InstanceTokenWrapper credentials, AccumuloToken<?,?> token) throws AccumuloSecurityException, ThriftSecurityException {
     super.initializeSecurity(credentials, token);
-    log.info("Initialized root user with username: " + token.getPrincipal()+ " at the request of user " + credentials.getPrincipal());
+    log.info("Initialized root user with username: " + token.getPrincipal() + " at the request of user " + credentials.getPrincipal());
   }
 }

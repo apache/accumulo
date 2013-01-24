@@ -88,7 +88,7 @@ public class WalkingSecurity extends SecurityOperation implements Authorizor, Au
   }
   
   @Override
-  public void initialize(String instanceId) {
+  public void initialize(String instanceId, boolean initialize) {
     throw new UnsupportedOperationException("nope");
   }
   

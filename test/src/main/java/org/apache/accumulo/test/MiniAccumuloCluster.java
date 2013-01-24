@@ -310,7 +310,7 @@ public class MiniAccumuloCluster {
     // sleep a little bit to let zookeeper come up before calling init, seems to work better
     UtilWaitThread.sleep(250);
     
-    Process initProcess = exec(Initialize.class, "--instance-name", INSTANCE_NAME, "--password", config.getRootPassword());
+    Process initProcess = exec(Initialize.class, "--instance-name", INSTANCE_NAME, "--password", config.getRootPassword(), "--username", "root");
     int ret = initProcess.waitFor();
     if (ret != 0) {
       throw new RuntimeException("Initialize process returned " + ret);

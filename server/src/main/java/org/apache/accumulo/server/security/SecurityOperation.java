@@ -55,44 +55,43 @@ public class SecurityOperation {
   private static String rootUserName = null;
   private final ZooCache zooCache;
   private final String ZKUserPath;
-
-  private String instanceId;
   
   protected static SecurityOperation instance;
   
   public static synchronized SecurityOperation getInstance() {
     String instanceId = HdfsZooInstance.getInstance().getInstanceID();
-    return getInstance(instanceId);
+    return getInstance(instanceId, false);
   }
   
-  public static synchronized SecurityOperation getInstance(String instanceId) {
+  public static synchronized SecurityOperation getInstance(String instanceId, boolean initialize) {
     if (instance == null) {
-      instance = new SecurityOperation(getAuthorizor(instanceId), getAuthenticator(instanceId), getPermHandler(instanceId), instanceId);
+      instance = new SecurityOperation(getAuthorizor(instanceId, initialize), getAuthenticator(instanceId, initialize), getPermHandler(instanceId, initialize),
+          instanceId);
     }
     return instance;
   }
   
   @SuppressWarnings("deprecation")
-  protected static Authorizor getAuthorizor(String instanceId) {
+  protected static Authorizor getAuthorizor(String instanceId, boolean initialize) {
     Authorizor toRet = Master.createInstanceFromPropertyName(AccumuloConfiguration.getSiteConfiguration(), Property.INSTANCE_SECURITY_AUTHORIZOR,
         Authorizor.class, ZKAuthorizor.getInstance());
-    toRet.initialize(instanceId);
+    toRet.initialize(instanceId, initialize);
     return toRet;
   }
   
   @SuppressWarnings("deprecation")
-  protected static Authenticator getAuthenticator(String instanceId) {
+  protected static Authenticator getAuthenticator(String instanceId, boolean initialize) {
     Authenticator toRet = Master.createInstanceFromPropertyName(AccumuloConfiguration.getSiteConfiguration(), Property.INSTANCE_SECURITY_AUTHENTICATOR,
         Authenticator.class, ZKAuthenticator.getInstance());
-    toRet.initialize(instanceId);
+    toRet.initialize(instanceId, initialize);
     return toRet;
   }
   
   @SuppressWarnings("deprecation")
-  protected static PermissionHandler getPermHandler(String instanceId) {
+  protected static PermissionHandler getPermHandler(String instanceId, boolean initialize) {
     PermissionHandler toRet = Master.createInstanceFromPropertyName(AccumuloConfiguration.getSiteConfiguration(),
         Property.INSTANCE_SECURITY_PERMISSION_HANDLER, PermissionHandler.class, ZKPermHandler.getInstance());
-    toRet.initialize(instanceId);
+    toRet.initialize(instanceId, initialize);
     return toRet;
   }
   
@@ -101,7 +100,6 @@ public class SecurityOperation {
    * @Deprecated not for client use
    */
   public SecurityOperation(String instanceId) {
-    this.instanceId = instanceId;
     ZKUserPath = Constants.ZROOT + "/" + instanceId + "/users";
     zooCache = new ZooCache();
   }
@@ -145,19 +143,18 @@ public class SecurityOperation {
     if (!credentials.getInstance().equals(HdfsZooInstance.getInstance().getInstanceID()))
       throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.INVALID_INSTANCEID);
     
-    if (credentials.getPrincipal().equals(SecurityConstants.SYSTEM_USERNAME)) {
-      if (SecurityConstants.getSystemCredentials().getToken().equals(credentials.getToken())
-          && instanceId.equals(SecurityConstants.getSystemCredentials().getInstance()))
-        return;
-      else
-        throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
+    if (SecurityConstants.getSystemCredentials().equals(credentials))
+      return;
+    else if (credentials.getPrincipal().equals(SecurityConstants.SYSTEM_USERNAME)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
     }
-    
+        
     try {
       if (!authenticator.authenticateUser(credentials.getToken())) {
         throw new ThriftSecurityException(credentials.getPrincipal(), SecurityErrorCode.BAD_CREDENTIALS);
       }
     } catch (AccumuloSecurityException e) {
+      log.debug(e);
       throw e.asThriftException();
     }
   }
@@ -178,11 +175,14 @@ public class SecurityOperation {
    */
   public boolean authenticateUser(InstanceTokenWrapper credentials, AccumuloToken<?,?> token) throws ThriftSecurityException {
     canAskAboutUser(credentials, token.getPrincipal());
+    // User is already authenticated from canAskAboutUser, this gets around issues with !SYSTEM user
+    if (credentials.getToken().equals(token))
+      return true;
     try {
       return authenticator.authenticateUser(token);
     } catch (AccumuloSecurityException e) {
       throw e.asThriftException();
-    }    
+    }
   }
   
   /**
@@ -282,8 +282,12 @@ public class SecurityOperation {
     if (user.equals(SecurityConstants.SYSTEM_USERNAME) || user.equals(getRootUsername()))
       return;
     
-    if (!authenticator.userExists(user))
-      throw new ThriftSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST);
+    try {
+      if (!authenticator.userExists(user))
+        throw new ThriftSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST);
+    } catch (AccumuloSecurityException e) {
+      throw e.asThriftException();
+    }
   }
   
   /**

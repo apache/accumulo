@@ -173,4 +173,10 @@ public interface Instance {
    *          accumulo configuration
    */
   public abstract void setConfiguration(AccumuloConfiguration conf);
+  
+  /**
+   * Returns the class name for the tokens Accumulo is expecting.
+   * @throws AccumuloException 
+   */
+  public abstract String getSecurityTokenClass() throws AccumuloException;
 }

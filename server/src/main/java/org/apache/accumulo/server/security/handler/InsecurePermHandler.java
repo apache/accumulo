@@ -31,7 +31,7 @@ public class InsecurePermHandler implements PermissionHandler {
    * @see org.apache.accumulo.server.security.handler.PermissionHandler#initialize(java.lang.String)
    */
   @Override
-  public void initialize(String instanceId) {
+  public void initialize(String instanceId, boolean initialize) {
     return;
   }
   
