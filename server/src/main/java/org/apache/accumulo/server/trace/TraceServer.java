@@ -19,7 +19,6 @@ package org.apache.accumulo.server.trace;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.channels.ServerSocketChannel;
-import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cloudtrace.instrument.Span;
@@ -184,7 +183,7 @@ public class TraceServer implements Watcher {
   }
   
   public void run() throws Exception {
-    SimpleTimer.getInstance().schedule(new TimerTask() {
+    SimpleTimer.getInstance().schedule(new Runnable() {
       @Override
       public void run() {
         flush();

@@ -23,7 +23,6 @@ import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.nio.channels.ServerSocketChannel;
 import java.util.Random;
-import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -193,7 +192,7 @@ public class TServerUtils {
      */
     final ThreadPoolExecutor pool = new SimpleThreadPool(numThreads, "ClientPool");
     // periodically adjust the number of threads we need by checking how busy our threads are
-    SimpleTimer.getInstance().schedule(new TimerTask() {
+    SimpleTimer.getInstance().schedule(new Runnable() {
       @Override
       public void run() {
         if (pool.getCorePoolSize() <= pool.getActiveCount()) {

@@ -98,8 +98,6 @@ import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.conf.ServerConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.constraints.ConstraintChecker;
-import org.apache.accumulo.server.constraints.ConstraintLoader;
-import org.apache.accumulo.server.constraints.UnsatisfiableConstraint;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReports;
@@ -1367,19 +1365,7 @@ public class Tablet {
     acuTableConf.addObserver(configObserver = new ConfigurationObserver() {
       
       private void reloadConstraints() {
-        
-        ConstraintChecker cc = null;
-        
-        try {
-          log.debug("Reloading constraints");
-          cc = ConstraintLoader.load(getTableConfiguration());
-        } catch (IOException e) {
-          log.error("Failed to reload constraints for " + extent, e);
-          cc = new ConstraintChecker();
-          cc.addConstraint(new UnsatisfiableConstraint((short) -1, "Failed to reload constraints, not accepting mutations."));
-        }
-        
-        constraintChecker.set(cc);
+        constraintChecker.set(new ConstraintChecker(getTableConfiguration()));
       }
       
       public void propertiesChanged() {
@@ -2491,6 +2477,15 @@ public class Tablet {
     return commitSession;
   }
   
+  public void checkConstraints() {
+    ConstraintChecker cc = constraintChecker.get();
+    
+    if (cc.classLoaderChanged()) {
+      ConstraintChecker ncc = new ConstraintChecker(getTableConfiguration());
+      constraintChecker.compareAndSet(cc, ncc);
+    }
+  }
+
   public CommitSession prepareMutationsForCommit(TservConstraintEnv cenv, List<Mutation> mutations) throws TConstraintViolationException {
     
     ConstraintChecker cc = constraintChecker.get();

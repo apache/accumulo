@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -256,7 +255,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
     if (newState == MasterState.STOP) {
       // Give the server a little time before shutdown so the client
       // thread requesting the stop can return
-      SimpleTimer.getInstance().schedule(new TimerTask() {
+      SimpleTimer.getInstance().schedule(new Runnable() {
         @Override
         public void run() {
           // This frees the main thread and will cause the master to exit
@@ -2135,7 +2134,7 @@ public class Master implements LiveTServerSet.Listener, TableObserver, CurrentSt
       
       fate = new Fate<Master>(this, store, threads);
       
-      SimpleTimer.getInstance().schedule(new TimerTask() {
+      SimpleTimer.getInstance().schedule(new Runnable() {
         
         @Override
         public void run() {

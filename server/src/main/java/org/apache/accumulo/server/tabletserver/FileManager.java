@@ -113,7 +113,7 @@ public class FileManager {
   
   private final ServerConfiguration conf;
   
-  private class IdleFileCloser extends TimerTask {
+  private class IdleFileCloser implements Runnable {
     
     @Override
     public void run() {
