@@ -607,7 +607,7 @@ abstract public class TransformingIterator extends WrappingIterator implements O
   
   /**
    * Indicates the prefix of keys that will be transformed by this iterator. In other words, this is the part of the key that will <i>not</i> be transformed by
-   * this iterator. For example, if this method returns ROW_COLFAM, then {@link #transformKey(Key)} may be changing the column qualifier, column visibility, or
+   * this iterator. For example, if this method returns ROW_COLFAM, then {@link #transformKeys()} may be changing the column qualifier, column visibility, or
    * timestamp, but it won't be changing the row or column family.
    * 
    * @return the part of the key this iterator is not transforming

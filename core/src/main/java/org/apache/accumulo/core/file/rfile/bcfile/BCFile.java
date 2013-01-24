@@ -159,7 +159,6 @@ public final class BCFile {
       /**
        * Current size of compressed data.
        * 
-       * @return
        * @throws IOException
        */
       long getCompressedSize() throws IOException {
