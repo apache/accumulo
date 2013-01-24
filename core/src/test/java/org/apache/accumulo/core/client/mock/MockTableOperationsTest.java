@@ -92,7 +92,7 @@ public class MockTableOperationsTest {
                 conn.tableOperations().attachIterator(t, settings);
                 Assert.fail();
             }
-            catch (IllegalArgumentException ex) {}
+            catch (AccumuloException ex) {}
             
             writeVersionable(conn, t, 3);
             assertVersionable(conn, t, 1);

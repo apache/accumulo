@@ -86,10 +86,9 @@ struct ScanOptions {
 
 struct BatchScanOptions {
   1:optional set<binary> authorizations;
-  2:optional list<Range> ranges,
-  3:optional list<ScanColumn> columns;
-  4:optional list<IteratorSetting> iterators;
-  5:optional i32 threads;
+  2:optional list<ScanColumn> columns;
+  3:optional list<IteratorSetting> iterators;
+  4:optional i32 threads;
 } 
 
 struct KeyValueAndPeek {
@@ -314,23 +313,23 @@ service AccumuloProxy
 
 
   // scanning
-  string createBatchScanner(1:UserPass userpass, 2:string tableName, 3:BatchScanOptions options)          throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
-  string createScanner(1:UserPass userpass, 2:string tableName, 3:ScanOptions options)                    throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  string createBatchScanner(1:UserPass userpass, 2:string tableName, 3:list<Range> ranges, 4:BatchScanOptions options)          throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
+  string createScanner(1:UserPass userpass, 2:string tableName, 3:ScanOptions options)                                          throws (1:AccumuloException ouch1, 2:AccumuloSecurityException ouch2);
 
   // use the scanner
-  bool scanner_hasnext(1:string scanner)                                                                throws(1:UnknownScanner ouch1);
-  KeyValueAndPeek scanner_next(1:string scanner)                                                        throws(1:NoMoreEntriesException ouch1, 2:UnknownScanner ouch2, 3:AccumuloSecurityException ouch3);
-  ScanResult scanner_next_k(1:string scanner, 2:i32 k)                                                  throws(1:NoMoreEntriesException ouch1, 2:UnknownScanner ouch2, 3:AccumuloSecurityException ouch3);
-  void close_scanner(1:string scanner)                                                                  throws (1:UnknownScanner ouch1);
+  bool hasNext(1:string scanner)                                                                throws(1:UnknownScanner ouch1);
+  KeyValueAndPeek nextEntry(1:string scanner)                                                   throws(1:NoMoreEntriesException ouch1, 2:UnknownScanner ouch2, 3:AccumuloSecurityException ouch3);
+  ScanResult nextK(1:string scanner, 2:i32 k)                                                   throws(1:NoMoreEntriesException ouch1, 2:UnknownScanner ouch2, 3:AccumuloSecurityException ouch3);
+  void closeScanner(1:string scanner)                                                           throws (1:UnknownScanner ouch1);
 
   // writing
   void updateAndFlush(1:UserPass userpass, 2:string tableName, 3:map<binary, list<ColumnUpdate>> cells) throws(1:AccumuloException outch1, 2:AccumuloSecurityException ouch2);
   string createWriter(1:UserPass userpass, 2:string tableName, 3:WriterOptions opts)                    throws(1:AccumuloException outch1, 2:AccumuloSecurityException ouch2);
 
   // use the writer
-  oneway void writer_update(1:string writer, 2:map<binary, list<ColumnUpdate>> cells);
-  void writer_flush(1:string writer) throws (1:UnknownWriter ouch1, 2:AccumuloSecurityException ouch2);
-  void writer_close(1:string writer) throws (1:UnknownWriter ouch1, 2:AccumuloSecurityException ouch2);
+  oneway void update(1:string writer, 2:map<binary, list<ColumnUpdate>> cells);
+  void flush(1:string writer) throws (1:UnknownWriter ouch1, 2:AccumuloSecurityException ouch2);
+  void closeWriter(1:string writer) throws (1:UnknownWriter ouch1, 2:AccumuloSecurityException ouch2);
 
   // utilities
   Range getRowRange(1:binary row);

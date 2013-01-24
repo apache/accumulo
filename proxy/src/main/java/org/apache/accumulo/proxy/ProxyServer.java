@@ -200,6 +200,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
   @Override
   public void createTable(UserPass userpass, String tableName, boolean versioningIter, org.apache.accumulo.proxy.thrift.TimeType timeType) throws TException {
     try {
+      if (timeType == null)
+        timeType = org.apache.accumulo.proxy.thrift.TimeType.MILLIS;
+      
       getConnector(userpass).tableOperations().create(tableName, versioningIter, TimeType.valueOf(timeType.toString()));
     } catch (Exception e) {
       throw translateException(e);
@@ -729,7 +732,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public String createBatchScanner(UserPass userpass, String tableName, BatchScanOptions opts)
+  public String createBatchScanner(UserPass userpass, String tableName, List<org.apache.accumulo.proxy.thrift.Range> pranges, BatchScanOptions opts)
       throws TException {
     try {
       Connector connector = getConnector(userpass);
@@ -756,10 +759,10 @@ public class ProxyServer implements AccumuloProxy.Iface {
         
         ArrayList<Range> ranges = new ArrayList<Range>();
         
-        if (opts.ranges == null) {
+        if (pranges == null) {
           ranges.add(new Range());
         } else {
-          for (org.apache.accumulo.proxy.thrift.Range range : opts.ranges) {
+          for (org.apache.accumulo.proxy.thrift.Range range : pranges) {
             Range aRange = new Range(range.getStart() == null ? null : Util.fromThrift(range.getStart()), true, range.getStop() == null ? null
                 : Util.fromThrift(range.getStop()), false);
             ranges.add(aRange);
@@ -780,7 +783,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public boolean scanner_hasnext(String scanner) throws TException {
+  public boolean hasNext(String scanner) throws TException {
     ScannerPlusIterator spi = scannerCache.getIfPresent(UUID.fromString(scanner));
     if (spi == null) {
       throw new TException("Scanner never existed or no longer exists");
@@ -790,9 +793,9 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public KeyValueAndPeek scanner_next(String scanner) throws TException {
+  public KeyValueAndPeek nextEntry(String scanner) throws TException {
     
-    ScanResult scanResult = scanner_next_k(scanner, 1);
+    ScanResult scanResult = nextK(scanner, 1);
     if (scanResult.results.size() > 0) {
       return new KeyValueAndPeek(scanResult.results.get(0), scanResult.isMore());
     } else {
@@ -802,7 +805,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public ScanResult scanner_next_k(String scanner, int k) throws TException {
+  public ScanResult nextK(String scanner, int k) throws TException {
     
     // fetch the scanner
     ScannerPlusIterator spi = scannerCache.getIfPresent(UUID.fromString(scanner));
@@ -823,7 +826,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
         }
         ret.setMore(numRead == k);
       } catch (Exception ex) {
-        close_scanner(scanner);
+        closeScanner(scanner);
         throw translateException(ex);
       }
       return ret;
@@ -831,7 +834,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void close_scanner(String uuid) throws TException {
+  public void closeScanner(String uuid) throws TException {
     scannerCache.invalidate(uuid);
   }
   
@@ -898,7 +901,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void writer_update(String writer, Map<ByteBuffer,List<ColumnUpdate>> cells) throws TException {
+  public void update(String writer, Map<ByteBuffer,List<ColumnUpdate>> cells) throws TException {
     try {
       BatchWriter batchwriter = writerCache.getIfPresent(UUID.fromString(writer));
       if (batchwriter == null) {
@@ -911,7 +914,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void writer_flush(String writer) throws TException {
+  public void flush(String writer) throws TException {
     try {
       BatchWriter batchwriter = writerCache.getIfPresent(UUID.fromString(writer));
       if (batchwriter == null) {
@@ -924,7 +927,7 @@ public class ProxyServer implements AccumuloProxy.Iface {
   }
   
   @Override
-  public void writer_close(String writer) throws TException {
+  public void closeWriter(String writer) throws TException {
     try {
       BatchWriter batchwriter = writerCache.getIfPresent(UUID.fromString(writer));
       if (batchwriter == null) {

@@ -243,18 +243,18 @@ public class TableOperationsHelperTest {
     try {
       t.attachIterator("table", setting);
       Assert.fail();
-    } catch (IllegalArgumentException e) {}
+    } catch (AccumuloException e) {}
     setting.setName("thirdName");
     try {
       t.attachIterator("table", setting);
       Assert.fail();
-    } catch (IllegalArgumentException e) {}
+    } catch (AccumuloException e) {}
     setting.setPriority(10);
     t.setProperty("table", "table.iterator.minc.thirdName.opt.key", "value");
     try {
       t.attachIterator("table", setting);
       Assert.fail();
-    } catch (IllegalArgumentException e) {}
+    } catch (AccumuloException e) {}
     t.removeProperty("table", "table.iterator.minc.thirdName.opt.key");
     t.attachIterator("table", setting);
   }

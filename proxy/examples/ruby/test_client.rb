@@ -38,12 +38,12 @@ puts "List of tables: #{proxy.listTables(us).inspect}"
 testtable = "rubytest"
 proxy.createTable(us,testtable) unless proxy.tableExists(us,testtable) 
 
-key1 = PColumnUpdate.new({'colFamily' => "cf1", 'colQualifier' => "cq1", 'value'=> "a"})
-key2 = PColumnUpdate.new({'colFamily' => "cf2", 'colQualifier' => "cq2", 'value'=> "b"})
-proxy.updateAndFlush(us,testtable,{'row1' => [key1,key2]},nil)
+update1 = PColumnUpdate.new({'colFamily' => "cf1", 'colQualifier' => "cq1", 'value'=> "a"})
+update2 = PColumnUpdate.new({'colFamily' => "cf2", 'colQualifier' => "cq2", 'value'=> "b"})
+proxy.updateAndFlush(us,testtable,{'row1' => [update1,update2]},nil)
 
-cookie = proxy.createBatchScanner(us,testtable,{},nil,nil)
-result = proxy.scanner_next_k(cookie,10)
+cookie = proxy.createScanner(us,testtable,nil)
+result = proxy.nextK(cookie,10)
 result.results.each{ |keyvalue| puts "Key: #{keyvalue.key.inspect} Value: #{keyvalue.value}" }
 
 transport.close()

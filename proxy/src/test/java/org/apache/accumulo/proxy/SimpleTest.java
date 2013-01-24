@@ -162,8 +162,8 @@ public class SimpleTest {
         try {
           Client client2 = new TestProxyClient("localhost", proxyPort).proxy();
           scanner = client2.createScanner(creds, "slow", null);
-          client2.scanner_next_k(scanner, 10);
-          client2.close_scanner(scanner);
+          client2.nextK(scanner, 10);
+          client2.closeScanner(scanner);
         } catch (TException e) {
           throw new RuntimeException(e);
         }
@@ -279,7 +279,7 @@ public class SimpleTest {
     // denied!
     try {
       String scanner = client.createScanner(stooge, "test", null);
-      client.scanner_next_k(scanner, 100);
+      client.nextK(scanner, 100);
       fail("stooge should not read table test");
     } catch (TException ex) {
     }
@@ -288,14 +288,14 @@ public class SimpleTest {
     client.grantTablePermission(creds, "stooge", "test", TablePermission.READ);
     assertTrue(client.hasTablePermission(creds, "stooge", "test", TablePermission.READ));
     String scanner = client.createScanner(stooge, "test", null);
-    client.scanner_next_k(scanner, 10);
-    client.close_scanner(scanner);
+    client.nextK(scanner, 10);
+    client.closeScanner(scanner);
     // revoke
     client.revokeTablePermission(creds, "stooge", "test", TablePermission.READ);
     assertFalse(client.hasTablePermission(creds, "stooge", "test", TablePermission.READ));
     try {
       scanner = client.createScanner(stooge, "test", null);
-      client.scanner_next_k(scanner, 100);
+      client.nextK(scanner, 100);
       fail("stooge should not read table test");
     } catch (TException ex) {
     }
@@ -323,8 +323,8 @@ public class SimpleTest {
     client.removeConstraint(creds, "test", 1);
     client.updateAndFlush(creds, "test", mutation("row1", "cf", "cq", "x"));
     String scanner = client.createScanner(creds, "test", null);
-    ScanResult more = client.scanner_next_k(scanner, 2);
-    client.close_scanner(scanner);
+    ScanResult more = client.nextK(scanner, 2);
+    client.closeScanner(scanner);
     assertFalse(more.isMore());
     assertEquals(1, more.getResults().size());
     assertEquals(s2bb("x"), more.getResults().get(0).value);
@@ -351,8 +351,8 @@ public class SimpleTest {
       client.updateAndFlush(creds, "test", mutation("row1", "cf", "cq", "1"));
     }
     scanner = client.createScanner(creds, "test", null);
-    more = client.scanner_next_k(scanner, 2);
-    client.close_scanner(scanner);
+    more = client.nextK(scanner, 2);
+    client.closeScanner(scanner);
     assertEquals("10", new String(more.getResults().get(0).getValue()));
     try {
       client.checkIteratorConflicts(creds, "test", setting, EnumSet.allOf(IteratorScope.class));
@@ -366,14 +366,14 @@ public class SimpleTest {
       client.flushTable(creds, "test", null, null, true);
     }
     scanner = client.createScanner(creds, "test", null);
-    more = client.scanner_next_k(scanner, 100);
-    client.close_scanner(scanner);
+    more = client.nextK(scanner, 100);
+    client.closeScanner(scanner);
     assertEquals(10, more.getResults().size());
     // clone
     client.cloneTable(creds, "test", "test2", true, null, null);
     scanner = client.createScanner(creds, "test2", null);
-    more = client.scanner_next_k(scanner, 100);
-    client.close_scanner(scanner);
+    more = client.nextK(scanner, 100);
+    client.closeScanner(scanner);
     assertEquals(10, more.getResults().size());
     client.deleteTable(creds, "test2");
     
@@ -404,8 +404,8 @@ public class SimpleTest {
     client.deleteTable(creds, "test");
     client.importTable(creds, "testify", destDir);
     scanner = client.createScanner(creds, "testify", null);
-    more = client.scanner_next_k(scanner, 100);
-    client.close_scanner(scanner);
+    more = client.nextK(scanner, 100);
+    client.closeScanner(scanner);
     assertEquals(10, more.results.size());
     
     // Locality groups
@@ -440,8 +440,8 @@ public class SimpleTest {
     fs.mkdirs(new Path(dir + "/bulk/fail"));
     client.importDirectory(creds, "bar", dir + "/bulk/import", dir + "/bulk/fail", true);
     scanner = client.createScanner(creds, "bar", null);
-    more = client.scanner_next_k(scanner, 100);
-    client.close_scanner(scanner);
+    more = client.nextK(scanner, 100);
+    client.closeScanner(scanner);
     assertEquals(1, more.results.size());
     
   }
@@ -461,7 +461,7 @@ public class SimpleTest {
     String scanner = client.createScanner(creds, Constants.METADATA_TABLE_NAME, opt);
     int result = 0;
     while (true) {
-      ScanResult more = client.scanner_next_k(scanner, 100);
+      ScanResult more = client.nextK(scanner, 100);
       result += more.getResults().size();
       if (!more.more)
         break;

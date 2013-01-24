@@ -123,15 +123,15 @@ public class TestProxyReadWrite {
     Key stop = new Key();
     stop.setRow("5".getBytes());
     BatchScanOptions options = new BatchScanOptions();
-    options.ranges = Collections.singletonList(new Range(null, false, stop, false));
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, options);
+    List<Range> ranges = Collections.singletonList(new Range(null, false, stop, false));
+    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, ranges, options);
     
     int i = 0;
     boolean hasNext = true;
     
     int k = 1000;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       i += kvList.getResultsSize();
       hasNext = kvList.isMore();
     }
@@ -164,16 +164,16 @@ public class TestProxyReadWrite {
     RegExFilter.setRegexs(is, regex, null, null, null, false);
     
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
-    BatchScanOptions opts = new BatchScanOptions();
+    ScanOptions opts = new ScanOptions();
     opts.iterators = Collections.singletonList(pis);
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, opts);
+    String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
     
     int i = 0;
     boolean hasNext = true;
     
     int k = 1000;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       for (KeyValue kv : kvList.getResults()) {
         assertEquals(Integer.parseInt(new String(kv.getKey().getRow())), i);
         
@@ -208,7 +208,7 @@ public class TestProxyReadWrite {
     
     int k = 1000;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       i += kvList.getResultsSize();
       hasNext = kvList.isMore();
     }
@@ -252,7 +252,7 @@ public class TestProxyReadWrite {
     
     int k = 1000;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       for (KeyValue kv : kvList.getResults()) {
         assertEquals(Integer.parseInt(new String(kv.getKey().getRow())), i);
         
@@ -274,24 +274,24 @@ public class TestProxyReadWrite {
       
       if (i % 1000 == 0 || i == maxInserts - 1) {
         
-        tpc.proxy().writer_update(writer, mutations);
+        tpc.proxy().update(writer, mutations);
         mutations.clear();
         
       }
       
     }
     
-    tpc.proxy().writer_flush(writer);
-    tpc.proxy().writer_close(writer);
+    tpc.proxy().flush(writer);
+    tpc.proxy().closeWriter(writer);
     
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, null);
+    String cookie = tpc.proxy().createScanner(userpass, testtable, null);
     
     int i = 0;
     boolean hasNext = true;
     
     int k = 1000;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       for (KeyValue kv : kvList.getResults()) {
         assertEquals(Integer.parseInt(new String(kv.getKey().getRow())), i);
         i++;
@@ -313,13 +313,13 @@ public class TestProxyReadWrite {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
       
       if (i % 1000 == 0 || i == maxInserts - 1) {
-        tpc.proxy().writer_update(writer, mutations);
+        tpc.proxy().update(writer, mutations);
         mutations.clear();
       }
     }
     
-    tpc.proxy().writer_flush(writer);
-    tpc.proxy().writer_close(writer);
+    tpc.proxy().flush(writer);
+    tpc.proxy().closeWriter(writer);
     
     String regex = ".*[02468]";
     
@@ -327,9 +327,9 @@ public class TestProxyReadWrite {
     RegExFilter.setRegexs(is, regex, null, null, null, false);
     
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
-    BatchScanOptions opts = new BatchScanOptions();
+    ScanOptions opts = new ScanOptions();
     opts.iterators = Collections.singletonList(pis);
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, opts);
+    String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
     
     int i = 0;
     boolean hasNext = true;
@@ -337,7 +337,7 @@ public class TestProxyReadWrite {
     int k = 1000;
     int numRead = 0;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       for (KeyValue kv : kvList.getResults()) {
         assertEquals(i, Integer.parseInt(new String(kv.getKey().getRow())));
         numRead++;
@@ -366,16 +366,16 @@ public class TestProxyReadWrite {
         addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, "odd", Util.randString(10));
       
       if (i % 1000 == 0 || i == maxInserts - 1) {
-        tpc.proxy().writer_update(writer, mutations);
+        tpc.proxy().update(writer, mutations);
         mutations.clear();
       }
     }
     
-    tpc.proxy().writer_flush(writer);
-    tpc.proxy().writer_close(writer);
-    BatchScanOptions opts = new BatchScanOptions();
+    tpc.proxy().flush(writer);
+    tpc.proxy().closeWriter(writer);
+    ScanOptions opts = new ScanOptions();
     opts.authorizations = auths;
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, opts);
+    String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
     
     int i = 0;
     boolean hasNext = true;
@@ -383,7 +383,7 @@ public class TestProxyReadWrite {
     int k = 1000;
     int numRead = 0;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       for (KeyValue kv : kvList.getResults()) {
         assertEquals(Integer.parseInt(new String(kv.getKey().getRow())), i);
         i += 2;

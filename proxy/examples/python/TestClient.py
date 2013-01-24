@@ -41,5 +41,6 @@ if not client.tableExists(userpass, testtable):
 row1 = {'a':[ColumnUpdate('a','a',value='value1'), ColumnUpdate('b','b',value='value2')]}
 client.updateAndFlush(userpass, testtable, row1)
 
-cookie = client.createBatchScanner(userpass, testtable, "", None, None)
-print client.scanner_next_k(cookie, 10)
+cookie = client.createScanner(userpass, testtable, None)
+for entry in client.nextK(cookie, 10).results:
+   print entry
