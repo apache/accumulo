@@ -217,14 +217,13 @@ public class CompactRange extends MasterRepo {
           long flushID = Long.parseLong(new String(tokens[0]));
           flushID++;
           
+          if (tokens.length > 1) {
+            throw new ThriftTableOperationException(tableId, null, TableOperation.COMPACT, TableOperationExceptionType.OTHER,
+                "Another compaction with iterators is running");
+          }
+
           String txidString = String.format("%016x", tid);
           StringBuilder encodedIterators = new StringBuilder();
-          for (int i = 1; i < tokens.length; i++) {
-            if (tokens[i].startsWith(txidString))
-              continue; // skip self
-            encodedIterators.append(",");
-            encodedIterators.append(tokens[i]);
-          }
 
           if (iterators != null && iterators.getIterators().size() > 0) {
             Hex hex = new Hex();

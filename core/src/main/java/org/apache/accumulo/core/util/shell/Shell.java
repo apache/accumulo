@@ -82,6 +82,7 @@ import org.apache.accumulo.core.util.shell.commands.DeleteIterCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteManyCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteRowsCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteScanIterCommand;
+import org.apache.accumulo.core.util.shell.commands.DeleteShellterCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteTableCommand;
 import org.apache.accumulo.core.util.shell.commands.DeleteUserCommand;
 import org.apache.accumulo.core.util.shell.commands.DropTableCommand;
@@ -108,6 +109,7 @@ import org.apache.accumulo.core.util.shell.commands.InterpreterCommand;
 import org.apache.accumulo.core.util.shell.commands.ListCompactionsCommand;
 import org.apache.accumulo.core.util.shell.commands.ListIterCommand;
 import org.apache.accumulo.core.util.shell.commands.ListScansCommand;
+import org.apache.accumulo.core.util.shell.commands.ListShellIterCommand;
 import org.apache.accumulo.core.util.shell.commands.MaxRowCommand;
 import org.apache.accumulo.core.util.shell.commands.MergeCommand;
 import org.apache.accumulo.core.util.shell.commands.NoTableCommand;
@@ -125,6 +127,7 @@ import org.apache.accumulo.core.util.shell.commands.SetAuthsCommand;
 import org.apache.accumulo.core.util.shell.commands.SetGroupsCommand;
 import org.apache.accumulo.core.util.shell.commands.SetIterCommand;
 import org.apache.accumulo.core.util.shell.commands.SetScanIterCommand;
+import org.apache.accumulo.core.util.shell.commands.SetShellIterCommand;
 import org.apache.accumulo.core.util.shell.commands.SleepCommand;
 import org.apache.accumulo.core.util.shell.commands.SystemPermissionsCommand;
 import org.apache.accumulo.core.util.shell.commands.TableCommand;
@@ -169,6 +172,7 @@ public class Shell extends ShellOptions {
   private Class<? extends Formatter> defaultFormatterClass = DefaultFormatter.class;
   private Class<? extends Formatter> binaryFormatterClass = BinaryFormatter.class;
   public Map<String,List<IteratorSetting>> scanIteratorOptions = new HashMap<String,List<IteratorSetting>>();
+  public Map<String,List<IteratorSetting>> iteratorProfiles = new HashMap<String,List<IteratorSetting>>();
   
   private Token rootToken;
   public final Map<String,Command> commandFactory = new TreeMap<String,Command>();
@@ -299,7 +303,8 @@ public class Shell extends ShellOptions {
     Command[] execCommands = {new ExecfileCommand(), new HistoryCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands = {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};
-    Command[] iteratorCommands = {new DeleteIterCommand(), new DeleteScanIterCommand(), new ListIterCommand(), new SetIterCommand(), new SetScanIterCommand()};
+    Command[] iteratorCommands = {new DeleteIterCommand(), new DeleteScanIterCommand(), new ListIterCommand(), new SetIterCommand(), new SetScanIterCommand(),
+        new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellterCommand()};
     Command[] otherCommands = {new HiddenCommand()};
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(), new SystemPermissionsCommand(), new TablePermissionsCommand(),
         new UserPermissionsCommand()};
