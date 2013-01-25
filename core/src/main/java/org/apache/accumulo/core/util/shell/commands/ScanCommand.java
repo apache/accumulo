@@ -55,6 +55,7 @@ public class ScanCommand extends Command {
   private Option optStartRowExclusive;
   private Option optEndRowExclusive;
   private Option timeoutOption;
+  private Option profileOpt;
   
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws Exception {
 
@@ -72,7 +73,7 @@ public class ScanCommand extends Command {
     final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
     
     // handle session-specific scan iterators
-    addScanIterators(shellState, scanner, tableName);
+    addScanIterators(shellState, cl, scanner, tableName);
     
     // handle remaining optional arguments
     scanner.setRange(getRange(cl, interpeter));
@@ -117,12 +118,24 @@ public class ScanCommand extends Command {
     return Long.MAX_VALUE;
   }
 
-  protected void addScanIterators(final Shell shellState, final Scanner scanner, final String tableName) {
-    final List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
-    if (tableScanIterators == null) {
-      Shell.log.debug("Found no scan iterators to set");
-      return;
+  protected void addScanIterators(final Shell shellState, CommandLine cl, final Scanner scanner, final String tableName) {
+    
+    List<IteratorSetting> tableScanIterators;
+    if (cl.hasOption(profileOpt.getOpt())) {
+      String profile = cl.getOptionValue(profileOpt.getOpt());
+      tableScanIterators = shellState.iteratorProfiles.get(profile);
+      
+      if (tableScanIterators == null) {
+        throw new IllegalArgumentException("Profile " + profile + " does not exist");
+      }
+    } else {
+      tableScanIterators = shellState.scanIteratorOptions.get(shellState.getTableName());
+      if (tableScanIterators == null) {
+        Shell.log.debug("Found no scan iterators to set");
+        return;
+      }
     }
+
     Shell.log.debug("Found " + tableScanIterators.size() + " scan iterators to set");
     
     for (IteratorSetting setting : tableScanIterators) {
@@ -287,6 +300,9 @@ public class ScanCommand extends Command {
     timeoutOption.setArgName("timeout");
     outputFileOpt.setArgName("file");
     
+    profileOpt = new Option("pn", "profile", true, "iterator profile name");
+    profileOpt.setArgName("profile");
+
     o.addOption(scanOptAuths);
     o.addOption(scanOptRow);
     o.addOption(OptUtil.startRowOpt());
@@ -303,6 +319,7 @@ public class ScanCommand extends Command {
     o.addOption(formatterInterpeterOpt);
     o.addOption(timeoutOption);
     o.addOption(outputFileOpt);
+    o.addOption(profileOpt);
     
     return o;
   }

@@ -57,7 +57,6 @@ public class SetIterCommand extends Command {
   
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       IOException, ShellCommandException {
-    final String tableName = OptUtil.getTableOpt(cl, shellState);
     
     final int priority = Integer.parseInt(cl.getOptionValue(priorityOpt.getOpt()));
     
@@ -87,14 +86,18 @@ public class SetIterCommand extends Command {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + aggregatorClass + " as type "
           + Aggregator.class.getName());
     }    
-    setTableProperties(cl, shellState, tableName, priority, options, classname, name);
+    setTableProperties(cl, shellState, priority, options, classname, name);
     
     return 0;
   }
   
-  protected void setTableProperties(final CommandLine cl, final Shell shellState, final String tableName, final int priority, final Map<String,String> options, final String classname, final String name)
+  protected void setTableProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options, final String classname,
+      final String name)
       throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
     // remove empty values
+    
+    final String tableName = OptUtil.getTableOpt(cl, shellState);
+
     for (Iterator<Entry<String,String>> i = options.entrySet().iterator(); i.hasNext();) {
       final Entry<String,String> entry = i.next();
       if (entry.getValue() == null || entry.getValue().isEmpty()) {

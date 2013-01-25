@@ -79,7 +79,7 @@ public class ListIterCommand extends Command {
   }
   
   public String description() {
-    return "lists table-specific iterators";
+    return "lists table-specific iterators configured in this shell session";
   }
   
   @Override

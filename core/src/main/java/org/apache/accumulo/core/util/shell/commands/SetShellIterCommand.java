@@ -27,11 +27,9 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.shell.Shell;
 import org.apache.accumulo.core.util.shell.ShellCommandException;
 import org.apache.accumulo.core.util.shell.ShellCommandException.ErrorCode;
@@ -40,21 +38,22 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
-public class SetScanIterCommand extends SetIterCommand {
+public class SetShellIterCommand extends SetIterCommand {
+  private Option profileOpt;
+
   @Override
-  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      IOException, ShellCommandException {
-    Shell.log.warn("Deprecated, use " + new SetShellIterCommand().getName());
+  public int execute(final String fullCommand, final CommandLine cl, final Shell shellState) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, IOException, ShellCommandException {
     return super.execute(fullCommand, cl, shellState);
   }
   
   @Override
   protected void setTableProperties(final CommandLine cl, final Shell shellState, final int priority, final Map<String,String> options, final String classname,
       final String name) throws AccumuloException, AccumuloSecurityException, ShellCommandException, TableNotFoundException {
-    
-    final String tableName = OptUtil.getTableOpt(cl, shellState);
-
     // instead of setting table properties, just put the options in a list to use at scan time
+    
+    String profile = cl.getOptionValue(profileOpt.getOpt());
+
     if (!shellState.getConnector().instanceOperations().testClassLoad(classname, SortedKeyValueIterator.class.getName())) {
       throw new ShellCommandException(ErrorCode.INITIALIZATION_FAILURE, "Servers are unable to load " + classname + " as type "
           + SortedKeyValueIterator.class.getName());
@@ -67,31 +66,27 @@ public class SetScanIterCommand extends SetIterCommand {
       }
     }
 
-    List<IteratorSetting> tableScanIterators = shellState.scanIteratorOptions.get(tableName);
+    List<IteratorSetting> tableScanIterators = shellState.iteratorProfiles.get(profile);
     if (tableScanIterators == null) {
       tableScanIterators = new ArrayList<IteratorSetting>();
-      shellState.scanIteratorOptions.put(tableName, tableScanIterators);
+      shellState.iteratorProfiles.put(profile, tableScanIterators);
     }
     final IteratorSetting setting = new IteratorSetting(priority, name, classname);
     setting.addOptions(options);
-    
-    // initialize a scanner to ensure the new setting does not conflict with existing settings
-    final String user = shellState.getConnector().whoami();
-    final Authorizations auths = shellState.getConnector().securityOperations().getUserAuthorizations(user);
-    final Scanner scanner = shellState.getConnector().createScanner(tableName, auths);
-    for (IteratorSetting s : tableScanIterators) {
-      scanner.addScanIterator(s);
+
+    Iterator<IteratorSetting> iter = tableScanIterators.iterator();
+    while (iter.hasNext()) {
+      if (iter.next().getName().equals(name)) {
+        iter.remove();
+      }
     }
-    scanner.addScanIterator(setting);
-    
-    // if no exception has been thrown, it's safe to add it to the list
+
     tableScanIterators.add(setting);
-    Shell.log.debug("Scan iterators :" + shellState.scanIteratorOptions.get(tableName));
   }
   
   @Override
   public String description() {
-    return "sets a table-specific scan iterator for this shell session";
+    return "adds an iterator to a profile for this shell session";
   }
   
   @Override
@@ -103,7 +98,8 @@ public class SetScanIterCommand extends SetIterCommand {
     final Options modifiedOptions = new Options();
     for (Iterator<?> it = parentOptions.getOptions().iterator(); it.hasNext();) {
       Option o = (Option) it.next();
-      if (!IteratorScope.majc.name().equals(o.getOpt()) && !IteratorScope.minc.name().equals(o.getOpt()) && !IteratorScope.scan.name().equals(o.getOpt())) {
+      if (!IteratorScope.majc.name().equals(o.getOpt()) && !IteratorScope.minc.name().equals(o.getOpt()) && !IteratorScope.scan.name().equals(o.getOpt())
+          && !"table".equals(o.getLongOpt())) {
         modifiedOptions.addOption(o);
         OptionGroup group = parentOptions.getOptionGroup(o);
         if (group != null)
@@ -113,6 +109,13 @@ public class SetScanIterCommand extends SetIterCommand {
     for (OptionGroup group : groups) {
       modifiedOptions.addOptionGroup(group);
     }
+    
+    profileOpt = new Option("pn", "profile", true, "iterator profile name");
+    profileOpt.setRequired(true);
+    profileOpt.setArgName("profile");
+    
+    modifiedOptions.addOption(profileOpt);
+
     return modifiedOptions;
   }
   
