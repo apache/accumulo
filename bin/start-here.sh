@@ -29,7 +29,6 @@ for host in $HOSTS
 do
     if grep -q "^${host}\$" $ACCUMULO_HOME/conf/slaves
     then
-       ${bin}/start-server.sh $host logger
        ${bin}/start-server.sh $host tserver "tablet server"
        break
     fi
