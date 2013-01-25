@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Map.Entry;
-import java.util.TimerTask;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
@@ -141,7 +140,7 @@ public class Accumulo {
    * 
    */
   public static void monitorSwappiness() {
-    SimpleTimer.getInstance().schedule(new TimerTask() {
+    SimpleTimer.getInstance().schedule(new Runnable() {
       @Override
       public void run() {
         try {

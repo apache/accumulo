@@ -32,14 +32,15 @@ transport.open()
 
 userpass = UserPass("root","secret")
 
-print client.tableOperations_list(userpass)
+print client.listTables(userpass)
 
 testtable = "pythontest"
-if not client.tableOperations_exists(userpass,testtable):
-    client.tableOperations_create(userpass,testtable)
+if not client.tableExists(userpass, testtable):
+    client.createTable(userpass, testtable, True, TimeType.MILLIS)
 
-row1 = {'a':[PColumnUpdate('a','a',value='value1'), PColumnUpdate('b','b',value='value2')]}
-client.updateAndFlush(userpass,testtable,row1)
+row1 = {'a':[ColumnUpdate('a','a',value='value1'), ColumnUpdate('b','b',value='value2')]}
+client.updateAndFlush(userpass, testtable, row1)
 
-cookie = client.createBatchScanner(userpass,testtable,"",None,None)
-print client.scanner_next_k(cookie,10)
+cookie = client.createScanner(userpass, testtable, None)
+for entry in client.nextK(cookie, 10).results:
+   print entry

@@ -246,7 +246,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     this.instance = conf.getInstance();
     this.fs = TraceFileSystem.wrap(fs);
     this.logSorter = new LogSorter(instance, fs, getSystemConfiguration());
-    SimpleTimer.getInstance().schedule(new TimerTask() {
+    SimpleTimer.getInstance().schedule(new Runnable() {
       @Override
       public void run() {
         synchronized (onlineTablets) {
@@ -348,7 +348,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
       
       final long maxIdle = conf.getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
       
-      TimerTask r = new TimerTask() {
+      Runnable r = new Runnable() {
         @Override
         public void run() {
           sweep(maxIdle);
@@ -3095,7 +3095,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     }
     
     // A task that cleans up unused classloader contexts
-    TimerTask contextCleaner = new TimerTask() {
+    Runnable contextCleaner = new Runnable() {
       @Override
       public void run() {
         ArrayList<KeyExtent> extents;
@@ -3131,7 +3131,7 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
     FileSystemMonitor.start(getSystemConfiguration(), Property.TSERV_MONITOR_FS);
     
-    TimerTask gcDebugTask = new TimerTask() {
+    Runnable gcDebugTask = new Runnable() {
       @Override
       public void run() {
         logGCInfo(getSystemConfiguration());
@@ -3140,6 +3140,24 @@ public class TabletServer extends AbstractMetricsImpl implements org.apache.accu
     
     SimpleTimer.getInstance().schedule(gcDebugTask, 0, 1000);
     
+    Runnable constraintTask = new Runnable() {
+      
+      @Override
+      public void run() {
+        ArrayList<Tablet> tablets;
+        
+        synchronized (onlineTablets) {
+          tablets = new ArrayList<Tablet>(onlineTablets.values());
+        }
+        
+        for (Tablet tablet : tablets) {
+          tablet.checkConstraints();
+        }
+      }
+    };
+    
+    SimpleTimer.getInstance().schedule(constraintTask, 0, 1000);
+
     this.resourceManager = new TabletServerResourceManager(instance, fs);
     
     lastPingTime = System.currentTimeMillis();

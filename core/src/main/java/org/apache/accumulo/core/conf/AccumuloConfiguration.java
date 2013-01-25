@@ -137,6 +137,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * 
    * @deprecated not for client use
    */
+  @Deprecated
   public static synchronized AccumuloConfiguration getSiteConfiguration() {
     return SiteConfiguration.getInstance(getDefaultConfiguration());
   }

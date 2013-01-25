@@ -114,7 +114,7 @@ public class TestProxyClient {
     start = new Date();
     then = new Date();
     mutations.clear();
-    String writer = tpc.proxy().createWriter(userpass, testTable);
+    String writer = tpc.proxy().createWriter(userpass, testTable, null);
     for (int i = 0; i < maxInserts; i++) {
       String result = String.format(format, i);
       Key pkey = new Key();
@@ -122,7 +122,7 @@ public class TestProxyClient {
       ColumnUpdate update = new ColumnUpdate(ByteBuffer.wrap(("cf" + i).getBytes()), ByteBuffer.wrap(("cq" + i).getBytes()));
       update.setValue(Util.randStringBuffer(10));
       mutations.put(ByteBuffer.wrap(result.getBytes()), Collections.singletonList(update));
-      tpc.proxy().writer_update(writer, mutations);
+      tpc.proxy().update(writer, mutations);
       mutations.clear();
     }
     
@@ -130,7 +130,7 @@ public class TestProxyClient {
     System.out.println(" End of writing: " + (end.getTime() - start.getTime()));
     start = end;
     System.out.println("Closing...");
-    tpc.proxy().writer_close(writer);
+    tpc.proxy().closeWriter(writer);
     end = new Date();
     System.out.println(" End of closing: " + (end.getTime() - start.getTime()));
     
@@ -141,9 +141,7 @@ public class TestProxyClient {
     IteratorSetting is = new IteratorSetting(50, regex, RegExFilter.class);
     RegExFilter.setRegexs(is, null, regex, null, null, false);
     
-    Key stop = new Key();
-    stop.setRow("5".getBytes());
-    String cookie = tpc.proxy().createBatchScanner(userpass, testTable, null, null, null);
+    String cookie = tpc.proxy().createScanner(userpass, testTable, null);
     
     int i = 0;
     start = new Date();
@@ -152,7 +150,7 @@ public class TestProxyClient {
     
     int k = 1000;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       
       Date now = new Date();
       System.out.println(i + " " + (now.getTime() - then.getTime()));

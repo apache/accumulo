@@ -621,6 +621,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
     if (flush)
       _flush(srcTableId, null, null, true);
     
+    if (propertiesToExclude == null)
+      propertiesToExclude = Collections.emptySet();
+    
+    if (propertiesToSet == null)
+      propertiesToSet = Collections.emptyMap();
+    
     if (!Collections.disjoint(propertiesToExclude, propertiesToSet.keySet()))
       throw new IllegalArgumentException("propertiesToSet and propertiesToExclude not disjoint");
     
@@ -660,6 +666,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   /**
    * @deprecated since 1.4 {@link #flush(String, Text, Text, boolean)}
    */
+  @Deprecated
   public void flush(String tableName) throws AccumuloException, AccumuloSecurityException {
     try {
       flush(tableName, null, null, false);

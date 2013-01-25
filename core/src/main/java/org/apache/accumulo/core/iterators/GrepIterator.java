@@ -21,6 +21,7 @@ package org.apache.accumulo.core.iterators;
  * 
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.GrepIterator}
  */
+@Deprecated
 public class GrepIterator extends org.apache.accumulo.core.iterators.user.GrepIterator {
   
 }

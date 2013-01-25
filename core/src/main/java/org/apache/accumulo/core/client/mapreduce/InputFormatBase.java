@@ -51,7 +51,7 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.impl.OfflineScanner;
 import org.apache.accumulo.core.client.impl.Tables;
 import org.apache.accumulo.core.client.impl.TabletLocator;
-import org.apache.accumulo.core.client.mapreduce.util.InputConfigurator;
+import org.apache.accumulo.core.client.mapreduce.lib.util.InputConfigurator;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -84,7 +84,7 @@ import org.apache.log4j.Logger;
  * Subclasses must implement a {@link #createRecordReader(InputSplit, TaskAttemptContext)} to provide a {@link RecordReader} for K,V.
  * <p>
  * A static base class, RecordReaderBase, is provided to retrieve Accumulo {@link Key}/{@link Value} pairs, but one must implement its
- * RecordReaderBase.nextKeyValue() to transform them to the desired generic types K,V.
+ * {@link RecordReaderBase#nextKeyValue()} to transform them to the desired generic types K,V.
  * <p>
  * See {@link AccumuloInputFormat} for an example implementation.
  */
@@ -113,7 +113,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return true if the connector has been configured, false otherwise
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, byte[])
+   * @see #setConnectorInfo(Job, AccumuloToken)
    */
   protected static Boolean isConnectorInfoSet(JobContext context) {
     return InputConfigurator.isConnectorInfoSet(CLASS, context.getConfiguration());
@@ -126,7 +126,7 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
    *          the Hadoop context for the configured job
    * @return the user name
    * @since 1.5.0
-   * @see #setConnectorInfo(Job, String, byte[])
+   * @see #setConnectorInfo(Job, AccumuloToken)
    */
   protected static AccumuloToken<?,?> getToken(JobContext context) {
     return InputConfigurator.getToken(CLASS, context.getConfiguration());
@@ -823,6 +823,11 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       this.setLocations(split.getLocations());
     }
     
+    protected RangeInputSplit(String table, Range range, String[] locations) {
+      this.range = range;
+      this.locations = locations;
+    }
+    
     public Range getRange() {
       return range;
     }
@@ -868,11 +873,6 @@ public abstract class InputFormatBase<K,V> extends InputFormat<K,V> {
       }
       // if we can't figure it out, then claim no progress
       return 0f;
-    }
-    
-    RangeInputSplit(String table, Range range, String[] locations) {
-      this.range = range;
-      this.locations = locations;
     }
     
     /**

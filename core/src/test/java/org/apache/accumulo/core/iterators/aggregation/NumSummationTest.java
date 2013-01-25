@@ -23,6 +23,7 @@ import org.apache.accumulo.core.data.Value;
 /**
  * @deprecated since 1.4
  */
+@Deprecated
 public class NumSummationTest extends TestCase {
   public byte[] init(int n) {
     byte[] b = new byte[n];

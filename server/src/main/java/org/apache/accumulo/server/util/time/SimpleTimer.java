@@ -19,6 +19,8 @@ package org.apache.accumulo.server.util.time;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.apache.log4j.Logger;
+
 /**
  * Generic singleton timer: don't use it if you are going to do anything that will take very long. Please use it to reduce the number of threads dedicated to
  * simple events.
@@ -26,6 +28,25 @@ import java.util.TimerTask;
  */
 public class SimpleTimer {
   
+  static class LoggingTimerTask extends TimerTask {
+    
+    private Runnable task;
+    
+    LoggingTimerTask(Runnable task) {
+      this.task = task;
+    }
+    
+    @Override
+    public void run() {
+      try {
+        task.run();
+      } catch (Throwable t) {
+        Logger.getLogger(LoggingTimerTask.class).warn("Timer task failed " + task.getClass().getName() + " " + t.getMessage(), t);
+      }
+    }
+    
+  }
+
   private static SimpleTimer instance;
   private Timer timer;
   
@@ -39,12 +60,12 @@ public class SimpleTimer {
     timer = new Timer("SimpleTimer", true);
   }
   
-  public void schedule(TimerTask task, long delay) {
-    timer.schedule(task, delay);
+  public void schedule(Runnable task, long delay) {
+    timer.schedule(new LoggingTimerTask(task), delay);
   }
   
-  public void schedule(TimerTask task, long delay, long period) {
-    timer.schedule(task, delay, period);
+  public void schedule(Runnable task, long delay, long period) {
+    timer.schedule(new LoggingTimerTask(task), delay, period);
   }
   
 }

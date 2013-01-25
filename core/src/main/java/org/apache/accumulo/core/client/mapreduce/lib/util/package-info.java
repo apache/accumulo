@@ -30,5 +30,5 @@
  * 
  * @since 1.5.0
  */
-package org.apache.accumulo.core.client.mapreduce.util;
+package org.apache.accumulo.core.client.mapreduce.lib.util;
 

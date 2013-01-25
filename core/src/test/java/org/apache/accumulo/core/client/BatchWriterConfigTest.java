@@ -63,25 +63,48 @@ public class BatchWriterConfigTest {
   }
   
   @Test
-  public void testZeroTimeoutAndLatency() {
+  public void testZeroValues() {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
     bwConfig.setMaxLatency(0, TimeUnit.MILLISECONDS);
     bwConfig.setTimeout(0, TimeUnit.MILLISECONDS);
+    bwConfig.setMaxMemory(0);
     
     assertEquals(Long.MAX_VALUE, bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
     assertEquals(Long.MAX_VALUE, bwConfig.getTimeout(TimeUnit.MILLISECONDS));
+    assertEquals(0, bwConfig.getMaxMemory());
   }
   
   @Test(expected = IllegalArgumentException.class)
-  public void testMaxMemoryTooLow() {
+  public void testNegativeMaxMemory() {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
-    bwConfig.setMaxMemory(1024 - 1);
+    bwConfig.setMaxMemory(-1);
   }
   
   @Test(expected = IllegalArgumentException.class)
   public void testNegativeMaxLatency() {
     BatchWriterConfig bwConfig = new BatchWriterConfig();
     bwConfig.setMaxLatency(-1, TimeUnit.DAYS);
+  }
+  
+  @Test
+  public void testTinyTimeConversions() {
+    BatchWriterConfig bwConfig = new BatchWriterConfig();
+    bwConfig.setMaxLatency(999, TimeUnit.MICROSECONDS);
+    bwConfig.setTimeout(999, TimeUnit.MICROSECONDS);
+    
+    assertEquals(1000, bwConfig.getMaxLatency(TimeUnit.MICROSECONDS));
+    assertEquals(1000, bwConfig.getTimeout(TimeUnit.MICROSECONDS));
+    assertEquals(1, bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+    assertEquals(1, bwConfig.getTimeout(TimeUnit.MILLISECONDS));
+    
+    bwConfig.setMaxLatency(10, TimeUnit.NANOSECONDS);
+    bwConfig.setTimeout(10, TimeUnit.NANOSECONDS);
+    
+    assertEquals(1000000, bwConfig.getMaxLatency(TimeUnit.NANOSECONDS));
+    assertEquals(1000000, bwConfig.getTimeout(TimeUnit.NANOSECONDS));
+    assertEquals(1, bwConfig.getMaxLatency(TimeUnit.MILLISECONDS));
+    assertEquals(1, bwConfig.getTimeout(TimeUnit.MILLISECONDS));
+    
   }
   
   @Test(expected = IllegalArgumentException.class)

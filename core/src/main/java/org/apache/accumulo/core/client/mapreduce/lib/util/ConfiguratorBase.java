@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce.util;
+package org.apache.accumulo.core.client.mapreduce.lib.util;
 
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
@@ -108,13 +108,14 @@ public class ConfiguratorBase {
   }
   
   /**
-   * Gets the AccumuloToken from the configuration.
+   * Gets the AccumuloToken from the configuration. WARNING: The serialized Token is stored in the Configuration and shared with all MapReduce tasks; It is
+   * BASE64 encoded to provide a charset safe conversion to a string, and is not intended to be secure.
    * 
    * @param implementingClass
    *          the class whose name will be used as a prefix for the property configuration key
    * @param conf
    *          the Hadoop configuration object to configure
-   * @return the identifying AccumuloToken
+   * @return the AccumuloToken
    * @since 1.5.0
    * @see #setConnectorInfo(Class, Configuration, AccumuloToken)
    */

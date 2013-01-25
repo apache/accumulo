@@ -877,7 +877,6 @@ public class TFile {
      *          the input key
      * @param greater
      *          boolean flag
-     * @return
      * @throws IOException
      */
     Location getBlockContainsKey(RawComparable key, boolean greater) throws IOException {

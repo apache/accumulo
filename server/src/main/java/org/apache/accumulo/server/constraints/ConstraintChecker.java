@@ -19,13 +19,18 @@ package org.apache.accumulo.server.constraints;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Constraint;
-import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.constraints.Constraint.Environment;
+import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ComparableBytes;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader;
 import org.apache.log4j.Logger;
 
 public class ConstraintChecker {
@@ -33,14 +38,67 @@ public class ConstraintChecker {
   private ArrayList<Constraint> constrains;
   private static final Logger log = Logger.getLogger(ConstraintChecker.class);
   
-  public ConstraintChecker() {
+  private ClassLoader loader;
+  private TableConfiguration conf;
+
+  private AtomicLong lastCheck = new AtomicLong(0);
+
+  public ConstraintChecker(TableConfiguration conf) {
     constrains = new ArrayList<Constraint>();
+    
+    this.conf = conf;
+
+    try {
+      String context = conf.get(Property.TABLE_CLASSPATH);
+
+      if (context != null && !context.equals("")) {
+        loader = AccumuloVFSClassLoader.getContextManager().getClassLoader(context);
+      } else {
+        loader = AccumuloVFSClassLoader.getClassLoader();
+      }
+      
+      for (Entry<String,String> entry : conf) {
+        if (entry.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey())) {
+          String className = entry.getValue();
+          Class<? extends Constraint> clazz = loader.loadClass(className).asSubclass(Constraint.class);
+          log.debug("Loaded constraint " + clazz.getName() + " for " + conf.getTableId());
+          constrains.add(clazz.newInstance());
+        }
+      }
+      
+      lastCheck.set(System.currentTimeMillis());
+
+    } catch (Throwable e) {
+      constrains.clear();
+      loader = null;
+      constrains.add(new UnsatisfiableConstraint((short) -1, "Failed to load constraints, not accepting mutations."));
+      log.error("Failed to load constraints " + conf.getTableId() + " " + e.toString(), e);
+    }
   }
   
-  public void addConstraint(Constraint c) {
-    constrains.add(c);
+  public boolean classLoaderChanged() {
+    
+    if (constrains.size() == 0)
+      return false;
+
+    try {
+      String context = conf.get(Property.TABLE_CLASSPATH);
+      
+      ClassLoader currentLoader;
+      
+      if (context != null && !context.equals("")) {
+        currentLoader = AccumuloVFSClassLoader.getContextManager().getClassLoader(context);
+      } else {
+        currentLoader = AccumuloVFSClassLoader.getClassLoader();
+      }
+      
+      return currentLoader != loader;
+    } catch (Exception e) {
+      log.debug("Failed to check " + e.getMessage());
+      return true;
+    }
   }
-  
+
   public Violations check(Environment env, Mutation m) {
     
     Violations violations = null;

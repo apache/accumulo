@@ -26,7 +26,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 
 import org.apache.accumulo.core.conf.Property;
@@ -113,7 +112,7 @@ public class FileManager {
   
   private final ServerConfiguration conf;
   
-  private class IdleFileCloser extends TimerTask {
+  private class IdleFileCloser implements Runnable {
     
     @Override
     public void run() {
@@ -154,10 +153,6 @@ public class FileManager {
   
   /**
    * 
-   * @param instance
-   * @param conf
-   * @param fs
-   * @param maxOpen
    * @param dataCache
    *          : underlying file can and should be able to handle a null cache
    * @param indexCache

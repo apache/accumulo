@@ -42,6 +42,7 @@ public class MockSecurityOperations implements SecurityOperations {
   /**
    * @deprecated Use {@link #createUser(AccumuloToken)} instead
    */
+  @Deprecated
   @Override
   public void createUser(String user, byte[] password, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException {
     createUser(new UserPassToken(user, password), authorizations);

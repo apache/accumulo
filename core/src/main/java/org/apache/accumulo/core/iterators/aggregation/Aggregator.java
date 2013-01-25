@@ -21,6 +21,7 @@ import org.apache.accumulo.core.data.Value;
 /**
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.Combiner}
  */
+@Deprecated
 public interface Aggregator {
   void reset();
   

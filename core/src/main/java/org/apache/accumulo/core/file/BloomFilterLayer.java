@@ -280,11 +280,11 @@ public class BloomFilterLayer {
     }
     
     /**
-     * Checks if this MyMapFile has the indicated key. The membership test is performed using a Bloom filter, so the result has always non-zero probability of
+     * Checks if this {@link RFile} contains keys from this range. The membership test is performed using a Bloom filter, so the result has always non-zero probability of
      * false positives.
      * 
-     * @param key
-     *          key to check
+     * @param range
+     *          range of keys to check
      * @return false iff key doesn't exist, true if key probably exists.
      * @throws IOException
      */

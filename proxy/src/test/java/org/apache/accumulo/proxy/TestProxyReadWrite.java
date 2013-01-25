@@ -19,7 +19,6 @@ package org.apache.accumulo.proxy;
 import static org.junit.Assert.assertEquals;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,14 +28,13 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.accumulo.core.iterators.user.RegExFilter;
-import org.apache.accumulo.proxy.Proxy;
-import org.apache.accumulo.proxy.TestProxyClient;
-import org.apache.accumulo.proxy.Util;
+import org.apache.accumulo.proxy.thrift.BatchScanOptions;
 import org.apache.accumulo.proxy.thrift.ColumnUpdate;
 import org.apache.accumulo.proxy.thrift.IteratorSetting;
 import org.apache.accumulo.proxy.thrift.Key;
 import org.apache.accumulo.proxy.thrift.KeyValue;
 import org.apache.accumulo.proxy.thrift.Range;
+import org.apache.accumulo.proxy.thrift.ScanOptions;
 import org.apache.accumulo.proxy.thrift.ScanResult;
 import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
@@ -124,16 +122,16 @@ public class TestProxyReadWrite {
     
     Key stop = new Key();
     stop.setRow("5".getBytes());
-    List<Range> pranges = new ArrayList<Range>();
-    pranges.add(new Range(null, false, stop, false));
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, null, null, pranges);
+    BatchScanOptions options = new BatchScanOptions();
+    List<Range> ranges = Collections.singletonList(new Range(null, false, stop, false));
+    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, ranges, options);
     
     int i = 0;
     boolean hasNext = true;
     
     int k = 1000;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       i += kvList.getResultsSize();
       hasNext = kvList.isMore();
     }
@@ -166,14 +164,16 @@ public class TestProxyReadWrite {
     RegExFilter.setRegexs(is, regex, null, null, null, false);
     
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, null, Collections.singletonList(pis), null);
+    ScanOptions opts = new ScanOptions();
+    opts.iterators = Collections.singletonList(pis);
+    String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
     
     int i = 0;
     boolean hasNext = true;
     
     int k = 1000;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       for (KeyValue kv : kvList.getResults()) {
         assertEquals(Integer.parseInt(new String(kv.getKey().getRow())), i);
         
@@ -199,14 +199,16 @@ public class TestProxyReadWrite {
     
     Key stop = new Key();
     stop.setRow("5".getBytes());
-    String cookie = tpc.proxy().createScanner(userpass, testtable, null, null, new Range(null, false, stop, false));
+    ScanOptions opts = new ScanOptions();
+    opts.range = new Range(null, false, stop, false);
+    String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
     
     int i = 0;
     boolean hasNext = true;
     
     int k = 1000;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       i += kvList.getResultsSize();
       hasNext = kvList.isMore();
     }
@@ -241,14 +243,16 @@ public class TestProxyReadWrite {
     RegExFilter.setRegexs(is, regex, null, null, null, false);
     
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
-    String cookie = tpc.proxy().createScanner(userpass, testtable, null, Collections.singletonList(pis), null);
+    ScanOptions opts = new ScanOptions();
+    opts.iterators = Collections.singletonList(pis);
+    String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
     
     int i = 0;
     boolean hasNext = true;
     
     int k = 1000;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       for (KeyValue kv : kvList.getResults()) {
         assertEquals(Integer.parseInt(new String(kv.getKey().getRow())), i);
         
@@ -264,30 +268,30 @@ public class TestProxyReadWrite {
     int maxInserts = 1000000;
     Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
     String format = "%1$06d";
-    String writer = tpc.proxy().createWriter(userpass, testtable);
+    String writer = tpc.proxy().createWriter(userpass, testtable, null);
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
       
       if (i % 1000 == 0 || i == maxInserts - 1) {
         
-        tpc.proxy().writer_update(writer, mutations);
+        tpc.proxy().update(writer, mutations);
         mutations.clear();
         
       }
       
     }
     
-    tpc.proxy().writer_flush(writer);
-    tpc.proxy().writer_close(writer);
+    tpc.proxy().flush(writer);
+    tpc.proxy().closeWriter(writer);
     
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, null, null, null);
+    String cookie = tpc.proxy().createScanner(userpass, testtable, null);
     
     int i = 0;
     boolean hasNext = true;
     
     int k = 1000;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       for (KeyValue kv : kvList.getResults()) {
         assertEquals(Integer.parseInt(new String(kv.getKey().getRow())), i);
         i++;
@@ -304,18 +308,18 @@ public class TestProxyReadWrite {
     int maxInserts = 10000;
     Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
     String format = "%1$05d";
-    String writer = tpc.proxy().createWriter(userpass, testtable);
+    String writer = tpc.proxy().createWriter(userpass, testtable, null);
     for (int i = 0; i < maxInserts; i++) {
       addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, Util.randString(10));
       
       if (i % 1000 == 0 || i == maxInserts - 1) {
-        tpc.proxy().writer_update(writer, mutations);
+        tpc.proxy().update(writer, mutations);
         mutations.clear();
       }
     }
     
-    tpc.proxy().writer_flush(writer);
-    tpc.proxy().writer_close(writer);
+    tpc.proxy().flush(writer);
+    tpc.proxy().closeWriter(writer);
     
     String regex = ".*[02468]";
     
@@ -323,7 +327,9 @@ public class TestProxyReadWrite {
     RegExFilter.setRegexs(is, regex, null, null, null, false);
     
     IteratorSetting pis = Util.iteratorSetting2ProxyIteratorSetting(is);
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, null, Collections.singletonList(pis), null);
+    ScanOptions opts = new ScanOptions();
+    opts.iterators = Collections.singletonList(pis);
+    String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
     
     int i = 0;
     boolean hasNext = true;
@@ -331,7 +337,7 @@ public class TestProxyReadWrite {
     int k = 1000;
     int numRead = 0;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       for (KeyValue kv : kvList.getResults()) {
         assertEquals(i, Integer.parseInt(new String(kv.getKey().getRow())));
         numRead++;
@@ -352,7 +358,7 @@ public class TestProxyReadWrite {
     int maxInserts = 10000;
     Map<ByteBuffer,List<ColumnUpdate>> mutations = new HashMap<ByteBuffer,List<ColumnUpdate>>();
     String format = "%1$05d";
-    String writer = tpc.proxy().createWriter(userpass, testtable);
+    String writer = tpc.proxy().createWriter(userpass, testtable, null);
     for (int i = 0; i < maxInserts; i++) {
       if (i % 2 == 0)
         addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, "even", Util.randString(10));
@@ -360,14 +366,16 @@ public class TestProxyReadWrite {
         addMutation(mutations, String.format(format, i), "cf" + i, "cq" + i, "odd", Util.randString(10));
       
       if (i % 1000 == 0 || i == maxInserts - 1) {
-        tpc.proxy().writer_update(writer, mutations);
+        tpc.proxy().update(writer, mutations);
         mutations.clear();
       }
     }
     
-    tpc.proxy().writer_flush(writer);
-    tpc.proxy().writer_close(writer);
-    String cookie = tpc.proxy().createBatchScanner(userpass, testtable, auths, null, null);
+    tpc.proxy().flush(writer);
+    tpc.proxy().closeWriter(writer);
+    ScanOptions opts = new ScanOptions();
+    opts.authorizations = auths;
+    String cookie = tpc.proxy().createScanner(userpass, testtable, opts);
     
     int i = 0;
     boolean hasNext = true;
@@ -375,7 +383,7 @@ public class TestProxyReadWrite {
     int k = 1000;
     int numRead = 0;
     while (hasNext) {
-      ScanResult kvList = tpc.proxy().scanner_next_k(cookie, k);
+      ScanResult kvList = tpc.proxy().nextK(cookie, k);
       for (KeyValue kv : kvList.getResults()) {
         assertEquals(Integer.parseInt(new String(kv.getKey().getRow())), i);
         i += 2;

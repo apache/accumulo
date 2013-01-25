@@ -47,6 +47,7 @@ public interface SecurityOperations {
    *           if the user does not have permission to create a user
    * @deprecated Use {@link #createUser(String,byte[])} instead
    */
+  @Deprecated
   public void createUser(String user, byte[] password, Authorizations authorizations) throws AccumuloException, AccumuloSecurityException;
 
   /**

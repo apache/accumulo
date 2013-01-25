@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Random;
-import java.util.TimerTask;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -63,7 +62,7 @@ public class MiniAccumuloCluster {
       this.in = new BufferedReader(new InputStreamReader(stream));
       out = new BufferedWriter(new FileWriter(logFile));
       
-      SimpleTimer.getInstance().schedule(new TimerTask() {
+      SimpleTimer.getInstance().schedule(new Runnable() {
         @Override
         public void run() {
           try {

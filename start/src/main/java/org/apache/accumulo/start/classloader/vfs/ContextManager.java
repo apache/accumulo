@@ -119,7 +119,7 @@ public class ContextManager {
     synchronized (this) {
       // only manipulate internal data structs in this sync block... avoid creating or closing classloader, reading config, etc... basically avoid operations
       // that may block
-      context = contexts.get(context);
+      context = contexts.get(contextName);
       
       if (context == null) {
         context = new Context(cconfig);

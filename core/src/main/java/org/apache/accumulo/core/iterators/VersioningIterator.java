@@ -24,6 +24,7 @@ import org.apache.accumulo.core.data.Value;
  * 
  * @deprecated since 1.4, replaced by {@link org.apache.accumulo.core.iterators.user.VersioningIterator}
  */
+@Deprecated
 public class VersioningIterator extends org.apache.accumulo.core.iterators.user.VersioningIterator {
   public VersioningIterator() {}
   

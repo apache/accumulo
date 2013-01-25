@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce.util;
+package org.apache.accumulo.core.client.mapreduce.lib.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -508,8 +508,7 @@ public class InputConfigurator extends ConfiguratorBase {
       Connector c = getInstance(implementingClass, conf).getConnector(getToken(implementingClass, conf));
       if (!c.securityOperations().authenticateUser(getToken(implementingClass, conf)))
         throw new IOException("Unable to authenticate user");
-      if (!c.securityOperations().hasTablePermission(getToken(implementingClass, conf).getPrincipal(), getInputTableName(implementingClass, conf),
-          TablePermission.READ))
+      if (!c.securityOperations().hasTablePermission(getToken(implementingClass, conf).getPrincipal(), getInputTableName(implementingClass, conf), TablePermission.READ))
         throw new IOException("Unable to access table");
       
       if (!conf.getBoolean(enumToConfKey(implementingClass, Features.USE_LOCAL_ITERATORS), false)) {

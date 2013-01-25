@@ -14,12 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.accumulo.core.client.mapreduce;
+package org.apache.accumulo.core.client.mapred;
 
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.mapreduce.lib.util.FileOutputConfigurator;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -28,17 +27,16 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.commons.collections.map.LRUMap;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.OutputFormat;
-import org.apache.hadoop.mapreduce.RecordWriter;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.mapred.FileOutputFormat;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.RecordWriter;
+import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.util.Progressable;
 import org.apache.log4j.Logger;
 
 /**
@@ -46,9 +44,9 @@ import org.apache.log4j.Logger;
  * Care should be taken to write only sorted data (sorted by {@link Key}), as this is an important requirement of Accumulo data files.
  * 
  * <p>
- * The output path to be created must be specified via {@link AccumuloFileOutputFormat#setOutputPath(Job, Path)}. This is inherited from
- * {@link FileOutputFormat#setOutputPath(Job, Path)}. Other methods from {@link FileOutputFormat} are not supported and may be ignored or cause failures. Using
- * other Hadoop configuration options that affect the behavior of the underlying files directly in the Job's configuration may work, but are not directly
+ * The output path to be created must be specified via {@link AccumuloFileOutputFormat#setOutputPath(JobConf, Path)}. This is inherited from
+ * {@link FileOutputFormat#setOutputPath(JobConf, Path)}. Other methods from {@link FileOutputFormat} are not supported and may be ignored or cause failures.
+ * Using other Hadoop configuration options that affect the behavior of the underlying files directly in the Job's configuration may work, but are not directly
  * supported at this time.
  */
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
@@ -60,12 +58,12 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    * This helper method provides an AccumuloConfiguration object constructed from the Accumulo defaults, and overridden with Accumulo properties that have been
    * stored in the Job's configuration.
    * 
-   * @param context
+   * @param job
    *          the Hadoop context for the configured job
    * @since 1.5.0
    */
-  protected static AccumuloConfiguration getAccumuloConfiguration(JobContext context) {
-    return FileOutputConfigurator.getAccumuloConfiguration(CLASS, context.getConfiguration());
+  protected static AccumuloConfiguration getAccumuloConfiguration(JobConf job) {
+    return FileOutputConfigurator.getAccumuloConfiguration(CLASS, job);
   }
   
   /**
@@ -77,8 +75,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    *          one of "none", "gz", "lzo", or "snappy"
    * @since 1.5.0
    */
-  public static void setCompressionType(Job job, String compressionType) {
-    FileOutputConfigurator.setCompressionType(CLASS, job.getConfiguration(), compressionType);
+  public static void setCompressionType(JobConf job, String compressionType) {
+    FileOutputConfigurator.setCompressionType(CLASS, job, compressionType);
   }
   
   /**
@@ -94,8 +92,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    *          the block size, in bytes
    * @since 1.5.0
    */
-  public static void setDataBlockSize(Job job, long dataBlockSize) {
-    FileOutputConfigurator.setDataBlockSize(CLASS, job.getConfiguration(), dataBlockSize);
+  public static void setDataBlockSize(JobConf job, long dataBlockSize) {
+    FileOutputConfigurator.setDataBlockSize(CLASS, job, dataBlockSize);
   }
   
   /**
@@ -107,8 +105,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    *          the block size, in bytes
    * @since 1.5.0
    */
-  public static void setFileBlockSize(Job job, long fileBlockSize) {
-    FileOutputConfigurator.setFileBlockSize(CLASS, job.getConfiguration(), fileBlockSize);
+  public static void setFileBlockSize(JobConf job, long fileBlockSize) {
+    FileOutputConfigurator.setFileBlockSize(CLASS, job, fileBlockSize);
   }
   
   /**
@@ -121,8 +119,8 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    *          the block size, in bytes
    * @since 1.5.0
    */
-  public static void setIndexBlockSize(Job job, long indexBlockSize) {
-    FileOutputConfigurator.setIndexBlockSize(CLASS, job.getConfiguration(), indexBlockSize);
+  public static void setIndexBlockSize(JobConf job, long indexBlockSize) {
+    FileOutputConfigurator.setIndexBlockSize(CLASS, job, indexBlockSize);
   }
   
   /**
@@ -134,18 +132,18 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
    *          the number of replicas for produced files
    * @since 1.5.0
    */
-  public static void setReplication(Job job, int replication) {
-    FileOutputConfigurator.setReplication(CLASS, job.getConfiguration(), replication);
+  public static void setReplication(JobConf job, int replication) {
+    FileOutputConfigurator.setReplication(CLASS, job, replication);
   }
   
   @Override
-  public RecordWriter<Key,Value> getRecordWriter(TaskAttemptContext context) throws IOException {
+  public RecordWriter<Key,Value> getRecordWriter(FileSystem ignored, JobConf job, String name, Progressable progress) throws IOException {
     // get the path of the temporary output file
-    final Configuration conf = context.getConfiguration();
-    final AccumuloConfiguration acuConf = getAccumuloConfiguration(context);
+    final Configuration conf = job;
+    final AccumuloConfiguration acuConf = getAccumuloConfiguration(job);
     
     final String extension = acuConf.get(Property.TABLE_FILE_TYPE);
-    final Path file = this.getDefaultWorkFile(context, "." + extension);
+    final Path file = new Path(getWorkOutputPath(job), getUniqueName(job, "part") + "." + extension);
     
     final LRUMap validVisibilities = new LRUMap(1000);
     
@@ -153,7 +151,7 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
       FileSKVWriter out = null;
       
       @Override
-      public void close(TaskAttemptContext context) throws IOException {
+      public void close(Reporter reporter) throws IOException {
         if (out != null)
           out.close();
       }
@@ -175,52 +173,6 @@ public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
         out.append(key, value);
       }
     };
-  }
-  
-  // ----------------------------------------------------------------------------------------------------
-  // Everything below this line is deprecated and should go away in future versions
-  // ----------------------------------------------------------------------------------------------------
-  
-  /**
-   * @deprecated since 1.5.0; Retrieve the relevant block size from {@link #getAccumuloConfiguration(JobContext)} and configure hadoop's
-   *             io.seqfile.compress.blocksize with the same value. No longer needed, as {@link RFile} does not use this field.
-   */
-  @Deprecated
-  protected static void handleBlockSize(Configuration conf) {
-    conf.setInt("io.seqfile.compress.blocksize",
-        (int) FileOutputConfigurator.getAccumuloConfiguration(CLASS, conf).getMemoryInBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE));
-  }
-  
-  /**
-   * @deprecated since 1.5.0; This method does nothing. Only 'rf' type is supported.
-   */
-  @Deprecated
-  public static void setFileType(Configuration conf, String type) {}
-  
-  /**
-   * @deprecated since 1.5.0; Use {@link #setFileBlockSize(Job, long)}, {@link #setDataBlockSize(Job, long)}, or {@link #setIndexBlockSize(Job, long)} instead.
-   */
-  @Deprecated
-  public static void setBlockSize(Configuration conf, int blockSize) {
-    FileOutputConfigurator.setDataBlockSize(CLASS, conf, blockSize);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; This {@link OutputFormat} does not communicate with Accumulo. If this is needed, subclasses must implement their own
-   *             configuration.
-   */
-  @Deprecated
-  public static void setZooKeeperInstance(Configuration conf, String instanceName, String zooKeepers) {
-    FileOutputConfigurator.setZooKeeperInstance(CLASS, conf, instanceName, zooKeepers);
-  }
-  
-  /**
-   * @deprecated since 1.5.0; This {@link OutputFormat} does not communicate with Accumulo. If this is needed, subclasses must implement their own
-   *             configuration.
-   */
-  @Deprecated
-  protected static Instance getInstance(Configuration conf) {
-    return FileOutputConfigurator.getInstance(CLASS, conf);
   }
   
 }

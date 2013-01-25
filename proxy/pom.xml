@@ -101,6 +101,11 @@
     	<version>1.5.0-SNAPSHOT</version>
     	<scope>test</scope>
     </dependency>
+    <dependency>
+    	<groupId>org.apache.accumulo</groupId>
+    	<artifactId>examples-simple</artifactId>
+    	<scope>test</scope>
+    </dependency>
   </dependencies>
 
   <profiles>
