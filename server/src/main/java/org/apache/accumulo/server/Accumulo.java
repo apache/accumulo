@@ -112,7 +112,7 @@ public class Accumulo {
     DOMConfigurator.configureAndWatch(logConfig, 5000);
     
     log.info(application + " starting");
-    log.info("Instance " + HdfsZooInstance.getInstance().getInstanceID());
+    log.info("Instance " + config.getInstance().getInstanceID());
     int dataVersion = Accumulo.getAccumuloPersistentVersion(fs);
     log.info("Data Version " + dataVersion);
     Accumulo.waitForZookeeperAndHdfs(fs);
@@ -167,7 +167,7 @@ public class Accumulo {
       }
     }, 1000, 10 * 1000);
   }
-
+  
   public static String getLocalAddress(String[] args) throws UnknownHostException {
     InetAddress result = InetAddress.getLocalHost();
     for (int i = 0; i < args.length - 1; i++) {

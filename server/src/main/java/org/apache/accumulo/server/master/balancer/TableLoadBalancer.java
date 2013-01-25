@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.KeyExtent;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.server.client.HdfsZooInstance;
 import org.apache.accumulo.server.master.state.TServerInstance;
 import org.apache.accumulo.server.master.state.TabletMigration;
 import org.apache.accumulo.server.security.SecurityConstants;
@@ -73,16 +72,16 @@ public class TableLoadBalancer extends TabletBalancer {
             balancer.init(configuration);
           }
         } catch (Exception e) {
-          log.warn("Failed to load table balancer class ", e);
+          log.warn("Failed to load table balancer class " + clazzName + " for table " + table, e);
         }
       }
     }
     if (balancer == null) {
       try {
         balancer = constructNewBalancerForTable(clazzName, table);
-        log.info("Loaded class : " + clazzName);
+        log.info("Loaded class " + clazzName + " for table " + table);
       } catch (Exception e) {
-        log.warn("Failed to load table balancer class ", e);
+        log.warn("Failed to load table balancer class " + clazzName + " for table " + table, e);
       }
       
       if (balancer == null) {
@@ -120,7 +119,7 @@ public class TableLoadBalancer extends TabletBalancer {
   protected TableOperations getTableOperations() {
     if (tops == null)
       try {
-        tops = HdfsZooInstance.getInstance().getConnector(SecurityConstants.getSystemCredentials()).tableOperations();
+        tops = configuration.getInstance().getConnector(SecurityConstants.getSystemCredentials()).tableOperations();
       } catch (AccumuloException e) {
         log.error("Unable to access table operations from within table balancer", e);
       } catch (AccumuloSecurityException e) {
