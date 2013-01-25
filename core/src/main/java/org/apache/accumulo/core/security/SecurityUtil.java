@@ -38,7 +38,6 @@ public class SecurityUtil {
     @SuppressWarnings("deprecation")
     AccumuloConfiguration acuConf = AccumuloConfiguration.getSiteConfiguration();
     String keyTab = acuConf.get(Property.GENERAL_KERBEROS_KEYTAB);
-    System.out.println("Using keytab " + keyTab);
     if (keyTab == null || keyTab.length() == 0)
       return;
     
