@@ -249,7 +249,7 @@ public abstract class FunctionalTest {
     FunctionalTest fTest = testClass.newInstance();
     
     //fTest.setMaster(master);
-    fTest.setToken(opts.getAccumuloToken());
+    fTest.setToken(new UserPassToken(opts.user, opts.password.value));
     fTest.setInstanceName(opts.instance);
     
     if (opts.opt.equals("getConfig")) {
