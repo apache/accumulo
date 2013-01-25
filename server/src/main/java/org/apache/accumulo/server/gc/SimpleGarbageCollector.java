@@ -318,6 +318,16 @@ public class SimpleGarbageCollector implements Iface {
     }
   }
   
+  private boolean moveToTrash(Path path) throws IOException {
+    if (trash == null)
+      return false;
+    try {
+      return trash.moveToTrash(path);
+    } catch (FileNotFoundException ex) {
+      return false;
+    }
+  }
+  
   /*
    * this method removes deleted table dirs that are empty
    */
@@ -350,12 +360,8 @@ public class SimpleGarbageCollector implements Iface {
       
       if (tabletDirs.length == 0) {
         Path p = new Path(ServerConstants.getTablesDir() + "/" + delTableId);
-        try {
-          trash.moveToTrash(p);
-        } catch (FileNotFoundException ex) {
-          log.debug("Ignoring error moving a directory " + p + " to the trash", ex);
+        if (!moveToTrash(p)) 
           fs.delete(p, false);
-        }
       }
     }
   }
@@ -605,15 +611,8 @@ public class SimpleGarbageCollector implements Iface {
           try {
             
             Path p = new Path(ServerConstants.getTablesDir() + delete);
-            boolean moved = false;
-            if (trash != null)
-              try {
-                moved = trash.moveToTrash(p);
-              } catch (FileNotFoundException ex) {
-                log.debug("Ignoring exception moving " + p + " to trash");
-              }
             
-            if (moved || fs.delete(p, true)) {
+            if (moveToTrash(p) || fs.delete(p, true)) {
               // delete succeeded, still want to delete
               removeFlag = true;
               synchronized (SimpleGarbageCollector.this) {
