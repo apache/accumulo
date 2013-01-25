@@ -25,14 +25,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.accumulo.proxy.Proxy;
-import org.apache.accumulo.proxy.TestProxyClient;
 import org.apache.accumulo.proxy.thrift.SystemPermission;
 import org.apache.accumulo.proxy.thrift.TablePermission;
 import org.apache.accumulo.proxy.thrift.TimeType;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;
+import org.apache.thrift.transport.TFramedTransport;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -54,8 +54,8 @@ public class TestProxySecurityOperations {
     Properties prop = new Properties();
     prop.setProperty("org.apache.accumulo.proxy.ProxyServer.useMockInstance", "true");
     
-    proxy = Proxy.createProxyServer(Class.forName("org.apache.accumulo.proxy.thrift.AccumuloProxy"),
-        Class.forName("org.apache.accumulo.proxy.ProxyServer"), port, prop);
+    proxy = Proxy.createProxyServer(Class.forName("org.apache.accumulo.proxy.thrift.AccumuloProxy"), Class.forName("org.apache.accumulo.proxy.ProxyServer"),
+        port, TCompactProtocol.Factory.class, TFramedTransport.Factory.class, prop);
     thread = new Thread() {
       @Override
       public void run() {

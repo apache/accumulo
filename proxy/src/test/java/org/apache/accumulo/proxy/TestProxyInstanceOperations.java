@@ -23,11 +23,11 @@ import static org.junit.Assert.assertTrue;
 import java.nio.ByteBuffer;
 import java.util.Properties;
 
-import org.apache.accumulo.proxy.Proxy;
-import org.apache.accumulo.proxy.TestProxyClient;
 import org.apache.accumulo.proxy.thrift.UserPass;
 import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;
+import org.apache.thrift.transport.TFramedTransport;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -44,8 +44,8 @@ public class TestProxyInstanceOperations {
     Properties prop = new Properties();
     prop.setProperty("org.apache.accumulo.proxy.ProxyServer.useMockInstance", "true");
     
-    proxy = Proxy.createProxyServer(Class.forName("org.apache.accumulo.proxy.thrift.AccumuloProxy"),
-        Class.forName("org.apache.accumulo.proxy.ProxyServer"), port, prop);
+    proxy = Proxy.createProxyServer(Class.forName("org.apache.accumulo.proxy.thrift.AccumuloProxy"), Class.forName("org.apache.accumulo.proxy.ProxyServer"),
+        port, TCompactProtocol.Factory.class, TFramedTransport.Factory.class, prop);
     thread = new Thread() {
       @Override
       public void run() {
@@ -75,8 +75,7 @@ public class TestProxyInstanceOperations {
   
   @Test
   public void testClassLoad() throws TException {
-    assertTrue(tpc.proxy().testClassLoad(userpass, "org.apache.accumulo.core.iterators.user.RegExFilter",
-        "org.apache.accumulo.core.iterators.Filter"));
+    assertTrue(tpc.proxy().testClassLoad(userpass, "org.apache.accumulo.core.iterators.user.RegExFilter", "org.apache.accumulo.core.iterators.Filter"));
   }
   
 }

@@ -60,7 +60,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
+import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.server.TServer;
+import org.apache.thrift.transport.TFramedTransport;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -93,11 +95,8 @@ public class SimpleTest {
     props.put("org.apache.accumulo.proxy.ProxyServer.zookeepers", accumulo.getZookeepers());
     
     proxyPort = 40000 + random.nextInt(20000);
-    proxyServer = Proxy.createProxyServer(
-        org.apache.accumulo.proxy.thrift.AccumuloProxy.class,
-        org.apache.accumulo.proxy.ProxyServer.class, 
-        proxyPort, 
-        props);
+    proxyServer = Proxy.createProxyServer(org.apache.accumulo.proxy.thrift.AccumuloProxy.class, org.apache.accumulo.proxy.ProxyServer.class, proxyPort,
+        TCompactProtocol.Factory.class, TFramedTransport.Factory.class, props);
     thread = new Thread() {
       @Override
       public void run() {
