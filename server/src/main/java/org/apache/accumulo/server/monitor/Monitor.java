@@ -415,6 +415,7 @@ public class Monitor {
   
   private static GCStatus fetchGcStatus() {
     GCStatus result = null;
+    InetSocketAddress address = null;
     try {
       // Read the gc location from its lock
       Instance instance = HdfsZooInstance.getInstance();
@@ -429,7 +430,7 @@ public class Monitor {
         List<String> locks = zk.getChildren(path, null);
         if (locks != null && locks.size() > 0) {
           Collections.sort(locks);
-          InetSocketAddress address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null, null))).getAddress(Service.GC_CLIENT);
+          address = new ServerServices(new String(zk.getData(path + "/" + locks.get(0), null, null))).getAddress(Service.GC_CLIENT);
           GCMonitorService.Client client = ThriftUtil.getClient(new GCMonitorService.Client.Factory(), address, config.getConfiguration());
           try {
             result = client.getStatus(Tracer.traceInfo(), SecurityConstants.getThriftSystemCredentials());
@@ -441,7 +442,7 @@ public class Monitor {
         zk.close();
       }
     } catch (Exception ex) {
-      log.warn("Unable to contact the garbage collector", ex);
+      log.warn("Unable to contact the garbage collector at " + address, ex);
     }
     return result;
   }
